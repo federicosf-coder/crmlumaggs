@@ -1,13 +1,15 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  ShoppingCart, FileText, Package, Truck, Users,
+  ShoppingCart, FileText, Package, Truck, BookOpen,
   ArrowLeftRight, FolderKanban, Search, GraduationCap, Receipt, BarChart3,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const modules = [
-  { title: "CRM", description: "Manage customers & contacts", icon: ShoppingCart, url: "/crm", color: "bg-primary" },
+  { title: "Directory", description: "Companies & contacts", icon: BookOpen, url: "/directory", color: "bg-primary" },
+  { title: "CRM Chevron", description: "Chevron lubricant sales", icon: ShoppingCart, url: "/crm/chevron", color: "bg-primary" },
+  { title: "CRM Phillips 66", description: "Phillips 66 lubricant sales", icon: ShoppingCart, url: "/crm/phillips66", color: "bg-primary" },
   { title: "Quotes", description: "Create & send quotes", icon: FileText, url: "/quotes", color: "bg-primary" },
   { title: "Inventory", description: "Product catalog & stock", icon: Package, url: "/inventory", color: "bg-primary" },
   { title: "Delivery", description: "Track deliveries", icon: Truck, url: "/delivery", color: "bg-primary" },
