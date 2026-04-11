@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, ShoppingCart, FileText, Package, Truck,
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
-  Receipt, BarChart3, Droplets, LogOut, Settings,
+  Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -25,7 +25,9 @@ interface NavItem {
 
 const mainItems: NavItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: "all" },
-  { title: "CRM", url: "/crm", icon: ShoppingCart, roles: ["admin", "manager", "sales", "customer_service"] },
+  { title: "Directory", url: "/directory", icon: BookOpen, roles: "all" },
+  { title: "CRM Chevron", url: "/crm/chevron", icon: ShoppingCart, roles: ["admin", "manager", "sales", "customer_service"] },
+  { title: "CRM Phillips 66", url: "/crm/phillips66", icon: ShoppingCart, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Quotes", url: "/quotes", icon: FileText, roles: ["admin", "manager", "sales"] },
   { title: "Inventory", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
   { title: "Delivery", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },

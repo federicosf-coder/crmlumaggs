@@ -12,6 +12,7 @@ import Profile from "@/pages/Profile";
 import UserManagement from "@/pages/admin/UserManagement";
 import TeamManagement from "@/pages/admin/TeamManagement";
 import ModulePlaceholder from "@/pages/ModulePlaceholder";
+import Directory from "@/pages/Directory";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,7 +47,9 @@ const App = () => (
             <Route path="/admin/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
             <Route path="/admin/teams" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
 
-            <Route path="/crm" element={<ProtectedRoute><ModulePlaceholder title="CRM" description="Customer relationship management — contacts, accounts, deals pipeline. Coming in Phase 2." /></ProtectedRoute>} />
+            <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
+            <Route path="/crm/chevron" element={<ProtectedRoute><ModulePlaceholder title="CRM — Chevron" description="Sales pipeline, deals, and customer management for Chevron lubricants. Coming in Phase 2." /></ProtectedRoute>} />
+            <Route path="/crm/phillips66" element={<ProtectedRoute><ModulePlaceholder title="CRM — Phillips 66" description="Sales pipeline, deals, and customer management for Phillips 66 lubricants. Coming in Phase 2." /></ProtectedRoute>} />
             <Route path="/quotes" element={<ProtectedRoute><ModulePlaceholder title="Quotes" description="Create and manage quotes for Chevron & Phillips 66 lubricants. Coming in Phase 2." /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute><ModulePlaceholder title="Inventory" description="Product catalog, stock levels, and warehouse management. Coming in Phase 3." /></ProtectedRoute>} />
             <Route path="/delivery" element={<ProtectedRoute><ModulePlaceholder title="Delivery" description="Track and manage product deliveries. Coming in Phase 4." /></ProtectedRoute>} />
