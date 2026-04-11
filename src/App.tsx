@@ -19,14 +19,14 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Cargando...</div>;
   if (!session) return <Navigate to="/auth" replace />;
   return <AppLayout>{children}</AppLayout>;
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Cargando...</div>;
   if (session) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
@@ -48,17 +48,17 @@ const App = () => (
             <Route path="/admin/teams" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
 
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
-            <Route path="/crm/chevron" element={<ProtectedRoute><ModulePlaceholder title="CRM — Chevron" description="Sales pipeline, deals, and customer management for Chevron lubricants. Coming in Phase 2." /></ProtectedRoute>} />
-            <Route path="/crm/phillips66" element={<ProtectedRoute><ModulePlaceholder title="CRM — Phillips 66" description="Sales pipeline, deals, and customer management for Phillips 66 lubricants. Coming in Phase 2." /></ProtectedRoute>} />
-            <Route path="/quotes" element={<ProtectedRoute><ModulePlaceholder title="Quotes" description="Create and manage quotes for Chevron & Phillips 66 lubricants. Coming in Phase 2." /></ProtectedRoute>} />
-            <Route path="/inventory" element={<ProtectedRoute><ModulePlaceholder title="Inventory" description="Product catalog, stock levels, and warehouse management. Coming in Phase 3." /></ProtectedRoute>} />
-            <Route path="/delivery" element={<ProtectedRoute><ModulePlaceholder title="Delivery" description="Track and manage product deliveries. Coming in Phase 4." /></ProtectedRoute>} />
-            <Route path="/transfers" element={<ProtectedRoute><ModulePlaceholder title="Inventory Transfers" description="Manage transfers between warehouses. Coming in Phase 3." /></ProtectedRoute>} />
-            <Route path="/invoicing" element={<ProtectedRoute><ModulePlaceholder title="Invoicing" description="Billing, invoice generation, and payment tracking." /></ProtectedRoute>} />
-            <Route path="/products" element={<ProtectedRoute><ModulePlaceholder title="Product Inquiry" description="Search and browse the Chevron & Phillips 66 lubricant catalog." /></ProtectedRoute>} />
-            <Route path="/projects" element={<ProtectedRoute><ModulePlaceholder title="Projects & Tasks" description="Project management and task tracking for your team." /></ProtectedRoute>} />
-            <Route path="/training" element={<ProtectedRoute><ModulePlaceholder title="Training" description="Training materials and courses for your team." /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><ModulePlaceholder title="Reports" description="Analytics, reporting, and business intelligence." /></ProtectedRoute>} />
+            <Route path="/crm/chevron" element={<ProtectedRoute><ModulePlaceholder title="CRM — Chevron" description="Pipeline de ventas, oportunidades y gestión de clientes para lubricantes Chevron. Próximamente en Fase 2." /></ProtectedRoute>} />
+            <Route path="/crm/phillips66" element={<ProtectedRoute><ModulePlaceholder title="CRM — Phillips 66" description="Pipeline de ventas, oportunidades y gestión de clientes para lubricantes Phillips 66. Próximamente en Fase 2." /></ProtectedRoute>} />
+            <Route path="/quotes" element={<ProtectedRoute><ModulePlaceholder title="Cotizaciones" description="Crear y gestionar cotizaciones para lubricantes Chevron y Phillips 66. Próximamente en Fase 2." /></ProtectedRoute>} />
+            <Route path="/inventory" element={<ProtectedRoute><ModulePlaceholder title="Inventario" description="Catálogo de productos, niveles de existencias y gestión de almacén. Próximamente en Fase 3." /></ProtectedRoute>} />
+            <Route path="/delivery" element={<ProtectedRoute><ModulePlaceholder title="Entregas" description="Seguimiento y gestión de entregas de productos. Próximamente en Fase 4." /></ProtectedRoute>} />
+            <Route path="/transfers" element={<ProtectedRoute><ModulePlaceholder title="Transferencias de Inventario" description="Gestión de transferencias entre almacenes. Próximamente en Fase 3." /></ProtectedRoute>} />
+            <Route path="/invoicing" element={<ProtectedRoute><ModulePlaceholder title="Facturación" description="Facturación, generación de facturas y seguimiento de pagos." /></ProtectedRoute>} />
+            <Route path="/products" element={<ProtectedRoute><ModulePlaceholder title="Consulta de Productos" description="Buscar y explorar el catálogo de lubricantes Chevron y Phillips 66." /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute><ModulePlaceholder title="Proyectos y Tareas" description="Gestión de proyectos y seguimiento de tareas para tu equipo." /></ProtectedRoute>} />
+            <Route path="/training" element={<ProtectedRoute><ModulePlaceholder title="Capacitación" description="Materiales de capacitación y cursos para tu equipo." /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><ModulePlaceholder title="Reportes" description="Análisis, reportes e inteligencia de negocio." /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
