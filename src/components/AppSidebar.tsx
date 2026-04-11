@@ -74,7 +74,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup defaultOpen>
+        <SidebarGroup>
           <SidebarGroupLabel>Modules</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -93,7 +93,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {visibleAdmin.length > 0 && (
-          <SidebarGroup defaultOpen>
+          <SidebarGroup>
             <SidebarGroupLabel>Administration</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
