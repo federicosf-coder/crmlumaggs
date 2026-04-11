@@ -48,7 +48,7 @@ export default function TeamManagement() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Team created" });
+      toast({ title: "Equipo creado" });
       setOpen(false);
       setName("");
       setDescription("");
@@ -59,42 +59,42 @@ export default function TeamManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Teams</h1>
+        <h1 className="text-3xl font-bold">Equipos</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> New Team</Button>
+            <Button><Plus className="mr-2 h-4 w-4" /> Nuevo Equipo</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Create Team</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Crear Equipo</DialogTitle></DialogHeader>
             <form onSubmit={createTeam} className="space-y-4">
               <div className="space-y-2">
-                <Label>Team Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. North Region Sales" required />
+                <Label>Nombre del Equipo</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Ventas Región Norte" required />
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional description" />
+                <Label>Descripción</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripción opcional" />
               </div>
-              <Button type="submit" className="w-full">Create Team</Button>
+              <Button type="submit" className="w-full">Crear Equipo</Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
       <Card>
-        <CardHeader><CardTitle>All Teams</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Todos los Equipos</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground">Loading...</p>
+            <p className="text-muted-foreground">Cargando...</p>
           ) : teams.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No teams created yet.</p>
+            <p className="text-muted-foreground text-center py-8">No hay equipos creados aún.</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Members</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead>Miembros</TableHead>
+                  <TableHead>Estado</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -110,7 +110,7 @@ export default function TeamManagement() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={t.is_active ? "default" : "secondary"}>
-                        {t.is_active ? "Active" : "Inactive"}
+                        {t.is_active ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
                   </TableRow>

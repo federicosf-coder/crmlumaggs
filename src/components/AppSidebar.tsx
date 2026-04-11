@@ -24,24 +24,24 @@ interface NavItem {
 }
 
 const mainItems: NavItem[] = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: "all" },
-  { title: "Directory", url: "/directory", icon: BookOpen, roles: "all" },
+  { title: "Inicio", url: "/", icon: LayoutDashboard, roles: "all" },
+  { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
   { title: "CRM Chevron", url: "/crm/chevron", icon: ShoppingCart, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "CRM Phillips 66", url: "/crm/phillips66", icon: ShoppingCart, roles: ["admin", "manager", "sales", "customer_service"] },
-  { title: "Quotes", url: "/quotes", icon: FileText, roles: ["admin", "manager", "sales"] },
-  { title: "Inventory", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
-  { title: "Delivery", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
-  { title: "Transfers", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
-  { title: "Invoicing", url: "/invoicing", icon: Receipt, roles: ["admin", "manager", "accounting"] },
-  { title: "Product Inquiry", url: "/products", icon: Search, roles: ["admin", "manager", "sales", "customer_service"] },
-  { title: "Projects & Tasks", url: "/projects", icon: FolderKanban, roles: "all" },
-  { title: "Training", url: "/training", icon: GraduationCap, roles: "all" },
-  { title: "Reports", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
+  { title: "Cotizaciones", url: "/quotes", icon: FileText, roles: ["admin", "manager", "sales"] },
+  { title: "Inventario", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
+  { title: "Entregas", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
+  { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
+  { title: "Facturación", url: "/invoicing", icon: Receipt, roles: ["admin", "manager", "accounting"] },
+  { title: "Consulta Productos", url: "/products", icon: Search, roles: ["admin", "manager", "sales", "customer_service"] },
+  { title: "Proyectos y Tareas", url: "/projects", icon: FolderKanban, roles: "all" },
+  { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
+  { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
 ];
 
 const adminItems: NavItem[] = [
-  { title: "User Management", url: "/admin/users", icon: Users, roles: ["admin"] },
-  { title: "Teams", url: "/admin/teams", icon: Settings, roles: ["admin", "manager"] },
+  { title: "Gestión de Usuarios", url: "/admin/users", icon: Users, roles: ["admin"] },
+  { title: "Equipos", url: "/admin/teams", icon: Settings, roles: ["admin", "manager"] },
 ];
 
 export function AppSidebar() {
@@ -52,7 +52,7 @@ export function AppSidebar() {
 
   const canAccess = (item: NavItem) => {
     if (item.roles === "all") return true;
-    if (roles.length === 0) return true; // new users with no roles see everything until assigned
+    if (roles.length === 0) return true;
     return hasAnyRole(item.roles);
   };
 
@@ -69,7 +69,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="flex flex-col">
               <span className="font-bold text-sm text-sidebar-foreground">LubriManager</span>
-              <span className="text-[10px] text-sidebar-foreground/60">Distribution Platform</span>
+              <span className="text-[10px] text-sidebar-foreground/60">Plataforma de Distribución</span>
             </div>
           )}
         </div>
@@ -77,7 +77,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Modules</SidebarGroupLabel>
+          <SidebarGroupLabel>Módulos</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {visibleMain.map((item) => (
@@ -96,7 +96,7 @@ export function AppSidebar() {
 
         {visibleAdmin.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarGroupLabel>Administración</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {visibleAdmin.map((item) => (
@@ -122,7 +122,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild>
               <NavLink to="/profile" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                 <UserCircle className="mr-2 h-4 w-4" />
-                {!collapsed && <span className="truncate">{profile?.full_name || "Profile"}</span>}
+                {!collapsed && <span className="truncate">{profile?.full_name || "Perfil"}</span>}
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -130,7 +130,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild>
               <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50" onClick={signOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                {!collapsed && <span>Sign Out</span>}
+                {!collapsed && <span>Cerrar Sesión</span>}
               </Button>
             </SidebarMenuButton>
           </SidebarMenuItem>

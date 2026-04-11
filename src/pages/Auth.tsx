@@ -46,7 +46,7 @@ export default function Auth() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Success", description: "Check your email to confirm your account." });
+      toast({ title: "Éxito", description: "Cuenta creada exitosamente." });
       setMode("login");
     }
   };
@@ -61,7 +61,7 @@ export default function Auth() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Email sent", description: "Check your inbox for a password reset link." });
+      toast({ title: "Correo enviado", description: "Revisa tu bandeja de entrada para restablecer tu contraseña." });
       setMode("login");
     }
   };
@@ -76,47 +76,47 @@ export default function Auth() {
             </div>
           </div>
           <CardTitle className="text-2xl">
-            {mode === "login" && "Sign In"}
-            {mode === "signup" && "Create Account"}
-            {mode === "forgot" && "Reset Password"}
+            {mode === "login" && "Iniciar Sesión"}
+            {mode === "signup" && "Crear Cuenta"}
+            {mode === "forgot" && "Restablecer Contraseña"}
           </CardTitle>
           <CardDescription>
-            {mode === "login" && "Lubricant Distribution Management Platform"}
-            {mode === "signup" && "Join your team on the platform"}
-            {mode === "forgot" && "Enter your email to receive a reset link"}
+            {mode === "login" && "Plataforma de Gestión de Distribución de Lubricantes"}
+            {mode === "signup" && "Únete a tu equipo en la plataforma"}
+            {mode === "forgot" && "Ingresa tu correo para recibir un enlace de restablecimiento"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={mode === "login" ? handleLogin : mode === "signup" ? handleSignup : handleForgot} className="space-y-4">
             {mode === "signup" && (
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe" required />
+                <Label htmlFor="fullName">Nombre Completo</Label>
+                <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Juan Pérez" required />
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required />
+              <Label htmlFor="email">Correo Electrónico</Label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@empresa.com" required />
             </div>
             {mode !== "forgot" && (
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Contraseña</Label>
                 <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} />
               </div>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Please wait..." : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
+              {loading ? "Espera..." : mode === "login" ? "Iniciar Sesión" : mode === "signup" ? "Crear Cuenta" : "Enviar Enlace"}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm space-y-1">
             {mode === "login" && (
               <>
-                <button onClick={() => setMode("forgot")} className="text-primary hover:underline block w-full">Forgot password?</button>
-                <p className="text-muted-foreground">Don't have an account?{" "}<button onClick={() => setMode("signup")} className="text-primary hover:underline">Sign up</button></p>
+                <button onClick={() => setMode("forgot")} className="text-primary hover:underline block w-full">¿Olvidaste tu contraseña?</button>
+                <p className="text-muted-foreground">¿No tienes cuenta?{" "}<button onClick={() => setMode("signup")} className="text-primary hover:underline">Regístrate</button></p>
               </>
             )}
             {(mode === "signup" || mode === "forgot") && (
-              <p className="text-muted-foreground">Already have an account?{" "}<button onClick={() => setMode("login")} className="text-primary hover:underline">Sign in</button></p>
+              <p className="text-muted-foreground">¿Ya tienes cuenta?{" "}<button onClick={() => setMode("login")} className="text-primary hover:underline">Inicia sesión</button></p>
             )}
           </div>
         </CardContent>

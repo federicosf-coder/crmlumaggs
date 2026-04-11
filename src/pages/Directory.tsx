@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,6 @@ export default function Directory() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Company form
   const [cName, setCName] = useState("");
   const [cIndustry, setCIndustry] = useState("");
   const [cWebsite, setCWebsite] = useState("");
@@ -67,7 +66,6 @@ export default function Directory() {
   const [cZip, setCZip] = useState("");
   const [cNotes, setCNotes] = useState("");
 
-  // Contact form
   const [ctFirst, setCtFirst] = useState("");
   const [ctLast, setCtLast] = useState("");
   const [ctEmail, setCtEmail] = useState("");
@@ -112,7 +110,7 @@ export default function Directory() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Company created" });
+      toast({ title: "Empresa creada" });
       setCompanyOpen(false);
       resetCompanyForm();
       fetchData();
@@ -130,7 +128,7 @@ export default function Directory() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Contact created" });
+      toast({ title: "Contacto creado" });
       setContactOpen(false);
       resetContactForm();
       fetchData();
@@ -147,48 +145,47 @@ export default function Directory() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Directory</h1>
+      <h1 className="text-3xl font-bold">Directorio</h1>
 
       <Tabs defaultValue="companies">
         <TabsList>
           <TabsTrigger value="companies" className="gap-2">
-            <Building2 className="h-4 w-4" /> Companies
+            <Building2 className="h-4 w-4" /> Empresas
           </TabsTrigger>
           <TabsTrigger value="contacts" className="gap-2">
-            <User className="h-4 w-4" /> Contacts
+            <User className="h-4 w-4" /> Contactos
           </TabsTrigger>
         </TabsList>
 
-        {/* COMPANIES TAB */}
         <TabsContent value="companies" className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search companies..." className="pl-9" value={companySearch} onChange={(e) => setCompanySearch(e.target.value)} />
+              <Input placeholder="Buscar empresas..." className="pl-9" value={companySearch} onChange={(e) => setCompanySearch(e.target.value)} />
             </div>
             <Dialog open={companyOpen} onOpenChange={setCompanyOpen}>
               <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" /> Add Company</Button>
+                <Button><Plus className="mr-2 h-4 w-4" /> Agregar Empresa</Button>
               </DialogTrigger>
               <DialogContent className="max-w-lg">
-                <DialogHeader><DialogTitle>New Company</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>Nueva Empresa</DialogTitle></DialogHeader>
                 <form onSubmit={createCompany} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2 space-y-2">
-                      <Label>Company Name *</Label>
+                      <Label>Nombre de Empresa *</Label>
                       <Input value={cName} onChange={(e) => setCName(e.target.value)} required />
                     </div>
-                    <div className="space-y-2"><Label>Industry</Label><Input value={cIndustry} onChange={(e) => setCIndustry(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Website</Label><Input value={cWebsite} onChange={(e) => setCWebsite(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Phone</Label><Input value={cPhone} onChange={(e) => setCPhone(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Email</Label><Input value={cEmail} onChange={(e) => setCEmail(e.target.value)} /></div>
-                    <div className="col-span-2 space-y-2"><Label>Address</Label><Input value={cAddress} onChange={(e) => setCAddress(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>City</Label><Input value={cCity} onChange={(e) => setCCity(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>State</Label><Input value={cState} onChange={(e) => setCState(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Zip Code</Label><Input value={cZip} onChange={(e) => setCZip(e.target.value)} /></div>
-                    <div className="col-span-2 space-y-2"><Label>Notes</Label><Textarea value={cNotes} onChange={(e) => setCNotes(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Industria</Label><Input value={cIndustry} onChange={(e) => setCIndustry(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Sitio Web</Label><Input value={cWebsite} onChange={(e) => setCWebsite(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Teléfono</Label><Input value={cPhone} onChange={(e) => setCPhone(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Correo</Label><Input value={cEmail} onChange={(e) => setCEmail(e.target.value)} /></div>
+                    <div className="col-span-2 space-y-2"><Label>Dirección</Label><Input value={cAddress} onChange={(e) => setCAddress(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Ciudad</Label><Input value={cCity} onChange={(e) => setCCity(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Estado</Label><Input value={cState} onChange={(e) => setCState(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Código Postal</Label><Input value={cZip} onChange={(e) => setCZip(e.target.value)} /></div>
+                    <div className="col-span-2 space-y-2"><Label>Notas</Label><Textarea value={cNotes} onChange={(e) => setCNotes(e.target.value)} /></div>
                   </div>
-                  <Button type="submit" className="w-full">Create Company</Button>
+                  <Button type="submit" className="w-full">Crear Empresa</Button>
                 </form>
               </DialogContent>
             </Dialog>
@@ -196,19 +193,19 @@ export default function Directory() {
           <Card>
             <CardContent className="p-0">
               {loading ? (
-                <p className="text-muted-foreground p-6">Loading...</p>
+                <p className="text-muted-foreground p-6">Cargando...</p>
               ) : filteredCompanies.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No companies found.</p>
+                <p className="text-muted-foreground text-center py-8">No se encontraron empresas.</p>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Industry</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>City</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Industria</TableHead>
+                      <TableHead>Teléfono</TableHead>
+                      <TableHead>Correo</TableHead>
+                      <TableHead>Ciudad</TableHead>
+                      <TableHead>Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -221,7 +218,7 @@ export default function Directory() {
                         <TableCell>{c.city || "—"}</TableCell>
                         <TableCell>
                           <Badge variant={c.is_active ? "default" : "secondary"}>
-                            {c.is_active ? "Active" : "Inactive"}
+                            {c.is_active ? "Activo" : "Inactivo"}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -233,32 +230,31 @@ export default function Directory() {
           </Card>
         </TabsContent>
 
-        {/* CONTACTS TAB */}
         <TabsContent value="contacts" className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search contacts..." className="pl-9" value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} />
+              <Input placeholder="Buscar contactos..." className="pl-9" value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} />
             </div>
             <Dialog open={contactOpen} onOpenChange={setContactOpen}>
               <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" /> Add Contact</Button>
+                <Button><Plus className="mr-2 h-4 w-4" /> Agregar Contacto</Button>
               </DialogTrigger>
               <DialogContent className="max-w-lg">
-                <DialogHeader><DialogTitle>New Contact</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>Nuevo Contacto</DialogTitle></DialogHeader>
                 <form onSubmit={createContact} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>First Name *</Label><Input value={ctFirst} onChange={(e) => setCtFirst(e.target.value)} required /></div>
-                    <div className="space-y-2"><Label>Last Name *</Label><Input value={ctLast} onChange={(e) => setCtLast(e.target.value)} required /></div>
-                    <div className="space-y-2"><Label>Email</Label><Input type="email" value={ctEmail} onChange={(e) => setCtEmail(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Phone</Label><Input value={ctPhone} onChange={(e) => setCtPhone(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Mobile</Label><Input value={ctMobile} onChange={(e) => setCtMobile(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Job Title</Label><Input value={ctJobTitle} onChange={(e) => setCtJobTitle(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Department</Label><Input value={ctDept} onChange={(e) => setCtDept(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Nombre *</Label><Input value={ctFirst} onChange={(e) => setCtFirst(e.target.value)} required /></div>
+                    <div className="space-y-2"><Label>Apellido *</Label><Input value={ctLast} onChange={(e) => setCtLast(e.target.value)} required /></div>
+                    <div className="space-y-2"><Label>Correo</Label><Input type="email" value={ctEmail} onChange={(e) => setCtEmail(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Teléfono</Label><Input value={ctPhone} onChange={(e) => setCtPhone(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Celular</Label><Input value={ctMobile} onChange={(e) => setCtMobile(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Puesto</Label><Input value={ctJobTitle} onChange={(e) => setCtJobTitle(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Departamento</Label><Input value={ctDept} onChange={(e) => setCtDept(e.target.value)} /></div>
                     <div className="space-y-2">
-                      <Label>Company</Label>
+                      <Label>Empresa</Label>
                       <Select value={ctCompanyId} onValueChange={setCtCompanyId}>
-                        <SelectTrigger><SelectValue placeholder="Select company" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Seleccionar empresa" /></SelectTrigger>
                         <SelectContent>
                           {companies.map((c) => (
                             <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
@@ -266,9 +262,9 @@ export default function Directory() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-2 space-y-2"><Label>Notes</Label><Textarea value={ctNotes} onChange={(e) => setCtNotes(e.target.value)} /></div>
+                    <div className="col-span-2 space-y-2"><Label>Notas</Label><Textarea value={ctNotes} onChange={(e) => setCtNotes(e.target.value)} /></div>
                   </div>
-                  <Button type="submit" className="w-full">Create Contact</Button>
+                  <Button type="submit" className="w-full">Crear Contacto</Button>
                 </form>
               </DialogContent>
             </Dialog>
@@ -276,19 +272,19 @@ export default function Directory() {
           <Card>
             <CardContent className="p-0">
               {loading ? (
-                <p className="text-muted-foreground p-6">Loading...</p>
+                <p className="text-muted-foreground p-6">Cargando...</p>
               ) : filteredContacts.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No contacts found.</p>
+                <p className="text-muted-foreground text-center py-8">No se encontraron contactos.</p>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Job Title</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Puesto</TableHead>
+                      <TableHead>Correo</TableHead>
+                      <TableHead>Teléfono</TableHead>
+                      <TableHead>Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -301,7 +297,7 @@ export default function Directory() {
                         <TableCell>{c.phone || "—"}</TableCell>
                         <TableCell>
                           <Badge variant={c.is_active ? "default" : "secondary"}>
-                            {c.is_active ? "Active" : "Inactive"}
+                            {c.is_active ? "Activo" : "Inactivo"}
                           </Badge>
                         </TableCell>
                       </TableRow>
