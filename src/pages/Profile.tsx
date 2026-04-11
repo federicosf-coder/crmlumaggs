@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { roleLabel } from "@/lib/roles";
 
 export default function Profile() {
   const { profile, roles, refreshProfile } = useAuth();
@@ -26,44 +27,44 @@ export default function Profile() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Profile updated" });
+      toast({ title: "Perfil actualizado" });
       await refreshProfile();
     }
   };
 
   return (
     <div className="max-w-2xl space-y-6">
-      <h1 className="text-3xl font-bold">My Profile</h1>
+      <h1 className="text-3xl font-bold">Mi Perfil</h1>
       <Card>
-        <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Información Personal</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="space-y-4">
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>Correo Electrónico</Label>
               <Input value={profile?.email || ""} disabled />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
+              <Label htmlFor="fullName">Nombre Completo</Label>
               <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Teléfono</Label>
               <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
-            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar Cambios"}</Button>
           </form>
         </CardContent>
       </Card>
       <Card>
-        <CardHeader><CardTitle>Roles & Teams</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Roles y Equipos</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div>
               <Label className="text-muted-foreground">Roles</Label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {roles.length > 0 ? roles.map((r) => (
-                  <Badge key={r} className="capitalize">{r.replace("_", " ")}</Badge>
-                )) : <span className="text-sm text-muted-foreground">No roles assigned yet</span>}
+                  <Badge key={r}>{roleLabel(r)}</Badge>
+                )) : <span className="text-sm text-muted-foreground">Sin roles asignados</span>}
               </div>
             </div>
           </div>

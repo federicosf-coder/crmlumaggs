@@ -7,18 +7,18 @@ import {
 import { useNavigate } from "react-router-dom";
 
 const modules = [
-  { title: "Directory", description: "Companies & contacts", icon: BookOpen, url: "/directory", color: "bg-primary" },
-  { title: "CRM Chevron", description: "Chevron lubricant sales", icon: ShoppingCart, url: "/crm/chevron", color: "bg-primary" },
-  { title: "CRM Phillips 66", description: "Phillips 66 lubricant sales", icon: ShoppingCart, url: "/crm/phillips66", color: "bg-primary" },
-  { title: "Quotes", description: "Create & send quotes", icon: FileText, url: "/quotes", color: "bg-primary" },
-  { title: "Inventory", description: "Product catalog & stock", icon: Package, url: "/inventory", color: "bg-primary" },
-  { title: "Delivery", description: "Track deliveries", icon: Truck, url: "/delivery", color: "bg-primary" },
-  { title: "Transfers", description: "Inventory transfers", icon: ArrowLeftRight, url: "/transfers", color: "bg-primary" },
-  { title: "Invoicing", description: "Billing & invoices", icon: Receipt, url: "/invoicing", color: "bg-primary" },
-  { title: "Products", description: "Product inquiry", icon: Search, url: "/products", color: "bg-primary" },
-  { title: "Projects", description: "Projects & tasks", icon: FolderKanban, url: "/projects", color: "bg-primary" },
-  { title: "Training", description: "Team training", icon: GraduationCap, url: "/training", color: "bg-primary" },
-  { title: "Reports", description: "Analytics & reports", icon: BarChart3, url: "/reports", color: "bg-primary" },
+  { title: "Directorio", description: "Empresas y contactos", icon: BookOpen, url: "/directory", color: "bg-primary" },
+  { title: "CRM Chevron", description: "Ventas de lubricantes Chevron", icon: ShoppingCart, url: "/crm/chevron", color: "bg-primary" },
+  { title: "CRM Phillips 66", description: "Ventas de lubricantes Phillips 66", icon: ShoppingCart, url: "/crm/phillips66", color: "bg-primary" },
+  { title: "Cotizaciones", description: "Crear y enviar cotizaciones", icon: FileText, url: "/quotes", color: "bg-primary" },
+  { title: "Inventario", description: "Catálogo de productos y existencias", icon: Package, url: "/inventory", color: "bg-primary" },
+  { title: "Entregas", description: "Seguimiento de entregas", icon: Truck, url: "/delivery", color: "bg-primary" },
+  { title: "Transferencias", description: "Transferencias de inventario", icon: ArrowLeftRight, url: "/transfers", color: "bg-primary" },
+  { title: "Facturación", description: "Facturación y cobros", icon: Receipt, url: "/invoicing", color: "bg-primary" },
+  { title: "Productos", description: "Consulta de productos", icon: Search, url: "/products", color: "bg-primary" },
+  { title: "Proyectos", description: "Proyectos y tareas", icon: FolderKanban, url: "/projects", color: "bg-primary" },
+  { title: "Capacitación", description: "Capacitación del equipo", icon: GraduationCap, url: "/training", color: "bg-primary" },
+  { title: "Reportes", description: "Análisis y reportes", icon: BarChart3, url: "/reports", color: "bg-primary" },
 ];
 
 export default function Index() {
@@ -28,8 +28,8 @@ export default function Index() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Welcome, {profile?.full_name || "User"}</h1>
-        <p className="text-muted-foreground mt-1">Chevron & Phillips 66 Lubricant Distribution Platform</p>
+        <h1 className="text-3xl font-bold">Bienvenido, {profile?.full_name || "Usuario"}</h1>
+        <p className="text-muted-foreground mt-1">Plataforma de Distribución de Lubricantes Chevron y Phillips 66</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

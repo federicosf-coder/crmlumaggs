@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { roleLabel } from "@/lib/roles";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { roles } = useAuth();
@@ -17,8 +18,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <div className="flex-1" />
             <div className="flex items-center gap-2">
               {roles.map((role) => (
-                <Badge key={role} variant="secondary" className="text-xs capitalize">
-                  {role.replace("_", " ")}
+                <Badge key={role} variant="secondary" className="text-xs">
+                  {roleLabel(role)}
                 </Badge>
               ))}
             </div>

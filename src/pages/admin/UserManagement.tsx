@@ -3,11 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { X } from "lucide-react";
+import { roleLabel } from "@/lib/roles";
 
 type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
 const ALL_ROLES: AppRole[] = ["admin", "manager", "sales", "delivery", "warehouse", "customer_service", "accounting"];
@@ -49,7 +49,7 @@ export default function UserManagement() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Role added" });
+      toast({ title: "Rol agregado" });
       fetchUsers();
     }
   };
@@ -59,32 +59,32 @@ export default function UserManagement() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Role removed" });
+      toast({ title: "Rol eliminado" });
       fetchUsers();
     }
   };
 
   if (!hasRole("admin")) {
-    return <p className="text-muted-foreground">You don't have permission to view this page.</p>;
+    return <p className="text-muted-foreground">No tienes permiso para ver esta página.</p>;
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">User Management</h1>
+      <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
       <Card>
-        <CardHeader><CardTitle>All Users</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Todos los Usuarios</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground">Loading...</p>
+            <p className="text-muted-foreground">Cargando...</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Correo</TableHead>
+                  <TableHead>Estado</TableHead>
                   <TableHead>Roles</TableHead>
-                  <TableHead>Add Role</TableHead>
+                  <TableHead>Agregar Rol</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -94,14 +94,14 @@ export default function UserManagement() {
                     <TableCell>{u.email}</TableCell>
                     <TableCell>
                       <Badge variant={u.is_active ? "default" : "secondary"}>
-                        {u.is_active ? "Active" : "Inactive"}
+                        {u.is_active ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {u.roles.map((r) => (
-                          <Badge key={r} variant="outline" className="capitalize gap-1">
-                            {r.replace("_", " ")}
+                          <Badge key={r} variant="outline" className="gap-1">
+                            {roleLabel(r)}
                             <button onClick={() => removeRole(u.user_id, r)} className="hover:text-destructive">
                               <X className="h-3 w-3" />
                             </button>
@@ -111,12 +111,12 @@ export default function UserManagement() {
                     </TableCell>
                     <TableCell>
                       <Select onValueChange={(v) => addRole(u.user_id, v as AppRole)}>
-                        <SelectTrigger className="w-40">
-                          <SelectValue placeholder="Add role..." />
+                        <SelectTrigger className="w-44">
+                          <SelectValue placeholder="Agregar rol..." />
                         </SelectTrigger>
                         <SelectContent>
                           {ALL_ROLES.filter((r) => !u.roles.includes(r)).map((r) => (
-                            <SelectItem key={r} value={r} className="capitalize">{r.replace("_", " ")}</SelectItem>
+                            <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
