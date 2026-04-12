@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, ShoppingCart, FileText, Package, Truck,
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
-  Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen,
+  Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -41,6 +41,7 @@ const mainItems: NavItem[] = [
 
 const adminItems: NavItem[] = [
   { title: "Gestión de Usuarios", url: "/admin/users", icon: Users, roles: ["admin"] },
+  { title: "Permisos", url: "/admin/permissions", icon: Shield, roles: ["admin"] },
   { title: "Equipos", url: "/admin/teams", icon: Settings, roles: ["admin", "manager"] },
 ];
 

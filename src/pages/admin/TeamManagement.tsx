@@ -6,41 +6,71 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, X, UserPlus } from "lucide-react";
+
+interface Profile {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+}
+
+interface TeamMember {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+}
 
 interface Team {
   id: string;
   name: string;
   description: string | null;
   is_active: boolean;
-  memberCount: number;
+  members: TeamMember[];
 }
 
 export default function TeamManagement() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [membersOpen, setMembersOpen] = useState(false);
   const { toast } = useToast();
 
-  const fetchTeams = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    const { data: teamsData } = await supabase.from("teams").select("*");
-    const { data: members } = await supabase.from("team_members").select("team_id");
+    const [{ data: teamsData }, { data: membersData }, { data: profilesData }] = await Promise.all([
+      supabase.from("teams").select("*"),
+      supabase.from("team_members").select("*"),
+      supabase.from("profiles").select("user_id, full_name, email"),
+    ]);
+
+    const profMap = new Map((profilesData || []).map((p) => [p.user_id, p]));
 
     const mapped = (teamsData || []).map((t) => ({
       ...t,
-      memberCount: (members || []).filter((m) => m.team_id === t.id).length,
+      members: (membersData || [])
+        .filter((m) => m.team_id === t.id)
+        .map((m) => ({
+          id: m.id,
+          user_id: m.user_id,
+          full_name: profMap.get(m.user_id)?.full_name || null,
+          email: profMap.get(m.user_id)?.email || null,
+        })),
     }));
     setTeams(mapped);
+    setProfiles(profilesData || []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchTeams(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const createTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,9 +82,45 @@ export default function TeamManagement() {
       setOpen(false);
       setName("");
       setDescription("");
-      fetchTeams();
+      fetchData();
     }
   };
+
+  const addMember = async (teamId: string, userId: string) => {
+    const { error } = await supabase.from("team_members").insert({ team_id: teamId, user_id: userId });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Miembro agregado" });
+      fetchData();
+    }
+  };
+
+  const removeMember = async (memberId: string) => {
+    const { error } = await supabase.from("team_members").delete().eq("id", memberId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Miembro eliminado" });
+      fetchData();
+    }
+  };
+
+  const openMembers = (team: Team) => {
+    setSelectedTeam(team);
+    setMembersOpen(true);
+  };
+
+  // Refresh selected team data when teams change
+  useEffect(() => {
+    if (selectedTeam) {
+      const updated = teams.find((t) => t.id === selectedTeam.id);
+      if (updated) setSelectedTeam(updated);
+    }
+  }, [teams]);
+
+  const availableUsers = (team: Team) =>
+    profiles.filter((p) => !team.members.some((m) => m.user_id === p.user_id));
 
   return (
     <div className="space-y-6">
@@ -80,6 +146,57 @@ export default function TeamManagement() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Members dialog */}
+      <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Miembros — {selectedTeam?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedTeam && (
+            <div className="space-y-4">
+              {/* Add member */}
+              <div className="space-y-2">
+                <Label>Agregar Miembro</Label>
+                <Select onValueChange={(userId) => addMember(selectedTeam.id, userId)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar usuario..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableUsers(selectedTeam).map((p) => (
+                      <SelectItem key={p.user_id} value={p.user_id}>
+                        {p.full_name || p.email || p.user_id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Members list */}
+              <div className="space-y-2">
+                <Label>Miembros Actuales ({selectedTeam.members.length})</Label>
+                {selectedTeam.members.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sin miembros aún.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {selectedTeam.members.map((m) => (
+                      <div key={m.id} className="flex items-center justify-between p-2 rounded-md border">
+                        <div>
+                          <p className="text-sm font-medium">{m.full_name || "—"}</p>
+                          <p className="text-xs text-muted-foreground">{m.email}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => removeMember(m.id)}>
+                          <X className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardHeader><CardTitle>Todos los Equipos</CardTitle></CardHeader>
         <CardContent>
@@ -95,6 +212,7 @@ export default function TeamManagement() {
                   <TableHead>Descripción</TableHead>
                   <TableHead>Miembros</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -105,13 +223,18 @@ export default function TeamManagement() {
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        {t.memberCount}
+                        {t.members.length}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={t.is_active ? "default" : "secondary"}>
                         {t.is_active ? "Activo" : "Inactivo"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" onClick={() => openMembers(t)}>
+                        <UserPlus className="mr-1 h-4 w-4" /> Miembros
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -1,0 +1,142 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { roleLabel } from "@/lib/roles";
+
+type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
+type AppModule = "directorio" | "crm_chevron" | "crm_phillips66" | "cotizaciones" | "inventario" | "entregas" | "transferencias" | "facturacion" | "productos" | "proyectos" | "capacitacion" | "reportes";
+type AccessLevel = "todos" | "equipo" | "propio" | "ninguno";
+
+const ALL_ROLES: AppRole[] = ["admin", "manager", "sales", "delivery", "warehouse", "customer_service", "accounting"];
+const ALL_MODULES: AppModule[] = ["directorio", "crm_chevron", "crm_phillips66", "cotizaciones", "inventario", "entregas", "transferencias", "facturacion", "productos", "proyectos", "capacitacion", "reportes"];
+const ACCESS_LEVELS: { value: AccessLevel; label: string }[] = [
+  { value: "todos", label: "Todos" },
+  { value: "equipo", label: "Equipo" },
+  { value: "propio", label: "Propio" },
+  { value: "ninguno", label: "Ninguno" },
+];
+
+const MODULE_LABELS: Record<AppModule, string> = {
+  directorio: "Directorio",
+  crm_chevron: "CRM Chevron",
+  crm_phillips66: "CRM Phillips 66",
+  cotizaciones: "Cotizaciones",
+  inventario: "Inventario",
+  entregas: "Entregas",
+  transferencias: "Transferencias",
+  facturacion: "Facturación",
+  productos: "Productos",
+  proyectos: "Proyectos",
+  capacitacion: "Capacitación",
+  reportes: "Reportes",
+};
+
+interface Permission {
+  id: string;
+  role: AppRole;
+  module: AppModule;
+  access_level: AccessLevel;
+}
+
+export default function PermissionsManagement() {
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const { hasRole } = useAuth();
+
+  const fetchPermissions = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("role_module_permissions").select("*");
+    setPermissions((data || []) as Permission[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchPermissions(); }, []);
+
+  const updatePermission = async (role: AppRole, module: AppModule, access_level: AccessLevel) => {
+    const existing = permissions.find((p) => p.role === role && p.module === module);
+    if (!existing) return;
+
+    const { error } = await supabase
+      .from("role_module_permissions")
+      .update({ access_level } as any)
+      .eq("id", existing.id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setPermissions((prev) =>
+        prev.map((p) => (p.id === existing.id ? { ...p, access_level } : p))
+      );
+      toast({ title: "Permiso actualizado" });
+    }
+  };
+
+  const getAccessLevel = (role: AppRole, module: AppModule): AccessLevel => {
+    return permissions.find((p) => p.role === role && p.module === module)?.access_level || "ninguno";
+  };
+
+  if (!hasRole("admin")) {
+    return <p className="text-muted-foreground">No tienes permiso para ver esta página.</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">Permisos por Módulo</h1>
+      <p className="text-muted-foreground">
+        Configura el nivel de acceso a registros que cada rol tiene en cada módulo: <strong>Todos</strong> (ve todo), <strong>Equipo</strong> (solo registros de su equipo), <strong>Propio</strong> (solo sus registros) o <strong>Ninguno</strong>.
+      </p>
+      <Card>
+        <CardHeader><CardTitle>Matriz de Permisos</CardTitle></CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-muted-foreground">Cargando...</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2 font-medium text-muted-foreground sticky left-0 bg-background min-w-[140px]">Módulo</th>
+                    {ALL_ROLES.map((role) => (
+                      <th key={role} className="text-center p-2 font-medium text-muted-foreground min-w-[130px]">
+                        {roleLabel(role)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ALL_MODULES.map((module) => (
+                    <tr key={module} className="border-b hover:bg-muted/50">
+                      <td className="p-2 font-medium sticky left-0 bg-background">{MODULE_LABELS[module]}</td>
+                      {ALL_ROLES.map((role) => (
+                        <td key={role} className="p-2 text-center">
+                          <Select
+                            value={getAccessLevel(role, module)}
+                            onValueChange={(v) => updatePermission(role, module, v as AccessLevel)}
+                            disabled={role === "admin"}
+                          >
+                            <SelectTrigger className="w-28 mx-auto text-xs h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ACCESS_LEVELS.map((al) => (
+                                <SelectItem key={al.value} value={al.value}>{al.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
