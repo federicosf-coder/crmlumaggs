@@ -358,6 +358,33 @@ export type Database = {
         }
         Relationships: []
       }
+      role_module_permissions: {
+        Row: {
+          access_level: Database["public"]["Enums"]["access_level"]
+          created_at: string
+          id: string
+          module: Database["public"]["Enums"]["app_module"]
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          access_level?: Database["public"]["Enums"]["access_level"]
+          created_at?: string
+          id?: string
+          module: Database["public"]["Enums"]["app_module"]
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          access_level?: Database["public"]["Enums"]["access_level"]
+          created_at?: string
+          id?: string
+          module?: Database["public"]["Enums"]["app_module"]
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           created_at: string
@@ -453,6 +480,20 @@ export type Database = {
       }
     }
     Enums: {
+      access_level: "todos" | "equipo" | "propio" | "ninguno"
+      app_module:
+        | "directorio"
+        | "crm_chevron"
+        | "crm_phillips66"
+        | "cotizaciones"
+        | "inventario"
+        | "entregas"
+        | "transferencias"
+        | "facturacion"
+        | "productos"
+        | "proyectos"
+        | "capacitacion"
+        | "reportes"
       app_role:
         | "admin"
         | "manager"
@@ -596,6 +637,21 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      access_level: ["todos", "equipo", "propio", "ninguno"],
+      app_module: [
+        "directorio",
+        "crm_chevron",
+        "crm_phillips66",
+        "cotizaciones",
+        "inventario",
+        "entregas",
+        "transferencias",
+        "facturacion",
+        "productos",
+        "proyectos",
+        "capacitacion",
+        "reportes",
+      ],
       app_role: [
         "admin",
         "manager",
