@@ -11,6 +11,7 @@ import Index from "@/pages/Index";
 import Profile from "@/pages/Profile";
 import UserManagement from "@/pages/admin/UserManagement";
 import TeamManagement from "@/pages/admin/TeamManagement";
+import PermissionsManagement from "@/pages/admin/PermissionsManagement";
 import ModulePlaceholder from "@/pages/ModulePlaceholder";
 import Directory from "@/pages/Directory";
 import ProductCatalog from "@/pages/inventory/ProductCatalog";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
             <Route path="/admin/teams" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
+            <Route path="/admin/permissions" element={<ProtectedRoute><PermissionsManagement /></ProtectedRoute>} />
 
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
             <Route path="/crm/chevron" element={<ProtectedRoute><ModulePlaceholder title="CRM — Chevron" description="Pipeline de ventas, oportunidades y gestión de clientes para lubricantes Chevron. Próximamente en Fase 2." /></ProtectedRoute>} />
