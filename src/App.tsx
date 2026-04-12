@@ -13,6 +13,7 @@ import UserManagement from "@/pages/admin/UserManagement";
 import TeamManagement from "@/pages/admin/TeamManagement";
 import ModulePlaceholder from "@/pages/ModulePlaceholder";
 import Directory from "@/pages/Directory";
+import ProductCatalog from "@/pages/inventory/ProductCatalog";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,7 +52,7 @@ const App = () => (
             <Route path="/crm/chevron" element={<ProtectedRoute><ModulePlaceholder title="CRM — Chevron" description="Pipeline de ventas, oportunidades y gestión de clientes para lubricantes Chevron. Próximamente en Fase 2." /></ProtectedRoute>} />
             <Route path="/crm/phillips66" element={<ProtectedRoute><ModulePlaceholder title="CRM — Phillips 66" description="Pipeline de ventas, oportunidades y gestión de clientes para lubricantes Phillips 66. Próximamente en Fase 2." /></ProtectedRoute>} />
             <Route path="/quotes" element={<ProtectedRoute><ModulePlaceholder title="Cotizaciones" description="Crear y gestionar cotizaciones para lubricantes Chevron y Phillips 66. Próximamente en Fase 2." /></ProtectedRoute>} />
-            <Route path="/inventory" element={<ProtectedRoute><ModulePlaceholder title="Inventario" description="Catálogo de productos, niveles de existencias y gestión de almacén. Próximamente en Fase 3." /></ProtectedRoute>} />
+            <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/delivery" element={<ProtectedRoute><ModulePlaceholder title="Entregas" description="Seguimiento y gestión de entregas de productos. Próximamente en Fase 4." /></ProtectedRoute>} />
             <Route path="/transfers" element={<ProtectedRoute><ModulePlaceholder title="Transferencias de Inventario" description="Gestión de transferencias entre almacenes. Próximamente en Fase 3." /></ProtectedRoute>} />
             <Route path="/invoicing" element={<ProtectedRoute><ModulePlaceholder title="Facturación" description="Facturación, generación de facturas y seguimiento de pagos." /></ProtectedRoute>} />
