@@ -203,7 +203,6 @@ export type Database = {
           precio_uf3: number
           precio_uf4: number
           presentacion_id: string | null
-          unidades_equivalentes: number | null
           updated_at: string
           uso_id: string | null
           viscosidad_id: string | null
@@ -232,7 +231,6 @@ export type Database = {
           precio_uf3?: number
           precio_uf4?: number
           presentacion_id?: string | null
-          unidades_equivalentes?: number | null
           updated_at?: string
           uso_id?: string | null
           viscosidad_id?: string | null
@@ -261,7 +259,6 @@ export type Database = {
           precio_uf3?: number
           precio_uf4?: number
           presentacion_id?: string | null
-          unidades_equivalentes?: number | null
           updated_at?: string
           uso_id?: string | null
           viscosidad_id?: string | null

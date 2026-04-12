@@ -1,0 +1,1 @@
+ALTER TABLE public.productos DROP COLUMN unidades_equivalentes;
