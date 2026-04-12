@@ -127,6 +127,204 @@ export type Database = {
           },
         ]
       }
+      presentaciones: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          nombre: string
+          unidades_equivalentes: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre: string
+          unidades_equivalentes?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          unidades_equivalentes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_option_values: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          option_type: Database["public"]["Enums"]["product_option_type"]
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          option_type: Database["public"]["Enums"]["product_option_type"]
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          option_type?: Database["public"]["Enums"]["product_option_type"]
+          value?: string
+        }
+        Relationships: []
+      }
+      productos: {
+        Row: {
+          aplicacion_id: string | null
+          categoria_id: string | null
+          codigo: string
+          costo_actual: number
+          created_at: string
+          created_by: string | null
+          descripcion: string | null
+          formula_id: string | null
+          id: string
+          is_active: boolean
+          linea_id: string | null
+          marca_id: string | null
+          nombre_producto: string
+          precio_base_uf1: number
+          precio_lista_galper: number
+          precio_r1: number
+          precio_r2: number
+          precio_r3: number
+          precio_r4: number
+          precio_uf2: number
+          precio_uf3: number
+          precio_uf4: number
+          presentacion_id: string | null
+          unidades_equivalentes: number | null
+          updated_at: string
+          uso_id: string | null
+          viscosidad_id: string | null
+        }
+        Insert: {
+          aplicacion_id?: string | null
+          categoria_id?: string | null
+          codigo: string
+          costo_actual?: number
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          formula_id?: string | null
+          id?: string
+          is_active?: boolean
+          linea_id?: string | null
+          marca_id?: string | null
+          nombre_producto: string
+          precio_base_uf1?: number
+          precio_lista_galper?: number
+          precio_r1?: number
+          precio_r2?: number
+          precio_r3?: number
+          precio_r4?: number
+          precio_uf2?: number
+          precio_uf3?: number
+          precio_uf4?: number
+          presentacion_id?: string | null
+          unidades_equivalentes?: number | null
+          updated_at?: string
+          uso_id?: string | null
+          viscosidad_id?: string | null
+        }
+        Update: {
+          aplicacion_id?: string | null
+          categoria_id?: string | null
+          codigo?: string
+          costo_actual?: number
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          formula_id?: string | null
+          id?: string
+          is_active?: boolean
+          linea_id?: string | null
+          marca_id?: string | null
+          nombre_producto?: string
+          precio_base_uf1?: number
+          precio_lista_galper?: number
+          precio_r1?: number
+          precio_r2?: number
+          precio_r3?: number
+          precio_r4?: number
+          precio_uf2?: number
+          precio_uf3?: number
+          precio_uf4?: number
+          presentacion_id?: string | null
+          unidades_equivalentes?: number | null
+          updated_at?: string
+          uso_id?: string | null
+          viscosidad_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "productos_aplicacion_id_fkey"
+            columns: ["aplicacion_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_linea_id_fkey"
+            columns: ["linea_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_presentacion_id_fkey"
+            columns: ["presentacion_id"]
+            isOneToOne: false
+            referencedRelation: "presentaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_uso_id_fkey"
+            columns: ["uso_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_viscosidad_id_fkey"
+            columns: ["viscosidad_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -266,6 +464,14 @@ export type Database = {
         | "warehouse"
         | "customer_service"
         | "accounting"
+      product_option_type:
+        | "marca"
+        | "aplicacion"
+        | "uso"
+        | "formula"
+        | "viscosidad"
+        | "categoria"
+        | "linea"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -401,6 +607,15 @@ export const Constants = {
         "warehouse",
         "customer_service",
         "accounting",
+      ],
+      product_option_type: [
+        "marca",
+        "aplicacion",
+        "uso",
+        "formula",
+        "viscosidad",
+        "categoria",
+        "linea",
       ],
     },
   },
