@@ -9,12 +9,9 @@ import { useNavigate } from "react-router-dom";
 const modules = [
   { title: "Directorio", description: "Empresas y contactos", icon: BookOpen, url: "/directory", color: "bg-primary" },
   { title: "CRM", description: "Ventas Chevron y Phillips 66", icon: ShoppingCart, url: "/crm", color: "bg-primary" },
-  { title: "Cotizaciones", description: "Crear y enviar cotizaciones", icon: FileText, url: "/quotes", color: "bg-primary" },
   { title: "Inventario", description: "Catálogo de productos y existencias", icon: Package, url: "/inventory", color: "bg-primary" },
   { title: "Entregas", description: "Seguimiento de entregas", icon: Truck, url: "/delivery", color: "bg-primary" },
   { title: "Transferencias", description: "Transferencias de inventario", icon: ArrowLeftRight, url: "/transfers", color: "bg-primary" },
-  { title: "Facturación", description: "Facturación y cobros", icon: Receipt, url: "/invoicing", color: "bg-primary" },
-  { title: "Productos", description: "Consulta de productos", icon: Search, url: "/products", color: "bg-primary" },
   { title: "Proyectos", description: "Proyectos y tareas", icon: FolderKanban, url: "/projects", color: "bg-primary" },
   { title: "Capacitación", description: "Capacitación del equipo", icon: GraduationCap, url: "/training", color: "bg-primary" },
   { title: "Reportes", description: "Análisis y reportes", icon: BarChart3, url: "/reports", color: "bg-primary" },
