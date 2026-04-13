@@ -84,11 +84,7 @@ export default function DocumentForm() {
 
   // Dialog states
   const [showNewCompany, setShowNewCompany] = useState(false);
-  const [newCompanyName, setNewCompanyName] = useState("");
   const [showNewContact, setShowNewContact] = useState(false);
-  const [newContactFirst, setNewContactFirst] = useState("");
-  const [newContactLast, setNewContactLast] = useState("");
-  const [newContactEmail, setNewContactEmail] = useState("");
   const [showNewAddress, setShowNewAddress] = useState(false);
   const [newAddrCalle, setNewAddrCalle] = useState("");
   const [newAddrCiudad, setNewAddrCiudad] = useState("");
