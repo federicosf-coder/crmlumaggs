@@ -156,6 +156,7 @@ export type Database = {
       }
       crm_activities: {
         Row: {
+          company_id: string | null
           contact_id: string | null
           created_at: string
           deal_id: string | null
@@ -166,6 +167,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          company_id?: string | null
           contact_id?: string | null
           created_at?: string
           deal_id?: string | null
@@ -176,6 +178,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          company_id?: string | null
           contact_id?: string | null
           created_at?: string
           deal_id?: string | null
@@ -186,6 +189,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "crm_activities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "crm_activities_contact_id_fkey"
             columns: ["contact_id"]
@@ -346,6 +356,7 @@ export type Database = {
       }
       crm_tasks: {
         Row: {
+          company_id: string | null
           completed: boolean
           contact_id: string | null
           created_at: string
@@ -359,6 +370,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          company_id?: string | null
           completed?: boolean
           contact_id?: string | null
           created_at?: string
@@ -372,6 +384,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          company_id?: string | null
           completed?: boolean
           contact_id?: string | null
           created_at?: string
@@ -385,6 +398,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "crm_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "crm_tasks_contact_id_fkey"
             columns: ["contact_id"]
