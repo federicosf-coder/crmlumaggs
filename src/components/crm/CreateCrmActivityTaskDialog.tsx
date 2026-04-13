@@ -27,6 +27,14 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const createTask = useCreateCrmTask();
   const { toast } = useToast();
 
+  const { data: companies } = useQuery({
+    queryKey: ["companies-picker"],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
+      return data || [];
+    },
+  });
+
   const { data: contacts } = useQuery({
     queryKey: ["contacts-picker"],
     queryFn: async () => {
@@ -47,6 +55,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [companyId, setCompanyId] = useState("");
   const [brand, setBrand] = useState(defaultBrand || "");
   const [dealId, setDealId] = useState(defaultDealId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
@@ -72,6 +81,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
           description: description || null,
           due_date: dueDate || null,
           priority,
+          company_id: companyId && companyId !== "none" ? companyId : null,
           deal_id: dealId && dealId !== "none" ? dealId : null,
           contact_id: contactId && contactId !== "none" ? contactId : null,
         },
@@ -89,6 +99,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
           type,
           title: typeLabel,
           description: description || null,
+          company_id: companyId && companyId !== "none" ? companyId : null,
           deal_id: dealId && dealId !== "none" ? dealId : null,
           contact_id: contactId && contactId !== "none" ? contactId : null,
         },
@@ -108,6 +119,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
     setDescription("");
     setDueDate("");
     setPriority("medium");
+    setCompanyId("");
     setBrand(defaultBrand || "");
     setDealId(defaultDealId || "");
     setContactId(defaultContactId || "");
@@ -168,6 +180,16 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
             </Select>
           </div>
 
+          <div className="space-y-2">
+            <Label>Vincular a Empresa</Label>
+            <Select value={companyId} onValueChange={setCompanyId}>
+              <SelectTrigger><SelectValue placeholder="Ninguna" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Ninguna</SelectItem>
+                {companies?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           {!defaultDealId && (
             <div className="space-y-2">
               <Label>Vincular a Negocio</Label>

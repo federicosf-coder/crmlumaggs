@@ -46,6 +46,7 @@ export function useCreateCrmTask() {
       description?: string | null;
       due_date?: string | null;
       priority?: string;
+      company_id?: string | null;
       deal_id?: string | null;
       contact_id?: string | null;
     }) => {
