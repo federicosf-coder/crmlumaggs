@@ -711,6 +711,7 @@ export type Database = {
           id: string
           is_active: boolean
           option_type: Database["public"]["Enums"]["product_option_type"]
+          parent_id: string | null
           value: string
         }
         Insert: {
@@ -718,6 +719,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           option_type: Database["public"]["Enums"]["product_option_type"]
+          parent_id?: string | null
           value: string
         }
         Update: {
@@ -725,9 +727,18 @@ export type Database = {
           id?: string
           is_active?: boolean
           option_type?: Database["public"]["Enums"]["product_option_type"]
+          parent_id?: string | null
           value?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "product_option_values_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       productos: {
         Row: {
