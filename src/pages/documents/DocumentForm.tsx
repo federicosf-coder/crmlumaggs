@@ -621,29 +621,11 @@ export default function DocumentForm() {
         </Button>
       </div>
 
-      {/* Dialog: Nueva Empresa */}
-      <Dialog open={showNewCompany} onOpenChange={setShowNewCompany}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Nueva Empresa</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>Nombre *</Label><Input value={newCompanyName} onChange={e => setNewCompanyName(e.target.value)} /></div>
-          </div>
-          <DialogFooter><Button onClick={handleAddCompany} disabled={!newCompanyName.trim()}>Crear Empresa</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Dialog: Nueva Empresa (formulario completo) */}
+      <CompanyFormDialog open={showNewCompany} onOpenChange={setShowNewCompany} onCreated={handleCompanyCreated} />
 
-      {/* Dialog: Nuevo Contacto */}
-      <Dialog open={showNewContact} onOpenChange={setShowNewContact}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Nuevo Contacto</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>Nombre *</Label><Input value={newContactFirst} onChange={e => setNewContactFirst(e.target.value)} /></div>
-            <div><Label>Apellido *</Label><Input value={newContactLast} onChange={e => setNewContactLast(e.target.value)} /></div>
-            <div><Label>Email</Label><Input value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} /></div>
-          </div>
-          <DialogFooter><Button onClick={handleAddContact} disabled={!newContactFirst.trim() || !newContactLast.trim()}>Crear Contacto</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Dialog: Nuevo Contacto (formulario completo) */}
+      <ContactFormDialog open={showNewContact} onOpenChange={setShowNewContact} defaultCompanyId={form.empresa_id} onCreated={handleContactCreated} />
 
       {/* Dialog: Nueva Dirección */}
       <Dialog open={showNewAddress} onOpenChange={setShowNewAddress}>
