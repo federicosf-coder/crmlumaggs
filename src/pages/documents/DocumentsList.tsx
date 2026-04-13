@@ -66,6 +66,7 @@ function getEstatusVariant(doc: any): "default" | "secondary" | "destructive" | 
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [empresaFilter, setEmpresaFilter] = useState<string>("lumaggs_chevron");
   const [tipoFilter, setTipoFilter] = useState<string>("cotizacion");
 
   const { data: docs = [], isLoading } = useQuery({
