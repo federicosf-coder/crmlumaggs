@@ -56,6 +56,7 @@ export function useCreateCrmActivity() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (activity: {
+      company_id?: string | null;
       deal_id?: string | null;
       contact_id?: string | null;
       user_id: string;
