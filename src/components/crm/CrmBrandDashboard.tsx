@@ -37,13 +37,14 @@ export function CrmBrandDashboard({ marca }: { marca: string }) {
   const since = getStartDate(period);
 
   const { data: pipelines, isLoading: pipelinesLoading } = useCrmPipelines(marca);
-  const pipeline = pipelines?.[0];
-  const { data: stages } = useCrmPipelineStages(pipeline?.id);
-  const { data: deals, isLoading: dealsLoading } = useCrmDeals(pipeline?.id);
+  // Use first pipeline for stats (or combined)
+  const firstPipeline = pipelines?.[0];
+  const { data: stages } = useCrmPipelineStages(firstPipeline?.id);
+  const { data: deals, isLoading: dealsLoading } = useCrmDeals(firstPipeline?.id);
 
-  const handleCreatePipeline = async () => {
+  const handleCreatePipeline = async (name?: string) => {
     if (!session?.user) return;
-    const { error } = await supabase.rpc("seed_crm_pipeline", { p_marca: marca, p_user_id: session.user.id });
+    const { error } = await supabase.rpc("seed_crm_pipeline", { p_marca: marca, p_user_id: session.user.id, p_nombre: name || null });
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else {
       toast({ title: "Pipeline creado" });
@@ -51,15 +52,20 @@ export function CrmBrandDashboard({ marca }: { marca: string }) {
     }
   };
 
-  if (!pipelinesLoading && !pipeline) {
+  if (!pipelinesLoading && (!pipelines || pipelines.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
         <Kanban className="h-16 w-16 text-muted-foreground/40 mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Sin Pipeline</h2>
-        <p className="text-muted-foreground mb-6">Crea tu primer pipeline para comenzar a rastrear negocios.</p>
-        <Button onClick={handleCreatePipeline} size="lg">
-          <Plus className="h-5 w-5 mr-2" /> Crear Pipeline
-        </Button>
+        <h2 className="text-2xl font-bold mb-2">Sin Pipelines</h2>
+        <p className="text-muted-foreground mb-6">Crea tus pipelines para comenzar a rastrear negocios.</p>
+        <div className="flex gap-3">
+          <Button onClick={() => handleCreatePipeline("Prospectos Nuevos")} size="lg">
+            <Plus className="h-5 w-5 mr-2" /> Prospectos Nuevos
+          </Button>
+          <Button variant="outline" onClick={() => handleCreatePipeline("Clientes con Compra")} size="lg">
+            <Plus className="h-5 w-5 mr-2" /> Clientes con Compra
+          </Button>
+        </div>
       </div>
     );
   }
@@ -135,11 +141,11 @@ export function CrmBrandDashboard({ marca }: { marca: string }) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <CrmRecentActivity pipelineId={pipeline?.id} since={since} />
-        <CrmClosingSoon pipelineId={pipeline?.id} since={since} />
+        <CrmRecentActivity pipelineId={firstPipeline?.id} since={since} />
+        <CrmClosingSoon pipelineId={firstPipeline?.id} since={since} />
       </div>
 
-      <CrmMiniPipelineChart pipelineId={pipeline?.id} />
+      <CrmMiniPipelineChart pipelineId={firstPipeline?.id} />
     </div>
   );
 }
