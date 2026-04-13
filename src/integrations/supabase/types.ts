@@ -127,6 +127,260 @@ export type Database = {
           },
         ]
       }
+      documento_fotos_entrega: {
+        Row: {
+          created_at: string
+          documento_id: string
+          id: string
+          nombre: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          documento_id: string
+          id?: string
+          nombre?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          documento_id?: string
+          id?: string
+          nombre?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_fotos_entrega_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documento_productos: {
+        Row: {
+          cantidad: number
+          created_at: string
+          descuento_porcentaje: number
+          documento_id: string
+          id: string
+          precio_unitario: number
+          producto_id: string
+          subtotal: number
+          unidades_equivalentes: number
+        }
+        Insert: {
+          cantidad?: number
+          created_at?: string
+          descuento_porcentaje?: number
+          documento_id: string
+          id?: string
+          precio_unitario?: number
+          producto_id: string
+          subtotal?: number
+          unidades_equivalentes?: number
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          descuento_porcentaje?: number
+          documento_id?: string
+          id?: string
+          precio_unitario?: number
+          producto_id?: string
+          subtotal?: number
+          unidades_equivalentes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_productos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_productos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos: {
+        Row: {
+          contacto_id: string | null
+          cotizacion_original_id: string | null
+          created_at: string
+          created_by: string | null
+          direccion_envio: string | null
+          ejecutivo_venta_id: string | null
+          empresa_id: string | null
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          estatus_cotizacion:
+            | Database["public"]["Enums"]["estatus_cotizacion"]
+            | null
+          estatus_factura: Database["public"]["Enums"]["estatus_factura"] | null
+          estatus_pedido: Database["public"]["Enums"]["estatus_pedido"] | null
+          fecha_documento: string
+          fecha_vencimiento: string | null
+          id: string
+          is_active: boolean
+          iva_importe: number
+          iva_porcentaje: number
+          metodo_pago: Database["public"]["Enums"]["metodo_pago_sat"] | null
+          negocio_crm: string | null
+          notas: string | null
+          numero_cotizacion: string | null
+          numero_factura: string | null
+          numero_oc_cliente: string | null
+          numero_pedido: string | null
+          pdf_url: string | null
+          plaza_id: string | null
+          subtotal: number
+          tipo_documento: Database["public"]["Enums"]["tipo_documento"]
+          tipo_pago: Database["public"]["Enums"]["tipo_pago"] | null
+          total: number
+          unidades_equivalentes_total: number
+          updated_at: string
+          uso_cfdi: Database["public"]["Enums"]["uso_cfdi"] | null
+        }
+        Insert: {
+          contacto_id?: string | null
+          cotizacion_original_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direccion_envio?: string | null
+          ejecutivo_venta_id?: string | null
+          empresa_id?: string | null
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          estatus_cotizacion?:
+            | Database["public"]["Enums"]["estatus_cotizacion"]
+            | null
+          estatus_factura?:
+            | Database["public"]["Enums"]["estatus_factura"]
+            | null
+          estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
+          fecha_documento?: string
+          fecha_vencimiento?: string | null
+          id?: string
+          is_active?: boolean
+          iva_importe?: number
+          iva_porcentaje?: number
+          metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
+          negocio_crm?: string | null
+          notas?: string | null
+          numero_cotizacion?: string | null
+          numero_factura?: string | null
+          numero_oc_cliente?: string | null
+          numero_pedido?: string | null
+          pdf_url?: string | null
+          plaza_id?: string | null
+          subtotal?: number
+          tipo_documento?: Database["public"]["Enums"]["tipo_documento"]
+          tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
+          total?: number
+          unidades_equivalentes_total?: number
+          updated_at?: string
+          uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
+        }
+        Update: {
+          contacto_id?: string | null
+          cotizacion_original_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direccion_envio?: string | null
+          ejecutivo_venta_id?: string | null
+          empresa_id?: string | null
+          empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
+          estatus_cotizacion?:
+            | Database["public"]["Enums"]["estatus_cotizacion"]
+            | null
+          estatus_factura?:
+            | Database["public"]["Enums"]["estatus_factura"]
+            | null
+          estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
+          fecha_documento?: string
+          fecha_vencimiento?: string | null
+          id?: string
+          is_active?: boolean
+          iva_importe?: number
+          iva_porcentaje?: number
+          metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
+          negocio_crm?: string | null
+          notas?: string | null
+          numero_cotizacion?: string | null
+          numero_factura?: string | null
+          numero_oc_cliente?: string | null
+          numero_pedido?: string | null
+          pdf_url?: string | null
+          plaza_id?: string | null
+          subtotal?: number
+          tipo_documento?: Database["public"]["Enums"]["tipo_documento"]
+          tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
+          total?: number
+          unidades_equivalentes_total?: number
+          updated_at?: string
+          uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_cotizacion_original_id_fkey"
+            columns: ["cotizacion_original_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plazas: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       presentaciones: {
         Row: {
           created_at: string
@@ -502,6 +756,27 @@ export type Database = {
         | "warehouse"
         | "customer_service"
         | "accounting"
+      empresa_vendedora: "lumaggs_chevron" | "galsa_phillips66"
+      estatus_cotizacion:
+        | "borrador"
+        | "enviada"
+        | "aceptada"
+        | "rechazada"
+        | "vencida"
+      estatus_factura:
+        | "pendiente"
+        | "pagada"
+        | "parcial"
+        | "vencida"
+        | "cancelada"
+      estatus_pedido:
+        | "pendiente"
+        | "confirmado"
+        | "en_proceso"
+        | "enviado"
+        | "entregado"
+        | "cancelado"
+      metodo_pago_sat: "PUE" | "PPD"
       product_option_type:
         | "marca"
         | "aplicacion"
@@ -510,6 +785,34 @@ export type Database = {
         | "viscosidad"
         | "categoria"
         | "linea"
+      tipo_documento: "cotizacion" | "pedido" | "factura"
+      tipo_pago: "contado" | "credito" | "credito_cescemex"
+      uso_cfdi:
+        | "G01"
+        | "G02"
+        | "G03"
+        | "I01"
+        | "I02"
+        | "I03"
+        | "I04"
+        | "I05"
+        | "I06"
+        | "I07"
+        | "I08"
+        | "D01"
+        | "D02"
+        | "D03"
+        | "D04"
+        | "D05"
+        | "D06"
+        | "D07"
+        | "D08"
+        | "D09"
+        | "D10"
+        | "P01"
+        | "S01"
+        | "CP01"
+        | "CN01"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -661,6 +964,30 @@ export const Constants = {
         "customer_service",
         "accounting",
       ],
+      empresa_vendedora: ["lumaggs_chevron", "galsa_phillips66"],
+      estatus_cotizacion: [
+        "borrador",
+        "enviada",
+        "aceptada",
+        "rechazada",
+        "vencida",
+      ],
+      estatus_factura: [
+        "pendiente",
+        "pagada",
+        "parcial",
+        "vencida",
+        "cancelada",
+      ],
+      estatus_pedido: [
+        "pendiente",
+        "confirmado",
+        "en_proceso",
+        "enviado",
+        "entregado",
+        "cancelado",
+      ],
+      metodo_pago_sat: ["PUE", "PPD"],
       product_option_type: [
         "marca",
         "aplicacion",
@@ -669,6 +996,35 @@ export const Constants = {
         "viscosidad",
         "categoria",
         "linea",
+      ],
+      tipo_documento: ["cotizacion", "pedido", "factura"],
+      tipo_pago: ["contado", "credito", "credito_cescemex"],
+      uso_cfdi: [
+        "G01",
+        "G02",
+        "G03",
+        "I01",
+        "I02",
+        "I03",
+        "I04",
+        "I05",
+        "I06",
+        "I07",
+        "I08",
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D10",
+        "P01",
+        "S01",
+        "CP01",
+        "CN01",
       ],
     },
   },
