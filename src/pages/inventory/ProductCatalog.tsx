@@ -299,16 +299,16 @@ function ProductosTab() {
               <TableHeader>
                  <TableRow>
                    <TableHead className="w-10"></TableHead>
-                   <TableHead>Código</TableHead>
-                   <TableHead>Producto</TableHead>
-                   <TableHead>Presentación</TableHead>
+                   <TableHead>Descripción</TableHead>
                    <TableHead>Marca</TableHead>
                    <TableHead>Base UF1</TableHead>
                    <TableHead>Activo</TableHead>
                  </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProductos.map((p: any) => (
+                {filteredProductos.map((p: any) => {
+                  const descripcionConcat = [p.codigo, p.nombre_producto, p.presentaciones?.nombre].filter(Boolean).join(" ");
+                  return (
                   <TableRow key={p.id}>
                     <TableCell>
                       <div className="flex gap-0.5">
@@ -320,15 +320,14 @@ function ProductosTab() {
                         </Button>
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-xs">{p.codigo}</TableCell>
-                    <TableCell className="font-medium">{p.nombre_producto}</TableCell>
-                    <TableCell>{p.presentaciones?.nombre ?? "—"}</TableCell>
+                    <TableCell className="font-medium">{descripcionConcat}</TableCell>
                     <TableCell>{p.marca?.value ?? "—"}</TableCell>
                     <TableCell>${p.precio_base_uf1}</TableCell>
                     <TableCell><Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Sí" : "No"}</Badge></TableCell>
                   </TableRow>
-                ))}
-                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
+                  );
+                })}
+                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
