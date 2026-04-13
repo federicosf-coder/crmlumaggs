@@ -74,7 +74,7 @@ export function CreateCrmTaskDialog({ open, onOpenChange, defaultDealId, default
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle>Crear Tarea</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Crear Actividad / Tarea</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Título *</Label>
@@ -86,7 +86,7 @@ export function CreateCrmTaskDialog({ open, onOpenChange, defaultDealId, default
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Fecha Límite</Label>
+              <Label>Fecha</Label>
               <Input type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
             <div className="space-y-2">
@@ -128,7 +128,7 @@ export function CreateCrmTaskDialog({ open, onOpenChange, defaultDealId, default
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={createTask.isPending}>
-              {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Tarea"}
+              {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Actividad / Tarea"}
             </Button>
           </div>
         </form>
