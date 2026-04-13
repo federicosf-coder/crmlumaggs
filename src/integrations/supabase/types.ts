@@ -127,6 +127,56 @@ export type Database = {
           },
         ]
       }
+      direcciones_empresa: {
+        Row: {
+          calle: string
+          ciudad: string | null
+          codigo_postal: string | null
+          created_at: string
+          empresa_id: string
+          estado: string | null
+          id: string
+          is_active: boolean
+          referencia: string | null
+          tipo: Database["public"]["Enums"]["tipo_direccion"]
+          updated_at: string
+        }
+        Insert: {
+          calle: string
+          ciudad?: string | null
+          codigo_postal?: string | null
+          created_at?: string
+          empresa_id: string
+          estado?: string | null
+          id?: string
+          is_active?: boolean
+          referencia?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_direccion"]
+          updated_at?: string
+        }
+        Update: {
+          calle?: string
+          ciudad?: string | null
+          codigo_postal?: string | null
+          created_at?: string
+          empresa_id?: string
+          estado?: string | null
+          id?: string
+          is_active?: boolean
+          referencia?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_direccion"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direcciones_empresa_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documento_fotos_entrega: {
         Row: {
           created_at: string
@@ -785,6 +835,7 @@ export type Database = {
         | "viscosidad"
         | "categoria"
         | "linea"
+      tipo_direccion: "envio" | "fiscal" | "comercial"
       tipo_documento: "cotizacion" | "pedido" | "factura"
       tipo_pago: "contado" | "credito" | "credito_cescemex"
       uso_cfdi:
@@ -997,6 +1048,7 @@ export const Constants = {
         "categoria",
         "linea",
       ],
+      tipo_direccion: ["envio", "fiscal", "comercial"],
       tipo_documento: ["cotizacion", "pedido", "factura"],
       tipo_pago: ["contado", "credito", "credito_cescemex"],
       uso_cfdi: [
