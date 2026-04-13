@@ -20,8 +20,7 @@ import DocumentsList from "@/pages/documents/DocumentsList";
 import DocumentForm from "@/pages/documents/DocumentForm";
 import CrmLanding from "@/pages/crm/CrmLanding";
 import CrmPipeline from "@/pages/crm/CrmPipeline";
-import CrmActivities from "@/pages/crm/CrmActivities";
-import CrmTasks from "@/pages/crm/CrmTasks";
+import CrmActivitiesTasks from "@/pages/crm/CrmActivitiesTasks";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,8 +60,7 @@ const App = () => (
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
             <Route path="/crm" element={<ProtectedRoute><CrmLanding /></ProtectedRoute>} />
             <Route path="/crm/:brand/pipeline" element={<ProtectedRoute><CrmPipeline /></ProtectedRoute>} />
-            <Route path="/crm/:brand/activities" element={<ProtectedRoute><CrmActivities /></ProtectedRoute>} />
-            <Route path="/crm/:brand/tasks" element={<ProtectedRoute><CrmTasks /></ProtectedRoute>} />
+            <Route path="/crm/:brand/activities" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsList /></ProtectedRoute>} />
             <Route path="/documents/new" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />

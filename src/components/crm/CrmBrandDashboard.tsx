@@ -96,10 +96,7 @@ export function CrmBrandDashboard({ marca }: { marca: string }) {
             <Kanban className="h-4 w-4 mr-2" /> Pipeline
           </Button>
           <Button variant="outline" onClick={() => navigate(`/crm/${marca}/activities`)}>
-            Actividades
-          </Button>
-          <Button variant="outline" onClick={() => navigate(`/crm/${marca}/tasks`)}>
-            Tareas
+            Actividades / Tareas
           </Button>
         </div>
         {isMobile ? (
