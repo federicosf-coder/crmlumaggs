@@ -18,9 +18,10 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   defaultDealId?: string;
   defaultContactId?: string;
+  defaultBrand?: string;
 }
 
-export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId, defaultContactId }: Props) {
+export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId, defaultContactId, defaultBrand }: Props) {
   const { session } = useAuth();
   const createActivity = useCreateCrmActivity();
   const createTask = useCreateCrmTask();
@@ -37,7 +38,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const { data: deals } = useQuery({
     queryKey: ["crm-deals-picker"],
     queryFn: async () => {
-      const { data } = await supabase.from("crm_deals").select("id, title").order("title");
+      const { data } = await supabase.from("crm_deals").select("id, title, crm_pipelines(marca)").order("title");
       return data || [];
     },
   });
@@ -46,10 +47,16 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [brand, setBrand] = useState(defaultBrand || "");
   const [dealId, setDealId] = useState(defaultDealId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
 
   const isTask = type === "task";
+
+  // Filter deals by selected brand
+  const filteredDeals = brand
+    ? deals?.filter((d: any) => d.crm_pipelines?.marca === brand) || []
+    : deals || [];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +108,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
     setDescription("");
     setDueDate("");
     setPriority("medium");
+    setBrand(defaultBrand || "");
     setDealId(defaultDealId || "");
     setContactId(defaultContactId || "");
   };
@@ -148,6 +156,18 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
             </div>
           )}
 
+          <div className="space-y-2">
+            <Label>CRM (opcional)</Label>
+            <Select value={brand || "none"} onValueChange={(v) => { setBrand(v === "none" ? "" : v); setDealId(""); }}>
+              <SelectTrigger><SelectValue placeholder="Sin CRM" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sin CRM</SelectItem>
+                <SelectItem value="chevron">Chevron</SelectItem>
+                <SelectItem value="phillips66">Phillips 66</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {!defaultDealId && (
             <div className="space-y-2">
               <Label>Vincular a Negocio</Label>
@@ -155,7 +175,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
                 <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Ninguno</SelectItem>
-                  {deals?.map((d) => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}
+                  {filteredDeals?.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

@@ -60,7 +60,7 @@ const App = () => (
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
             <Route path="/crm" element={<ProtectedRoute><CrmLanding /></ProtectedRoute>} />
             <Route path="/crm/:brand/pipeline" element={<ProtectedRoute><CrmPipeline /></ProtectedRoute>} />
-            <Route path="/crm/:brand/activities" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />
+            <Route path="/activities" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsList /></ProtectedRoute>} />
             <Route path="/documents/new" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />

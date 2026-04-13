@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useCrmActivities, CrmActivityType, ACTIVITY_TYPE_CONFIG } from "@/hooks/useCrmActivities";
 import { useCrmTasks, CrmTask } from "@/hooks/useCrmTasks";
 import { CrmActivityItem } from "@/components/crm/CrmActivityItem";
@@ -12,12 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, ArrowLeft, Activity as ActivityIcon } from "lucide-react";
+import { Plus, Search, Activity as ActivityIcon } from "lucide-react";
 
 export default function CrmActivitiesTasks() {
-  const { brand } = useParams<{ brand: string }>();
-  const brandLabel = brand === "chevron" ? "Chevron" : "Phillips 66";
-  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultBrand = searchParams.get("brand") || "";
 
   const [tab, setTab] = useState<"all" | "activities" | "tasks" | "completed">("all");
   const [typeFilter, setTypeFilter] = useState<string>("");
@@ -33,7 +32,6 @@ export default function CrmActivitiesTasks() {
 
   const isLoading = activitiesLoading || tasksLoading || completedLoading;
 
-  // Filter activities by search
   const filteredActivities = activities.filter(
     (a) => !searchQuery || a.title.toLowerCase().includes(searchQuery.toLowerCase()) || a.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -48,15 +46,10 @@ export default function CrmActivitiesTasks() {
 
   return (
     <div className="space-y-6">
-      <PageBanner title={`Actividades / Tareas — ${brandLabel}`} description="Registra interacciones y gestiona pendientes.">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/crm")}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Volver
-          </Button>
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Nueva
-          </Button>
-        </div>
+      <PageBanner title="Actividades / Tareas" description="Registra interacciones y gestiona pendientes.">
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" /> Nueva
+        </Button>
       </PageBanner>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -92,7 +85,6 @@ export default function CrmActivitiesTasks() {
         <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
       ) : (
         <div className="space-y-3">
-          {/* Pending tasks */}
           {(tab === "all" || tab === "tasks") && filteredPendingTasks.length > 0 && (
             <>
               {tab === "all" && <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Pendientes</h3>}
@@ -102,7 +94,6 @@ export default function CrmActivitiesTasks() {
             </>
           )}
 
-          {/* Activities */}
           {(tab === "all" || tab === "activities") && filteredActivities.length > 0 && (
             <>
               {tab === "all" && <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mt-4">Actividades</h3>}
@@ -112,12 +103,10 @@ export default function CrmActivitiesTasks() {
             </>
           )}
 
-          {/* Completed tasks */}
           {tab === "completed" && filteredCompletedTasks.map((task) => (
             <CrmTaskItem key={task.id} task={task} onClick={() => setSelectedTask(task)} />
           ))}
 
-          {/* Empty states */}
           {tab === "all" && filteredActivities.length === 0 && filteredPendingTasks.length === 0 && (
             <div className="flex flex-col items-center py-16">
               <ActivityIcon className="h-12 w-12 text-muted-foreground/40 mb-3" />
@@ -158,7 +147,7 @@ export default function CrmActivitiesTasks() {
         </div>
       )}
 
-      <CreateCrmActivityTaskDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateCrmActivityTaskDialog open={createOpen} onOpenChange={setCreateOpen} defaultBrand={defaultBrand} />
       <CrmTaskDetailDialog task={selectedTask} open={!!selectedTask} onOpenChange={(o) => { if (!o) setSelectedTask(null); }} />
     </div>
   );
