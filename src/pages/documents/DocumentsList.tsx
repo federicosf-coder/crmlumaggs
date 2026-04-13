@@ -66,15 +66,17 @@ function getEstatusVariant(doc: any): "default" | "secondary" | "destructive" | 
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [empresaFilter, setEmpresaFilter] = useState<string>("lumaggs_chevron");
   const [tipoFilter, setTipoFilter] = useState<string>("cotizacion");
 
   const { data: docs = [], isLoading } = useQuery({
-    queryKey: ["documentos", search, tipoFilter],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter],
     queryFn: async () => {
       let q = supabase
         .from("documentos")
         .select("*, companies(name), contacts(first_name, last_name)")
         .eq("is_active", true)
+        .eq("empresa_vendedora", empresaFilter as any)
         .order("created_at", { ascending: false });
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
       if (search) q = q.or(`numero_cotizacion.ilike.%${search}%,numero_pedido.ilike.%${search}%,numero_factura.ilike.%${search}%`);
@@ -96,6 +98,21 @@ export default function DocumentsList() {
         </Button>
       </div>
 
+      <div className="flex gap-2 mb-2">
+        {[
+          { value: "lumaggs_chevron", label: "Lumaggs Chevron" },
+          { value: "galsa_phillips66", label: "Galsa Phillips 66" },
+        ].map((emp) => (
+          <Button
+            key={emp.value}
+            variant={empresaFilter === emp.value ? "default" : "outline"}
+            onClick={() => setEmpresaFilter(emp.value)}
+          >
+            {emp.label}
+          </Button>
+        ))}
+      </div>
+
       <div className="flex gap-2 mb-4">
         {[
           { value: "cotizacion", label: "Cotizaciones" },
@@ -105,6 +122,7 @@ export default function DocumentsList() {
           <Button
             key={tipo.value}
             variant={tipoFilter === tipo.value ? "default" : "outline"}
+            size="sm"
             onClick={() => setTipoFilter(tipo.value)}
           >
             {tipo.label}
