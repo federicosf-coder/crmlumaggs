@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
@@ -359,16 +360,58 @@ function EmbudosTab() {
     setAddStageOpen(true);
   };
 
+  // New pipeline
+  const [newOpen, setNewOpen] = useState(false);
+  const [newNombre, setNewNombre] = useState("");
+  const [newMarca, setNewMarca] = useState("chevron");
+  const [newStages, setNewStages] = useState([
+    { name: "Prospecto", color: "#3b82f6" },
+    { name: "Contactado", color: "#8b5cf6" },
+    { name: "Propuesta", color: "#f59e0b" },
+    { name: "Negociación", color: "#10b981" },
+    { name: "Ganado", color: "#22c55e" },
+    { name: "Perdido", color: "#ef4444" },
+  ]);
+  const [creatingPipeline, setCreatingPipeline] = useState(false);
+
+  const handleCreatePipeline = async () => {
+    if (!newNombre.trim()) return;
+    const validStages = newStages.filter(s => s.name.trim());
+    if (validStages.length === 0) { toast.error("Agrega al menos una etapa"); return; }
+    setCreatingPipeline(true);
+    const { data: newPipeline, error: pErr } = await supabase
+      .from("crm_pipelines")
+      .insert({ nombre: newNombre, marca: newMarca })
+      .select("id")
+      .single();
+    if (pErr) { toast.error(pErr.message); setCreatingPipeline(false); return; }
+    const stageInserts = validStages.map((s, i) => ({ pipeline_id: newPipeline.id, name: s.name, color: s.color, position: i }));
+    const { error: sErr } = await supabase.from("crm_pipeline_stages").insert(stageInserts);
+    setCreatingPipeline(false);
+    if (sErr) { toast.error(sErr.message); return; }
+    toast.success("Embudo creado");
+    qc.invalidateQueries({ queryKey: ["all_pipelines_catalog"] });
+    qc.invalidateQueries({ queryKey: ["crm_pipelines"] });
+    setNewOpen(false);
+    setNewNombre("");
+    setNewStages([
+      { name: "Prospecto", color: "#3b82f6" }, { name: "Contactado", color: "#8b5cf6" },
+      { name: "Propuesta", color: "#f59e0b" }, { name: "Negociación", color: "#10b981" },
+      { name: "Ganado", color: "#22c55e" }, { name: "Perdido", color: "#ef4444" },
+    ]);
+  };
+
   const marcaLabel = (m: string) => m === "chevron" ? "Chevron" : m === "phillips66" ? "Phillips 66" : m;
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2"><Kanban className="h-5 w-5" /> Embudos de Venta (Pipelines)</CardTitle>
+        <Button size="sm" onClick={() => setNewOpen(true)}><Plus className="mr-1 h-4 w-4" /> Nuevo Embudo</Button>
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : pipelines.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No hay pipelines. Créalos desde el módulo CRM.</p>
+          <p className="text-muted-foreground text-center py-8">No hay pipelines. Crea uno con el botón de arriba.</p>
         ) : (
           <div className="space-y-2">
             {pipelines.map((p) => (
@@ -492,6 +535,56 @@ function EmbudosTab() {
           <DialogFooter>
             <Button onClick={() => addStage.mutate()} disabled={!addStageName || addStage.isPending}>
               {addStage.isPending ? "Guardando..." : "Agregar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New pipeline */}
+      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Nuevo Embudo de Venta</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nombre *</Label>
+              <Input value={newNombre} onChange={(e) => setNewNombre(e.target.value)} placeholder="Ej: Prospectos Nuevos" />
+            </div>
+            <div className="space-y-2">
+              <Label>CRM (Marca)</Label>
+              <Select value={newMarca} onValueChange={setNewMarca}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="chevron">Chevron</SelectItem>
+                  <SelectItem value="phillips66">Phillips 66</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Etapas</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setNewStages(prev => [...prev, { name: "", color: DEFAULT_COLORS[prev.length % DEFAULT_COLORS.length] }])}>
+                  <Plus className="h-3 w-3 mr-1" /> Etapa
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {newStages.map((stage, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input type="color" value={stage.color} onChange={(e) => setNewStages(prev => prev.map((s, i) => i === idx ? { ...s, color: e.target.value } : s))} className="w-8 h-8 rounded border cursor-pointer flex-shrink-0" />
+                    <Input value={stage.name} onChange={(e) => setNewStages(prev => prev.map((s, i) => i === idx ? { ...s, name: e.target.value } : s))} placeholder={`Etapa ${idx + 1}`} className="flex-1" />
+                    {newStages.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setNewStages(prev => prev.filter((_, i) => i !== idx))} className="flex-shrink-0">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreatePipeline} disabled={!newNombre.trim() || newStages.filter(s => s.name.trim()).length === 0 || creatingPipeline}>
+              {creatingPipeline ? "Creando..." : "Crear Embudo"}
             </Button>
           </DialogFooter>
         </DialogContent>
