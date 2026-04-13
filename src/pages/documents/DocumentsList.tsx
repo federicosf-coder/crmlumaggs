@@ -73,7 +73,7 @@ export default function DocumentsList() {
     queryFn: async () => {
       let q = supabase
         .from("documentos")
-        .select("*, companies(name), contacts(first_name, last_name), profiles!documentos_ejecutivo_venta_id_fkey(full_name)")
+        .select("*, companies(name), contacts(first_name, last_name)")
         .eq("is_active", true)
         .order("created_at", { ascending: false });
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
