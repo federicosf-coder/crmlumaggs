@@ -1,12 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export type CrmActivityType = "call" | "email" | "meeting" | "note" | "field_visit" | "whatsapp" | "follow_up" | "task";
+
+export const ACTIVITY_TYPE_CONFIG: Record<CrmActivityType, { emoji: string; label: string }> = {
+  call: { emoji: "📞", label: "Llamada" },
+  email: { emoji: "📧", label: "Correo" },
+  meeting: { emoji: "📅", label: "Reunión" },
+  note: { emoji: "📝", label: "Nota" },
+  field_visit: { emoji: "🏢", label: "Visita de Campo" },
+  whatsapp: { emoji: "💬", label: "WhatsApp" },
+  follow_up: { emoji: "🔄", label: "Seguimiento" },
+  task: { emoji: "✅", label: "Tarea" },
+};
+
 export interface CrmActivity {
   id: string;
   deal_id: string | null;
   contact_id: string | null;
   user_id: string;
-  type: "call" | "email" | "meeting" | "note";
+  type: CrmActivityType;
   title: string;
   description: string | null;
   created_at: string;
@@ -46,7 +59,7 @@ export function useCreateCrmActivity() {
       deal_id?: string | null;
       contact_id?: string | null;
       user_id: string;
-      type: "call" | "email" | "meeting" | "note";
+      type: CrmActivityType;
       title: string;
       description?: string | null;
     }) => {
