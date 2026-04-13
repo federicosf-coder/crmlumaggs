@@ -326,7 +326,7 @@ function ProductosTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {productos.map((p: any) => (
+                {filteredProductos.map((p: any) => (
                   <TableRow key={p.id}>
                     <TableCell className="font-mono text-xs">{p.codigo}</TableCell>
                     <TableCell className="font-medium">{p.nombre_producto}</TableCell>
@@ -339,7 +339,7 @@ function ProductosTab() {
                     <TableCell><Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Sí" : "No"}</Badge></TableCell>
                   </TableRow>
                 ))}
-                {productos.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
+                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
