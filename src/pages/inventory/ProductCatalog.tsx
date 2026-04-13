@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, Tags, BoxesIcon, Pencil } from "lucide-react";
+import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye } from "lucide-react";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
 
@@ -195,6 +195,7 @@ function ProductosTab() {
   const { data: presentaciones = [] } = usePresentaciones();
   const { data: allOptions = [] } = useOptionValues();
   const [open, setOpen] = useState(false);
+  const [viewProduct, setViewProduct] = useState<any>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const optionsFor = (type: ProductOptionType) => allOptions.filter(o => o.option_type === type && o.is_active);
@@ -313,9 +314,14 @@ function ProductosTab() {
                 {filteredProductos.map((p: any) => (
                   <TableRow key={p.id}>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewProduct(p)} title="Ver">
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)} title="Editar">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{p.codigo}</TableCell>
                     <TableCell className="font-medium">{p.nombre_producto}</TableCell>
@@ -396,6 +402,69 @@ function ProductosTab() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Product Dialog */}
+      <Dialog open={!!viewProduct} onOpenChange={(v) => { if (!v) setViewProduct(null); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Detalle del Producto</DialogTitle></DialogHeader>
+          {viewProduct && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div><p className="text-xs text-muted-foreground">Código</p><p className="font-mono font-medium">{viewProduct.codigo}</p></div>
+                <div><p className="text-xs text-muted-foreground">Activo</p><Badge variant={viewProduct.is_active ? "default" : "secondary"}>{viewProduct.is_active ? "Sí" : "No"}</Badge></div>
+                <div className="col-span-2"><p className="text-xs text-muted-foreground">Nombre</p><p className="font-medium">{viewProduct.nombre_producto}</p></div>
+                {viewProduct.descripcion && <div className="col-span-2"><p className="text-xs text-muted-foreground">Descripción</p><p className="text-sm">{viewProduct.descripcion}</p></div>}
+                <div><p className="text-xs text-muted-foreground">Presentación</p><p>{viewProduct.presentaciones?.nombre ?? "—"}</p></div>
+                <div><p className="text-xs text-muted-foreground">Unidades Equiv.</p><p>{viewProduct.presentaciones?.unidades_equivalentes ?? "—"}</p></div>
+              </div>
+
+              <div className="border-t pt-3">
+                <h4 className="font-semibold text-sm mb-2">Clasificación</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2">
+                  {([
+                    ["Marca", viewProduct.marca?.value],
+                    ["Aplicación", viewProduct.aplicacion?.value],
+                    ["Uso", viewProduct.uso?.value],
+                    ["Fórmula", viewProduct.formula?.value],
+                    ["Viscosidad", viewProduct.viscosidad?.value],
+                    ["Categoría", viewProduct.categoria?.value],
+                    ["Línea", viewProduct.linea?.value],
+                  ] as [string, string | undefined][]).map(([label, val]) => (
+                    <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="text-sm">{val ?? "—"}</p></div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t pt-3">
+                <h4 className="font-semibold text-sm mb-2">Precios</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-2">
+                  {([
+                    ["Costo", viewProduct.costo_actual],
+                    ["Base UF1", viewProduct.precio_base_uf1],
+                    ["UF2", viewProduct.precio_uf2],
+                    ["UF3", viewProduct.precio_uf3],
+                    ["UF4", viewProduct.precio_uf4],
+                    ["R1", viewProduct.precio_r1],
+                    ["R2", viewProduct.precio_r2],
+                    ["R3", viewProduct.precio_r3],
+                    ["R4", viewProduct.precio_r4],
+                    ["Lista Galper", viewProduct.precio_lista_galper],
+                  ] as [string, number][]).map(([label, val]) => (
+                    <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="text-sm font-mono">${val ?? 0}</p></div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setViewProduct(null)}>Cerrar</Button>
+                <Button onClick={() => { openEdit(viewProduct); setViewProduct(null); }}>
+                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </Card>
