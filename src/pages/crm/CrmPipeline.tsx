@@ -87,7 +87,7 @@ export default function CrmPipeline() {
     return (
       <div className="space-y-6">
         <PageBanner title={`Pipeline — ${brandLabel}`} description="Gestiona tus embudos de ventas.">
-          <Button variant="outline" onClick={() => navigate("/crm")}>
+          <Button variant="outline" onClick={() => navigate(`/crm/${marca}`)}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Volver
           </Button>
         </PageBanner>
