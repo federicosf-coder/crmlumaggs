@@ -69,8 +69,6 @@ const App = () => (
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/delivery" element={<ProtectedRoute><ModulePlaceholder title="Entregas" description="Seguimiento y gestión de entregas de productos. Próximamente en Fase 4." /></ProtectedRoute>} />
             <Route path="/transfers" element={<ProtectedRoute><ModulePlaceholder title="Transferencias de Inventario" description="Gestión de transferencias entre almacenes. Próximamente en Fase 3." /></ProtectedRoute>} />
-            <Route path="/invoicing" element={<ProtectedRoute><ModulePlaceholder title="Facturación" description="Facturación, generación de facturas y seguimiento de pagos." /></ProtectedRoute>} />
-            <Route path="/products" element={<ProtectedRoute><ModulePlaceholder title="Consulta de Productos" description="Buscar y explorar el catálogo de lubricantes Chevron y Phillips 66." /></ProtectedRoute>} />
             <Route path="/projects" element={<ProtectedRoute><ModulePlaceholder title="Proyectos y Tareas" description="Gestión de proyectos y seguimiento de tareas para tu equipo." /></ProtectedRoute>} />
             <Route path="/training" element={<ProtectedRoute><ModulePlaceholder title="Capacitación" description="Materiales de capacitación y cursos para tu equipo." /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><ModulePlaceholder title="Reportes" description="Análisis, reportes e inteligencia de negocio." /></ProtectedRoute>} />

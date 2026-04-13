@@ -195,6 +195,7 @@ function ProductosTab() {
   const { data: presentaciones = [] } = usePresentaciones();
   const { data: allOptions = [] } = useOptionValues();
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const optionsFor = (type: ProductOptionType) => allOptions.filter(o => o.option_type === type && o.is_active);
   const marcas = optionsFor("marca");
@@ -210,17 +211,62 @@ function ProductosTab() {
   const [form, setForm] = useState(emptyProduct);
   const set = (k: string, v: any) => setForm(prev => ({ ...prev, [k]: v }));
 
-  const add = useMutation({
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(emptyProduct);
+    setOpen(true);
+  };
+
+  const openEdit = (p: any) => {
+    setEditingId(p.id);
+    setForm({
+      codigo: p.codigo || "",
+      nombre_producto: p.nombre_producto || "",
+      descripcion: p.descripcion || "",
+      presentacion_id: p.presentacion_id || "",
+      is_active: p.is_active ?? true,
+      marca_id: p.marca_id || "",
+      aplicacion_id: p.aplicacion_id || "",
+      uso_id: p.uso_id || "",
+      formula_id: p.formula_id || "",
+      viscosidad_id: p.viscosidad_id || "",
+      categoria_id: p.categoria_id || "",
+      linea_id: p.linea_id || "",
+      costo_actual: p.costo_actual ?? 0,
+      precio_base_uf1: p.precio_base_uf1 ?? 0,
+      precio_uf2: p.precio_uf2 ?? 0,
+      precio_uf3: p.precio_uf3 ?? 0,
+      precio_uf4: p.precio_uf4 ?? 0,
+      precio_r1: p.precio_r1 ?? 0,
+      precio_r2: p.precio_r2 ?? 0,
+      precio_r3: p.precio_r3 ?? 0,
+      precio_r4: p.precio_r4 ?? 0,
+      precio_lista_galper: p.precio_lista_galper ?? 0,
+    });
+    setOpen(true);
+  };
+
+  const save = useMutation({
     mutationFn: async () => {
       const payload: any = { ...form };
-      // Convert empty strings to null for FK fields
       for (const k of ["presentacion_id", "marca_id", "aplicacion_id", "uso_id", "formula_id", "viscosidad_id", "categoria_id", "linea_id"]) {
         if (!payload[k]) payload[k] = null;
       }
-      const { error } = await supabase.from("productos").insert(payload);
-      if (error) throw error;
+      if (editingId) {
+        const { error } = await supabase.from("productos").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("productos").insert(payload);
+        if (error) throw error;
+      }
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["productos"] }); setOpen(false); setForm(emptyProduct); toast.success("Producto creado"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["productos"] });
+      setOpen(false);
+      setForm(emptyProduct);
+      setEditingId(null);
+      toast.success(editingId ? "Producto actualizado" : "Producto creado");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -242,70 +288,7 @@ function ProductosTab() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-8 w-60" placeholder="Buscar por código o nombre..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Nuevo Producto</Button></DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Nuevo Producto</DialogTitle></DialogHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Label>Código *</Label><Input value={form.codigo} onChange={e => set("codigo", e.target.value)} /></div>
-                <div><Label>Nombre Producto *</Label><Input value={form.nombre_producto} onChange={e => set("nombre_producto", e.target.value)} /></div>
-                <div className="md:col-span-2"><Label>Descripción</Label><Textarea value={form.descripcion} onChange={e => set("descripcion", e.target.value)} /></div>
-
-                <div>
-                  <Label>Presentación</Label>
-                  <Select value={form.presentacion_id} onValueChange={v => set("presentacion_id", v)}>
-                    <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                    <SelectContent>{presentaciones.filter(p => p.is_active).map(p => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Unidades Equivalentes</Label>
-                  <Input disabled value={selectedPres?.unidades_equivalentes ?? ""} />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Switch checked={form.is_active} onCheckedChange={v => set("is_active", v)} />
-                  <Label>Activo</Label>
-                </div>
-
-                {ALL_OPTION_TYPES.map(t => (
-                  <div key={t}>
-                    <Label>{OPTION_TYPE_LABELS[t]}</Label>
-                    <Select value={(form as any)[`${t}_id`] || ""} onValueChange={v => set(`${t}_id`, v)}>
-                      <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                      <SelectContent>{optionsFor(t).map(o => <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                ))}
-
-                <div className="md:col-span-2 border-t pt-3 mt-2">
-                  <h4 className="font-semibold text-sm mb-3">Precios</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {[
-                      ["costo_actual", "Costo Actual"],
-                      ["precio_base_uf1", "Base UF1"],
-                      ["precio_uf2", "UF2"],
-                      ["precio_uf3", "UF3"],
-                      ["precio_uf4", "UF4"],
-                      ["precio_r1", "R1"],
-                      ["precio_r2", "R2"],
-                      ["precio_r3", "R3"],
-                      ["precio_r4", "R4"],
-                      ["precio_lista_galper", "Lista Galper"],
-                    ].map(([k, label]) => (
-                      <div key={k}><Label className="text-xs">{label}</Label><Input type="number" value={(form as any)[k]} onChange={e => set(k, Number(e.target.value))} /></div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="md:col-span-2">
-                  <Button onClick={() => add.mutate()} disabled={!form.codigo || !form.nombre_producto || add.isPending} className="w-full">
-                    {add.isPending ? "Guardando..." : "Guardar Producto"}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button size="sm" onClick={openCreate}><Plus className="mr-1 h-4 w-4" /> Nuevo Producto</Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -314,6 +297,7 @@ function ProductosTab() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10"></TableHead>
                   <TableHead>Código</TableHead>
                   <TableHead>Producto</TableHead>
                   <TableHead>Presentación</TableHead>
@@ -328,6 +312,11 @@ function ProductosTab() {
               <TableBody>
                 {filteredProductos.map((p: any) => (
                   <TableRow key={p.id}>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
                     <TableCell className="font-mono text-xs">{p.codigo}</TableCell>
                     <TableCell className="font-medium">{p.nombre_producto}</TableCell>
                     <TableCell>{p.presentaciones?.nombre ?? "—"}</TableCell>
@@ -339,12 +328,76 @@ function ProductosTab() {
                     <TableCell><Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Sí" : "No"}</Badge></TableCell>
                   </TableRow>
                 ))}
-                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
+                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
         )}
       </CardContent>
+
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyProduct); } }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editingId ? "Editar Producto" : "Nuevo Producto"}</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><Label>Código *</Label><Input value={form.codigo} onChange={e => set("codigo", e.target.value)} /></div>
+            <div><Label>Nombre Producto *</Label><Input value={form.nombre_producto} onChange={e => set("nombre_producto", e.target.value)} /></div>
+            <div className="md:col-span-2"><Label>Descripción</Label><Textarea value={form.descripcion} onChange={e => set("descripcion", e.target.value)} /></div>
+
+            <div>
+              <Label>Presentación</Label>
+              <Select value={form.presentacion_id} onValueChange={v => set("presentacion_id", v)}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                <SelectContent>{presentaciones.filter(p => p.is_active).map(p => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Unidades Equivalentes</Label>
+              <Input disabled value={selectedPres?.unidades_equivalentes ?? ""} />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Switch checked={form.is_active} onCheckedChange={v => set("is_active", v)} />
+              <Label>Activo</Label>
+            </div>
+
+            {ALL_OPTION_TYPES.map(t => (
+              <div key={t}>
+                <Label>{OPTION_TYPE_LABELS[t]}</Label>
+                <Select value={(form as any)[`${t}_id`] || ""} onValueChange={v => set(`${t}_id`, v)}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>{optionsFor(t).map(o => <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            ))}
+
+            <div className="md:col-span-2 border-t pt-3 mt-2">
+              <h4 className="font-semibold text-sm mb-3">Precios</h4>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  ["costo_actual", "Costo Actual"],
+                  ["precio_base_uf1", "Base UF1"],
+                  ["precio_uf2", "UF2"],
+                  ["precio_uf3", "UF3"],
+                  ["precio_uf4", "UF4"],
+                  ["precio_r1", "R1"],
+                  ["precio_r2", "R2"],
+                  ["precio_r3", "R3"],
+                  ["precio_r4", "R4"],
+                  ["precio_lista_galper", "Lista Galper"],
+                ].map(([k, label]) => (
+                  <div key={k}><Label className="text-xs">{label}</Label><Input type="number" value={(form as any)[k]} onChange={e => set(k, Number(e.target.value))} /></div>
+                ))}
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <Button onClick={() => save.mutate()} disabled={!form.codigo || !form.nombre_producto || save.isPending} className="w-full">
+                {save.isPending ? "Guardando..." : editingId ? "Actualizar Producto" : "Guardar Producto"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
