@@ -123,7 +123,10 @@ export default function DocumentForm() {
     },
   });
   const { data: users = [] } = useQuery({ queryKey: ["profiles_list"], queryFn: async () => { const { data } = await supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name"); return data || []; } });
-  const { data: productos = [] } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, precio_base_uf1, presentaciones(unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
+  const { data: productos = [], refetch: refetchProductos } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, precio_base_uf1, presentaciones(unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
+  const { data: presentacionesList = [] } = useQuery({ queryKey: ["presentaciones"], queryFn: async () => { const { data } = await supabase.from("presentaciones").select("*").eq("is_active", true).order("nombre"); return data || []; } });
+  const { data: allOptionValues = [] } = useQuery({ queryKey: ["product_option_values"], queryFn: async () => { const { data } = await supabase.from("product_option_values").select("*").eq("is_active", true).order("value"); return data || []; } });
+  const optionsFor = (type: string) => allOptionValues.filter((o: any) => o.option_type === type);
 
   // Load existing
   const { data: existingDoc } = useQuery({
