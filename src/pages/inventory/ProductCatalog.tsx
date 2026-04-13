@@ -297,18 +297,15 @@ function ProductosTab() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10"></TableHead>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Producto</TableHead>
-                  <TableHead>Presentación</TableHead>
-                  <TableHead>Uds. Equiv.</TableHead>
-                  <TableHead>Marca</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Costo</TableHead>
-                  <TableHead>Base UF1</TableHead>
-                  <TableHead>Activo</TableHead>
-                </TableRow>
+                 <TableRow>
+                   <TableHead className="w-10"></TableHead>
+                   <TableHead>Código</TableHead>
+                   <TableHead>Producto</TableHead>
+                   <TableHead>Presentación</TableHead>
+                   <TableHead>Marca</TableHead>
+                   <TableHead>Base UF1</TableHead>
+                   <TableHead>Activo</TableHead>
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredProductos.map((p: any) => (
@@ -326,15 +323,12 @@ function ProductosTab() {
                     <TableCell className="font-mono text-xs">{p.codigo}</TableCell>
                     <TableCell className="font-medium">{p.nombre_producto}</TableCell>
                     <TableCell>{p.presentaciones?.nombre ?? "—"}</TableCell>
-                    <TableCell>{p.presentaciones?.unidades_equivalentes ?? "—"}</TableCell>
                     <TableCell>{p.marca?.value ?? "—"}</TableCell>
-                    <TableCell>{p.categoria?.value ?? "—"}</TableCell>
-                    <TableCell>${p.costo_actual}</TableCell>
                     <TableCell>${p.precio_base_uf1}</TableCell>
                     <TableCell><Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Sí" : "No"}</Badge></TableCell>
                   </TableRow>
                 ))}
-                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
+                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
