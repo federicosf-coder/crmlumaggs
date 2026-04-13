@@ -1029,10 +1029,12 @@ export type Database = {
         }
         Returns: boolean
       }
-      seed_crm_pipeline: {
-        Args: { p_marca: string; p_user_id: string }
-        Returns: string
-      }
+      seed_crm_pipeline:
+        | { Args: { p_marca: string; p_user_id: string }; Returns: string }
+        | {
+            Args: { p_marca: string; p_nombre?: string; p_user_id: string }
+            Returns: string
+          }
     }
     Enums: {
       access_level: "todos" | "equipo" | "propio" | "ninguno"
