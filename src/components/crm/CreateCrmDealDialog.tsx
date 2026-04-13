@@ -112,7 +112,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="deal-value">Valor ($)</Label>
+              <Label htmlFor="deal-value">Unidades Eq. Mensuales</Label>
               <Input id="deal-value" type="number" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" />
             </div>
           </div>
