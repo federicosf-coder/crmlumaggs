@@ -14,8 +14,6 @@ import TeamManagement from "@/pages/admin/TeamManagement";
 import PermissionsManagement from "@/pages/admin/PermissionsManagement";
 import CatalogsManagement from "@/pages/admin/CatalogsManagement";
 import ModulePlaceholder from "@/pages/ModulePlaceholder";
-import Activities from "@/pages/Activities";
-import Tasks from "@/pages/Tasks";
 import Directory from "@/pages/Directory";
 import ProductCatalog from "@/pages/inventory/ProductCatalog";
 import DocumentsList from "@/pages/documents/DocumentsList";
@@ -70,8 +68,10 @@ const App = () => (
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/delivery" element={<ProtectedRoute><ModulePlaceholder title="Entregas" description="Seguimiento y gestión de entregas de productos. Próximamente en Fase 4." /></ProtectedRoute>} />
-            <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
-            <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+            <Route path="/transfers" element={<ProtectedRoute><ModulePlaceholder title="Transferencias de Inventario" description="Gestión de transferencias entre almacenes. Próximamente en Fase 3." /></ProtectedRoute>} />
+            <Route path="/invoicing" element={<ProtectedRoute><ModulePlaceholder title="Facturación" description="Facturación, generación de facturas y seguimiento de pagos." /></ProtectedRoute>} />
+            <Route path="/products" element={<ProtectedRoute><ModulePlaceholder title="Consulta de Productos" description="Buscar y explorar el catálogo de lubricantes Chevron y Phillips 66." /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute><ModulePlaceholder title="Proyectos y Tareas" description="Gestión de proyectos y seguimiento de tareas para tu equipo." /></ProtectedRoute>} />
             <Route path="/training" element={<ProtectedRoute><ModulePlaceholder title="Capacitación" description="Materiales de capacitación y cursos para tu equipo." /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><ModulePlaceholder title="Reportes" description="Análisis, reportes e inteligencia de negocio." /></ProtectedRoute>} />
 
