@@ -801,27 +801,115 @@ function LogosTab() {
   );
 }
 
+// ─── Condiciones Comerciales Tab ─────────────────────────────
+const EMPRESA_LABELS: Record<string, string> = {
+  lumaggs_chevron: "Lumaggs (Chevron)",
+  galsa_phillips66: "Galsa (Phillips 66)",
+};
+
+function CondicionesTab() {
+  const qc = useQueryClient();
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ["condiciones_comerciales"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("condiciones_comerciales").select("*").order("empresa_vendedora");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const [editItem, setEditItem] = useState<any>(null);
+  const [editContenido, setEditContenido] = useState("");
+
+  const update = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("condiciones_comerciales").update({ contenido: editContenido }).eq("id", editItem.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["condiciones_comerciales"] });
+      setEditItem(null);
+      toast.success("Condiciones actualizadas");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const openEdit = (item: any) => {
+    setEditItem(item);
+    setEditContenido(item.contenido || "");
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Condiciones Comerciales</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
+          <div className="space-y-4">
+            {items.map((item) => (
+              <div key={item.id} className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">{EMPRESA_LABELS[item.empresa_vendedora] || item.empresa_vendedora}</h3>
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(item)}><Pencil className="h-4 w-4" /></Button>
+                </div>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {item.contenido || <span className="italic">Sin condiciones configuradas</span>}
+                </p>
+              </div>
+            ))}
+            {items.length === 0 && <p className="text-center text-muted-foreground">Sin condiciones configuradas</p>}
+          </div>
+        )}
+      </CardContent>
+      <Dialog open={!!editItem} onOpenChange={v => { if (!v) setEditItem(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Editar Condiciones — {editItem ? (EMPRESA_LABELS[editItem.empresa_vendedora] || editItem.empresa_vendedora) : ""}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Condiciones Comerciales</Label>
+              <Textarea
+                value={editContenido}
+                onChange={e => setEditContenido(e.target.value)}
+                placeholder="Ingresa las condiciones comerciales..."
+                rows={10}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => update.mutate()} disabled={update.isPending}>
+              {update.isPending ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
 // ─── Main Page ───────────────────────────────────────────────
 export default function CatalogsManagement() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Catálogos</h1>
-        <p className="text-muted-foreground">Administra plazas, presentaciones, clasificaciones, embudos y logos.</p>
+        <p className="text-muted-foreground">Administra plazas, presentaciones, clasificaciones, embudos, logos y condiciones comerciales.</p>
       </div>
       <Tabs defaultValue="plazas">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="plazas">Plazas</TabsTrigger>
           <TabsTrigger value="presentaciones">Presentaciones</TabsTrigger>
           <TabsTrigger value="clasificaciones">Clasificaciones</TabsTrigger>
           <TabsTrigger value="embudos">Embudos de Venta</TabsTrigger>
           <TabsTrigger value="logos">Logos</TabsTrigger>
+          <TabsTrigger value="condiciones">Condiciones</TabsTrigger>
         </TabsList>
         <TabsContent value="plazas"><PlazasTab /></TabsContent>
         <TabsContent value="presentaciones"><PresentacionesTab /></TabsContent>
         <TabsContent value="clasificaciones"><OptionsTab /></TabsContent>
         <TabsContent value="embudos"><EmbudosTab /></TabsContent>
         <TabsContent value="logos"><LogosTab /></TabsContent>
+        <TabsContent value="condiciones"><CondicionesTab /></TabsContent>
       </Tabs>
     </div>
   );
