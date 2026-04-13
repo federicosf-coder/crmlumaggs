@@ -359,16 +359,58 @@ function EmbudosTab() {
     setAddStageOpen(true);
   };
 
+  // New pipeline
+  const [newOpen, setNewOpen] = useState(false);
+  const [newNombre, setNewNombre] = useState("");
+  const [newMarca, setNewMarca] = useState("chevron");
+  const [newStages, setNewStages] = useState([
+    { name: "Prospecto", color: "#3b82f6" },
+    { name: "Contactado", color: "#8b5cf6" },
+    { name: "Propuesta", color: "#f59e0b" },
+    { name: "Negociación", color: "#10b981" },
+    { name: "Ganado", color: "#22c55e" },
+    { name: "Perdido", color: "#ef4444" },
+  ]);
+  const [creatingPipeline, setCreatingPipeline] = useState(false);
+
+  const handleCreatePipeline = async () => {
+    if (!newNombre.trim()) return;
+    const validStages = newStages.filter(s => s.name.trim());
+    if (validStages.length === 0) { toast.error("Agrega al menos una etapa"); return; }
+    setCreatingPipeline(true);
+    const { data: newPipeline, error: pErr } = await supabase
+      .from("crm_pipelines")
+      .insert({ nombre: newNombre, marca: newMarca })
+      .select("id")
+      .single();
+    if (pErr) { toast.error(pErr.message); setCreatingPipeline(false); return; }
+    const stageInserts = validStages.map((s, i) => ({ pipeline_id: newPipeline.id, name: s.name, color: s.color, position: i }));
+    const { error: sErr } = await supabase.from("crm_pipeline_stages").insert(stageInserts);
+    setCreatingPipeline(false);
+    if (sErr) { toast.error(sErr.message); return; }
+    toast.success("Embudo creado");
+    qc.invalidateQueries({ queryKey: ["all_pipelines_catalog"] });
+    qc.invalidateQueries({ queryKey: ["crm_pipelines"] });
+    setNewOpen(false);
+    setNewNombre("");
+    setNewStages([
+      { name: "Prospecto", color: "#3b82f6" }, { name: "Contactado", color: "#8b5cf6" },
+      { name: "Propuesta", color: "#f59e0b" }, { name: "Negociación", color: "#10b981" },
+      { name: "Ganado", color: "#22c55e" }, { name: "Perdido", color: "#ef4444" },
+    ]);
+  };
+
   const marcaLabel = (m: string) => m === "chevron" ? "Chevron" : m === "phillips66" ? "Phillips 66" : m;
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2"><Kanban className="h-5 w-5" /> Embudos de Venta (Pipelines)</CardTitle>
+        <Button size="sm" onClick={() => setNewOpen(true)}><Plus className="mr-1 h-4 w-4" /> Nuevo Embudo</Button>
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : pipelines.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No hay pipelines. Créalos desde el módulo CRM.</p>
+          <p className="text-muted-foreground text-center py-8">No hay pipelines. Crea uno con el botón de arriba.</p>
         ) : (
           <div className="space-y-2">
             {pipelines.map((p) => (
