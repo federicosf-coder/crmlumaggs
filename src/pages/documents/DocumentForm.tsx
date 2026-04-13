@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -12,11 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
 import { format } from "date-fns";
 
-const EMPRESA_LABELS: Record<string, string> = { lumaggs_chevron: "Lumaggs Chevron", galsa_phillips66: "Galsa Phillips 66" };
-const TIPO_DOC_LABELS: Record<string, string> = { cotizacion: "Cotización", pedido: "Pedido", factura: "Factura" };
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "pendiente", l: "Pendiente" }, { v: "confirmado", l: "Confirmado" }, { v: "en_proceso", l: "En Proceso" }, { v: "enviado", l: "Enviado" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
 const ESTATUS_FAC = [{ v: "pendiente", l: "Pendiente" }, { v: "pagada", l: "Pagada" }, { v: "parcial", l: "Parcial" }, { v: "vencida", l: "Vencida" }, { v: "cancelada", l: "Cancelada" }];
@@ -33,6 +32,7 @@ const USO_CFDI_OPTS = [
   { v: "D10", l: "D10 - Pagos por servicios educativos" }, { v: "P01", l: "P01 - Por definir" }, { v: "S01", l: "S01 - Sin efectos fiscales" },
   { v: "CP01", l: "CP01 - Pagos" }, { v: "CN01", l: "CN01 - Nómina" },
 ];
+const TIPO_DIRECCION_LABELS: Record<string, string> = { envio: "Envío", fiscal: "Fiscal", comercial: "Comercial" };
 
 interface LineItem {
   id?: string;
@@ -52,7 +52,6 @@ export default function DocumentForm() {
   const qc = useQueryClient();
   const { user } = useAuth();
 
-  // Form state
   const [form, setForm] = useState({
     empresa_vendedora: "" as string,
     plaza_id: "",
@@ -81,33 +80,51 @@ export default function DocumentForm() {
   const [items, setItems] = useState<LineItem[]>([]);
   const [saving, setSaving] = useState(false);
 
-  // Lookup data
+  // Dialog states
+  const [showNewCompany, setShowNewCompany] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [showNewContact, setShowNewContact] = useState(false);
+  const [newContactFirst, setNewContactFirst] = useState("");
+  const [newContactLast, setNewContactLast] = useState("");
+  const [newContactEmail, setNewContactEmail] = useState("");
+  const [showNewAddress, setShowNewAddress] = useState(false);
+  const [newAddrCalle, setNewAddrCalle] = useState("");
+  const [newAddrCiudad, setNewAddrCiudad] = useState("");
+  const [newAddrEstado, setNewAddrEstado] = useState("");
+  const [newAddrCp, setNewAddrCp] = useState("");
+  const [newAddrTipo, setNewAddrTipo] = useState("envio");
+
+  // Lookups
   const { data: plazas = [] } = useQuery({ queryKey: ["plazas"], queryFn: async () => { const { data } = await supabase.from("plazas").select("*").eq("is_active", true).order("nombre"); return data || []; } });
-  const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name"); return data || []; } });
-  const { data: contacts = [] } = useQuery({ queryKey: ["contacts", form.empresa_id], queryFn: async () => { let q = supabase.from("contacts").select("id, first_name, last_name, company_id").eq("is_active", true).order("first_name"); if (form.empresa_id) q = q.eq("company_id", form.empresa_id); const { data } = await q; return data || []; }, enabled: true });
+  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name"); return data || []; } });
+  const { data: contacts = [], refetch: refetchContacts } = useQuery({
+    queryKey: ["contacts", form.empresa_id],
+    queryFn: async () => {
+      if (!form.empresa_id) return [];
+      const { data } = await supabase.from("contacts").select("id, first_name, last_name, company_id").eq("is_active", true).eq("company_id", form.empresa_id).order("first_name");
+      return data || [];
+    },
+  });
+  const { data: addresses = [], refetch: refetchAddresses } = useQuery({
+    queryKey: ["direcciones_empresa", form.empresa_id],
+    queryFn: async () => {
+      if (!form.empresa_id) return [];
+      const { data } = await supabase.from("direcciones_empresa").select("*").eq("empresa_id", form.empresa_id).eq("is_active", true).order("tipo");
+      return data || [];
+    },
+  });
   const { data: users = [] } = useQuery({ queryKey: ["profiles_list"], queryFn: async () => { const { data } = await supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name"); return data || []; } });
   const { data: productos = [] } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, precio_base_uf1, presentaciones(unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
 
-  // Load existing document
+  // Load existing
   const { data: existingDoc } = useQuery({
     queryKey: ["documento", id],
-    queryFn: async () => {
-      if (!id) return null;
-      const { data, error } = await supabase.from("documentos").select("*").eq("id", id).single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => { if (!id) return null; const { data, error } = await supabase.from("documentos").select("*").eq("id", id).single(); if (error) throw error; return data; },
     enabled: isEdit,
   });
-
   const { data: existingItems = [] } = useQuery({
     queryKey: ["documento_productos", id],
-    queryFn: async () => {
-      if (!id) return [];
-      const { data, error } = await supabase.from("documento_productos").select("*, productos(codigo, nombre_producto)").eq("documento_id", id);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => { if (!id) return []; const { data, error } = await supabase.from("documento_productos").select("*, productos(codigo, nombre_producto)").eq("documento_id", id); if (error) throw error; return data; },
     enabled: isEdit,
   });
 
@@ -144,13 +161,8 @@ export default function DocumentForm() {
   useEffect(() => {
     if (existingItems.length > 0) {
       setItems(existingItems.map((it: any) => ({
-        id: it.id,
-        producto_id: it.producto_id,
-        cantidad: it.cantidad,
-        precio_unitario: it.precio_unitario,
-        descuento_porcentaje: it.descuento_porcentaje,
-        subtotal: it.subtotal,
-        unidades_equivalentes: it.unidades_equivalentes,
+        id: it.id, producto_id: it.producto_id, cantidad: it.cantidad, precio_unitario: it.precio_unitario,
+        descuento_porcentaje: it.descuento_porcentaje, subtotal: it.subtotal, unidades_equivalentes: it.unidades_equivalentes,
         _nombre: `${it.productos?.codigo} - ${it.productos?.nombre_producto}`,
       })));
     }
@@ -158,17 +170,13 @@ export default function DocumentForm() {
 
   const set = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
-  // Calculate totals
   const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
   const ivaPct = Number(form.iva_porcentaje) || 0;
   const ivaImporte = subtotal * (ivaPct / 100);
   const total = subtotal + ivaImporte;
   const ueTotal = items.reduce((s, i) => s + i.unidades_equivalentes, 0);
 
-  // Add line item
-  const addItem = () => {
-    setItems(prev => [...prev, { producto_id: "", cantidad: 1, precio_unitario: 0, descuento_porcentaje: 0, subtotal: 0, unidades_equivalentes: 0 }]);
-  };
+  const addItem = () => setItems(prev => [...prev, { producto_id: "", cantidad: 1, precio_unitario: 0, descuento_porcentaje: 0, subtotal: 0, unidades_equivalentes: 0 }]);
 
   const updateItem = (idx: number, field: string, val: any) => {
     setItems(prev => {
@@ -197,12 +205,54 @@ export default function DocumentForm() {
 
   const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
 
+  // Quick-add handlers
+  const handleAddCompany = async () => {
+    if (!newCompanyName.trim()) return;
+    const { data, error } = await supabase.from("companies").insert({ name: newCompanyName.trim() }).select("id").single();
+    if (error) { toast.error(error.message); return; }
+    await refetchCompanies();
+    set("empresa_id", data.id);
+    set("contacto_id", "");
+    setNewCompanyName("");
+    setShowNewCompany(false);
+    toast.success("Empresa creada");
+  };
+
+  const handleAddContact = async () => {
+    if (!newContactFirst.trim() || !newContactLast.trim()) return;
+    const { data, error } = await supabase.from("contacts").insert({ first_name: newContactFirst.trim(), last_name: newContactLast.trim(), email: newContactEmail.trim() || null, company_id: form.empresa_id }).select("id").single();
+    if (error) { toast.error(error.message); return; }
+    await refetchContacts();
+    set("contacto_id", data.id);
+    setNewContactFirst(""); setNewContactLast(""); setNewContactEmail("");
+    setShowNewContact(false);
+    toast.success("Contacto creado");
+  };
+
+  const handleAddAddress = async () => {
+    if (!newAddrCalle.trim()) return;
+    const { data, error } = await supabase.from("direcciones_empresa").insert({
+      empresa_id: form.empresa_id, tipo: newAddrTipo as any, calle: newAddrCalle.trim(),
+      ciudad: newAddrCiudad.trim() || null, estado: newAddrEstado.trim() || null, codigo_postal: newAddrCp.trim() || null,
+    }).select("id").single();
+    if (error) { toast.error(error.message); return; }
+    await refetchAddresses();
+    set("direccion_envio", data.id);
+    setNewAddrCalle(""); setNewAddrCiudad(""); setNewAddrEstado(""); setNewAddrCp(""); setNewAddrTipo("envio");
+    setShowNewAddress(false);
+    toast.success("Dirección creada");
+  };
+
   // Save
   const handleSave = async () => {
     if (!form.empresa_vendedora) { toast.error("Selecciona la empresa vendedora"); return; }
     if (!form.tipo_documento) { toast.error("Selecciona el tipo de documento"); return; }
     setSaving(true);
     try {
+      // resolve address text from selected address
+      const selectedAddr = addresses.find((a: any) => a.id === form.direccion_envio);
+      const direccionText = selectedAddr ? `${selectedAddr.calle}${selectedAddr.ciudad ? ', ' + selectedAddr.ciudad : ''}${selectedAddr.estado ? ', ' + selectedAddr.estado : ''}${selectedAddr.codigo_postal ? ' C.P. ' + selectedAddr.codigo_postal : ''}` : (form.direccion_envio || null);
+
       const docData: any = {
         empresa_vendedora: form.empresa_vendedora,
         plaza_id: form.plaza_id || null,
@@ -214,20 +264,17 @@ export default function DocumentForm() {
         fecha_documento: form.fecha_documento,
         fecha_vencimiento: form.fecha_vencimiento || null,
         iva_porcentaje: Number(form.iva_porcentaje),
-        numero_cotizacion: form.numero_cotizacion || null,
-        numero_pedido: form.numero_pedido || null,
-        numero_factura: form.numero_factura || null,
+        numero_cotizacion: form.tipo_documento === "cotizacion" ? (form.numero_cotizacion || null) : null,
+        numero_pedido: form.tipo_documento === "pedido" ? (form.numero_pedido || null) : null,
+        numero_factura: form.tipo_documento === "factura" ? (form.numero_factura || null) : null,
         estatus_cotizacion: form.tipo_documento === "cotizacion" ? form.estatus_cotizacion : null,
         estatus_pedido: form.tipo_documento === "pedido" ? form.estatus_pedido : null,
         estatus_factura: form.tipo_documento === "factura" ? form.estatus_factura : null,
-        subtotal,
-        iva_importe: ivaImporte,
-        total,
-        unidades_equivalentes_total: ueTotal,
+        subtotal, iva_importe: ivaImporte, total, unidades_equivalentes_total: ueTotal,
         negocio_crm: form.negocio_crm || null,
         notas: form.notas || null,
         numero_oc_cliente: form.numero_oc_cliente || null,
-        direccion_envio: form.direccion_envio || null,
+        direccion_envio: direccionText,
         cotizacion_original_id: form.cotizacion_original_id || null,
         tipo_pago: form.tipo_pago || null,
         uso_cfdi: form.uso_cfdi || null,
@@ -238,7 +285,6 @@ export default function DocumentForm() {
       if (isEdit) {
         const { error } = await supabase.from("documentos").update(docData).eq("id", id!);
         if (error) throw error;
-        // Delete old items and re-insert
         await supabase.from("documento_productos").delete().eq("documento_id", id!);
       } else {
         const { data, error } = await supabase.from("documentos").insert(docData).select("id").single();
@@ -246,16 +292,11 @@ export default function DocumentForm() {
         docId = data.id;
       }
 
-      // Insert line items
       if (items.length > 0) {
         const lineItems = items.filter(i => i.producto_id).map(i => ({
-          documento_id: docId!,
-          producto_id: i.producto_id,
-          cantidad: i.cantidad,
-          precio_unitario: i.precio_unitario,
-          descuento_porcentaje: i.descuento_porcentaje,
-          subtotal: i.subtotal,
-          unidades_equivalentes: i.unidades_equivalentes,
+          documento_id: docId!, producto_id: i.producto_id, cantidad: i.cantidad,
+          precio_unitario: i.precio_unitario, descuento_porcentaje: i.descuento_porcentaje,
+          subtotal: i.subtotal, unidades_equivalentes: i.unidades_equivalentes,
         }));
         if (lineItems.length > 0) {
           const { error } = await supabase.from("documento_productos").insert(lineItems);
@@ -273,15 +314,13 @@ export default function DocumentForm() {
     }
   };
 
+  const td = form.tipo_documento;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/documents")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{isEdit ? "Editar Documento" : "Nuevo Documento"}</h1>
-        </div>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/documents")}><ArrowLeft className="h-5 w-5" /></Button>
+        <h1 className="text-2xl font-bold text-foreground">{isEdit ? "Editar Documento" : "Nuevo Documento"}</h1>
       </div>
 
       {/* General Info */}
@@ -327,28 +366,38 @@ export default function DocumentForm() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Empresa (Cliente) with + button */}
           <div>
             <Label>Empresa (Cliente)</Label>
-            <Select value={form.empresa_id} onValueChange={v => { set("empresa_id", v); set("contacto_id", ""); }}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                {companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-1">
+              <Select value={form.empresa_id} onValueChange={v => { set("empresa_id", v); set("contacto_id", ""); set("direccion_envio", ""); }}>
+                <SelectTrigger className="flex-1"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  {companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" onClick={() => setShowNewCompany(true)}><Plus className="h-4 w-4" /></Button>
+            </div>
           </div>
+
+          {/* Contacto with + button, filtered by empresa */}
           <div>
             <Label>Contacto</Label>
-            <Select value={form.contacto_id} onValueChange={v => set("contacto_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                {contacts.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-1">
+              <Select value={form.contacto_id} onValueChange={v => set("contacto_id", v)} disabled={!form.empresa_id}>
+                <SelectTrigger className="flex-1"><SelectValue placeholder={form.empresa_id ? "Seleccionar" : "Selecciona empresa primero"} /></SelectTrigger>
+                <SelectContent>
+                  {contacts.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" onClick={() => setShowNewContact(true)} disabled={!form.empresa_id}><Plus className="h-4 w-4" /></Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Dates & Numbers */}
+      {/* Dates & Numbers — conditional fields by tipo_documento */}
       <Card>
         <CardHeader><CardTitle>Fechas y Números</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -370,44 +419,52 @@ export default function DocumentForm() {
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Número Cotización</Label>
-            <Input value={form.numero_cotizacion} onChange={e => set("numero_cotizacion", e.target.value)} />
-          </div>
-          <div>
-            <Label>Número Pedido</Label>
-            <Input value={form.numero_pedido} onChange={e => set("numero_pedido", e.target.value)} />
-          </div>
-          <div>
-            <Label>Número Factura</Label>
-            <Input value={form.numero_factura} onChange={e => set("numero_factura", e.target.value)} />
-          </div>
-          {form.tipo_documento === "cotizacion" && (
-            <div>
-              <Label>Estatus Cotización</Label>
-              <Select value={form.estatus_cotizacion} onValueChange={v => set("estatus_cotizacion", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{ESTATUS_COT.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
+
+          {/* Show only fields relevant to the selected document type */}
+          {td === "cotizacion" && (
+            <>
+              <div>
+                <Label>Número Cotización</Label>
+                <Input value={form.numero_cotizacion} onChange={e => set("numero_cotizacion", e.target.value)} />
+              </div>
+              <div>
+                <Label>Estatus Cotización</Label>
+                <Select value={form.estatus_cotizacion} onValueChange={v => set("estatus_cotizacion", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ESTATUS_COT.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </>
           )}
-          {form.tipo_documento === "pedido" && (
-            <div>
-              <Label>Estatus Pedido</Label>
-              <Select value={form.estatus_pedido} onValueChange={v => set("estatus_pedido", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{ESTATUS_PED.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
+          {td === "pedido" && (
+            <>
+              <div>
+                <Label>Número Pedido</Label>
+                <Input value={form.numero_pedido} onChange={e => set("numero_pedido", e.target.value)} />
+              </div>
+              <div>
+                <Label>Estatus Pedido</Label>
+                <Select value={form.estatus_pedido} onValueChange={v => set("estatus_pedido", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ESTATUS_PED.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </>
           )}
-          {form.tipo_documento === "factura" && (
-            <div>
-              <Label>Estatus Factura</Label>
-              <Select value={form.estatus_factura} onValueChange={v => set("estatus_factura", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{ESTATUS_FAC.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
+          {td === "factura" && (
+            <>
+              <div>
+                <Label>Número Factura</Label>
+                <Input value={form.numero_factura} onChange={e => set("numero_factura", e.target.value)} />
+              </div>
+              <div>
+                <Label>Estatus Factura</Label>
+                <Select value={form.estatus_factura} onValueChange={v => set("estatus_factura", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ESTATUS_FAC.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -514,7 +571,19 @@ export default function DocumentForm() {
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>Dirección de Envío</Label>
-            <Textarea value={form.direccion_envio} onChange={e => set("direccion_envio", e.target.value)} />
+            <div className="flex gap-1">
+              <Select value={form.direccion_envio} onValueChange={v => set("direccion_envio", v)} disabled={!form.empresa_id}>
+                <SelectTrigger className="flex-1"><SelectValue placeholder={form.empresa_id ? "Seleccionar dirección" : "Selecciona empresa primero"} /></SelectTrigger>
+                <SelectContent>
+                  {addresses.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      [{TIPO_DIRECCION_LABELS[a.tipo] || a.tipo}] {a.calle}{a.ciudad ? `, ${a.ciudad}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" onClick={() => setShowNewAddress(true)} disabled={!form.empresa_id}><Plus className="h-4 w-4" /></Button>
+            </div>
           </div>
           <div>
             <Label>Notas</Label>
@@ -530,6 +599,57 @@ export default function DocumentForm() {
           <Save className="mr-2 h-4 w-4" /> {saving ? "Guardando..." : "Guardar"}
         </Button>
       </div>
+
+      {/* Dialog: Nueva Empresa */}
+      <Dialog open={showNewCompany} onOpenChange={setShowNewCompany}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nueva Empresa</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nombre *</Label><Input value={newCompanyName} onChange={e => setNewCompanyName(e.target.value)} /></div>
+          </div>
+          <DialogFooter><Button onClick={handleAddCompany} disabled={!newCompanyName.trim()}>Crear Empresa</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Nuevo Contacto */}
+      <Dialog open={showNewContact} onOpenChange={setShowNewContact}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nuevo Contacto</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nombre *</Label><Input value={newContactFirst} onChange={e => setNewContactFirst(e.target.value)} /></div>
+            <div><Label>Apellido *</Label><Input value={newContactLast} onChange={e => setNewContactLast(e.target.value)} /></div>
+            <div><Label>Email</Label><Input value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} /></div>
+          </div>
+          <DialogFooter><Button onClick={handleAddContact} disabled={!newContactFirst.trim() || !newContactLast.trim()}>Crear Contacto</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Nueva Dirección */}
+      <Dialog open={showNewAddress} onOpenChange={setShowNewAddress}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nueva Dirección</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Tipo</Label>
+              <Select value={newAddrTipo} onValueChange={setNewAddrTipo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="envio">Envío</SelectItem>
+                  <SelectItem value="fiscal">Fiscal</SelectItem>
+                  <SelectItem value="comercial">Comercial</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Calle / Dirección *</Label><Input value={newAddrCalle} onChange={e => setNewAddrCalle(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Ciudad</Label><Input value={newAddrCiudad} onChange={e => setNewAddrCiudad(e.target.value)} /></div>
+              <div><Label>Estado</Label><Input value={newAddrEstado} onChange={e => setNewAddrEstado(e.target.value)} /></div>
+            </div>
+            <div><Label>Código Postal</Label><Input value={newAddrCp} onChange={e => setNewAddrCp(e.target.value)} /></div>
+          </div>
+          <DialogFooter><Button onClick={handleAddAddress} disabled={!newAddrCalle.trim()}>Crear Dirección</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
