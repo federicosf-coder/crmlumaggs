@@ -101,7 +101,7 @@ export function CrmBrandDashboard({ marca }: { marca: string }) {
           <Button onClick={() => navigate(`/crm/${marca}/pipeline`)}>
             <Kanban className="h-4 w-4 mr-2" /> Pipeline
           </Button>
-          <Button variant="outline" onClick={() => navigate(`/crm/${marca}/activities`)}>
+          <Button variant="outline" onClick={() => navigate(`/activities?brand=${marca}`)}>
             Actividades / Tareas
           </Button>
         </div>
