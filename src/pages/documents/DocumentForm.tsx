@@ -215,28 +215,16 @@ export default function DocumentForm() {
 
   const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
 
-  // Quick-add handlers
-  const handleAddCompany = async () => {
-    if (!newCompanyName.trim()) return;
-    const { data, error } = await supabase.from("companies").insert({ name: newCompanyName.trim() }).select("id").single();
-    if (error) { toast.error(error.message); return; }
+  // Quick-add handlers via shared dialogs
+  const handleCompanyCreated = async (id: string) => {
     await refetchCompanies();
-    set("empresa_id", data.id);
+    set("empresa_id", id);
     set("contacto_id", "");
-    setNewCompanyName("");
-    setShowNewCompany(false);
-    toast.success("Empresa creada");
   };
 
-  const handleAddContact = async () => {
-    if (!newContactFirst.trim() || !newContactLast.trim()) return;
-    const { data, error } = await supabase.from("contacts").insert({ first_name: newContactFirst.trim(), last_name: newContactLast.trim(), email: newContactEmail.trim() || null, company_id: form.empresa_id }).select("id").single();
-    if (error) { toast.error(error.message); return; }
+  const handleContactCreated = async (id: string) => {
     await refetchContacts();
-    set("contacto_id", data.id);
-    setNewContactFirst(""); setNewContactLast(""); setNewContactEmail("");
-    setShowNewContact(false);
-    toast.success("Contacto creado");
+    set("contacto_id", id);
   };
 
   const handleAddAddress = async () => {
