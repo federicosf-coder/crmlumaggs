@@ -37,12 +37,11 @@ export function CrmActivityItem({ activity }: { activity: CrmActivity }) {
       <div className="rounded-lg border bg-card p-4 space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row">
           <Select value={editType} onValueChange={(v) => setEditType(v as CrmActivity["type"])}>
-            <SelectTrigger className="w-full sm:w-32"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="call">📞 Llamada</SelectItem>
-              <SelectItem value="email">📧 Email</SelectItem>
-              <SelectItem value="meeting">📅 Reunión</SelectItem>
-              <SelectItem value="note">📝 Nota</SelectItem>
+              {Object.entries(ACTIVITY_TYPE_CONFIG).filter(([k]) => k !== "task").map(([key, c]) => (
+                <SelectItem key={key} value={key}>{c.emoji} {c.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Título" className="flex-1" />
@@ -62,8 +61,8 @@ export function CrmActivityItem({ activity }: { activity: CrmActivity }) {
 
   return (
     <div className="group flex gap-3 rounded-lg border bg-card p-4">
-      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${config.bg}`}>
-        <Icon className={`h-4 w-4 ${config.color}`} />
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+        <span className="text-lg">{config.emoji}</span>
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm">{activity.title}</p>
