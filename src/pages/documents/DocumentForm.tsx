@@ -93,6 +93,15 @@ export default function DocumentForm() {
   const [newAddrEstado, setNewAddrEstado] = useState("");
   const [newAddrCp, setNewAddrCp] = useState("");
   const [newAddrTipo, setNewAddrTipo] = useState("envio");
+  const [showNewProduct, setShowNewProduct] = useState(false);
+  const [newProductForm, setNewProductForm] = useState({
+    codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
+    is_active: true, marca_id: "", aplicacion_id: "", uso_id: "", formula_id: "",
+    viscosidad_id: "", categoria_id: "", linea_id: "",
+    costo_actual: 0, precio_base_uf1: 0, precio_uf2: 0, precio_uf3: 0, precio_uf4: 0,
+    precio_r1: 0, precio_r2: 0, precio_r3: 0, precio_r4: 0, precio_lista_galper: 0,
+  });
+  const setNP = (k: string, v: any) => setNewProductForm(prev => ({ ...prev, [k]: v }));
 
   // Lookups
   const { data: plazas = [] } = useQuery({ queryKey: ["plazas"], queryFn: async () => { const { data } = await supabase.from("plazas").select("*").eq("is_active", true).order("nombre"); return data || []; } });
@@ -114,7 +123,10 @@ export default function DocumentForm() {
     },
   });
   const { data: users = [] } = useQuery({ queryKey: ["profiles_list"], queryFn: async () => { const { data } = await supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name"); return data || []; } });
-  const { data: productos = [] } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, precio_base_uf1, presentaciones(unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
+  const { data: productos = [], refetch: refetchProductos } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, precio_base_uf1, presentaciones(unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
+  const { data: presentacionesList = [] } = useQuery({ queryKey: ["presentaciones"], queryFn: async () => { const { data } = await supabase.from("presentaciones").select("*").eq("is_active", true).order("nombre"); return data || []; } });
+  const { data: allOptionValues = [] } = useQuery({ queryKey: ["product_option_values"], queryFn: async () => { const { data } = await supabase.from("product_option_values").select("*").eq("is_active", true).order("value"); return data || []; } });
+  const optionsFor = (type: string) => allOptionValues.filter((o: any) => o.option_type === type);
 
   // Load existing
   const { data: existingDoc } = useQuery({
@@ -241,6 +253,26 @@ export default function DocumentForm() {
     setNewAddrCalle(""); setNewAddrCiudad(""); setNewAddrEstado(""); setNewAddrCp(""); setNewAddrTipo("envio");
     setShowNewAddress(false);
     toast.success("Dirección creada");
+  };
+
+  const handleAddProduct = async () => {
+    if (!newProductForm.codigo.trim() || !newProductForm.nombre_producto.trim()) return;
+    const payload: any = { ...newProductForm };
+    for (const k of ["presentacion_id", "marca_id", "aplicacion_id", "uso_id", "formula_id", "viscosidad_id", "categoria_id", "linea_id"]) {
+      if (!payload[k]) payload[k] = null;
+    }
+    const { error } = await supabase.from("productos").insert(payload);
+    if (error) { toast.error(error.message); return; }
+    await refetchProductos();
+    setNewProductForm({
+      codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
+      is_active: true, marca_id: "", aplicacion_id: "", uso_id: "", formula_id: "",
+      viscosidad_id: "", categoria_id: "", linea_id: "",
+      costo_actual: 0, precio_base_uf1: 0, precio_uf2: 0, precio_uf3: 0, precio_uf4: 0,
+      precio_r1: 0, precio_r2: 0, precio_r3: 0, precio_r4: 0, precio_lista_galper: 0,
+    });
+    setShowNewProduct(false);
+    toast.success("Producto creado");
   };
 
   // Save
@@ -497,12 +529,15 @@ export default function DocumentForm() {
                 {items.map((item, idx) => (
                   <TableRow key={idx}>
                     <TableCell>
-                      <Select value={item.producto_id} onValueChange={v => updateItem(idx, "producto_id", v)}>
-                        <SelectTrigger><SelectValue placeholder="Seleccionar producto" /></SelectTrigger>
-                        <SelectContent>
-                          {productos.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nombre_producto}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex gap-1">
+                        <Select value={item.producto_id} onValueChange={v => updateItem(idx, "producto_id", v)}>
+                          <SelectTrigger><SelectValue placeholder="Seleccionar producto" /></SelectTrigger>
+                          <SelectContent>
+                            {productos.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nombre_producto}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
+                      </div>
                     </TableCell>
                     <TableCell><Input type="number" className="w-20" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} /></TableCell>
                     <TableCell><Input type="number" className="w-28" value={item.precio_unitario} onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))} /></TableCell>
@@ -648,6 +683,52 @@ export default function DocumentForm() {
             <div><Label>Código Postal</Label><Input value={newAddrCp} onChange={e => setNewAddrCp(e.target.value)} /></div>
           </div>
           <DialogFooter><Button onClick={handleAddAddress} disabled={!newAddrCalle.trim()}>Crear Dirección</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Nuevo Producto */}
+      <Dialog open={showNewProduct} onOpenChange={setShowNewProduct}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Nuevo Producto</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><Label>Código *</Label><Input value={newProductForm.codigo} onChange={e => setNP("codigo", e.target.value)} /></div>
+            <div><Label>Nombre Producto *</Label><Input value={newProductForm.nombre_producto} onChange={e => setNP("nombre_producto", e.target.value)} /></div>
+            <div className="md:col-span-2"><Label>Descripción</Label><Textarea value={newProductForm.descripcion} onChange={e => setNP("descripcion", e.target.value)} /></div>
+            <div>
+              <Label>Presentación</Label>
+              <Select value={newProductForm.presentacion_id} onValueChange={v => setNP("presentacion_id", v)}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                <SelectContent>{presentacionesList.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Unidades Equivalentes</Label>
+              <Input disabled value={presentacionesList.find((p: any) => p.id === newProductForm.presentacion_id)?.unidades_equivalentes ?? ""} />
+            </div>
+            {(["marca", "aplicacion", "uso", "formula", "viscosidad", "categoria", "linea"] as const).map(t => (
+              <div key={t}>
+                <Label>{t === "marca" ? "Marca" : t === "aplicacion" ? "Aplicación" : t === "uso" ? "Uso" : t === "formula" ? "Fórmula" : t === "viscosidad" ? "Viscosidad" : t === "categoria" ? "Categoría" : "Línea"}</Label>
+                <Select value={(newProductForm as any)[`${t}_id`] || ""} onValueChange={v => setNP(`${t}_id`, v)}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>{optionsFor(t).map((o: any) => <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            ))}
+            <div className="md:col-span-2 border-t pt-3 mt-2">
+              <h4 className="font-semibold text-sm mb-3">Precios</h4>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  ["costo_actual", "Costo Actual"], ["precio_base_uf1", "Base UF1"], ["precio_uf2", "UF2"], ["precio_uf3", "UF3"], ["precio_uf4", "UF4"],
+                  ["precio_r1", "R1"], ["precio_r2", "R2"], ["precio_r3", "R3"], ["precio_r4", "R4"], ["precio_lista_galper", "Lista Galper"],
+                ].map(([k, label]) => (
+                  <div key={k}><Label className="text-xs">{label}</Label><Input type="number" value={(newProductForm as any)[k]} onChange={e => setNP(k, Number(e.target.value))} /></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleAddProduct} disabled={!newProductForm.codigo.trim() || !newProductForm.nombre_producto.trim()}>Crear Producto</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
