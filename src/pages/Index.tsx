@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 const modules = [
   { title: "Directorio", description: "Empresas y contactos", icon: BookOpen, url: "/directory", color: "bg-primary" },
   { title: "CRM", description: "Ventas Chevron y Phillips 66", icon: ShoppingCart, url: "/crm", color: "bg-primary" },
+  { title: "Documentos", description: "Cotizaciones, pedidos y facturas", icon: FileText, url: "/documents", color: "bg-primary" },
   { title: "Inventario", description: "Catálogo de productos y existencias", icon: Package, url: "/inventory", color: "bg-primary" },
   { title: "Entregas", description: "Seguimiento de entregas", icon: Truck, url: "/delivery", color: "bg-primary" },
   { title: "Transferencias", description: "Transferencias de inventario", icon: ArrowLeftRight, url: "/transfers", color: "bg-primary" },
