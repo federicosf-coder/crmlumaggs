@@ -190,12 +190,15 @@ function OptionsTab() {
 function ProductosTab() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [marcaFilter, setMarcaFilter] = useState<string>("all");
   const { data: productos = [], isLoading } = useProductos(search);
   const { data: presentaciones = [] } = usePresentaciones();
   const { data: allOptions = [] } = useOptionValues();
   const [open, setOpen] = useState(false);
 
   const optionsFor = (type: ProductOptionType) => allOptions.filter(o => o.option_type === type && o.is_active);
+  const marcas = optionsFor("marca");
+  const filteredProductos = marcaFilter === "all" ? productos : productos.filter((p: any) => p.marca_id === marcaFilter);
 
   const emptyProduct = {
     codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
