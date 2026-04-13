@@ -87,7 +87,7 @@ export default function CrmPipeline() {
     return (
       <div className="space-y-6">
         <PageBanner title={`Pipeline — ${brandLabel}`} description="Gestiona tus embudos de ventas.">
-          <Button variant="outline" onClick={() => navigate("/crm")}>
+          <Button variant="outline" onClick={() => navigate(`/crm/${marca}`)}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Volver
           </Button>
         </PageBanner>
@@ -112,7 +112,7 @@ export default function CrmPipeline() {
     <div className="space-y-6">
       <PageBanner title={`Pipeline — ${brandLabel}`} description="Arrastra negocios entre etapas para actualizar su progreso.">
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/crm")}>
+          <Button variant="outline" onClick={() => navigate(`/crm/${marca}`)}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Volver
           </Button>
           <Button onClick={() => { setCreateStageId(stages?.[0]?.id); setCreateOpen(true); }}>
