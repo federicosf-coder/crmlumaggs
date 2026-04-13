@@ -1,4 +1,4 @@
-import { CrmActivity, useUpdateCrmActivity, useDeleteCrmActivity } from "@/hooks/useCrmActivities";
+import { CrmActivity, useUpdateCrmActivity, useDeleteCrmActivity, ACTIVITY_TYPE_CONFIG, CrmActivityType } from "@/hooks/useCrmActivities";
 import { formatRelativeDate } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,18 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Phone, Mail, Calendar, FileText, Pencil, Trash2, Save, X } from "lucide-react";
-
-const typeConfig = {
-  call: { icon: Phone, color: "text-blue-500", bg: "bg-blue-50", label: "Llamada" },
-  email: { icon: Mail, color: "text-purple-500", bg: "bg-purple-50", label: "Email" },
-  meeting: { icon: Calendar, color: "text-orange-500", bg: "bg-orange-50", label: "Reunión" },
-  note: { icon: FileText, color: "text-green-500", bg: "bg-green-50", label: "Nota" },
-};
+import { Pencil, Trash2, Save, X } from "lucide-react";
 
 export function CrmActivityItem({ activity }: { activity: CrmActivity }) {
-  const config = typeConfig[activity.type];
-  const Icon = config.icon;
+  const config = ACTIVITY_TYPE_CONFIG[activity.type] || ACTIVITY_TYPE_CONFIG.note;
   const updateActivity = useUpdateCrmActivity();
   const deleteActivity = useDeleteCrmActivity();
   const { toast } = useToast();
