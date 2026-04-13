@@ -538,6 +538,56 @@ function EmbudosTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* New pipeline */}
+      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Nuevo Embudo de Venta</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nombre *</Label>
+              <Input value={newNombre} onChange={(e) => setNewNombre(e.target.value)} placeholder="Ej: Prospectos Nuevos" />
+            </div>
+            <div className="space-y-2">
+              <Label>CRM (Marca)</Label>
+              <Select value={newMarca} onValueChange={setNewMarca}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="chevron">Chevron</SelectItem>
+                  <SelectItem value="phillips66">Phillips 66</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Etapas</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setNewStages(prev => [...prev, { name: "", color: DEFAULT_COLORS[prev.length % DEFAULT_COLORS.length] }])}>
+                  <Plus className="h-3 w-3 mr-1" /> Etapa
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {newStages.map((stage, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input type="color" value={stage.color} onChange={(e) => setNewStages(prev => prev.map((s, i) => i === idx ? { ...s, color: e.target.value } : s))} className="w-8 h-8 rounded border cursor-pointer flex-shrink-0" />
+                    <Input value={stage.name} onChange={(e) => setNewStages(prev => prev.map((s, i) => i === idx ? { ...s, name: e.target.value } : s))} placeholder={`Etapa ${idx + 1}`} className="flex-1" />
+                    {newStages.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setNewStages(prev => prev.filter((_, i) => i !== idx))} className="flex-shrink-0">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreatePipeline} disabled={!newNombre.trim() || newStages.filter(s => s.name.trim()).length === 0 || creatingPipeline}>
+              {creatingPipeline ? "Creando..." : "Crear Embudo"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
