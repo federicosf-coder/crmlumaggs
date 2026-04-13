@@ -66,7 +66,7 @@ function getEstatusVariant(doc: any): "default" | "secondary" | "destructive" | 
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [tipoFilter, setTipoFilter] = useState<string>("all");
+  const [tipoFilter, setTipoFilter] = useState<string>("cotizacion");
 
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ["documentos", search, tipoFilter],
