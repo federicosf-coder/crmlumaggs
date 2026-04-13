@@ -18,6 +18,10 @@ import Directory from "@/pages/Directory";
 import ProductCatalog from "@/pages/inventory/ProductCatalog";
 import DocumentsList from "@/pages/documents/DocumentsList";
 import DocumentForm from "@/pages/documents/DocumentForm";
+import CrmLanding from "@/pages/crm/CrmLanding";
+import CrmPipeline from "@/pages/crm/CrmPipeline";
+import CrmActivities from "@/pages/crm/CrmActivities";
+import CrmTasks from "@/pages/crm/CrmTasks";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,8 +59,10 @@ const App = () => (
             <Route path="/admin/catalogs" element={<ProtectedRoute><CatalogsManagement /></ProtectedRoute>} />
 
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
-            <Route path="/crm/chevron" element={<ProtectedRoute><ModulePlaceholder title="CRM — Chevron" description="Pipeline de ventas, oportunidades y gestión de clientes para lubricantes Chevron. Próximamente en Fase 2." /></ProtectedRoute>} />
-            <Route path="/crm/phillips66" element={<ProtectedRoute><ModulePlaceholder title="CRM — Phillips 66" description="Pipeline de ventas, oportunidades y gestión de clientes para lubricantes Phillips 66. Próximamente en Fase 2." /></ProtectedRoute>} />
+            <Route path="/crm" element={<ProtectedRoute><CrmLanding /></ProtectedRoute>} />
+            <Route path="/crm/:brand/pipeline" element={<ProtectedRoute><CrmPipeline /></ProtectedRoute>} />
+            <Route path="/crm/:brand/activities" element={<ProtectedRoute><CrmActivities /></ProtectedRoute>} />
+            <Route path="/crm/:brand/tasks" element={<ProtectedRoute><CrmTasks /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsList /></ProtectedRoute>} />
             <Route path="/documents/new" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
