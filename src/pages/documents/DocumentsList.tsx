@@ -70,12 +70,13 @@ export default function DocumentsList() {
   const [tipoFilter, setTipoFilter] = useState<string>("cotizacion");
 
   const { data: docs = [], isLoading } = useQuery({
-    queryKey: ["documentos", search, tipoFilter],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter],
     queryFn: async () => {
       let q = supabase
         .from("documentos")
         .select("*, companies(name), contacts(first_name, last_name)")
         .eq("is_active", true)
+        .eq("empresa_vendedora", empresaFilter as any)
         .order("created_at", { ascending: false });
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
       if (search) q = q.or(`numero_cotizacion.ilike.%${search}%,numero_pedido.ilike.%${search}%,numero_factura.ilike.%${search}%`);
