@@ -98,6 +98,21 @@ export default function DocumentsList() {
         </Button>
       </div>
 
+      <div className="flex gap-2 mb-2">
+        {[
+          { value: "lumaggs_chevron", label: "Lumaggs Chevron" },
+          { value: "galsa_phillips66", label: "Galsa Phillips 66" },
+        ].map((emp) => (
+          <Button
+            key={emp.value}
+            variant={empresaFilter === emp.value ? "default" : "outline"}
+            onClick={() => setEmpresaFilter(emp.value)}
+          >
+            {emp.label}
+          </Button>
+        ))}
+      </div>
+
       <div className="flex gap-2 mb-4">
         {[
           { value: "cotizacion", label: "Cotizaciones" },
@@ -107,6 +122,7 @@ export default function DocumentsList() {
           <Button
             key={tipo.value}
             variant={tipoFilter === tipo.value ? "default" : "outline"}
+            size="sm"
             onClick={() => setTipoFilter(tipo.value)}
           >
             {tipo.label}
