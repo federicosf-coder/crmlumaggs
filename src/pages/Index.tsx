@@ -13,7 +13,7 @@ const modules = [
   { title: "Inventario", description: "Catálogo de productos y existencias", icon: Package, url: "/inventory", color: "bg-primary" },
   { title: "Entregas", description: "Seguimiento de entregas", icon: Truck, url: "/delivery", color: "bg-primary" },
   { title: "Transferencias", description: "Transferencias de inventario", icon: ArrowLeftRight, url: "/transfers", color: "bg-primary" },
-  { title: "Proyectos", description: "Proyectos y tareas", icon: FolderKanban, url: "/projects", color: "bg-primary" },
+  { title: "Tareas y Actividades", description: "Gestión de tareas y seguimiento", icon: FolderKanban, url: "/crm", color: "bg-primary" },
   { title: "Capacitación", description: "Capacitación del equipo", icon: GraduationCap, url: "/training", color: "bg-primary" },
   { title: "Reportes", description: "Análisis y reportes", icon: BarChart3, url: "/reports", color: "bg-primary" },
 ];
