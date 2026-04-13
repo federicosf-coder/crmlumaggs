@@ -8,8 +8,7 @@ import { useNavigate } from "react-router-dom";
 
 const modules = [
   { title: "Directorio", description: "Empresas y contactos", icon: BookOpen, url: "/directory", color: "bg-primary" },
-  { title: "CRM Chevron", description: "Ventas de lubricantes Chevron", icon: ShoppingCart, url: "/crm/chevron", color: "bg-primary" },
-  { title: "CRM Phillips 66", description: "Ventas de lubricantes Phillips 66", icon: ShoppingCart, url: "/crm/phillips66", color: "bg-primary" },
+  { title: "CRM", description: "Ventas Chevron y Phillips 66", icon: ShoppingCart, url: "/crm", color: "bg-primary" },
   { title: "Cotizaciones", description: "Crear y enviar cotizaciones", icon: FileText, url: "/quotes", color: "bg-primary" },
   { title: "Inventario", description: "Catálogo de productos y existencias", icon: Package, url: "/inventory", color: "bg-primary" },
   { title: "Entregas", description: "Seguimiento de entregas", icon: Truck, url: "/delivery", color: "bg-primary" },
