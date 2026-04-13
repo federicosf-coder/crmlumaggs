@@ -671,13 +671,142 @@ function EmbudosTab() {
   );
 }
 
+// ─── Logos Tab ────────────────────────────────────────────────
+function LogosTab() {
+  const qc = useQueryClient();
+  const { data: logos = [], isLoading } = useQuery({
+    queryKey: ["brand_logos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("brand_logos").select("*").order("label");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const [uploading, setUploading] = useState<string | null>(null);
+
+  const getPublicUrl = (path: string | null) => {
+    if (!path) return null;
+    const { data } = supabase.storage.from("logos").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const handleUpload = async (logoId: string, logoKey: string, file: File) => {
+    setUploading(logoId);
+    const ext = file.name.split(".").pop();
+    const filePath = `${logoKey}.${ext}`;
+
+    // Upload file (upsert)
+    const { error: uploadErr } = await supabase.storage.from("logos").upload(filePath, file, { upsert: true });
+    if (uploadErr) {
+      toast.error(uploadErr.message);
+      setUploading(null);
+      return;
+    }
+
+    // Update record
+    const { error: updateErr } = await supabase.from("brand_logos").update({ storage_path: filePath, updated_at: new Date().toISOString() }).eq("id", logoId);
+    if (updateErr) toast.error(updateErr.message);
+    else toast.success("Logo actualizado");
+
+    qc.invalidateQueries({ queryKey: ["brand_logos"] });
+    setUploading(null);
+  };
+
+  // Add new logo entry
+  const [addOpen, setAddOpen] = useState(false);
+  const [newKey, setNewKey] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+
+  const addLogo = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("brand_logos").insert({ key: newKey.toLowerCase().replace(/\s+/g, "_"), label: newLabel });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["brand_logos"] });
+      setAddOpen(false);
+      setNewKey("");
+      setNewLabel("");
+      toast.success("Entrada de logo creada");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2"><Image className="h-5 w-5" /> Logos</CardTitle>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Nuevo</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Nuevo Logo</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Identificador (clave)</Label><Input value={newKey} onChange={e => setNewKey(e.target.value)} placeholder="Ej: chevron" /></div>
+              <div><Label>Nombre / Etiqueta</Label><Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Ej: Chevron" /></div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => addLogo.mutate()} disabled={!newKey || !newLabel || addLogo.isPending}>
+                {addLogo.isPending ? "Guardando..." : "Crear"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : logos.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">No hay logos configurados.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {logos.map((logo) => {
+              const url = getPublicUrl(logo.storage_path);
+              return (
+                <div key={logo.id} className="border rounded-lg p-4 flex flex-col items-center gap-3">
+                  <p className="font-medium text-sm">{logo.label}</p>
+                  <div className="w-full h-24 flex items-center justify-center bg-muted/30 rounded-md overflow-hidden">
+                    {url ? (
+                      <img src={`${url}?t=${logo.updated_at}`} alt={logo.label} className="max-h-full max-w-full object-contain" />
+                    ) : (
+                      <Image className="h-10 w-10 text-muted-foreground/30" />
+                    )}
+                  </div>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleUpload(logo.id, logo.key, file);
+                        e.target.value = "";
+                      }}
+                    />
+                    <div className="flex items-center gap-1 text-sm text-primary hover:underline">
+                      {uploading === logo.id ? (
+                        <><Loader2 className="h-3 w-3 animate-spin" /> Subiendo...</>
+                      ) : (
+                        <><Upload className="h-3 w-3" /> {url ? "Cambiar" : "Subir"} logo</>
+                      )}
+                    </div>
+                  </label>
+                  <Badge variant="outline" className="text-xs">{logo.key}</Badge>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main Page ───────────────────────────────────────────────
 export default function CatalogsManagement() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Catálogos</h1>
-        <p className="text-muted-foreground">Administra plazas, presentaciones, clasificaciones y embudos de venta.</p>
+        <p className="text-muted-foreground">Administra plazas, presentaciones, clasificaciones, embudos y logos.</p>
       </div>
       <Tabs defaultValue="plazas">
         <TabsList>
@@ -685,11 +814,13 @@ export default function CatalogsManagement() {
           <TabsTrigger value="presentaciones">Presentaciones</TabsTrigger>
           <TabsTrigger value="clasificaciones">Clasificaciones</TabsTrigger>
           <TabsTrigger value="embudos">Embudos de Venta</TabsTrigger>
+          <TabsTrigger value="logos">Logos</TabsTrigger>
         </TabsList>
         <TabsContent value="plazas"><PlazasTab /></TabsContent>
         <TabsContent value="presentaciones"><PresentacionesTab /></TabsContent>
         <TabsContent value="clasificaciones"><OptionsTab /></TabsContent>
         <TabsContent value="embudos"><EmbudosTab /></TabsContent>
+        <TabsContent value="logos"><LogosTab /></TabsContent>
       </Tabs>
     </div>
   );
