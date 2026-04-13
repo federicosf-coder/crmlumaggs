@@ -255,6 +255,26 @@ export default function DocumentForm() {
     toast.success("Dirección creada");
   };
 
+  const handleAddProduct = async () => {
+    if (!newProductForm.codigo.trim() || !newProductForm.nombre_producto.trim()) return;
+    const payload: any = { ...newProductForm };
+    for (const k of ["presentacion_id", "marca_id", "aplicacion_id", "uso_id", "formula_id", "viscosidad_id", "categoria_id", "linea_id"]) {
+      if (!payload[k]) payload[k] = null;
+    }
+    const { error } = await supabase.from("productos").insert(payload);
+    if (error) { toast.error(error.message); return; }
+    await refetchProductos();
+    setNewProductForm({
+      codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
+      is_active: true, marca_id: "", aplicacion_id: "", uso_id: "", formula_id: "",
+      viscosidad_id: "", categoria_id: "", linea_id: "",
+      costo_actual: 0, precio_base_uf1: 0, precio_uf2: 0, precio_uf3: 0, precio_uf4: 0,
+      precio_r1: 0, precio_r2: 0, precio_r3: 0, precio_r4: 0, precio_lista_galper: 0,
+    });
+    setShowNewProduct(false);
+    toast.success("Producto creado");
+  };
+
   // Save
   const handleSave = async () => {
     if (!form.empresa_vendedora) { toast.error("Selecciona la empresa vendedora"); return; }
