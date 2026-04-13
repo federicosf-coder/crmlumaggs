@@ -96,24 +96,27 @@ export default function DocumentsList() {
         </Button>
       </div>
 
+      <div className="flex gap-2 mb-4">
+        {[
+          { value: "cotizacion", label: "Cotizaciones" },
+          { value: "pedido", label: "Pedidos" },
+          { value: "factura", label: "Facturas" },
+        ].map((tipo) => (
+          <Button
+            key={tipo.value}
+            variant={tipoFilter === tipo.value ? "default" : "outline"}
+            onClick={() => setTipoFilter(tipo.value)}
+          >
+            {tipo.label}
+          </Button>
+        ))}
+      </div>
+
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por número..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
-            </div>
-            <Select value={tipoFilter} onValueChange={setTipoFilter}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="cotizacion">Cotizaciones</SelectItem>
-                <SelectItem value="pedido">Pedidos</SelectItem>
-                <SelectItem value="factura">Facturas</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por número..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent>
