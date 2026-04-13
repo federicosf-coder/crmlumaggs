@@ -28,10 +28,10 @@ const mainItems: NavItem[] = [
   { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
   { title: "CRM", url: "/crm", icon: ShoppingCart, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Documentos", url: "/documents", icon: FileText, roles: ["admin", "manager", "sales"] },
+  { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
   { title: "Inventario", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
   { title: "Entregas", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
   { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
-  { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
   { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
   { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
 ];
