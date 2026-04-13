@@ -230,7 +230,14 @@ function ProductosTab() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
         <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> Catálogo de Productos</CardTitle>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={marcaFilter} onValueChange={setMarcaFilter}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Marca" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las Marcas</SelectItem>
+              {marcas.map(m => <SelectItem key={m.id} value={m.id}>{m.value}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-8 w-60" placeholder="Buscar por código o nombre..." value={search} onChange={e => setSearch(e.target.value)} />
