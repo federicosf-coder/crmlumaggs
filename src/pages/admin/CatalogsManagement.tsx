@@ -6,11 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, MapPin, Tags, BoxesIcon } from "lucide-react";
+import { Plus, MapPin, Tags, BoxesIcon, Pencil } from "lucide-react";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
 
@@ -29,12 +30,26 @@ function PlazasTab() {
   });
   const [open, setOpen] = useState(false);
   const [nombre, setNombre] = useState("");
+  const [editItem, setEditItem] = useState<any>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editActive, setEditActive] = useState(true);
 
   const add = useMutation({
     mutationFn: async () => { const { error } = await supabase.from("plazas").insert({ nombre }); if (error) throw error; },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["plazas_all"] }); qc.invalidateQueries({ queryKey: ["plazas"] }); setOpen(false); setNombre(""); toast.success("Plaza creada"); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("plazas").update({ nombre: editNombre, is_active: editActive }).eq("id", editItem.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["plazas_all"] }); qc.invalidateQueries({ queryKey: ["plazas"] }); setEditItem(null); toast.success("Plaza actualizada"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const openEdit = (item: any) => { setEditItem(item); setEditNombre(item.nombre); setEditActive(item.is_active); };
 
   return (
     <Card>
@@ -54,19 +69,30 @@ function PlazasTab() {
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
           <Table>
-            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Activo</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
             <TableBody>
               {items.map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.nombre}</TableCell>
                   <TableCell><Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Sí" : "No"}</Badge></TableCell>
+                  <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               ))}
-              {items.length === 0 && <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">Sin plazas</TableCell></TableRow>}
+              {items.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin plazas</TableCell></TableRow>}
             </TableBody>
           </Table>
         )}
       </CardContent>
+      <Dialog open={!!editItem} onOpenChange={v => { if (!v) setEditItem(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Plaza</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nombre</Label><Input value={editNombre} onChange={e => setEditNombre(e.target.value)} /></div>
+            <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
+          </div>
+          <DialogFooter><Button onClick={() => update.mutate()} disabled={!editNombre || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -81,12 +107,27 @@ function PresentacionesTab() {
   const [open, setOpen] = useState(false);
   const [nombre, setNombre] = useState("");
   const [unidades, setUnidades] = useState("1");
+  const [editItem, setEditItem] = useState<any>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editUnidades, setEditUnidades] = useState("1");
+  const [editActive, setEditActive] = useState(true);
 
   const add = useMutation({
     mutationFn: async () => { const { error } = await supabase.from("presentaciones").insert({ nombre, unidades_equivalentes: Number(unidades) }); if (error) throw error; },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["presentaciones_all"] }); qc.invalidateQueries({ queryKey: ["presentaciones"] }); setOpen(false); setNombre(""); setUnidades("1"); toast.success("Presentación creada"); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("presentaciones").update({ nombre: editNombre, unidades_equivalentes: Number(editUnidades), is_active: editActive }).eq("id", editItem.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["presentaciones_all"] }); qc.invalidateQueries({ queryKey: ["presentaciones"] }); setEditItem(null); toast.success("Presentación actualizada"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const openEdit = (item: any) => { setEditItem(item); setEditNombre(item.nombre); setEditUnidades(String(item.unidades_equivalentes)); setEditActive(item.is_active); };
 
   return (
     <Card>
@@ -107,20 +148,32 @@ function PresentacionesTab() {
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
           <Table>
-            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Uds. Equiv.</TableHead><TableHead>Activo</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Uds. Equiv.</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
             <TableBody>
               {items.map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.nombre}</TableCell>
                   <TableCell>{p.unidades_equivalentes}</TableCell>
                   <TableCell><Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Sí" : "No"}</Badge></TableCell>
+                  <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               ))}
-              {items.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin presentaciones</TableCell></TableRow>}
+              {items.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin presentaciones</TableCell></TableRow>}
             </TableBody>
           </Table>
         )}
       </CardContent>
+      <Dialog open={!!editItem} onOpenChange={v => { if (!v) setEditItem(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Presentación</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nombre</Label><Input value={editNombre} onChange={e => setEditNombre(e.target.value)} /></div>
+            <div><Label>Unidades Equivalentes</Label><Input type="number" value={editUnidades} onChange={e => setEditUnidades(e.target.value)} /></div>
+            <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
+          </div>
+          <DialogFooter><Button onClick={() => update.mutate()} disabled={!editNombre || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -138,12 +191,26 @@ function OptionsTab() {
   });
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
+  const [editItem, setEditItem] = useState<any>(null);
+  const [editValue, setEditValue] = useState("");
+  const [editActive, setEditActive] = useState(true);
 
   const add = useMutation({
     mutationFn: async () => { const { error } = await supabase.from("product_option_values").insert({ option_type: selectedType, value }); if (error) throw error; },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["product_option_values"] }); setOpen(false); setValue(""); toast.success("Opción agregada"); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("product_option_values").update({ value: editValue, is_active: editActive }).eq("id", editItem.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["product_option_values"] }); setEditItem(null); toast.success("Opción actualizada"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const openEdit = (item: any) => { setEditItem(item); setEditValue(item.value); setEditActive(item.is_active); };
 
   return (
     <Card>
@@ -170,19 +237,30 @@ function OptionsTab() {
         </div>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
           <Table>
-            <TableHeader><TableRow><TableHead>Valor</TableHead><TableHead>Activo</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Valor</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
             <TableBody>
               {items.map(o => (
                 <TableRow key={o.id}>
                   <TableCell className="font-medium">{o.value}</TableCell>
                   <TableCell><Badge variant={o.is_active ? "default" : "secondary"}>{o.is_active ? "Sí" : "No"}</Badge></TableCell>
+                  <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(o)}><Pencil className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               ))}
-              {items.length === 0 && <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">Sin opciones para {OPTION_TYPE_LABELS[selectedType]}</TableCell></TableRow>}
+              {items.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin opciones para {OPTION_TYPE_LABELS[selectedType]}</TableCell></TableRow>}
             </TableBody>
           </Table>
         )}
       </CardContent>
+      <Dialog open={!!editItem} onOpenChange={v => { if (!v) setEditItem(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar {OPTION_TYPE_LABELS[selectedType]}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Valor</Label><Input value={editValue} onChange={e => setEditValue(e.target.value)} /></div>
+            <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
+          </div>
+          <DialogFooter><Button onClick={() => update.mutate()} disabled={!editValue || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
