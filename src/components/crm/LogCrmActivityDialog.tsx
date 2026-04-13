@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreateCrmActivity } from "@/hooks/useCrmActivities";
+import { useCreateCrmActivity, CrmActivityType, ACTIVITY_TYPE_CONFIG } from "@/hooks/useCrmActivities";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,19 +21,20 @@ export function LogCrmActivityDialog({ open, onOpenChange, defaultDealId, defaul
   const createActivity = useCreateCrmActivity();
   const { toast } = useToast();
 
-  const [type, setType] = useState<"call" | "email" | "meeting" | "note">("note");
-  const [title, setTitle] = useState("");
+  const [type, setType] = useState<CrmActivityType>("note");
   const [description, setDescription] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user) return;
 
+    const typeLabel = ACTIVITY_TYPE_CONFIG[type].label;
+
     createActivity.mutate(
       {
         user_id: session.user.id,
         type,
-        title,
+        title: typeLabel,
         description: description || null,
         deal_id: defaultDealId || null,
         contact_id: defaultContactId || null,
@@ -43,7 +43,7 @@ export function LogCrmActivityDialog({ open, onOpenChange, defaultDealId, defaul
         onSuccess: () => {
           toast({ title: "Actividad registrada" });
           onOpenChange(false);
-          setTitle(""); setDescription(""); setType("note");
+          setDescription(""); setType("note");
         },
       }
     );
@@ -53,24 +53,19 @@ export function LogCrmActivityDialog({ open, onOpenChange, defaultDealId, defaul
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Registrar Actividad</DialogTitle>
+          <DialogTitle>Registrar Actividad / Tarea</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Tipo</Label>
-            <Select value={type} onValueChange={(v: any) => setType(v)}>
+            <Select value={type} onValueChange={(v) => setType(v as CrmActivityType)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="call">📞 Llamada</SelectItem>
-                <SelectItem value="email">📧 Email</SelectItem>
-                <SelectItem value="meeting">📅 Reunión</SelectItem>
-                <SelectItem value="note">📝 Nota</SelectItem>
+                {Object.entries(ACTIVITY_TYPE_CONFIG).filter(([k]) => k !== "task").map(([key, config]) => (
+                  <SelectItem key={key} value={key}>{config.emoji} {config.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Título *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Llamada de seguimiento" required />
           </div>
           <div className="space-y-2">
             <Label>Descripción</Label>

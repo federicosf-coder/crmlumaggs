@@ -20,8 +20,7 @@ import DocumentsList from "@/pages/documents/DocumentsList";
 import DocumentForm from "@/pages/documents/DocumentForm";
 import CrmLanding from "@/pages/crm/CrmLanding";
 import CrmPipeline from "@/pages/crm/CrmPipeline";
-import CrmActivities from "@/pages/crm/CrmActivities";
-import CrmTasks from "@/pages/crm/CrmTasks";
+import CrmActivitiesTasks from "@/pages/crm/CrmActivitiesTasks";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,15 +60,14 @@ const App = () => (
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
             <Route path="/crm" element={<ProtectedRoute><CrmLanding /></ProtectedRoute>} />
             <Route path="/crm/:brand/pipeline" element={<ProtectedRoute><CrmPipeline /></ProtectedRoute>} />
-            <Route path="/crm/:brand/activities" element={<ProtectedRoute><CrmActivities /></ProtectedRoute>} />
-            <Route path="/crm/:brand/tasks" element={<ProtectedRoute><CrmTasks /></ProtectedRoute>} />
+            <Route path="/crm/:brand/activities" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsList /></ProtectedRoute>} />
             <Route path="/documents/new" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/delivery" element={<ProtectedRoute><ModulePlaceholder title="Entregas" description="Seguimiento y gestión de entregas de productos. Próximamente en Fase 4." /></ProtectedRoute>} />
             <Route path="/transfers" element={<ProtectedRoute><ModulePlaceholder title="Transferencias de Inventario" description="Gestión de transferencias entre almacenes. Próximamente en Fase 3." /></ProtectedRoute>} />
-            <Route path="/projects" element={<ProtectedRoute><ModulePlaceholder title="Proyectos y Tareas" description="Gestión de proyectos y seguimiento de tareas para tu equipo." /></ProtectedRoute>} />
+            
             <Route path="/training" element={<ProtectedRoute><ModulePlaceholder title="Capacitación" description="Materiales de capacitación y cursos para tu equipo." /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><ModulePlaceholder title="Reportes" description="Análisis, reportes e inteligencia de negocio." /></ProtectedRoute>} />
 

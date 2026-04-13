@@ -31,7 +31,7 @@ const mainItems: NavItem[] = [
   { title: "Inventario", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
   { title: "Entregas", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
   { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
-  { title: "Proyectos y Tareas", url: "/projects", icon: FolderKanban, roles: "all" },
+  { title: "Tareas y Actividades", url: "/crm", icon: FolderKanban, roles: "all" },
   { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
   { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
 ];

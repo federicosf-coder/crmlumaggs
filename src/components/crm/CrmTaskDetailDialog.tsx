@@ -116,7 +116,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
               <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required /></div>
               <div className="space-y-2"><Label>Descripción</Label><Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} /></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Fecha límite</Label><Input type="datetime-local" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} /></div>
+                <div className="space-y-2"><Label>Fecha</Label><Input type="datetime-local" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} /></div>
                 <div className="space-y-2">
                   <Label>Prioridad</Label>
                   <Select value={editPriority} onValueChange={setEditPriority}>
@@ -195,7 +195,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4 mr-1" /> Eliminar tarea</Button>
+                  <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4 mr-1" /> Eliminar</Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
