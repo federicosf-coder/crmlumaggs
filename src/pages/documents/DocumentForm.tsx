@@ -15,6 +15,8 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
 import { format } from "date-fns";
+import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { ContactFormDialog } from "@/components/ContactFormDialog";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "pendiente", l: "Pendiente" }, { v: "confirmado", l: "Confirmado" }, { v: "en_proceso", l: "En Proceso" }, { v: "enviado", l: "Enviado" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
@@ -82,11 +84,7 @@ export default function DocumentForm() {
 
   // Dialog states
   const [showNewCompany, setShowNewCompany] = useState(false);
-  const [newCompanyName, setNewCompanyName] = useState("");
   const [showNewContact, setShowNewContact] = useState(false);
-  const [newContactFirst, setNewContactFirst] = useState("");
-  const [newContactLast, setNewContactLast] = useState("");
-  const [newContactEmail, setNewContactEmail] = useState("");
   const [showNewAddress, setShowNewAddress] = useState(false);
   const [newAddrCalle, setNewAddrCalle] = useState("");
   const [newAddrCiudad, setNewAddrCiudad] = useState("");
@@ -217,28 +215,16 @@ export default function DocumentForm() {
 
   const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
 
-  // Quick-add handlers
-  const handleAddCompany = async () => {
-    if (!newCompanyName.trim()) return;
-    const { data, error } = await supabase.from("companies").insert({ name: newCompanyName.trim() }).select("id").single();
-    if (error) { toast.error(error.message); return; }
+  // Quick-add handlers via shared dialogs
+  const handleCompanyCreated = async (id: string) => {
     await refetchCompanies();
-    set("empresa_id", data.id);
+    set("empresa_id", id);
     set("contacto_id", "");
-    setNewCompanyName("");
-    setShowNewCompany(false);
-    toast.success("Empresa creada");
   };
 
-  const handleAddContact = async () => {
-    if (!newContactFirst.trim() || !newContactLast.trim()) return;
-    const { data, error } = await supabase.from("contacts").insert({ first_name: newContactFirst.trim(), last_name: newContactLast.trim(), email: newContactEmail.trim() || null, company_id: form.empresa_id }).select("id").single();
-    if (error) { toast.error(error.message); return; }
+  const handleContactCreated = async (id: string) => {
     await refetchContacts();
-    set("contacto_id", data.id);
-    setNewContactFirst(""); setNewContactLast(""); setNewContactEmail("");
-    setShowNewContact(false);
-    toast.success("Contacto creado");
+    set("contacto_id", id);
   };
 
   const handleAddAddress = async () => {
@@ -635,29 +621,11 @@ export default function DocumentForm() {
         </Button>
       </div>
 
-      {/* Dialog: Nueva Empresa */}
-      <Dialog open={showNewCompany} onOpenChange={setShowNewCompany}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Nueva Empresa</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>Nombre *</Label><Input value={newCompanyName} onChange={e => setNewCompanyName(e.target.value)} /></div>
-          </div>
-          <DialogFooter><Button onClick={handleAddCompany} disabled={!newCompanyName.trim()}>Crear Empresa</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Dialog: Nueva Empresa (formulario completo) */}
+      <CompanyFormDialog open={showNewCompany} onOpenChange={setShowNewCompany} onCreated={handleCompanyCreated} />
 
-      {/* Dialog: Nuevo Contacto */}
-      <Dialog open={showNewContact} onOpenChange={setShowNewContact}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Nuevo Contacto</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>Nombre *</Label><Input value={newContactFirst} onChange={e => setNewContactFirst(e.target.value)} /></div>
-            <div><Label>Apellido *</Label><Input value={newContactLast} onChange={e => setNewContactLast(e.target.value)} /></div>
-            <div><Label>Email</Label><Input value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} /></div>
-          </div>
-          <DialogFooter><Button onClick={handleAddContact} disabled={!newContactFirst.trim() || !newContactLast.trim()}>Crear Contacto</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Dialog: Nuevo Contacto (formulario completo) */}
+      <ContactFormDialog open={showNewContact} onOpenChange={setShowNewContact} defaultCompanyId={form.empresa_id} onCreated={handleContactCreated} />
 
       {/* Dialog: Nueva Dirección */}
       <Dialog open={showNewAddress} onOpenChange={setShowNewAddress}>
