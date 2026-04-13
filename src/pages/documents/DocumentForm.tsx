@@ -685,6 +685,52 @@ export default function DocumentForm() {
           <DialogFooter><Button onClick={handleAddAddress} disabled={!newAddrCalle.trim()}>Crear Dirección</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: Nuevo Producto */}
+      <Dialog open={showNewProduct} onOpenChange={setShowNewProduct}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Nuevo Producto</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><Label>Código *</Label><Input value={newProductForm.codigo} onChange={e => setNP("codigo", e.target.value)} /></div>
+            <div><Label>Nombre Producto *</Label><Input value={newProductForm.nombre_producto} onChange={e => setNP("nombre_producto", e.target.value)} /></div>
+            <div className="md:col-span-2"><Label>Descripción</Label><Textarea value={newProductForm.descripcion} onChange={e => setNP("descripcion", e.target.value)} /></div>
+            <div>
+              <Label>Presentación</Label>
+              <Select value={newProductForm.presentacion_id} onValueChange={v => setNP("presentacion_id", v)}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                <SelectContent>{presentacionesList.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Unidades Equivalentes</Label>
+              <Input disabled value={presentacionesList.find((p: any) => p.id === newProductForm.presentacion_id)?.unidades_equivalentes ?? ""} />
+            </div>
+            {(["marca", "aplicacion", "uso", "formula", "viscosidad", "categoria", "linea"] as const).map(t => (
+              <div key={t}>
+                <Label>{t === "marca" ? "Marca" : t === "aplicacion" ? "Aplicación" : t === "uso" ? "Uso" : t === "formula" ? "Fórmula" : t === "viscosidad" ? "Viscosidad" : t === "categoria" ? "Categoría" : "Línea"}</Label>
+                <Select value={(newProductForm as any)[`${t}_id`] || ""} onValueChange={v => setNP(`${t}_id`, v)}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>{optionsFor(t).map((o: any) => <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            ))}
+            <div className="md:col-span-2 border-t pt-3 mt-2">
+              <h4 className="font-semibold text-sm mb-3">Precios</h4>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  ["costo_actual", "Costo Actual"], ["precio_base_uf1", "Base UF1"], ["precio_uf2", "UF2"], ["precio_uf3", "UF3"], ["precio_uf4", "UF4"],
+                  ["precio_r1", "R1"], ["precio_r2", "R2"], ["precio_r3", "R3"], ["precio_r4", "R4"], ["precio_lista_galper", "Lista Galper"],
+                ].map(([k, label]) => (
+                  <div key={k}><Label className="text-xs">{label}</Label><Input type="number" value={(newProductForm as any)[k]} onChange={e => setNP(k, Number(e.target.value))} /></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleAddProduct} disabled={!newProductForm.codigo.trim() || !newProductForm.nombre_producto.trim()}>Crear Producto</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
