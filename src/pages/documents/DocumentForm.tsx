@@ -529,12 +529,15 @@ export default function DocumentForm() {
                 {items.map((item, idx) => (
                   <TableRow key={idx}>
                     <TableCell>
-                      <Select value={item.producto_id} onValueChange={v => updateItem(idx, "producto_id", v)}>
-                        <SelectTrigger><SelectValue placeholder="Seleccionar producto" /></SelectTrigger>
-                        <SelectContent>
-                          {productos.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nombre_producto}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex gap-1">
+                        <Select value={item.producto_id} onValueChange={v => updateItem(idx, "producto_id", v)}>
+                          <SelectTrigger><SelectValue placeholder="Seleccionar producto" /></SelectTrigger>
+                          <SelectContent>
+                            {productos.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nombre_producto}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
+                      </div>
                     </TableCell>
                     <TableCell><Input type="number" className="w-20" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} /></TableCell>
                     <TableCell><Input type="number" className="w-28" value={item.precio_unitario} onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))} /></TableCell>
