@@ -93,6 +93,15 @@ export default function DocumentForm() {
   const [newAddrEstado, setNewAddrEstado] = useState("");
   const [newAddrCp, setNewAddrCp] = useState("");
   const [newAddrTipo, setNewAddrTipo] = useState("envio");
+  const [showNewProduct, setShowNewProduct] = useState(false);
+  const [newProductForm, setNewProductForm] = useState({
+    codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
+    is_active: true, marca_id: "", aplicacion_id: "", uso_id: "", formula_id: "",
+    viscosidad_id: "", categoria_id: "", linea_id: "",
+    costo_actual: 0, precio_base_uf1: 0, precio_uf2: 0, precio_uf3: 0, precio_uf4: 0,
+    precio_r1: 0, precio_r2: 0, precio_r3: 0, precio_r4: 0, precio_lista_galper: 0,
+  });
+  const setNP = (k: string, v: any) => setNewProductForm(prev => ({ ...prev, [k]: v }));
 
   // Lookups
   const { data: plazas = [] } = useQuery({ queryKey: ["plazas"], queryFn: async () => { const { data } = await supabase.from("plazas").select("*").eq("is_active", true).order("nombre"); return data || []; } });
