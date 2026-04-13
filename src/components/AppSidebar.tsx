@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, ShoppingCart, FileText, Package, Truck,
-  GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
-  Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database,
+  GraduationCap, UserCircle, ClipboardList, CheckSquare,
+  BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -30,10 +30,8 @@ const mainItems: NavItem[] = [
   { title: "Documentos", url: "/documents", icon: FileText, roles: ["admin", "manager", "sales"] },
   { title: "Inventario", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
   { title: "Entregas", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
-  { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
-  { title: "Facturación", url: "/documents", icon: Receipt, roles: ["admin", "manager", "accounting"] },
-  { title: "Consulta Productos", url: "/products", icon: Search, roles: ["admin", "manager", "sales", "customer_service"] },
-  { title: "Proyectos y Tareas", url: "/projects", icon: FolderKanban, roles: "all" },
+  { title: "Actividades", url: "/activities", icon: ClipboardList, roles: "all" },
+  { title: "Tareas", url: "/tasks", icon: CheckSquare, roles: "all" },
   { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
   { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
 ];
