@@ -1,0 +1,112 @@
+import { CrmActivity, useUpdateCrmActivity, useDeleteCrmActivity } from "@/hooks/useCrmActivities";
+import { formatRelativeDate } from "@/lib/formatters";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { Phone, Mail, Calendar, FileText, Pencil, Trash2, Save, X } from "lucide-react";
+
+const typeConfig = {
+  call: { icon: Phone, color: "text-blue-500", bg: "bg-blue-50", label: "Llamada" },
+  email: { icon: Mail, color: "text-purple-500", bg: "bg-purple-50", label: "Email" },
+  meeting: { icon: Calendar, color: "text-orange-500", bg: "bg-orange-50", label: "Reunión" },
+  note: { icon: FileText, color: "text-green-500", bg: "bg-green-50", label: "Nota" },
+};
+
+export function CrmActivityItem({ activity }: { activity: CrmActivity }) {
+  const config = typeConfig[activity.type];
+  const Icon = config.icon;
+  const updateActivity = useUpdateCrmActivity();
+  const deleteActivity = useDeleteCrmActivity();
+  const { toast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(activity.title);
+  const [editDescription, setEditDescription] = useState(activity.description || "");
+  const [editType, setEditType] = useState(activity.type);
+
+  const handleSave = () => {
+    updateActivity.mutate(
+      { id: activity.id, title: editTitle, description: editDescription || null, type: editType },
+      { onSuccess: () => { toast({ title: "Actividad actualizada" }); setEditing(false); } }
+    );
+  };
+
+  const handleDelete = () => {
+    deleteActivity.mutate(activity.id, {
+      onSuccess: () => toast({ title: "Actividad eliminada" }),
+    });
+  };
+
+  if (editing) {
+    return (
+      <div className="rounded-lg border bg-card p-4 space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Select value={editType} onValueChange={(v) => setEditType(v as CrmActivity["type"])}>
+            <SelectTrigger className="w-full sm:w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="call">📞 Llamada</SelectItem>
+              <SelectItem value="email">📧 Email</SelectItem>
+              <SelectItem value="meeting">📅 Reunión</SelectItem>
+              <SelectItem value="note">📝 Nota</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Título" className="flex-1" />
+        </div>
+        <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={2} placeholder="Descripción..." />
+        <div className="flex gap-2">
+          <Button size="sm" onClick={handleSave} disabled={updateActivity.isPending}>
+            <Save className="h-3 w-3 mr-1" /> Guardar
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+            <X className="h-3 w-3 mr-1" /> Cancelar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="group flex gap-3 rounded-lg border bg-card p-4">
+      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${config.bg}`}>
+        <Icon className={`h-4 w-4 ${config.color}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm">{activity.title}</p>
+        {activity.description && (
+          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{activity.description}</p>
+        )}
+        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+          <span>{config.label}</span>
+          {activity.crm_deals && <span>· {activity.crm_deals.title}</span>}
+          {activity.contacts && <span>· {activity.contacts.first_name} {activity.contacts.last_name}</span>}
+          <span className="ml-auto">{formatRelativeDate(activity.created_at)}</span>
+        </div>
+      </div>
+      <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(true)}>
+          <Pencil className="h-3 w-3" />
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar actividad?</AlertDialogTitle>
+              <AlertDialogDescription>Se eliminará permanentemente esta actividad.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
+  );
+}
