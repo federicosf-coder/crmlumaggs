@@ -15,6 +15,8 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
 import { format } from "date-fns";
+import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { ContactFormDialog } from "@/components/ContactFormDialog";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "pendiente", l: "Pendiente" }, { v: "confirmado", l: "Confirmado" }, { v: "en_proceso", l: "En Proceso" }, { v: "enviado", l: "Enviado" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
