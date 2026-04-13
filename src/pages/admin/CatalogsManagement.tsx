@@ -185,35 +185,67 @@ function PresentacionesTab() {
 function OptionsTab() {
   const qc = useQueryClient();
   const [selectedType, setSelectedType] = useState<ProductOptionType>("marca");
-  const { data: items = [], isLoading } = useQuery({
-    queryKey: ["product_option_values", selectedType],
+  const [selectedMarcaId, setSelectedMarcaId] = useState<string>("");
+
+  // Load marcas for the Línea filter
+  const { data: marcas = [] } = useQuery({
+    queryKey: ["product_option_values", "marca"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("product_option_values").select("*").eq("option_type", selectedType).order("value");
+      const { data, error } = await supabase.from("product_option_values").select("*").eq("option_type", "marca").eq("is_active", true).order("value");
       if (error) throw error; return data;
     },
   });
+
+  const isLinea = selectedType === "linea";
+
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ["product_option_values", selectedType, isLinea ? selectedMarcaId : ""],
+    queryFn: async () => {
+      let query = supabase.from("product_option_values").select("*, parent:parent_id(id, value)").eq("option_type", selectedType).order("value");
+      if (isLinea && selectedMarcaId) {
+        query = query.eq("parent_id", selectedMarcaId);
+      }
+      const { data, error } = await query;
+      if (error) throw error; return data;
+    },
+  });
+
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
+  const [newParentId, setNewParentId] = useState("");
   const [editItem, setEditItem] = useState<any>(null);
   const [editValue, setEditValue] = useState("");
   const [editActive, setEditActive] = useState(true);
+  const [editParentId, setEditParentId] = useState("");
 
   const add = useMutation({
-    mutationFn: async () => { const { error } = await supabase.from("product_option_values").insert({ option_type: selectedType, value }); if (error) throw error; },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["product_option_values"] }); setOpen(false); setValue(""); toast.success("Opción agregada"); },
+    mutationFn: async () => {
+      const insertData: any = { option_type: selectedType, value };
+      if (isLinea && newParentId) insertData.parent_id = newParentId;
+      const { error } = await supabase.from("product_option_values").insert(insertData);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["product_option_values"] }); setOpen(false); setValue(""); setNewParentId(""); toast.success("Opción agregada"); },
     onError: (e: any) => toast.error(e.message),
   });
 
   const update = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("product_option_values").update({ value: editValue, is_active: editActive }).eq("id", editItem.id);
+      const updateData: any = { value: editValue, is_active: editActive };
+      if (isLinea) updateData.parent_id = editParentId || null;
+      const { error } = await supabase.from("product_option_values").update(updateData).eq("id", editItem.id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["product_option_values"] }); setEditItem(null); toast.success("Opción actualizada"); },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const openEdit = (item: any) => { setEditItem(item); setEditValue(item.value); setEditActive(item.is_active); };
+  const openEdit = (item: any) => {
+    setEditItem(item);
+    setEditValue(item.value);
+    setEditActive(item.is_active);
+    setEditParentId(item.parent_id || "");
+  };
 
   return (
     <Card>
@@ -224,8 +256,19 @@ function OptionsTab() {
           <DialogContent>
             <DialogHeader><DialogTitle>Nueva Opción — {OPTION_TYPE_LABELS[selectedType]}</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <div><Label>Valor</Label><Input value={value} onChange={e => setValue(e.target.value)} placeholder="Ej: Chevron" /></div>
-              <Button onClick={() => add.mutate()} disabled={!value || add.isPending}>{add.isPending ? "Guardando..." : "Guardar"}</Button>
+              {isLinea && (
+                <div>
+                  <Label>Marca *</Label>
+                  <Select value={newParentId} onValueChange={setNewParentId}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar marca..." /></SelectTrigger>
+                    <SelectContent>
+                      {marcas.map(m => <SelectItem key={m.id} value={m.id}>{m.value}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div><Label>Valor</Label><Input value={value} onChange={e => setValue(e.target.value)} placeholder={isLinea ? "Ej: Delo, Havoline..." : "Ej: Chevron"} /></div>
+              <Button onClick={() => add.mutate()} disabled={!value || (isLinea && !newParentId) || add.isPending}>{add.isPending ? "Guardando..." : "Guardar"}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -233,23 +276,47 @@ function OptionsTab() {
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
           {ALL_OPTION_TYPES.map(t => (
-            <Button key={t} size="sm" variant={selectedType === t ? "default" : "outline"} onClick={() => setSelectedType(t)}>
+            <Button key={t} size="sm" variant={selectedType === t ? "default" : "outline"} onClick={() => { setSelectedType(t); setSelectedMarcaId(""); }}>
               {OPTION_TYPE_LABELS[t]}
             </Button>
           ))}
         </div>
+
+        {isLinea && (
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">Filtrar por Marca:</Label>
+            <Select value={selectedMarcaId} onValueChange={setSelectedMarcaId}>
+              <SelectTrigger className="w-56"><SelectValue placeholder="Todas las marcas" /></SelectTrigger>
+              <SelectContent>
+                {marcas.map(m => <SelectItem key={m.id} value={m.id}>{m.value}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {selectedMarcaId && (
+              <Button variant="ghost" size="sm" onClick={() => setSelectedMarcaId("")}>Limpiar</Button>
+            )}
+          </div>
+        )}
+
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
           <Table>
-            <TableHeader><TableRow><TableHead>Valor</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
+            <TableHeader>
+              <TableRow>
+                {isLinea && <TableHead>Marca</TableHead>}
+                <TableHead>Valor</TableHead>
+                <TableHead>Activo</TableHead>
+                <TableHead className="w-16"></TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {items.map(o => (
                 <TableRow key={o.id}>
+                  {isLinea && <TableCell className="text-muted-foreground">{(o as any).parent?.value || "—"}</TableCell>}
                   <TableCell className="font-medium">{o.value}</TableCell>
                   <TableCell><Badge variant={o.is_active ? "default" : "secondary"}>{o.is_active ? "Sí" : "No"}</Badge></TableCell>
                   <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(o)}><Pencil className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               ))}
-              {items.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin opciones para {OPTION_TYPE_LABELS[selectedType]}</TableCell></TableRow>}
+              {items.length === 0 && <TableRow><TableCell colSpan={isLinea ? 4 : 3} className="text-center text-muted-foreground">Sin opciones para {OPTION_TYPE_LABELS[selectedType]}</TableCell></TableRow>}
             </TableBody>
           </Table>
         )}
@@ -258,6 +325,17 @@ function OptionsTab() {
         <DialogContent>
           <DialogHeader><DialogTitle>Editar {OPTION_TYPE_LABELS[selectedType]}</DialogTitle></DialogHeader>
           <div className="space-y-3">
+            {isLinea && (
+              <div>
+                <Label>Marca</Label>
+                <Select value={editParentId} onValueChange={setEditParentId}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar marca..." /></SelectTrigger>
+                  <SelectContent>
+                    {marcas.map(m => <SelectItem key={m.id} value={m.id}>{m.value}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div><Label>Valor</Label><Input value={editValue} onChange={e => setEditValue(e.target.value)} /></div>
             <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
           </div>
