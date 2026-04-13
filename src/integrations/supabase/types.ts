@@ -95,6 +95,30 @@ export type Database = {
         }
         Relationships: []
       }
+      condiciones_comerciales: {
+        Row: {
+          contenido: string
+          created_at: string
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          contenido?: string
+          created_at?: string
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          contenido?: string
+          created_at?: string
+          empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           company_id: string | null
