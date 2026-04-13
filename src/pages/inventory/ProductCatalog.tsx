@@ -190,12 +190,15 @@ function OptionsTab() {
 function ProductosTab() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [marcaFilter, setMarcaFilter] = useState<string>("all");
   const { data: productos = [], isLoading } = useProductos(search);
   const { data: presentaciones = [] } = usePresentaciones();
   const { data: allOptions = [] } = useOptionValues();
   const [open, setOpen] = useState(false);
 
   const optionsFor = (type: ProductOptionType) => allOptions.filter(o => o.option_type === type && o.is_active);
+  const marcas = optionsFor("marca");
+  const filteredProductos = marcaFilter === "all" ? productos : productos.filter((p: any) => p.marca_id === marcaFilter);
 
   const emptyProduct = {
     codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
@@ -227,7 +230,14 @@ function ProductosTab() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
         <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> Catálogo de Productos</CardTitle>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={marcaFilter} onValueChange={setMarcaFilter}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Marca" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las Marcas</SelectItem>
+              {marcas.map(m => <SelectItem key={m.id} value={m.id}>{m.value}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-8 w-60" placeholder="Buscar por código o nombre..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -316,7 +326,7 @@ function ProductosTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {productos.map((p: any) => (
+                {filteredProductos.map((p: any) => (
                   <TableRow key={p.id}>
                     <TableCell className="font-mono text-xs">{p.codigo}</TableCell>
                     <TableCell className="font-medium">{p.nombre_producto}</TableCell>
@@ -329,7 +339,7 @@ function ProductosTab() {
                     <TableCell><Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Sí" : "No"}</Badge></TableCell>
                   </TableRow>
                 ))}
-                {productos.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
+                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
