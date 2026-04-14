@@ -13,6 +13,11 @@ import { ContactFormDialog } from "@/components/ContactFormDialog";
 interface Company {
   id: string; name: string; industry: string | null; phone: string | null;
   email: string | null; city: string | null; is_active: boolean;
+  industrias: string[] | null; equipo: string | null;
+  tipo_destino_lubricante: string | null; potencial_unidades: string | null;
+  tomador_decision: string | null; riesgo_cambio_marca: string | null;
+  origen_contacto: string | null; evaluacion_lubricante: string | null;
+  rol_lubricante: string | null; tipo_cliente_comercial: string | null;
 }
 
 interface Contact {
