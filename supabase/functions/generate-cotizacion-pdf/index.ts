@@ -106,7 +106,7 @@ serve(async (req) => {
       return lines.length ? lines : [""];
     };
 
-    const drawTextRight = (text: string, xRight: number, yPos: number, size = 10, f = font, color = rgb(0, 0, 0)) => {
+    const drawTextRight = (text: string, xRight: number, yPos: number, size = fontSize, f = font, color = rgb(0, 0, 0)) => {
       const w = f.widthOfTextAtSize(text || "", size);
       page.drawText(text || "", { x: xRight - w, y: yPos, size, font: f, color });
     };
