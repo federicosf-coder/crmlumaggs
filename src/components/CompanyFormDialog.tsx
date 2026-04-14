@@ -180,6 +180,15 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
     }));
   };
 
+  const toggleEjecutivo = (userId: string) => {
+    setForm(prev => ({
+      ...prev,
+      ejecutivo_ids: prev.ejecutivo_ids.includes(userId)
+        ? prev.ejecutivo_ids.filter(id => id !== userId)
+        : [...prev.ejecutivo_ids, userId],
+    }));
+  };
+
   const reset = () => setForm({ ...emptyForm });
 
   useEffect(() => {
@@ -205,18 +214,22 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         metodo_pago: (editData as any).metodo_pago || "",
         tipo_pago: (editData as any).tipo_pago || "",
         plaza_ids: [],
-      });
+        ejecutivo_ids: [],
     } else if (open && !editData) {
       reset();
     }
   }, [open, editData]);
 
-  // Set plaza_ids from loaded company plazas
+  // Set plaza_ids and ejecutivo_ids from loaded data
   useEffect(() => {
-    if (companyPlazas.length > 0 && open && editData?.id) {
-      setForm(prev => ({ ...prev, plaza_ids: companyPlazas }));
+    if (open && editData?.id) {
+      setForm(prev => ({
+        ...prev,
+        ...(companyPlazas.length > 0 ? { plaza_ids: companyPlazas } : {}),
+        ...(companyEjecutivos.length > 0 ? { ejecutivo_ids: companyEjecutivos } : {}),
+      }));
     }
-  }, [companyPlazas, open, editData?.id]);
+  }, [companyPlazas, companyEjecutivos, open, editData?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,6 +272,14 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
     if (form.plaza_ids.length > 0) {
       await supabase.from("company_plazas").insert(
         form.plaza_ids.map(pid => ({ company_id: companyId, plaza_id: pid }))
+      );
+    }
+
+    // Sync company_ejecutivos
+    await supabase.from("company_ejecutivos").delete().eq("company_id", companyId);
+    if (form.ejecutivo_ids.length > 0) {
+      await supabase.from("company_ejecutivos").insert(
+        form.ejecutivo_ids.map(uid => ({ company_id: companyId, user_id: uid }))
       );
     }
 
