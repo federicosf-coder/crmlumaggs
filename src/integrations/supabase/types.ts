@@ -210,6 +210,7 @@ export type Database = {
       }
       crm_activities: {
         Row: {
+          activity_date: string
           company_id: string | null
           contact_id: string | null
           created_at: string
@@ -221,6 +222,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          activity_date?: string
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
@@ -232,6 +234,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          activity_date?: string
           company_id?: string | null
           contact_id?: string | null
           created_at?: string

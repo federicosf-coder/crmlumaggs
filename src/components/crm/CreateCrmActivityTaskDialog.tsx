@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { format } from "date-fns";
 
 interface Props {
   open: boolean;
@@ -19,9 +20,10 @@ interface Props {
   defaultDealId?: string;
   defaultContactId?: string;
   defaultBrand?: string;
+  defaultDate?: string;
 }
 
-export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId, defaultContactId, defaultBrand }: Props) {
+export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId, defaultContactId, defaultBrand, defaultDate }: Props) {
   const { session } = useAuth();
   const createActivity = useCreateCrmActivity();
   const createTask = useCreateCrmTask();
@@ -51,7 +53,10 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
     },
   });
 
+  const nowLocal = format(new Date(), "yyyy-MM-dd'T'HH:mm");
+
   const [type, setType] = useState<CrmActivityType>("call");
+  const [activityDate, setActivityDate] = useState(defaultDate || nowLocal);
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("medium");
@@ -79,7 +84,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
           user_id: session.user.id,
           title: typeLabel,
           description: description || null,
-          due_date: dueDate || null,
+          due_date: activityDate || null,
           priority,
           company_id: companyId && companyId !== "none" ? companyId : null,
           deal_id: dealId && dealId !== "none" ? dealId : null,
@@ -87,7 +92,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
         },
         {
           onSuccess: () => {
-            toast({ title: "Actividad / Tarea creada" });
+            toast({ title: "Tarea creada" });
             resetAndClose();
           },
         }
@@ -99,13 +104,14 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
           type,
           title: typeLabel,
           description: description || null,
+          activity_date: activityDate ? new Date(activityDate).toISOString() : new Date().toISOString(),
           company_id: companyId && companyId !== "none" ? companyId : null,
           deal_id: dealId && dealId !== "none" ? dealId : null,
           contact_id: contactId && contactId !== "none" ? contactId : null,
         },
         {
           onSuccess: () => {
-            toast({ title: "Actividad / Tarea registrada" });
+            toast({ title: "Actividad registrada" });
             resetAndClose();
           },
         }
@@ -116,6 +122,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const resetAndClose = () => {
     onOpenChange(false);
     setType("call");
+    setActivityDate(defaultDate || format(new Date(), "yyyy-MM-dd'T'HH:mm"));
     setDescription("");
     setDueDate("");
     setPriority("medium");
@@ -132,6 +139,12 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>Nueva Actividad / Tarea</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Date at the top */}
+          <div className="space-y-2">
+            <Label>Fecha *</Label>
+            <Input type="datetime-local" value={activityDate} onChange={(e) => setActivityDate(e.target.value)} />
+          </div>
+
           <div className="space-y-2">
             <Label>Tipo *</Label>
             <Select value={type} onValueChange={(v) => setType(v as CrmActivityType)}>
@@ -149,22 +162,16 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
           </div>
 
           {isTask && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Fecha</Label>
-                <Input type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Prioridad</Label>
-                <Select value={priority} onValueChange={setPriority}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Baja</SelectItem>
-                    <SelectItem value="medium">Media</SelectItem>
-                    <SelectItem value="high">Alta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>Prioridad</Label>
+              <Select value={priority} onValueChange={setPriority}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baja</SelectItem>
+                  <SelectItem value="medium">Media</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
 
