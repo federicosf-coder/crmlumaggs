@@ -198,8 +198,21 @@ export default function DocumentsList() {
                            <Download className="h-4 w-4" />
                          </Button>
                        )}
-                     </TableCell>
-                  </TableRow>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/documents/${doc.id}`);
+                          }}
+                          title="Editar"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                   </TableRow>
                 ))}
               </TableBody>
             </Table>
