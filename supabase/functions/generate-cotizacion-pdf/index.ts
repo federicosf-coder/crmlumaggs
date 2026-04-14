@@ -183,9 +183,9 @@ serve(async (req) => {
     const col = {
       codigo: margin,
       producto: margin + 85,
-      cantidad: margin + 340,
-      precio: margin + 400,
-      subtotal: margin + 470,
+      cantidad: margin + 330,
+      precio: margin + 390,
+      subtotal: margin + 460,
     };
 
     // Table header - blue background
