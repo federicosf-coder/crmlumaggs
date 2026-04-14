@@ -159,8 +159,9 @@ export default function DocumentsList() {
                    <TableHead>Fecha</TableHead>
                    <TableHead>Total</TableHead>
                    <TableHead>Estatus</TableHead>
-                    <TableHead>PDF</TableHead>
-                    <TableHead></TableHead>
+                     <TableHead>PDF</TableHead>
+                     <TableHead></TableHead>
+                     <TableHead></TableHead>
                  </TableRow>
               </TableHeader>
               <TableBody>
