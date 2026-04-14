@@ -199,6 +199,38 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detalles de la actividad..." maxLength={2000} />
             </div>
 
+            {/* Collaborators - right after description */}
+            <div className="space-y-2">
+              <Label>Colaboradores</Label>
+              <SearchableSelect
+                value="none"
+                onValueChange={handleAddCollaborator}
+                options={[
+                  { value: "none", label: "Agregar colaborador..." },
+                  ...availableCollaborators.map((u) => ({
+                    value: u.user_id,
+                    label: u.full_name || u.email || "Sin nombre",
+                  })),
+                ]}
+                placeholder="Buscar usuario..."
+              />
+              {collaboratorIds.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {collaboratorIds.map((uid) => {
+                    const user = users?.find((u) => u.user_id === uid);
+                    return (
+                      <Badge key={uid} variant="secondary" className="gap-1">
+                        {user?.full_name || user?.email || uid.slice(0, 8)}
+                        <button type="button" onClick={() => handleRemoveCollaborator(uid)}>
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {isTask && (
               <div className="space-y-2">
                 <Label>Prioridad</Label>
@@ -265,38 +297,6 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
                 />
               </div>
             )}
-
-            {/* Collaborators */}
-            <div className="space-y-2">
-              <Label>Colaboradores</Label>
-              <SearchableSelect
-                value="none"
-                onValueChange={handleAddCollaborator}
-                options={[
-                  { value: "none", label: "Agregar colaborador..." },
-                  ...availableCollaborators.map((u) => ({
-                    value: u.user_id,
-                    label: u.full_name || u.email || "Sin nombre",
-                  })),
-                ]}
-                placeholder="Buscar usuario..."
-              />
-              {collaboratorIds.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {collaboratorIds.map((uid) => {
-                    const user = users?.find((u) => u.user_id === uid);
-                    return (
-                      <Badge key={uid} variant="secondary" className="gap-1">
-                        {user?.full_name || user?.email || uid.slice(0, 8)}
-                        <button type="button" onClick={() => handleRemoveCollaborator(uid)}>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
 
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
