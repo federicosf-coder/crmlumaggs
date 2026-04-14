@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText, Download, Pencil } from "lucide-react";
+import { Plus, Search, FileText, Download, Pencil, Copy } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 
@@ -68,6 +69,7 @@ function getEstatusVariant(doc: any): "default" | "secondary" | "destructive" | 
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [duplicating, setDuplicating] = useState<string | null>(null);
   const [empresaFilter, setEmpresaFilter] = useState<string>("lumaggs_chevron");
   const [tipoFilter, setTipoFilter] = useState<string>("cotizacion");
 
@@ -87,6 +89,48 @@ export default function DocumentsList() {
       return data;
     },
   });
+
+  const qc = useQueryClient();
+
+  const handleDuplicate = async (e: React.MouseEvent, doc: any) => {
+    e.stopPropagation();
+    if (duplicating) return;
+    setDuplicating(doc.id);
+    try {
+      const { data: srcDoc, error: srcErr } = await supabase.from("documentos").select("*").eq("id", doc.id).single();
+      if (srcErr || !srcDoc) throw srcErr || new Error("No encontrado");
+      const { data: srcItems } = await supabase.from("documento_productos").select("*").eq("documento_id", doc.id);
+
+      const { id: _id, created_at, updated_at, numero_cotizacion, numero_pedido, numero_factura, pdf_url, estatus_cotizacion, ...rest } = srcDoc;
+      const newDoc: any = {
+        ...rest,
+        pdf_url: null,
+        estatus_cotizacion: srcDoc.tipo_documento === "cotizacion" ? "borrador" : null,
+        numero_cotizacion: null,
+        numero_pedido: null,
+        numero_factura: null,
+      };
+
+      const { data: inserted, error: insErr } = await supabase.from("documentos").insert(newDoc).select("id").single();
+      if (insErr) throw insErr;
+
+      if (srcItems && srcItems.length > 0) {
+        const newItems = srcItems.map(({ id: _iid, created_at: _ca, documento_id, ...itemRest }: any) => ({
+          ...itemRest,
+          documento_id: inserted.id,
+        }));
+        await supabase.from("documento_productos").insert(newItems);
+      }
+
+      qc.invalidateQueries({ queryKey: ["documentos"] });
+      toast.success("Documento duplicado");
+      navigate(`/documents/${inserted.id}`);
+    } catch (err: any) {
+      toast.error("Error al duplicar: " + (err.message || "Error"));
+    } finally {
+      setDuplicating(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -159,8 +203,9 @@ export default function DocumentsList() {
                    <TableHead>Fecha</TableHead>
                    <TableHead>Total</TableHead>
                    <TableHead>Estatus</TableHead>
-                    <TableHead>PDF</TableHead>
-                    <TableHead></TableHead>
+                     <TableHead>PDF</TableHead>
+                     <TableHead></TableHead>
+                     <TableHead></TableHead>
                  </TableRow>
               </TableHeader>
               <TableBody>
@@ -211,7 +256,18 @@ export default function DocumentsList() {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                      </TableCell>
+                       </TableCell>
+                       <TableCell>
+                         <Button
+                           variant="ghost"
+                           size="icon"
+                           disabled={duplicating === doc.id}
+                           onClick={(e) => handleDuplicate(e, doc)}
+                           title="Duplicar"
+                         >
+                           <Copy className="h-4 w-4" />
+                         </Button>
+                       </TableCell>
                    </TableRow>
                 ))}
               </TableBody>

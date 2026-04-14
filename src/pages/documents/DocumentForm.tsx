@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Save, Download, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
@@ -350,6 +350,47 @@ export default function DocumentForm() {
     }
   };
 
+  const handleDuplicate = async () => {
+    if (!id) return;
+    try {
+      toast.info("Duplicando documento...");
+      // Get current doc data
+      const { data: srcDoc, error: srcErr } = await supabase.from("documentos").select("*").eq("id", id).single();
+      if (srcErr || !srcDoc) throw srcErr || new Error("No encontrado");
+      // Get line items
+      const { data: srcItems } = await supabase.from("documento_productos").select("*").eq("documento_id", id);
+
+      const { id: _id, created_at, updated_at, numero_cotizacion, numero_pedido, numero_factura, pdf_url, estatus_cotizacion, ...rest } = srcDoc;
+      const newDoc: any = {
+        ...rest,
+        created_by: user?.id,
+        pdf_url: null,
+        estatus_cotizacion: srcDoc.tipo_documento === "cotizacion" ? "borrador" : null,
+        numero_cotizacion: null, // auto-assigned by trigger for cotizaciones
+        numero_pedido: null,
+        numero_factura: null,
+      };
+
+      const { data: inserted, error: insErr } = await supabase.from("documentos").insert(newDoc).select("id").single();
+      if (insErr) throw insErr;
+
+      if (srcItems && srcItems.length > 0) {
+        const newItems = srcItems.map(({ id: _iid, created_at: _ca, documento_id, ...itemRest }) => ({
+          ...itemRest,
+          documento_id: inserted.id,
+        }));
+        const { error: itemErr } = await supabase.from("documento_productos").insert(newItems);
+        if (itemErr) throw itemErr;
+      }
+
+      qc.invalidateQueries({ queryKey: ["documentos"] });
+      toast.success("Documento duplicado");
+      navigate(`/documents/${inserted.id}`);
+    } catch (err: any) {
+      toast.error("Error al duplicar: " + (err.message || "Error desconocido"));
+    }
+  };
+
   const td = form.tipo_documento;
 
   return (
@@ -369,6 +410,9 @@ export default function DocumentForm() {
                 <Download className="mr-2 h-4 w-4" /> Generar PDF
               </Button>
             )}
+            <Button variant="outline" onClick={handleDuplicate}>
+              <Copy className="mr-2 h-4 w-4" /> Duplicar
+            </Button>
             <Button variant="outline" onClick={() => setViewMode(false)}>
               <Pencil className="mr-2 h-4 w-4" /> Editar
             </Button>
