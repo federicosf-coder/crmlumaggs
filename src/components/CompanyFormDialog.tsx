@@ -152,7 +152,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       name: form.name, industry: form.industry || null, website: form.website || null,
       phone: form.phone || null, email: form.email || null, address: form.address || null,
       city: form.city || null, state: form.state || null, zip_code: form.zip_code || null,
-      notes: form.notes || null,
+      notes: form.notes || null, plaza_id: form.plaza_id || null,
       industrias: form.industrias.length > 0 ? form.industrias : [],
       equipo: form.equipo || null,
       tipo_destino_lubricante: form.tipo_destino_lubricante || null,
