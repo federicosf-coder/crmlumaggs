@@ -58,6 +58,9 @@ export default function DocumentForm() {
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
 
+  const today = format(new Date(), "yyyy-MM-dd");
+  const defaultVencimiento = format(addDays(new Date(), 7), "yyyy-MM-dd");
+
   const [form, setForm] = useState({
     empresa_vendedora: "" as string,
     plaza_id: "",
@@ -65,8 +68,8 @@ export default function DocumentForm() {
     ejecutivo_venta_id: "",
     empresa_id: "",
     contacto_id: "",
-    fecha_documento: format(new Date(), "yyyy-MM-dd"),
-    fecha_vencimiento: "",
+    fecha_documento: today,
+    fecha_vencimiento: defaultVencimiento,
     iva_porcentaje: "8",
     numero_cotizacion: "",
     numero_pedido: "",
@@ -129,6 +132,17 @@ export default function DocumentForm() {
   const { data: presentacionesList = [] } = useQuery({ queryKey: ["presentaciones"], queryFn: async () => { const { data } = await supabase.from("presentaciones").select("*").eq("is_active", true).order("nombre"); return data || []; } });
   const { data: allOptionValues = [] } = useQuery({ queryKey: ["product_option_values"], queryFn: async () => { const { data } = await supabase.from("product_option_values").select("*").eq("is_active", true).order("value"); return data || []; } });
   const optionsFor = (type: string) => allOptionValues.filter((o: any) => o.option_type === type);
+
+  // Fetch cotizacion original info
+  const { data: cotizacionOriginalDoc } = useQuery({
+    queryKey: ["cotizacion_original", form.cotizacion_original_id],
+    queryFn: async () => {
+      if (!form.cotizacion_original_id) return null;
+      const { data } = await supabase.from("documentos").select("id, numero_cotizacion").eq("id", form.cotizacion_original_id).single();
+      return data;
+    },
+    enabled: !!form.cotizacion_original_id,
+  });
 
   // Load existing
   const { data: existingDoc } = useQuery({
