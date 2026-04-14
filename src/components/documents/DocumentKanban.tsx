@@ -126,8 +126,18 @@ function KanbanColumn({
 export function DocumentKanban({ documents, tipoFilter }: DocumentKanbanProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
   const columns = getColumns(tipoFilter);
   const statusField = getStatusField(tipoFilter);
+
+  const filteredDocs = documents.filter((d: any) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    const num = (d.numero_cotizacion || d.numero_pedido || d.numero_factura || "").toLowerCase();
+    const clientName = ((d.companies as any)?.name || "").toLowerCase();
+    const total = String(Number(d.total).toFixed(2));
+    return num.includes(s) || clientName.includes(s) || total.includes(s);
+  });
 
   const handleStatusChange = async (docId: string, newStatus: string) => {
     const doc = documents.find((d) => d.id === docId);
