@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 interface SearchableSelectOption {
   value: string;
   label: string;
+  searchText?: string;
 }
 
 interface SearchableSelectProps {
@@ -18,6 +19,7 @@ interface SearchableSelectProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  popoverClassName?: string;
 }
 
 export function SearchableSelect({
@@ -27,6 +29,7 @@ export function SearchableSelect({
   placeholder = "Seleccionar...",
   disabled = false,
   className,
+  popoverClassName,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -35,7 +38,10 @@ export function SearchableSelect({
   const filtered = useMemo(() => {
     if (!search) return options;
     const s = search.toLowerCase();
-    return options.filter((o) => o.label.toLowerCase().includes(s));
+    return options.filter((o) => {
+      const text = o.searchText || o.label;
+      return text.toLowerCase().includes(s);
+    });
   }, [options, search]);
 
   const selectedLabel = options.find((o) => o.value === value)?.label;
@@ -65,7 +71,11 @@ export function SearchableSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[280px] p-0" align="start" style={{ maxWidth: "90vw" }}>
+      <PopoverContent
+        className={cn("w-[--radix-popover-trigger-width] min-w-[280px] p-0", popoverClassName)}
+        align="start"
+        style={{ maxWidth: "90vw" }}
+      >
         <div className="flex items-center border-b px-3 py-2">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <Input
@@ -86,7 +96,7 @@ export function SearchableSelect({
               <button
                 key={option.value}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                  "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-left",
                   value === option.value && "bg-accent"
                 )}
                 onClick={() => {
@@ -100,7 +110,7 @@ export function SearchableSelect({
                     value === option.value ? "opacity-100" : "opacity-0"
                   )}
                 />
-                <span className="truncate">{option.label}</span>
+                <span className="whitespace-normal break-words">{option.label}</span>
               </button>
             ))
           )}
