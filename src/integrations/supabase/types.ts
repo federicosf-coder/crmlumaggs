@@ -48,13 +48,23 @@ export type Database = {
           created_at: string
           created_by: string | null
           email: string | null
+          equipo: string | null
+          evaluacion_lubricante: string | null
           id: string
+          industrias: string[] | null
           industry: string | null
           is_active: boolean
           name: string
           notes: string | null
+          origen_contacto: string | null
           phone: string | null
+          potencial_unidades: string | null
+          riesgo_cambio_marca: string | null
+          rol_lubricante: string | null
           state: string | null
+          tipo_cliente_comercial: string | null
+          tipo_destino_lubricante: string | null
+          tomador_decision: string | null
           updated_at: string
           website: string | null
           zip_code: string | null
@@ -65,13 +75,23 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email?: string | null
+          equipo?: string | null
+          evaluacion_lubricante?: string | null
           id?: string
+          industrias?: string[] | null
           industry?: string | null
           is_active?: boolean
           name: string
           notes?: string | null
+          origen_contacto?: string | null
           phone?: string | null
+          potencial_unidades?: string | null
+          riesgo_cambio_marca?: string | null
+          rol_lubricante?: string | null
           state?: string | null
+          tipo_cliente_comercial?: string | null
+          tipo_destino_lubricante?: string | null
+          tomador_decision?: string | null
           updated_at?: string
           website?: string | null
           zip_code?: string | null
@@ -82,13 +102,23 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email?: string | null
+          equipo?: string | null
+          evaluacion_lubricante?: string | null
           id?: string
+          industrias?: string[] | null
           industry?: string | null
           is_active?: boolean
           name?: string
           notes?: string | null
+          origen_contacto?: string | null
           phone?: string | null
+          potencial_unidades?: string | null
+          riesgo_cambio_marca?: string | null
+          rol_lubricante?: string | null
           state?: string | null
+          tipo_cliente_comercial?: string | null
+          tipo_destino_lubricante?: string | null
+          tomador_decision?: string | null
           updated_at?: string
           website?: string | null
           zip_code?: string | null
