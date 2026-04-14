@@ -70,7 +70,7 @@ export default function DocumentsList() {
     queryFn: async () => {
       let q = supabase
         .from("documentos")
-        .select("*, companies(name), contacts(first_name, last_name)")
+        .select("*, companies(name), contacts(first_name, last_name), plazas(nombre)")
         .eq("is_active", true)
         .eq("empresa_vendedora", empresaFilter as any)
         .order("created_at", { ascending: false });
@@ -245,12 +245,19 @@ export default function DocumentsList() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Número</TableHead>
+                    <TableHead>
+                      {tipoFilter === "factura" ? "No. Factura" : "Número"}
+                    </TableHead>
                     <TableHead className="min-w-[180px]">Cliente</TableHead>
                     <TableHead className="hidden sm:table-cell">Ejecutivo</TableHead>
+                    {tipoFilter === "factura" && (
+                      <TableHead className="hidden md:table-cell">Plaza</TableHead>
+                    )}
                     <TableHead className="hidden md:table-cell">Fecha</TableHead>
                     <TableHead>Total</TableHead>
-                    <TableHead>Estatus</TableHead>
+                    <TableHead>
+                      {tipoFilter === "factura" ? "Estatus Factura" : "Estatus"}
+                    </TableHead>
                     <TableHead className="hidden sm:table-cell">PDF</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
@@ -263,12 +270,19 @@ export default function DocumentsList() {
                       onClick={() => navigate(`/documents/${doc.id}`)}
                     >
                       <TableCell className="font-medium whitespace-nowrap">
-                        {doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "-"}
+                        {tipoFilter === "factura"
+                          ? (doc.numero_factura || "-")
+                          : (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "-")}
                       </TableCell>
                       <TableCell>{(doc.companies as any)?.name || "-"}</TableCell>
                       <TableCell className="hidden sm:table-cell">
                         {getEjecutivoName(doc.ejecutivo_venta_id)}
                       </TableCell>
+                      {tipoFilter === "factura" && (
+                        <TableCell className="hidden md:table-cell">
+                          {(doc.plazas as any)?.nombre || "-"}
+                        </TableCell>
+                      )}
                       <TableCell className="hidden md:table-cell whitespace-nowrap">
                         {format(new Date(doc.fecha_documento), "dd/MM/yyyy")}
                       </TableCell>
