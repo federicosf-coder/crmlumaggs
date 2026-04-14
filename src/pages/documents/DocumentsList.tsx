@@ -92,6 +92,17 @@ export default function DocumentsList() {
     },
   });
 
+  const sortedDocs = [...docs].sort((a: any, b: any) => {
+    switch (sortBy) {
+      case "date_desc": return new Date(b.fecha_documento).getTime() - new Date(a.fecha_documento).getTime();
+      case "date_asc": return new Date(a.fecha_documento).getTime() - new Date(b.fecha_documento).getTime();
+      case "total_desc": return Number(b.total) - Number(a.total);
+      case "total_asc": return Number(a.total) - Number(b.total);
+      case "client_asc": return ((a.companies as any)?.name || "").localeCompare((b.companies as any)?.name || "");
+      default: return 0;
+    }
+  });
+
   const handleDuplicate = async (e: React.MouseEvent, doc: any) => {
     e.stopPropagation();
     if (duplicating) return;
