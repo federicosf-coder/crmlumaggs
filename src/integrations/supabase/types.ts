@@ -55,6 +55,7 @@ export type Database = {
           industry: string | null
           is_active: boolean
           lista_precios: string | null
+          metodo_pago: Database["public"]["Enums"]["metodo_pago_sat"] | null
           name: string
           notes: string | null
           origen_contacto: string | null
@@ -66,8 +67,10 @@ export type Database = {
           state: string | null
           tipo_cliente_comercial: string | null
           tipo_destino_lubricante: string | null
+          tipo_pago: Database["public"]["Enums"]["tipo_pago"] | null
           tomador_decision: string | null
           updated_at: string
+          uso_cfdi: Database["public"]["Enums"]["uso_cfdi"] | null
           website: string | null
           zip_code: string | null
         }
@@ -84,6 +87,7 @@ export type Database = {
           industry?: string | null
           is_active?: boolean
           lista_precios?: string | null
+          metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
           name: string
           notes?: string | null
           origen_contacto?: string | null
@@ -95,8 +99,10 @@ export type Database = {
           state?: string | null
           tipo_cliente_comercial?: string | null
           tipo_destino_lubricante?: string | null
+          tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
           tomador_decision?: string | null
           updated_at?: string
+          uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
           website?: string | null
           zip_code?: string | null
         }
@@ -113,6 +119,7 @@ export type Database = {
           industry?: string | null
           is_active?: boolean
           lista_precios?: string | null
+          metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
           name?: string
           notes?: string | null
           origen_contacto?: string | null
@@ -124,14 +131,52 @@ export type Database = {
           state?: string | null
           tipo_cliente_comercial?: string | null
           tipo_destino_lubricante?: string | null
+          tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
           tomador_decision?: string | null
           updated_at?: string
+          uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
           website?: string | null
           zip_code?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "companies_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_plazas: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          plaza_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          plaza_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          plaza_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_plazas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_plazas_plaza_id_fkey"
             columns: ["plaza_id"]
             isOneToOne: false
             referencedRelation: "plazas"
