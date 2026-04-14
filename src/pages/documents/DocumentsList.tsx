@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText, Download } from "lucide-react";
+import { Plus, Search, FileText, Download, Pencil } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 
@@ -159,7 +159,8 @@ export default function DocumentsList() {
                    <TableHead>Fecha</TableHead>
                    <TableHead>Total</TableHead>
                    <TableHead>Estatus</TableHead>
-                   <TableHead>PDF</TableHead>
+                    <TableHead>PDF</TableHead>
+                    <TableHead></TableHead>
                  </TableRow>
               </TableHeader>
               <TableBody>
@@ -197,8 +198,21 @@ export default function DocumentsList() {
                            <Download className="h-4 w-4" />
                          </Button>
                        )}
-                     </TableCell>
-                  </TableRow>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/documents/${doc.id}`);
+                          }}
+                          title="Editar"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                   </TableRow>
                 ))}
               </TableBody>
             </Table>
