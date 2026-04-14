@@ -304,7 +304,17 @@ function ProductosTab() {
             <Input className="pl-8 w-60" placeholder="Buscar por código o nombre..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <Button size="sm" onClick={openCreate}><Plus className="mr-1 h-4 w-4" /> Nuevo Producto</Button>
-        </div>
+          <SortMenu
+            value={productSort}
+            onChange={setProductSort}
+            options={[
+              { value: "code_asc", label: "Código A-Z" },
+              { value: "code_desc", label: "Código Z-A" },
+              { value: "name_asc", label: "Nombre A-Z" },
+              { value: "price_desc", label: "Precio ↓" },
+              { value: "price_asc", label: "Precio ↑" },
+            ]}
+          />
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
