@@ -286,6 +286,7 @@ export default function Directory() {
                     <DetailRow label="Sitio Web" value={selectedCompany.website} />
                     <DetailRow label="Teléfono" value={selectedCompany.phone} />
                     <DetailRow label="Correo" value={selectedCompany.email} />
+                    <DetailRow label="Lista de Precios" value={selectedCompany.lista_precios} />
                     <DetailRow label="Dirección" value={selectedCompany.address} />
                     <DetailRow label="Ciudad" value={selectedCompany.city} />
                     <DetailRow label="Estado" value={selectedCompany.state} />
