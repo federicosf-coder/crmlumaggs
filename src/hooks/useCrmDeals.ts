@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 
 export interface CrmDeal {
   id: string;
@@ -21,21 +22,31 @@ export interface CrmDeal {
   contacts?: { id: string; first_name: string; last_name: string } | null;
 }
 
-export function useCrmDeals(pipelineId: string | undefined) {
+export function useCrmDeals(pipelineId: string | undefined, brand?: string) {
   const queryClient = useQueryClient();
+  const module = brand === "phillips66" ? "crm_phillips66" as const : "crm_chevron" as const;
+  const access = useModuleAccess(module);
 
   const query = useQuery({
-    queryKey: ["crm_deals", pipelineId],
+    queryKey: ["crm_deals", pipelineId, access.accessLevel, access.teamMemberIds],
     queryFn: async () => {
-      if (!pipelineId) return [];
-      const { data, error } = await supabase
+      if (!pipelineId || !access.canView) return [];
+      let q = supabase
         .from("crm_deals")
         .select("*, companies(id, name), contacts(id, first_name, last_name)")
         .eq("pipeline_id", pipelineId);
+
+      if (access.accessLevel === "propio" && access.userId) {
+        q = q.or(`created_by.eq.${access.userId},owner_id.eq.${access.userId}`);
+      } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
+        q = q.or(`created_by.in.(${access.teamMemberIds.join(",")}),owner_id.in.(${access.teamMemberIds.join(",")})`);
+      }
+
+      const { data, error } = await q;
       if (error) throw error;
       return (data as unknown) as CrmDeal[];
     },
-    enabled: !!pipelineId,
+    enabled: !!pipelineId && !access.isLoading,
   });
 
   useEffect(() => {

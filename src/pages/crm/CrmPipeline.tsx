@@ -42,7 +42,7 @@ export default function CrmPipeline() {
   const pipeline = pipelines?.find((p) => p.id === activePipelineId);
 
   const { data: stages, isLoading: stagesLoading } = useCrmPipelineStages(pipeline?.id);
-  const { data: deals, isLoading: dealsLoading } = useCrmDeals(pipeline?.id);
+  const { data: deals, isLoading: dealsLoading } = useCrmDeals(pipeline?.id, marca);
 
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);

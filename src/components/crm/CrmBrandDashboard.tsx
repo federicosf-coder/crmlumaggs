@@ -40,7 +40,7 @@ export function CrmBrandDashboard({ marca }: { marca: string }) {
   // Use first pipeline for stats (or combined)
   const firstPipeline = pipelines?.[0];
   const { data: stages } = useCrmPipelineStages(firstPipeline?.id);
-  const { data: deals, isLoading: dealsLoading } = useCrmDeals(firstPipeline?.id);
+  const { data: deals, isLoading: dealsLoading } = useCrmDeals(firstPipeline?.id, marca);
 
   const handleCreatePipeline = async (name?: string) => {
     if (!session?.user) return;

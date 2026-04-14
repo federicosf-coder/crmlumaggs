@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useModuleAccess, type AccessLevel } from "@/hooks/useModuleAccess";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -62,18 +63,30 @@ export default function Directory() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [editContact, setEditContact] = useState<ContactEditData | null>(null);
 
+  const access = useModuleAccess("directorio");
+
   const fetchData = async () => {
+    if (access.isLoading || !access.canView) { setLoading(false); return; }
     setLoading(true);
-    const [{ data: co }, { data: ct }] = await Promise.all([
-      supabase.from("companies").select("*, plazas(nombre), contacts(id)").order("name"),
-      supabase.from("contacts").select("*, companies(name, plazas(nombre))").order("last_name"),
-    ]);
+
+    let coQuery = supabase.from("companies").select("*, plazas(nombre), contacts(id)").order("name");
+    let ctQuery = supabase.from("contacts").select("*, companies(name, plazas(nombre))").order("last_name");
+
+    if (access.accessLevel === "propio" && access.userId) {
+      coQuery = coQuery.eq("created_by", access.userId);
+      ctQuery = ctQuery.eq("created_by", access.userId);
+    } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
+      coQuery = coQuery.in("created_by", access.teamMemberIds);
+      ctQuery = ctQuery.in("created_by", access.teamMemberIds);
+    }
+
+    const [{ data: co }, { data: ct }] = await Promise.all([coQuery, ctQuery]);
     setCompanies((co as Company[]) || []);
     setContacts((ct as Contact[]) || []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { if (!access.isLoading) fetchData(); }, [access.isLoading, access.accessLevel]);
 
   const filteredCompanies = companies
     .filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase()))

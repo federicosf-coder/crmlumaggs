@@ -1221,9 +1221,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_module_access: {
+        Args: {
+          _module: Database["public"]["Enums"]["app_module"]
+          _user_id: string
+        }
+        Returns: Database["public"]["Enums"]["access_level"]
+      }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
+      }
+      get_user_team_member_ids: {
+        Args: { _user_id: string }
+        Returns: string[]
       }
       has_role: {
         Args: {

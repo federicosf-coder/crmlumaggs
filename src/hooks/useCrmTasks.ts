@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 
 export interface CrmTask {
   id: string;
@@ -11,6 +12,7 @@ export interface CrmTask {
   completed: boolean;
   deal_id: string | null;
   contact_id: string | null;
+  company_id: string | null;
   priority: string;
   created_at: string;
   updated_at: string;
@@ -18,22 +20,35 @@ export interface CrmTask {
   contacts?: { id: string; first_name: string; last_name: string } | null;
 }
 
-export function useCrmTasks(filters?: { completed?: boolean; deal_id?: string }) {
+export function useCrmTasks(filters?: { completed?: boolean; deal_id?: string; brand?: string }) {
   const { session } = useAuth();
+  const module = filters?.brand === "phillips66" ? "crm_phillips66" as const : "crm_chevron" as const;
+  const access = useModuleAccess(module);
+
   return useQuery({
-    queryKey: ["crm_tasks", filters],
+    queryKey: ["crm_tasks", filters, access.accessLevel, access.teamMemberIds],
     queryFn: async () => {
+      if (!access.canView) return [];
+
       let q = supabase
         .from("crm_tasks")
         .select("*, crm_deals(id, title), contacts(id, first_name, last_name)")
         .order("due_date", { ascending: true, nullsFirst: false });
       if (filters?.completed !== undefined) q = q.eq("completed", filters.completed);
       if (filters?.deal_id) q = q.eq("deal_id", filters.deal_id);
+
+      // Apply access filtering on user_id
+      if (access.accessLevel === "propio" && access.userId) {
+        q = q.eq("user_id", access.userId);
+      } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
+        q = q.in("user_id", access.teamMemberIds);
+      }
+
       const { data, error } = await q;
       if (error) throw error;
       return data as unknown as CrmTask[];
     },
-    enabled: !!session,
+    enabled: !!session && !access.isLoading,
   });
 }
 

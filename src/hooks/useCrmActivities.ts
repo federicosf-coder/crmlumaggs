@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 
 export type CrmActivityType = "call" | "email" | "meeting" | "note" | "field_visit" | "whatsapp" | "follow_up" | "task";
 
@@ -30,10 +32,15 @@ export interface CrmActivity {
   companies?: { id: string; name: string } | null;
 }
 
-export function useCrmActivities(filters?: { type?: string; limit?: number; since?: string; pipelineId?: string }) {
+export function useCrmActivities(filters?: { type?: string; limit?: number; since?: string; pipelineId?: string; brand?: string }) {
+  const module = filters?.brand === "phillips66" ? "crm_phillips66" as const : "crm_chevron" as const;
+  const access = useModuleAccess(module);
+
   return useQuery({
-    queryKey: ["crm_activities", filters],
+    queryKey: ["crm_activities", filters, access.accessLevel, access.teamMemberIds],
     queryFn: async () => {
+      if (!access.canView) return [];
+
       let q = supabase
         .from("crm_activities")
         .select("*, crm_deals(id, title, pipeline_id), contacts(id, first_name, last_name), companies(id, name)")
@@ -41,6 +48,14 @@ export function useCrmActivities(filters?: { type?: string; limit?: number; sinc
       if (filters?.type) q = q.eq("type", filters.type);
       if (filters?.since) q = q.gte("created_at", filters.since);
       if (filters?.limit) q = q.limit(filters.limit);
+
+      // Apply access filtering on user_id
+      if (access.accessLevel === "propio" && access.userId) {
+        q = q.eq("user_id", access.userId);
+      } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
+        q = q.in("user_id", access.teamMemberIds);
+      }
+
       const { data, error } = await q;
       if (error) throw error;
       // Filter by pipeline if needed
@@ -52,6 +67,7 @@ export function useCrmActivities(filters?: { type?: string; limit?: number; sinc
       }
       return results as CrmActivity[];
     },
+    enabled: !access.isLoading,
   });
 }
 
