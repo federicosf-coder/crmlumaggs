@@ -54,16 +54,18 @@ serve(async (req) => {
       ejecutivoPhone = prof?.phone || "";
     }
 
-    // Fetch logo
-    const logoKey = doc.empresa_vendedora === "lumaggs_chevron" ? "lumaggs_chevron" : "galsa_phillips66";
+    // Fetch logo - keys in DB are "lumaggs" and "phillips66"
+    const isLumaggs = doc.empresa_vendedora === "lumaggs_chevron";
+    const logoKey = isLumaggs ? "lumaggs" : "phillips66";
     const { data: logoData } = await sb
       .from("brand_logos")
       .select("storage_path")
       .eq("key", logoKey)
       .single();
 
-    const isLumaggs = doc.empresa_vendedora === "lumaggs_chevron";
-    const blueHeader = rgb(0.22, 0.33, 0.73); // Blue for table header (#3855BA approx)
+    console.log("Logo lookup:", logoKey, "found:", logoData?.storage_path);
+
+    const blueHeader = rgb(0.22, 0.33, 0.73);
 
     // Create PDF
     const pdfDoc = await PDFDocument.create();
@@ -116,23 +118,24 @@ serve(async (req) => {
           const logoH = 65;
           const logoW = logoH * logoAspect;
           page.drawImage(logoImage, { x: margin, y: y - logoH, width: logoW, height: logoH });
-          logoBottomY = y - logoH - 20;
+          logoBottomY = y - logoH - 25;
         }
       } catch (e) { console.error("Logo embed error:", e); }
+    } else {
+      console.error("No logo storage_path found for key:", logoKey);
     }
 
     y = logoBottomY;
 
     // ===== COMPANY NAME right-aligned =====
     const companyLabel = isLumaggs ? "Lumaggs" : "Galsa";
-    drawTextRight(companyLabel, rightEdge, y + 60, 13, fontBold, rgb(0, 0, 0));
+    drawTextRight(companyLabel, rightEdge, y + 65, 13, fontBold, rgb(0, 0, 0));
 
     // ===== PROPOSAL INFO (left) + COMPANY CONTACT (right) =====
-    const numCot = doc.numero_cotizacion || "Sin número";
+    const numCot = doc.numero_cotizacion || "Sin numero";
     const fecha = doc.fecha_documento || "";
     const fechaVenc = doc.fecha_vencimiento || "";
 
-    // Calculate vigencia in days if both dates exist
     let vigenciaText = "";
     if (fecha && fechaVenc) {
       const d1 = new Date(fecha);
@@ -156,36 +159,36 @@ serve(async (req) => {
       drawTextRight("chevron@lumaggs.com.mx", rightEdge, rightInfoStartY, 10, font);
       drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 14, 10, font);
       drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 28, 10, font);
-      drawTextRight("San Quintín | Tecate", rightEdge, rightInfoStartY - 42, 10, font);
+      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 42, 10, font);
     }
 
-    y -= 20;
+    y -= 30; // more space before "Dirigido a"
 
-    // ===== PHONE right-aligned =====
+    // ===== DIRIGIDO A =====
     const company = doc.companies as any;
     const contact = doc.contacts as any;
     const clientPhone = contact?.phone || company?.phone || "";
+
     if (clientPhone) {
       drawTextRight(clientPhone, rightEdge, y, 10, font);
     }
 
-    // ===== DIRIGIDO A =====
     drawText("Dirigido a:", margin, y, 10, font);
     y -= 14;
     const clientName = company?.name || "";
     drawText(clientName, margin, y, 11, fontBold);
-    y -= 30;
+    y -= 35; // more space before table
 
     // ===== PRODUCTS TABLE =====
     addNewPageIfNeeded(60);
 
-    // Column positions for: Codigo | Producto | Cantidad | Precio | Subtotal
+    // Wider product column: Codigo | Producto (wider) | Cantidad | Precio | Subtotal
     const col = {
       codigo: margin,
-      producto: margin + 85,
-      cantidad: margin + 330,
-      precio: margin + 390,
-      subtotal: margin + 460,
+      producto: margin + 75,
+      cantidad: margin + 350,
+      precio: margin + 410,
+      subtotal: margin + 470,
     };
 
     // Table header - blue background
@@ -198,48 +201,50 @@ serve(async (req) => {
     y -= 24;
 
     // Table rows
-    (items || []).forEach((item: any, idx: number) => {
+    (items || []).forEach((item: any) => {
       addNewPageIfNeeded(30);
       const prod = item.productos;
       const codigo = prod?.codigo || "";
       const nombre = prod?.nombre_producto || "";
       const presentacion = (prod?.presentaciones as any)?.nombre || "";
-      const productoDesc = presentacion ? `${nombre} | ${presentacion}` : nombre;
+      // Presentation appended inline to product name
+      const productoDesc = presentacion ? `${nombre} - ${presentacion}` : nombre;
 
-      // Truncate if too long
-      const maxLen = 42;
+      // Wider column allows more chars
+      const maxLen = 48;
       const productoTrunc = productoDesc.length > maxLen ? productoDesc.substring(0, maxLen) + "..." : productoDesc;
 
       drawText(codigo, col.codigo + 5, y, 9);
       drawText(productoTrunc, col.producto + 5, y, 9);
       drawText(String(item.cantidad), col.cantidad + 15, y, 9);
       drawTextRight(`$${fmtMoney(Number(item.precio_unitario))}`, col.subtotal - 5, y, 9);
-      drawTextRight(fmtMoney(Number(item.subtotal)), rightEdge - 5, y, 9);
+      drawTextRight(`$${fmtMoney(Number(item.subtotal))}`, rightEdge - 5, y, 9);
       y -= 18;
     });
 
-    // ===== TOTALS (right-aligned) =====
-    y -= 10;
-    addNewPageIfNeeded(50);
+    // ===== TOTALS (right-aligned, matching subtotal column) =====
+    y -= 20; // more space after table
+    addNewPageIfNeeded(60);
 
-    const totLabelX = col.precio + 5;
-    const totValueX = rightEdge - 5;
+    // Labels align right to col.subtotal area, values align right to rightEdge
+    const totLabelRight = col.subtotal - 5;
+    const totValueRight = rightEdge - 5;
 
-    drawTextRight("Subtotal", totLabelX + 40, y, 10, font);
-    drawTextRight(fmtMoney(Number(doc.subtotal)), totValueX, y, 10, font);
+    drawTextRight("Subtotal:", totLabelRight, y, 10, font);
+    drawTextRight(`$${fmtMoney(Number(doc.subtotal))}`, totValueRight, y, 10, font);
     y -= 16;
 
-    drawTextRight("IVA", totLabelX + 40, y, 10, font);
-    drawTextRight(fmtMoney(Number(doc.iva_importe)), totValueX, y, 10, font);
+    drawTextRight("IVA:", totLabelRight, y, 10, font);
+    drawTextRight(`$${fmtMoney(Number(doc.iva_importe))}`, totValueRight, y, 10, font);
     y -= 16;
 
-    drawTextRight("Total", totLabelX + 40, y, 10, fontBold);
-    drawTextRight(fmtMoney(Number(doc.total)), totValueX, y, 10, fontBold);
-    y -= 30;
+    drawTextRight("Total:", totLabelRight, y, 10, fontBold);
+    drawTextRight(`$${fmtMoney(Number(doc.total))}`, totValueRight, y, 10, fontBold);
+    y -= 35; // more space after totals
 
     // ===== EJECUTIVO =====
     if (ejecutivoName) {
-      addNewPageIfNeeded(40);
+      addNewPageIfNeeded(50);
       drawLine(margin, y, rightEdge, 0.5, rgb(0.6, 0.6, 0.6));
       y -= 20;
       const ejLabel = "Ejecutivo: ";
@@ -249,22 +254,18 @@ serve(async (req) => {
       drawText(ejDetailParts.join(", "), margin + ejLabelWidth, y, 10, font);
       y -= 20;
       drawLine(margin, y, rightEdge, 0.5, rgb(0.6, 0.6, 0.6));
-      y -= 25;
+      y -= 30;
     }
 
     // ===== CONDITIONS / NOTES =====
     addNewPageIfNeeded(40);
+    drawText("Precios no incluyen IVA y estan sujetos a cambio sin previo aviso.", margin, y, 10, font);
+    y -= 24;
 
-    // Standard disclaimer
-    drawText("Precios no incluyen IVA y están sujetos a cambio sin previo aviso.", margin, y, 10, font);
-    y -= 20;
-
-    // Bank details from condiciones_comerciales
     if (condiciones?.contenido) {
       const lines = condiciones.contenido.split("\n");
       for (const line of lines) {
         addNewPageIfNeeded(14);
-        // Word-wrap each line
         const words = line.split(" ");
         let currentLine = "";
         for (const word of words) {
@@ -286,7 +287,7 @@ serve(async (req) => {
 
     // ===== NOTES =====
     if (doc.notas) {
-      y -= 10;
+      y -= 15;
       addNewPageIfNeeded(30);
       drawText("Notas:", margin, y, 10, fontBold);
       y -= 14;
@@ -306,8 +307,6 @@ serve(async (req) => {
       if (line) { addNewPageIfNeeded(14); drawText(line, margin, y, 10); y -= 14; }
     }
 
-    // No footer bar - clean design
-
     const pdfBytes = await pdfDoc.save();
 
     // Upload to storage
@@ -322,7 +321,6 @@ serve(async (req) => {
       pdfPublicUrl = urlData?.publicUrl || "";
     }
 
-    // Update document: set pdf_url and status
     const updateData: any = {};
     if (pdfPublicUrl) updateData.pdf_url = pdfPublicUrl;
     if (doc.estatus_cotizacion === "borrador") updateData.estatus_cotizacion = "impresa";
