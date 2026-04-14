@@ -341,7 +341,10 @@ export default function DocumentForm() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/documents")}><ArrowLeft className="h-5 w-5" /></Button>
         <h1 className="text-2xl font-bold text-foreground">{isEdit ? "Editar Documento" : "Nuevo Documento"}</h1>
         {isEdit && form.tipo_documento === "cotizacion" && (
-          <Button variant="outline" onClick={() => downloadCotizacionPdf(id!)}>
+          <Button variant="outline" onClick={() => downloadCotizacionPdf(id!, () => {
+            qc.invalidateQueries({ queryKey: ["documento", id] });
+            qc.invalidateQueries({ queryKey: ["documentos"] });
+          })}>
             <Download className="mr-2 h-4 w-4" /> Generar PDF
           </Button>
         )}
