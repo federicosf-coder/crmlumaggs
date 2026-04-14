@@ -49,9 +49,19 @@ export function useCrmActivities(filters?: { type?: string; limit?: number; sinc
       if (filters?.since) q = q.gte("created_at", filters.since);
       if (filters?.limit) q = q.limit(filters.limit);
 
-      // Apply access filtering on user_id
+      // Apply access filtering on user_id, but also include activities where user is a collaborator
       if (access.accessLevel === "propio" && access.userId) {
-        q = q.eq("user_id", access.userId);
+        // Get activity IDs where user is collaborator
+        const { data: collabRows } = await supabase
+          .from("crm_activity_collaborators")
+          .select("activity_id")
+          .eq("user_id", access.userId);
+        const collabIds = collabRows?.map((r: any) => r.activity_id) || [];
+        if (collabIds.length > 0) {
+          q = q.or(`user_id.eq.${access.userId},id.in.(${collabIds.join(",")})`);
+        } else {
+          q = q.eq("user_id", access.userId);
+        }
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
         q = q.in("user_id", access.teamMemberIds);
       }
