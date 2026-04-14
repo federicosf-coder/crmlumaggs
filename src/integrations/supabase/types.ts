@@ -755,6 +755,35 @@ export type Database = {
           },
         ]
       }
+      empresa_marcas: {
+        Row: {
+          created_at: string
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          id: string
+          marca_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          id?: string
+          marca_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
+          id?: string
+          marca_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_marcas_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plazas: {
         Row: {
           created_at: string
