@@ -192,10 +192,11 @@ serve(async (req) => {
     const col = {
       codigo: margin,
       producto: margin + 75,
-      cantidad: margin + 350,
-      precio: margin + 410,
-      subtotal: margin + 470,
+      cantidad: margin + 290,
+      precio: margin + 350,
+      subtotal: margin + 440,
     };
+    const subtotalColRight = rightEdge; // right edge of the Subtotal column
 
     // Table header - blue background
     page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 20, color: blueHeader });
@@ -213,28 +214,25 @@ serve(async (req) => {
       const codigo = prod?.codigo || "";
       const nombre = prod?.nombre_producto || "";
       const presentacion = (prod?.presentaciones as any)?.nombre || "";
-      // Presentation appended inline to product name
       const productoDesc = presentacion ? `${nombre} - ${presentacion}` : nombre;
 
-      // Wider column allows more chars
-      const maxLen = 48;
+      const maxLen = 38;
       const productoTrunc = productoDesc.length > maxLen ? productoDesc.substring(0, maxLen) + "..." : productoDesc;
 
       drawText(codigo, col.codigo + 5, y, 9);
       drawText(productoTrunc, col.producto + 5, y, 9);
-      drawText(String(item.cantidad), col.cantidad + 15, y, 9);
-      drawTextRight(`$${fmtMoney(Number(item.precio_unitario))}`, col.subtotal - 5, y, 9);
-      drawTextRight(`$${fmtMoney(Number(item.subtotal))}`, rightEdge - 5, y, 9);
+      drawText(String(item.cantidad), col.cantidad + 5, y, 9);
+      drawText(`$${fmtMoney(Number(item.precio_unitario))}`, col.precio + 5, y, 9);
+      drawTextRight(`$${fmtMoney(Number(item.subtotal))}`, subtotalColRight - 5, y, 9);
       y -= 18;
     });
 
-    // ===== TOTALS (right-aligned, matching subtotal column) =====
-    y -= 20; // more space after table
+    // ===== TOTALS (aligned with Subtotal column) =====
+    y -= 20;
     addNewPageIfNeeded(60);
 
-    // Labels left-aligned at totLabelLeft, values right-aligned to rightEdge
-    const totLabelLeft = col.cantidad + 5;
-    const totValueRight = rightEdge - 5;
+    const totLabelLeft = col.subtotal + 5;
+    const totValueRight = subtotalColRight - 5;
 
     drawText("Subtotal:", totLabelLeft, y, 10, font);
     drawTextRight(`$${fmtMoney(Number(doc.subtotal))}`, totValueRight, y, 10, font);
@@ -247,7 +245,7 @@ serve(async (req) => {
 
     drawText("Total:", totLabelLeft, y, 10, fontBold);
     drawTextRight(`$${fmtMoney(Number(doc.total))}`, totValueRight, y, 10, fontBold);
-    y -= 35; // more space after totals
+    y -= 35;
 
     // ===== EJECUTIVO =====
     if (ejecutivoName) {
