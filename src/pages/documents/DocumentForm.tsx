@@ -128,7 +128,20 @@ export default function DocumentForm() {
     },
   });
   const { data: users = [] } = useQuery({ queryKey: ["profiles_list"], queryFn: async () => { const { data } = await supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name"); return data || []; } });
-  const { data: productos = [], refetch: refetchProductos } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, precio_base_uf1, precio_uf2, precio_uf3, precio_uf4, precio_r1, precio_r2, precio_r3, precio_r4, presentaciones(unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
+  const { data: productos = [], refetch: refetchProductos } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, marca_id, precio_base_uf1, precio_uf2, precio_uf3, precio_uf4, precio_r1, precio_r2, precio_r3, precio_r4, presentaciones(unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
+  const { data: empresaMarcas = [] } = useQuery({
+    queryKey: ["empresa_marcas_filter", form.empresa_vendedora],
+    queryFn: async () => {
+      if (!form.empresa_vendedora) return [];
+      const { data } = await supabase.from("empresa_marcas").select("marca_id").eq("empresa_vendedora", form.empresa_vendedora as any);
+      return data || [];
+    },
+    enabled: !!form.empresa_vendedora,
+  });
+  const allowedMarcaIds = empresaMarcas.map((em: any) => em.marca_id);
+  const filteredProductos = allowedMarcaIds.length > 0
+    ? productos.filter((p: any) => p.marca_id && allowedMarcaIds.includes(p.marca_id))
+    : productos;
   const { data: presentacionesList = [] } = useQuery({ queryKey: ["presentaciones"], queryFn: async () => { const { data } = await supabase.from("presentaciones").select("*").eq("is_active", true).order("nombre"); return data || []; } });
   const { data: allOptionValues = [] } = useQuery({ queryKey: ["product_option_values"], queryFn: async () => { const { data } = await supabase.from("product_option_values").select("*").eq("is_active", true).order("value"); return data || []; } });
   const optionsFor = (type: string) => allOptionValues.filter((o: any) => o.option_type === type);
