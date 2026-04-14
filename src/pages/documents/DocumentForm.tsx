@@ -64,7 +64,7 @@ export default function DocumentForm() {
     contacto_id: "",
     fecha_documento: format(new Date(), "yyyy-MM-dd"),
     fecha_vencimiento: "",
-    iva_porcentaje: "16",
+    iva_porcentaje: "8",
     numero_cotizacion: "",
     numero_pedido: "",
     numero_factura: "",
