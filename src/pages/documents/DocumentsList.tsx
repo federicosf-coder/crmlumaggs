@@ -68,6 +68,7 @@ function getEstatusVariant(doc: any): "default" | "secondary" | "destructive" | 
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [duplicating, setDuplicating] = useState<string | null>(null);
   const [empresaFilter, setEmpresaFilter] = useState<string>("lumaggs_chevron");
   const [tipoFilter, setTipoFilter] = useState<string>("cotizacion");
 
