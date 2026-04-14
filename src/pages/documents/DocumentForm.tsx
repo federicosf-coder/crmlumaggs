@@ -111,7 +111,7 @@ export default function DocumentForm() {
 
   // Lookups
   const { data: plazas = [] } = useQuery({ queryKey: ["plazas"], queryFn: async () => { const { data } = await supabase.from("plazas").select("*").eq("is_active", true).order("nombre"); return data || []; } });
-  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name, lista_precios").eq("is_active", true).order("name"); return data || []; } });
+  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name, lista_precios, uso_cfdi, metodo_pago, tipo_pago").eq("is_active", true).order("name"); return data || []; } });
   const { data: contacts = [], refetch: refetchContacts } = useQuery({
     queryKey: ["contacts", form.empresa_id],
     queryFn: async () => {
@@ -272,6 +272,22 @@ export default function DocumentForm() {
   };
 
   const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
+
+  // Auto-fill commercial fields from company when selecting a new client (not on edit load)
+  const [companyAutoFilled, setCompanyAutoFilled] = useState(false);
+  useEffect(() => {
+    if (isEdit && !companyAutoFilled) { setCompanyAutoFilled(true); return; }
+    if (!form.empresa_id) return;
+    const company = companies.find((c: any) => c.id === form.empresa_id);
+    if (company) {
+      setForm(prev => ({
+        ...prev,
+        uso_cfdi: (company as any).uso_cfdi || prev.uso_cfdi,
+        metodo_pago: (company as any).metodo_pago || prev.metodo_pago,
+        tipo_pago: (company as any).tipo_pago || prev.tipo_pago,
+      }));
+    }
+  }, [form.empresa_id, companies]);
 
   // Quick-add handlers via shared dialogs
   const handleCompanyCreated = async (id: string) => {
