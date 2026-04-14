@@ -82,8 +82,28 @@ serve(async (req) => {
     let page = pdfDoc.addPage([pageWidth, pageHeight]);
     let y = pageHeight - margin;
 
-    const drawText = (text: string, x: number, yPos: number, size = 10, f = font, color = rgb(0, 0, 0)) => {
+    const fontSize = 9; // consistent size for the whole document
+
+    const drawText = (text: string, x: number, yPos: number, size = fontSize, f = font, color = rgb(0, 0, 0)) => {
       page.drawText(text || "", { x, y: yPos, size, font: f, color });
+    };
+
+    // Word-wrap text within a max width, returns lines
+    const wrapText = (text: string, maxWidth: number, size = fontSize, f = font): string[] => {
+      const words = (text || "").split(" ");
+      const lines: string[] = [];
+      let current = "";
+      for (const word of words) {
+        const test = current ? current + " " + word : word;
+        if (f.widthOfTextAtSize(test, size) > maxWidth) {
+          if (current) lines.push(current);
+          current = word;
+        } else {
+          current = test;
+        }
+      }
+      if (current) lines.push(current);
+      return lines.length ? lines : [""];
     };
 
     const drawTextRight = (text: string, xRight: number, yPos: number, size = 10, f = font, color = rgb(0, 0, 0)) => {
