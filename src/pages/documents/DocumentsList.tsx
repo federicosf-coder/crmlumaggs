@@ -179,9 +179,24 @@ export default function DocumentsList() {
                     <TableCell>{(doc.profiles as any)?.full_name || "-"}</TableCell>
                     <TableCell>{format(new Date(doc.fecha_documento), "dd/MM/yyyy")}</TableCell>
                     <TableCell>${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell>
-                      <Badge variant={getEstatusVariant(doc)}>{getEstatusLabel(doc)}</Badge>
-                    </TableCell>
+                   <TableCell>
+                       <Badge variant={getEstatusVariant(doc)}>{getEstatusLabel(doc)}</Badge>
+                     </TableCell>
+                     <TableCell>
+                       {doc.tipo_documento === "cotizacion" && (
+                         <Button
+                           variant="ghost"
+                           size="icon"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             downloadCotizacionPdf(doc.id);
+                           }}
+                           title="Descargar PDF"
+                         >
+                           <Download className="h-4 w-4" />
+                         </Button>
+                       )}
+                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
