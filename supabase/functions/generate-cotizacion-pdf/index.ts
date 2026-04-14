@@ -242,10 +242,11 @@ serve(async (req) => {
       addNewPageIfNeeded(40);
       drawLine(margin, y, rightEdge, 0.5, rgb(0.6, 0.6, 0.6));
       y -= 20;
-      let ejText = `Ejecutivo: `;
-      drawText(ejText, margin, y, 10, fontBold);
+      const ejLabel = "Ejecutivo: ";
+      const ejLabelWidth = fontBold.widthOfTextAtSize(ejLabel, 10);
+      drawText(ejLabel, margin, y, 10, fontBold);
       const ejDetailParts = [ejecutivoName, ejecutivoEmail, ejecutivoPhone].filter(Boolean);
-      drawText(ejDetailParts.join(", "), margin + font.widthOfTextAtSize(ejText, 10) + fontBold.widthOfTextAtSize("", 10), y, 10, font);
+      drawText(ejDetailParts.join(", "), margin + ejLabelWidth, y, 10, font);
       y -= 20;
       drawLine(margin, y, rightEdge, 0.5, rgb(0.6, 0.6, 0.6));
       y -= 25;
