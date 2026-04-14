@@ -183,18 +183,18 @@ serve(async (req) => {
     if (contactName) {
       drawText(contactName, margin, y, 10, font);
     }
-    y -= 25; // space before table
+    y -= 35; // extra space before table after contact name
 
     // ===== PRODUCTS TABLE =====
     addNewPageIfNeeded(60);
 
-    // Wider product column: Codigo | Producto (wider) | Cantidad | Precio | Subtotal
+    // Codigo | Producto (wider) | Cantidad | Precio | Subtotal
     const col = {
       codigo: margin,
       producto: margin + 75,
-      cantidad: margin + 290,
-      precio: margin + 350,
-      subtotal: margin + 440,
+      cantidad: margin + 350,
+      precio: margin + 410,
+      subtotal: margin + 470,
     };
     const subtotalColRight = rightEdge; // right edge of the Subtotal column
 
@@ -231,7 +231,7 @@ serve(async (req) => {
     y -= 20;
     addNewPageIfNeeded(60);
 
-    const totLabelLeft = col.subtotal + 5;
+    const totLabelLeft = col.cantidad + 5;
     const totValueRight = subtotalColRight - 5;
 
     drawText("Subtotal:", totLabelLeft, y, 10, font);
