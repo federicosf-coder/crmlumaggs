@@ -22,7 +22,7 @@ import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Link } from "react-router-dom";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
-const ESTATUS_PED = [{ v: "pendiente", l: "Pendiente" }, { v: "confirmado", l: "Confirmado" }, { v: "en_proceso", l: "En Proceso" }, { v: "enviado", l: "Enviado" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
+const ESTATUS_PED = [{ v: "confirmado_cliente", l: "Confirmado Cliente" }, { v: "validado_contabilidad", l: "Validado Contabilidad" }, { v: "programado_entrega", l: "Programado Entrega" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
 const ESTATUS_FAC = [{ v: "pendiente", l: "Pendiente" }, { v: "pagada", l: "Pagada" }, { v: "parcial", l: "Parcial" }, { v: "vencida", l: "Vencida" }, { v: "cancelada", l: "Cancelada" }];
 const TIPO_PAGO_OPTS = [{ v: "contado", l: "Contado" }, { v: "credito", l: "Crédito" }, { v: "credito_cescemex", l: "Crédito Cescemex" }];
 const METODO_PAGO_OPTS = [{ v: "PUE", l: "PUE - Pago en una sola exhibición" }, { v: "PPD", l: "PPD - Pago en parcialidades o diferido" }];
@@ -76,7 +76,7 @@ export default function DocumentForm() {
     numero_pedido: "",
     numero_factura: "",
     estatus_cotizacion: "borrador",
-    estatus_pedido: "pendiente",
+    estatus_pedido: "confirmado_cliente",
     estatus_factura: "pendiente",
     negocio_crm: "",
     notas: "",
@@ -201,7 +201,7 @@ export default function DocumentForm() {
         numero_pedido: existingDoc.numero_pedido || "",
         numero_factura: existingDoc.numero_factura || "",
         estatus_cotizacion: existingDoc.estatus_cotizacion || "borrador",
-        estatus_pedido: existingDoc.estatus_pedido || "pendiente",
+        estatus_pedido: existingDoc.estatus_pedido || "confirmado_cliente",
         estatus_factura: existingDoc.estatus_factura || "pendiente",
         negocio_crm: existingDoc.negocio_crm || "",
         notas: existingDoc.notas || "",
@@ -478,7 +478,7 @@ export default function DocumentForm() {
         numero_pedido: null,
         numero_factura: null,
         estatus_cotizacion: null,
-        estatus_pedido: targetType === "pedido" ? "pendiente" : null,
+        estatus_pedido: targetType === "pedido" ? "confirmado_cliente" : null,
         estatus_factura: targetType === "factura" ? "pendiente" : null,
         cotizacion_original_id: srcDoc.tipo_documento === "cotizacion" ? id : (srcDoc.cotizacion_original_id || null),
       };
