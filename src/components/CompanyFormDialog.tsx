@@ -126,6 +126,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         state: editData.state || "",
         zip_code: editData.zip_code || "",
         notes: editData.notes || "",
+        plaza_id: editData.plaza_id || "",
         industrias: editData.industrias || [],
         equipo: editData.equipo || "",
         tipo_destino_lubricante: editData.tipo_destino_lubricante || "",

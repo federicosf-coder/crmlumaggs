@@ -17,7 +17,7 @@ interface Company {
   id: string; name: string; industry: string | null; phone: string | null;
   email: string | null; city: string | null; is_active: boolean;
   address: string | null; state: string | null; zip_code: string | null;
-  website: string | null; notes: string | null;
+  website: string | null; notes: string | null; plaza_id: string | null;
   industrias: string[] | null; equipo: string | null;
   tipo_destino_lubricante: string | null; potencial_unidades: string | null;
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
