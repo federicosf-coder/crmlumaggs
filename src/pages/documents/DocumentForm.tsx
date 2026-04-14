@@ -54,6 +54,8 @@ export default function DocumentForm() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const [viewMode, setViewMode] = useState(isEdit);
+  const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
 
   const [form, setForm] = useState({
     empresa_vendedora: "" as string,
