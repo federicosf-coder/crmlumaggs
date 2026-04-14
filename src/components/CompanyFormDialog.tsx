@@ -232,6 +232,16 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Lista de Precios</Label>
+                  <Select value={form.lista_precios} onValueChange={v => set("lista_precios", v === "none" ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar lista..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin asignar</SelectItem>
+                      {LISTA_PRECIOS_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="col-span-2 space-y-2"><Label>Notas</Label><Textarea value={form.notes} onChange={e => set("notes", e.target.value)} /></div>
               </div>
             </TabsContent>
