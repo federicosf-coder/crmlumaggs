@@ -256,7 +256,18 @@ export default function DocumentsList() {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                      </TableCell>
+                       </TableCell>
+                       <TableCell>
+                         <Button
+                           variant="ghost"
+                           size="icon"
+                           disabled={duplicating === doc.id}
+                           onClick={(e) => handleDuplicate(e, doc)}
+                           title="Duplicar"
+                         >
+                           <Copy className="h-4 w-4" />
+                         </Button>
+                       </TableCell>
                    </TableRow>
                 ))}
               </TableBody>
