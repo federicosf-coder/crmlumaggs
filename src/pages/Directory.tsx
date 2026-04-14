@@ -460,6 +460,7 @@ export default function Directory() {
                 <DetailRow label="Departamento" value={selectedContact.department} />
                 <DetailRow label="Empresa" value={selectedContact.companies?.name} />
                 <DetailRow label="Plaza" value={(selectedContact.companies?.plazas as any)?.nombre} />
+                <DetailRow label="Ejecutivo(s) de Venta" value={getEjecutivoNames(selectedContactEjecutivos).join(", ") || "—"} />
               </div>
               {selectedContact.notes && (
                 <>
