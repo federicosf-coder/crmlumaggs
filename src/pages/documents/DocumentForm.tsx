@@ -110,7 +110,7 @@ export default function DocumentForm() {
 
   // Lookups
   const { data: plazas = [] } = useQuery({ queryKey: ["plazas"], queryFn: async () => { const { data } = await supabase.from("plazas").select("*").eq("is_active", true).order("nombre"); return data || []; } });
-  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name"); return data || []; } });
+  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name, lista_precios").eq("is_active", true).order("name"); return data || []; } });
   const { data: contacts = [], refetch: refetchContacts } = useQuery({
     queryKey: ["contacts", form.empresa_id],
     queryFn: async () => {
@@ -234,6 +234,17 @@ export default function DocumentForm() {
 
   const addItem = () => setItems(prev => [...prev, { producto_id: "", cantidad: 1, precio_unitario: 0, descuento_porcentaje: 0, subtotal: 0, unidades_equivalentes: 0 }]);
 
+  const getDefaultPrice = (prod: any) => {
+    const selectedCompany = companies.find((c: any) => c.id === form.empresa_id);
+    const lista = selectedCompany?.lista_precios?.toLowerCase();
+    const priceMap: Record<string, string> = {
+      uf1: "precio_base_uf1", uf2: "precio_uf2", uf3: "precio_uf3", uf4: "precio_uf4",
+      r1: "precio_r1", r2: "precio_r2", r3: "precio_r3", r4: "precio_r4",
+    };
+    const field = lista ? priceMap[lista] : null;
+    return field ? (prod[field] ?? prod.precio_base_uf1) : prod.precio_base_uf1;
+  };
+
   const updateItem = (idx: number, field: string, val: any) => {
     setItems(prev => {
       const updated = [...prev];
@@ -241,7 +252,7 @@ export default function DocumentForm() {
       if (field === "producto_id") {
         const prod = productos.find((p: any) => p.id === val);
         if (prod) {
-          item.precio_unitario = prod.precio_base_uf1;
+          item.precio_unitario = getDefaultPrice(prod);
           item._nombre = `${prod.codigo} - ${prod.nombre_producto}`;
           const ue = (prod.presentaciones as any)?.unidades_equivalentes || 1;
           item.unidades_equivalentes = item.cantidad * ue;

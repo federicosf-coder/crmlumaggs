@@ -56,12 +56,17 @@ export const EVALUACION_OPTIONS = [
 export const ROL_LUBRICANTE_OPTIONS = ["Crítico para la operación", "Importante pero no estratégico", "Insumo más"];
 export const TIPO_CLIENTE_OPTIONS = ["Contado", "Crédito directo", "Crédito Cescemex"];
 
+export const LISTA_PRECIOS_OPTIONS = [
+  "UF1", "UF2", "UF3", "UF4", "R1", "R2", "R3", "R4",
+];
+
 export interface CompanyData {
   id?: string;
   name: string; industry: string | null; website: string | null;
   phone: string | null; email: string | null; address: string | null;
   city: string | null; state: string | null; zip_code: string | null;
   notes: string | null; plaza_id: string | null;
+  lista_precios: string | null;
   industrias: string[] | null; equipo: string | null;
   tipo_destino_lubricante: string | null; potencial_unidades: string | null;
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
@@ -79,7 +84,7 @@ interface Props {
 const emptyForm = {
   name: "", industry: "", website: "", phone: "", email: "",
   address: "", city: "", state: "", zip_code: "", notes: "",
-  plaza_id: "",
+  plaza_id: "", lista_precios: "",
   industrias: [] as string[],
   equipo: "", tipo_destino_lubricante: "", potencial_unidades: "",
   tomador_decision: "", riesgo_cambio_marca: "", origen_contacto: "",
@@ -127,6 +132,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         zip_code: editData.zip_code || "",
         notes: editData.notes || "",
         plaza_id: editData.plaza_id || "",
+        lista_precios: editData.lista_precios || "",
         industrias: editData.industrias || [],
         equipo: editData.equipo || "",
         tipo_destino_lubricante: editData.tipo_destino_lubricante || "",
@@ -153,6 +159,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       phone: form.phone || null, email: form.email || null, address: form.address || null,
       city: form.city || null, state: form.state || null, zip_code: form.zip_code || null,
       notes: form.notes || null, plaza_id: form.plaza_id || null,
+      lista_precios: form.lista_precios || null,
       industrias: form.industrias.length > 0 ? form.industrias : [],
       equipo: form.equipo || null,
       tipo_destino_lubricante: form.tipo_destino_lubricante || null,
@@ -222,6 +229,16 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                     <SelectContent>
                       <SelectItem value="none">Sin plaza</SelectItem>
                       {plazas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Lista de Precios</Label>
+                  <Select value={form.lista_precios} onValueChange={v => set("lista_precios", v === "none" ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar lista..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin asignar</SelectItem>
+                      {LISTA_PRECIOS_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

@@ -18,7 +18,7 @@ interface Company {
   email: string | null; city: string | null; is_active: boolean;
   address: string | null; state: string | null; zip_code: string | null;
   website: string | null; notes: string | null; plaza_id: string | null;
-  industrias: string[] | null; equipo: string | null;
+  lista_precios: string | null; industrias: string[] | null; equipo: string | null;
   tipo_destino_lubricante: string | null; potencial_unidades: string | null;
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
   origen_contacto: string | null; evaluacion_lubricante: string | null;
@@ -286,6 +286,7 @@ export default function Directory() {
                     <DetailRow label="Sitio Web" value={selectedCompany.website} />
                     <DetailRow label="Teléfono" value={selectedCompany.phone} />
                     <DetailRow label="Correo" value={selectedCompany.email} />
+                    <DetailRow label="Lista de Precios" value={selectedCompany.lista_precios} />
                     <DetailRow label="Dirección" value={selectedCompany.address} />
                     <DetailRow label="Ciudad" value={selectedCompany.city} />
                     <DetailRow label="Estado" value={selectedCompany.state} />

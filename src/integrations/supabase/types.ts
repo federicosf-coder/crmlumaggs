@@ -54,6 +54,7 @@ export type Database = {
           industrias: string[] | null
           industry: string | null
           is_active: boolean
+          lista_precios: string | null
           name: string
           notes: string | null
           origen_contacto: string | null
@@ -82,6 +83,7 @@ export type Database = {
           industrias?: string[] | null
           industry?: string | null
           is_active?: boolean
+          lista_precios?: string | null
           name: string
           notes?: string | null
           origen_contacto?: string | null
@@ -110,6 +112,7 @@ export type Database = {
           industrias?: string[] | null
           industry?: string | null
           is_active?: boolean
+          lista_precios?: string | null
           name?: string
           notes?: string | null
           origen_contacto?: string | null
