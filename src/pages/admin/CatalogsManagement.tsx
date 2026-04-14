@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText, Building2 } from "lucide-react";
+import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText, Building2, Truck, User } from "lucide-react";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
 
@@ -980,13 +980,185 @@ function EmpresaMarcasTab() {
   );
 }
 
+// ─── Vehiculos Tab ───────────────────────────────────────────
+function VehiculosTab() {
+  const qc = useQueryClient();
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ["vehiculos_all"],
+    queryFn: async () => { const { data, error } = await supabase.from("vehiculos").select("*").order("nombre"); if (error) throw error; return data; },
+  });
+  const [open, setOpen] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [placas, setPlacas] = useState("");
+  const [tipo, setTipo] = useState("");
+  const [editItem, setEditItem] = useState<any>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editPlacas, setEditPlacas] = useState("");
+  const [editTipo, setEditTipo] = useState("");
+  const [editActive, setEditActive] = useState(true);
+
+  const add = useMutation({
+    mutationFn: async () => { const { error } = await supabase.from("vehiculos").insert({ nombre, placas: placas || null, tipo: tipo || null }); if (error) throw error; },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehiculos_all"] }); setOpen(false); setNombre(""); setPlacas(""); setTipo(""); toast.success("Vehículo creado"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("vehiculos").update({ nombre: editNombre, placas: editPlacas || null, tipo: editTipo || null, is_active: editActive }).eq("id", editItem.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehiculos_all"] }); setEditItem(null); toast.success("Vehículo actualizado"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const openEdit = (item: any) => { setEditItem(item); setEditNombre(item.nombre); setEditPlacas(item.placas || ""); setEditTipo(item.tipo || ""); setEditActive(item.is_active); };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5" /> Vehículos</CardTitle>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Nuevo</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Nuevo Vehículo</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Nombre *</Label><Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Camioneta 1" /></div>
+              <div><Label>Placas</Label><Input value={placas} onChange={e => setPlacas(e.target.value)} placeholder="Ej: ABC-123" /></div>
+              <div><Label>Tipo</Label><Input value={tipo} onChange={e => setTipo(e.target.value)} placeholder="Ej: Camioneta, Camión" /></div>
+              <Button onClick={() => add.mutate()} disabled={!nombre || add.isPending}>{add.isPending ? "Guardando..." : "Guardar"}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
+          <Table>
+            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Placas</TableHead><TableHead>Tipo</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
+            <TableBody>
+              {items.map(v => (
+                <TableRow key={v.id}>
+                  <TableCell className="font-medium">{v.nombre}</TableCell>
+                  <TableCell>{v.placas || "—"}</TableCell>
+                  <TableCell>{v.tipo || "—"}</TableCell>
+                  <TableCell><Badge variant={v.is_active ? "default" : "secondary"}>{v.is_active ? "Sí" : "No"}</Badge></TableCell>
+                  <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(v)}><Pencil className="h-4 w-4" /></Button></TableCell>
+                </TableRow>
+              ))}
+              {items.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin vehículos</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+      <Dialog open={!!editItem} onOpenChange={v => { if (!v) setEditItem(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Vehículo</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nombre</Label><Input value={editNombre} onChange={e => setEditNombre(e.target.value)} /></div>
+            <div><Label>Placas</Label><Input value={editPlacas} onChange={e => setEditPlacas(e.target.value)} /></div>
+            <div><Label>Tipo</Label><Input value={editTipo} onChange={e => setEditTipo(e.target.value)} /></div>
+            <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
+          </div>
+          <DialogFooter><Button onClick={() => update.mutate()} disabled={!editNombre || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+// ─── Repartidores Tab ────────────────────────────────────────
+function RepartidoresTab() {
+  const qc = useQueryClient();
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ["repartidores_all"],
+    queryFn: async () => { const { data, error } = await supabase.from("repartidores").select("*").order("nombre"); if (error) throw error; return data; },
+  });
+  const [open, setOpen] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [licencia, setLicencia] = useState("");
+  const [editItem, setEditItem] = useState<any>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editTelefono, setEditTelefono] = useState("");
+  const [editLicencia, setEditLicencia] = useState("");
+  const [editActive, setEditActive] = useState(true);
+
+  const add = useMutation({
+    mutationFn: async () => { const { error } = await supabase.from("repartidores").insert({ nombre, telefono: telefono || null, licencia: licencia || null }); if (error) throw error; },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["repartidores_all"] }); setOpen(false); setNombre(""); setTelefono(""); setLicencia(""); toast.success("Repartidor creado"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("repartidores").update({ nombre: editNombre, telefono: editTelefono || null, licencia: editLicencia || null, is_active: editActive }).eq("id", editItem.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["repartidores_all"] }); setEditItem(null); toast.success("Repartidor actualizado"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const openEdit = (item: any) => { setEditItem(item); setEditNombre(item.nombre); setEditTelefono(item.telefono || ""); setEditLicencia(item.licencia || ""); setEditActive(item.is_active); };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> Repartidores</CardTitle>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Nuevo</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Nuevo Repartidor</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Nombre *</Label><Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Juan López" /></div>
+              <div><Label>Teléfono</Label><Input value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="Ej: 55 1234 5678" /></div>
+              <div><Label>Licencia</Label><Input value={licencia} onChange={e => setLicencia(e.target.value)} placeholder="Ej: LIC-12345" /></div>
+              <Button onClick={() => add.mutate()} disabled={!nombre || add.isPending}>{add.isPending ? "Guardando..." : "Guardar"}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
+          <Table>
+            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Teléfono</TableHead><TableHead>Licencia</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
+            <TableBody>
+              {items.map(r => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium">{r.nombre}</TableCell>
+                  <TableCell>{r.telefono || "—"}</TableCell>
+                  <TableCell>{r.licencia || "—"}</TableCell>
+                  <TableCell><Badge variant={r.is_active ? "default" : "secondary"}>{r.is_active ? "Sí" : "No"}</Badge></TableCell>
+                  <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button></TableCell>
+                </TableRow>
+              ))}
+              {items.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin repartidores</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+      <Dialog open={!!editItem} onOpenChange={v => { if (!v) setEditItem(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Repartidor</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nombre</Label><Input value={editNombre} onChange={e => setEditNombre(e.target.value)} /></div>
+            <div><Label>Teléfono</Label><Input value={editTelefono} onChange={e => setEditTelefono(e.target.value)} /></div>
+            <div><Label>Licencia</Label><Input value={editLicencia} onChange={e => setEditLicencia(e.target.value)} /></div>
+            <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
+          </div>
+          <DialogFooter><Button onClick={() => update.mutate()} disabled={!editNombre || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
 // ─── Main Page ───────────────────────────────────────────────
 export default function CatalogsManagement() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Catálogos</h1>
-        <p className="text-muted-foreground">Administra plazas, presentaciones, clasificaciones, embudos, logos, condiciones y marcas por empresa.</p>
+        <p className="text-muted-foreground">Administra plazas, presentaciones, clasificaciones, embudos, logos, condiciones, marcas por empresa, vehículos y repartidores.</p>
       </div>
       <Tabs defaultValue="plazas">
         <TabsList className="flex-wrap">
@@ -997,6 +1169,8 @@ export default function CatalogsManagement() {
           <TabsTrigger value="logos">Logos</TabsTrigger>
           <TabsTrigger value="condiciones">Condiciones</TabsTrigger>
           <TabsTrigger value="empresa_marcas">Marcas por Empresa</TabsTrigger>
+          <TabsTrigger value="vehiculos">Vehículos</TabsTrigger>
+          <TabsTrigger value="repartidores">Repartidores</TabsTrigger>
         </TabsList>
         <TabsContent value="plazas"><PlazasTab /></TabsContent>
         <TabsContent value="presentaciones"><PresentacionesTab /></TabsContent>
@@ -1005,6 +1179,8 @@ export default function CatalogsManagement() {
         <TabsContent value="logos"><LogosTab /></TabsContent>
         <TabsContent value="condiciones"><CondicionesTab /></TabsContent>
         <TabsContent value="empresa_marcas"><EmpresaMarcasTab /></TabsContent>
+        <TabsContent value="vehiculos"><VehiculosTab /></TabsContent>
+        <TabsContent value="repartidores"><RepartidoresTab /></TabsContent>
       </Tabs>
     </div>
   );
