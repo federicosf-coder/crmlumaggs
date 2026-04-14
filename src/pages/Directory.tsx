@@ -49,6 +49,7 @@ export default function Directory() {
   const [companyOpen, setCompanyOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [editCompany, setEditCompany] = useState<CompanyData | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
