@@ -128,7 +128,7 @@ export default function DocumentForm() {
     },
   });
   const { data: users = [] } = useQuery({ queryKey: ["profiles_list"], queryFn: async () => { const { data } = await supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name"); return data || []; } });
-  const { data: productos = [], refetch: refetchProductos } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, precio_base_uf1, presentaciones(unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
+  const { data: productos = [], refetch: refetchProductos } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, precio_base_uf1, precio_uf2, precio_uf3, precio_uf4, precio_r1, precio_r2, precio_r3, precio_r4, presentaciones(unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
   const { data: presentacionesList = [] } = useQuery({ queryKey: ["presentaciones"], queryFn: async () => { const { data } = await supabase.from("presentaciones").select("*").eq("is_active", true).order("nombre"); return data || []; } });
   const { data: allOptionValues = [] } = useQuery({ queryKey: ["product_option_values"], queryFn: async () => { const { data } = await supabase.from("product_option_values").select("*").eq("is_active", true).order("value"); return data || []; } });
   const optionsFor = (type: string) => allOptionValues.filter((o: any) => o.option_type === type);
@@ -668,17 +668,21 @@ export default function DocumentForm() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[300px]">Producto</TableHead>
-                  <TableHead>Cantidad</TableHead>
-                  <TableHead>Precio Unit.</TableHead>
-                  <TableHead>Desc. %</TableHead>
+                  <TableHead className="w-[280px]">Producto</TableHead>
+                  <TableHead className="w-16">Cant.</TableHead>
+                  <TableHead className="text-center text-xs w-[120px]">Ref. UF</TableHead>
+                  <TableHead className="text-center text-xs w-[120px]">Ref. R</TableHead>
+                  <TableHead className="w-28">Precio Unit.</TableHead>
+                  <TableHead className="w-20">Desc. %</TableHead>
                   <TableHead>Subtotal</TableHead>
                   <TableHead>UE</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item, idx) => (
+                {items.map((item, idx) => {
+                  const prod = productos.find((p: any) => p.id === item.producto_id);
+                  return (
                   <TableRow key={idx}>
                     <TableCell>
                       <div className="flex gap-1">
@@ -691,14 +695,35 @@ export default function DocumentForm() {
                         <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
                       </div>
                     </TableCell>
-                    <TableCell><Input type="number" className="w-20" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} /></TableCell>
+                    <TableCell><Input type="number" className="w-16" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} /></TableCell>
+                    <TableCell className="p-1">
+                      {prod ? (
+                        <div className="grid grid-cols-2 gap-x-1 text-[10px] leading-tight text-muted-foreground">
+                          <span className="text-right font-medium">UF1:</span><span>{Number(prod.precio_base_uf1).toFixed(2)}</span>
+                          <span className="text-right font-medium">UF2:</span><span>{Number(prod.precio_uf2).toFixed(2)}</span>
+                          <span className="text-right font-medium">UF3:</span><span>{Number(prod.precio_uf3).toFixed(2)}</span>
+                          <span className="text-right font-medium">UF4:</span><span>{Number(prod.precio_uf4).toFixed(2)}</span>
+                        </div>
+                      ) : <span className="text-xs text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell className="p-1">
+                      {prod ? (
+                        <div className="grid grid-cols-2 gap-x-1 text-[10px] leading-tight text-muted-foreground">
+                          <span className="text-right font-medium">R1:</span><span>{Number(prod.precio_r1).toFixed(2)}</span>
+                          <span className="text-right font-medium">R2:</span><span>{Number(prod.precio_r2).toFixed(2)}</span>
+                          <span className="text-right font-medium">R3:</span><span>{Number(prod.precio_r3).toFixed(2)}</span>
+                          <span className="text-right font-medium">R4:</span><span>{Number(prod.precio_r4).toFixed(2)}</span>
+                        </div>
+                      ) : <span className="text-xs text-muted-foreground">—</span>}
+                    </TableCell>
                     <TableCell><Input type="number" className="w-28" value={item.precio_unitario} onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))} /></TableCell>
                     <TableCell><Input type="number" className="w-20" value={item.descuento_porcentaje} onChange={e => updateItem(idx, "descuento_porcentaje", Number(e.target.value))} /></TableCell>
                     <TableCell className="font-medium">${item.subtotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell>{item.unidades_equivalentes}</TableCell>
                     <TableCell><Button variant="ghost" size="icon" onClick={() => removeItem(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}
