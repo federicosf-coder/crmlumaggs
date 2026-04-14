@@ -166,28 +166,28 @@ serve(async (req) => {
     }
 
     // Left side - proposal info
-    drawText(`Propuesta # ${numCot.replace("COT-", "")}`, margin, y, fontSize, font);
+    drawText(`Propuesta # ${numCot.replace("COT-", "")}`, margin, y);
     y -= 14;
-    drawText(`Fecha de cotizacion: ${fecha}`, margin, y, fontSize, font);
+    drawText(`Fecha de cotizacion: ${fecha}`, margin, y);
     y -= 14;
     if (vigenciaText) {
-      drawText(`Vigencia: ${vigenciaText}`, margin, y, fontSize, font);
+      drawText(`Vigencia: ${vigenciaText}`, margin, y);
     }
 
     // Right side - company contact info
     const rightInfoStartY = y + 28;
     if (isLumaggs) {
-      drawTextRight("chevron@lumaggs.com.mx", rightEdge, rightInfoStartY, fontSize, font);
-      drawTextRight("Procesadora de Servicios MAGG'S, SA de C.V.", rightEdge, rightInfoStartY - 14, fontSize, font);
-      drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 28, fontSize, font);
-      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42, fontSize, font);
-      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56, fontSize, font);
+      drawTextRight("chevron@lumaggs.com.mx", rightEdge, rightInfoStartY);
+      drawTextRight("Procesadora de Servicios MAGG'S, SA de C.V.", rightEdge, rightInfoStartY - 14);
+      drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 28);
+      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42);
+      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56);
     } else {
-      drawTextRight("lubricantes@dagal.com.mx", rightEdge, rightInfoStartY, fontSize, font);
-      drawTextRight("Proveedora Galsa SA de C.V.", rightEdge, rightInfoStartY - 14, fontSize, font);
-      drawTextRight("PGA850730EU0", rightEdge, rightInfoStartY - 28, fontSize, font);
-      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42, fontSize, font);
-      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56, fontSize, font);
+      drawTextRight("lubricantes@dagal.com.mx", rightEdge, rightInfoStartY);
+      drawTextRight("Proveedora Galsa SA de C.V.", rightEdge, rightInfoStartY - 14);
+      drawTextRight("PGA850730EU0", rightEdge, rightInfoStartY - 28);
+      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42);
+      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56);
     }
 
     y -= 30; // more space before "Dirigido a"
@@ -198,17 +198,17 @@ serve(async (req) => {
     const clientPhone = contact?.phone || company?.phone || "";
 
     if (clientPhone) {
-      drawTextRight(clientPhone, rightEdge, y, fontSize, font);
+      drawTextRight(clientPhone, rightEdge, y);
     }
 
-    drawText("Dirigido a:", margin, y, fontSize, font);
+    drawText("Dirigido a:", margin, y);
     y -= 14;
     const clientName = company?.name || "";
     drawText(clientName, margin, y, fontSize, fontBold);
     y -= 14;
     const contactName = contact ? `${contact.first_name || ""} ${contact.last_name || ""}`.trim() : "";
     if (contactName) {
-      drawText(contactName, margin, y, fontSize, font);
+      drawText(contactName, margin, y);
     }
     y -= 35; // extra space before table after contact name
 
@@ -267,13 +267,13 @@ serve(async (req) => {
     const totLabelLeft = col.cantidad + 5;
     const totValueRight = subtotalColRight - 5;
 
-    drawText("Subtotal:", totLabelLeft, y, fontSize, font);
-    drawTextRight(`$${fmtMoney(Number(doc.subtotal))}`, totValueRight, y, fontSize, font);
+    drawText("Subtotal:", totLabelLeft, y);
+    drawTextRight(`$${fmtMoney(Number(doc.subtotal))}`, totValueRight, y);
     y -= 16;
 
     const ivaPct = Number(doc.iva_porcentaje) || 0;
-    drawText(`IVA (${ivaPct}%):`, totLabelLeft, y, fontSize, font);
-    drawTextRight(`$${fmtMoney(Number(doc.iva_importe))}`, totValueRight, y, fontSize, font);
+    drawText(`IVA (${ivaPct}%):`, totLabelLeft, y);
+    drawTextRight(`$${fmtMoney(Number(doc.iva_importe))}`, totValueRight, y);
     y -= 16;
 
     drawText("Total:", totLabelLeft, y, fontSize, fontBold);
@@ -297,7 +297,7 @@ serve(async (req) => {
 
     // ===== CONDITIONS / NOTES =====
     addNewPageIfNeeded(40);
-    drawText("Precios no incluyen IVA y estan sujetos a cambio sin previo aviso.", margin, y, fontSize, font);
+    drawText("Precios no incluyen IVA y estan sujetos a cambio sin previo aviso.", margin, y);
     y -= 24;
 
     if (condiciones?.contenido) {
