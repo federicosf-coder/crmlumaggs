@@ -82,19 +82,19 @@ export default function Directory() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Empresa</TableHead><TableHead>Industria</TableHead>
-                      <TableHead>Teléfono</TableHead><TableHead>Correo</TableHead>
-                      <TableHead>Ciudad</TableHead><TableHead>Estado</TableHead>
+                      <TableHead>Empresa</TableHead><TableHead>Equipo</TableHead>
+                      <TableHead>Tipo Destino</TableHead><TableHead>Potencial</TableHead>
+                      <TableHead>Teléfono</TableHead><TableHead>Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredCompanies.map(c => (
-                      <TableRow key={c.id}>
+                      <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedCompany(c)}>
                         <TableCell className="font-medium">{c.name}</TableCell>
-                        <TableCell>{c.industry || "—"}</TableCell>
+                        <TableCell>{c.equipo || "—"}</TableCell>
+                        <TableCell>{c.tipo_destino_lubricante || "—"}</TableCell>
+                        <TableCell>{c.potencial_unidades || "—"}</TableCell>
                         <TableCell>{c.phone || "—"}</TableCell>
-                        <TableCell>{c.email || "—"}</TableCell>
-                        <TableCell>{c.city || "—"}</TableCell>
                         <TableCell><Badge variant={c.is_active ? "default" : "secondary"}>{c.is_active ? "Activo" : "Inactivo"}</Badge></TableCell>
                       </TableRow>
                     ))}
