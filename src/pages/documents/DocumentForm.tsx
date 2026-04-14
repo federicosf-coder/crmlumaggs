@@ -13,11 +13,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
+import { Link } from "react-router-dom";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "pendiente", l: "Pendiente" }, { v: "confirmado", l: "Confirmado" }, { v: "en_proceso", l: "En Proceso" }, { v: "enviado", l: "Enviado" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
@@ -57,6 +58,9 @@ export default function DocumentForm() {
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
 
+  const today = format(new Date(), "yyyy-MM-dd");
+  const defaultVencimiento = format(addDays(new Date(), 7), "yyyy-MM-dd");
+
   const [form, setForm] = useState({
     empresa_vendedora: "" as string,
     plaza_id: "",
@@ -64,8 +68,8 @@ export default function DocumentForm() {
     ejecutivo_venta_id: "",
     empresa_id: "",
     contacto_id: "",
-    fecha_documento: format(new Date(), "yyyy-MM-dd"),
-    fecha_vencimiento: "",
+    fecha_documento: today,
+    fecha_vencimiento: defaultVencimiento,
     iva_porcentaje: "8",
     numero_cotizacion: "",
     numero_pedido: "",
@@ -129,6 +133,17 @@ export default function DocumentForm() {
   const { data: allOptionValues = [] } = useQuery({ queryKey: ["product_option_values"], queryFn: async () => { const { data } = await supabase.from("product_option_values").select("*").eq("is_active", true).order("value"); return data || []; } });
   const optionsFor = (type: string) => allOptionValues.filter((o: any) => o.option_type === type);
 
+  // Fetch cotizacion original info
+  const { data: cotizacionOriginalDoc } = useQuery({
+    queryKey: ["cotizacion_original", form.cotizacion_original_id],
+    queryFn: async () => {
+      if (!form.cotizacion_original_id) return null;
+      const { data } = await supabase.from("documentos").select("id, numero_cotizacion").eq("id", form.cotizacion_original_id).single();
+      return data;
+    },
+    enabled: !!form.cotizacion_original_id,
+  });
+
   // Load existing
   const { data: existingDoc } = useQuery({
     queryKey: ["documento", id],
@@ -140,6 +155,21 @@ export default function DocumentForm() {
     queryFn: async () => { if (!id) return []; const { data, error } = await supabase.from("documento_productos").select("*, productos(codigo, nombre_producto)").eq("documento_id", id); if (error) throw error; return data; },
     enabled: isEdit,
   });
+
+  // Set default ejecutivo for new documents
+  useEffect(() => {
+    if (!isEdit && user?.id && !form.ejecutivo_venta_id) {
+      set("ejecutivo_venta_id", user.id);
+    }
+  }, [user?.id, isEdit]);
+
+  // Auto-update fecha_vencimiento when fecha_documento changes (only if not editing existing)
+  useEffect(() => {
+    if (!isEdit && form.fecha_documento) {
+      const venc = format(addDays(new Date(form.fecha_documento + "T12:00:00"), 7), "yyyy-MM-dd");
+      set("fecha_vencimiento", venc);
+    }
+  }, [form.fecha_documento, isEdit]);
 
   useEffect(() => {
     if (existingDoc) {
@@ -354,10 +384,8 @@ export default function DocumentForm() {
     if (!id) return;
     try {
       toast.info("Duplicando documento...");
-      // Get current doc data
       const { data: srcDoc, error: srcErr } = await supabase.from("documentos").select("*").eq("id", id).single();
       if (srcErr || !srcDoc) throw srcErr || new Error("No encontrado");
-      // Get line items
       const { data: srcItems } = await supabase.from("documento_productos").select("*").eq("documento_id", id);
 
       const { id: _id, created_at, updated_at, numero_cotizacion, numero_pedido, numero_factura, pdf_url, estatus_cotizacion, ...rest } = srcDoc;
@@ -366,9 +394,10 @@ export default function DocumentForm() {
         created_by: user?.id,
         pdf_url: null,
         estatus_cotizacion: srcDoc.tipo_documento === "cotizacion" ? "borrador" : null,
-        numero_cotizacion: null, // auto-assigned by trigger for cotizaciones
+        numero_cotizacion: null,
         numero_pedido: null,
         numero_factura: null,
+        cotizacion_original_id: srcDoc.tipo_documento === "cotizacion" ? id : (srcDoc.cotizacion_original_id || null),
       };
 
       const { data: inserted, error: insErr } = await supabase.from("documentos").insert(newDoc).select("id").single();
@@ -376,11 +405,9 @@ export default function DocumentForm() {
 
       if (srcItems && srcItems.length > 0) {
         const newItems = srcItems.map(({ id: _iid, created_at: _ca, documento_id, ...itemRest }) => ({
-          ...itemRest,
-          documento_id: inserted.id,
+          ...itemRest, documento_id: inserted.id,
         }));
-        const { error: itemErr } = await supabase.from("documento_productos").insert(newItems);
-        if (itemErr) throw itemErr;
+        await supabase.from("documento_productos").insert(newItems);
       }
 
       qc.invalidateQueries({ queryKey: ["documentos"] });
@@ -388,6 +415,48 @@ export default function DocumentForm() {
       navigate(`/documents/${inserted.id}`);
     } catch (err: any) {
       toast.error("Error al duplicar: " + (err.message || "Error desconocido"));
+    }
+  };
+
+  const handleConvertTo = async (targetType: "pedido" | "factura") => {
+    if (!id) return;
+    const label = targetType === "pedido" ? "Pedido" : "Factura";
+    try {
+      toast.info(`Convirtiendo a ${label}...`);
+      const { data: srcDoc, error: srcErr } = await supabase.from("documentos").select("*").eq("id", id).single();
+      if (srcErr || !srcDoc) throw srcErr || new Error("No encontrado");
+      const { data: srcItems } = await supabase.from("documento_productos").select("*").eq("documento_id", id);
+
+      const { id: _id, created_at, updated_at, numero_cotizacion, numero_pedido, numero_factura, pdf_url, estatus_cotizacion, estatus_pedido, estatus_factura, tipo_documento, ...rest } = srcDoc;
+      const newDoc: any = {
+        ...rest,
+        tipo_documento: targetType,
+        created_by: user?.id,
+        pdf_url: null,
+        numero_cotizacion: null,
+        numero_pedido: null,
+        numero_factura: null,
+        estatus_cotizacion: null,
+        estatus_pedido: targetType === "pedido" ? "pendiente" : null,
+        estatus_factura: targetType === "factura" ? "pendiente" : null,
+        cotizacion_original_id: srcDoc.tipo_documento === "cotizacion" ? id : (srcDoc.cotizacion_original_id || null),
+      };
+
+      const { data: inserted, error: insErr } = await supabase.from("documentos").insert(newDoc).select("id").single();
+      if (insErr) throw insErr;
+
+      if (srcItems && srcItems.length > 0) {
+        const newItems = srcItems.map(({ id: _iid, created_at: _ca, documento_id, ...itemRest }) => ({
+          ...itemRest, documento_id: inserted.id,
+        }));
+        await supabase.from("documento_productos").insert(newItems);
+      }
+
+      qc.invalidateQueries({ queryKey: ["documentos"] });
+      toast.success(`${label} creado desde cotización`);
+      navigate(`/documents/${inserted.id}`);
+    } catch (err: any) {
+      toast.error(`Error al convertir: ${err.message}`);
     }
   };
 
@@ -401,7 +470,7 @@ export default function DocumentForm() {
           {viewMode ? "Ver Documento" : isEdit ? "Editar Documento" : "Nuevo Documento"}
         </h1>
         {viewMode && (
-          <div className="flex gap-2 ml-auto">
+          <div className="flex gap-2 ml-auto flex-wrap">
             {existingDoc?.pdf_url && (
               <Button variant="default" asChild>
                 <a href={existingDoc.pdf_url} target="_blank" rel="noopener noreferrer">
@@ -416,6 +485,16 @@ export default function DocumentForm() {
               })}>
                 <Download className="mr-2 h-4 w-4" /> Generar PDF
               </Button>
+            )}
+            {form.tipo_documento === "cotizacion" && (
+              <>
+                <Button variant="secondary" onClick={() => handleConvertTo("pedido")}>
+                  <ShoppingCart className="mr-2 h-4 w-4" /> Convertir a Pedido
+                </Button>
+                <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
+                  <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
+                </Button>
+              </>
             )}
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
@@ -664,7 +743,21 @@ export default function DocumentForm() {
           </div>
           <div>
             <Label>Cotización Original (referencia)</Label>
-            <Input value={form.cotizacion_original_id} onChange={e => set("cotizacion_original_id", e.target.value)} placeholder="ID de cotización" />
+            {cotizacionOriginalDoc ? (
+              <div className="flex items-center gap-2 h-10">
+                <Link
+                  to={`/documents/${cotizacionOriginalDoc.id}`}
+                  className="text-primary underline font-medium"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {cotizacionOriginalDoc.numero_cotizacion || "Sin número"}
+                </Link>
+              </div>
+            ) : form.cotizacion_original_id ? (
+              <Input value={form.cotizacion_original_id} disabled className="bg-muted" />
+            ) : (
+              <Input value="" disabled placeholder="N/A" className="bg-muted" />
+            )}
           </div>
           <div>
             <Label>Negocio CRM</Label>
