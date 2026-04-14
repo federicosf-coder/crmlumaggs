@@ -65,7 +65,8 @@ serve(async (req) => {
 
     console.log("Logo lookup:", logoKey, "found:", logoData?.storage_path);
 
-    const blueHeader = rgb(0.22, 0.33, 0.73);
+    // Lumaggs = blue, Galsa = dark red/maroon for Phillips 66
+    const headerColor = isLumaggs ? rgb(0.22, 0.33, 0.73) : rgb(0.55, 0.08, 0.13);
 
     // Create PDF
     const pdfDoc = await PDFDocument.create();
@@ -161,6 +162,12 @@ serve(async (req) => {
       drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 28, 10, font);
       drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42, 10, font);
       drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56, 10, font);
+    } else {
+      drawTextRight("phillips66@galsa.com.mx", rightEdge, rightInfoStartY, 10, font);
+      drawTextRight("Gasolineras y Lubricantes, SA de C.V.", rightEdge, rightInfoStartY - 14, 10, font);
+      drawTextRight("GLU 900101 AB3", rightEdge, rightInfoStartY - 28, 10, font);
+      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42, 10, font);
+      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56, 10, font);
     }
 
     y -= 30; // more space before "Dirigido a"
@@ -199,7 +206,7 @@ serve(async (req) => {
     const subtotalColRight = rightEdge; // right edge of the Subtotal column
 
     // Table header - blue background
-    page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 20, color: blueHeader });
+    page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 20, color: headerColor });
     drawText("Codigo", col.codigo + 5, y, 9, fontBold, rgb(1, 1, 1));
     drawText("Producto", col.producto + 5, y, 9, fontBold, rgb(1, 1, 1));
     drawText("Cantidad", col.cantidad + 5, y, 9, fontBold, rgb(1, 1, 1));
