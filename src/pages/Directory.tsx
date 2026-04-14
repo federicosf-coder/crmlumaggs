@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Building2, User, Search, Pencil, List, LayoutGrid, Phone, MapPin } from "lucide-react";
+import { SortMenu } from "@/components/SortMenu";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -54,6 +55,8 @@ export default function Directory() {
   const [editCompany, setEditCompany] = useState<CompanyData | null>(null);
   const [companyView, setCompanyView] = useState<"list" | "cards">("list");
   const [contactView, setContactView] = useState<"list" | "cards">("list");
+  const [companySort, setCompanySort] = useState("name_asc");
+  const [contactSort, setContactSort] = useState("last_name_asc");
 
   const fetchData = async () => {
     setLoading(true);
@@ -68,11 +71,32 @@ export default function Directory() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const filteredCompanies = companies.filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase()));
-  const filteredContacts = contacts.filter(c =>
-    `${c.first_name} ${c.last_name}`.toLowerCase().includes(contactSearch.toLowerCase()) ||
-    (c.companies?.name || "").toLowerCase().includes(contactSearch.toLowerCase())
-  );
+  const filteredCompanies = companies
+    .filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase()))
+    .sort((a, b) => {
+      switch (companySort) {
+        case "name_asc": return a.name.localeCompare(b.name);
+        case "name_desc": return b.name.localeCompare(a.name);
+        case "industry": return (a.industry || "").localeCompare(b.industry || "");
+        case "plaza": return ((a.plazas as any)?.nombre || "").localeCompare((b.plazas as any)?.nombre || "");
+        case "contacts_desc": return ((b.contacts as any[])?.length || 0) - ((a.contacts as any[])?.length || 0);
+        default: return 0;
+      }
+    });
+  const filteredContacts = contacts
+    .filter(c =>
+      `${c.first_name} ${c.last_name}`.toLowerCase().includes(contactSearch.toLowerCase()) ||
+      (c.companies?.name || "").toLowerCase().includes(contactSearch.toLowerCase())
+    )
+    .sort((a, b) => {
+      switch (contactSort) {
+        case "last_name_asc": return a.last_name.localeCompare(b.last_name);
+        case "last_name_desc": return b.last_name.localeCompare(a.last_name);
+        case "first_name_asc": return a.first_name.localeCompare(b.first_name);
+        case "company": return (a.companies?.name || "").localeCompare(b.companies?.name || "");
+        default: return 0;
+      }
+    });
 
   const ViewToggle = ({ view, setView }: { view: "list" | "cards"; setView: (v: "list" | "cards") => void }) => (
     <div className="flex gap-1 border rounded-md p-0.5">
@@ -104,6 +128,17 @@ export default function Directory() {
                 <Input placeholder="Buscar empresas..." className="pl-9" value={companySearch} onChange={e => setCompanySearch(e.target.value)} />
               </div>
               <ViewToggle view={companyView} setView={setCompanyView} />
+              <SortMenu
+                value={companySort}
+                onChange={setCompanySort}
+                options={[
+                  { value: "name_asc", label: "Nombre A-Z" },
+                  { value: "name_desc", label: "Nombre Z-A" },
+                  { value: "industry", label: "Industria" },
+                  { value: "plaza", label: "Plaza" },
+                  { value: "contacts_desc", label: "Más contactos" },
+                ]}
+              />
             </div>
             <Button onClick={() => setCompanyOpen(true)}><Plus className="mr-2 h-4 w-4" /> Agregar Empresa</Button>
           </div>
@@ -180,6 +215,16 @@ export default function Directory() {
                 <Input placeholder="Buscar contactos..." className="pl-9" value={contactSearch} onChange={e => setContactSearch(e.target.value)} />
               </div>
               <ViewToggle view={contactView} setView={setContactView} />
+              <SortMenu
+                value={contactSort}
+                onChange={setContactSort}
+                options={[
+                  { value: "last_name_asc", label: "Apellido A-Z" },
+                  { value: "last_name_desc", label: "Apellido Z-A" },
+                  { value: "first_name_asc", label: "Nombre A-Z" },
+                  { value: "company", label: "Empresa" },
+                ]}
+              />
             </div>
             <Button onClick={() => setContactOpen(true)}><Plus className="mr-2 h-4 w-4" /> Agregar Contacto</Button>
           </div>
