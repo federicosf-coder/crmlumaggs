@@ -802,6 +802,7 @@ export type Database = {
           estatus_factura: Database["public"]["Enums"]["estatus_factura"] | null
           estatus_pedido: Database["public"]["Enums"]["estatus_pedido"] | null
           fecha_documento: string
+          fecha_entrega_programada: string | null
           fecha_vencimiento: string | null
           id: string
           is_active: boolean
@@ -841,6 +842,7 @@ export type Database = {
             | null
           estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
           fecha_documento?: string
+          fecha_entrega_programada?: string | null
           fecha_vencimiento?: string | null
           id?: string
           is_active?: boolean
@@ -880,6 +882,7 @@ export type Database = {
             | null
           estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
           fecha_documento?: string
+          fecha_entrega_programada?: string | null
           fecha_vencimiento?: string | null
           id?: string
           is_active?: boolean
