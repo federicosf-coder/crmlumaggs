@@ -150,7 +150,7 @@ serve(async (req) => {
 
     // ===== COMPANY NAME right-aligned =====
     const companyLabel = isLumaggs ? "Lumaggs" : "Galsa";
-    drawTextRight(companyLabel, rightEdge, y + 65, 13, fontBold, rgb(0, 0, 0));
+    drawTextRight(companyLabel, rightEdge, y + 65, 12, fontBold, rgb(0, 0, 0));
 
     // ===== PROPOSAL INFO (left) + COMPANY CONTACT (right) =====
     const numCot = doc.numero_cotizacion || "Sin numero";
@@ -204,7 +204,7 @@ serve(async (req) => {
     drawText("Dirigido a:", margin, y, 10, font);
     y -= 14;
     const clientName = company?.name || "";
-    drawText(clientName, margin, y, 11, fontBold);
+    drawText(clientName, margin, y, fontSize, fontBold);
     y -= 14;
     const contactName = contact ? `${contact.first_name || ""} ${contact.last_name || ""}`.trim() : "";
     if (contactName) {
@@ -235,23 +235,29 @@ serve(async (req) => {
     y -= 24;
 
     // Table rows
+    const productoMaxWidth = col.cantidad - col.producto - 10; // available width for product text
     (items || []).forEach((item: any) => {
-      addNewPageIfNeeded(30);
       const prod = item.productos;
       const codigo = prod?.codigo || "";
       const nombre = prod?.nombre_producto || "";
       const presentacion = (prod?.presentaciones as any)?.nombre || "";
       const productoDesc = presentacion ? `${nombre} - ${presentacion}` : nombre;
 
-      const maxLen = 38;
-      const productoTrunc = productoDesc.length > maxLen ? productoDesc.substring(0, maxLen) + "..." : productoDesc;
+      // Wrap product description
+      const prodLines = wrapText(productoDesc, productoMaxWidth);
+      const rowHeight = prodLines.length * 12 + 6; // 12pt per line + padding
 
-      drawText(codigo, col.codigo + 5, y, 9);
-      drawText(productoTrunc, col.producto + 5, y, 9);
-      drawText(String(item.cantidad), col.cantidad + 5, y, 9);
-      drawText(`$${fmtMoney(Number(item.precio_unitario))}`, col.precio + 5, y, 9);
-      drawTextRight(`$${fmtMoney(Number(item.subtotal))}`, subtotalColRight - 5, y, 9);
-      y -= 18;
+      addNewPageIfNeeded(rowHeight);
+
+      drawText(codigo, col.codigo + 5, y);
+      // Draw wrapped product lines
+      for (let li = 0; li < prodLines.length; li++) {
+        drawText(prodLines[li], col.producto + 5, y - (li * 12));
+      }
+      drawText(String(item.cantidad), col.cantidad + 5, y);
+      drawText(`$${fmtMoney(Number(item.precio_unitario))}`, col.precio + 5, y);
+      drawTextRight(`$${fmtMoney(Number(item.subtotal))}`, subtotalColRight - 5, y);
+      y -= rowHeight;
     });
 
     // ===== TOTALS (aligned with Subtotal column) =====
@@ -280,10 +286,10 @@ serve(async (req) => {
       drawLine(margin, y, rightEdge, 0.5, rgb(0.6, 0.6, 0.6));
       y -= 20;
       const ejLabel = "Ejecutivo: ";
-      const ejLabelWidth = fontBold.widthOfTextAtSize(ejLabel, 10);
-      drawText(ejLabel, margin, y, 10, fontBold);
+      const ejLabelWidth = fontBold.widthOfTextAtSize(ejLabel, fontSize);
+      drawText(ejLabel, margin, y, fontSize, fontBold);
       const ejDetailParts = [ejecutivoName, ejecutivoEmail, ejecutivoPhone].filter(Boolean);
-      drawText(ejDetailParts.join(", "), margin + ejLabelWidth, y, 10, font);
+      drawText(ejDetailParts.join(", "), margin + ejLabelWidth, y);
       y -= 20;
       drawLine(margin, y, rightEdge, 0.5, rgb(0.6, 0.6, 0.6));
       y -= 30;
@@ -298,20 +304,10 @@ serve(async (req) => {
       const lines = condiciones.contenido.split("\n");
       for (const line of lines) {
         addNewPageIfNeeded(14);
-        const words = line.split(" ");
-        let currentLine = "";
-        for (const word of words) {
-          const test = currentLine ? currentLine + " " + word : word;
-          if (font.widthOfTextAtSize(test, 10) > contentWidth) {
-            drawText(currentLine, margin, y, 10, font);
-            y -= 14;
-            currentLine = word;
-          } else {
-            currentLine = test;
-          }
-        }
-        if (currentLine) {
-          drawText(currentLine, margin, y, 10, font);
+        const wrappedLines = wrapText(line, contentWidth);
+        for (const wl of wrappedLines) {
+          addNewPageIfNeeded(14);
+          drawText(wl, margin, y);
           y -= 14;
         }
       }
