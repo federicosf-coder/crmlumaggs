@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, FileText, Download, Pencil, Copy } from "lucide-react";
+import { SortMenu } from "@/components/SortMenu";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -48,6 +49,7 @@ export default function DocumentsList() {
   const [empresaFilter, setEmpresaFilter] = useState<string>("lumaggs_chevron");
   const [tipoFilter, setTipoFilter] = useState<string>("cotizacion");
   const [ejecutivoFilter, setEjecutivoFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState("date_desc");
 
   // Fetch profiles for ejecutivo filter
   const { data: profiles = [] } = useQuery({
