@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,6 +52,10 @@ export default function DocumentsList() {
   const [ejecutivoFilter, setEjecutivoFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState("date_desc");
 
+  // Determine module based on tipoFilter
+  const docModule = tipoFilter === "factura" ? "facturacion" as const : "cotizaciones" as const;
+  const access = useModuleAccess(docModule);
+
   // Fetch profiles for ejecutivo filter
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-for-filter"],
@@ -66,8 +71,10 @@ export default function DocumentsList() {
   });
 
   const { data: docs = [], isLoading, refetch } = useQuery({
-    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, access.accessLevel, access.teamMemberIds],
     queryFn: async () => {
+      if (!access.canView) return [];
+
       let q = supabase
         .from("documentos")
         .select("*, companies(name), contacts(first_name, last_name), plazas(nombre)")
@@ -76,6 +83,14 @@ export default function DocumentsList() {
         .order("created_at", { ascending: false });
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
+
+      // Apply access filtering
+      if (access.accessLevel === "propio" && access.userId) {
+        q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
+      } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
+        q = q.or(`created_by.in.(${access.teamMemberIds.join(",")}),ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`);
+      }
+
       const { data, error } = await q;
       if (error) throw error;
 
@@ -90,6 +105,7 @@ export default function DocumentsList() {
       }
       return data;
     },
+    enabled: !access.isLoading,
   });
 
   const sortedDocs = [...docs].sort((a: any, b: any) => {
