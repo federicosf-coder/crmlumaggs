@@ -13,11 +13,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
+import { Link } from "react-router-dom";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "pendiente", l: "Pendiente" }, { v: "confirmado", l: "Confirmado" }, { v: "en_proceso", l: "En Proceso" }, { v: "enviado", l: "Enviado" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
