@@ -315,6 +315,7 @@ function ProductosTab() {
               { value: "price_asc", label: "Precio ↑" },
             ]}
           />
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
