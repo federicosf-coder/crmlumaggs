@@ -59,6 +59,8 @@ export default function Directory() {
   const [contactView, setContactView] = useState<"list" | "cards">("list");
   const [companySort, setCompanySort] = useState("name_asc");
   const [contactSort, setContactSort] = useState("last_name_asc");
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [editContact, setEditContact] = useState<ContactEditData | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
