@@ -9,10 +9,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Building2, User, Search } from "lucide-react";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 interface Company {
   id: string; name: string; industry: string | null; phone: string | null;
   email: string | null; city: string | null; is_active: boolean;
+  address: string | null; state: string | null; zip_code: string | null;
+  website: string | null; notes: string | null;
   industrias: string[] | null; equipo: string | null;
   tipo_destino_lubricante: string | null; potencial_unidades: string | null;
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
@@ -26,6 +31,15 @@ interface Contact {
   companies?: { name: string } | null;
 }
 
+function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <p className="text-sm">{value || "—"}</p>
+    </div>
+  );
+}
+
 export default function Directory() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -34,6 +48,7 @@ export default function Directory() {
   const [contactSearch, setContactSearch] = useState("");
   const [companyOpen, setCompanyOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -41,7 +56,7 @@ export default function Directory() {
       supabase.from("companies").select("*").order("name"),
       supabase.from("contacts").select("*, companies(name)").order("last_name"),
     ]);
-    setCompanies(co || []);
+    setCompanies((co as Company[]) || []);
     setContacts((ct as Contact[]) || []);
     setLoading(false);
   };
@@ -149,6 +164,72 @@ export default function Directory() {
 
       <CompanyFormDialog open={companyOpen} onOpenChange={setCompanyOpen} onCreated={() => fetchData()} />
       <ContactFormDialog open={contactOpen} onOpenChange={setContactOpen} onCreated={() => fetchData()} />
+
+      {/* Company Detail Sheet */}
+      <Sheet open={!!selectedCompany} onOpenChange={open => { if (!open) setSelectedCompany(null); }}>
+        <SheetContent className="overflow-y-auto sm:max-w-lg">
+          {selectedCompany && (
+            <>
+              <SheetHeader>
+                <SheetTitle>{selectedCompany.name}</SheetTitle>
+              </SheetHeader>
+
+              <Tabs defaultValue="general" className="mt-4">
+                <TabsList className="w-full">
+                  <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
+                  <TabsTrigger value="clasificacion" className="flex-1">Clasificación</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="general" className="space-y-3 mt-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <DetailRow label="Industria" value={selectedCompany.industry} />
+                    <DetailRow label="Sitio Web" value={selectedCompany.website} />
+                    <DetailRow label="Teléfono" value={selectedCompany.phone} />
+                    <DetailRow label="Correo" value={selectedCompany.email} />
+                    <DetailRow label="Dirección" value={selectedCompany.address} />
+                    <DetailRow label="Ciudad" value={selectedCompany.city} />
+                    <DetailRow label="Estado" value={selectedCompany.state} />
+                    <DetailRow label="Código Postal" value={selectedCompany.zip_code} />
+                  </div>
+                  {selectedCompany.notes && (
+                    <>
+                      <Separator />
+                      <DetailRow label="Notas" value={selectedCompany.notes} />
+                    </>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="clasificacion" className="space-y-3 mt-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Industrias</Label>
+                    {selectedCompany.industrias && selectedCompany.industrias.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {selectedCompany.industrias.map(i => (
+                          <Badge key={i} variant="secondary" className="text-xs">{i}</Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm">—</p>
+                    )}
+                  </div>
+                  <Separator />
+                  <div className="grid grid-cols-2 gap-3">
+                    <DetailRow label="Equipo" value={selectedCompany.equipo} />
+                    <DetailRow label="Tipo según destino" value={selectedCompany.tipo_destino_lubricante} />
+                    <DetailRow label="Potencial de unidades" value={selectedCompany.potencial_unidades} />
+                    <DetailRow label="Tomador de decisión" value={selectedCompany.tomador_decision} />
+                    <DetailRow label="Riesgo cambio de marca" value={selectedCompany.riesgo_cambio_marca} />
+                    <DetailRow label="Origen contacto" value={selectedCompany.origen_contacto} />
+                    <DetailRow label="Evaluación lubricante" value={selectedCompany.evaluacion_lubricante} />
+                    <DetailRow label="Rol del lubricante" value={selectedCompany.rol_lubricante} />
+                    <DetailRow label="Tipo cliente comercial" value={selectedCompany.tipo_cliente_comercial} />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
