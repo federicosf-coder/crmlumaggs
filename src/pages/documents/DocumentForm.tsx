@@ -478,7 +478,7 @@ export default function DocumentForm() {
         numero_pedido: null,
         numero_factura: null,
         estatus_cotizacion: null,
-        estatus_pedido: targetType === "pedido" ? "pendiente" : null,
+        estatus_pedido: targetType === "pedido" ? "confirmado_cliente" : null,
         estatus_factura: targetType === "factura" ? "pendiente" : null,
         cotizacion_original_id: srcDoc.tipo_documento === "cotizacion" ? id : (srcDoc.cotizacion_original_id || null),
       };
