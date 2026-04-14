@@ -256,7 +256,7 @@ export default function DocumentsList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {docs.map((doc: any) => (
+                  {sortedDocs.map((doc: any) => (
                     <TableRow
                       key={doc.id}
                       className="cursor-pointer"
