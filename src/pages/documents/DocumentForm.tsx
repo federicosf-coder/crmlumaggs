@@ -670,8 +670,8 @@ export default function DocumentForm() {
                 <TableRow>
                   <TableHead className="w-[280px]">Producto</TableHead>
                   <TableHead className="w-16">Cant.</TableHead>
-                  <TableHead className="text-center text-xs w-[120px]">Ref. UF</TableHead>
-                  <TableHead className="text-center text-xs w-[120px]">Ref. R</TableHead>
+                  <TableHead className="text-center text-xs w-[150px]">Ref. UF</TableHead>
+                  <TableHead className="text-center text-xs w-[150px]">Ref. R</TableHead>
                   <TableHead className="w-28">Precio Unit.</TableHead>
                   <TableHead className="w-20">Desc. %</TableHead>
                   <TableHead>Subtotal</TableHead>
