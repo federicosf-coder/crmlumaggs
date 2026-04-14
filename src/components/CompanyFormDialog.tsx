@@ -56,12 +56,17 @@ export const EVALUACION_OPTIONS = [
 export const ROL_LUBRICANTE_OPTIONS = ["Crítico para la operación", "Importante pero no estratégico", "Insumo más"];
 export const TIPO_CLIENTE_OPTIONS = ["Contado", "Crédito directo", "Crédito Cescemex"];
 
+export const LISTA_PRECIOS_OPTIONS = [
+  "UF1", "UF2", "UF3", "UF4", "R1", "R2", "R3", "R4",
+];
+
 export interface CompanyData {
   id?: string;
   name: string; industry: string | null; website: string | null;
   phone: string | null; email: string | null; address: string | null;
   city: string | null; state: string | null; zip_code: string | null;
   notes: string | null; plaza_id: string | null;
+  lista_precios: string | null;
   industrias: string[] | null; equipo: string | null;
   tipo_destino_lubricante: string | null; potencial_unidades: string | null;
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
