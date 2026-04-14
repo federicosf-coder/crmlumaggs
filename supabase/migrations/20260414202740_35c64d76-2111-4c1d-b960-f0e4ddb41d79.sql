@@ -1,0 +1,1 @@
+ALTER TABLE public.documentos ADD COLUMN fecha_entrega_programada date NULL;
