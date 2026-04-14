@@ -509,6 +509,11 @@ export default function DocumentForm() {
                 </Button>
               </>
             )}
+            {form.tipo_documento === "pedido" && (
+              <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
+                <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
+              </Button>
+            )}
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
             </Button>
