@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Building2, User, Search, Pencil, List, LayoutGrid, Phone, MapPin } from "lucide-react";
 import { SortMenu } from "@/components/SortMenu";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
-import { ContactFormDialog } from "@/components/ContactFormDialog";
+import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -30,7 +30,9 @@ interface Company {
 
 interface Contact {
   id: string; first_name: string; last_name: string; email: string | null;
-  phone: string | null; mobile: string | null; job_title: string | null; is_active: boolean;
+  phone: string | null; mobile: string | null; job_title: string | null;
+  department: string | null; notes: string | null; is_active: boolean;
+  company_id: string | null;
   companies?: { name: string; plazas?: { nombre: string } | null } | null;
 }
 
@@ -57,6 +59,8 @@ export default function Directory() {
   const [contactView, setContactView] = useState<"list" | "cards">("list");
   const [companySort, setCompanySort] = useState("name_asc");
   const [contactSort, setContactSort] = useState("last_name_asc");
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [editContact, setEditContact] = useState<ContactEditData | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -249,7 +253,7 @@ export default function Directory() {
                   </TableHeader>
                   <TableBody>
                     {filteredContacts.map(c => (
-                      <TableRow key={c.id}>
+                      <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedContact(c)}>
                         <TableCell className="font-medium">{c.first_name}</TableCell>
                         <TableCell>{c.last_name}</TableCell>
                         <TableCell>{c.mobile || "—"}</TableCell>
@@ -265,7 +269,7 @@ export default function Directory() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredContacts.map(c => (
-                <Card key={c.id} className="hover:shadow-md transition-shadow">
+                <Card key={c.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedContact(c)}>
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-start justify-between">
                       <div>
@@ -305,6 +309,12 @@ export default function Directory() {
         onCreated={() => { fetchData(); setSelectedCompany(null); }}
       />
       <ContactFormDialog open={contactOpen} onOpenChange={setContactOpen} onCreated={() => fetchData()} />
+      <ContactFormDialog
+        open={!!editContact}
+        onOpenChange={open => { if (!open) setEditContact(null); }}
+        editData={editContact}
+        onCreated={() => { fetchData(); setSelectedContact(null); }}
+      />
 
       {/* Company Detail Sheet */}
       <Sheet open={!!selectedCompany} onOpenChange={open => { if (!open) setSelectedCompany(null); }}>
@@ -372,6 +382,39 @@ export default function Directory() {
                   </div>
                 </TabsContent>
               </Tabs>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Contact Detail Sheet */}
+      <Sheet open={!!selectedContact} onOpenChange={open => { if (!open) setSelectedContact(null); }}>
+        <SheetContent className="overflow-y-auto sm:max-w-lg">
+          {selectedContact && (
+            <>
+              <SheetHeader className="flex flex-row items-center justify-between">
+                <SheetTitle>{selectedContact.first_name} {selectedContact.last_name}</SheetTitle>
+                <Button size="sm" variant="outline" onClick={() => setEditContact(selectedContact)}>
+                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                </Button>
+              </SheetHeader>
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <DetailRow label="Nombre" value={selectedContact.first_name} />
+                <DetailRow label="Apellido" value={selectedContact.last_name} />
+                <DetailRow label="Correo" value={selectedContact.email} />
+                <DetailRow label="Teléfono" value={selectedContact.phone} />
+                <DetailRow label="Celular" value={selectedContact.mobile} />
+                <DetailRow label="Puesto" value={selectedContact.job_title} />
+                <DetailRow label="Departamento" value={selectedContact.department} />
+                <DetailRow label="Empresa" value={selectedContact.companies?.name} />
+                <DetailRow label="Plaza" value={(selectedContact.companies?.plazas as any)?.nombre} />
+              </div>
+              {selectedContact.notes && (
+                <>
+                  <Separator className="my-3" />
+                  <DetailRow label="Notas" value={selectedContact.notes} />
+                </>
+              )}
             </>
           )}
         </SheetContent>

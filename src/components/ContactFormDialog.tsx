@@ -10,29 +10,57 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+export interface ContactEditData {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
+  mobile: string | null;
+  job_title: string | null;
+  department: string | null;
+  company_id: string | null;
+  notes: string | null;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Pre-select a company (e.g. from DocumentForm) */
   defaultCompanyId?: string;
+  editData?: ContactEditData | null;
   onCreated?: (id: string) => void;
 }
 
-export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, onCreated }: Props) {
+export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editData, onCreated }: Props) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
+  const isEdit = !!editData;
+
+  const emptyForm = {
     first_name: "", last_name: "", email: "", phone: "", mobile: "",
     job_title: "", department: "", company_id: defaultCompanyId || "", notes: "",
-  });
+  };
+
+  const [form, setForm] = useState(emptyForm);
   const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
 
-  // Keep company_id in sync when defaultCompanyId changes
   useEffect(() => {
-    if (defaultCompanyId) {
+    if (editData) {
+      setForm({
+        first_name: editData.first_name || "",
+        last_name: editData.last_name || "",
+        email: editData.email || "",
+        phone: editData.phone || "",
+        mobile: editData.mobile || "",
+        job_title: editData.job_title || "",
+        department: editData.department || "",
+        company_id: editData.company_id || "",
+        notes: editData.notes || "",
+      });
+    } else if (defaultCompanyId) {
       setForm(prev => ({ ...prev, company_id: defaultCompanyId }));
     }
-  }, [defaultCompanyId]);
+  }, [editData, defaultCompanyId]);
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies_for_contact"],
@@ -40,30 +68,44 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, onCrea
     enabled: open,
   });
 
-  const reset = () => setForm({ first_name: "", last_name: "", email: "", phone: "", mobile: "", job_title: "", department: "", company_id: defaultCompanyId || "", notes: "" });
+  const reset = () => setForm(emptyForm);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.first_name.trim() || !form.last_name.trim()) return;
     setSaving(true);
-    const { data, error } = await supabase.from("contacts").insert({
+
+    const payload = {
       first_name: form.first_name, last_name: form.last_name, email: form.email || null,
       phone: form.phone || null, mobile: form.mobile || null, job_title: form.job_title || null,
       department: form.department || null, company_id: form.company_id || null,
-      notes: form.notes || null, created_by: user?.id,
-    }).select("id").single();
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Contacto creado");
-    reset();
-    onOpenChange(false);
-    onCreated?.(data.id);
+      notes: form.notes || null,
+    };
+
+    if (isEdit) {
+      const { error } = await supabase.from("contacts").update(payload).eq("id", editData!.id);
+      setSaving(false);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Contacto actualizado");
+      onOpenChange(false);
+      onCreated?.(editData!.id);
+    } else {
+      const { data, error } = await supabase.from("contacts").insert({
+        ...payload, created_by: user?.id,
+      }).select("id").single();
+      setSaving(false);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Contacto creado");
+      reset();
+      onOpenChange(false);
+      onCreated?.(data.id);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) reset(); onOpenChange(v); }}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Nuevo Contacto</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isEdit ? "Editar Contacto" : "Nuevo Contacto"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Nombre *</Label><Input value={form.first_name} onChange={e => set("first_name", e.target.value)} required /></div>
@@ -82,7 +124,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, onCrea
             </div>
             <div className="col-span-2 space-y-2"><Label>Notas</Label><Textarea value={form.notes} onChange={e => set("notes", e.target.value)} /></div>
           </div>
-          <Button type="submit" className="w-full" disabled={saving}>{saving ? "Guardando..." : "Crear Contacto"}</Button>
+          <Button type="submit" className="w-full" disabled={saving}>{saving ? "Guardando..." : isEdit ? "Guardar Cambios" : "Crear Contacto"}</Button>
         </form>
       </DialogContent>
     </Dialog>
