@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Building2, User, Search } from "lucide-react";
-import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { Plus, Building2, User, Search, Pencil } from "lucide-react";
+import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,7 @@ export default function Directory() {
   const [companyOpen, setCompanyOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [editCompany, setEditCompany] = useState<CompanyData | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -163,6 +164,12 @@ export default function Directory() {
       </Tabs>
 
       <CompanyFormDialog open={companyOpen} onOpenChange={setCompanyOpen} onCreated={() => fetchData()} />
+      <CompanyFormDialog
+        open={!!editCompany}
+        onOpenChange={open => { if (!open) setEditCompany(null); }}
+        editData={editCompany}
+        onCreated={() => { fetchData(); setSelectedCompany(null); }}
+      />
       <ContactFormDialog open={contactOpen} onOpenChange={setContactOpen} onCreated={() => fetchData()} />
 
       {/* Company Detail Sheet */}
@@ -170,8 +177,11 @@ export default function Directory() {
         <SheetContent className="overflow-y-auto sm:max-w-lg">
           {selectedCompany && (
             <>
-              <SheetHeader>
+              <SheetHeader className="flex flex-row items-center justify-between">
                 <SheetTitle>{selectedCompany.name}</SheetTitle>
+                <Button size="sm" variant="outline" onClick={() => setEditCompany(selectedCompany)}>
+                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                </Button>
               </SheetHeader>
 
               <Tabs defaultValue="general" className="mt-4">
