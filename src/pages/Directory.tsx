@@ -309,6 +309,12 @@ export default function Directory() {
         onCreated={() => { fetchData(); setSelectedCompany(null); }}
       />
       <ContactFormDialog open={contactOpen} onOpenChange={setContactOpen} onCreated={() => fetchData()} />
+      <ContactFormDialog
+        open={!!editContact}
+        onOpenChange={open => { if (!open) setEditContact(null); }}
+        editData={editContact}
+        onCreated={() => { fetchData(); setSelectedContact(null); }}
+      />
 
       {/* Company Detail Sheet */}
       <Sheet open={!!selectedCompany} onOpenChange={open => { if (!open) setSelectedCompany(null); }}>
