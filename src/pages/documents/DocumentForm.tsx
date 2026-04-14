@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Save, Download } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Download, Pencil } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
@@ -54,6 +54,8 @@ export default function DocumentForm() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const [viewMode, setViewMode] = useState(isEdit);
+  const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
 
   const [form, setForm] = useState({
     empresa_vendedora: "" as string,
@@ -324,12 +326,27 @@ export default function DocumentForm() {
       }
 
       qc.invalidateQueries({ queryKey: ["documentos"] });
+      qc.invalidateQueries({ queryKey: ["documento", docId] });
       toast.success(isEdit ? "Documento actualizado" : "Documento creado");
-      navigate("/documents");
+
+      if (generatePdfAfterSave && form.tipo_documento === "cotizacion" && docId) {
+        setGeneratePdfAfterSave(false);
+        await downloadCotizacionPdf(docId, () => {
+          qc.invalidateQueries({ queryKey: ["documento", docId] });
+          qc.invalidateQueries({ queryKey: ["documentos"] });
+        });
+      }
+
+      if (!isEdit) {
+        navigate(`/documents/${docId}`);
+      } else {
+        setViewMode(true);
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setSaving(false);
+      setGeneratePdfAfterSave(false);
     }
   };
 
@@ -339,17 +356,27 @@ export default function DocumentForm() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/documents")}><ArrowLeft className="h-5 w-5" /></Button>
-        <h1 className="text-2xl font-bold text-foreground">{isEdit ? "Editar Documento" : "Nuevo Documento"}</h1>
-        {isEdit && form.tipo_documento === "cotizacion" && (
-          <Button variant="outline" onClick={() => downloadCotizacionPdf(id!, () => {
-            qc.invalidateQueries({ queryKey: ["documento", id] });
-            qc.invalidateQueries({ queryKey: ["documentos"] });
-          })}>
-            <Download className="mr-2 h-4 w-4" /> Generar PDF
-          </Button>
+        <h1 className="text-2xl font-bold text-foreground">
+          {viewMode ? "Ver Documento" : isEdit ? "Editar Documento" : "Nuevo Documento"}
+        </h1>
+        {viewMode && (
+          <div className="flex gap-2 ml-auto">
+            {form.tipo_documento === "cotizacion" && (
+              <Button onClick={() => downloadCotizacionPdf(id!, () => {
+                qc.invalidateQueries({ queryKey: ["documento", id] });
+                qc.invalidateQueries({ queryKey: ["documentos"] });
+              })}>
+                <Download className="mr-2 h-4 w-4" /> Generar PDF
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setViewMode(false)}>
+              <Pencil className="mr-2 h-4 w-4" /> Editar
+            </Button>
+          </div>
         )}
       </div>
 
+      <fieldset disabled={viewMode} className="space-y-6">
       {/* General Info */}
       <Card>
         <CardHeader><CardTitle>Información General</CardTitle></CardHeader>
@@ -621,14 +648,22 @@ export default function DocumentForm() {
           </div>
         </CardContent>
       </Card>
+      </fieldset>
 
       {/* Actions */}
-      <div className="flex justify-end gap-3">
-        <Button variant="outline" onClick={() => navigate("/documents")}>Cancelar</Button>
-        <Button onClick={handleSave} disabled={saving}>
-          <Save className="mr-2 h-4 w-4" /> {saving ? "Guardando..." : "Guardar"}
-        </Button>
-      </div>
+      {!viewMode && (
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={() => isEdit ? setViewMode(true) : navigate("/documents")}>Cancelar</Button>
+          {form.tipo_documento === "cotizacion" && (
+            <Button variant="secondary" onClick={() => { setGeneratePdfAfterSave(true); handleSave(); }} disabled={saving}>
+              <Download className="mr-2 h-4 w-4" /> {saving && generatePdfAfterSave ? "Generando..." : "Guardar y PDF"}
+            </Button>
+          )}
+          <Button onClick={handleSave} disabled={saving}>
+            <Save className="mr-2 h-4 w-4" /> {saving && !generatePdfAfterSave ? "Guardando..." : "Guardar"}
+          </Button>
+        </div>
+      )}
 
       {/* Dialog: Nueva Empresa (formulario completo) */}
       <CompanyFormDialog open={showNewCompany} onOpenChange={setShowNewCompany} onCreated={handleCompanyCreated} />
