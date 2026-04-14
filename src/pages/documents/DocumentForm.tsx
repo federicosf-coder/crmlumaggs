@@ -13,7 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Download } from "lucide-react";
+import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
@@ -339,6 +340,11 @@ export default function DocumentForm() {
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/documents")}><ArrowLeft className="h-5 w-5" /></Button>
         <h1 className="text-2xl font-bold text-foreground">{isEdit ? "Editar Documento" : "Nuevo Documento"}</h1>
+        {isEdit && form.tipo_documento === "cotizacion" && (
+          <Button variant="outline" onClick={() => downloadCotizacionPdf(id!)}>
+            <Download className="mr-2 h-4 w-4" /> Generar PDF
+          </Button>
+        )}
       </div>
 
       {/* General Info */}

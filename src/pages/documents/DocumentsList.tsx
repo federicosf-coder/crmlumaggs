@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText } from "lucide-react";
+import { Plus, Search, FileText, Download } from "lucide-react";
+import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 
 const TIPO_DOC_LABELS: Record<string, string> = {
@@ -148,16 +149,17 @@ export default function DocumentsList() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Empresa Vendedora</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Ejecutivo</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Estatus</TableHead>
-                </TableRow>
+                 <TableRow>
+                   <TableHead>Tipo</TableHead>
+                   <TableHead>Número</TableHead>
+                   <TableHead>Empresa Vendedora</TableHead>
+                   <TableHead>Cliente</TableHead>
+                   <TableHead>Ejecutivo</TableHead>
+                   <TableHead>Fecha</TableHead>
+                   <TableHead>Total</TableHead>
+                   <TableHead>Estatus</TableHead>
+                   <TableHead>PDF</TableHead>
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {docs.map((doc: any) => (
@@ -177,9 +179,24 @@ export default function DocumentsList() {
                     <TableCell>{(doc.profiles as any)?.full_name || "-"}</TableCell>
                     <TableCell>{format(new Date(doc.fecha_documento), "dd/MM/yyyy")}</TableCell>
                     <TableCell>${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell>
-                      <Badge variant={getEstatusVariant(doc)}>{getEstatusLabel(doc)}</Badge>
-                    </TableCell>
+                   <TableCell>
+                       <Badge variant={getEstatusVariant(doc)}>{getEstatusLabel(doc)}</Badge>
+                     </TableCell>
+                     <TableCell>
+                       {doc.tipo_documento === "cotizacion" && (
+                         <Button
+                           variant="ghost"
+                           size="icon"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             downloadCotizacionPdf(doc.id);
+                           }}
+                           title="Descargar PDF"
+                         >
+                           <Download className="h-4 w-4" />
+                         </Button>
+                       )}
+                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
