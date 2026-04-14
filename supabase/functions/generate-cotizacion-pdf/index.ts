@@ -178,7 +178,12 @@ serve(async (req) => {
     y -= 14;
     const clientName = company?.name || "";
     drawText(clientName, margin, y, 11, fontBold);
-    y -= 35; // more space before table
+    y -= 14;
+    const contactName = contact ? `${contact.first_name || ""} ${contact.last_name || ""}`.trim() : "";
+    if (contactName) {
+      drawText(contactName, margin, y, 10, font);
+    }
+    y -= 25; // space before table
 
     // ===== PRODUCTS TABLE =====
     addNewPageIfNeeded(60);
