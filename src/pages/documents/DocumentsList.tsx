@@ -228,45 +228,56 @@ export default function DocumentsList() {
                    <TableCell>
                        <Badge variant={getEstatusVariant(doc)}>{getEstatusLabel(doc)}</Badge>
                      </TableCell>
-                     <TableCell>
-                        {doc.tipo_documento === "cotizacion" && !doc.pdf_url && (
-                           <Button
-                             variant="ghost"
-                             size="icon"
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               downloadCotizacionPdf(doc.id, () => refetch());
-                             }}
-                             title="Generar PDF"
-                           >
-                            <Download className="h-4 w-4" />
+                      <TableCell>
+                        {doc.pdf_url ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            asChild
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                          >
+                            <a href={doc.pdf_url} target="_blank" rel="noopener noreferrer" title="Ver PDF">
+                              <Download className="h-4 w-4" />
+                            </a>
                           </Button>
-                        )}
+                        ) : doc.tipo_documento === "cotizacion" ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadCotizacionPdf(doc.id, () => refetch());
+                            }}
+                            title="Generar PDF"
+                          >
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        ) : null}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/documents/${doc.id}`);
-                          }}
-                          title="Editar"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                       </TableCell>
-                       <TableCell>
-                         <Button
-                           variant="ghost"
-                           size="icon"
-                           disabled={duplicating === doc.id}
-                           onClick={(e) => handleDuplicate(e, doc)}
-                           title="Duplicar"
-                         >
-                           <Copy className="h-4 w-4" />
-                         </Button>
-                       </TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/documents/${doc.id}`);
+                            }}
+                            title="Editar"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={duplicating === doc.id}
+                            onClick={(e) => handleDuplicate(e, doc)}
+                            title="Duplicar"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                    </TableRow>
                 ))}
               </TableBody>
