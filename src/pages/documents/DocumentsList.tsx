@@ -53,6 +53,7 @@ export default function DocumentsList() {
   const [tipoFilter, setTipoFilter] = useState<string>("cotizacion");
   const [ejecutivoFilter, setEjecutivoFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState("date_desc");
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
 
   // Determine module based on tipoFilter
   const docModule = tipoFilter === "factura" ? "facturacion" as const : "cotizaciones" as const;
