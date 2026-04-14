@@ -1133,6 +1133,8 @@ export type Database = {
         | "proyectos"
         | "capacitacion"
         | "reportes"
+        | "modificar_pdf_cotizacion"
+        | "eliminar_pdf_cotizacion"
       app_role:
         | "admin"
         | "manager"
@@ -1148,6 +1150,7 @@ export type Database = {
         | "aceptada"
         | "rechazada"
         | "vencida"
+        | "impresa"
       estatus_factura:
         | "pendiente"
         | "pagada"
@@ -1340,6 +1343,8 @@ export const Constants = {
         "proyectos",
         "capacitacion",
         "reportes",
+        "modificar_pdf_cotizacion",
+        "eliminar_pdf_cotizacion",
       ],
       app_role: [
         "admin",
@@ -1357,6 +1362,7 @@ export const Constants = {
         "aceptada",
         "rechazada",
         "vencida",
+        "impresa",
       ],
       estatus_factura: [
         "pendiente",

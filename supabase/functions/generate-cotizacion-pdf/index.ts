@@ -287,6 +287,11 @@ serve(async (req) => {
 
     const pdfBytes = await pdfDoc.save();
 
+    // Update status from borrador to impresa
+    if (doc.estatus_cotizacion === "borrador") {
+      await sb.from("documentos").update({ estatus_cotizacion: "impresa" }).eq("id", documento_id);
+    }
+
     return new Response(pdfBytes, {
       headers: {
         ...corsHeaders,

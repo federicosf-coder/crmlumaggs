@@ -25,6 +25,7 @@ const EMPRESA_LABELS: Record<string, string> = {
 
 const ESTATUS_COT_LABELS: Record<string, string> = {
   borrador: "Borrador",
+  impresa: "Impresa",
   enviada: "Enviada",
   aceptada: "Aceptada",
   rechazada: "Rechazada",
@@ -59,7 +60,7 @@ function getEstatusVariant(doc: any): "default" | "secondary" | "destructive" | 
   const st = doc.tipo_documento === "cotizacion" ? doc.estatus_cotizacion
     : doc.tipo_documento === "pedido" ? doc.estatus_pedido
     : doc.estatus_factura;
-  if (["aceptada", "confirmado", "pagada", "entregado"].includes(st)) return "default";
+  if (["aceptada", "confirmado", "pagada", "entregado", "impresa"].includes(st)) return "default";
   if (["rechazada", "cancelado", "cancelada", "vencida"].includes(st)) return "destructive";
   return "secondary";
 }
@@ -70,7 +71,7 @@ export default function DocumentsList() {
   const [empresaFilter, setEmpresaFilter] = useState<string>("lumaggs_chevron");
   const [tipoFilter, setTipoFilter] = useState<string>("cotizacion");
 
-  const { data: docs = [], isLoading } = useQuery({
+  const { data: docs = [], isLoading, refetch } = useQuery({
     queryKey: ["documentos", search, tipoFilter, empresaFilter],
     queryFn: async () => {
       let q = supabase
@@ -184,15 +185,15 @@ export default function DocumentsList() {
                      </TableCell>
                      <TableCell>
                        {doc.tipo_documento === "cotizacion" && (
-                         <Button
-                           variant="ghost"
-                           size="icon"
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             downloadCotizacionPdf(doc.id);
-                           }}
-                           title="Descargar PDF"
-                         >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadCotizacionPdf(doc.id, () => refetch());
+                            }}
+                            title="Generar PDF"
+                          >
                            <Download className="h-4 w-4" />
                          </Button>
                        )}
