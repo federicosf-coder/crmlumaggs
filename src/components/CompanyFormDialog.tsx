@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 export const INDUSTRIAS_OPTIONS = [
   "Agroindustria (campos, empacadoras, maquinaria)",
@@ -112,6 +113,7 @@ const emptyForm = {
   evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
   uso_cfdi: "", metodo_pago: "", tipo_pago: "",
   plaza_ids: [] as string[],
+  ejecutivo_ids: [] as string[],
 };
 
 export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: Props) {
@@ -128,6 +130,14 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
     },
   });
 
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name, email").eq("is_active", true).order("full_name");
+      return data || [];
+    },
+  });
+
   // Load company plazas for edit
   const { data: companyPlazas = [] } = useQuery({
     queryKey: ["company_plazas", editData?.id],
@@ -135,6 +145,17 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       if (!editData?.id) return [];
       const { data } = await supabase.from("company_plazas").select("plaza_id").eq("company_id", editData.id);
       return (data || []).map((cp: any) => cp.plaza_id);
+    },
+    enabled: !!editData?.id && open,
+  });
+
+  // Load company ejecutivos for edit
+  const { data: companyEjecutivos = [] } = useQuery({
+    queryKey: ["company_ejecutivos", editData?.id],
+    queryFn: async () => {
+      if (!editData?.id) return [];
+      const { data } = await supabase.from("company_ejecutivos").select("user_id").eq("company_id", editData.id);
+      return (data || []).map((ce: any) => ce.user_id);
     },
     enabled: !!editData?.id && open,
   });
@@ -156,6 +177,15 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       plaza_ids: prev.plaza_ids.includes(plazaId)
         ? prev.plaza_ids.filter(id => id !== plazaId)
         : [...prev.plaza_ids, plazaId],
+    }));
+  };
+
+  const toggleEjecutivo = (userId: string) => {
+    setForm(prev => ({
+      ...prev,
+      ejecutivo_ids: prev.ejecutivo_ids.includes(userId)
+        ? prev.ejecutivo_ids.filter(id => id !== userId)
+        : [...prev.ejecutivo_ids, userId],
     }));
   };
 
@@ -184,18 +214,23 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         metodo_pago: (editData as any).metodo_pago || "",
         tipo_pago: (editData as any).tipo_pago || "",
         plaza_ids: [],
+        ejecutivo_ids: [],
       });
     } else if (open && !editData) {
       reset();
     }
   }, [open, editData]);
 
-  // Set plaza_ids from loaded company plazas
+  // Set plaza_ids and ejecutivo_ids from loaded data
   useEffect(() => {
-    if (companyPlazas.length > 0 && open && editData?.id) {
-      setForm(prev => ({ ...prev, plaza_ids: companyPlazas }));
+    if (open && editData?.id) {
+      setForm(prev => ({
+        ...prev,
+        ...(companyPlazas.length > 0 ? { plaza_ids: companyPlazas } : {}),
+        ...(companyEjecutivos.length > 0 ? { ejecutivo_ids: companyEjecutivos } : {}),
+      }));
     }
-  }, [companyPlazas, open, editData?.id]);
+  }, [companyPlazas, companyEjecutivos, open, editData?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,6 +273,14 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
     if (form.plaza_ids.length > 0) {
       await supabase.from("company_plazas").insert(
         form.plaza_ids.map(pid => ({ company_id: companyId, plaza_id: pid }))
+      );
+    }
+
+    // Sync company_ejecutivos
+    await supabase.from("company_ejecutivos").delete().eq("company_id", companyId);
+    if (form.ejecutivo_ids.length > 0) {
+      await supabase.from("company_ejecutivos").insert(
+        form.ejecutivo_ids.map(uid => ({ company_id: companyId, user_id: uid }))
       );
     }
 
@@ -312,6 +355,27 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                   </Select>
                 </div>
 
+                {/* Ejecutivo de Venta (multi-select) */}
+                <div className="col-span-2 space-y-1.5">
+                  <Label className="text-xs">Ejecutivo(s) de Venta</Label>
+                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                    {form.ejecutivo_ids.map(uid => {
+                      const p = profiles.find((pr: any) => pr.user_id === uid);
+                      return p ? (
+                        <Badge key={uid} variant="secondary" className="gap-1">
+                          {p.full_name || p.email}
+                          <X className="h-3 w-3 cursor-pointer" onClick={() => toggleEjecutivo(uid)} />
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                  <SearchableSelect
+                    value=""
+                    onValueChange={v => { if (v && !form.ejecutivo_ids.includes(v)) toggleEjecutivo(v); }}
+                    options={profiles.filter((p: any) => !form.ejecutivo_ids.includes(p.user_id)).map((p: any) => ({ value: p.user_id, label: p.full_name || p.email || "Sin nombre" }))}
+                    placeholder="Agregar ejecutivo..."
+                  />
+                </div>
                 {/* Lista de Precios */}
                 <div className="space-y-1.5">
                   <Label className="text-xs">Lista de Precios</Label>

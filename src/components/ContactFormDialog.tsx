@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 
 export interface ContactEditData {
   id: string;
@@ -39,10 +41,20 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
   const emptyForm = {
     first_name: "", last_name: "", email: "", phone: "", mobile: "",
     job_title: "", department: "", company_id: defaultCompanyId || "", notes: "",
+    ejecutivo_ids: [] as string[],
   };
 
   const [form, setForm] = useState(emptyForm);
   const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
+
+  const toggleEjecutivo = (userId: string) => {
+    setForm(prev => ({
+      ...prev,
+      ejecutivo_ids: prev.ejecutivo_ids.includes(userId)
+        ? prev.ejecutivo_ids.filter(id => id !== userId)
+        : [...prev.ejecutivo_ids, userId],
+    }));
+  };
 
   useEffect(() => {
     if (editData) {
@@ -56,6 +68,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
         department: editData.department || "",
         company_id: editData.company_id || "",
         notes: editData.notes || "",
+        ejecutivo_ids: [],
       });
     } else if (defaultCompanyId) {
       setForm(prev => ({ ...prev, company_id: defaultCompanyId }));
@@ -67,6 +80,30 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
     queryFn: async () => { const { data } = await supabase.from("companies").select("id, name").order("name"); return data || []; },
     enabled: open,
   });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name, email").eq("is_active", true).order("full_name");
+      return data || [];
+    },
+  });
+
+  const { data: contactEjecutivos = [] } = useQuery({
+    queryKey: ["contact_ejecutivos", editData?.id],
+    queryFn: async () => {
+      if (!editData?.id) return [];
+      const { data } = await supabase.from("contact_ejecutivos").select("user_id").eq("contact_id", editData.id);
+      return (data || []).map((ce: any) => ce.user_id);
+    },
+    enabled: !!editData?.id && open,
+  });
+
+  useEffect(() => {
+    if (contactEjecutivos.length > 0 && open && editData?.id) {
+      setForm(prev => ({ ...prev, ejecutivo_ids: contactEjecutivos }));
+    }
+  }, [contactEjecutivos, open, editData?.id]);
 
   const reset = () => setForm(emptyForm);
 
@@ -82,24 +119,34 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
       notes: form.notes || null,
     };
 
+    let contactId: string;
+
     if (isEdit) {
       const { error } = await supabase.from("contacts").update(payload).eq("id", editData!.id);
-      setSaving(false);
-      if (error) { toast.error(error.message); return; }
+      if (error) { setSaving(false); toast.error(error.message); return; }
+      contactId = editData!.id;
       toast.success("Contacto actualizado");
-      onOpenChange(false);
-      onCreated?.(editData!.id);
     } else {
       const { data, error } = await supabase.from("contacts").insert({
         ...payload, created_by: user?.id,
       }).select("id").single();
-      setSaving(false);
-      if (error) { toast.error(error.message); return; }
+      if (error) { setSaving(false); toast.error(error.message); return; }
+      contactId = data.id;
       toast.success("Contacto creado");
-      reset();
-      onOpenChange(false);
-      onCreated?.(data.id);
     }
+
+    // Sync contact_ejecutivos
+    await supabase.from("contact_ejecutivos").delete().eq("contact_id", contactId);
+    if (form.ejecutivo_ids.length > 0) {
+      await supabase.from("contact_ejecutivos").insert(
+        form.ejecutivo_ids.map(uid => ({ contact_id: contactId, user_id: uid }))
+      );
+    }
+
+    setSaving(false);
+    reset();
+    onOpenChange(false);
+    onCreated?.(contactId);
   };
 
   return (
@@ -124,6 +171,29 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
                 placeholder="Seleccionar empresa"
               />
             </div>
+
+            {/* Ejecutivo de Venta (multi-select) */}
+            <div className="col-span-2 space-y-2">
+              <Label>Ejecutivo(s) de Venta</Label>
+              <div className="flex flex-wrap gap-1.5 mb-1.5">
+                {form.ejecutivo_ids.map(uid => {
+                  const p = profiles.find((pr: any) => pr.user_id === uid);
+                  return p ? (
+                    <Badge key={uid} variant="secondary" className="gap-1">
+                      {p.full_name || p.email}
+                      <X className="h-3 w-3 cursor-pointer" onClick={() => toggleEjecutivo(uid)} />
+                    </Badge>
+                  ) : null;
+                })}
+              </div>
+              <SearchableSelect
+                value=""
+                onValueChange={v => { if (v && !form.ejecutivo_ids.includes(v)) toggleEjecutivo(v); }}
+                options={profiles.filter((p: any) => !form.ejecutivo_ids.includes(p.user_id)).map((p: any) => ({ value: p.user_id, label: p.full_name || p.email || "Sin nombre" }))}
+                placeholder="Agregar ejecutivo..."
+              />
+            </div>
+
             <div className="col-span-2 space-y-2"><Label>Notas</Label><Textarea value={form.notes} onChange={e => set("notes", e.target.value)} /></div>
           </div>
           <Button type="submit" className="w-full" disabled={saving}>{saving ? "Guardando..." : isEdit ? "Guardar Cambios" : "Crear Contacto"}</Button>

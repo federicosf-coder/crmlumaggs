@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess, type AccessLevel } from "@/hooks/useModuleAccess";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,44 @@ export default function Directory() {
   const [editContact, setEditContact] = useState<ContactEditData | null>(null);
 
   const access = useModuleAccess("directorio");
+
+  // Profiles for ejecutivo display
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ["profiles_all"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name, email");
+      return data || [];
+    },
+  });
+
+  // Company ejecutivos for selected company
+  const { data: selectedCompanyEjecutivos = [] } = useQuery({
+    queryKey: ["company_ejecutivos_detail", selectedCompany?.id],
+    queryFn: async () => {
+      if (!selectedCompany?.id) return [];
+      const { data } = await supabase.from("company_ejecutivos").select("user_id").eq("company_id", selectedCompany.id);
+      return (data || []).map((ce: any) => ce.user_id);
+    },
+    enabled: !!selectedCompany?.id,
+  });
+
+  // Contact ejecutivos for selected contact
+  const { data: selectedContactEjecutivos = [] } = useQuery({
+    queryKey: ["contact_ejecutivos_detail", selectedContact?.id],
+    queryFn: async () => {
+      if (!selectedContact?.id) return [];
+      const { data } = await supabase.from("contact_ejecutivos").select("user_id").eq("contact_id", selectedContact.id);
+      return (data || []).map((ce: any) => ce.user_id);
+    },
+    enabled: !!selectedContact?.id,
+  });
+
+  const getEjecutivoNames = (userIds: string[]) => {
+    return userIds.map(uid => {
+      const p = allProfiles.find((pr: any) => pr.user_id === uid);
+      return p?.full_name || p?.email || "—";
+    });
+  };
 
   const fetchData = async () => {
     if (access.isLoading || !access.canView) { setLoading(false); return; }
@@ -351,6 +390,7 @@ export default function Directory() {
                   <div className="grid grid-cols-2 gap-3">
                     <DetailRow label="Industria" value={selectedCompany.industry} />
                     <DetailRow label="Plaza" value={(selectedCompany.plazas as any)?.nombre} />
+                    <DetailRow label="Ejecutivo(s) de Venta" value={getEjecutivoNames(selectedCompanyEjecutivos).join(", ") || "—"} />
                     <DetailRow label="Sitio Web" value={selectedCompany.website} />
                     <DetailRow label="Teléfono" value={selectedCompany.phone} />
                     <DetailRow label="Correo" value={selectedCompany.email} />
@@ -420,6 +460,7 @@ export default function Directory() {
                 <DetailRow label="Departamento" value={selectedContact.department} />
                 <DetailRow label="Empresa" value={selectedContact.companies?.name} />
                 <DetailRow label="Plaza" value={(selectedContact.companies?.plazas as any)?.nombre} />
+                <DetailRow label="Ejecutivo(s) de Venta" value={getEjecutivoNames(selectedContactEjecutivos).join(", ") || "—"} />
               </div>
               {selectedContact.notes && (
                 <>
