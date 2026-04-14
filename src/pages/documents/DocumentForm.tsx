@@ -384,10 +384,8 @@ export default function DocumentForm() {
     if (!id) return;
     try {
       toast.info("Duplicando documento...");
-      // Get current doc data
       const { data: srcDoc, error: srcErr } = await supabase.from("documentos").select("*").eq("id", id).single();
       if (srcErr || !srcDoc) throw srcErr || new Error("No encontrado");
-      // Get line items
       const { data: srcItems } = await supabase.from("documento_productos").select("*").eq("documento_id", id);
 
       const { id: _id, created_at, updated_at, numero_cotizacion, numero_pedido, numero_factura, pdf_url, estatus_cotizacion, ...rest } = srcDoc;
@@ -396,9 +394,10 @@ export default function DocumentForm() {
         created_by: user?.id,
         pdf_url: null,
         estatus_cotizacion: srcDoc.tipo_documento === "cotizacion" ? "borrador" : null,
-        numero_cotizacion: null, // auto-assigned by trigger for cotizaciones
+        numero_cotizacion: null,
         numero_pedido: null,
         numero_factura: null,
+        cotizacion_original_id: srcDoc.tipo_documento === "cotizacion" ? id : (srcDoc.cotizacion_original_id || null),
       };
 
       const { data: inserted, error: insErr } = await supabase.from("documentos").insert(newDoc).select("id").single();
@@ -406,11 +405,9 @@ export default function DocumentForm() {
 
       if (srcItems && srcItems.length > 0) {
         const newItems = srcItems.map(({ id: _iid, created_at: _ca, documento_id, ...itemRest }) => ({
-          ...itemRest,
-          documento_id: inserted.id,
+          ...itemRest, documento_id: inserted.id,
         }));
-        const { error: itemErr } = await supabase.from("documento_productos").insert(newItems);
-        if (itemErr) throw itemErr;
+        await supabase.from("documento_productos").insert(newItems);
       }
 
       qc.invalidateQueries({ queryKey: ["documentos"] });
@@ -418,6 +415,48 @@ export default function DocumentForm() {
       navigate(`/documents/${inserted.id}`);
     } catch (err: any) {
       toast.error("Error al duplicar: " + (err.message || "Error desconocido"));
+    }
+  };
+
+  const handleConvertTo = async (targetType: "pedido" | "factura") => {
+    if (!id) return;
+    const label = targetType === "pedido" ? "Pedido" : "Factura";
+    try {
+      toast.info(`Convirtiendo a ${label}...`);
+      const { data: srcDoc, error: srcErr } = await supabase.from("documentos").select("*").eq("id", id).single();
+      if (srcErr || !srcDoc) throw srcErr || new Error("No encontrado");
+      const { data: srcItems } = await supabase.from("documento_productos").select("*").eq("documento_id", id);
+
+      const { id: _id, created_at, updated_at, numero_cotizacion, numero_pedido, numero_factura, pdf_url, estatus_cotizacion, estatus_pedido, estatus_factura, tipo_documento, ...rest } = srcDoc;
+      const newDoc: any = {
+        ...rest,
+        tipo_documento: targetType,
+        created_by: user?.id,
+        pdf_url: null,
+        numero_cotizacion: null,
+        numero_pedido: null,
+        numero_factura: null,
+        estatus_cotizacion: null,
+        estatus_pedido: targetType === "pedido" ? "pendiente" : null,
+        estatus_factura: targetType === "factura" ? "pendiente" : null,
+        cotizacion_original_id: srcDoc.tipo_documento === "cotizacion" ? id : (srcDoc.cotizacion_original_id || null),
+      };
+
+      const { data: inserted, error: insErr } = await supabase.from("documentos").insert(newDoc).select("id").single();
+      if (insErr) throw insErr;
+
+      if (srcItems && srcItems.length > 0) {
+        const newItems = srcItems.map(({ id: _iid, created_at: _ca, documento_id, ...itemRest }) => ({
+          ...itemRest, documento_id: inserted.id,
+        }));
+        await supabase.from("documento_productos").insert(newItems);
+      }
+
+      qc.invalidateQueries({ queryKey: ["documentos"] });
+      toast.success(`${label} creado desde cotización`);
+      navigate(`/documents/${inserted.id}`);
+    } catch (err: any) {
+      toast.error(`Error al convertir: ${err.message}`);
     }
   };
 
