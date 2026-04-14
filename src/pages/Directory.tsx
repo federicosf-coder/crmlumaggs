@@ -390,6 +390,7 @@ export default function Directory() {
                   <div className="grid grid-cols-2 gap-3">
                     <DetailRow label="Industria" value={selectedCompany.industry} />
                     <DetailRow label="Plaza" value={(selectedCompany.plazas as any)?.nombre} />
+                    <DetailRow label="Ejecutivo(s) de Venta" value={getEjecutivoNames(selectedCompanyEjecutivos).join(", ") || "—"} />
                     <DetailRow label="Sitio Web" value={selectedCompany.website} />
                     <DetailRow label="Teléfono" value={selectedCompany.phone} />
                     <DetailRow label="Correo" value={selectedCompany.email} />
