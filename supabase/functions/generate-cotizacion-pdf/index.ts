@@ -66,7 +66,7 @@ serve(async (req) => {
     console.log("Logo lookup:", logoKey, "found:", logoData?.storage_path);
 
     // Lumaggs = blue, Galsa = dark red/maroon for Phillips 66
-    const headerColor = isLumaggs ? rgb(0.22, 0.33, 0.73) : rgb(0.55, 0.08, 0.13);
+    const headerColor = isLumaggs ? rgb(0.22, 0.33, 0.73) : rgb(0.80, 0.12, 0.18);
 
     // Create PDF
     const pdfDoc = await PDFDocument.create();
@@ -163,9 +163,9 @@ serve(async (req) => {
       drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42, 10, font);
       drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56, 10, font);
     } else {
-      drawTextRight("phillips66@galsa.com.mx", rightEdge, rightInfoStartY, 10, font);
-      drawTextRight("Gasolineras y Lubricantes, SA de C.V.", rightEdge, rightInfoStartY - 14, 10, font);
-      drawTextRight("GLU 900101 AB3", rightEdge, rightInfoStartY - 28, 10, font);
+      drawTextRight("lubricantes@dagal.com.mx", rightEdge, rightInfoStartY, 10, font);
+      drawTextRight("Proveedora Galsa SA de C.V.", rightEdge, rightInfoStartY - 14, 10, font);
+      drawTextRight("PGA850730EU0", rightEdge, rightInfoStartY - 28, 10, font);
       drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42, 10, font);
       drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56, 10, font);
     }
