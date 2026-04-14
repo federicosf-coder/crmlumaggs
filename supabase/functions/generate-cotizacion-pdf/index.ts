@@ -317,22 +317,14 @@ serve(async (req) => {
     if (doc.notas) {
       y -= 15;
       addNewPageIfNeeded(30);
-      drawText("Notas:", margin, y, 10, fontBold);
+      drawText("Notas:", margin, y, fontSize, fontBold);
       y -= 14;
-      const words = doc.notas.split(" ");
-      let line = "";
-      for (const word of words) {
-        const test = line ? line + " " + word : word;
-        if (font.widthOfTextAtSize(test, 10) > contentWidth) {
-          addNewPageIfNeeded(14);
-          drawText(line, margin, y, 10);
-          y -= 14;
-          line = word;
-        } else {
-          line = test;
-        }
+      const notaLines = wrapText(doc.notas, contentWidth);
+      for (const nl of notaLines) {
+        addNewPageIfNeeded(14);
+        drawText(nl, margin, y);
+        y -= 14;
       }
-      if (line) { addNewPageIfNeeded(14); drawText(line, margin, y, 10); y -= 14; }
     }
 
     const pdfBytes = await pdfDoc.save();
