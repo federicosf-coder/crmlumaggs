@@ -86,6 +86,7 @@ export default function DocumentForm() {
     tipo_pago: "",
     uso_cfdi: "",
     metodo_pago: "",
+    fecha_entrega_programada: "",
   });
   const [items, setItems] = useState<LineItem[]>([]);
   const [saving, setSaving] = useState(false);
@@ -211,6 +212,7 @@ export default function DocumentForm() {
         tipo_pago: existingDoc.tipo_pago || "",
         uso_cfdi: existingDoc.uso_cfdi || "",
         metodo_pago: existingDoc.metodo_pago || "",
+        fecha_entrega_programada: (existingDoc as any).fecha_entrega_programada || "",
       });
     }
   }, [existingDoc]);
@@ -371,6 +373,7 @@ export default function DocumentForm() {
         tipo_pago: form.tipo_pago || null,
         uso_cfdi: form.uso_cfdi || null,
         metodo_pago: form.metodo_pago || null,
+        fecha_entrega_programada: form.tipo_documento === "pedido" ? (form.fecha_entrega_programada || null) : null,
       };
 
       let docId = id;
@@ -681,6 +684,10 @@ export default function DocumentForm() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{ESTATUS_PED.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Fecha Entrega Programada</Label>
+                <Input type="date" value={form.fecha_entrega_programada} onChange={e => set("fecha_entrega_programada", e.target.value)} />
               </div>
             </>
           )}
