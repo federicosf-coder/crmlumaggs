@@ -25,6 +25,7 @@ const EMPRESA_LABELS: Record<string, string> = {
 
 const ESTATUS_COT_LABELS: Record<string, string> = {
   borrador: "Borrador",
+  impresa: "Impresa",
   enviada: "Enviada",
   aceptada: "Aceptada",
   rechazada: "Rechazada",
@@ -59,7 +60,7 @@ function getEstatusVariant(doc: any): "default" | "secondary" | "destructive" | 
   const st = doc.tipo_documento === "cotizacion" ? doc.estatus_cotizacion
     : doc.tipo_documento === "pedido" ? doc.estatus_pedido
     : doc.estatus_factura;
-  if (["aceptada", "confirmado", "pagada", "entregado"].includes(st)) return "default";
+  if (["aceptada", "confirmado", "pagada", "entregado", "impresa"].includes(st)) return "default";
   if (["rechazada", "cancelado", "cancelada", "vencida"].includes(st)) return "destructive";
   return "secondary";
 }
