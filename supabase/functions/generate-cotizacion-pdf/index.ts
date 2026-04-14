@@ -65,7 +65,8 @@ serve(async (req) => {
 
     console.log("Logo lookup:", logoKey, "found:", logoData?.storage_path);
 
-    const blueHeader = rgb(0.22, 0.33, 0.73);
+    // Lumaggs = blue, Galsa = dark red/maroon for Phillips 66
+    const headerColor = isLumaggs ? rgb(0.22, 0.33, 0.73) : rgb(0.55, 0.08, 0.13);
 
     // Create PDF
     const pdfDoc = await PDFDocument.create();
