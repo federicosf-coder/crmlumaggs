@@ -564,33 +564,34 @@ export default function DocumentForm() {
           </div>
           <div>
             <Label>Plaza</Label>
-            <Select value={form.plaza_id} onValueChange={v => set("plaza_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                {plazas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.plaza_id}
+              onValueChange={v => set("plaza_id", v)}
+              placeholder="Seleccionar"
+              options={plazas.map((p: any) => ({ value: p.id, label: p.nombre }))}
+            />
           </div>
           <div>
             <Label>Ejecutivo de Venta</Label>
-            <Select value={form.ejecutivo_venta_id} onValueChange={v => set("ejecutivo_venta_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                {users.map((u: any) => <SelectItem key={u.user_id} value={u.user_id}>{u.full_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.ejecutivo_venta_id}
+              onValueChange={v => set("ejecutivo_venta_id", v)}
+              placeholder="Seleccionar"
+              options={users.map((u: any) => ({ value: u.user_id, label: u.full_name || u.user_id }))}
+            />
           </div>
 
           {/* Empresa (Cliente) with + button */}
           <div>
             <Label>Empresa (Cliente)</Label>
             <div className="flex gap-1">
-              <Select value={form.empresa_id} onValueChange={v => { set("empresa_id", v); set("contacto_id", ""); set("direccion_envio", ""); }}>
-                <SelectTrigger className="flex-1"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>
-                  {companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={form.empresa_id}
+                onValueChange={v => { set("empresa_id", v); set("contacto_id", ""); set("direccion_envio", ""); }}
+                placeholder="Seleccionar"
+                options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
+                className="flex-1"
+              />
               <Button variant="outline" size="icon" onClick={() => setShowNewCompany(true)}><Plus className="h-4 w-4" /></Button>
             </div>
           </div>
@@ -599,12 +600,14 @@ export default function DocumentForm() {
           <div>
             <Label>Contacto</Label>
             <div className="flex gap-1">
-              <Select value={form.contacto_id} onValueChange={v => set("contacto_id", v)} disabled={!form.empresa_id}>
-                <SelectTrigger className="flex-1"><SelectValue placeholder={form.empresa_id ? "Seleccionar" : "Selecciona empresa primero"} /></SelectTrigger>
-                <SelectContent>
-                  {contacts.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={form.contacto_id}
+                onValueChange={v => set("contacto_id", v)}
+                placeholder={form.empresa_id ? "Seleccionar" : "Selecciona empresa primero"}
+                disabled={!form.empresa_id}
+                options={contacts.map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
+                className="flex-1"
+              />
               <Button variant="outline" size="icon" onClick={() => setShowNewContact(true)} disabled={!form.empresa_id}><Plus className="h-4 w-4" /></Button>
             </div>
           </div>
@@ -716,12 +719,12 @@ export default function DocumentForm() {
                   <TableRow key={idx}>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Select value={item.producto_id} onValueChange={v => updateItem(idx, "producto_id", v)}>
-                          <SelectTrigger><SelectValue placeholder="Seleccionar producto" /></SelectTrigger>
-                          <SelectContent>
-                            {filteredProductos.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nombre_producto}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          value={item.producto_id}
+                          onValueChange={v => updateItem(idx, "producto_id", v)}
+                          placeholder="Seleccionar producto"
+                          options={filteredProductos.map((p: any) => ({ value: p.id, label: `${p.codigo} - ${p.nombre_producto}` }))}
+                        />
                         <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
                       </div>
                     </TableCell>
@@ -780,10 +783,12 @@ export default function DocumentForm() {
           </div>
           <div>
             <Label>Uso CFDI</Label>
-            <Select value={form.uso_cfdi} onValueChange={v => set("uso_cfdi", v)}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>{USO_CFDI_OPTS.map(o => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.uso_cfdi}
+              onValueChange={v => set("uso_cfdi", v)}
+              placeholder="Seleccionar"
+              options={USO_CFDI_OPTS.map(o => ({ value: o.v, label: o.l }))}
+            />
           </div>
           <div>
             <Label>Método de Pago</Label>
@@ -828,16 +833,17 @@ export default function DocumentForm() {
           <div>
             <Label>Dirección de Envío</Label>
             <div className="flex gap-1">
-              <Select value={form.direccion_envio} onValueChange={v => set("direccion_envio", v)} disabled={!form.empresa_id}>
-                <SelectTrigger className="flex-1"><SelectValue placeholder={form.empresa_id ? "Seleccionar dirección" : "Selecciona empresa primero"} /></SelectTrigger>
-                <SelectContent>
-                  {addresses.map((a: any) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      [{TIPO_DIRECCION_LABELS[a.tipo] || a.tipo}] {a.calle}{a.ciudad ? `, ${a.ciudad}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={form.direccion_envio}
+                onValueChange={v => set("direccion_envio", v)}
+                placeholder={form.empresa_id ? "Seleccionar dirección" : "Selecciona empresa primero"}
+                disabled={!form.empresa_id}
+                options={addresses.map((a: any) => ({
+                  value: a.id,
+                  label: `[${TIPO_DIRECCION_LABELS[a.tipo] || a.tipo}] ${a.calle}${a.ciudad ? `, ${a.ciudad}` : ""}`,
+                }))}
+                className="flex-1"
+              />
               <Button variant="outline" size="icon" onClick={() => setShowNewAddress(true)} disabled={!form.empresa_id}><Plus className="h-4 w-4" /></Button>
             </div>
           </div>
