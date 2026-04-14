@@ -30,7 +30,9 @@ interface Company {
 
 interface Contact {
   id: string; first_name: string; last_name: string; email: string | null;
-  phone: string | null; mobile: string | null; job_title: string | null; is_active: boolean;
+  phone: string | null; mobile: string | null; job_title: string | null;
+  department: string | null; notes: string | null; is_active: boolean;
+  company_id: string | null;
   companies?: { name: string; plazas?: { nombre: string } | null } | null;
 }
 
