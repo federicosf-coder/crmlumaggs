@@ -219,6 +219,17 @@ export default function DocumentsList() {
                 ))}
               </SelectContent>
             </Select>
+            <SortMenu
+              value={sortBy}
+              onChange={setSortBy}
+              options={[
+                { value: "date_desc", label: "Fecha ↓" },
+                { value: "date_asc", label: "Fecha ↑" },
+                { value: "total_desc", label: "Total ↓" },
+                { value: "total_asc", label: "Total ↑" },
+                { value: "client_asc", label: "Cliente A-Z" },
+              ]}
+            />
           </div>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
