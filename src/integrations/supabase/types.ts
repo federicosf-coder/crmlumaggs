@@ -962,6 +962,70 @@ export type Database = {
           },
         ]
       }
+      entregas_programadas: {
+        Row: {
+          created_at: string
+          documento_id: string
+          evidencia_url: string | null
+          fecha_entrega: string
+          fecha_entrega_real: string | null
+          id: string
+          notas: string | null
+          orden_ruta: number
+          repartidor_id: string
+          updated_at: string
+          vehiculo_id: string
+        }
+        Insert: {
+          created_at?: string
+          documento_id: string
+          evidencia_url?: string | null
+          fecha_entrega: string
+          fecha_entrega_real?: string | null
+          id?: string
+          notas?: string | null
+          orden_ruta?: number
+          repartidor_id: string
+          updated_at?: string
+          vehiculo_id: string
+        }
+        Update: {
+          created_at?: string
+          documento_id?: string
+          evidencia_url?: string | null
+          fecha_entrega?: string
+          fecha_entrega_real?: string | null
+          id?: string
+          notas?: string | null
+          orden_ruta?: number
+          repartidor_id?: string
+          updated_at?: string
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregas_programadas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: true
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_programadas_repartidor_id_fkey"
+            columns: ["repartidor_id"]
+            isOneToOne: false
+            referencedRelation: "repartidores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_programadas_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plazas: {
         Row: {
           created_at: string
@@ -1228,6 +1292,36 @@ export type Database = {
         }
         Relationships: []
       }
+      repartidores: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          licencia: string | null
+          nombre: string
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          licencia?: string | null
+          nombre: string
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          licencia?: string | null
+          nombre?: string
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       role_module_permissions: {
         Row: {
           access_level: Database["public"]["Enums"]["access_level"]
@@ -1332,6 +1426,36 @@ export type Database = {
         }
         Relationships: []
       }
+      vehiculos: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          nombre: string
+          placas: string | null
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre: string
+          placas?: string | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          placas?: string | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1406,10 +1530,9 @@ export type Database = {
         | "vencida"
         | "cancelada"
       estatus_pedido:
-        | "pendiente"
-        | "confirmado"
-        | "en_proceso"
-        | "enviado"
+        | "confirmado_cliente"
+        | "validado_contabilidad"
+        | "programado_entrega"
         | "entregado"
         | "cancelado"
       metodo_pago_sat: "PUE" | "PPD"
@@ -1620,10 +1743,9 @@ export const Constants = {
         "cancelada",
       ],
       estatus_pedido: [
-        "pendiente",
-        "confirmado",
-        "en_proceso",
-        "enviado",
+        "confirmado_cliente",
+        "validado_contabilidad",
+        "programado_entrega",
         "entregado",
         "cancelado",
       ],
