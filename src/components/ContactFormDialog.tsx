@@ -117,10 +117,12 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
             <div className="space-y-2"><Label>Departamento</Label><Input value={form.department} onChange={e => set("department", e.target.value)} /></div>
             <div className="space-y-2">
               <Label>Empresa</Label>
-              <Select value={form.company_id} onValueChange={v => set("company_id", v)}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar empresa" /></SelectTrigger>
-                <SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <SearchableSelect
+                value={form.company_id}
+                onValueChange={v => set("company_id", v)}
+                options={companies.map(c => ({ value: c.id, label: c.name }))}
+                placeholder="Seleccionar empresa"
+              />
             </div>
             <div className="col-span-2 space-y-2"><Label>Notas</Label><Textarea value={form.notes} onChange={e => set("notes", e.target.value)} /></div>
           </div>
