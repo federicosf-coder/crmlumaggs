@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 export const INDUSTRIAS_OPTIONS = [
   "Agroindustria (campos, empacadoras, maquinaria)",
