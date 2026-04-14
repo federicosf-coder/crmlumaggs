@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +61,7 @@ export interface CompanyData {
   name: string; industry: string | null; website: string | null;
   phone: string | null; email: string | null; address: string | null;
   city: string | null; state: string | null; zip_code: string | null;
-  notes: string | null;
+  notes: string | null; plaza_id: string | null;
   industrias: string[] | null; equipo: string | null;
   tipo_destino_lubricante: string | null; potencial_unidades: string | null;
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
@@ -78,6 +79,7 @@ interface Props {
 const emptyForm = {
   name: "", industry: "", website: "", phone: "", email: "",
   address: "", city: "", state: "", zip_code: "", notes: "",
+  plaza_id: "",
   industrias: [] as string[],
   equipo: "", tipo_destino_lubricante: "", potencial_unidades: "",
   tomador_decision: "", riesgo_cambio_marca: "", origen_contacto: "",
@@ -89,6 +91,14 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
   const isEdit = !!editData?.id;
+
+  const { data: plazas = [] } = useQuery({
+    queryKey: ["plazas_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre");
+      return data || [];
+    },
+  });
 
   const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
 
