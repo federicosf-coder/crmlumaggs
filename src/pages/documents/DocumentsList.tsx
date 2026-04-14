@@ -173,9 +173,14 @@ export default function DocumentsList() {
           <h1 className="text-2xl font-bold text-foreground">Documentos</h1>
           <p className="text-muted-foreground text-sm">Cotizaciones, pedidos y facturas</p>
         </div>
-        <Button onClick={() => navigate("/documents/new")} size="sm">
-          <Plus className="mr-1 h-4 w-4" /> Nuevo
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate("/delivery/schedule")}>
+            <Truck className="mr-1 h-4 w-4" /> Programar Entregas
+          </Button>
+          <Button onClick={() => navigate("/documents/new")} size="sm">
+            <Plus className="mr-1 h-4 w-4" /> Nuevo
+          </Button>
+        </div>
       </div>
 
       {/* Empresa filter */}
@@ -195,22 +200,32 @@ export default function DocumentsList() {
         ))}
       </div>
 
-      {/* Tipo filter */}
-      <div className="flex gap-2">
-        {[
-          { value: "cotizacion", label: "Cotizaciones" },
-          { value: "pedido", label: "Pedidos" },
-          { value: "factura", label: "Facturas" },
-        ].map((tipo) => (
-          <Button
-            key={tipo.value}
-            variant={tipoFilter === tipo.value ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTipoFilter(tipo.value)}
-          >
-            {tipo.label}
+      {/* Tipo + view toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          {[
+            { value: "cotizacion", label: "Cotizaciones" },
+            { value: "pedido", label: "Pedidos" },
+            { value: "factura", label: "Facturas" },
+          ].map((tipo) => (
+            <Button
+              key={tipo.value}
+              variant={tipoFilter === tipo.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTipoFilter(tipo.value)}
+            >
+              {tipo.label}
+            </Button>
+          ))}
+        </div>
+        <div className="flex gap-1">
+          <Button variant={viewMode === "list" ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setViewMode("list")}>
+            <LayoutList className="h-4 w-4" />
           </Button>
-        ))}
+          <Button variant={viewMode === "kanban" ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setViewMode("kanban")}>
+            <Columns className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <Card>
