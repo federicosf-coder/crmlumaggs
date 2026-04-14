@@ -723,11 +723,12 @@ export default function DocumentForm() {
                           value={item.producto_id}
                           onValueChange={v => updateItem(idx, "producto_id", v)}
                           placeholder="Seleccionar producto"
-                          options={filteredProductos.map((p: any) => ({
-                            value: p.id,
-                            label: `${p.codigo} - ${p.nombre_producto}${p.descripcion ? ` — ${p.descripcion}` : ''}`,
-                            searchText: `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''}`,
-                          }))}
+                          options={filteredProductos.map((p: any) => {
+                            const pres = (p.presentaciones as any)?.nombre || '';
+                            const label = `${p.codigo} - ${p.nombre_producto}${pres ? ` [${pres}]` : ''}`;
+                            const searchStr = `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''} ${pres}`;
+                            return { value: p.id, label, searchText: searchStr };
+                          })}
                           popoverClassName="min-w-[420px] sm:min-w-[520px]"
                         />
                         <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
