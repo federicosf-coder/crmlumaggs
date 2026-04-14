@@ -185,19 +185,19 @@ export default function DocumentsList() {
                        <Badge variant={getEstatusVariant(doc)}>{getEstatusLabel(doc)}</Badge>
                      </TableCell>
                      <TableCell>
-                       {doc.tipo_documento === "cotizacion" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              downloadCotizacionPdf(doc.id, () => refetch());
-                            }}
-                            title="Generar PDF"
-                          >
-                           <Download className="h-4 w-4" />
-                         </Button>
-                       )}
+                        {doc.tipo_documento === "cotizacion" && !doc.pdf_url && (
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               downloadCotizacionPdf(doc.id, () => refetch());
+                             }}
+                             title="Generar PDF"
+                           >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Button
