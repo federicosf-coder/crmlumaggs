@@ -58,6 +58,7 @@ export type Database = {
           notes: string | null
           origen_contacto: string | null
           phone: string | null
+          plaza_id: string | null
           potencial_unidades: string | null
           riesgo_cambio_marca: string | null
           rol_lubricante: string | null
@@ -85,6 +86,7 @@ export type Database = {
           notes?: string | null
           origen_contacto?: string | null
           phone?: string | null
+          plaza_id?: string | null
           potencial_unidades?: string | null
           riesgo_cambio_marca?: string | null
           rol_lubricante?: string | null
@@ -112,6 +114,7 @@ export type Database = {
           notes?: string | null
           origen_contacto?: string | null
           phone?: string | null
+          plaza_id?: string | null
           potencial_unidades?: string | null
           riesgo_cambio_marca?: string | null
           rol_lubricante?: string | null
@@ -123,7 +126,15 @@ export type Database = {
           website?: string | null
           zip_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       condiciones_comerciales: {
         Row: {

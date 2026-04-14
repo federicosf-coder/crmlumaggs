@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Building2, User, Search, Pencil } from "lucide-react";
+import { Plus, Building2, User, Search, Pencil, List, LayoutGrid, Phone, MapPin } from "lucide-react";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -17,18 +17,20 @@ interface Company {
   id: string; name: string; industry: string | null; phone: string | null;
   email: string | null; city: string | null; is_active: boolean;
   address: string | null; state: string | null; zip_code: string | null;
-  website: string | null; notes: string | null;
+  website: string | null; notes: string | null; plaza_id: string | null;
   industrias: string[] | null; equipo: string | null;
   tipo_destino_lubricante: string | null; potencial_unidades: string | null;
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
   origen_contacto: string | null; evaluacion_lubricante: string | null;
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
+  plazas?: { nombre: string } | null;
+  contacts?: { id: string }[];
 }
 
 interface Contact {
   id: string; first_name: string; last_name: string; email: string | null;
-  phone: string | null; job_title: string | null; is_active: boolean;
-  companies?: { name: string } | null;
+  phone: string | null; mobile: string | null; job_title: string | null; is_active: boolean;
+  companies?: { name: string; plazas?: { nombre: string } | null } | null;
 }
 
 function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
@@ -50,12 +52,14 @@ export default function Directory() {
   const [contactOpen, setContactOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [editCompany, setEditCompany] = useState<CompanyData | null>(null);
+  const [companyView, setCompanyView] = useState<"list" | "cards">("list");
+  const [contactView, setContactView] = useState<"list" | "cards">("list");
 
   const fetchData = async () => {
     setLoading(true);
     const [{ data: co }, { data: ct }] = await Promise.all([
-      supabase.from("companies").select("*").order("name"),
-      supabase.from("contacts").select("*, companies(name)").order("last_name"),
+      supabase.from("companies").select("*, plazas(nombre), contacts(id)").order("name"),
+      supabase.from("contacts").select("*, companies(name, plazas(nombre))").order("last_name"),
     ]);
     setCompanies((co as Company[]) || []);
     setContacts((ct as Contact[]) || []);
@@ -70,6 +74,17 @@ export default function Directory() {
     (c.companies?.name || "").toLowerCase().includes(contactSearch.toLowerCase())
   );
 
+  const ViewToggle = ({ view, setView }: { view: "list" | "cards"; setView: (v: "list" | "cards") => void }) => (
+    <div className="flex gap-1 border rounded-md p-0.5">
+      <Button variant={view === "list" ? "default" : "ghost"} size="sm" className="h-7 px-2" onClick={() => setView("list")}>
+        <List className="h-4 w-4" />
+      </Button>
+      <Button variant={view === "cards" ? "default" : "ghost"} size="sm" className="h-7 px-2" onClick={() => setView("cards")}>
+        <LayoutGrid className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Directorio</h1>
@@ -80,86 +95,160 @@ export default function Directory() {
           <TabsTrigger value="contacts" className="gap-2"><User className="h-4 w-4" /> Contactos</TabsTrigger>
         </TabsList>
 
+        {/* ─── EMPRESAS ─── */}
         <TabsContent value="companies" className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar empresas..." className="pl-9" value={companySearch} onChange={e => setCompanySearch(e.target.value)} />
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Buscar empresas..." className="pl-9" value={companySearch} onChange={e => setCompanySearch(e.target.value)} />
+              </div>
+              <ViewToggle view={companyView} setView={setCompanyView} />
             </div>
             <Button onClick={() => setCompanyOpen(true)}><Plus className="mr-2 h-4 w-4" /> Agregar Empresa</Button>
           </div>
-          <Card>
-            <CardContent className="p-0">
-              {loading ? (
-                <p className="text-muted-foreground p-6">Cargando...</p>
-              ) : filteredCompanies.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No se encontraron empresas.</p>
-              ) : (
+
+          {loading ? (
+            <p className="text-muted-foreground p-6">Cargando...</p>
+          ) : filteredCompanies.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No se encontraron empresas.</p>
+          ) : companyView === "list" ? (
+            <Card>
+              <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Empresa</TableHead><TableHead>Equipo</TableHead>
-                      <TableHead>Tipo Destino</TableHead><TableHead>Potencial</TableHead>
-                      <TableHead>Teléfono</TableHead><TableHead>Estado</TableHead>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Industria</TableHead>
+                      <TableHead>Contactos</TableHead>
+                      <TableHead>Plaza</TableHead>
+                      <TableHead>Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredCompanies.map(c => (
                       <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedCompany(c)}>
                         <TableCell className="font-medium">{c.name}</TableCell>
-                        <TableCell>{c.equipo || "—"}</TableCell>
-                        <TableCell>{c.tipo_destino_lubricante || "—"}</TableCell>
-                        <TableCell>{c.potencial_unidades || "—"}</TableCell>
-                        <TableCell>{c.phone || "—"}</TableCell>
+                        <TableCell>{c.industry || "—"}</TableCell>
+                        <TableCell>{(c.contacts as any[])?.length || 0}</TableCell>
+                        <TableCell>{(c.plazas as any)?.nombre || "—"}</TableCell>
                         <TableCell><Badge variant={c.is_active ? "default" : "secondary"}>{c.is_active ? "Activo" : "Inactivo"}</Badge></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredCompanies.map(c => (
+                <Card key={c.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedCompany(c)}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-base">{c.name}</h3>
+                        <p className="text-sm text-muted-foreground">{c.industry || "Sin industria"}</p>
+                      </div>
+                      <Badge variant={c.is_active ? "default" : "secondary"} className="text-xs shrink-0">
+                        {c.is_active ? "Activo" : "Inactivo"}
+                      </Badge>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <User className="h-3.5 w-3.5" /> {(c.contacts as any[])?.length || 0} contactos
+                      </span>
+                      {(c.plazas as any)?.nombre && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5" /> {(c.plazas as any).nombre}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
+        {/* ─── CONTACTOS ─── */}
         <TabsContent value="contacts" className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar contactos..." className="pl-9" value={contactSearch} onChange={e => setContactSearch(e.target.value)} />
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Buscar contactos..." className="pl-9" value={contactSearch} onChange={e => setContactSearch(e.target.value)} />
+              </div>
+              <ViewToggle view={contactView} setView={setContactView} />
             </div>
             <Button onClick={() => setContactOpen(true)}><Plus className="mr-2 h-4 w-4" /> Agregar Contacto</Button>
           </div>
-          <Card>
-            <CardContent className="p-0">
-              {loading ? (
-                <p className="text-muted-foreground p-6">Cargando...</p>
-              ) : filteredContacts.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No se encontraron contactos.</p>
-              ) : (
+
+          {loading ? (
+            <p className="text-muted-foreground p-6">Cargando...</p>
+          ) : filteredContacts.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No se encontraron contactos.</p>
+          ) : contactView === "list" ? (
+            <Card>
+              <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nombre</TableHead><TableHead>Empresa</TableHead>
-                      <TableHead>Puesto</TableHead><TableHead>Correo</TableHead>
-                      <TableHead>Teléfono</TableHead><TableHead>Estado</TableHead>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Apellido</TableHead>
+                      <TableHead>Teléfono Móvil</TableHead>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Plaza</TableHead>
+                      <TableHead>Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredContacts.map(c => (
                       <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.first_name} {c.last_name}</TableCell>
+                        <TableCell className="font-medium">{c.first_name}</TableCell>
+                        <TableCell>{c.last_name}</TableCell>
+                        <TableCell>{c.mobile || "—"}</TableCell>
                         <TableCell>{c.companies?.name || "—"}</TableCell>
-                        <TableCell>{c.job_title || "—"}</TableCell>
-                        <TableCell>{c.email || "—"}</TableCell>
-                        <TableCell>{c.phone || "—"}</TableCell>
+                        <TableCell>{(c.companies?.plazas as any)?.nombre || "—"}</TableCell>
                         <TableCell><Badge variant={c.is_active ? "default" : "secondary"}>{c.is_active ? "Activo" : "Inactivo"}</Badge></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredContacts.map(c => (
+                <Card key={c.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-base">{c.first_name} {c.last_name}</h3>
+                        <p className="text-sm text-muted-foreground">{c.companies?.name || "Sin empresa"}</p>
+                      </div>
+                      <Badge variant={c.is_active ? "default" : "secondary"} className="text-xs shrink-0">
+                        {c.is_active ? "Activo" : "Inactivo"}
+                      </Badge>
+                    </div>
+                    <Separator />
+                    <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                      {c.mobile && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3.5 w-3.5" /> {c.mobile}
+                        </span>
+                      )}
+                      {(c.companies?.plazas as any)?.nombre && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5" /> {(c.companies!.plazas as any).nombre}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -193,6 +282,7 @@ export default function Directory() {
                 <TabsContent value="general" className="space-y-3 mt-4">
                   <div className="grid grid-cols-2 gap-3">
                     <DetailRow label="Industria" value={selectedCompany.industry} />
+                    <DetailRow label="Plaza" value={(selectedCompany.plazas as any)?.nombre} />
                     <DetailRow label="Sitio Web" value={selectedCompany.website} />
                     <DetailRow label="Teléfono" value={selectedCompany.phone} />
                     <DetailRow label="Correo" value={selectedCompany.email} />

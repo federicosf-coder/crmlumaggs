@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +61,7 @@ export interface CompanyData {
   name: string; industry: string | null; website: string | null;
   phone: string | null; email: string | null; address: string | null;
   city: string | null; state: string | null; zip_code: string | null;
-  notes: string | null;
+  notes: string | null; plaza_id: string | null;
   industrias: string[] | null; equipo: string | null;
   tipo_destino_lubricante: string | null; potencial_unidades: string | null;
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
@@ -78,6 +79,7 @@ interface Props {
 const emptyForm = {
   name: "", industry: "", website: "", phone: "", email: "",
   address: "", city: "", state: "", zip_code: "", notes: "",
+  plaza_id: "",
   industrias: [] as string[],
   equipo: "", tipo_destino_lubricante: "", potencial_unidades: "",
   tomador_decision: "", riesgo_cambio_marca: "", origen_contacto: "",
@@ -89,6 +91,14 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
   const isEdit = !!editData?.id;
+
+  const { data: plazas = [] } = useQuery({
+    queryKey: ["plazas_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre");
+      return data || [];
+    },
+  });
 
   const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
 
@@ -116,6 +126,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         state: editData.state || "",
         zip_code: editData.zip_code || "",
         notes: editData.notes || "",
+        plaza_id: editData.plaza_id || "",
         industrias: editData.industrias || [],
         equipo: editData.equipo || "",
         tipo_destino_lubricante: editData.tipo_destino_lubricante || "",
@@ -141,7 +152,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       name: form.name, industry: form.industry || null, website: form.website || null,
       phone: form.phone || null, email: form.email || null, address: form.address || null,
       city: form.city || null, state: form.state || null, zip_code: form.zip_code || null,
-      notes: form.notes || null,
+      notes: form.notes || null, plaza_id: form.plaza_id || null,
       industrias: form.industrias.length > 0 ? form.industrias : [],
       equipo: form.equipo || null,
       tipo_destino_lubricante: form.tipo_destino_lubricante || null,
@@ -204,6 +215,16 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 <div className="space-y-2"><Label>Ciudad</Label><Input value={form.city} onChange={e => set("city", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Estado</Label><Input value={form.state} onChange={e => set("state", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Código Postal</Label><Input value={form.zip_code} onChange={e => set("zip_code", e.target.value)} /></div>
+                <div className="space-y-2">
+                  <Label>Plaza</Label>
+                  <Select value={form.plaza_id} onValueChange={v => set("plaza_id", v === "none" ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar plaza..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin plaza</SelectItem>
+                      {plazas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="col-span-2 space-y-2"><Label>Notas</Label><Textarea value={form.notes} onChange={e => set("notes", e.target.value)} /></div>
               </div>
             </TabsContent>
