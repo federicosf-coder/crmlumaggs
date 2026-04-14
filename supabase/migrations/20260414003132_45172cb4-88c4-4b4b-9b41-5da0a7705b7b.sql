@@ -1,0 +1,1 @@
+ALTER TABLE public.documentos ALTER COLUMN iva_porcentaje SET DEFAULT 8;
