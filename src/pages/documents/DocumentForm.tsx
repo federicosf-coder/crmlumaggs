@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Save, Download, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
