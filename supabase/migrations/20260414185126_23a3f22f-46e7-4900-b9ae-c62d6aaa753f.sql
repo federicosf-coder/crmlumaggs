@@ -1,0 +1,1 @@
+SELECT setval('public.cotizacion_number_seq', 11844, false);
