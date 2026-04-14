@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface DocumentKanbanProps {
   documents: any[];
@@ -48,10 +52,102 @@ function getStatusField(tipo: string) {
   return "estatus_cotizacion";
 }
 
+function KanbanColumn({
+  col,
+  docs,
+  statusField,
+  onStatusChange,
+  onNavigate,
+}: {
+  col: { key: string; label: string; color: string };
+  docs: any[];
+  statusField: string;
+  onStatusChange: (docId: string, newStatus: string) => void;
+  onNavigate: (id: string) => void;
+}) {
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  return (
+    <div className="w-[280px] flex-shrink-0">
+      <div className={`rounded-t-lg px-3 py-2 ${col.color}`}>
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-sm">{col.label}</span>
+          <Badge variant="secondary" className="text-xs">{docs.length}</Badge>
+        </div>
+      </div>
+      <div
+        className={`rounded-b-lg p-2 space-y-2 min-h-[200px] transition-colors ${
+          isDragOver ? "bg-primary/10 ring-2 ring-primary/30" : "bg-muted/30"
+        }`}
+        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+          const docId = e.dataTransfer.getData("docId");
+          if (docId) onStatusChange(docId, col.key);
+        }}
+      >
+        {docs.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-8">Sin documentos</p>
+        ) : (
+          docs.map((doc: any) => (
+            <Card
+              key={doc.id}
+              draggable
+              onDragStart={(e) => e.dataTransfer.setData("docId", doc.id)}
+              className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+              onClick={() => onNavigate(doc.id)}
+            >
+              <CardContent className="p-3 space-y-1">
+                <div className="font-medium text-sm truncate">
+                  {doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "Sin número"}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {(doc.companies as any)?.name || "Sin cliente"}
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {format(new Date(doc.fecha_documento), "dd/MM/yy")}
+                  </span>
+                  <span className="font-semibold">
+                    ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function DocumentKanban({ documents, tipoFilter }: DocumentKanbanProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const columns = getColumns(tipoFilter);
   const statusField = getStatusField(tipoFilter);
+
+  const handleStatusChange = async (docId: string, newStatus: string) => {
+    const doc = documents.find((d) => d.id === docId);
+    if (!doc || doc[statusField] === newStatus) return;
+
+    const targetLabel = columns.find((c) => c.key === newStatus)?.label || newStatus;
+
+    const { error } = await supabase
+      .from("documentos")
+      .update({ [statusField]: newStatus } as any)
+      .eq("id", docId);
+
+    if (error) {
+      toast.error("No se pudo cambiar el estatus");
+      return;
+    }
+
+    toast.success(`Documento movido a "${targetLabel}"`);
+    queryClient.invalidateQueries({ queryKey: ["documentos"] });
+  };
 
   const getDocsForStatus = (statusKey: string) =>
     documents.filter((d: any) => d[statusField] === statusKey);
@@ -59,49 +155,16 @@ export function DocumentKanban({ documents, tipoFilter }: DocumentKanbanProps) {
   return (
     <ScrollArea className="w-full">
       <div className="flex gap-4 pb-4 min-w-max">
-        {columns.map((col) => {
-          const colDocs = getDocsForStatus(col.key);
-          return (
-            <div key={col.key} className="w-[280px] flex-shrink-0">
-              <div className={`rounded-t-lg px-3 py-2 ${col.color}`}>
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-sm">{col.label}</span>
-                  <Badge variant="secondary" className="text-xs">{colDocs.length}</Badge>
-                </div>
-              </div>
-              <div className="bg-muted/30 rounded-b-lg p-2 space-y-2 min-h-[200px]">
-                {colDocs.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-8">Sin documentos</p>
-                ) : (
-                  colDocs.map((doc: any) => (
-                    <Card
-                      key={doc.id}
-                      className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => navigate(`/documents/${doc.id}`)}
-                    >
-                      <CardContent className="p-3 space-y-1">
-                        <div className="font-medium text-sm truncate">
-                          {doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "Sin número"}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {(doc.companies as any)?.name || "Sin cliente"}
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">
-                            {format(new Date(doc.fecha_documento), "dd/MM/yy")}
-                          </span>
-                          <span className="font-semibold">
-                            ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {columns.map((col) => (
+          <KanbanColumn
+            key={col.key}
+            col={col}
+            docs={getDocsForStatus(col.key)}
+            statusField={statusField}
+            onStatusChange={handleStatusChange}
+            onNavigate={(id) => navigate(`/documents/${id}`)}
+          />
+        ))}
       </div>
       <ScrollBar orientation="horizontal" />
     </ScrollArea>
