@@ -355,6 +355,27 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                   </Select>
                 </div>
 
+                {/* Ejecutivo de Venta (multi-select) */}
+                <div className="col-span-2 space-y-1.5">
+                  <Label className="text-xs">Ejecutivo(s) de Venta</Label>
+                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                    {form.ejecutivo_ids.map(uid => {
+                      const p = profiles.find((pr: any) => pr.user_id === uid);
+                      return p ? (
+                        <Badge key={uid} variant="secondary" className="gap-1">
+                          {p.full_name || p.email}
+                          <X className="h-3 w-3 cursor-pointer" onClick={() => toggleEjecutivo(uid)} />
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                  <SearchableSelect
+                    value=""
+                    onValueChange={v => { if (v && !form.ejecutivo_ids.includes(v)) toggleEjecutivo(v); }}
+                    options={profiles.filter((p: any) => !form.ejecutivo_ids.includes(p.user_id)).map((p: any) => ({ value: p.user_id, label: p.full_name || p.email || "Sin nombre" }))}
+                    placeholder="Agregar ejecutivo..."
+                  />
+                </div>
                 {/* Lista de Precios */}
                 <div className="space-y-1.5">
                   <Label className="text-xs">Lista de Precios</Label>
