@@ -190,7 +190,7 @@ serve(async (req) => {
       drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56);
     }
 
-    y -= 30; // more space before "Dirigido a"
+    y -= 44; // more space before "Dirigido a"
 
     // ===== DIRIGIDO A =====
     const company = doc.companies as any;
@@ -198,7 +198,7 @@ serve(async (req) => {
     const clientPhone = contact?.phone || company?.phone || "";
 
     if (clientPhone) {
-      drawTextRight(clientPhone, rightEdge, y);
+      drawTextRight(clientPhone, rightEdge, y + 14);
     }
 
     drawText("Dirigido a:", margin, y);
