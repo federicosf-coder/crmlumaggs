@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns } from "lucide-react";
+import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck } from "lucide-react";
 import { SortMenu } from "@/components/SortMenu";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
