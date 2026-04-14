@@ -166,6 +166,15 @@ export default function CrmActivitiesTasks() {
             ))}
           </SelectContent>
         </Select>
+        <SortMenu
+          value={sortBy}
+          onChange={setSortBy}
+          options={[
+            { value: "date_desc", label: "Fecha ↓" },
+            { value: "date_asc", label: "Fecha ↑" },
+            { value: "title_asc", label: "Título A-Z" },
+          ]}
+        />
         <Select value={userFilter || "all"} onValueChange={(v) => setUserFilter(v === "all" ? "" : v)}>
           <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Todos los usuarios" /></SelectTrigger>
           <SelectContent>
