@@ -42,7 +42,7 @@ export const INDUSTRIAS_OPTIONS = [
   "Transporte – personal / pasajeros",
 ];
 
-export const EQUIPO_OPTIONS = ["Ensenada", "Mexicali", "San Luis", "San Quintín", "Tijuana", "Morelos"];
+
 export const TIPO_DESTINO_OPTIONS = ["Usuario final", "Revendedor"];
 export const POTENCIAL_UNIDADES_OPTIONS = [
   "UF1 1–10 unidades", "UF2 11–45 unidades", "UF3 46–90 unidades", "UF4 90 o más unidades",
@@ -87,7 +87,7 @@ export interface CompanyData {
   city: string | null; state: string | null; zip_code: string | null;
   notes: string | null; plaza_id: string | null;
   lista_precios: string | null;
-  industrias: string[] | null; equipo: string | null;
+  industrias: string[] | null;
   tipo_destino_lubricante: string | null; potencial_unidades: string | null;
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
   origen_contacto: string | null; evaluacion_lubricante: string | null;
@@ -107,7 +107,7 @@ const emptyForm = {
   notes: "",
   lista_precios: "",
   industrias: [] as string[],
-  equipo: "", tipo_destino_lubricante: "", potencial_unidades: "",
+  tipo_destino_lubricante: "", potencial_unidades: "",
   tomador_decision: "", riesgo_cambio_marca: "", origen_contacto: "",
   evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
   uso_cfdi: "", metodo_pago: "", tipo_pago: "",
@@ -172,7 +172,6 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         notes: editData.notes || "",
         lista_precios: editData.lista_precios || "",
         industrias: editData.industrias || [],
-        equipo: editData.equipo || "",
         tipo_destino_lubricante: editData.tipo_destino_lubricante || "",
         potencial_unidades: editData.potencial_unidades || "",
         tomador_decision: editData.tomador_decision || "",
@@ -210,7 +209,6 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       plaza_id: form.plaza_ids.length > 0 ? form.plaza_ids[0] : null,
       lista_precios: form.lista_precios || null,
       industrias: form.industrias.length > 0 ? form.industrias : [],
-      equipo: form.equipo || null,
       tipo_destino_lubricante: form.tipo_destino_lubricante || null,
       potencial_unidades: form.potencial_unidades || null,
       tomador_decision: form.tomador_decision || null,
@@ -369,7 +367,6 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {renderSelect("Equipo", form.equipo, "equipo", EQUIPO_OPTIONS)}
                 {renderSelect("Tipo según destino del lubricante", form.tipo_destino_lubricante, "tipo_destino_lubricante", TIPO_DESTINO_OPTIONS)}
                 {renderSelect("Potencial de unidades", form.potencial_unidades, "potencial_unidades", POTENCIAL_UNIDADES_OPTIONS)}
                 {renderSelect("Tomador de decisión principal", form.tomador_decision, "tomador_decision", TOMADOR_DECISION_OPTIONS)}

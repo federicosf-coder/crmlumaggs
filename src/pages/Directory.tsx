@@ -19,7 +19,7 @@ interface Company {
   email: string | null; city: string | null; is_active: boolean;
   address: string | null; state: string | null; zip_code: string | null;
   website: string | null; notes: string | null; plaza_id: string | null;
-  lista_precios: string | null; industrias: string[] | null; equipo: string | null;
+  lista_precios: string | null; industrias: string[] | null;
   tipo_destino_lubricante: string | null; potencial_unidades: string | null;
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
   origen_contacto: string | null; evaluacion_lubricante: string | null;
@@ -370,7 +370,6 @@ export default function Directory() {
                   </div>
                   <Separator />
                   <div className="grid grid-cols-2 gap-3">
-                    <DetailRow label="Equipo" value={selectedCompany.equipo} />
                     <DetailRow label="Tipo según destino" value={selectedCompany.tipo_destino_lubricante} />
                     <DetailRow label="Potencial de unidades" value={selectedCompany.potencial_unidades} />
                     <DetailRow label="Tomador de decisión" value={selectedCompany.tomador_decision} />
