@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
@@ -189,36 +190,42 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
 
           <div className="space-y-2">
             <Label>Vincular a Empresa</Label>
-            <Select value={companyId} onValueChange={setCompanyId}>
-              <SelectTrigger><SelectValue placeholder="Ninguna" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Ninguna</SelectItem>
-                {companies?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={companyId || "none"}
+              onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
+              options={[
+                { value: "none", label: "Ninguna" },
+                ...(companies?.map((c) => ({ value: c.id, label: c.name })) || []),
+              ]}
+              placeholder="Buscar empresa..."
+            />
           </div>
           {!defaultDealId && (
             <div className="space-y-2">
               <Label>Vincular a Negocio</Label>
-              <Select value={dealId} onValueChange={setDealId}>
-                <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Ninguno</SelectItem>
-                  {filteredDeals?.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={dealId || "none"}
+                onValueChange={(v) => setDealId(v === "none" ? "" : v)}
+                options={[
+                  { value: "none", label: "Ninguno" },
+                  ...(filteredDeals?.map((d: any) => ({ value: d.id, label: d.title })) || []),
+                ]}
+                placeholder="Buscar negocio..."
+              />
             </div>
           )}
           {!defaultContactId && (
             <div className="space-y-2">
               <Label>Vincular a Contacto</Label>
-              <Select value={contactId} onValueChange={setContactId}>
-                <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Ninguno</SelectItem>
-                  {contacts?.map((c) => <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={contactId || "none"}
+                onValueChange={(v) => setContactId(v === "none" ? "" : v)}
+                options={[
+                  { value: "none", label: "Ninguno" },
+                  ...(contacts?.map((c) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` })) || []),
+                ]}
+                placeholder="Buscar contacto..."
+              />
             </div>
           )}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
