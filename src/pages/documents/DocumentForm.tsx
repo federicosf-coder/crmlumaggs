@@ -743,7 +743,21 @@ export default function DocumentForm() {
           </div>
           <div>
             <Label>Cotización Original (referencia)</Label>
-            <Input value={form.cotizacion_original_id} onChange={e => set("cotizacion_original_id", e.target.value)} placeholder="ID de cotización" />
+            {cotizacionOriginalDoc ? (
+              <div className="flex items-center gap-2 h-10">
+                <Link
+                  to={`/documents/${cotizacionOriginalDoc.id}`}
+                  className="text-primary underline font-medium"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {cotizacionOriginalDoc.numero_cotizacion || "Sin número"}
+                </Link>
+              </div>
+            ) : form.cotizacion_original_id ? (
+              <Input value={form.cotizacion_original_id} disabled className="bg-muted" />
+            ) : (
+              <Input value="" disabled placeholder="N/A" className="bg-muted" />
+            )}
           </div>
           <div>
             <Label>Negocio CRM</Label>
