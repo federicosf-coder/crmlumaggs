@@ -37,9 +37,18 @@ export function useCrmTasks(filters?: { completed?: boolean; deal_id?: string; b
       if (filters?.completed !== undefined) q = q.eq("completed", filters.completed);
       if (filters?.deal_id) q = q.eq("deal_id", filters.deal_id);
 
-      // Apply access filtering on user_id
+      // Apply access filtering on user_id, include tasks where user is collaborator
       if (access.accessLevel === "propio" && access.userId) {
-        q = q.eq("user_id", access.userId);
+        const { data: collabRows } = await supabase
+          .from("crm_task_collaborators")
+          .select("task_id")
+          .eq("user_id", access.userId);
+        const collabIds = collabRows?.map((r: any) => r.task_id) || [];
+        if (collabIds.length > 0) {
+          q = q.or(`user_id.eq.${access.userId},id.in.(${collabIds.join(",")})`);
+        } else {
+          q = q.eq("user_id", access.userId);
+        }
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
         q = q.in("user_id", access.teamMemberIds);
       }
