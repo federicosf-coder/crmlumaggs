@@ -118,7 +118,7 @@ serve(async (req) => {
           const logoH = 65;
           const logoW = logoH * logoAspect;
           page.drawImage(logoImage, { x: margin, y: y - logoH, width: logoW, height: logoH });
-          logoBottomY = y - logoH - 25;
+          logoBottomY = y - logoH - 53; // ~1cm extra spacing below logo
         }
       } catch (e) { console.error("Logo embed error:", e); }
     } else {
