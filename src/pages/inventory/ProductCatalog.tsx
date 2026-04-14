@@ -189,6 +189,8 @@ function OptionsTab() {
 // ─── Products Tab ────────────────────────────────────────────
 function ProductosTab() {
   const qc = useQueryClient();
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
   const [search, setSearch] = useState("");
   const [marcaFilter, setMarcaFilter] = useState<string>("all");
   const { data: productos = [], isLoading } = useProductos(search);
@@ -372,8 +374,8 @@ function ProductosTab() {
             <div className="md:col-span-2 border-t pt-3 mt-2">
               <h4 className="font-semibold text-sm mb-3">Precios</h4>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {[
-                  ["costo_actual", "Costo Actual"],
+                {([
+                  ...(isAdmin ? [["costo_actual", "Costo Actual"]] : []),
                   ["precio_base_uf1", "Base UF1"],
                   ["precio_uf2", "UF2"],
                   ["precio_uf3", "UF3"],
@@ -383,7 +385,7 @@ function ProductosTab() {
                   ["precio_r3", "R3"],
                   ["precio_r4", "R4"],
                   ["precio_lista_galper", "Lista Galper"],
-                ].map(([k, label]) => (
+                ] as string[][]).map(([k, label]) => (
                   <div key={k}><Label className="text-xs">{label}</Label><Input type="number" value={(form as any)[k]} onChange={e => set(k, Number(e.target.value))} /></div>
                 ))}
               </div>
@@ -434,7 +436,7 @@ function ProductosTab() {
                 <h4 className="font-semibold text-sm mb-2">Precios</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-2">
                   {([
-                    ["Costo", viewProduct.costo_actual],
+                    ...(isAdmin ? [["Costo", viewProduct.costo_actual]] : []),
                     ["Base UF1", viewProduct.precio_base_uf1],
                     ["UF2", viewProduct.precio_uf2],
                     ["UF3", viewProduct.precio_uf3],
