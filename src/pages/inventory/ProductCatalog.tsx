@@ -194,6 +194,7 @@ function ProductosTab() {
   const isAdmin = hasRole("admin");
   const [search, setSearch] = useState("");
   const [marcaFilter, setMarcaFilter] = useState<string>("all");
+  const [productSort, setProductSort] = useState("code_asc");
   const { data: productos = [], isLoading } = useProductos(search);
   const { data: presentaciones = [] } = usePresentaciones();
   const { data: allOptions = [] } = useOptionValues();
@@ -203,7 +204,17 @@ function ProductosTab() {
 
   const optionsFor = (type: ProductOptionType) => allOptions.filter(o => o.option_type === type && o.is_active);
   const marcas = optionsFor("marca");
-  const filteredProductos = marcaFilter === "all" ? productos : productos.filter((p: any) => p.marca_id === marcaFilter);
+  const filteredProductos = (marcaFilter === "all" ? productos : productos.filter((p: any) => p.marca_id === marcaFilter))
+    .sort((a: any, b: any) => {
+      switch (productSort) {
+        case "code_asc": return (a.codigo || "").localeCompare(b.codigo || "");
+        case "code_desc": return (b.codigo || "").localeCompare(a.codigo || "");
+        case "name_asc": return (a.nombre_producto || "").localeCompare(b.nombre_producto || "");
+        case "price_desc": return Number(b.precio_base_uf1) - Number(a.precio_base_uf1);
+        case "price_asc": return Number(a.precio_base_uf1) - Number(b.precio_base_uf1);
+        default: return 0;
+      }
+    });
 
   const emptyProduct = {
     codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
