@@ -96,13 +96,38 @@ serve(async (req) => {
     // Brand bar
     page.drawRectangle({ x: 0, y: pageHeight - 8, width: pageWidth, height: 8, color: brandColor });
 
-    // Title
-    drawText("COTIZACIÓN", margin, y - 20, 22, fontBold, brandColor);
+    // Try to embed logo
+    let logoHeight = 0;
+    if (logoData?.storage_path) {
+      try {
+        const { data: logoFile } = await sb.storage.from("logos").download(logoData.storage_path);
+        if (logoFile) {
+          const logoBytes = new Uint8Array(await logoFile.arrayBuffer());
+          let logoImage;
+          // Try PNG first, fallback to JPG
+          try {
+            logoImage = await pdfDoc.embedPng(logoBytes);
+          } catch {
+            logoImage = await pdfDoc.embedJpg(logoBytes);
+          }
+          const logoAspect = logoImage.width / logoImage.height;
+          logoHeight = 50;
+          const logoWidth = logoHeight * logoAspect;
+          page.drawImage(logoImage, { x: margin, y: y - logoHeight - 10, width: logoWidth, height: logoHeight });
+        }
+      } catch (e) {
+        console.error("Logo embed error:", e);
+      }
+    }
+
+    // Title - position to the right of logo or at margin
+    const titleX = logoHeight > 0 ? margin + 120 : margin;
+    drawText("COTIZACIÓN", titleX, y - 20, 22, fontBold, brandColor);
     y -= 25;
 
     // Empresa vendedora
-    drawText(empresaLabel, margin, y - 20, 11, fontBold, brandColor);
-    y -= 35;
+    drawText(empresaLabel, titleX, y - 20, 11, fontBold, brandColor);
+    y -= Math.max(35, logoHeight - 10);
 
     // Number and date
     const numCot = doc.numero_cotizacion || "Sin número";

@@ -283,7 +283,7 @@ export default function DocumentForm() {
         fecha_documento: form.fecha_documento,
         fecha_vencimiento: form.fecha_vencimiento || null,
         iva_porcentaje: Number(form.iva_porcentaje),
-        numero_cotizacion: form.tipo_documento === "cotizacion" ? (form.numero_cotizacion || null) : null,
+        numero_cotizacion: form.tipo_documento === "cotizacion" ? (form.numero_cotizacion || null) : null, // auto-assigned by DB trigger
         numero_pedido: form.tipo_documento === "pedido" ? (form.numero_pedido || null) : null,
         numero_factura: form.tipo_documento === "factura" ? (form.numero_factura || null) : null,
         estatus_cotizacion: form.tipo_documento === "cotizacion" ? form.estatus_cotizacion : null,
@@ -449,7 +449,7 @@ export default function DocumentForm() {
             <>
               <div>
                 <Label>Número Cotización</Label>
-                <Input value={form.numero_cotizacion} onChange={e => set("numero_cotizacion", e.target.value)} />
+                <Input value={form.numero_cotizacion || "(Se asignará automáticamente)"} disabled className="bg-muted" />
               </div>
               <div>
                 <Label>Estatus Cotización</Label>
