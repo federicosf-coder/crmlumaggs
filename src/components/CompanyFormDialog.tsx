@@ -113,6 +113,7 @@ const emptyForm = {
   evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
   uso_cfdi: "", metodo_pago: "", tipo_pago: "",
   plaza_ids: [] as string[],
+  ejecutivo_ids: [] as string[],
 };
 
 export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: Props) {
@@ -129,6 +130,14 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
     },
   });
 
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name, email").eq("is_active", true).order("full_name");
+      return data || [];
+    },
+  });
+
   // Load company plazas for edit
   const { data: companyPlazas = [] } = useQuery({
     queryKey: ["company_plazas", editData?.id],
@@ -136,6 +145,17 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       if (!editData?.id) return [];
       const { data } = await supabase.from("company_plazas").select("plaza_id").eq("company_id", editData.id);
       return (data || []).map((cp: any) => cp.plaza_id);
+    },
+    enabled: !!editData?.id && open,
+  });
+
+  // Load company ejecutivos for edit
+  const { data: companyEjecutivos = [] } = useQuery({
+    queryKey: ["company_ejecutivos", editData?.id],
+    queryFn: async () => {
+      if (!editData?.id) return [];
+      const { data } = await supabase.from("company_ejecutivos").select("user_id").eq("company_id", editData.id);
+      return (data || []).map((ce: any) => ce.user_id);
     },
     enabled: !!editData?.id && open,
   });
