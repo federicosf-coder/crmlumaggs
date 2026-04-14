@@ -164,6 +164,12 @@ export default function Directory() {
       </Tabs>
 
       <CompanyFormDialog open={companyOpen} onOpenChange={setCompanyOpen} onCreated={() => fetchData()} />
+      <CompanyFormDialog
+        open={!!editCompany}
+        onOpenChange={open => { if (!open) setEditCompany(null); }}
+        editData={editCompany}
+        onCreated={() => { fetchData(); setSelectedCompany(null); }}
+      />
       <ContactFormDialog open={contactOpen} onOpenChange={setContactOpen} onCreated={() => fetchData()} />
 
       {/* Company Detail Sheet */}
