@@ -70,7 +70,7 @@ export default function DocumentsList() {
     queryFn: async () => {
       let q = supabase
         .from("documentos")
-        .select("*, companies(name), contacts(first_name, last_name)")
+        .select("*, companies(name), contacts(first_name, last_name), plazas(nombre)")
         .eq("is_active", true)
         .eq("empresa_vendedora", empresaFilter as any)
         .order("created_at", { ascending: false });
