@@ -90,6 +90,48 @@ export default function DocumentsList() {
     },
   });
 
+  const qc = useQueryClient();
+
+  const handleDuplicate = async (e: React.MouseEvent, doc: any) => {
+    e.stopPropagation();
+    if (duplicating) return;
+    setDuplicating(doc.id);
+    try {
+      const { data: srcDoc, error: srcErr } = await supabase.from("documentos").select("*").eq("id", doc.id).single();
+      if (srcErr || !srcDoc) throw srcErr || new Error("No encontrado");
+      const { data: srcItems } = await supabase.from("documento_productos").select("*").eq("documento_id", doc.id);
+
+      const { id: _id, created_at, updated_at, numero_cotizacion, numero_pedido, numero_factura, pdf_url, estatus_cotizacion, ...rest } = srcDoc;
+      const newDoc: any = {
+        ...rest,
+        pdf_url: null,
+        estatus_cotizacion: srcDoc.tipo_documento === "cotizacion" ? "borrador" : null,
+        numero_cotizacion: null,
+        numero_pedido: null,
+        numero_factura: null,
+      };
+
+      const { data: inserted, error: insErr } = await supabase.from("documentos").insert(newDoc).select("id").single();
+      if (insErr) throw insErr;
+
+      if (srcItems && srcItems.length > 0) {
+        const newItems = srcItems.map(({ id: _iid, created_at: _ca, documento_id, ...itemRest }: any) => ({
+          ...itemRest,
+          documento_id: inserted.id,
+        }));
+        await supabase.from("documento_productos").insert(newItems);
+      }
+
+      qc.invalidateQueries({ queryKey: ["documentos"] });
+      toast.success("Documento duplicado");
+      navigate(`/documents/${inserted.id}`);
+    } catch (err: any) {
+      toast.error("Error al duplicar: " + (err.message || "Error"));
+    } finally {
+      setDuplicating(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
