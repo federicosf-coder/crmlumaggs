@@ -156,6 +156,21 @@ export default function DocumentForm() {
     enabled: isEdit,
   });
 
+  // Set default ejecutivo for new documents
+  useEffect(() => {
+    if (!isEdit && user?.id && !form.ejecutivo_venta_id) {
+      set("ejecutivo_venta_id", user.id);
+    }
+  }, [user?.id, isEdit]);
+
+  // Auto-update fecha_vencimiento when fecha_documento changes (only if not editing existing)
+  useEffect(() => {
+    if (!isEdit && form.fecha_documento) {
+      const venc = format(addDays(new Date(form.fecha_documento + "T12:00:00"), 7), "yyyy-MM-dd");
+      set("fecha_vencimiento", venc);
+    }
+  }, [form.fecha_documento, isEdit]);
+
   useEffect(() => {
     if (existingDoc) {
       setForm({
