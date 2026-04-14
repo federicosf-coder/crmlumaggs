@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, FileText, Download, Pencil, Copy } from "lucide-react";
+import { SortMenu } from "@/components/SortMenu";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -48,6 +49,7 @@ export default function DocumentsList() {
   const [empresaFilter, setEmpresaFilter] = useState<string>("lumaggs_chevron");
   const [tipoFilter, setTipoFilter] = useState<string>("cotizacion");
   const [ejecutivoFilter, setEjecutivoFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState("date_desc");
 
   // Fetch profiles for ejecutivo filter
   const { data: profiles = [] } = useQuery({
@@ -88,6 +90,17 @@ export default function DocumentsList() {
       }
       return data;
     },
+  });
+
+  const sortedDocs = [...docs].sort((a: any, b: any) => {
+    switch (sortBy) {
+      case "date_desc": return new Date(b.fecha_documento).getTime() - new Date(a.fecha_documento).getTime();
+      case "date_asc": return new Date(a.fecha_documento).getTime() - new Date(b.fecha_documento).getTime();
+      case "total_desc": return Number(b.total) - Number(a.total);
+      case "total_asc": return Number(a.total) - Number(b.total);
+      case "client_asc": return ((a.companies as any)?.name || "").localeCompare((b.companies as any)?.name || "");
+      default: return 0;
+    }
   });
 
   const handleDuplicate = async (e: React.MouseEvent, doc: any) => {
@@ -206,6 +219,17 @@ export default function DocumentsList() {
                 ))}
               </SelectContent>
             </Select>
+            <SortMenu
+              value={sortBy}
+              onChange={setSortBy}
+              options={[
+                { value: "date_desc", label: "Fecha ↓" },
+                { value: "date_asc", label: "Fecha ↑" },
+                { value: "total_desc", label: "Total ↓" },
+                { value: "total_asc", label: "Total ↑" },
+                { value: "client_asc", label: "Cliente A-Z" },
+              ]}
+            />
           </div>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
@@ -232,7 +256,7 @@ export default function DocumentsList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {docs.map((doc: any) => (
+                  {sortedDocs.map((doc: any) => (
                     <TableRow
                       key={doc.id}
                       className="cursor-pointer"

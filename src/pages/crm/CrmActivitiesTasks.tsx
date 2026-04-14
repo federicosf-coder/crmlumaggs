@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Activity as ActivityIcon, CalendarDays, List, ChevronLeft, ChevronRight } from "lucide-react";
+import { SortMenu } from "@/components/SortMenu";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -36,6 +37,7 @@ export default function CrmActivitiesTasks() {
   const [createDefaultDate, setCreateDefaultDate] = useState<string | undefined>();
   const [selectedTask, setSelectedTask] = useState<CrmTask | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [sortBy, setSortBy] = useState("date_desc");
 
   const { data: activities = [], isLoading: activitiesLoading } = useCrmActivities(
     typeFilter && typeFilter !== "task" ? { type: typeFilter } : undefined
@@ -53,18 +55,37 @@ export default function CrmActivitiesTasks() {
 
   const isLoading = activitiesLoading || tasksLoading || completedLoading;
 
-  const filteredActivities = activities
-    .filter((a) => !searchQuery || a.title.toLowerCase().includes(searchQuery.toLowerCase()) || a.description?.toLowerCase().includes(searchQuery.toLowerCase()))
-    .filter((a) => !userFilter || a.user_id === userFilter);
+  const sortItems = <T extends { due_date?: string | null; activity_date?: string; created_at?: string; title?: string }>(items: T[]): T[] => {
+    return [...items].sort((a, b) => {
+      const dateA = new Date(a.due_date || a.activity_date || a.created_at || "").getTime();
+      const dateB = new Date(b.due_date || b.activity_date || b.created_at || "").getTime();
+      switch (sortBy) {
+        case "date_desc": return dateB - dateA;
+        case "date_asc": return dateA - dateB;
+        case "title_asc": return (a.title || "").localeCompare(b.title || "");
+        default: return 0;
+      }
+    });
+  };
 
-  const filteredPendingTasks = pendingTasks
-    .filter((t) => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    .filter((t) => !typeFilter || typeFilter === "task")
-    .filter((t) => !userFilter || t.user_id === userFilter);
+  const filteredActivities = sortItems(
+    activities
+      .filter((a) => !searchQuery || a.title.toLowerCase().includes(searchQuery.toLowerCase()) || a.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+      .filter((a) => !userFilter || a.user_id === userFilter)
+  );
 
-  const filteredCompletedTasks = completedTasks
-    .filter((t) => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    .filter((t) => !userFilter || t.user_id === userFilter);
+  const filteredPendingTasks = sortItems(
+    pendingTasks
+      .filter((t) => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+      .filter((t) => !typeFilter || typeFilter === "task")
+      .filter((t) => !userFilter || t.user_id === userFilter)
+  );
+
+  const filteredCompletedTasks = sortItems(
+    completedTasks
+      .filter((t) => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+      .filter((t) => !userFilter || t.user_id === userFilter)
+  );
 
   // Calendar data
   const calendarDays = useMemo(() => {
@@ -145,6 +166,15 @@ export default function CrmActivitiesTasks() {
             ))}
           </SelectContent>
         </Select>
+        <SortMenu
+          value={sortBy}
+          onChange={setSortBy}
+          options={[
+            { value: "date_desc", label: "Fecha ↓" },
+            { value: "date_asc", label: "Fecha ↑" },
+            { value: "title_asc", label: "Título A-Z" },
+          ]}
+        />
         <Select value={userFilter || "all"} onValueChange={(v) => setUserFilter(v === "all" ? "" : v)}>
           <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Todos los usuarios" /></SelectTrigger>
           <SelectContent>
