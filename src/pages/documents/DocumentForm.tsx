@@ -495,7 +495,7 @@ export default function DocumentForm() {
           {viewMode ? "Ver Documento" : isEdit ? "Editar Documento" : "Nuevo Documento"}
         </h1>
         {viewMode && (
-          <div className="flex gap-2 ml-auto flex-wrap">
+          <div className="flex gap-2 flex-wrap">
             {existingDoc?.pdf_url && (
               <Button variant="default" asChild>
                 <a href={existingDoc.pdf_url} target="_blank" rel="noopener noreferrer">
