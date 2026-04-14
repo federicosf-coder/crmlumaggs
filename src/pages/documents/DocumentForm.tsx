@@ -361,7 +361,7 @@ export default function DocumentForm() {
         </h1>
         {viewMode && (
           <div className="flex gap-2 ml-auto">
-            {form.tipo_documento === "cotizacion" && (
+            {form.tipo_documento === "cotizacion" && !existingDoc?.pdf_url && (
               <Button onClick={() => downloadCotizacionPdf(id!, () => {
                 qc.invalidateQueries({ queryKey: ["documento", id] });
                 qc.invalidateQueries({ queryKey: ["documentos"] });
