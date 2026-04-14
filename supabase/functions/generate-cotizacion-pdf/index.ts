@@ -118,7 +118,7 @@ serve(async (req) => {
           const logoH = 65;
           const logoW = logoH * logoAspect;
           page.drawImage(logoImage, { x: margin, y: y - logoH, width: logoW, height: logoH });
-          logoBottomY = y - logoH - 25;
+          logoBottomY = y - logoH - 53; // ~1cm extra spacing below logo
         }
       } catch (e) { console.error("Logo embed error:", e); }
     } else {
@@ -157,9 +157,10 @@ serve(async (req) => {
     const rightInfoStartY = y + 28;
     if (isLumaggs) {
       drawTextRight("chevron@lumaggs.com.mx", rightEdge, rightInfoStartY, 10, font);
-      drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 14, 10, font);
-      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 28, 10, font);
-      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 42, 10, font);
+      drawTextRight("Procesadora de Servicios MAGG'S, SA de C.V.", rightEdge, rightInfoStartY - 14, 10, font);
+      drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 28, 10, font);
+      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42, 10, font);
+      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56, 10, font);
     }
 
     y -= 30; // more space before "Dirigido a"
@@ -177,7 +178,12 @@ serve(async (req) => {
     y -= 14;
     const clientName = company?.name || "";
     drawText(clientName, margin, y, 11, fontBold);
-    y -= 35; // more space before table
+    y -= 14;
+    const contactName = contact ? `${contact.first_name || ""} ${contact.last_name || ""}`.trim() : "";
+    if (contactName) {
+      drawText(contactName, margin, y, 10, font);
+    }
+    y -= 25; // space before table
 
     // ===== PRODUCTS TABLE =====
     addNewPageIfNeeded(60);
@@ -226,19 +232,20 @@ serve(async (req) => {
     y -= 20; // more space after table
     addNewPageIfNeeded(60);
 
-    // Labels align right to col.subtotal area, values align right to rightEdge
-    const totLabelRight = col.subtotal - 5;
+    // Labels left-aligned at totLabelLeft, values right-aligned to rightEdge
+    const totLabelLeft = col.cantidad + 5;
     const totValueRight = rightEdge - 5;
 
-    drawTextRight("Subtotal:", totLabelRight, y, 10, font);
+    drawText("Subtotal:", totLabelLeft, y, 10, font);
     drawTextRight(`$${fmtMoney(Number(doc.subtotal))}`, totValueRight, y, 10, font);
     y -= 16;
 
-    drawTextRight("IVA:", totLabelRight, y, 10, font);
+    const ivaPct = Number(doc.iva_porcentaje) || 0;
+    drawText(`IVA (${ivaPct}%):`, totLabelLeft, y, 10, font);
     drawTextRight(`$${fmtMoney(Number(doc.iva_importe))}`, totValueRight, y, 10, font);
     y -= 16;
 
-    drawTextRight("Total:", totLabelRight, y, 10, fontBold);
+    drawText("Total:", totLabelLeft, y, 10, fontBold);
     drawTextRight(`$${fmtMoney(Number(doc.total))}`, totValueRight, y, 10, fontBold);
     y -= 35; // more space after totals
 
