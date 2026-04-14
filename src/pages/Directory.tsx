@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Building2, User, Search, Pencil, List, LayoutGrid, Phone, MapPin } from "lucide-react";
 import { SortMenu } from "@/components/SortMenu";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
-import { ContactFormDialog } from "@/components/ContactFormDialog";
+import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
