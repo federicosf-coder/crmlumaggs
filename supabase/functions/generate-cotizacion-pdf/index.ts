@@ -157,9 +157,10 @@ serve(async (req) => {
     const rightInfoStartY = y + 28;
     if (isLumaggs) {
       drawTextRight("chevron@lumaggs.com.mx", rightEdge, rightInfoStartY, 10, font);
-      drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 14, 10, font);
-      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 28, 10, font);
-      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 42, 10, font);
+      drawTextRight("Procesadora de Servicios MAGG'S, SA de C.V.", rightEdge, rightInfoStartY - 14, 10, font);
+      drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 28, 10, font);
+      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42, 10, font);
+      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56, 10, font);
     }
 
     y -= 30; // more space before "Dirigido a"
