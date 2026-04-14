@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Activity as ActivityIcon, CalendarDays, List, ChevronLeft, ChevronRight } from "lucide-react";
+import { SortMenu } from "@/components/SortMenu";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -36,6 +37,7 @@ export default function CrmActivitiesTasks() {
   const [createDefaultDate, setCreateDefaultDate] = useState<string | undefined>();
   const [selectedTask, setSelectedTask] = useState<CrmTask | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [sortBy, setSortBy] = useState("date_desc");
 
   const { data: activities = [], isLoading: activitiesLoading } = useCrmActivities(
     typeFilter && typeFilter !== "task" ? { type: typeFilter } : undefined
