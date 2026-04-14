@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText } from "lucide-react";
+import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText, Building2 } from "lucide-react";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
 
@@ -887,13 +887,106 @@ function CondicionesTab() {
   );
 }
 
+// ─── Marcas por Empresa Tab ──────────────────────────────────
+function EmpresaMarcasTab() {
+  const qc = useQueryClient();
+  const EMPRESAS: { v: "lumaggs_chevron" | "galsa_phillips66"; l: string }[] = [
+    { v: "lumaggs_chevron", l: "Lumaggs (Chevron)" },
+    { v: "galsa_phillips66", l: "Galsa (Phillips 66)" },
+  ];
+
+  const { data: marcas = [] } = useQuery({
+    queryKey: ["option_marcas"],
+    queryFn: async () => {
+      const { data } = await supabase.from("product_option_values").select("id, value").eq("option_type", "marca").eq("is_active", true).order("value");
+      return data || [];
+    },
+  });
+
+  const { data: asignaciones = [], isLoading } = useQuery({
+    queryKey: ["empresa_marcas"],
+    queryFn: async () => {
+      const { data } = await supabase.from("empresa_marcas").select("*, product_option_values(value)");
+      return data || [];
+    },
+  });
+
+  const [selectedEmpresa, setSelectedEmpresa] = useState<string>("lumaggs_chevron");
+  const [selectedMarca, setSelectedMarca] = useState("");
+
+  const add = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("empresa_marcas").insert({ empresa_vendedora: selectedEmpresa as any, marca_id: selectedMarca });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["empresa_marcas"] }); setSelectedMarca(""); toast.success("Marca asignada"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("empresa_marcas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["empresa_marcas"] }); toast.success("Marca removida"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const marcasAsignadas = asignaciones.filter((a: any) => a.empresa_vendedora === selectedEmpresa);
+  const marcasDisponibles = marcas.filter((m: any) => !marcasAsignadas.some((a: any) => a.marca_id === m.id));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Building2 className="h-5 w-5" /> Marcas por Empresa</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {EMPRESAS.map(e => (
+            <Button key={e.v} variant={selectedEmpresa === e.v ? "default" : "outline"} size="sm" onClick={() => setSelectedEmpresa(e.v)}>
+              {e.l}
+            </Button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <Label>Agregar Marca</Label>
+            <Select value={selectedMarca} onValueChange={setSelectedMarca}>
+              <SelectTrigger><SelectValue placeholder="Seleccionar marca..." /></SelectTrigger>
+              <SelectContent>{marcasDisponibles.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.value}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <Button onClick={() => add.mutate()} disabled={!selectedMarca || add.isPending} size="sm"><Plus className="mr-1 h-4 w-4" /> Asignar</Button>
+        </div>
+
+        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
+          <Table>
+            <TableHeader><TableRow><TableHead>Marca</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
+            <TableBody>
+              {marcasAsignadas.length === 0 ? (
+                <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">Sin marcas asignadas</TableCell></TableRow>
+              ) : marcasAsignadas.map((a: any) => (
+                <TableRow key={a.id}>
+                  <TableCell className="font-medium">{(a.product_option_values as any)?.value || "—"}</TableCell>
+                  <TableCell><Button variant="ghost" size="icon" onClick={() => remove.mutate(a.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main Page ───────────────────────────────────────────────
 export default function CatalogsManagement() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Catálogos</h1>
-        <p className="text-muted-foreground">Administra plazas, presentaciones, clasificaciones, embudos, logos y condiciones comerciales.</p>
+        <p className="text-muted-foreground">Administra plazas, presentaciones, clasificaciones, embudos, logos, condiciones y marcas por empresa.</p>
       </div>
       <Tabs defaultValue="plazas">
         <TabsList className="flex-wrap">
@@ -903,6 +996,7 @@ export default function CatalogsManagement() {
           <TabsTrigger value="embudos">Embudos de Venta</TabsTrigger>
           <TabsTrigger value="logos">Logos</TabsTrigger>
           <TabsTrigger value="condiciones">Condiciones</TabsTrigger>
+          <TabsTrigger value="empresa_marcas">Marcas por Empresa</TabsTrigger>
         </TabsList>
         <TabsContent value="plazas"><PlazasTab /></TabsContent>
         <TabsContent value="presentaciones"><PresentacionesTab /></TabsContent>
@@ -910,6 +1004,7 @@ export default function CatalogsManagement() {
         <TabsContent value="embudos"><EmbudosTab /></TabsContent>
         <TabsContent value="logos"><LogosTab /></TabsContent>
         <TabsContent value="condiciones"><CondicionesTab /></TabsContent>
+        <TabsContent value="empresa_marcas"><EmpresaMarcasTab /></TabsContent>
       </Tabs>
     </div>
   );
