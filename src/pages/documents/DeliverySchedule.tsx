@@ -116,17 +116,18 @@ export default function DeliverySchedule() {
 
   const dateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
 
-  // Fetch pedidos that are validated (ready to schedule) or already scheduled for this date+vehicle+driver
+  // Fetch pedidos that are validated AND have fecha_entrega_programada matching selected date
   const { data: availablePedidos = [], isLoading: loadingPedidos } = useQuery({
     queryKey: ["pedidos-for-schedule", dateStr],
     queryFn: async () => {
-      // Get validated pedidos (ready to be scheduled)
+      if (!dateStr) return [];
       const { data: validated } = await supabase
         .from("documentos")
         .select("*, companies(name)")
         .eq("tipo_documento", "pedido")
         .eq("is_active", true)
         .eq("estatus_pedido", "validado_contabilidad")
+        .eq("fecha_entrega_programada", dateStr)
         .order("created_at");
       return validated || [];
     },
