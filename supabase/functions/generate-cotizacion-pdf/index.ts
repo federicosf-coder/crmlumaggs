@@ -39,15 +39,19 @@ serve(async (req) => {
       .eq("empresa_vendedora", doc.empresa_vendedora)
       .single();
 
-    // Fetch executive name
+    // Fetch executive info
     let ejecutivoName = "";
+    let ejecutivoEmail = "";
+    let ejecutivoPhone = "";
     if (doc.ejecutivo_venta_id) {
       const { data: prof } = await sb
         .from("profiles")
-        .select("full_name")
+        .select("full_name, email, phone")
         .eq("user_id", doc.ejecutivo_venta_id)
         .single();
       ejecutivoName = prof?.full_name || "";
+      ejecutivoEmail = prof?.email || "";
+      ejecutivoPhone = prof?.phone || "";
     }
 
     // Fetch logo
@@ -58,11 +62,8 @@ serve(async (req) => {
       .eq("key", logoKey)
       .single();
 
-    // Brand colors
     const isLumaggs = doc.empresa_vendedora === "lumaggs_chevron";
-    const brandColor = isLumaggs ? rgb(0.05, 0.25, 0.56) : rgb(0.72, 0.11, 0.11);
-    const brandColorLight = isLumaggs ? rgb(0.85, 0.9, 0.97) : rgb(0.97, 0.88, 0.88);
-    const empresaLabel = isLumaggs ? "Lumaggs Chevron" : "Galsa Phillips 66";
+    const blueHeader = rgb(0.22, 0.33, 0.73); // Blue for table header (#3855BA approx)
 
     // Create PDF
     const pdfDoc = await PDFDocument.create();
@@ -73,223 +74,259 @@ serve(async (req) => {
     const pageHeight = 792;
     const margin = 50;
     const contentWidth = pageWidth - margin * 2;
+    const rightEdge = pageWidth - margin;
 
     let page = pdfDoc.addPage([pageWidth, pageHeight]);
     let y = pageHeight - margin;
 
     const drawText = (text: string, x: number, yPos: number, size = 10, f = font, color = rgb(0, 0, 0)) => {
-      page.drawText(text, { x, y: yPos, size, font: f, color });
+      page.drawText(text || "", { x, y: yPos, size, font: f, color });
     };
 
-    const drawLine = (x1: number, y1: number, x2: number, thickness = 1, color = rgb(0.8, 0.8, 0.8)) => {
+    const drawTextRight = (text: string, xRight: number, yPos: number, size = 10, f = font, color = rgb(0, 0, 0)) => {
+      const w = f.widthOfTextAtSize(text || "", size);
+      page.drawText(text || "", { x: xRight - w, y: yPos, size, font: f, color });
+    };
+
+    const drawLine = (x1: number, y1: number, x2: number, thickness = 0.5, color = rgb(0.7, 0.7, 0.7)) => {
       page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y1 }, thickness, color });
     };
 
     const addNewPageIfNeeded = (needed: number) => {
-      if (y - needed < margin) {
+      if (y - needed < margin + 20) {
         page = pdfDoc.addPage([pageWidth, pageHeight]);
         y = pageHeight - margin;
       }
     };
 
-    // ===== HEADER =====
-    // Brand bar
-    page.drawRectangle({ x: 0, y: pageHeight - 8, width: pageWidth, height: 8, color: brandColor });
+    const fmtMoney = (n: number) => {
+      return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
 
-    // Try to embed logo
-    let logoHeight = 0;
+    // ===== LOGO (top-left, large) =====
+    let logoBottomY = y;
     if (logoData?.storage_path) {
       try {
         const { data: logoFile } = await sb.storage.from("logos").download(logoData.storage_path);
         if (logoFile) {
           const logoBytes = new Uint8Array(await logoFile.arrayBuffer());
           let logoImage;
-          // Try PNG first, fallback to JPG
-          try {
-            logoImage = await pdfDoc.embedPng(logoBytes);
-          } catch {
-            logoImage = await pdfDoc.embedJpg(logoBytes);
-          }
+          try { logoImage = await pdfDoc.embedPng(logoBytes); } catch { logoImage = await pdfDoc.embedJpg(logoBytes); }
           const logoAspect = logoImage.width / logoImage.height;
-          logoHeight = 50;
-          const logoWidth = logoHeight * logoAspect;
-          page.drawImage(logoImage, { x: margin, y: y - logoHeight - 10, width: logoWidth, height: logoHeight });
+          const logoH = 65;
+          const logoW = logoH * logoAspect;
+          page.drawImage(logoImage, { x: margin, y: y - logoH, width: logoW, height: logoH });
+          logoBottomY = y - logoH - 20;
         }
-      } catch (e) {
-        console.error("Logo embed error:", e);
-      }
+      } catch (e) { console.error("Logo embed error:", e); }
     }
 
-    // Title - position to the right of logo or at margin
-    const titleX = logoHeight > 0 ? margin + 120 : margin;
-    drawText("COTIZACIÓN", titleX, y - 20, 22, fontBold, brandColor);
-    y -= 25;
+    y = logoBottomY;
 
-    // Empresa vendedora
-    drawText(empresaLabel, titleX, y - 20, 11, fontBold, brandColor);
-    y -= Math.max(35, logoHeight - 10);
+    // ===== COMPANY NAME right-aligned =====
+    const companyLabel = isLumaggs ? "Lumaggs" : "Galsa";
+    drawTextRight(companyLabel, rightEdge, y + 60, 13, fontBold, rgb(0, 0, 0));
 
-    // Number and date
+    // ===== PROPOSAL INFO (left) + COMPANY CONTACT (right) =====
     const numCot = doc.numero_cotizacion || "Sin número";
     const fecha = doc.fecha_documento || "";
     const fechaVenc = doc.fecha_vencimiento || "";
 
-    drawText("No. Cotización:", margin, y, 9, fontBold);
-    drawText(numCot, margin + 85, y, 9);
-    drawText("Fecha:", pageWidth / 2, y, 9, fontBold);
-    drawText(fecha, pageWidth / 2 + 40, y, 9);
+    // Calculate vigencia in days if both dates exist
+    let vigenciaText = "";
+    if (fecha && fechaVenc) {
+      const d1 = new Date(fecha);
+      const d2 = new Date(fechaVenc);
+      const diffDays = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+      vigenciaText = `${diffDays} dias`;
+    }
+
+    // Left side - proposal info
+    drawText(`Propuesta # ${numCot.replace("COT-", "")}`, margin, y, 10, font);
     y -= 14;
-
-    if (fechaVenc) {
-      drawText("Vigencia:", margin, y, 9, fontBold);
-      drawText(fechaVenc, margin + 55, y, 9);
-      y -= 14;
+    drawText(`Fecha de cotizacion: ${fecha}`, margin, y, 10, font);
+    y -= 14;
+    if (vigenciaText) {
+      drawText(`Vigencia: ${vigenciaText}`, margin, y, 10, font);
     }
 
-    if (ejecutivoName) {
-      drawText("Ejecutivo:", margin, y, 9, fontBold);
-      drawText(ejecutivoName, margin + 58, y, 9);
-      y -= 14;
+    // Right side - company contact info
+    const rightInfoStartY = y + 28;
+    if (isLumaggs) {
+      drawTextRight("chevron@lumaggs.com.mx", rightEdge, rightInfoStartY, 10, font);
+      drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 14, 10, font);
+      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 28, 10, font);
+      drawTextRight("San Quintín | Tecate", rightEdge, rightInfoStartY - 42, 10, font);
     }
 
-    y -= 10;
-    drawLine(margin, y, pageWidth - margin, 1, brandColor);
     y -= 20;
 
-    // ===== CLIENT INFO =====
+    // ===== PHONE right-aligned =====
     const company = doc.companies as any;
     const contact = doc.contacts as any;
-
-    drawText("DATOS DEL CLIENTE", margin, y, 11, fontBold, brandColor);
-    y -= 16;
-
-    if (company?.name) { drawText("Empresa:", margin, y, 9, fontBold); drawText(company.name, margin + 55, y, 9); y -= 13; }
-    if (contact) {
-      const contactName = `${contact.first_name} ${contact.last_name}`;
-      drawText("Contacto:", margin, y, 9, fontBold); drawText(contactName, margin + 55, y, 9); y -= 13;
-      if (contact.email) { drawText("Email:", margin, y, 9, fontBold); drawText(contact.email, margin + 55, y, 9); y -= 13; }
-      if (contact.phone) { drawText("Tel:", margin, y, 9, fontBold); drawText(contact.phone, margin + 55, y, 9); y -= 13; }
+    const clientPhone = contact?.phone || company?.phone || "";
+    if (clientPhone) {
+      drawTextRight(clientPhone, rightEdge, y, 10, font);
     }
-    if (company?.address) { drawText("Dirección:", margin, y, 9, fontBold); drawText(`${company.address}${company.city ? ', ' + company.city : ''}${company.state ? ', ' + company.state : ''}`, margin + 55, y, 9); y -= 13; }
-    if (doc.direccion_envio) { drawText("Envío:", margin, y, 9, fontBold); drawText(doc.direccion_envio, margin + 55, y, 9); y -= 13; }
 
-    y -= 10;
+    // ===== DIRIGIDO A =====
+    drawText("Dirigido a:", margin, y, 10, font);
+    y -= 14;
+    const clientName = company?.name || "";
+    drawText(clientName, margin, y, 11, fontBold);
+    y -= 30;
 
     // ===== PRODUCTS TABLE =====
     addNewPageIfNeeded(60);
-    drawText("PRODUCTOS", margin, y, 11, fontBold, brandColor);
-    y -= 18;
 
-    // Table header
-    const colX = [margin, margin + 40, margin + 260, margin + 310, margin + 370, margin + 430, margin + 480];
-    const colLabels = ["#", "Descripción", "Cant.", "P. Unit.", "Desc. %", "Subtotal"];
+    // Column positions for: Codigo | Producto | Cantidad | Precio | Subtotal
+    const col = {
+      codigo: margin,
+      producto: margin + 85,
+      cantidad: margin + 340,
+      precio: margin + 400,
+      subtotal: margin + 470,
+    };
 
-    page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 18, color: brandColor });
-    colLabels.forEach((label, i) => {
-      drawText(label, colX[i] + 3, y, 8, fontBold, rgb(1, 1, 1));
-    });
-    y -= 18;
+    // Table header - blue background
+    page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 20, color: blueHeader });
+    drawText("Codigo", col.codigo + 5, y, 9, fontBold, rgb(1, 1, 1));
+    drawText("Producto", col.producto + 5, y, 9, fontBold, rgb(1, 1, 1));
+    drawText("Cantidad", col.cantidad + 5, y, 9, fontBold, rgb(1, 1, 1));
+    drawText("Precio", col.precio + 5, y, 9, fontBold, rgb(1, 1, 1));
+    drawText("Subtotal", col.subtotal + 5, y, 9, fontBold, rgb(1, 1, 1));
+    y -= 24;
 
     // Table rows
     (items || []).forEach((item: any, idx: number) => {
-      addNewPageIfNeeded(16);
+      addNewPageIfNeeded(30);
       const prod = item.productos;
-      const desc = [prod?.codigo, prod?.nombre_producto, (prod?.presentaciones as any)?.nombre].filter(Boolean).join(" ");
-      const bgColor = idx % 2 === 0 ? brandColorLight : rgb(1, 1, 1);
+      const codigo = prod?.codigo || "";
+      const nombre = prod?.nombre_producto || "";
+      const presentacion = (prod?.presentaciones as any)?.nombre || "";
+      const productoDesc = presentacion ? `${nombre} | ${presentacion}` : nombre;
 
-      page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 16, color: bgColor });
+      // Truncate if too long
+      const maxLen = 42;
+      const productoTrunc = productoDesc.length > maxLen ? productoDesc.substring(0, maxLen) + "..." : productoDesc;
 
-      drawText(String(idx + 1), colX[0] + 3, y, 8);
-      // Truncate description if too long
-      const maxDescLen = 38;
-      const descTrunc = desc.length > maxDescLen ? desc.substring(0, maxDescLen) + "..." : desc;
-      drawText(descTrunc, colX[1] + 3, y, 8);
-      drawText(String(item.cantidad), colX[2] + 3, y, 8);
-      drawText(`$${Number(item.precio_unitario).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`, colX[3] + 3, y, 8);
-      drawText(`${item.descuento_porcentaje}%`, colX[4] + 3, y, 8);
-      drawText(`$${Number(item.subtotal).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`, colX[5] + 3, y, 8);
-      y -= 16;
+      drawText(codigo, col.codigo + 5, y, 9);
+      drawText(productoTrunc, col.producto + 5, y, 9);
+      drawText(String(item.cantidad), col.cantidad + 15, y, 9);
+      drawTextRight(`$${fmtMoney(Number(item.precio_unitario))}`, col.subtotal - 5, y, 9);
+      drawTextRight(fmtMoney(Number(item.subtotal)), rightEdge - 5, y, 9);
+      y -= 18;
     });
 
-    // Totals
-    y -= 8;
-    addNewPageIfNeeded(60);
-    const totalsX = pageWidth - margin - 160;
+    // ===== TOTALS (right-aligned) =====
+    y -= 10;
+    addNewPageIfNeeded(50);
 
-    drawText("Subtotal:", totalsX, y, 9, fontBold);
-    drawText(`$${Number(doc.subtotal).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`, totalsX + 80, y, 9);
-    y -= 14;
+    const totLabelX = col.precio + 5;
+    const totValueX = rightEdge - 5;
 
-    drawText(`IVA (${doc.iva_porcentaje}%):`, totalsX, y, 9, fontBold);
-    drawText(`$${Number(doc.iva_importe).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`, totalsX + 80, y, 9);
-    y -= 14;
+    drawTextRight("Subtotal", totLabelX + 40, y, 10, font);
+    drawTextRight(fmtMoney(Number(doc.subtotal)), totValueX, y, 10, font);
+    y -= 16;
 
-    drawLine(totalsX, y + 4, pageWidth - margin, 1, brandColor);
-    drawText("TOTAL:", totalsX, y - 6, 12, fontBold, brandColor);
-    drawText(`$${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`, totalsX + 80, y - 6, 12, fontBold, brandColor);
+    drawTextRight("IVA", totLabelX + 40, y, 10, font);
+    drawTextRight(fmtMoney(Number(doc.iva_importe)), totValueX, y, 10, font);
+    y -= 16;
+
+    drawTextRight("Total", totLabelX + 40, y, 10, fontBold);
+    drawTextRight(fmtMoney(Number(doc.total)), totValueX, y, 10, fontBold);
     y -= 30;
+
+    // ===== EJECUTIVO =====
+    if (ejecutivoName) {
+      addNewPageIfNeeded(40);
+      drawLine(margin, y, rightEdge, 0.5, rgb(0.6, 0.6, 0.6));
+      y -= 20;
+      let ejText = `Ejecutivo: `;
+      drawText(ejText, margin, y, 10, fontBold);
+      const ejDetailParts = [ejecutivoName, ejecutivoEmail, ejecutivoPhone].filter(Boolean);
+      drawText(ejDetailParts.join(", "), margin + font.widthOfTextAtSize(ejText, 10) + fontBold.widthOfTextAtSize("", 10), y, 10, font);
+      y -= 20;
+      drawLine(margin, y, rightEdge, 0.5, rgb(0.6, 0.6, 0.6));
+      y -= 25;
+    }
+
+    // ===== CONDITIONS / NOTES =====
+    addNewPageIfNeeded(40);
+
+    // Standard disclaimer
+    drawText("Precios no incluyen IVA y están sujetos a cambio sin previo aviso.", margin, y, 10, font);
+    y -= 20;
+
+    // Bank details from condiciones_comerciales
+    if (condiciones?.contenido) {
+      const lines = condiciones.contenido.split("\n");
+      for (const line of lines) {
+        addNewPageIfNeeded(14);
+        // Word-wrap each line
+        const words = line.split(" ");
+        let currentLine = "";
+        for (const word of words) {
+          const test = currentLine ? currentLine + " " + word : word;
+          if (font.widthOfTextAtSize(test, 10) > contentWidth) {
+            drawText(currentLine, margin, y, 10, font);
+            y -= 14;
+            currentLine = word;
+          } else {
+            currentLine = test;
+          }
+        }
+        if (currentLine) {
+          drawText(currentLine, margin, y, 10, font);
+          y -= 14;
+        }
+      }
+    }
 
     // ===== NOTES =====
     if (doc.notas) {
-      addNewPageIfNeeded(40);
-      drawText("NOTAS", margin, y, 11, fontBold, brandColor);
-      y -= 16;
-      // Word wrap notes
+      y -= 10;
+      addNewPageIfNeeded(30);
+      drawText("Notas:", margin, y, 10, fontBold);
+      y -= 14;
       const words = doc.notas.split(" ");
       let line = "";
       for (const word of words) {
         const test = line ? line + " " + word : word;
-        if (font.widthOfTextAtSize(test, 9) > contentWidth) {
+        if (font.widthOfTextAtSize(test, 10) > contentWidth) {
           addNewPageIfNeeded(14);
-          drawText(line, margin, y, 9);
-          y -= 13;
+          drawText(line, margin, y, 10);
+          y -= 14;
           line = word;
         } else {
           line = test;
         }
       }
-      if (line) { addNewPageIfNeeded(14); drawText(line, margin, y, 9); y -= 13; }
-      y -= 10;
+      if (line) { addNewPageIfNeeded(14); drawText(line, margin, y, 10); y -= 14; }
     }
 
-    // ===== COMMERCIAL CONDITIONS =====
-    if (condiciones?.contenido) {
-      addNewPageIfNeeded(40);
-      drawLine(margin, y, pageWidth - margin, 1, brandColor);
-      y -= 20;
-      drawText("CONDICIONES COMERCIALES", margin, y, 11, fontBold, brandColor);
-      y -= 16;
-
-      const condWords = condiciones.contenido.split(" ");
-      let condLine = "";
-      for (const word of condWords) {
-        const test = condLine ? condLine + " " + word : word;
-        if (font.widthOfTextAtSize(test, 8) > contentWidth) {
-          addNewPageIfNeeded(13);
-          drawText(condLine, margin, y, 8, font, rgb(0.3, 0.3, 0.3));
-          y -= 12;
-          condLine = word;
-        } else {
-          condLine = test;
-        }
-      }
-      if (condLine) { addNewPageIfNeeded(13); drawText(condLine, margin, y, 8, font, rgb(0.3, 0.3, 0.3)); y -= 12; }
-    }
-
-    // ===== FOOTER =====
-    const totalPages = pdfDoc.getPageCount();
-    for (let i = 0; i < totalPages; i++) {
-      const p = pdfDoc.getPage(i);
-      p.drawRectangle({ x: 0, y: 0, width: pageWidth, height: 30, color: brandColor });
-      p.drawText(empresaLabel, { x: margin, y: 10, size: 8, font: fontBold, color: rgb(1, 1, 1) });
-      p.drawText(`Página ${i + 1} de ${totalPages}`, { x: pageWidth - margin - 70, y: 10, size: 8, font, color: rgb(1, 1, 1) });
-    }
+    // No footer bar - clean design
 
     const pdfBytes = await pdfDoc.save();
 
-    // Update status from borrador to impresa
-    if (doc.estatus_cotizacion === "borrador") {
-      await sb.from("documentos").update({ estatus_cotizacion: "impresa" }).eq("id", documento_id);
+    // Upload to storage
+    const fileName = `cotizaciones/${documento_id}.pdf`;
+    const { error: uploadErr } = await sb.storage
+      .from("document-files")
+      .upload(fileName, pdfBytes, { contentType: "application/pdf", upsert: true });
+
+    let pdfPublicUrl = "";
+    if (!uploadErr) {
+      const { data: urlData } = sb.storage.from("document-files").getPublicUrl(fileName);
+      pdfPublicUrl = urlData?.publicUrl || "";
+    }
+
+    // Update document: set pdf_url and status
+    const updateData: any = {};
+    if (pdfPublicUrl) updateData.pdf_url = pdfPublicUrl;
+    if (doc.estatus_cotizacion === "borrador") updateData.estatus_cotizacion = "impresa";
+    if (Object.keys(updateData).length > 0) {
+      await sb.from("documentos").update(updateData).eq("id", documento_id);
     }
 
     return new Response(pdfBytes, {
@@ -300,6 +337,7 @@ serve(async (req) => {
       },
     });
   } catch (err) {
+    console.error("PDF generation error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
