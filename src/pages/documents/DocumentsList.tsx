@@ -149,16 +149,17 @@ export default function DocumentsList() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Empresa Vendedora</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Ejecutivo</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Estatus</TableHead>
-                </TableRow>
+                 <TableRow>
+                   <TableHead>Tipo</TableHead>
+                   <TableHead>Número</TableHead>
+                   <TableHead>Empresa Vendedora</TableHead>
+                   <TableHead>Cliente</TableHead>
+                   <TableHead>Ejecutivo</TableHead>
+                   <TableHead>Fecha</TableHead>
+                   <TableHead>Total</TableHead>
+                   <TableHead>Estatus</TableHead>
+                   <TableHead>PDF</TableHead>
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {docs.map((doc: any) => (
