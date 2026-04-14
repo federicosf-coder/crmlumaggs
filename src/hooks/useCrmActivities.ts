@@ -18,13 +18,16 @@ export interface CrmActivity {
   id: string;
   deal_id: string | null;
   contact_id: string | null;
+  company_id: string | null;
   user_id: string;
   type: CrmActivityType;
   title: string;
   description: string | null;
+  activity_date: string;
   created_at: string;
   crm_deals?: { id: string; title: string } | null;
   contacts?: { id: string; first_name: string; last_name: string } | null;
+  companies?: { id: string; name: string } | null;
 }
 
 export function useCrmActivities(filters?: { type?: string; limit?: number; since?: string; pipelineId?: string }) {
@@ -33,8 +36,8 @@ export function useCrmActivities(filters?: { type?: string; limit?: number; sinc
     queryFn: async () => {
       let q = supabase
         .from("crm_activities")
-        .select("*, crm_deals(id, title, pipeline_id), contacts(id, first_name, last_name)")
-        .order("created_at", { ascending: false });
+        .select("*, crm_deals(id, title, pipeline_id), contacts(id, first_name, last_name), companies(id, name)")
+        .order("activity_date", { ascending: false });
       if (filters?.type) q = q.eq("type", filters.type);
       if (filters?.since) q = q.gte("created_at", filters.since);
       if (filters?.limit) q = q.limit(filters.limit);
@@ -63,6 +66,7 @@ export function useCreateCrmActivity() {
       type: CrmActivityType;
       title: string;
       description?: string | null;
+      activity_date?: string;
     }) => {
       const { data, error } = await supabase.from("crm_activities").insert(activity).select().single();
       if (error) throw error;
