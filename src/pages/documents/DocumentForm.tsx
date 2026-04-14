@@ -649,12 +649,19 @@ export default function DocumentForm() {
       </Card>
 
       {/* Actions */}
-      <div className="flex justify-end gap-3">
-        <Button variant="outline" onClick={() => navigate("/documents")}>Cancelar</Button>
-        <Button onClick={handleSave} disabled={saving}>
-          <Save className="mr-2 h-4 w-4" /> {saving ? "Guardando..." : "Guardar"}
-        </Button>
-      </div>
+      {!viewMode && (
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={() => isEdit ? setViewMode(true) : navigate("/documents")}>Cancelar</Button>
+          {form.tipo_documento === "cotizacion" && (
+            <Button variant="secondary" onClick={() => { setGeneratePdfAfterSave(true); handleSave(); }} disabled={saving}>
+              <Download className="mr-2 h-4 w-4" /> {saving && generatePdfAfterSave ? "Generando..." : "Guardar y PDF"}
+            </Button>
+          )}
+          <Button onClick={handleSave} disabled={saving}>
+            <Save className="mr-2 h-4 w-4" /> {saving && !generatePdfAfterSave ? "Guardando..." : "Guardar"}
+          </Button>
+        </div>
+      )}
 
       {/* Dialog: Nueva Empresa (formulario completo) */}
       <CompanyFormDialog open={showNewCompany} onOpenChange={setShowNewCompany} onCreated={handleCompanyCreated} />
