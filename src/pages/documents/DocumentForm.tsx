@@ -470,7 +470,7 @@ export default function DocumentForm() {
           {viewMode ? "Ver Documento" : isEdit ? "Editar Documento" : "Nuevo Documento"}
         </h1>
         {viewMode && (
-          <div className="flex gap-2 ml-auto">
+          <div className="flex gap-2 ml-auto flex-wrap">
             {existingDoc?.pdf_url && (
               <Button variant="default" asChild>
                 <a href={existingDoc.pdf_url} target="_blank" rel="noopener noreferrer">
@@ -485,6 +485,16 @@ export default function DocumentForm() {
               })}>
                 <Download className="mr-2 h-4 w-4" /> Generar PDF
               </Button>
+            )}
+            {form.tipo_documento === "cotizacion" && (
+              <>
+                <Button variant="secondary" onClick={() => handleConvertTo("pedido")}>
+                  <ShoppingCart className="mr-2 h-4 w-4" /> Convertir a Pedido
+                </Button>
+                <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
+                  <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
+                </Button>
+              </>
             )}
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
