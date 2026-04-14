@@ -228,135 +228,146 @@ export default function DocumentsList() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por número o cliente..."
-                className="pl-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <Select value={ejecutivoFilter} onValueChange={setEjecutivoFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Ejecutivo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los ejecutivos</SelectItem>
-                {profiles.map((p) => (
-                  <SelectItem key={p.user_id} value={p.user_id}>
-                    {p.full_name || p.user_id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <SortMenu
-              value={sortBy}
-              onChange={setSortBy}
-              options={[
-                { value: "date_desc", label: "Fecha ↓" },
-                { value: "date_asc", label: "Fecha ↑" },
-                { value: "total_desc", label: "Total ↓" },
-                { value: "total_asc", label: "Total ↑" },
-                { value: "client_asc", label: "Cliente A-Z" },
-              ]}
-            />
-          </div>
-        </CardHeader>
-        <CardContent className="px-0 sm:px-6">
+      {/* Kanban view */}
+      {viewMode === "kanban" ? (
+        <div>
           {isLoading ? (
             <p className="text-center py-8 text-muted-foreground">Cargando...</p>
-          ) : docs.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-2 text-muted-foreground">No hay documentos</p>
-            </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      {tipoFilter === "factura" ? "No. Factura" : "Número"}
-                    </TableHead>
-                    <TableHead className="min-w-[180px]">Cliente</TableHead>
-                    <TableHead className="hidden sm:table-cell">Ejecutivo</TableHead>
-                    {tipoFilter === "factura" && (
-                      <TableHead className="hidden md:table-cell">Plaza</TableHead>
-                    )}
-                    <TableHead className="hidden md:table-cell">Fecha</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>
-                      {tipoFilter === "factura" ? "Estatus Factura" : "Estatus"}
-                    </TableHead>
-                    <TableHead className="hidden sm:table-cell">PDF</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedDocs.map((doc: any) => (
-                    <TableRow
-                      key={doc.id}
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/documents/${doc.id}`)}
-                    >
-                      <TableCell className="font-medium whitespace-nowrap">
-                        {tipoFilter === "factura"
-                          ? (doc.numero_factura || "-")
-                          : (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "-")}
-                      </TableCell>
-                      <TableCell>{(doc.companies as any)?.name || "-"}</TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        {getEjecutivoName(doc.ejecutivo_venta_id)}
-                      </TableCell>
-                      {tipoFilter === "factura" && (
-                        <TableCell className="hidden md:table-cell">
-                          {(doc.plazas as any)?.nombre || "-"}
-                        </TableCell>
-                      )}
-                      <TableCell className="hidden md:table-cell whitespace-nowrap">
-                        {format(new Date(doc.fecha_documento), "dd/MM/yyyy")}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getEstatusVariant(doc)}>{getEstatusLabel(doc)}</Badge>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        {doc.pdf_url ? (
-                          <Button variant="ghost" size="icon" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                            <a href={doc.pdf_url} target="_blank" rel="noopener noreferrer" title="Ver PDF">
-                              <Download className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        ) : doc.tipo_documento === "cotizacion" ? (
-                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); downloadCotizacionPdf(doc.id, () => refetch()); }} title="Generar PDF">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        ) : null}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/documents/${doc.id}`); }} title="Editar">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" disabled={duplicating === doc.id} onClick={(e) => handleDuplicate(e, doc)} title="Duplicar">
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <DocumentKanban documents={sortedDocs} tipoFilter={tipoFilter} />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      ) : (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por número o cliente..."
+                  className="pl-9"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <Select value={ejecutivoFilter} onValueChange={setEjecutivoFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Ejecutivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los ejecutivos</SelectItem>
+                  {profiles.map((p) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>
+                      {p.full_name || p.user_id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <SortMenu
+                value={sortBy}
+                onChange={setSortBy}
+                options={[
+                  { value: "date_desc", label: "Fecha ↓" },
+                  { value: "date_asc", label: "Fecha ↑" },
+                  { value: "total_desc", label: "Total ↓" },
+                  { value: "total_asc", label: "Total ↑" },
+                  { value: "client_asc", label: "Cliente A-Z" },
+                ]}
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="px-0 sm:px-6">
+            {isLoading ? (
+              <p className="text-center py-8 text-muted-foreground">Cargando...</p>
+            ) : docs.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <p className="mt-2 text-muted-foreground">No hay documentos</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>
+                        {tipoFilter === "factura" ? "No. Factura" : "Número"}
+                      </TableHead>
+                      <TableHead className="min-w-[180px]">Cliente</TableHead>
+                      <TableHead className="hidden sm:table-cell">Ejecutivo</TableHead>
+                      {tipoFilter === "factura" && (
+                        <TableHead className="hidden md:table-cell">Plaza</TableHead>
+                      )}
+                      <TableHead className="hidden md:table-cell">Fecha</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>
+                        {tipoFilter === "factura" ? "Estatus Factura" : "Estatus"}
+                      </TableHead>
+                      <TableHead className="hidden sm:table-cell">PDF</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedDocs.map((doc: any) => (
+                      <TableRow
+                        key={doc.id}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/documents/${doc.id}`)}
+                      >
+                        <TableCell className="font-medium whitespace-nowrap">
+                          {tipoFilter === "factura"
+                            ? (doc.numero_factura || "-")
+                            : (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "-")}
+                        </TableCell>
+                        <TableCell>{(doc.companies as any)?.name || "-"}</TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          {getEjecutivoName(doc.ejecutivo_venta_id)}
+                        </TableCell>
+                        {tipoFilter === "factura" && (
+                          <TableCell className="hidden md:table-cell">
+                            {(doc.plazas as any)?.nombre || "-"}
+                          </TableCell>
+                        )}
+                        <TableCell className="hidden md:table-cell whitespace-nowrap">
+                          {format(new Date(doc.fecha_documento), "dd/MM/yyyy")}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getEstatusVariant(doc)}>{getEstatusLabel(doc)}</Badge>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          {doc.pdf_url ? (
+                            <Button variant="ghost" size="icon" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                              <a href={doc.pdf_url} target="_blank" rel="noopener noreferrer" title="Ver PDF">
+                                <Download className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          ) : doc.tipo_documento === "cotizacion" ? (
+                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); downloadCotizacionPdf(doc.id, () => refetch()); }} title="Generar PDF">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/documents/${doc.id}`); }} title="Editar">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" disabled={duplicating === doc.id} onClick={(e) => handleDuplicate(e, doc)} title="Duplicar">
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
