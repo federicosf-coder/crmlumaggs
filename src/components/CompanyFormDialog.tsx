@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const INDUSTRIAS_OPTIONS = [
+export const INDUSTRIAS_OPTIONS = [
   "Agroindustria (campos, empacadoras, maquinaria)",
   "Construcción (obra civil, maquinaria, movimiento de tierra)",
   "Detalle / autoservicio (supermercados, mercados)",
@@ -39,46 +39,57 @@ const INDUSTRIAS_OPTIONS = [
   "Transporte – personal / pasajeros",
 ];
 
-const EQUIPO_OPTIONS = ["Ensenada", "Mexicali", "San Luis", "San Quintín", "Tijuana", "Morelos"];
-const TIPO_DESTINO_OPTIONS = ["Usuario final", "Revendedor"];
-const POTENCIAL_UNIDADES_OPTIONS = [
+export const EQUIPO_OPTIONS = ["Ensenada", "Mexicali", "San Luis", "San Quintín", "Tijuana", "Morelos"];
+export const TIPO_DESTINO_OPTIONS = ["Usuario final", "Revendedor"];
+export const POTENCIAL_UNIDADES_OPTIONS = [
   "UF1 1–10 unidades", "UF2 11–45 unidades", "UF3 46–90 unidades", "UF4 90 o más unidades",
   "R1 Menos de 45 unidades", "R2 46–90 unidades", "R3 91–135 unidades", "R4 135 o más unidades",
 ];
-const TOMADOR_DECISION_OPTIONS = ["Dueño-operador", "Dueño + mecánico", "Encargado de mantenimiento", "Administrador / Compras"];
-const RIESGO_OPTIONS = ["Alto", "Medio", "Bajo"];
-const ORIGEN_CONTACTO_OPTIONS = ["Cliente nos buscó", "Prospección activa (nosotros lo buscamos)", "Referido técnico"];
-const EVALUACION_OPTIONS = [
+export const TOMADOR_DECISION_OPTIONS = ["Dueño-operador", "Dueño + mecánico", "Encargado de mantenimiento", "Administrador / Compras"];
+export const RIESGO_OPTIONS = ["Alto", "Medio", "Bajo"];
+export const ORIGEN_CONTACTO_OPTIONS = ["Cliente nos buscó", "Prospección activa (nosotros lo buscamos)", "Referido técnico"];
+export const EVALUACION_OPTIONS = [
   "Premium – \"es el mejor\"", "Premium – \"cumple\"", "Medio – \"cumple\"",
   "Económico – \"cumple\"", "Económico – \"solo relleno\"",
 ];
-const ROL_LUBRICANTE_OPTIONS = ["Crítico para la operación", "Importante pero no estratégico", "Insumo más"];
-const TIPO_CLIENTE_OPTIONS = ["Contado", "Crédito directo", "Crédito Cescemex"];
+export const ROL_LUBRICANTE_OPTIONS = ["Crítico para la operación", "Importante pero no estratégico", "Insumo más"];
+export const TIPO_CLIENTE_OPTIONS = ["Contado", "Crédito directo", "Crédito Cescemex"];
+
+export interface CompanyData {
+  id?: string;
+  name: string; industry: string | null; website: string | null;
+  phone: string | null; email: string | null; address: string | null;
+  city: string | null; state: string | null; zip_code: string | null;
+  notes: string | null;
+  industrias: string[] | null; equipo: string | null;
+  tipo_destino_lubricante: string | null; potencial_unidades: string | null;
+  tomador_decision: string | null; riesgo_cambio_marca: string | null;
+  origen_contacto: string | null; evaluacion_lubricante: string | null;
+  rol_lubricante: string | null; tipo_cliente_comercial: string | null;
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: (id: string) => void;
+  editData?: CompanyData | null;
 }
 
-export function CompanyFormDialog({ open, onOpenChange, onCreated }: Props) {
+const emptyForm = {
+  name: "", industry: "", website: "", phone: "", email: "",
+  address: "", city: "", state: "", zip_code: "", notes: "",
+  industrias: [] as string[],
+  equipo: "", tipo_destino_lubricante: "", potencial_unidades: "",
+  tomador_decision: "", riesgo_cambio_marca: "", origen_contacto: "",
+  evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
+};
+
+export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: Props) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    name: "", industry: "", website: "", phone: "", email: "",
-    address: "", city: "", state: "", zip_code: "", notes: "",
-    // Classification fields
-    industrias: [] as string[],
-    equipo: "",
-    tipo_destino_lubricante: "",
-    potencial_unidades: "",
-    tomador_decision: "",
-    riesgo_cambio_marca: "",
-    origen_contacto: "",
-    evaluacion_lubricante: "",
-    rol_lubricante: "",
-    tipo_cliente_comercial: "",
-  });
+  const [form, setForm] = useState({ ...emptyForm });
+  const isEdit = !!editData?.id;
+
   const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
 
   const toggleIndustria = (val: string) => {
@@ -90,23 +101,47 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated }: Props) {
     }));
   };
 
-  const reset = () => setForm({
-    name: "", industry: "", website: "", phone: "", email: "",
-    address: "", city: "", state: "", zip_code: "", notes: "",
-    industrias: [], equipo: "", tipo_destino_lubricante: "", potencial_unidades: "",
-    tomador_decision: "", riesgo_cambio_marca: "", origen_contacto: "",
-    evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
-  });
+  const reset = () => setForm({ ...emptyForm });
+
+  useEffect(() => {
+    if (open && editData) {
+      setForm({
+        name: editData.name || "",
+        industry: editData.industry || "",
+        website: editData.website || "",
+        phone: editData.phone || "",
+        email: editData.email || "",
+        address: editData.address || "",
+        city: editData.city || "",
+        state: editData.state || "",
+        zip_code: editData.zip_code || "",
+        notes: editData.notes || "",
+        industrias: editData.industrias || [],
+        equipo: editData.equipo || "",
+        tipo_destino_lubricante: editData.tipo_destino_lubricante || "",
+        potencial_unidades: editData.potencial_unidades || "",
+        tomador_decision: editData.tomador_decision || "",
+        riesgo_cambio_marca: editData.riesgo_cambio_marca || "",
+        origen_contacto: editData.origen_contacto || "",
+        evaluacion_lubricante: editData.evaluacion_lubricante || "",
+        rol_lubricante: editData.rol_lubricante || "",
+        tipo_cliente_comercial: editData.tipo_cliente_comercial || "",
+      });
+    } else if (open && !editData) {
+      reset();
+    }
+  }, [open, editData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
     setSaving(true);
-    const { data, error } = await supabase.from("companies").insert({
+
+    const payload = {
       name: form.name, industry: form.industry || null, website: form.website || null,
       phone: form.phone || null, email: form.email || null, address: form.address || null,
       city: form.city || null, state: form.state || null, zip_code: form.zip_code || null,
-      notes: form.notes || null, created_by: user?.id,
+      notes: form.notes || null,
       industrias: form.industrias.length > 0 ? form.industrias : [],
       equipo: form.equipo || null,
       tipo_destino_lubricante: form.tipo_destino_lubricante || null,
@@ -117,13 +152,22 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated }: Props) {
       evaluacion_lubricante: form.evaluacion_lubricante || null,
       rol_lubricante: form.rol_lubricante || null,
       tipo_cliente_comercial: form.tipo_cliente_comercial || null,
-    } as any).select("id").single();
+    } as any;
+
+    let result;
+    if (isEdit) {
+      result = await supabase.from("companies").update(payload).eq("id", editData!.id!).select("id").single();
+    } else {
+      payload.created_by = user?.id;
+      result = await supabase.from("companies").insert(payload).select("id").single();
+    }
+
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Empresa creada");
+    if (result.error) { toast.error(result.error.message); return; }
+    toast.success(isEdit ? "Empresa actualizada" : "Empresa creada");
     reset();
     onOpenChange(false);
-    onCreated?.(data.id);
+    onCreated?.(result.data.id);
   };
 
   const renderSelect = (label: string, value: string, key: string, options: string[]) => (
@@ -141,7 +185,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated }: Props) {
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) reset(); onOpenChange(v); }}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Nueva Empresa</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isEdit ? "Editar Empresa" : "Nueva Empresa"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Tabs defaultValue="general">
             <TabsList className="w-full">
@@ -165,7 +209,6 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated }: Props) {
             </TabsContent>
 
             <TabsContent value="clasificacion" className="space-y-4 mt-4">
-              {/* Industrias - multi-select */}
               <div className="space-y-2">
                 <Label>Industria (multiopción)</Label>
                 <div className="border rounded-md p-3 max-h-48 overflow-y-auto grid grid-cols-1 gap-2">
@@ -195,7 +238,9 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated }: Props) {
             </TabsContent>
           </Tabs>
 
-          <Button type="submit" className="w-full" disabled={saving}>{saving ? "Guardando..." : "Crear Empresa"}</Button>
+          <Button type="submit" className="w-full" disabled={saving}>
+            {saving ? "Guardando..." : isEdit ? "Guardar Cambios" : "Crear Empresa"}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>
