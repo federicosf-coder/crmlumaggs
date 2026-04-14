@@ -129,7 +129,7 @@ export default function DocumentForm() {
     },
   });
   const { data: users = [] } = useQuery({ queryKey: ["profiles_list"], queryFn: async () => { const { data } = await supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name"); return data || []; } });
-  const { data: productos = [], refetch: refetchProductos } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, marca_id, precio_base_uf1, precio_uf2, precio_uf3, precio_uf4, precio_r1, precio_r2, precio_r3, precio_r4, presentaciones(unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
+  const { data: productos = [], refetch: refetchProductos } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, descripcion, marca_id, precio_base_uf1, precio_uf2, precio_uf3, precio_uf4, precio_r1, precio_r2, precio_r3, precio_r4, presentaciones(nombre, unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
   const { data: empresaMarcas = [] } = useQuery({
     queryKey: ["empresa_marcas_filter", form.empresa_vendedora],
     queryFn: async () => {
@@ -723,11 +723,12 @@ export default function DocumentForm() {
                           value={item.producto_id}
                           onValueChange={v => updateItem(idx, "producto_id", v)}
                           placeholder="Seleccionar producto"
-                          options={filteredProductos.map((p: any) => ({
-                            value: p.id,
-                            label: `${p.codigo} - ${p.nombre_producto}${p.descripcion ? ` — ${p.descripcion}` : ''}`,
-                            searchText: `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''}`,
-                          }))}
+                          options={filteredProductos.map((p: any) => {
+                            const pres = (p.presentaciones as any)?.nombre || '';
+                            const label = `${p.codigo} - ${p.nombre_producto}${pres ? ` [${pres}]` : ''}`;
+                            const searchStr = `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''} ${pres}`;
+                            return { value: p.id, label, searchText: searchStr };
+                          })}
                           popoverClassName="min-w-[420px] sm:min-w-[520px]"
                         />
                         <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
