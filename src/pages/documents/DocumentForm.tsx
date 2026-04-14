@@ -721,73 +721,68 @@ export default function DocumentForm() {
           {items.length === 0 ? (
             <p className="text-center py-6 text-muted-foreground">Sin productos. Haz clic en "Agregar" para añadir.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[280px]">Producto</TableHead>
-                  <TableHead className="w-16">Cant.</TableHead>
-                  <TableHead className="text-center text-xs w-[150px]">Ref. UF</TableHead>
-                  <TableHead className="text-center text-xs w-[150px]">Ref. R</TableHead>
-                  <TableHead className="w-28">Precio Unit.</TableHead>
-                  <TableHead className="w-20">Desc. %</TableHead>
-                  <TableHead>Subtotal</TableHead>
-                  <TableHead>UE</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((item, idx) => {
-                  const prod = productos.find((p: any) => p.id === item.producto_id);
-                  return (
-                  <TableRow key={idx}>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <SearchableSelect
-                          value={item.producto_id}
-                          onValueChange={v => updateItem(idx, "producto_id", v)}
-                          placeholder="Seleccionar producto"
-                          options={filteredProductos.map((p: any) => {
-                            const pres = (p.presentaciones as any)?.nombre || '';
-                            const label = `${p.codigo} - ${p.nombre_producto}${pres ? ` [${pres}]` : ''}`;
-                            const searchStr = `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''} ${pres}`;
-                            return { value: p.id, label, searchText: searchStr };
-                          })}
-                          popoverClassName="min-w-[420px] sm:min-w-[520px]"
-                        />
-                        <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
+            <div className="space-y-4">
+              {items.map((item, idx) => {
+                const prod = productos.find((p: any) => p.id === item.producto_id);
+                return (
+                  <div key={idx} className="border rounded-lg p-3 space-y-3">
+                    <div className="flex gap-1 items-start">
+                      <SearchableSelect
+                        value={item.producto_id}
+                        onValueChange={v => updateItem(idx, "producto_id", v)}
+                        placeholder="Seleccionar producto"
+                        options={filteredProductos.map((p: any) => {
+                          const pres = (p.presentaciones as any)?.nombre || '';
+                          const label = `${p.codigo} - ${p.nombre_producto}${pres ? ` [${pres}]` : ''}`;
+                          const searchStr = `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''} ${pres}`;
+                          return { value: p.id, label, searchText: searchStr };
+                        })}
+                        popoverClassName="min-w-[420px] sm:min-w-[520px]"
+                        className="flex-1"
+                      />
+                      <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeItem(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+
+                    {prod && (
+                      <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 text-[10px] text-muted-foreground bg-muted/50 rounded p-2">
+                        <div className="text-center"><span className="font-semibold block">UF1</span>{Number(prod.precio_base_uf1).toFixed(2)}</div>
+                        <div className="text-center"><span className="font-semibold block">UF2</span>{Number(prod.precio_uf2).toFixed(2)}</div>
+                        <div className="text-center"><span className="font-semibold block">UF3</span>{Number(prod.precio_uf3).toFixed(2)}</div>
+                        <div className="text-center"><span className="font-semibold block">UF4</span>{Number(prod.precio_uf4).toFixed(2)}</div>
+                        <div className="text-center"><span className="font-semibold block">R1</span>{Number(prod.precio_r1).toFixed(2)}</div>
+                        <div className="text-center"><span className="font-semibold block">R2</span>{Number(prod.precio_r2).toFixed(2)}</div>
+                        <div className="text-center"><span className="font-semibold block">R3</span>{Number(prod.precio_r3).toFixed(2)}</div>
+                        <div className="text-center"><span className="font-semibold block">R4</span>{Number(prod.precio_r4).toFixed(2)}</div>
                       </div>
-                    </TableCell>
-                    <TableCell><Input type="number" className="w-16" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} /></TableCell>
-                    <TableCell className="p-1">
-                      {prod ? (
-                        <div className="grid grid-cols-2 gap-x-1 text-[10px] leading-tight text-muted-foreground">
-                          <span className="text-right font-medium">UF1:</span><span>{Number(prod.precio_base_uf1).toFixed(2)}</span>
-                          <span className="text-right font-medium">UF2:</span><span>{Number(prod.precio_uf2).toFixed(2)}</span>
-                          <span className="text-right font-medium">UF3:</span><span>{Number(prod.precio_uf3).toFixed(2)}</span>
-                          <span className="text-right font-medium">UF4:</span><span>{Number(prod.precio_uf4).toFixed(2)}</span>
-                        </div>
-                      ) : <span className="text-xs text-muted-foreground">—</span>}
-                    </TableCell>
-                    <TableCell className="p-1">
-                      {prod ? (
-                        <div className="grid grid-cols-2 gap-x-1 text-[10px] leading-tight text-muted-foreground">
-                          <span className="text-right font-medium">R1:</span><span>{Number(prod.precio_r1).toFixed(2)}</span>
-                          <span className="text-right font-medium">R2:</span><span>{Number(prod.precio_r2).toFixed(2)}</span>
-                          <span className="text-right font-medium">R3:</span><span>{Number(prod.precio_r3).toFixed(2)}</span>
-                          <span className="text-right font-medium">R4:</span><span>{Number(prod.precio_r4).toFixed(2)}</span>
-                        </div>
-                      ) : <span className="text-xs text-muted-foreground">—</span>}
-                    </TableCell>
-                    <TableCell><Input type="number" className="w-28" value={item.precio_unitario} onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))} /></TableCell>
-                    <TableCell><Input type="number" className="w-20" value={item.descuento_porcentaje} onChange={e => updateItem(idx, "descuento_porcentaje", Number(e.target.value))} /></TableCell>
-                    <TableCell className="font-medium">${item.subtotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell>{item.unidades_equivalentes}</TableCell>
-                    <TableCell><Button variant="ghost" size="icon" onClick={() => removeItem(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
-                  </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                    )}
+
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
+                      <div>
+                        <Label className="text-xs">Cant.</Label>
+                        <Input type="number" className="h-9" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Precio Unit.</Label>
+                        <Input type="number" className="h-9" value={item.precio_unitario} onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Desc. %</Label>
+                        <Input type="number" className="h-9" value={item.descuento_porcentaje} onChange={e => updateItem(idx, "descuento_porcentaje", Number(e.target.value))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Subtotal</Label>
+                        <div className="h-9 flex items-center font-medium text-sm">${item.subtotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</div>
+                      </div>
+                      <div>
+                        <Label className="text-xs">UE</Label>
+                        <div className="h-9 flex items-center text-sm">{item.unidades_equivalentes}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
           <Separator className="my-4" />
           <div className="flex flex-col items-end gap-1 text-sm">

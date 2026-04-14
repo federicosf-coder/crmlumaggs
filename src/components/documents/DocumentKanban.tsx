@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -126,8 +127,18 @@ function KanbanColumn({
 export function DocumentKanban({ documents, tipoFilter }: DocumentKanbanProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
   const columns = getColumns(tipoFilter);
   const statusField = getStatusField(tipoFilter);
+
+  const filteredDocs = documents.filter((d: any) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    const num = (d.numero_cotizacion || d.numero_pedido || d.numero_factura || "").toLowerCase();
+    const clientName = ((d.companies as any)?.name || "").toLowerCase();
+    const total = String(Number(d.total).toFixed(2));
+    return num.includes(s) || clientName.includes(s) || total.includes(s);
+  });
 
   const handleStatusChange = async (docId: string, newStatus: string) => {
     const doc = documents.find((d) => d.id === docId);
@@ -150,23 +161,35 @@ export function DocumentKanban({ documents, tipoFilter }: DocumentKanbanProps) {
   };
 
   const getDocsForStatus = (statusKey: string) =>
-    documents.filter((d: any) => d[statusField] === statusKey);
+    filteredDocs.filter((d: any) => d[statusField] === statusKey);
 
   return (
-    <ScrollArea className="w-full">
-      <div className="flex gap-4 pb-4 min-w-max">
-        {columns.map((col) => (
-          <KanbanColumn
-            key={col.key}
-            col={col}
-            docs={getDocsForStatus(col.key)}
-            statusField={statusField}
-            onStatusChange={handleStatusChange}
-            onNavigate={(id) => navigate(`/documents/${id}`)}
-          />
-        ))}
+    <div className="space-y-3">
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Buscar por número, cliente o total..."
+          className="flex h-10 w-full rounded-md border border-input bg-background px-9 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
-      <ScrollBar orientation="horizontal" />
-    </ScrollArea>
+      <ScrollArea className="w-full">
+        <div className="flex gap-4 pb-4 min-w-max">
+          {columns.map((col) => (
+            <KanbanColumn
+              key={col.key}
+              col={col}
+              docs={getDocsForStatus(col.key)}
+              statusField={statusField}
+              onStatusChange={handleStatusChange}
+              onNavigate={(id) => navigate(`/documents/${id}`)}
+            />
+          ))}
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+    </div>
   );
 }
