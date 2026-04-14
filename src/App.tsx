@@ -63,6 +63,7 @@ const App = () => (
             <Route path="/activities" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsList /></ProtectedRoute>} />
             <Route path="/documents/new" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
+            <Route path="/documents/:id" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/delivery" element={<ProtectedRoute><ModulePlaceholder title="Entregas" description="Seguimiento y gestión de entregas de productos. Próximamente en Fase 4." /></ProtectedRoute>} />
