@@ -253,7 +253,7 @@ export default function Directory() {
                   </TableHeader>
                   <TableBody>
                     {filteredContacts.map(c => (
-                      <TableRow key={c.id}>
+                      <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedContact(c)}>
                         <TableCell className="font-medium">{c.first_name}</TableCell>
                         <TableCell>{c.last_name}</TableCell>
                         <TableCell>{c.mobile || "—"}</TableCell>
