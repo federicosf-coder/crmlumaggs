@@ -192,9 +192,9 @@ serve(async (req) => {
     const col = {
       codigo: margin,
       producto: margin + 75,
-      cantidad: margin + 350,
-      precio: margin + 410,
-      subtotal: margin + 470,
+      cantidad: margin + 340,
+      precio: margin + 400,
+      subtotal: margin + 480,
     };
     const subtotalColRight = rightEdge; // right edge of the Subtotal column
 
