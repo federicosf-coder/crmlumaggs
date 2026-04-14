@@ -82,11 +82,31 @@ serve(async (req) => {
     let page = pdfDoc.addPage([pageWidth, pageHeight]);
     let y = pageHeight - margin;
 
-    const drawText = (text: string, x: number, yPos: number, size = 10, f = font, color = rgb(0, 0, 0)) => {
+    const fontSize = 9; // consistent size for the whole document
+
+    const drawText = (text: string, x: number, yPos: number, size = fontSize, f = font, color = rgb(0, 0, 0)) => {
       page.drawText(text || "", { x, y: yPos, size, font: f, color });
     };
 
-    const drawTextRight = (text: string, xRight: number, yPos: number, size = 10, f = font, color = rgb(0, 0, 0)) => {
+    // Word-wrap text within a max width, returns lines
+    const wrapText = (text: string, maxWidth: number, size = fontSize, f = font): string[] => {
+      const words = (text || "").split(" ");
+      const lines: string[] = [];
+      let current = "";
+      for (const word of words) {
+        const test = current ? current + " " + word : word;
+        if (f.widthOfTextAtSize(test, size) > maxWidth) {
+          if (current) lines.push(current);
+          current = word;
+        } else {
+          current = test;
+        }
+      }
+      if (current) lines.push(current);
+      return lines.length ? lines : [""];
+    };
+
+    const drawTextRight = (text: string, xRight: number, yPos: number, size = fontSize, f = font, color = rgb(0, 0, 0)) => {
       const w = f.widthOfTextAtSize(text || "", size);
       page.drawText(text || "", { x: xRight - w, y: yPos, size, font: f, color });
     };
@@ -130,7 +150,7 @@ serve(async (req) => {
 
     // ===== COMPANY NAME right-aligned =====
     const companyLabel = isLumaggs ? "Lumaggs" : "Galsa";
-    drawTextRight(companyLabel, rightEdge, y + 65, 13, fontBold, rgb(0, 0, 0));
+    drawTextRight(companyLabel, rightEdge, y + 65, 12, fontBold, rgb(0, 0, 0));
 
     // ===== PROPOSAL INFO (left) + COMPANY CONTACT (right) =====
     const numCot = doc.numero_cotizacion || "Sin numero";
@@ -146,28 +166,28 @@ serve(async (req) => {
     }
 
     // Left side - proposal info
-    drawText(`Propuesta # ${numCot.replace("COT-", "")}`, margin, y, 10, font);
+    drawText(`Propuesta # ${numCot.replace("COT-", "")}`, margin, y);
     y -= 14;
-    drawText(`Fecha de cotizacion: ${fecha}`, margin, y, 10, font);
+    drawText(`Fecha de cotizacion: ${fecha}`, margin, y);
     y -= 14;
     if (vigenciaText) {
-      drawText(`Vigencia: ${vigenciaText}`, margin, y, 10, font);
+      drawText(`Vigencia: ${vigenciaText}`, margin, y);
     }
 
     // Right side - company contact info
     const rightInfoStartY = y + 28;
     if (isLumaggs) {
-      drawTextRight("chevron@lumaggs.com.mx", rightEdge, rightInfoStartY, 10, font);
-      drawTextRight("Procesadora de Servicios MAGG'S, SA de C.V.", rightEdge, rightInfoStartY - 14, 10, font);
-      drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 28, 10, font);
-      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42, 10, font);
-      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56, 10, font);
+      drawTextRight("chevron@lumaggs.com.mx", rightEdge, rightInfoStartY);
+      drawTextRight("Procesadora de Servicios MAGG'S, SA de C.V.", rightEdge, rightInfoStartY - 14);
+      drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 28);
+      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42);
+      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56);
     } else {
-      drawTextRight("lubricantes@dagal.com.mx", rightEdge, rightInfoStartY, 10, font);
-      drawTextRight("Proveedora Galsa SA de C.V.", rightEdge, rightInfoStartY - 14, 10, font);
-      drawTextRight("PGA850730EU0", rightEdge, rightInfoStartY - 28, 10, font);
-      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42, 10, font);
-      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56, 10, font);
+      drawTextRight("lubricantes@dagal.com.mx", rightEdge, rightInfoStartY);
+      drawTextRight("Proveedora Galsa SA de C.V.", rightEdge, rightInfoStartY - 14);
+      drawTextRight("PGA850730EU0", rightEdge, rightInfoStartY - 28);
+      drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42);
+      drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56);
     }
 
     y -= 30; // more space before "Dirigido a"
@@ -178,17 +198,17 @@ serve(async (req) => {
     const clientPhone = contact?.phone || company?.phone || "";
 
     if (clientPhone) {
-      drawTextRight(clientPhone, rightEdge, y, 10, font);
+      drawTextRight(clientPhone, rightEdge, y);
     }
 
-    drawText("Dirigido a:", margin, y, 10, font);
+    drawText("Dirigido a:", margin, y);
     y -= 14;
     const clientName = company?.name || "";
-    drawText(clientName, margin, y, 11, fontBold);
+    drawText(clientName, margin, y, fontSize, fontBold);
     y -= 14;
     const contactName = contact ? `${contact.first_name || ""} ${contact.last_name || ""}`.trim() : "";
     if (contactName) {
-      drawText(contactName, margin, y, 10, font);
+      drawText(contactName, margin, y);
     }
     y -= 35; // extra space before table after contact name
 
@@ -215,23 +235,29 @@ serve(async (req) => {
     y -= 24;
 
     // Table rows
+    const productoMaxWidth = col.cantidad - col.producto - 10; // available width for product text
     (items || []).forEach((item: any) => {
-      addNewPageIfNeeded(30);
       const prod = item.productos;
       const codigo = prod?.codigo || "";
       const nombre = prod?.nombre_producto || "";
       const presentacion = (prod?.presentaciones as any)?.nombre || "";
       const productoDesc = presentacion ? `${nombre} - ${presentacion}` : nombre;
 
-      const maxLen = 38;
-      const productoTrunc = productoDesc.length > maxLen ? productoDesc.substring(0, maxLen) + "..." : productoDesc;
+      // Wrap product description
+      const prodLines = wrapText(productoDesc, productoMaxWidth);
+      const rowHeight = prodLines.length * 12 + 6; // 12pt per line + padding
 
-      drawText(codigo, col.codigo + 5, y, 9);
-      drawText(productoTrunc, col.producto + 5, y, 9);
-      drawText(String(item.cantidad), col.cantidad + 5, y, 9);
-      drawText(`$${fmtMoney(Number(item.precio_unitario))}`, col.precio + 5, y, 9);
-      drawTextRight(`$${fmtMoney(Number(item.subtotal))}`, subtotalColRight - 5, y, 9);
-      y -= 18;
+      addNewPageIfNeeded(rowHeight);
+
+      drawText(codigo, col.codigo + 5, y);
+      // Draw wrapped product lines
+      for (let li = 0; li < prodLines.length; li++) {
+        drawText(prodLines[li], col.producto + 5, y - (li * 12));
+      }
+      drawText(String(item.cantidad), col.cantidad + 5, y);
+      drawText(`$${fmtMoney(Number(item.precio_unitario))}`, col.precio + 5, y);
+      drawTextRight(`$${fmtMoney(Number(item.subtotal))}`, subtotalColRight - 5, y);
+      y -= rowHeight;
     });
 
     // ===== TOTALS (aligned with Subtotal column) =====
@@ -241,17 +267,17 @@ serve(async (req) => {
     const totLabelLeft = col.cantidad + 5;
     const totValueRight = subtotalColRight - 5;
 
-    drawText("Subtotal:", totLabelLeft, y, 10, font);
-    drawTextRight(`$${fmtMoney(Number(doc.subtotal))}`, totValueRight, y, 10, font);
+    drawText("Subtotal:", totLabelLeft, y);
+    drawTextRight(`$${fmtMoney(Number(doc.subtotal))}`, totValueRight, y);
     y -= 16;
 
     const ivaPct = Number(doc.iva_porcentaje) || 0;
-    drawText(`IVA (${ivaPct}%):`, totLabelLeft, y, 10, font);
-    drawTextRight(`$${fmtMoney(Number(doc.iva_importe))}`, totValueRight, y, 10, font);
+    drawText(`IVA (${ivaPct}%):`, totLabelLeft, y);
+    drawTextRight(`$${fmtMoney(Number(doc.iva_importe))}`, totValueRight, y);
     y -= 16;
 
-    drawText("Total:", totLabelLeft, y, 10, fontBold);
-    drawTextRight(`$${fmtMoney(Number(doc.total))}`, totValueRight, y, 10, fontBold);
+    drawText("Total:", totLabelLeft, y, fontSize, fontBold);
+    drawTextRight(`$${fmtMoney(Number(doc.total))}`, totValueRight, y, fontSize, fontBold);
     y -= 35;
 
     // ===== EJECUTIVO =====
@@ -260,10 +286,10 @@ serve(async (req) => {
       drawLine(margin, y, rightEdge, 0.5, rgb(0.6, 0.6, 0.6));
       y -= 20;
       const ejLabel = "Ejecutivo: ";
-      const ejLabelWidth = fontBold.widthOfTextAtSize(ejLabel, 10);
-      drawText(ejLabel, margin, y, 10, fontBold);
+      const ejLabelWidth = fontBold.widthOfTextAtSize(ejLabel, fontSize);
+      drawText(ejLabel, margin, y, fontSize, fontBold);
       const ejDetailParts = [ejecutivoName, ejecutivoEmail, ejecutivoPhone].filter(Boolean);
-      drawText(ejDetailParts.join(", "), margin + ejLabelWidth, y, 10, font);
+      drawText(ejDetailParts.join(", "), margin + ejLabelWidth, y);
       y -= 20;
       drawLine(margin, y, rightEdge, 0.5, rgb(0.6, 0.6, 0.6));
       y -= 30;
@@ -271,27 +297,17 @@ serve(async (req) => {
 
     // ===== CONDITIONS / NOTES =====
     addNewPageIfNeeded(40);
-    drawText("Precios no incluyen IVA y estan sujetos a cambio sin previo aviso.", margin, y, 10, font);
+    drawText("Precios no incluyen IVA y estan sujetos a cambio sin previo aviso.", margin, y);
     y -= 24;
 
     if (condiciones?.contenido) {
       const lines = condiciones.contenido.split("\n");
       for (const line of lines) {
         addNewPageIfNeeded(14);
-        const words = line.split(" ");
-        let currentLine = "";
-        for (const word of words) {
-          const test = currentLine ? currentLine + " " + word : word;
-          if (font.widthOfTextAtSize(test, 10) > contentWidth) {
-            drawText(currentLine, margin, y, 10, font);
-            y -= 14;
-            currentLine = word;
-          } else {
-            currentLine = test;
-          }
-        }
-        if (currentLine) {
-          drawText(currentLine, margin, y, 10, font);
+        const wrappedLines = wrapText(line, contentWidth);
+        for (const wl of wrappedLines) {
+          addNewPageIfNeeded(14);
+          drawText(wl, margin, y);
           y -= 14;
         }
       }
@@ -301,22 +317,14 @@ serve(async (req) => {
     if (doc.notas) {
       y -= 15;
       addNewPageIfNeeded(30);
-      drawText("Notas:", margin, y, 10, fontBold);
+      drawText("Notas:", margin, y, fontSize, fontBold);
       y -= 14;
-      const words = doc.notas.split(" ");
-      let line = "";
-      for (const word of words) {
-        const test = line ? line + " " + word : word;
-        if (font.widthOfTextAtSize(test, 10) > contentWidth) {
-          addNewPageIfNeeded(14);
-          drawText(line, margin, y, 10);
-          y -= 14;
-          line = word;
-        } else {
-          line = test;
-        }
+      const notaLines = wrapText(doc.notas, contentWidth);
+      for (const nl of notaLines) {
+        addNewPageIfNeeded(14);
+        drawText(nl, margin, y);
+        y -= 14;
       }
-      if (line) { addNewPageIfNeeded(14); drawText(line, margin, y, 10); y -= 14; }
     }
 
     const pdfBytes = await pdfDoc.save();
