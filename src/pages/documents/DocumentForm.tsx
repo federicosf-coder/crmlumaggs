@@ -273,6 +273,22 @@ export default function DocumentForm() {
 
   const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
 
+  // Auto-fill commercial fields from company when selecting a new client (not on edit load)
+  const [companyAutoFilled, setCompanyAutoFilled] = useState(false);
+  useEffect(() => {
+    if (isEdit && !companyAutoFilled) { setCompanyAutoFilled(true); return; }
+    if (!form.empresa_id) return;
+    const company = companies.find((c: any) => c.id === form.empresa_id);
+    if (company) {
+      setForm(prev => ({
+        ...prev,
+        uso_cfdi: (company as any).uso_cfdi || prev.uso_cfdi,
+        metodo_pago: (company as any).metodo_pago || prev.metodo_pago,
+        tipo_pago: (company as any).tipo_pago || prev.tipo_pago,
+      }));
+    }
+  }, [form.empresa_id, companies]);
+
   // Quick-add handlers via shared dialogs
   const handleCompanyCreated = async (id: string) => {
     await refetchCompanies();
