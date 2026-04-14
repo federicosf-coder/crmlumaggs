@@ -177,8 +177,11 @@ export default function Directory() {
         <SheetContent className="overflow-y-auto sm:max-w-lg">
           {selectedCompany && (
             <>
-              <SheetHeader>
+              <SheetHeader className="flex flex-row items-center justify-between">
                 <SheetTitle>{selectedCompany.name}</SheetTitle>
+                <Button size="sm" variant="outline" onClick={() => setEditCompany(selectedCompany)}>
+                  <Pencil className="h-4 w-4 mr-1" /> Editar
+                </Button>
               </SheetHeader>
 
               <Tabs defaultValue="general" className="mt-4">
