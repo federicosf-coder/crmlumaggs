@@ -326,12 +326,27 @@ export default function DocumentForm() {
       }
 
       qc.invalidateQueries({ queryKey: ["documentos"] });
+      qc.invalidateQueries({ queryKey: ["documento", docId] });
       toast.success(isEdit ? "Documento actualizado" : "Documento creado");
-      navigate("/documents");
+
+      if (generatePdfAfterSave && form.tipo_documento === "cotizacion" && docId) {
+        setGeneratePdfAfterSave(false);
+        await downloadCotizacionPdf(docId, () => {
+          qc.invalidateQueries({ queryKey: ["documento", docId] });
+          qc.invalidateQueries({ queryKey: ["documentos"] });
+        });
+      }
+
+      if (!isEdit) {
+        navigate(`/documents/${docId}`);
+      } else {
+        setViewMode(true);
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setSaving(false);
+      setGeneratePdfAfterSave(false);
     }
   };
 
