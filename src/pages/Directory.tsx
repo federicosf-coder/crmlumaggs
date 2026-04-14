@@ -269,7 +269,7 @@ export default function Directory() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredContacts.map(c => (
-                <Card key={c.id} className="hover:shadow-md transition-shadow">
+                <Card key={c.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedContact(c)}>
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-start justify-between">
                       <div>
