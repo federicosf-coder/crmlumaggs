@@ -9,19 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText, Download, Pencil, Copy } from "lucide-react";
+import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns } from "lucide-react";
 import { SortMenu } from "@/components/SortMenu";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { DocumentKanban } from "@/components/documents/DocumentKanban";
 
 const ESTATUS_COT_LABELS: Record<string, string> = {
   borrador: "Borrador", impresa: "Impresa", enviada: "Enviada",
   aceptada: "Aceptada", rechazada: "Rechazada", vencida: "Vencida",
 };
 const ESTATUS_PED_LABELS: Record<string, string> = {
-  pendiente: "Pendiente", confirmado: "Confirmado", en_proceso: "En Proceso",
-  enviado: "Enviado", entregado: "Entregado", cancelado: "Cancelado",
+  confirmado_cliente: "Confirmado Cliente", validado_contabilidad: "Validado Contab.",
+  programado_entrega: "Prog. Entrega", entregado: "Entregado", cancelado: "Cancelado",
 };
 const ESTATUS_FAC_LABELS: Record<string, string> = {
   pendiente: "Pendiente", pagada: "Pagada", parcial: "Parcial",
@@ -38,8 +39,9 @@ function getEstatusLabel(doc: any) {
 function getEstatusVariant(doc: any): "default" | "secondary" | "destructive" | "outline" {
   const st = doc.tipo_documento === "cotizacion" ? doc.estatus_cotizacion
     : doc.tipo_documento === "pedido" ? doc.estatus_pedido : doc.estatus_factura;
-  if (["aceptada", "confirmado", "pagada", "entregado", "impresa"].includes(st)) return "default";
+  if (["aceptada", "confirmado_cliente", "pagada", "entregado", "impresa"].includes(st)) return "default";
   if (["rechazada", "cancelado", "cancelada", "vencida"].includes(st)) return "destructive";
+  if (["validado_contabilidad", "programado_entrega"].includes(st)) return "outline";
   return "secondary";
 }
 
