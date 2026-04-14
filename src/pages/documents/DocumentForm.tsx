@@ -648,6 +648,7 @@ export default function DocumentForm() {
           </div>
         </CardContent>
       </Card>
+      </fieldset>
 
       {/* Actions */}
       {!viewMode && (
