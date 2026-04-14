@@ -376,6 +376,7 @@ export default function DocumentForm() {
         )}
       </div>
 
+      <fieldset disabled={viewMode} className="space-y-6">
       {/* General Info */}
       <Card>
         <CardHeader><CardTitle>Información General</CardTitle></CardHeader>
