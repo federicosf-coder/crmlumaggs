@@ -356,14 +356,23 @@ export default function DocumentForm() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/documents")}><ArrowLeft className="h-5 w-5" /></Button>
-        <h1 className="text-2xl font-bold text-foreground">{isEdit ? "Editar Documento" : "Nuevo Documento"}</h1>
-        {isEdit && form.tipo_documento === "cotizacion" && (
-          <Button variant="outline" onClick={() => downloadCotizacionPdf(id!, () => {
-            qc.invalidateQueries({ queryKey: ["documento", id] });
-            qc.invalidateQueries({ queryKey: ["documentos"] });
-          })}>
-            <Download className="mr-2 h-4 w-4" /> Generar PDF
-          </Button>
+        <h1 className="text-2xl font-bold text-foreground">
+          {viewMode ? "Ver Documento" : isEdit ? "Editar Documento" : "Nuevo Documento"}
+        </h1>
+        {viewMode && (
+          <div className="flex gap-2 ml-auto">
+            {form.tipo_documento === "cotizacion" && (
+              <Button onClick={() => downloadCotizacionPdf(id!, () => {
+                qc.invalidateQueries({ queryKey: ["documento", id] });
+                qc.invalidateQueries({ queryKey: ["documentos"] });
+              })}>
+                <Download className="mr-2 h-4 w-4" /> Generar PDF
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setViewMode(false)}>
+              <Pencil className="mr-2 h-4 w-4" /> Editar
+            </Button>
+          </div>
         )}
       </div>
 
