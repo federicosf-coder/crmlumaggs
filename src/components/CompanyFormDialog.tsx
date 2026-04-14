@@ -215,6 +215,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         tipo_pago: (editData as any).tipo_pago || "",
         plaza_ids: [],
         ejecutivo_ids: [],
+      });
     } else if (open && !editData) {
       reset();
     }
