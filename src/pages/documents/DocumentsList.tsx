@@ -104,6 +104,7 @@ export default function DocumentsList() {
         ...rest, pdf_url: null,
         estatus_cotizacion: srcDoc.tipo_documento === "cotizacion" ? "borrador" : null,
         numero_cotizacion: null, numero_pedido: null, numero_factura: null,
+        cotizacion_original_id: srcDoc.tipo_documento === "cotizacion" ? doc.id : (srcDoc.cotizacion_original_id || null),
       };
 
       const { data: inserted, error: insErr } = await supabase.from("documentos").insert(newDoc).select("id").single();
