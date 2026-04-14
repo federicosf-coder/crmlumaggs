@@ -702,7 +702,7 @@ export default function DocumentForm() {
                         <Select value={item.producto_id} onValueChange={v => updateItem(idx, "producto_id", v)}>
                           <SelectTrigger><SelectValue placeholder="Seleccionar producto" /></SelectTrigger>
                           <SelectContent>
-                            {productos.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nombre_producto}</SelectItem>)}
+                            {filteredProductos.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.codigo} - {p.nombre_producto}</SelectItem>)}
                           </SelectContent>
                         </Select>
                         <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
