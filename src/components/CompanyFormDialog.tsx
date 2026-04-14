@@ -215,6 +215,16 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 <div className="space-y-2"><Label>Ciudad</Label><Input value={form.city} onChange={e => set("city", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Estado</Label><Input value={form.state} onChange={e => set("state", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Código Postal</Label><Input value={form.zip_code} onChange={e => set("zip_code", e.target.value)} /></div>
+                <div className="space-y-2">
+                  <Label>Plaza</Label>
+                  <Select value={form.plaza_id} onValueChange={v => set("plaza_id", v === "none" ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar plaza..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin plaza</SelectItem>
+                      {plazas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="col-span-2 space-y-2"><Label>Notas</Label><Textarea value={form.notes} onChange={e => set("notes", e.target.value)} /></div>
               </div>
             </TabsContent>
