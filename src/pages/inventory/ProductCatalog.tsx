@@ -310,7 +310,6 @@ function ProductosTab() {
     }
   };
 
-  const optionsFor = (type: ProductOptionType) => allOptions.filter(o => o.option_type === type && o.is_active);
   const marcas = optionsFor("marca");
   const filteredProductos = (marcaFilter === "all" ? productos : productos.filter((p: any) => p.marca_id === marcaFilter))
     .sort((a: any, b: any) => {
