@@ -201,6 +201,114 @@ function ProductosTab() {
   const [open, setOpen] = useState(false);
   const [viewProduct, setViewProduct] = useState<any>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  const optionsFor = (type: ProductOptionType) => allOptions.filter(o => o.option_type === type && o.is_active);
+
+  // ─── Export ─────────────────────────────────────────
+  const handleExport = () => {
+    if (!productos.length) { toast.error("No hay productos para exportar"); return; }
+    const headers = ["codigo","nombre_producto","descripcion","presentacion","marca","aplicacion","uso","formula","viscosidad","categoria","linea","is_active","costo_actual","precio_base_uf1","precio_uf2","precio_uf3","precio_uf4","precio_r1","precio_r2","precio_r3","precio_r4","precio_lista_galper"];
+    const escCsv = (v: any) => { const s = String(v ?? ""); return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s; };
+    const rows = productos.map((p: any) => [
+      p.codigo, p.nombre_producto, p.descripcion ?? "",
+      p.presentaciones?.nombre ?? "", p.marca?.value ?? "", p.aplicacion?.value ?? "",
+      p.uso?.value ?? "", p.formula?.value ?? "", p.viscosidad?.value ?? "",
+      p.categoria?.value ?? "", p.linea?.value ?? "", p.is_active ? "true" : "false",
+      p.costo_actual, p.precio_base_uf1, p.precio_uf2, p.precio_uf3, p.precio_uf4,
+      p.precio_r1, p.precio_r2, p.precio_r3, p.precio_r4, p.precio_lista_galper,
+    ].map(escCsv).join(","));
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `catalogo_productos_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${productos.length} productos exportados`);
+  };
+
+  // ─── Import ─────────────────────────────────────────
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { toast.error("El archivo está vacío"); return; }
+      const headerLine = lines[0];
+      // Parse CSV respecting quotes
+      const parseLine = (line: string): string[] => {
+        const result: string[] = []; let cur = ""; let inQuote = false;
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (inQuote) { if (c === '"' && line[i+1] === '"') { cur += '"'; i++; } else if (c === '"') { inQuote = false; } else { cur += c; } }
+          else { if (c === '"') { inQuote = true; } else if (c === ',') { result.push(cur.trim()); cur = ""; } else { cur += c; } }
+        }
+        result.push(cur.trim());
+        return result;
+      };
+      const headers = parseLine(headerLine).map(h => h.toLowerCase().replace(/^\uFEFF/, ""));
+      const codigoIdx = headers.indexOf("codigo");
+      if (codigoIdx === -1) { toast.error("El archivo debe tener una columna 'codigo'"); return; }
+
+      // Load lookup maps
+      const { data: dbProducts } = await supabase.from("productos").select("id, codigo");
+      const existingMap = new Map((dbProducts || []).map(p => [p.codigo.toLowerCase(), p.id]));
+
+      const { data: dbPres } = await supabase.from("presentaciones").select("id, nombre");
+      const presMap = new Map((dbPres || []).map(p => [p.nombre.toLowerCase(), p.id]));
+
+      const { data: dbOpts } = await supabase.from("product_option_values").select("id, value, option_type");
+      const optMap = new Map<string, Map<string, string>>();
+      for (const o of dbOpts || []) {
+        if (!optMap.has(o.option_type)) optMap.set(o.option_type, new Map());
+        optMap.get(o.option_type)!.set(o.value.toLowerCase(), o.id);
+      }
+      const findOpt = (type: string, val: string) => val ? (optMap.get(type)?.get(val.toLowerCase()) || null) : null;
+
+      const rows = lines.slice(1).map(l => parseLine(l));
+      let updated = 0, created = 0, errors = 0;
+
+      for (const cols of rows) {
+        const get = (name: string) => { const i = headers.indexOf(name); return i >= 0 && i < cols.length ? cols[i] : ""; };
+        const codigo = get("codigo");
+        if (!codigo) { errors++; continue; }
+
+        const payload: any = {
+          codigo,
+          nombre_producto: get("nombre_producto") || codigo,
+          descripcion: get("descripcion") || null,
+          presentacion_id: presMap.get((get("presentacion") || "").toLowerCase()) || null,
+          marca_id: findOpt("marca", get("marca")),
+          aplicacion_id: findOpt("aplicacion", get("aplicacion")),
+          uso_id: findOpt("uso", get("uso")),
+          formula_id: findOpt("formula", get("formula")),
+          viscosidad_id: findOpt("viscosidad", get("viscosidad")),
+          categoria_id: findOpt("categoria", get("categoria")),
+          linea_id: findOpt("linea", get("linea")),
+          is_active: get("is_active") !== "false",
+        };
+        const numFields = ["costo_actual","precio_base_uf1","precio_uf2","precio_uf3","precio_uf4","precio_r1","precio_r2","precio_r3","precio_r4","precio_lista_galper"];
+        for (const f of numFields) { const v = get(f); if (v !== "") payload[f] = Number(v) || 0; }
+
+        const existingId = existingMap.get(codigo.toLowerCase());
+        if (existingId) {
+          const { error } = await supabase.from("productos").update(payload).eq("id", existingId);
+          if (error) { console.error(error); errors++; } else updated++;
+        } else {
+          const { error } = await supabase.from("productos").insert(payload);
+          if (error) { console.error(error); errors++; } else created++;
+        }
+      }
+      qc.invalidateQueries({ queryKey: ["productos"] });
+      toast.success(`Importación completada: ${created} creados, ${updated} actualizados${errors ? `, ${errors} errores` : ""}`);
+    } catch (err: any) {
+      toast.error("Error al importar: " + err.message);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const optionsFor = (type: ProductOptionType) => allOptions.filter(o => o.option_type === type && o.is_active);
   const marcas = optionsFor("marca");
