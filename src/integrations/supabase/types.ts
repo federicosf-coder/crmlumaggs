@@ -1063,6 +1063,7 @@ export type Database = {
           notas: string | null
           orden_ruta: number
           repartidor_id: string
+          ruta_id: string | null
           updated_at: string
           vehiculo_id: string
         }
@@ -1076,6 +1077,7 @@ export type Database = {
           notas?: string | null
           orden_ruta?: number
           repartidor_id: string
+          ruta_id?: string | null
           updated_at?: string
           vehiculo_id: string
         }
@@ -1089,6 +1091,7 @@ export type Database = {
           notas?: string | null
           orden_ruta?: number
           repartidor_id?: string
+          ruta_id?: string | null
           updated_at?: string
           vehiculo_id?: string
         }
@@ -1105,6 +1108,13 @@ export type Database = {
             columns: ["repartidor_id"]
             isOneToOne: false
             referencedRelation: "repartidores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_programadas_ruta_id_fkey"
+            columns: ["ruta_id"]
+            isOneToOne: false
+            referencedRelation: "rutas_entrega"
             referencedColumns: ["id"]
           },
           {
@@ -1438,6 +1448,61 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rutas_entrega: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fecha_entrega: string
+          id: string
+          plaza_id: string
+          repartidor_id: string
+          updated_at: string
+          vehiculo_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fecha_entrega: string
+          id?: string
+          plaza_id: string
+          repartidor_id: string
+          updated_at?: string
+          vehiculo_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fecha_entrega?: string
+          id?: string
+          plaza_id?: string
+          repartidor_id?: string
+          updated_at?: string
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rutas_entrega_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rutas_entrega_repartidor_id_fkey"
+            columns: ["repartidor_id"]
+            isOneToOne: false
+            referencedRelation: "repartidores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rutas_entrega_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suppressed_emails: {
         Row: {
