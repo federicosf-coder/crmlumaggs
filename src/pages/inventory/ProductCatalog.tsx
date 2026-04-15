@@ -192,6 +192,7 @@ function ProductosTab() {
   const qc = useQueryClient();
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
+  const canImportExport = isAdmin || hasRole("manager");
   const [search, setSearch] = useState("");
   const [marcaFilter, setMarcaFilter] = useState<string>("all");
   const [productSort, setProductSort] = useState("code_asc");
@@ -410,13 +411,17 @@ function ProductosTab() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-8 w-60" placeholder="Buscar por código o nombre..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <Button size="sm" variant="outline" onClick={handleExport}><Download className="mr-1 h-4 w-4" /> Exportar</Button>
-          <Button size="sm" variant="outline" disabled={importing} asChild>
-            <label className="cursor-pointer">
-              <Upload className="mr-1 h-4 w-4" /> {importing ? "Importando..." : "Importar"}
-              <input type="file" accept=".csv" className="hidden" onChange={handleImport} disabled={importing} />
-            </label>
-          </Button>
+          {canImportExport && (
+            <>
+              <Button size="sm" variant="outline" onClick={handleExport}><Download className="mr-1 h-4 w-4" /> Exportar</Button>
+              <Button size="sm" variant="outline" disabled={importing} asChild>
+                <label className="cursor-pointer">
+                  <Upload className="mr-1 h-4 w-4" /> {importing ? "Importando..." : "Importar"}
+                  <input type="file" accept=".csv" className="hidden" onChange={handleImport} disabled={importing} />
+                </label>
+              </Button>
+            </>
+          )}
           <Button size="sm" onClick={openCreate}><Plus className="mr-1 h-4 w-4" /> Nuevo Producto</Button>
           <SortMenu
             value={productSort}
