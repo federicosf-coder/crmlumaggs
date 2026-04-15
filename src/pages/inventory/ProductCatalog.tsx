@@ -192,6 +192,7 @@ function ProductosTab() {
   const qc = useQueryClient();
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
+  const canImportExport = isAdmin || hasRole("manager");
   const [search, setSearch] = useState("");
   const [marcaFilter, setMarcaFilter] = useState<string>("all");
   const [productSort, setProductSort] = useState("code_asc");
