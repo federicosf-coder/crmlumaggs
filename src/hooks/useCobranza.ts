@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export type EstatusPago = "recibido" | "enviado_validar" | "validado" | "aplicado";
+
 export interface CobranzaPago {
   id: string;
   empresa_id: string;
@@ -15,8 +17,9 @@ export interface CobranzaPago {
   banco: string | null;
   observaciones: string | null;
   estado_pago: "registrado" | "no_aplicado" | "aplicado_parcial" | "aplicado_total" | "cancelado";
+  estatus_pago: EstatusPago;
   created_at: string;
-  empresa?: { id: string; name: string } | null;
+  empresa?: { id: string; name: string; email?: string | null } | null;
   plaza?: { id: string; nombre: string } | null;
 }
 
