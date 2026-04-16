@@ -99,6 +99,9 @@ export default function DocumentsList() {
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
   const setFilter = useCallback((key: string, value: string) => {
     setSearchParams(prev => {
@@ -264,8 +267,45 @@ export default function DocumentsList() {
     return profile?.full_name || "-";
   };
 
+  // Clear selection when filters change
   const tabColor = TAB_COLORS[tipoFilter] || TAB_COLORS.cotizacion;
   const isPedido = tipoFilter === "pedido";
+
+  // Reset selection when tab/filter changes
+  useState(() => { setSelectedIds(new Set()); });
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === sortedDocs.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sortedDocs.map((d: any) => d.id)));
+    }
+  };
+  const handleBulkDelete = async () => {
+    if (!isAdmin || selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase.from("documentos").update({ is_active: false }).in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} documento(s) eliminados`);
+      setSelectedIds(new Set());
+      refetch();
+    } catch (err: any) {
+      toast.error("Error: " + (err.message || "Error"));
+    } finally {
+      setBulkDeleting(false);
+      setBulkDeleteConfirm(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
