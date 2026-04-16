@@ -880,7 +880,7 @@ export default function DocumentForm() {
         <CardHeader><CardTitle>Información Adicional</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Dirección de Envío</Label>
+            <Label>Dirección de Envío {form.tipo_documento === "pedido" && <span className="text-destructive">*</span>}</Label>
             <div className="flex gap-1">
               <SearchableSelect
                 value={form.direccion_envio}
