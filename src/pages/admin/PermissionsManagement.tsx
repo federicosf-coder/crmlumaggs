@@ -34,8 +34,8 @@ const MODULE_LABELS: Record<AppModule, string> = {
   proyectos: "Proyectos",
   capacitacion: "Capacitación",
   reportes: "Reportes",
-  modificar_pdf_cotizacion: "Modificar PDF Cotización",
-  eliminar_pdf_cotizacion: "Eliminar PDF Cotización",
+  modificar_pdf_cotizacion: "Modificar PDF Documento",
+  eliminar_pdf_cotizacion: "Eliminar PDF Documento",
 };
 
 interface Permission {
