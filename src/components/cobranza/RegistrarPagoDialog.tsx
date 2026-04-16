@@ -49,6 +49,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
   const [montoTotal, setMontoTotal] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const [seleccion, setSeleccion] = useState<Record<string, string>>({}); // doc_id -> monto a aplicar
+  const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
 
   useEffect(() => {
     if (!open) return;
