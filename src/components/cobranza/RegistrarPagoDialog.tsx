@@ -156,12 +156,13 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
 
   const reset = () => {
     setEmpresaId(""); setMontoTotal(""); setObservaciones("");
-    setSeleccion({}); setFiles([]); setDocs([]);
+    setSeleccion({}); setFiles([]); setDocs([]); setFormaPago("");
     setFechaPago(new Date().toISOString().split("T")[0]);
   };
 
   const handleSave = async () => {
     if (!empresaId) { toast.error("Selecciona la empresa"); return; }
+    if (!formaPago) { toast.error("Selecciona la forma de pago"); return; }
     if (!montoNum || montoNum <= 0) { toast.error("Monto inválido"); return; }
     const aplicaciones = Object.entries(seleccion)
       .map(([doc_id, monto]) => ({ doc_id, monto: Number(monto) || 0 }))
@@ -176,11 +177,20 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
       monto_total: montoNum,
       monto_disponible: montoNum,
       moneda: "MXN",
+      tipo_pago: formaPago,
+      estatus_pago: "recibido",
       observaciones: observaciones || null,
       creado_por: user?.id,
     }).select("id").single();
 
     if (error || !pago) { setSaving(false); toast.error(error?.message || "Error"); return; }
+
+    // Sincronizar Forma de pago en la empresa si es distinta o está vacía
+    const emp = companies.find((c) => c.id === empresaId);
+    const empForma = (emp?.tipo_pago || "").toLowerCase();
+    if (empForma !== formaPago) {
+      await supabase.from("companies").update({ tipo_pago: formaPago as any }).eq("id", empresaId);
+    }
 
     // Aplicaciones
     const aplicacionesPayload = aplicaciones.map((a) => {
