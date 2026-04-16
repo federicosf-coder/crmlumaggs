@@ -94,6 +94,7 @@ export interface CompanyData {
   origen_contacto: string | null; evaluacion_lubricante: string | null;
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
   uso_cfdi?: string | null; metodo_pago?: string | null; tipo_pago?: string | null;
+  id_contpaq?: string | null;
 }
 
 interface Props {
@@ -112,6 +113,7 @@ const emptyForm = {
   tomador_decision: "", riesgo_cambio_marca: "", origen_contacto: "",
   evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
   uso_cfdi: "", metodo_pago: "", tipo_pago: "",
+  id_contpaq: "",
   plaza_ids: [] as string[],
   ejecutivo_ids: [] as string[],
 };
@@ -213,6 +215,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         uso_cfdi: (editData as any).uso_cfdi || "",
         metodo_pago: (editData as any).metodo_pago || "",
         tipo_pago: (editData as any).tipo_pago || "",
+        id_contpaq: (editData as any).id_contpaq || "",
         plaza_ids: [],
         ejecutivo_ids: [],
       });
@@ -255,6 +258,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       uso_cfdi: form.uso_cfdi || null,
       metodo_pago: form.metodo_pago || null,
       tipo_pago: form.tipo_pago || null,
+      id_contpaq: form.id_contpaq?.trim() || null,
     } as any;
 
     let result;
