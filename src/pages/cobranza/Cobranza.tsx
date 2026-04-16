@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useEffect, useRef } from "react";
@@ -33,6 +34,59 @@ const ESTATUS_PAGO_LABEL: Record<string, string> = {
   validado: "Validado",
   aplicado: "Aplicado",
 };
+
+const ESTATUS_PAGO_OPTIONS = [
+  { value: "recibido", label: "Recibido" },
+  { value: "enviado_validar", label: "Enviado a Validar" },
+  { value: "validado", label: "Validado" },
+  { value: "aplicado", label: "Aplicado" },
+];
+
+function EstatusPagoEditor({
+  pagoId,
+  value,
+  canEdit,
+  compact = false,
+  onChanged,
+}: {
+  pagoId: string;
+  value: string;
+  canEdit: boolean;
+  compact?: boolean;
+  onChanged?: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  if (!canEdit) {
+    return <Badge variant="outline">{ESTATUS_PAGO_LABEL[value] || value}</Badge>;
+  }
+  const handleChange = async (next: string) => {
+    if (next === value) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("cobranza_pagos")
+      .update({ estatus_pago: next as any })
+      .eq("id", pagoId);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Estatus actualizado");
+    onChanged?.();
+  };
+  return (
+    <Select value={value} onValueChange={handleChange} disabled={saving}>
+      <SelectTrigger className={compact ? "h-7 text-xs px-2 w-[150px]" : "h-8 w-[180px]"} onClick={(e) => e.stopPropagation()}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {ESTATUS_PAGO_OPTIONS.map((o) => (
+          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 const FORMA_PAGO_LABEL: Record<string, string> = {
   contado: "Contado",
@@ -69,6 +123,7 @@ function bucketLabel(dias: number | null): string {
 export default function Cobranza() {
   const { hasAnyRole } = useAuth();
   const canDelete = hasAnyRole(["admin", "manager"]);
+  const canEditEstatus = hasAnyRole(["admin", "manager", "accounting"]);
   const { pagos, breakdowns, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos();
   const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza();
 
@@ -342,7 +397,7 @@ export default function Cobranza() {
                       <TableCell className="text-right text-muted-foreground">{aplicadoOtros > 0 ? formatCurrency(aplicadoOtros) : "—"}</TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(dispFact)}</TableCell>
                       <TableCell className="text-xs">{FORMA_PAGO_LABEL[p.tipo_pago || ""] || p.tipo_pago || "—"}</TableCell>
-                      <TableCell><Badge variant="outline">{ESTATUS_PAGO_LABEL[p.estatus_pago] || p.estatus_pago}</Badge></TableCell>
+                      <TableCell><EstatusPagoEditor pagoId={p.id} value={p.estatus_pago} canEdit={canEditEstatus} compact onChanged={refetchPagos} /></TableCell>
                       <TableCell><Badge variant={p.estado_pago === "aplicado_total" ? "default" : p.estado_pago === "cancelado" ? "destructive" : "secondary"}>{ESTADO_PAGO_LABEL[p.estado_pago]}</Badge></TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
@@ -444,7 +499,8 @@ function KpiCard({ title, value, icon: Icon, variant }: { title: string; value: 
 }
 
 function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { open: boolean; onOpenChange: (o: boolean) => void; pago: CobranzaPago | null; onChanged: () => void; onAplicar: (p: CobranzaPago) => void }) {
-  const { user, profile } = useAuth();
+  const { user, profile, hasAnyRole } = useAuth();
+  const canEditEstatus = hasAnyRole(["admin", "manager", "accounting"]);
   const { aplicaciones, refetch } = useCobranzaAplicaciones(pago?.id || null);
   const [openEnviar, setOpenEnviar] = useState(false);
   const [defaultEmails, setDefaultEmails] = useState<string[]>([]);
@@ -680,7 +736,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
               <div><p className="text-muted-foreground text-xs">Plaza</p><p>{pago.plaza?.nombre || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Fecha</p><p>{formatDate(pago.fecha_pago)}</p></div>
               <div><p className="text-muted-foreground text-xs">Forma de pago</p><p>{FORMA_PAGO_LABEL[pago.tipo_pago || ""] || pago.tipo_pago || "—"}</p></div>
-              <div><p className="text-muted-foreground text-xs">Estatus Pago</p><p><Badge variant="outline">{ESTATUS_PAGO_LABEL[pago.estatus_pago] || pago.estatus_pago}</Badge></p></div>
+              <div><p className="text-muted-foreground text-xs">Estatus Pago</p><div className="mt-1"><EstatusPagoEditor pagoId={pago.id} value={pago.estatus_pago} canEdit={canEditEstatus} onChanged={onChanged} /></div></div>
               <div><p className="text-muted-foreground text-xs">Banco</p><p>{pago.banco || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Referencia</p><p>{pago.referencia_pago || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Monto total</p><p className="font-semibold">{formatCurrency(pago.monto_total)}</p></div>
