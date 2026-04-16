@@ -292,6 +292,17 @@ export default function DocumentForm() {
     }
   }, [form.empresa_id, companies]);
 
+  // Auto-select address: if exactly 1 "envio" address, auto-select it
+  const [addrAutoFilled, setAddrAutoFilled] = useState(false);
+  useEffect(() => {
+    if (isEdit && !addrAutoFilled) { setAddrAutoFilled(true); return; }
+    if (!form.empresa_id || addresses.length === 0) return;
+    const envioAddrs = addresses.filter((a: any) => a.tipo === "envio");
+    if (envioAddrs.length === 1) {
+      set("direccion_envio", envioAddrs[0].id);
+    }
+  }, [addresses]);
+
   // Quick-add handlers via shared dialogs
   const handleCompanyCreated = async (id: string) => {
     await refetchCompanies();
