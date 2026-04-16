@@ -22,12 +22,18 @@ interface Team {
   name: string;
 }
 
+interface Plaza {
+  id: string;
+  nombre: string;
+}
+
 interface UserWithRoles {
   user_id: string;
   full_name: string | null;
   email: string | null;
   is_active: boolean;
   phone: string | null;
+  plaza_id: string | null;
   roles: AppRole[];
   team_ids: string[];
 }
