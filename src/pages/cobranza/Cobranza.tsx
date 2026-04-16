@@ -159,6 +159,20 @@ export default function Cobranza() {
     refetchPagos(); refetchDocs();
   };
 
+  const handleEliminarPago = async (p: CobranzaPago) => {
+    if (!confirm("¿Eliminar permanentemente este pago? Se eliminarán también sus aplicaciones y archivos. Esta acción no se puede deshacer.")) return;
+    const docIds = Array.from(new Set(((await supabase.from("cobranza_aplicaciones").select("documento_id").eq("pago_id", p.id)).data || []).map((a: any) => a.documento_id)));
+    await supabase.from("cobranza_aplicaciones").delete().eq("pago_id", p.id);
+    await supabase.from("cobranza_pago_archivos").delete().eq("pago_id", p.id);
+    const { error } = await supabase.from("cobranza_pagos").delete().eq("id", p.id);
+    if (error) { toast.error(error.message); return; }
+    for (const docId of docIds) {
+      await supabase.rpc("recompute_documento_cobranza", { _documento_id: docId });
+    }
+    toast.success("Pago eliminado");
+    refetchPagos(); refetchDocs();
+  };
+
   return (
     <div className="space-y-6">
       <PageBanner
