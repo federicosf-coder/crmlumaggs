@@ -116,7 +116,7 @@ export default function DocumentForm() {
 
   // Lookups
   const { data: plazas = [] } = useQuery({ queryKey: ["plazas"], queryFn: async () => { const { data } = await supabase.from("plazas").select("*").eq("is_active", true).order("nombre"); return data || []; } });
-  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name, lista_precios, uso_cfdi, metodo_pago, tipo_pago").eq("is_active", true).order("name"); return data || []; } });
+  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name, lista_precios, uso_cfdi, metodo_pago, tipo_pago, id_contpaq").eq("is_active", true).order("name"); return data || []; } });
   const { data: contacts = [], refetch: refetchContacts } = useQuery({
     queryKey: ["contacts", form.empresa_id],
     queryFn: async () => {
@@ -653,6 +653,13 @@ export default function DocumentForm() {
               />
               <Button variant="outline" size="icon" onClick={() => setShowNewCompany(true)}><Plus className="h-4 w-4" /></Button>
             </div>
+            {form.empresa_id && (
+              <CompanyContpaqInline
+                companyId={form.empresa_id}
+                initial={(companies.find((c: any) => c.id === form.empresa_id) as any)?.id_contpaq || ""}
+                onSaved={() => refetchCompanies()}
+              />
+            )}
           </div>
 
           {/* Contacto with + button, filtered by empresa */}
@@ -1016,6 +1023,72 @@ export default function DocumentForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function CompanyContpaqInline({ companyId, initial, onSaved }: { companyId: string; initial: string; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(initial);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setValue(initial);
+    setEditing(false);
+  }, [companyId, initial]);
+
+  const save = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("companies")
+      .update({ id_contpaq: value.trim() || null })
+      .eq("id", companyId);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("ID Contpaq actualizado");
+    setEditing(false);
+    onSaved();
+  };
+
+  if (!editing && initial) {
+    return (
+      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+        <span>ID Contpaq:</span>
+        <span className="font-mono font-medium text-foreground">{initial}</span>
+        <button type="button" className="text-primary hover:underline" onClick={() => setEditing(true)}>
+          Editar
+        </button>
+      </div>
+    );
+  }
+
+  if (!editing && !initial) {
+    return (
+      <div className="mt-1 flex items-center gap-2 text-xs">
+        <span className="text-muted-foreground">ID Contpaq: —</span>
+        <button type="button" className="text-primary hover:underline" onClick={() => setEditing(true)}>
+          Capturar
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-1 flex items-center gap-1">
+      <span className="text-xs text-muted-foreground">ID Contpaq:</span>
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="h-7 text-xs w-32"
+        placeholder="ID"
+        autoFocus
+      />
+      <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={save} disabled={saving}>
+        {saving ? "..." : "Guardar"}
+      </Button>
+      <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setValue(initial); setEditing(false); }}>
+        Cancelar
+      </Button>
     </div>
   );
 }

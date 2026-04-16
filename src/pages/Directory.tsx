@@ -33,6 +33,7 @@ interface Company {
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
   origen_contacto: string | null; evaluacion_lubricante: string | null;
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
+  id_contpaq: string | null;
   plazas?: { nombre: string } | null;
   contacts?: { id: string }[];
 }
@@ -370,6 +371,7 @@ export default function Directory() {
                         />
                       </TableHead>
                       <TableHead>Empresa</TableHead>
+                      <TableHead className="w-[110px]">ID Contpaq</TableHead>
                       <TableHead className="hidden sm:table-cell">Industria</TableHead>
                       <TableHead>Contactos</TableHead>
                       <TableHead className="hidden md:table-cell">Plaza</TableHead>
@@ -392,6 +394,7 @@ export default function Directory() {
                           />
                         </TableCell>
                         <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell className="font-mono text-xs">{c.id_contpaq || "—"}</TableCell>
                         <TableCell className="hidden sm:table-cell">{c.industry || "—"}</TableCell>
                         <TableCell>{(c.contacts as any[])?.length || 0}</TableCell>
                         <TableCell className="hidden md:table-cell">{(c.plazas as any)?.nombre || "—"}</TableCell>

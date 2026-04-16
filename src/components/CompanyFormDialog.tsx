@@ -94,6 +94,7 @@ export interface CompanyData {
   origen_contacto: string | null; evaluacion_lubricante: string | null;
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
   uso_cfdi?: string | null; metodo_pago?: string | null; tipo_pago?: string | null;
+  id_contpaq?: string | null;
 }
 
 interface Props {
@@ -112,6 +113,7 @@ const emptyForm = {
   tomador_decision: "", riesgo_cambio_marca: "", origen_contacto: "",
   evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
   uso_cfdi: "", metodo_pago: "", tipo_pago: "",
+  id_contpaq: "",
   plaza_ids: [] as string[],
   ejecutivo_ids: [] as string[],
 };
@@ -213,6 +215,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         uso_cfdi: (editData as any).uso_cfdi || "",
         metodo_pago: (editData as any).metodo_pago || "",
         tipo_pago: (editData as any).tipo_pago || "",
+        id_contpaq: (editData as any).id_contpaq || "",
         plaza_ids: [],
         ejecutivo_ids: [],
       });
@@ -255,6 +258,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       uso_cfdi: form.uso_cfdi || null,
       metodo_pago: form.metodo_pago || null,
       tipo_pago: form.tipo_pago || null,
+      id_contpaq: form.id_contpaq?.trim() || null,
     } as any;
 
     let result;
@@ -328,8 +332,11 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
             </TabsList>
 
             <TabsContent value="general" className="space-y-4 mt-4">
+              <div className="grid grid-cols-[1fr_140px] gap-3">
+                <div className="space-y-1.5"><Label className="text-xs">Nombre de Empresa *</Label><Input value={form.name} onChange={e => set("name", e.target.value)} required className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">ID Contpaq</Label><Input value={form.id_contpaq} onChange={e => set("id_contpaq", e.target.value)} className="h-9" placeholder="—" /></div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 space-y-1.5"><Label className="text-xs">Nombre de Empresa *</Label><Input value={form.name} onChange={e => set("name", e.target.value)} required className="h-9" /></div>
 
                 {/* Plaza (multi-select) */}
                 <div className="col-span-2 space-y-1.5">
