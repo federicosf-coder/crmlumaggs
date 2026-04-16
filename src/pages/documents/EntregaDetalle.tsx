@@ -27,7 +27,7 @@ export default function EntregaDetalle() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<"evidencia" | "firmado" | null>(null);
   const [marking, setMarking] = useState(false);
   const [editAddrOpen, setEditAddrOpen] = useState(false);
   const [newAddress, setNewAddress] = useState("");
