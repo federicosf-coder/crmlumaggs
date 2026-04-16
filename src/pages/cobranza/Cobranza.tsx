@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2 } from "lucide-react";
+import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageBanner } from "@/components/PageBanner";
@@ -62,6 +62,7 @@ export default function Cobranza() {
 
   const [searchPagos, setSearchPagos] = useState("");
   const [searchFacturas, setSearchFacturas] = useState("");
+  const [bucketSel, setBucketSel] = useState<string | null>(null);
 
   // Solo facturas activas para cartera/dashboard
   const facturas = useMemo(() => documentos.filter((d) => d.tipo_documento === "factura" && d.estado_cobranza !== "cancelada"), [documentos]);
@@ -171,6 +172,14 @@ export default function Cobranza() {
 
         {/* DASHBOARD */}
         <TabsContent value="dashboard" className="space-y-6">
+          {bucketSel ? (
+            <BucketDetalle
+              label={bucketSel}
+              facturas={facturas.filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(f.fecha_vencimiento)) === bucketSel)}
+              onBack={() => setBucketSel(null)}
+            />
+          ) : (
+          <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <KpiCard title="Cartera abierta" value={formatCurrency(cartera.abierta)} icon={Wallet} />
             <KpiCard title="Cartera vencida" value={formatCurrency(cartera.vencida)} icon={AlertTriangle} variant="destructive" />
@@ -184,14 +193,21 @@ export default function Cobranza() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
-              <CardHeader><CardTitle>Buckets de vencimiento</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Reporte de vencimiento</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {buckets.map((b) => {
                   const max = Math.max(...buckets.map((x) => x.monto), 1);
                   const pct = (b.monto / max) * 100;
                   const isVencida = b.label === "Vencidas" || b.label === "Vencen hoy";
+                  const disabled = b.count === 0;
                   return (
-                    <div key={b.label}>
+                    <button
+                      key={b.label}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => setBucketSel(b.label)}
+                      className="w-full text-left rounded-md p-2 -mx-2 hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    >
                       <div className="flex justify-between text-sm mb-1">
                         <span className={isVencida ? "text-destructive font-medium" : ""}>{b.label} <span className="text-muted-foreground">({b.count})</span></span>
                         <span className="font-medium">{formatCurrency(b.monto)}</span>
@@ -199,7 +215,7 @@ export default function Cobranza() {
                       <div className="h-2 bg-muted rounded overflow-hidden">
                         <div className={`h-full ${isVencida ? "bg-destructive" : "bg-primary"}`} style={{ width: `${pct}%` }} />
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </CardContent>
@@ -272,6 +288,8 @@ export default function Cobranza() {
               </CardContent>
             </Card>
           </div>
+          </>
+          )}
         </TabsContent>
 
         {/* PAGOS */}
@@ -568,6 +586,61 @@ function PagoArchivosSection({ pagoId }: { pagoId: string }) {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function BucketDetalle({ label, facturas, onBack }: { label: string; facturas: any[]; onBack: () => void }) {
+  const total = facturas.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <Button variant="outline" size="sm" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Regresar al dashboard
+        </Button>
+        <div className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">{facturas.length}</span> facturas · <span className="font-medium text-foreground">{formatCurrency(total)}</span>
+        </div>
+      </div>
+      <Card>
+        <CardHeader><CardTitle>Reporte de vencimiento · {label}</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Folio</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Plaza</TableHead>
+                <TableHead>Fecha doc.</TableHead>
+                <TableHead>Vence</TableHead>
+                <TableHead className="text-right">Días</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Saldo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {facturas.length === 0 && (
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Sin facturas en este grupo</TableCell></TableRow>
+              )}
+              {facturas.map((f) => {
+                const d = diasParaVencer(f.fecha_vencimiento);
+                return (
+                  <TableRow key={f.id}>
+                    <TableCell className="font-mono text-xs">{f.numero_factura || "—"}</TableCell>
+                    <TableCell>{f.empresa?.name || "—"}</TableCell>
+                    <TableCell>{f.plaza?.nombre || "—"}</TableCell>
+                    <TableCell>{formatDate(f.fecha_documento)}</TableCell>
+                    <TableCell>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : "—"}</TableCell>
+                    <TableCell className="text-right"><span className={d !== null && d < 0 ? "text-destructive font-medium" : ""}>{d ?? "—"}</span></TableCell>
+                    <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
