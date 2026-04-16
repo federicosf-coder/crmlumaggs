@@ -53,6 +53,8 @@ function bucketLabel(dias: number | null): string {
 }
 
 export default function Cobranza() {
+  const { hasAnyRole } = useAuth();
+  const canDelete = hasAnyRole(["admin", "manager"]);
   const { pagos, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos();
   const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza();
 
@@ -154,6 +156,20 @@ export default function Cobranza() {
     const { error } = await supabase.from("cobranza_pagos").update({ estado_pago: "cancelado" }).eq("id", p.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Pago cancelado");
+    refetchPagos(); refetchDocs();
+  };
+
+  const handleEliminarPago = async (p: CobranzaPago) => {
+    if (!confirm("¿Eliminar permanentemente este pago? Se eliminarán también sus aplicaciones y archivos. Esta acción no se puede deshacer.")) return;
+    const docIds = Array.from(new Set(((await supabase.from("cobranza_aplicaciones").select("documento_id").eq("pago_id", p.id)).data || []).map((a: any) => a.documento_id)));
+    await supabase.from("cobranza_aplicaciones").delete().eq("pago_id", p.id);
+    await supabase.from("cobranza_pago_archivos").delete().eq("pago_id", p.id);
+    const { error } = await supabase.from("cobranza_pagos").delete().eq("id", p.id);
+    if (error) { toast.error(error.message); return; }
+    for (const docId of docIds) {
+      await supabase.rpc("recompute_documento_cobranza", { _documento_id: docId });
+    }
+    toast.success("Pago eliminado");
     refetchPagos(); refetchDocs();
   };
 
@@ -310,7 +326,10 @@ export default function Cobranza() {
                             <Button size="sm" variant="outline" onClick={() => handleAplicar(p)}>Aplicar</Button>
                           )}
                           {p.estado_pago !== "cancelado" && (
-                            <Button size="sm" variant="ghost" onClick={() => handleCancelarPago(p)}><X className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleCancelarPago(p)} title="Cancelar"><X className="h-4 w-4" /></Button>
+                          )}
+                          {canDelete && (
+                            <Button size="sm" variant="ghost" onClick={() => handleEliminarPago(p)} title="Eliminar"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                           )}
                         </div>
                       </TableCell>
