@@ -221,6 +221,7 @@ export type Database = {
           equipo: string | null
           evaluacion_lubricante: string | null
           id: string
+          id_contpaq: string | null
           industrias: string[] | null
           industry: string | null
           is_active: boolean
@@ -253,6 +254,7 @@ export type Database = {
           equipo?: string | null
           evaluacion_lubricante?: string | null
           id?: string
+          id_contpaq?: string | null
           industrias?: string[] | null
           industry?: string | null
           is_active?: boolean
@@ -285,6 +287,7 @@ export type Database = {
           equipo?: string | null
           evaluacion_lubricante?: string | null
           id?: string
+          id_contpaq?: string | null
           industrias?: string[] | null
           industry?: string | null
           is_active?: boolean
