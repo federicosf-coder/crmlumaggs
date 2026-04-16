@@ -185,14 +185,21 @@ export default function Cobranza() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
-              <CardHeader><CardTitle>Buckets de vencimiento</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Reporte de vencimiento</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {buckets.map((b) => {
                   const max = Math.max(...buckets.map((x) => x.monto), 1);
                   const pct = (b.monto / max) * 100;
                   const isVencida = b.label === "Vencidas" || b.label === "Vencen hoy";
+                  const disabled = b.count === 0;
                   return (
-                    <div key={b.label}>
+                    <button
+                      key={b.label}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => setBucketSel(b.label)}
+                      className="w-full text-left rounded-md p-2 -mx-2 hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    >
                       <div className="flex justify-between text-sm mb-1">
                         <span className={isVencida ? "text-destructive font-medium" : ""}>{b.label} <span className="text-muted-foreground">({b.count})</span></span>
                         <span className="font-medium">{formatCurrency(b.monto)}</span>
@@ -200,7 +207,7 @@ export default function Cobranza() {
                       <div className="h-2 bg-muted rounded overflow-hidden">
                         <div className={`h-full ${isVencida ? "bg-destructive" : "bg-primary"}`} style={{ width: `${pct}%` }} />
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </CardContent>
