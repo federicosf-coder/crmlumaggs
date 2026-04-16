@@ -26,6 +26,19 @@ const ESTADO_PAGO_LABEL: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
+const ESTATUS_PAGO_LABEL: Record<string, string> = {
+  recibido: "Recibido",
+  enviado_validar: "Enviado a Validar",
+  validado: "Validado",
+  aplicado: "Aplicado",
+};
+
+const FORMA_PAGO_LABEL: Record<string, string> = {
+  contado: "Contado",
+  credito: "Crédito Directo",
+  credito_cescemex: "Crédito Cescemex",
+};
+
 const ESTADO_COBRANZA_LABEL: Record<string, string> = {
   pendiente: "Pendiente",
   parcial: "Parcial",
@@ -306,12 +319,13 @@ export default function Cobranza() {
                   <TableHead className="text-right">Aplicado a Facturas</TableHead>
                   <TableHead className="text-right">Aplicado a Cot/Pedidos</TableHead>
                   <TableHead className="text-right">Disponible (facturas)</TableHead>
-                  <TableHead>Referencia</TableHead>
+                  <TableHead>Forma</TableHead>
+                  <TableHead>Estatus Pago</TableHead>
                   <TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {loadingPagos && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
-                  {!loadingPagos && pagosFiltrados.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sin pagos registrados</TableCell></TableRow>}
+                  {loadingPagos && <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
+                  {!loadingPagos && pagosFiltrados.length === 0 && <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Sin pagos registrados</TableCell></TableRow>}
                   {pagosFiltrados.map((p) => {
                     const b = breakdowns[p.id];
                     const aplicadoFact = b?.aplicadoFacturas ?? 0;
@@ -326,7 +340,8 @@ export default function Cobranza() {
                       <TableCell className="text-right">{formatCurrency(aplicadoFact)}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{aplicadoOtros > 0 ? formatCurrency(aplicadoOtros) : "—"}</TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(dispFact)}</TableCell>
-                      <TableCell className="text-xs">{p.referencia_pago || "—"}</TableCell>
+                      <TableCell className="text-xs">{FORMA_PAGO_LABEL[p.tipo_pago || ""] || p.tipo_pago || "—"}</TableCell>
+                      <TableCell><Badge variant="outline">{ESTATUS_PAGO_LABEL[p.estatus_pago] || p.estatus_pago}</Badge></TableCell>
                       <TableCell><Badge variant={p.estado_pago === "aplicado_total" ? "default" : p.estado_pago === "cancelado" ? "destructive" : "secondary"}>{ESTADO_PAGO_LABEL[p.estado_pago]}</Badge></TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
@@ -428,7 +443,13 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const [defaultEmails, setDefaultEmails] = useState<string[]>([]);
   const [comprobantes, setComprobantes] = useState<{ nombre: string; url: string }[]>([]);
   const [previouslySentEmails, setPreviouslySentEmails] = useState<string[]>([]);
-  const [loadingEmails, setLoadingEmails] = useState(false);
+  const [loadingEmails, setLoadingEmails] = useState<null | "contado" | "credito" | "credito_cescemex" | "general">(null);
+  const [activeFlow, setActiveFlow] = useState<{
+    templateName: string;
+    title: string;
+    description: string;
+    formaPago?: string;
+  }>({ templateName: "pago-confirmation", title: "Enviar confirmación", description: "" });
 
   const handleCancelarAplicacion = async (id: string) => {
     if (!confirm("¿Cancelar esta aplicación?")) return;
@@ -438,24 +459,34 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     refetch(); onChanged();
   };
 
-  const handleEnviarCorreo = async () => {
+  const loadEmailsAndOpen = async (
+    flow: "contado" | "credito" | "credito_cescemex" | "general"
+  ) => {
     if (!pago) return;
-    setLoadingEmails(true);
+    setLoadingEmails(flow);
     const emails: string[] = [];
-    // Empresa email
+    // Empresa email (siempre incluir si existe)
     const { data: emp } = await supabase.from("companies").select("email").eq("id", pago.empresa_id).maybeSingle();
     if (emp?.email) emails.push(emp.email);
-    // Grupo Contabilidad
-    const { data: contGroup } = await supabase
-      .from("email_groups").select("id").eq("nombre", "Contabilidad").eq("is_active", true).maybeSingle();
-    if (contGroup?.id) {
+
+    // Determinar grupo según flujo
+    const groupName =
+      flow === "contado" ? "Cobranza Contado" :
+      flow === "credito" ? "Cobranza Crédito Directo" :
+      flow === "credito_cescemex" ? "Cobranza Cescemex" :
+      "Contabilidad";
+
+    const { data: grp } = await supabase
+      .from("email_groups").select("id").eq("nombre", groupName).eq("is_active", true).maybeSingle();
+    if (grp?.id) {
       const { data: members } = await supabase
-        .from("email_group_members").select("email").eq("group_id", contGroup.id);
+        .from("email_group_members").select("email").eq("group_id", grp.id);
       (members || []).forEach((m: any) => {
         if (m.email && !emails.includes(m.email)) emails.push(m.email);
       });
     }
-    // Comprobantes (archivos del pago)
+
+    // Comprobantes
     const { data: archivos } = await supabase
       .from("cobranza_pago_archivos")
       .select("nombre_archivo,url_archivo")
@@ -463,27 +494,55 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     setComprobantes(
       (archivos || []).map((a: any) => ({ nombre: a.nombre_archivo, url: a.url_archivo }))
     );
-    // Envíos previos para este pago: buscar message_ids en log que correspondan a este pago.
-    // Como el log no guarda pago_id, usamos la convención del idempotencyKey embebido.
-    // En su lugar consultamos por template + recipient con metadata si existe.
-    // Estrategia simple: traer todos los 'sent' del template y filtrar por destinatarios actuales después.
-    // Mejor: consultar todos los logs 'sent' para pago-confirmation cuyo recipient esté en `emails`
-    // o que coincidan con un patrón. Usamos un enfoque por destinatario.
+
+    // Configurar el flujo
+    if (flow === "general") {
+      setActiveFlow({
+        templateName: "pago-confirmation",
+        title: "Enviar confirmación de pago",
+        description: "Envía el detalle del pago a los destinatarios.",
+      });
+    } else {
+      const formaLabel =
+        flow === "contado" ? "Contado" :
+        flow === "credito" ? "Crédito Directo" : "Crédito Cescemex";
+      setActiveFlow({
+        templateName: "pago-validacion",
+        title: `Solicitud de validación — ${formaLabel}`,
+        description: `Se enviará a los destinatarios del grupo "${groupName}". Al enviar, el estatus del pago cambiará a "Enviado a Validar".`,
+        formaPago: flow,
+      });
+    }
+
+    // Envíos previos del template seleccionado
+    const tpl = flow === "general" ? "pago-confirmation" : "pago-validacion";
     const { data: sentLogs } = await supabase
       .from("email_send_log")
-      .select("recipient_email,status,metadata,message_id,created_at")
-      .eq("template_name", "pago-confirmation")
+      .select("recipient_email,status")
+      .eq("template_name", tpl)
       .eq("status", "sent");
-    // Como el log no incluye pago_id, una mejora futura es guardarlo en metadata.
-    // Por ahora marcamos como "previamente enviado" cualquier destinatario en emails que ya tenga
-    // al menos un envío exitoso de este template. Es una aproximación útil para evitar reenvíos accidentales.
     const sentSet = new Set(
       (sentLogs || []).map((l: any) => (l.recipient_email || "").toLowerCase())
     );
     setPreviouslySentEmails(emails.filter((e) => sentSet.has(e.toLowerCase())).map((e) => e.toLowerCase()));
     setDefaultEmails(emails);
-    setLoadingEmails(false);
+    setLoadingEmails(null);
     setOpenEnviar(true);
+  };
+
+  const handleSentValidacion = async () => {
+    if (!pago) return;
+    // Solo avanzar si está en "recibido"
+    if (pago.estatus_pago === "recibido") {
+      const { error } = await supabase
+        .from("cobranza_pagos")
+        .update({ estatus_pago: "enviado_validar" })
+        .eq("id", pago.id);
+      if (!error) {
+        toast.success("Estatus actualizado a 'Enviado a Validar'");
+        onChanged();
+      }
+    }
   };
 
   if (!pago) return null;
@@ -506,9 +565,18 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
           <SheetTitle>Detalle del pago</SheetTitle>
         </SheetHeader>
         <div className="space-y-4 mt-6">
-          <div className="flex justify-end">
-            <Button size="sm" variant="outline" onClick={handleEnviarCorreo} disabled={loadingEmails}>
-              <Mail className="h-4 w-4 mr-2" /> {loadingEmails ? "Cargando..." : "Enviar por correo"}
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("contado")} disabled={loadingEmails !== null}>
+              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "contado" ? "Cargando..." : "Enviar correo Contado"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("credito")} disabled={loadingEmails !== null}>
+              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito" ? "Cargando..." : "Enviar correo Crédito Directo"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("credito_cescemex")} disabled={loadingEmails !== null}>
+              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito_cescemex" ? "Cargando..." : "Enviar correo Crédito Cescemex"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => loadEmailsAndOpen("general")} disabled={loadingEmails !== null}>
+              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "general" ? "Cargando..." : "Confirmación"}
             </Button>
           </div>
           <Card>
@@ -516,7 +584,8 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
               <div><p className="text-muted-foreground text-xs">Cliente</p><p className="font-medium">{pago.empresa?.name}</p></div>
               <div><p className="text-muted-foreground text-xs">Plaza</p><p>{pago.plaza?.nombre || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Fecha</p><p>{formatDate(pago.fecha_pago)}</p></div>
-              <div><p className="text-muted-foreground text-xs">Tipo</p><p>{pago.tipo_pago || "—"}</p></div>
+              <div><p className="text-muted-foreground text-xs">Forma de pago</p><p>{FORMA_PAGO_LABEL[pago.tipo_pago || ""] || pago.tipo_pago || "—"}</p></div>
+              <div><p className="text-muted-foreground text-xs">Estatus Pago</p><p><Badge variant="outline">{ESTATUS_PAGO_LABEL[pago.estatus_pago] || pago.estatus_pago}</Badge></p></div>
               <div><p className="text-muted-foreground text-xs">Banco</p><p>{pago.banco || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Referencia</p><p>{pago.referencia_pago || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Monto total</p><p className="font-semibold">{formatCurrency(pago.monto_total)}</p></div>
@@ -582,6 +651,15 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         registradoPor={profile?.full_name || user?.email || undefined}
         defaultEmails={defaultEmails}
         previouslySentEmails={previouslySentEmails}
+        templateName={activeFlow.templateName}
+        title={activeFlow.title}
+        description={activeFlow.description}
+        extraTemplateData={{
+          cliente: pago.empresa?.name,
+          referencia: pago.referencia_pago,
+          formaPago: activeFlow.formaPago || pago.tipo_pago,
+        }}
+        onSent={activeFlow.templateName === "pago-validacion" ? handleSentValidacion : undefined}
       />
     </Sheet>
   );

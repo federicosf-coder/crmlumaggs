@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export type EstatusPago = "recibido" | "enviado_validar" | "validado" | "aplicado";
+
 export interface CobranzaPago {
   id: string;
   empresa_id: string;
@@ -15,8 +17,9 @@ export interface CobranzaPago {
   banco: string | null;
   observaciones: string | null;
   estado_pago: "registrado" | "no_aplicado" | "aplicado_parcial" | "aplicado_total" | "cancelado";
+  estatus_pago: EstatusPago;
   created_at: string;
-  empresa?: { id: string; name: string } | null;
+  empresa?: { id: string; name: string; email?: string | null } | null;
   plaza?: { id: string; nombre: string } | null;
 }
 
@@ -74,7 +77,7 @@ export function useCobranzaPagos() {
     setLoading(true);
     const { data, error } = await supabase
       .from("cobranza_pagos")
-      .select("*, empresa:companies(id,name), plaza:plazas(id,nombre)")
+      .select("*, empresa:companies(id,name,email), plaza:plazas(id,nombre)")
       .order("fecha_pago", { ascending: false });
     if (!error && data) {
       setPagos(data as any);

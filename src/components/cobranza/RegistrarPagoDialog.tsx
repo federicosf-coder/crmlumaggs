@@ -36,9 +36,19 @@ const TIPO_LABEL: Record<string, string> = {
   cotizacion: "Cotización",
 };
 
+type FormaPago = "contado" | "credito" | "credito_cescemex";
+
+const FORMA_PAGO_OPTIONS: { value: FormaPago; label: string }[] = [
+  { value: "contado", label: "Contado" },
+  { value: "credito", label: "Crédito Directo" },
+  { value: "credito_cescemex", label: "Crédito Cescemex" },
+];
+
+const VALID_FORMAS: FormaPago[] = ["contado", "credito", "credito_cescemex"];
+
 export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
   const { user, profile } = useAuth();
-  const [companies, setCompanies] = useState<{ id: string; name: string; email?: string | null }[]>([]);
+  const [companies, setCompanies] = useState<{ id: string; name: string; email?: string | null; tipo_pago?: string | null }[]>([]);
   const [docs, setDocs] = useState<DocOption[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -49,6 +59,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
   const [fechaPago, setFechaPago] = useState(new Date().toISOString().split("T")[0]);
   const [montoTotal, setMontoTotal] = useState("");
   const [observaciones, setObservaciones] = useState("");
+  const [formaPago, setFormaPago] = useState<FormaPago | "">("");
   const [seleccion, setSeleccion] = useState<Record<string, string>>({}); // doc_id -> monto a aplicar
   const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
 
@@ -69,9 +80,21 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    supabase.from("companies").select("id,name,email").eq("is_active", true).order("name")
+    supabase.from("companies").select("id,name,email,tipo_pago").eq("is_active", true).order("name")
       .then(({ data }) => setCompanies(data || []));
   }, [open]);
+
+  // Cuando cambia la empresa, prellenar Forma de pago desde la empresa si es válida
+  useEffect(() => {
+    if (!empresaId) { setFormaPago(""); return; }
+    const emp = companies.find((c) => c.id === empresaId);
+    const t = (emp?.tipo_pago || "").toLowerCase();
+    if (VALID_FORMAS.includes(t as FormaPago)) {
+      setFormaPago(t as FormaPago);
+    } else {
+      setFormaPago("");
+    }
+  }, [empresaId, companies]);
 
   // Cargar documentos al cambiar empresa
   useEffect(() => {
@@ -133,12 +156,13 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
 
   const reset = () => {
     setEmpresaId(""); setMontoTotal(""); setObservaciones("");
-    setSeleccion({}); setFiles([]); setDocs([]);
+    setSeleccion({}); setFiles([]); setDocs([]); setFormaPago("");
     setFechaPago(new Date().toISOString().split("T")[0]);
   };
 
   const handleSave = async () => {
     if (!empresaId) { toast.error("Selecciona la empresa"); return; }
+    if (!formaPago) { toast.error("Selecciona la forma de pago"); return; }
     if (!montoNum || montoNum <= 0) { toast.error("Monto inválido"); return; }
     const aplicaciones = Object.entries(seleccion)
       .map(([doc_id, monto]) => ({ doc_id, monto: Number(monto) || 0 }))
@@ -153,11 +177,20 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
       monto_total: montoNum,
       monto_disponible: montoNum,
       moneda: "MXN",
+      tipo_pago: formaPago,
+      estatus_pago: "recibido",
       observaciones: observaciones || null,
       creado_por: user?.id,
     }).select("id").single();
 
     if (error || !pago) { setSaving(false); toast.error(error?.message || "Error"); return; }
+
+    // Sincronizar Forma de pago en la empresa si es distinta o está vacía
+    const emp = companies.find((c) => c.id === empresaId);
+    const empForma = (emp?.tipo_pago || "").toLowerCase();
+    if (empForma !== formaPago) {
+      await supabase.from("companies").update({ tipo_pago: formaPago as any }).eq("id", empresaId);
+    }
 
     // Aplicaciones
     const aplicacionesPayload = aplicaciones.map((a) => {
@@ -271,6 +304,24 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
               <Label>Monto total del pago *</Label>
               <Input type="number" step="0.01" value={montoTotal} onChange={(e) => setMontoTotal(e.target.value)} />
             </div>
+          </div>
+
+          <div>
+            <Label>Forma de pago *</Label>
+            <SearchableSelect
+              value={formaPago}
+              onValueChange={(v) => setFormaPago(v as FormaPago)}
+              options={FORMA_PAGO_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              placeholder="Selecciona forma de pago..."
+            />
+            {empresaId && (() => {
+              const emp = companies.find((c) => c.id === empresaId);
+              const empForma = (emp?.tipo_pago || "").toLowerCase();
+              if (!empForma) return <p className="text-xs text-muted-foreground mt-1">La empresa no tiene forma de pago registrada. Se actualizará al guardar.</p>;
+              if (!VALID_FORMAS.includes(empForma as FormaPago)) return <p className="text-xs text-amber-600 mt-1">La empresa tiene "{empForma}". Al guardar, se actualizará a la forma seleccionada.</p>;
+              if (formaPago && formaPago !== empForma) return <p className="text-xs text-amber-600 mt-1">La empresa tiene "{FORMA_PAGO_OPTIONS.find(o => o.value === empForma)?.label}". Al guardar, se actualizará.</p>;
+              return null;
+            })()}
           </div>
 
           <div>
