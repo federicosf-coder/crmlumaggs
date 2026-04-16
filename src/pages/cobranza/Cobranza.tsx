@@ -518,15 +518,16 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
               <div><p className="text-muted-foreground text-xs">Banco</p><p>{pago.banco || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Referencia</p><p>{pago.referencia_pago || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Monto total</p><p className="font-semibold">{formatCurrency(pago.monto_total)}</p></div>
-              <div><p className="text-muted-foreground text-xs">Aplicado</p><p>{formatCurrency(pago.monto_aplicado)}</p></div>
-              <div className="col-span-2"><p className="text-muted-foreground text-xs">Disponible</p><p className="text-lg font-bold text-primary">{formatCurrency(pago.monto_disponible)}</p></div>
+              <div><p className="text-muted-foreground text-xs">Aplicado a Facturas</p><p>{formatCurrency(aplicadoFacturas)}</p></div>
+              <div><p className="text-muted-foreground text-xs">Aplicado a Cot/Pedidos</p><p className="text-muted-foreground">{aplicadoOtros > 0 ? formatCurrency(aplicadoOtros) : "—"}</p></div>
+              <div><p className="text-muted-foreground text-xs">Disponible (a facturas)</p><p className="text-lg font-bold text-primary">{formatCurrency(disponibleFacturas)}</p></div>
               {pago.observaciones && <div className="col-span-2"><p className="text-muted-foreground text-xs">Observaciones</p><p>{pago.observaciones}</p></div>}
             </CardContent>
           </Card>
 
           <div className="flex justify-between items-center">
             <h3 className="font-semibold">Aplicaciones</h3>
-            {pago.estado_pago !== "cancelado" && pago.monto_disponible > 0 && (
+            {pago.estado_pago !== "cancelado" && disponibleFacturas > 0 && (
               <Button size="sm" onClick={() => onAplicar(pago)}><Plus className="h-4 w-4 mr-1" /> Aplicar</Button>
             )}
           </div>
