@@ -26,6 +26,19 @@ const ESTADO_PAGO_LABEL: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
+const ESTATUS_PAGO_LABEL: Record<string, string> = {
+  recibido: "Recibido",
+  enviado_validar: "Enviado a Validar",
+  validado: "Validado",
+  aplicado: "Aplicado",
+};
+
+const FORMA_PAGO_LABEL: Record<string, string> = {
+  contado: "Contado",
+  credito: "Crédito Directo",
+  credito_cescemex: "Crédito Cescemex",
+};
+
 const ESTADO_COBRANZA_LABEL: Record<string, string> = {
   pendiente: "Pendiente",
   parcial: "Parcial",
