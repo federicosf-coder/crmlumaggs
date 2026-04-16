@@ -91,15 +91,25 @@ export function AddressDisplay({
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
       </div>
-      {embed && (
-        <iframe
-          src={embed}
-          title="Mapa"
-          className="w-full rounded-md border"
+      {mapImg && (
+        <a
+          href={url!}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="block overflow-hidden rounded-md border bg-muted"
           style={{ height: mapHeight }}
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        />
+          title="Abrir en Google Maps"
+        >
+          <img
+            src={mapImg}
+            alt="Mapa de ubicación"
+            className="w-full h-full object-cover"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }}
+          />
+        </a>
       )}
     </div>
   );
