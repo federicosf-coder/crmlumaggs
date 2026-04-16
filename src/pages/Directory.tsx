@@ -2,17 +2,18 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess, type AccessLevel } from "@/hooks/useModuleAccess";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
+import { useSearchParams } from "react-router-dom";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Building2, User, Search, Pencil, List, LayoutGrid, Phone, MapPin } from "lucide-react";
+import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin } from "lucide-react";
 import { SortMenu } from "@/components/SortMenu";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
@@ -47,7 +48,15 @@ function DetailRow({ label, value }: { label: string; value: string | null | und
   );
 }
 
+const TAB_COLORS: Record<string, { active: string; border: string }> = {
+  companies: { active: "bg-blue-600 text-white hover:bg-blue-700", border: "border-blue-500" },
+  contacts: { active: "bg-emerald-600 text-white hover:bg-emerald-700", border: "border-emerald-500" },
+};
+
 export default function Directory() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "companies";
+
   const [companies, setCompanies] = useState<Company[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +74,14 @@ export default function Directory() {
   const [editContact, setEditContact] = useState<ContactEditData | null>(null);
 
   const access = useModuleAccess("directorio");
+
+  const setTab = (tab: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", tab);
+      return next;
+    }, { replace: true });
+  };
 
   // Profiles for ejecutivo display
   const { data: allProfiles = [] } = useQuery({
@@ -154,204 +171,239 @@ export default function Directory() {
       }
     });
 
-  const ViewToggle = ({ view, setView }: { view: "list" | "cards"; setView: (v: "list" | "cards") => void }) => (
-    <div className="flex gap-1 border rounded-md p-0.5">
-      <Button variant={view === "list" ? "default" : "ghost"} size="sm" className="h-7 px-2" onClick={() => setView("list")}>
-        <List className="h-4 w-4" />
-      </Button>
-      <Button variant={view === "cards" ? "default" : "ghost"} size="sm" className="h-7 px-2" onClick={() => setView("cards")}>
-        <LayoutGrid className="h-4 w-4" />
-      </Button>
-    </div>
-  );
+  const search = activeTab === "companies" ? companySearch : contactSearch;
+  const setSearch = activeTab === "companies" ? setCompanySearch : setContactSearch;
+  const view = activeTab === "companies" ? companyView : contactView;
+  const setView = activeTab === "companies" ? setCompanyView : setContactView;
+  const tabColor = TAB_COLORS[activeTab] || TAB_COLORS.companies;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Directorio</h1>
+    <div className="space-y-4">
+      {/* Header — matches Documentos */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Directorio</h1>
+          <p className="text-muted-foreground text-sm">Empresas y contactos</p>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => activeTab === "companies" ? setCompanyOpen(true) : setContactOpen(true)}
+        >
+          <Plus className="mr-1 h-4 w-4" />
+          {activeTab === "companies" ? "Agregar Empresa" : "Agregar Contacto"}
+        </Button>
+      </div>
 
-      <Tabs defaultValue="companies">
-        <TabsList>
-          <TabsTrigger value="companies" className="gap-2"><Building2 className="h-4 w-4" /> Empresas</TabsTrigger>
-          <TabsTrigger value="contacts" className="gap-2"><User className="h-4 w-4" /> Contactos</TabsTrigger>
-        </TabsList>
+      {/* Tabs — button style matching Documentos */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          {[
+            { value: "companies", label: "Empresas", icon: Building2 },
+            { value: "contacts", label: "Contactos", icon: User },
+          ].map((tab) => {
+            const isActive = activeTab === tab.value;
+            const colors = TAB_COLORS[tab.value];
+            return (
+              <Button
+                key={tab.value}
+                size="sm"
+                className={`transition-all duration-150 gap-1.5 ${isActive ? colors.active : "bg-background text-foreground border border-input hover:bg-accent"}`}
+                variant={isActive ? "default" : "outline"}
+                onClick={() => setTab(tab.value)}
+              >
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+              </Button>
+            );
+          })}
+        </div>
+        <div className="flex gap-1">
+          <Button variant={view === "list" ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setView("list")}>
+            <LayoutList className="h-4 w-4" />
+          </Button>
+          <Button variant={view === "cards" ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setView("cards")}>
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-        {/* ─── EMPRESAS ─── */}
-        <TabsContent value="companies" className="space-y-4">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar empresas..." className="pl-9" value={companySearch} onChange={e => setCompanySearch(e.target.value)} />
-              </div>
-              <ViewToggle view={companyView} setView={setCompanyView} />
-              <SortMenu
-                value={companySort}
-                onChange={setCompanySort}
-                options={[
-                  { value: "name_asc", label: "Nombre A-Z" },
-                  { value: "name_desc", label: "Nombre Z-A" },
-                  { value: "industry", label: "Industria" },
-                  { value: "plaza", label: "Plaza" },
-                  { value: "contacts_desc", label: "Más contactos" },
-                ]}
+      {/* Content */}
+      <Card className={`border-t-2 ${tabColor.border}`}>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={activeTab === "companies" ? "Buscar empresas..." : "Buscar contactos..."}
+                className="pl-9"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <Button onClick={() => setCompanyOpen(true)}><Plus className="mr-2 h-4 w-4" /> Agregar Empresa</Button>
+            <SortMenu
+              value={activeTab === "companies" ? companySort : contactSort}
+              onChange={activeTab === "companies" ? setCompanySort : setContactSort}
+              options={activeTab === "companies" ? [
+                { value: "name_asc", label: "Nombre A-Z" },
+                { value: "name_desc", label: "Nombre Z-A" },
+                { value: "industry", label: "Industria" },
+                { value: "plaza", label: "Plaza" },
+                { value: "contacts_desc", label: "Más contactos" },
+              ] : [
+                { value: "last_name_asc", label: "Apellido A-Z" },
+                { value: "last_name_desc", label: "Apellido Z-A" },
+                { value: "first_name_asc", label: "Nombre A-Z" },
+                { value: "company", label: "Empresa" },
+              ]}
+            />
           </div>
-
-          {loading ? (
-            <p className="text-muted-foreground p-6">Cargando...</p>
-          ) : filteredCompanies.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No se encontraron empresas.</p>
-          ) : companyView === "list" ? (
-            <Card>
-              <CardContent className="p-0">
+        </CardHeader>
+        <CardContent className="px-0 sm:px-6">
+          {activeTab === "companies" ? (
+            /* ─── EMPRESAS ─── */
+            loading ? (
+              <p className="text-center py-8 text-muted-foreground">Cargando...</p>
+            ) : filteredCompanies.length === 0 ? (
+              <div className="text-center py-12">
+                <Building2 className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <p className="mt-2 text-muted-foreground">No se encontraron empresas</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Agrega una empresa para comenzar</p>
+              </div>
+            ) : companyView === "list" ? (
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Empresa</TableHead>
-                      <TableHead>Industria</TableHead>
+                      <TableHead className="hidden sm:table-cell">Industria</TableHead>
                       <TableHead>Contactos</TableHead>
-                      <TableHead>Plaza</TableHead>
+                      <TableHead className="hidden md:table-cell">Plaza</TableHead>
                       <TableHead>Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredCompanies.map(c => (
-                      <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedCompany(c)}>
+                      <TableRow key={c.id} className="cursor-pointer transition-colors duration-150 hover:bg-muted/50" onClick={() => setSelectedCompany(c)}>
                         <TableCell className="font-medium">{c.name}</TableCell>
-                        <TableCell>{c.industry || "—"}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{c.industry || "—"}</TableCell>
                         <TableCell>{(c.contacts as any[])?.length || 0}</TableCell>
-                        <TableCell>{(c.plazas as any)?.nombre || "—"}</TableCell>
-                        <TableCell><Badge variant={c.is_active ? "default" : "secondary"}>{c.is_active ? "Activo" : "Inactivo"}</Badge></TableCell>
+                        <TableCell className="hidden md:table-cell">{(c.plazas as any)?.nombre || "—"}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${c.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-100 text-slate-700 border-slate-300"}`}>
+                            {c.is_active ? "Activo" : "Inactivo"}
+                          </span>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredCompanies.map(c => (
-                <Card key={c.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedCompany(c)}>
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-base">{c.name}</h3>
-                        <p className="text-sm text-muted-foreground">{c.industry || "Sin industria"}</p>
-                      </div>
-                      <Badge variant={c.is_active ? "default" : "secondary"} className="text-xs shrink-0">
-                        {c.is_active ? "Activo" : "Inactivo"}
-                      </Badge>
-                    </div>
-                    <Separator />
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <User className="h-3.5 w-3.5" /> {(c.contacts as any[])?.length || 0} contactos
-                      </span>
-                      {(c.plazas as any)?.nombre && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5" /> {(c.plazas as any).nombre}
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* ─── CONTACTOS ─── */}
-        <TabsContent value="contacts" className="space-y-4">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar contactos..." className="pl-9" value={contactSearch} onChange={e => setContactSearch(e.target.value)} />
               </div>
-              <ViewToggle view={contactView} setView={setContactView} />
-              <SortMenu
-                value={contactSort}
-                onChange={setContactSort}
-                options={[
-                  { value: "last_name_asc", label: "Apellido A-Z" },
-                  { value: "last_name_desc", label: "Apellido Z-A" },
-                  { value: "first_name_asc", label: "Nombre A-Z" },
-                  { value: "company", label: "Empresa" },
-                ]}
-              />
-            </div>
-            <Button onClick={() => setContactOpen(true)}><Plus className="mr-2 h-4 w-4" /> Agregar Contacto</Button>
-          </div>
-
-          {loading ? (
-            <p className="text-muted-foreground p-6">Cargando...</p>
-          ) : filteredContacts.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No se encontraron contactos.</p>
-          ) : contactView === "list" ? (
-            <Card>
-              <CardContent className="p-0">
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredCompanies.map(c => (
+                  <Card key={c.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedCompany(c)}>
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-base">{c.name}</h3>
+                          <p className="text-sm text-muted-foreground">{c.industry || "Sin industria"}</p>
+                        </div>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border shrink-0 ${c.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-100 text-slate-700 border-slate-300"}`}>
+                          {c.is_active ? "Activo" : "Inactivo"}
+                        </span>
+                      </div>
+                      <Separator />
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <User className="h-3.5 w-3.5" /> {(c.contacts as any[])?.length || 0} contactos
+                        </span>
+                        {(c.plazas as any)?.nombre && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5" /> {(c.plazas as any).nombre}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )
+          ) : (
+            /* ─── CONTACTOS ─── */
+            loading ? (
+              <p className="text-center py-8 text-muted-foreground">Cargando...</p>
+            ) : filteredContacts.length === 0 ? (
+              <div className="text-center py-12">
+                <User className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <p className="mt-2 text-muted-foreground">No se encontraron contactos</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Agrega un contacto para comenzar</p>
+              </div>
+            ) : contactView === "list" ? (
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nombre</TableHead>
                       <TableHead>Apellido</TableHead>
-                      <TableHead>Teléfono Móvil</TableHead>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>Plaza</TableHead>
+                      <TableHead className="hidden sm:table-cell">Celular</TableHead>
+                      <TableHead className="hidden sm:table-cell">Empresa</TableHead>
+                      <TableHead className="hidden md:table-cell">Plaza</TableHead>
                       <TableHead>Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredContacts.map(c => (
-                      <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedContact(c)}>
+                      <TableRow key={c.id} className="cursor-pointer transition-colors duration-150 hover:bg-muted/50" onClick={() => setSelectedContact(c)}>
                         <TableCell className="font-medium">{c.first_name}</TableCell>
                         <TableCell>{c.last_name}</TableCell>
-                        <TableCell>{c.mobile || "—"}</TableCell>
-                        <TableCell>{c.companies?.name || "—"}</TableCell>
-                        <TableCell>{(c.companies?.plazas as any)?.nombre || "—"}</TableCell>
-                        <TableCell><Badge variant={c.is_active ? "default" : "secondary"}>{c.is_active ? "Activo" : "Inactivo"}</Badge></TableCell>
+                        <TableCell className="hidden sm:table-cell">{c.mobile || "—"}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{c.companies?.name || "—"}</TableCell>
+                        <TableCell className="hidden md:table-cell">{(c.companies?.plazas as any)?.nombre || "—"}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${c.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-100 text-slate-700 border-slate-300"}`}>
+                            {c.is_active ? "Activo" : "Inactivo"}
+                          </span>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredContacts.map(c => (
-                <Card key={c.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedContact(c)}>
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-base">{c.first_name} {c.last_name}</h3>
-                        <p className="text-sm text-muted-foreground">{c.companies?.name || "Sin empresa"}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredContacts.map(c => (
+                  <Card key={c.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedContact(c)}>
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-base">{c.first_name} {c.last_name}</h3>
+                          <p className="text-sm text-muted-foreground">{c.companies?.name || "Sin empresa"}</p>
+                        </div>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border shrink-0 ${c.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-100 text-slate-700 border-slate-300"}`}>
+                          {c.is_active ? "Activo" : "Inactivo"}
+                        </span>
                       </div>
-                      <Badge variant={c.is_active ? "default" : "secondary"} className="text-xs shrink-0">
-                        {c.is_active ? "Activo" : "Inactivo"}
-                      </Badge>
-                    </div>
-                    <Separator />
-                    <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                      {c.mobile && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3.5 w-3.5" /> {c.mobile}
-                        </span>
-                      )}
-                      {(c.companies?.plazas as any)?.nombre && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5" /> {(c.companies!.plazas as any).nombre}
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      <Separator />
+                      <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                        {c.mobile && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3.5 w-3.5" /> {c.mobile}
+                          </span>
+                        )}
+                        {(c.companies?.plazas as any)?.nombre && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5" /> {(c.companies!.plazas as any).nombre}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )
           )}
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
 
       <CompanyFormDialog open={companyOpen} onOpenChange={setCompanyOpen} onCreated={() => fetchData()} />
       <CompanyFormDialog
