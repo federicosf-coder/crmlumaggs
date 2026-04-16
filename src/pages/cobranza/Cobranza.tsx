@@ -443,7 +443,13 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const [defaultEmails, setDefaultEmails] = useState<string[]>([]);
   const [comprobantes, setComprobantes] = useState<{ nombre: string; url: string }[]>([]);
   const [previouslySentEmails, setPreviouslySentEmails] = useState<string[]>([]);
-  const [loadingEmails, setLoadingEmails] = useState(false);
+  const [loadingEmails, setLoadingEmails] = useState<null | "contado" | "credito" | "credito_cescemex" | "general">(null);
+  const [activeFlow, setActiveFlow] = useState<{
+    templateName: string;
+    title: string;
+    description: string;
+    formaPago?: string;
+  }>({ templateName: "pago-confirmation", title: "Enviar confirmación", description: "" });
 
   const handleCancelarAplicacion = async (id: string) => {
     if (!confirm("¿Cancelar esta aplicación?")) return;
@@ -453,24 +459,34 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     refetch(); onChanged();
   };
 
-  const handleEnviarCorreo = async () => {
+  const loadEmailsAndOpen = async (
+    flow: "contado" | "credito" | "credito_cescemex" | "general"
+  ) => {
     if (!pago) return;
-    setLoadingEmails(true);
+    setLoadingEmails(flow);
     const emails: string[] = [];
-    // Empresa email
+    // Empresa email (siempre incluir si existe)
     const { data: emp } = await supabase.from("companies").select("email").eq("id", pago.empresa_id).maybeSingle();
     if (emp?.email) emails.push(emp.email);
-    // Grupo Contabilidad
-    const { data: contGroup } = await supabase
-      .from("email_groups").select("id").eq("nombre", "Contabilidad").eq("is_active", true).maybeSingle();
-    if (contGroup?.id) {
+
+    // Determinar grupo según flujo
+    const groupName =
+      flow === "contado" ? "Cobranza Contado" :
+      flow === "credito" ? "Cobranza Crédito Directo" :
+      flow === "credito_cescemex" ? "Cobranza Cescemex" :
+      "Contabilidad";
+
+    const { data: grp } = await supabase
+      .from("email_groups").select("id").eq("nombre", groupName).eq("is_active", true).maybeSingle();
+    if (grp?.id) {
       const { data: members } = await supabase
-        .from("email_group_members").select("email").eq("group_id", contGroup.id);
+        .from("email_group_members").select("email").eq("group_id", grp.id);
       (members || []).forEach((m: any) => {
         if (m.email && !emails.includes(m.email)) emails.push(m.email);
       });
     }
-    // Comprobantes (archivos del pago)
+
+    // Comprobantes
     const { data: archivos } = await supabase
       .from("cobranza_pago_archivos")
       .select("nombre_archivo,url_archivo")
@@ -478,27 +494,55 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     setComprobantes(
       (archivos || []).map((a: any) => ({ nombre: a.nombre_archivo, url: a.url_archivo }))
     );
-    // Envíos previos para este pago: buscar message_ids en log que correspondan a este pago.
-    // Como el log no guarda pago_id, usamos la convención del idempotencyKey embebido.
-    // En su lugar consultamos por template + recipient con metadata si existe.
-    // Estrategia simple: traer todos los 'sent' del template y filtrar por destinatarios actuales después.
-    // Mejor: consultar todos los logs 'sent' para pago-confirmation cuyo recipient esté en `emails`
-    // o que coincidan con un patrón. Usamos un enfoque por destinatario.
+
+    // Configurar el flujo
+    if (flow === "general") {
+      setActiveFlow({
+        templateName: "pago-confirmation",
+        title: "Enviar confirmación de pago",
+        description: "Envía el detalle del pago a los destinatarios.",
+      });
+    } else {
+      const formaLabel =
+        flow === "contado" ? "Contado" :
+        flow === "credito" ? "Crédito Directo" : "Crédito Cescemex";
+      setActiveFlow({
+        templateName: "pago-validacion",
+        title: `Solicitud de validación — ${formaLabel}`,
+        description: `Se enviará a los destinatarios del grupo "${groupName}". Al enviar, el estatus del pago cambiará a "Enviado a Validar".`,
+        formaPago: flow,
+      });
+    }
+
+    // Envíos previos del template seleccionado
+    const tpl = flow === "general" ? "pago-confirmation" : "pago-validacion";
     const { data: sentLogs } = await supabase
       .from("email_send_log")
-      .select("recipient_email,status,metadata,message_id,created_at")
-      .eq("template_name", "pago-confirmation")
+      .select("recipient_email,status")
+      .eq("template_name", tpl)
       .eq("status", "sent");
-    // Como el log no incluye pago_id, una mejora futura es guardarlo en metadata.
-    // Por ahora marcamos como "previamente enviado" cualquier destinatario en emails que ya tenga
-    // al menos un envío exitoso de este template. Es una aproximación útil para evitar reenvíos accidentales.
     const sentSet = new Set(
       (sentLogs || []).map((l: any) => (l.recipient_email || "").toLowerCase())
     );
     setPreviouslySentEmails(emails.filter((e) => sentSet.has(e.toLowerCase())).map((e) => e.toLowerCase()));
     setDefaultEmails(emails);
-    setLoadingEmails(false);
+    setLoadingEmails(null);
     setOpenEnviar(true);
+  };
+
+  const handleSentValidacion = async () => {
+    if (!pago) return;
+    // Solo avanzar si está en "recibido"
+    if (pago.estatus_pago === "recibido") {
+      const { error } = await supabase
+        .from("cobranza_pagos")
+        .update({ estatus_pago: "enviado_validar" })
+        .eq("id", pago.id);
+      if (!error) {
+        toast.success("Estatus actualizado a 'Enviado a Validar'");
+        onChanged();
+      }
+    }
   };
 
   if (!pago) return null;
