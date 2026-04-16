@@ -353,6 +353,7 @@ export default function DeliverySchedule() {
           total: Number(p.total) || 0,
           estatus: p.estatus_pedido || "confirmado_cliente",
           plaza_id: p.plaza_id || undefined,
+          fecha_documento: p.fecha_documento || undefined,
           raw: p,
         };
       });
