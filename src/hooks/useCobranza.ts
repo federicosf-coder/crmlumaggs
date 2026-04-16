@@ -87,10 +87,21 @@ export function useCobranzaAplicaciones(pagoId: string | null) {
     setLoading(true);
     const { data, error } = await supabase
       .from("cobranza_aplicaciones")
-      .select("*, documento:documentos(id,numero_factura,numero_pedido,numero_cotizacion,tipo_documento,total,saldo_pendiente_cobranza,fecha_vencimiento)")
+      .select("*")
       .eq("pago_id", pagoId)
       .order("fecha_aplicacion", { ascending: false });
-    if (!error && data) setAplicaciones(data as any);
+    if (error) { console.error("aplicaciones", error); setAplicaciones([]); setLoading(false); return; }
+    const docIds = Array.from(new Set((data || []).map((a: any) => a.documento_id).filter(Boolean)));
+    let docsMap: Record<string, any> = {};
+    if (docIds.length > 0) {
+      const { data: docs } = await supabase
+        .from("documentos")
+        .select("id,numero_factura,numero_pedido,numero_cotizacion,tipo_documento,total,saldo_pendiente_cobranza,fecha_vencimiento")
+        .in("id", docIds);
+      (docs || []).forEach((d: any) => { docsMap[d.id] = d; });
+    }
+    const merged = (data || []).map((a: any) => ({ ...a, documento: docsMap[a.documento_id] || null }));
+    setAplicaciones(merged as any);
     setLoading(false);
   }, [pagoId]);
 
