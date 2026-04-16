@@ -307,6 +307,24 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
           </div>
 
           <div>
+            <Label>Forma de pago *</Label>
+            <SearchableSelect
+              value={formaPago}
+              onValueChange={(v) => setFormaPago(v as FormaPago)}
+              options={FORMA_PAGO_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              placeholder="Selecciona forma de pago..."
+            />
+            {empresaId && (() => {
+              const emp = companies.find((c) => c.id === empresaId);
+              const empForma = (emp?.tipo_pago || "").toLowerCase();
+              if (!empForma) return <p className="text-xs text-muted-foreground mt-1">La empresa no tiene forma de pago registrada. Se actualizará al guardar.</p>;
+              if (!VALID_FORMAS.includes(empForma as FormaPago)) return <p className="text-xs text-amber-600 mt-1">La empresa tiene "{empForma}". Al guardar, se actualizará a la forma seleccionada.</p>;
+              if (formaPago && formaPago !== empForma) return <p className="text-xs text-amber-600 mt-1">La empresa tiene "{FORMA_PAGO_OPTIONS.find(o => o.value === empForma)?.label}". Al guardar, se actualizará.</p>;
+              return null;
+            })()}
+          </div>
+
+          <div>
             <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
               <Label>Documentos a ligar *</Label>
               {montoNum > 0 && (
