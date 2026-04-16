@@ -28,13 +28,14 @@ function buildMapsUrl(address?: string | null, lat?: number | null, lng?: number
   return null;
 }
 
-function buildEmbedSrc(address?: string | null, lat?: number | null, lng?: number | null) {
-  // Public embed (no API key). Renders a basic map with pin centered on the query.
+function buildStaticMapSrc(address?: string | null, lat?: number | null, lng?: number | null, width = 600, height = 300) {
+  // OpenStreetMap static image (no API key, no iframe blocking).
   if (lat != null && lng != null) {
-    return `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
-  }
-  if (address) {
-    return `https://maps.google.com/maps?q=${encodeURIComponent(address)}&z=15&output=embed`;
+    const latN = Number(lat);
+    const lngN = Number(lng);
+    const delta = 0.01;
+    const bbox = `${lngN - delta},${latN - delta},${lngN + delta},${latN + delta}`;
+    return `https://staticmap.openstreetmap.de/staticmap.php?center=${latN},${lngN}&zoom=15&size=${width}x${height}&markers=${latN},${lngN},red-pushpin&bbox=${bbox}`;
   }
   return null;
 }
