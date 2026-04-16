@@ -52,6 +52,7 @@ export interface DocumentoCobranza {
   total: number;
   saldo_pendiente_cobranza: number;
   estado_cobranza: "pendiente" | "parcial" | "pagada" | "vencida" | "cancelada" | null;
+  tipo_pago: "contado" | "credito" | "credito_cescemex" | null;
   empresa_id: string | null;
   plaza_id: string | null;
   empresa?: { id: string; name: string } | null;
@@ -106,7 +107,7 @@ export function useDocumentosCobranza() {
     setLoading(true);
     const { data, error } = await supabase
       .from("documentos")
-      .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,fecha_vencimiento,total,saldo_pendiente_cobranza,estado_cobranza,empresa_id,plaza_id, empresa:companies(id,name), plaza:plazas(id,nombre)")
+      .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,fecha_vencimiento,total,saldo_pendiente_cobranza,estado_cobranza,tipo_pago,empresa_id,plaza_id, empresa:companies(id,name), plaza:plazas(id,nombre)")
       .eq("is_active", true)
       .gt("total", 0)
       .order("fecha_documento", { ascending: false });

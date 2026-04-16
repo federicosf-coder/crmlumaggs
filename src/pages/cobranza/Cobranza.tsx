@@ -62,7 +62,7 @@ export default function Cobranza() {
 
   const [searchPagos, setSearchPagos] = useState("");
   const [searchFacturas, setSearchFacturas] = useState("");
-  const [bucketSel, setBucketSel] = useState<string | null>(null);
+  const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
 
   // Solo facturas activas para cartera/dashboard
   const facturas = useMemo(() => documentos.filter((d) => d.tipo_documento === "factura" && d.estado_cobranza !== "cancelada"), [documentos]);
@@ -84,18 +84,25 @@ export default function Cobranza() {
     return { abierta, vencida, porVencer, noAplicado, cobradoMes, facturasParciales, facturasPagadas };
   }, [facturas, pagos]);
 
-  // Buckets de vencimiento
-  const buckets = useMemo(() => {
+  // Buckets de vencimiento (helper reusable)
+  const buildBuckets = (lista: typeof facturas) => {
     const orden = ["Vencidas", "Vencen hoy", "1-5 días", "6-10 días", "11-20 días", "21-30 días", "Más de 30 días"];
     const acc: Record<string, { count: number; monto: number }> = {};
     orden.forEach((b) => acc[b] = { count: 0, monto: 0 });
-    facturas.forEach((f) => {
+    lista.forEach((f) => {
       if (Number(f.saldo_pendiente_cobranza) <= 0) return;
       const lbl = bucketLabel(diasParaVencer(f.fecha_vencimiento));
       if (acc[lbl]) { acc[lbl].count++; acc[lbl].monto += Number(f.saldo_pendiente_cobranza); }
     });
     return orden.map((b) => ({ label: b, ...acc[b] }));
-  }, [facturas]);
+  };
+
+  const facturasCreditoDirecto = useMemo(() => facturas.filter((f) => f.tipo_pago === "credito"), [facturas]);
+  const facturasCreditoCescemex = useMemo(() => facturas.filter((f) => f.tipo_pago === "credito_cescemex"), [facturas]);
+
+  const buckets = useMemo(() => buildBuckets(facturas), [facturas]);
+  const bucketsCreditoDirecto = useMemo(() => buildBuckets(facturasCreditoDirecto), [facturasCreditoDirecto]);
+  const bucketsCreditoCescemex = useMemo(() => buildBuckets(facturasCreditoCescemex), [facturasCreditoCescemex]);
 
   const proximasVencer = useMemo(() => {
     return [...facturas]
@@ -174,8 +181,9 @@ export default function Cobranza() {
         <TabsContent value="dashboard" className="space-y-6">
           {bucketSel ? (
             <BucketDetalle
-              label={bucketSel}
-              facturas={facturas.filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(f.fecha_vencimiento)) === bucketSel)}
+              label={bucketSel.label}
+              scopeLabel={bucketSel.scope === "credito" ? "Crédito Directo" : bucketSel.scope === "credito_cescemex" ? "Crédito Cescemex" : "Todas las facturas"}
+              facturas={(bucketSel.scope === "credito" ? facturasCreditoDirecto : bucketSel.scope === "credito_cescemex" ? facturasCreditoCescemex : facturas).filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(f.fecha_vencimiento)) === bucketSel.label)}
               onBack={() => setBucketSel(null)}
             />
           ) : (
@@ -191,36 +199,13 @@ export default function Cobranza() {
             <KpiCard title="Total pagos" value={String(pagos.length)} icon={Wallet} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader><CardTitle>Reporte de vencimiento</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                {buckets.map((b) => {
-                  const max = Math.max(...buckets.map((x) => x.monto), 1);
-                  const pct = (b.monto / max) * 100;
-                  const isVencida = b.label === "Vencidas" || b.label === "Vencen hoy";
-                  const disabled = b.count === 0;
-                  return (
-                    <button
-                      key={b.label}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => setBucketSel(b.label)}
-                      className="w-full text-left rounded-md p-2 -mx-2 hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                    >
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className={isVencida ? "text-destructive font-medium" : ""}>{b.label} <span className="text-muted-foreground">({b.count})</span></span>
-                        <span className="font-medium">{formatCurrency(b.monto)}</span>
-                      </div>
-                      <div className="h-2 bg-muted rounded overflow-hidden">
-                        <div className={`h-full ${isVencida ? "bg-destructive" : "bg-primary"}`} style={{ width: `${pct}%` }} />
-                      </div>
-                    </button>
-                  );
-                })}
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <BucketReportCard title="Reporte de vencimiento" buckets={buckets} onSelect={(label) => setBucketSel({ label, scope: "all" })} />
+            <BucketReportCard title="Crédito Directo" buckets={bucketsCreditoDirecto} onSelect={(label) => setBucketSel({ label, scope: "credito" })} />
+            <BucketReportCard title="Crédito Cescemex" buckets={bucketsCreditoCescemex} onSelect={(label) => setBucketSel({ label, scope: "credito_cescemex" })} />
+          </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader><CardTitle>Cartera por plaza</CardTitle></CardHeader>
               <CardContent>
@@ -592,7 +577,40 @@ function PagoArchivosSection({ pagoId }: { pagoId: string }) {
   );
 }
 
-function BucketDetalle({ label, facturas, onBack }: { label: string; facturas: any[]; onBack: () => void }) {
+function BucketReportCard({ title, buckets, onSelect }: { title: string; buckets: { label: string; count: number; monto: number }[]; onSelect: (label: string) => void }) {
+  const max = Math.max(...buckets.map((x) => x.monto), 1);
+  return (
+    <Card>
+      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+      <CardContent className="space-y-2">
+        {buckets.map((b) => {
+          const pct = (b.monto / max) * 100;
+          const isVencida = b.label === "Vencidas" || b.label === "Vencen hoy";
+          const disabled = b.count === 0;
+          return (
+            <button
+              key={b.label}
+              type="button"
+              disabled={disabled}
+              onClick={() => onSelect(b.label)}
+              className="w-full text-left rounded-md p-2 -mx-2 hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            >
+              <div className="flex justify-between text-sm mb-1">
+                <span className={isVencida ? "text-destructive font-medium" : ""}>{b.label} <span className="text-muted-foreground">({b.count})</span></span>
+                <span className="font-medium">{formatCurrency(b.monto)}</span>
+              </div>
+              <div className="h-2 bg-muted rounded overflow-hidden">
+                <div className={`h-full ${isVencida ? "bg-destructive" : "bg-primary"}`} style={{ width: `${pct}%` }} />
+              </div>
+            </button>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
+function BucketDetalle({ label, scopeLabel, facturas, onBack }: { label: string; scopeLabel: string; facturas: any[]; onBack: () => void }) {
   const total = facturas.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
   return (
     <div className="space-y-4">
@@ -605,7 +623,7 @@ function BucketDetalle({ label, facturas, onBack }: { label: string; facturas: a
         </div>
       </div>
       <Card>
-        <CardHeader><CardTitle>Reporte de vencimiento · {label}</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{scopeLabel} · {label}</CardTitle></CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
