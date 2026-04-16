@@ -101,6 +101,28 @@ export default function EntregaDetalle() {
     if (documento?.direccion_envio) setNewAddress(documento.direccion_envio);
   }, [documento?.direccion_envio]);
 
+  useEffect(() => {
+    if (entrega?.notas !== undefined && entrega?.notas !== null) setNotas(entrega.notas);
+  }, [entrega?.notas]);
+
+  const saveNotas = async () => {
+    if (!entrega?.id) {
+      toast.error("No hay entrega programada para guardar notas");
+      return;
+    }
+    setSavingNotas(true);
+    const { error } = await supabase
+      .from("entregas_programadas")
+      .update({ notas })
+      .eq("id", entrega.id);
+    setSavingNotas(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Notas guardadas");
+      queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
+    }
+  };
+
   const openMaps = () => {
     if (!documento) return;
     const lat = (documento as any).direccion_envio_lat;
