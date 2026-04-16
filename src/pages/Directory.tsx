@@ -239,7 +239,8 @@ export default function Directory() {
               entityLabel={activeTab === "companies" ? "Empresas" : "Contactos"}
               upsertKey={activeTab === "companies" ? "name" : "email"}
               fields={activeTab === "companies" ? [
-                { key: "name", label: "Nombre" },
+                { key: "name", label: "Nombre Comercial" },
+                { key: "razon_social", label: "Razón Social" },
                 { key: "industry", label: "Industria" },
                 { key: "phone", label: "Teléfono" },
                 { key: "email", label: "Correo" },
@@ -574,6 +575,7 @@ export default function Directory() {
 
                 <TabsContent value="general" className="space-y-3 mt-4">
                   <div className="grid grid-cols-2 gap-3">
+                    <DetailRow label="Razón Social" value={selectedCompany.razon_social} />
                     <DetailRow label="Industria" value={selectedCompany.industry} />
                     <DetailRow label="Plaza" value={(selectedCompany.plazas as any)?.nombre} />
                     <DetailRow label="Ejecutivo(s) de Venta" value={getEjecutivoNames(selectedCompanyEjecutivos).join(", ") || "—"} />
