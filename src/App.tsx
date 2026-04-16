@@ -23,6 +23,7 @@ import CrmLanding from "@/pages/crm/CrmLanding";
 import CrmPipeline from "@/pages/crm/CrmPipeline";
 import CrmActivitiesTasks from "@/pages/crm/CrmActivitiesTasks";
 import NotFound from "@/pages/NotFound";
+import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/admin/catalogs" element={<ProtectedRoute><CatalogsManagement /></ProtectedRoute>} />
 
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
+            <Route path="/directory/addresses" element={<ProtectedRoute><DeliveryAddresses /></ProtectedRoute>} />
             <Route path="/crm" element={<ProtectedRoute><CrmLanding /></ProtectedRoute>} />
             <Route path="/crm/:brand/pipeline" element={<ProtectedRoute><CrmPipeline /></ProtectedRoute>} />
             <Route path="/activities" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />

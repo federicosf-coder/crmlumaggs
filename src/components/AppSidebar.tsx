@@ -26,6 +26,7 @@ interface NavItem {
 const mainItems: NavItem[] = [
   { title: "Inicio", url: "/", icon: LayoutDashboard, roles: "all" },
   { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
+  { title: "Direcciones", url: "/directory/addresses", icon: Search, roles: "all" },
   { title: "CRM", url: "/crm", icon: ShoppingCart, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Documentos", url: "/documents", icon: FileText, roles: ["admin", "manager", "sales"] },
   { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
