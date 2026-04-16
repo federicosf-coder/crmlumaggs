@@ -1026,3 +1026,69 @@ export default function DocumentForm() {
     </div>
   );
 }
+
+function CompanyContpaqInline({ companyId, initial, onSaved }: { companyId: string; initial: string; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(initial);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setValue(initial);
+    setEditing(false);
+  }, [companyId, initial]);
+
+  const save = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("companies")
+      .update({ id_contpaq: value.trim() || null })
+      .eq("id", companyId);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("ID Contpaq actualizado");
+    setEditing(false);
+    onSaved();
+  };
+
+  if (!editing && initial) {
+    return (
+      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+        <span>ID Contpaq:</span>
+        <span className="font-mono font-medium text-foreground">{initial}</span>
+        <button type="button" className="text-primary hover:underline" onClick={() => setEditing(true)}>
+          Editar
+        </button>
+      </div>
+    );
+  }
+
+  if (!editing && !initial) {
+    return (
+      <div className="mt-1 flex items-center gap-2 text-xs">
+        <span className="text-muted-foreground">ID Contpaq: —</span>
+        <button type="button" className="text-primary hover:underline" onClick={() => setEditing(true)}>
+          Capturar
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-1 flex items-center gap-1">
+      <span className="text-xs text-muted-foreground">ID Contpaq:</span>
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="h-7 text-xs w-32"
+        placeholder="ID"
+        autoFocus
+      />
+      <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={save} disabled={saving}>
+        {saving ? "..." : "Guardar"}
+      </Button>
+      <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setValue(initial); setEditing(false); }}>
+        Cancelar
+      </Button>
+    </div>
+  );
+}
