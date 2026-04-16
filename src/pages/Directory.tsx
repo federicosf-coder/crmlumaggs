@@ -575,7 +575,14 @@ export default function Directory() {
                     <DetailRow label="Teléfono" value={selectedCompany.phone} />
                     <DetailRow label="Correo" value={selectedCompany.email} />
                     <DetailRow label="Lista de Precios" value={selectedCompany.lista_precios} />
-                    <DetailRow label="Dirección" value={selectedCompany.address} />
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Dirección</Label>
+                      {selectedCompany.address ? (
+                        <AddressDisplay address={selectedCompany.address} />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">—</p>
+                      )}
+                    </div>
                     <DetailRow label="Ciudad" value={selectedCompany.city} />
                     <DetailRow label="Estado" value={selectedCompany.state} />
                     <DetailRow label="Código Postal" value={selectedCompany.zip_code} />
