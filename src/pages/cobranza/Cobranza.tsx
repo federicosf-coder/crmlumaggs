@@ -35,6 +35,59 @@ const ESTATUS_PAGO_LABEL: Record<string, string> = {
   aplicado: "Aplicado",
 };
 
+const ESTATUS_PAGO_OPTIONS = [
+  { value: "recibido", label: "Recibido" },
+  { value: "enviado_validar", label: "Enviado a Validar" },
+  { value: "validado", label: "Validado" },
+  { value: "aplicado", label: "Aplicado" },
+];
+
+function EstatusPagoEditor({
+  pagoId,
+  value,
+  canEdit,
+  compact = false,
+  onChanged,
+}: {
+  pagoId: string;
+  value: string;
+  canEdit: boolean;
+  compact?: boolean;
+  onChanged?: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  if (!canEdit) {
+    return <Badge variant="outline">{ESTATUS_PAGO_LABEL[value] || value}</Badge>;
+  }
+  const handleChange = async (next: string) => {
+    if (next === value) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("cobranza_pagos")
+      .update({ estatus_pago: next as any })
+      .eq("id", pagoId);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Estatus actualizado");
+    onChanged?.();
+  };
+  return (
+    <Select value={value} onValueChange={handleChange} disabled={saving}>
+      <SelectTrigger className={compact ? "h-7 text-xs px-2 w-[150px]" : "h-8 w-[180px]"} onClick={(e) => e.stopPropagation()}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {ESTATUS_PAGO_OPTIONS.map((o) => (
+          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 const FORMA_PAGO_LABEL: Record<string, string> = {
   contado: "Contado",
   credito: "Crédito Directo",
