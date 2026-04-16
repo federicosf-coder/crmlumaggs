@@ -14,6 +14,7 @@ import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Plus, Search, Pencil } from "lucide-react";
+import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 
 interface TipoCatalogItem {
   id: string;
@@ -31,6 +32,8 @@ interface Address {
   ciudad: string | null;
   estado: string | null;
   codigo_postal: string | null;
+  pais: string | null;
+  direccion_completa: string | null;
   referencia: string | null;
   coordenadas_lat: number | null;
   coordenadas_lng: number | null;
@@ -46,9 +49,16 @@ export default function DeliveryAddresses() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
 
-  const [form, setForm] = useState({
-    empresa_id: "", tipos: ["envio"] as string[], calle: "", ciudad: "", estado: "",
-    codigo_postal: "", referencia: "", coordenadas_lat: "", coordenadas_lng: "", codigo_google: "",
+  const [form, setForm] = useState<{
+    empresa_id: string;
+    tipos: string[];
+    referencia: string;
+    address: AddressValue;
+  }>({
+    empresa_id: "",
+    tipos: ["envio"],
+    referencia: "",
+    address: { ...emptyAddress },
   });
 
   const { data: tiposCatalog = [] } = useQuery({
@@ -100,7 +110,7 @@ export default function DeliveryAddresses() {
   });
 
   const resetForm = () => {
-    setForm({ empresa_id: "", tipos: ["envio"], calle: "", ciudad: "", estado: "", codigo_postal: "", referencia: "", coordenadas_lat: "", coordenadas_lng: "", codigo_google: "" });
+    setForm({ empresa_id: "", tipos: ["envio"], referencia: "", address: { ...emptyAddress } });
     setEditing(null);
   };
 
@@ -112,14 +122,17 @@ export default function DeliveryAddresses() {
     setForm({
       empresa_id: a.empresa_id,
       tipos,
-      calle: a.calle,
-      ciudad: a.ciudad || "",
-      estado: a.estado || "",
-      codigo_postal: a.codigo_postal || "",
       referencia: a.referencia || "",
-      coordenadas_lat: a.coordenadas_lat != null ? String(a.coordenadas_lat) : "",
-      coordenadas_lng: a.coordenadas_lng != null ? String(a.coordenadas_lng) : "",
-      codigo_google: a.codigo_google || "",
+      address: {
+        direccion_completa: a.direccion_completa || a.calle || "",
+        latitud: a.coordenadas_lat,
+        longitud: a.coordenadas_lng,
+        ciudad: a.ciudad,
+        estado: a.estado,
+        pais: a.pais,
+        codigo_postal: a.codigo_postal,
+        codigo_google: a.codigo_google,
+      },
     });
     setDialogOpen(true);
   };
@@ -132,7 +145,8 @@ export default function DeliveryAddresses() {
   };
 
   const handleSave = async () => {
-    if (!form.empresa_id || !form.calle.trim()) {
+    const dir = form.address.direccion_completa.trim();
+    if (!form.empresa_id || !dir) {
       toast.error("Empresa y Dirección son obligatorios");
       return;
     }
@@ -146,14 +160,16 @@ export default function DeliveryAddresses() {
       empresa_id: form.empresa_id,
       tipo: primaryTipo,
       tipos: form.tipos,
-      calle: form.calle.trim(),
-      ciudad: form.ciudad.trim() || null,
-      estado: form.estado.trim() || null,
-      codigo_postal: form.codigo_postal.trim() || null,
+      calle: dir, // legacy NOT NULL column kept in sync
+      direccion_completa: dir,
+      ciudad: form.address.ciudad || null,
+      estado: form.address.estado || null,
+      pais: form.address.pais || null,
+      codigo_postal: form.address.codigo_postal || null,
       referencia: form.referencia.trim() || null,
-      coordenadas_lat: form.coordenadas_lat ? Number(form.coordenadas_lat) : null,
-      coordenadas_lng: form.coordenadas_lng ? Number(form.coordenadas_lng) : null,
-      codigo_google: form.codigo_google.trim() || null,
+      coordenadas_lat: form.address.latitud,
+      coordenadas_lng: form.address.longitud,
+      codigo_google: form.address.codigo_google || null,
     };
 
     if (editing) {
@@ -295,30 +311,21 @@ export default function DeliveryAddresses() {
                 ))}
               </div>
             </div>
-            <div>
-              <Label>Calle / Dirección *</Label>
-              <Input value={form.calle} onChange={(e) => setForm((p) => ({ ...p, calle: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Ciudad</Label><Input value={form.ciudad} onChange={(e) => setForm((p) => ({ ...p, ciudad: e.target.value }))} /></div>
-              <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => setForm((p) => ({ ...p, estado: e.target.value }))} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Código Postal</Label><Input value={form.codigo_postal} onChange={(e) => setForm((p) => ({ ...p, codigo_postal: e.target.value }))} /></div>
-              <div><Label>Código Google</Label><Input value={form.codigo_google} onChange={(e) => setForm((p) => ({ ...p, codigo_google: e.target.value }))} placeholder="Ej: ChIJ..." /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Latitud</Label><Input type="number" step="any" value={form.coordenadas_lat} onChange={(e) => setForm((p) => ({ ...p, coordenadas_lat: e.target.value }))} placeholder="Ej: 25.6866" /></div>
-              <div><Label>Longitud</Label><Input type="number" step="any" value={form.coordenadas_lng} onChange={(e) => setForm((p) => ({ ...p, coordenadas_lng: e.target.value }))} placeholder="Ej: -100.3161" /></div>
-            </div>
+            <AddressAutocompleteInput
+              value={form.address}
+              onChange={(v) => setForm((p) => ({ ...p, address: v }))}
+              label="Dirección completa"
+              required
+              placeholder="Buscar dirección en Google Maps..."
+            />
             <div>
               <Label>Referencia</Label>
-              <Input value={form.referencia} onChange={(e) => setForm((p) => ({ ...p, referencia: e.target.value }))} />
+              <Input value={form.referencia} onChange={(e) => setForm((p) => ({ ...p, referencia: e.target.value }))} placeholder="Detalles adicionales (entre calles, color de fachada, etc.)" />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.empresa_id || !form.calle.trim() || form.tipos.length === 0}>
+            <Button onClick={handleSave} disabled={!form.empresa_id || !form.address.direccion_completa.trim() || form.tipos.length === 0}>
               {editing ? "Guardar" : "Crear"}
             </Button>
           </DialogFooter>

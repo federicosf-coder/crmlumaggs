@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 
 export default function EntregaDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -502,29 +503,27 @@ export default function EntregaDetalle() {
             <DialogDescription>Edita la dirección o usa tu ubicación actual</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full"
-              onClick={useCurrentLocation}
-              disabled={gettingLocation}
-            >
-              {gettingLocation ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Navigation className="h-4 w-4 mr-2" />}
-              Usar mi ubicación actual
-            </Button>
-            <div>
-              <Label htmlFor="addr">Dirección</Label>
-              <Textarea
-                id="addr"
-                value={newAddress}
-                onChange={(e) => setNewAddress(e.target.value)}
-                rows={3}
-                placeholder="Calle, número, colonia, ciudad..."
-              />
-            </div>
-            {newLat !== null && newLng !== null && (
-              <p className="text-xs text-muted-foreground">📍 {newLat.toFixed(6)}, {newLng.toFixed(6)}</p>
-            )}
+            <AddressAutocompleteInput
+              value={{
+                direccion_completa: newAddress,
+                latitud: newLat,
+                longitud: newLng,
+                ciudad: null,
+                estado: null,
+                pais: null,
+                codigo_postal: null,
+                codigo_google: null,
+              }}
+              onChange={(v: AddressValue) => {
+                setNewAddress(v.direccion_completa);
+                setNewLat(v.latitud);
+                setNewLng(v.longitud);
+                setOrigenCambio("manual");
+              }}
+              label="Dirección de entrega"
+              required
+              placeholder="Buscar dirección..."
+            />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditAddrOpen(false)}>Cancelar</Button>
