@@ -323,11 +323,15 @@ export default function DocumentForm() {
     const { data, error } = await supabase.from("direcciones_empresa").insert({
       empresa_id: form.empresa_id, tipo: newAddrTipo as any, calle: newAddrCalle.trim(),
       ciudad: newAddrCiudad.trim() || null, estado: newAddrEstado.trim() || null, codigo_postal: newAddrCp.trim() || null,
-    }).select("id").single();
+      coordenadas_lat: newAddrLat ? Number(newAddrLat) : null,
+      coordenadas_lng: newAddrLng ? Number(newAddrLng) : null,
+      codigo_google: newAddrGoogle.trim() || null,
+    } as any).select("id").single();
     if (error) { toast.error(error.message); return; }
     await refetchAddresses();
     set("direccion_envio", data.id);
     setNewAddrCalle(""); setNewAddrCiudad(""); setNewAddrEstado(""); setNewAddrCp(""); setNewAddrTipo("envio");
+    setNewAddrLat(""); setNewAddrLng(""); setNewAddrGoogle("");
     setShowNewAddress(false);
     toast.success("Dirección creada");
   };
