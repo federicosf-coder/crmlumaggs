@@ -172,6 +172,14 @@ export default function Cobranza() {
 
         {/* DASHBOARD */}
         <TabsContent value="dashboard" className="space-y-6">
+          {bucketSel ? (
+            <BucketDetalle
+              label={bucketSel}
+              facturas={facturas.filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(f.fecha_vencimiento)) === bucketSel)}
+              onBack={() => setBucketSel(null)}
+            />
+          ) : (
+          <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <KpiCard title="Cartera abierta" value={formatCurrency(cartera.abierta)} icon={Wallet} />
             <KpiCard title="Cartera vencida" value={formatCurrency(cartera.vencida)} icon={AlertTriangle} variant="destructive" />
