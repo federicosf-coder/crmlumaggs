@@ -434,6 +434,19 @@ export default function DocumentsList() {
             </div>
           </CardHeader>
           <CardContent className="px-0 sm:px-6">
+            {/* Bulk action bar */}
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-3 px-4 py-2 mb-2 bg-muted rounded-md">
+                <CheckSquare className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Deseleccionar</Button>
+                {isAdmin && (
+                  <Button variant="destructive" size="sm" onClick={() => setBulkDeleteConfirm(true)}>
+                    <Trash2 className="h-4 w-4 mr-1" /> Eliminar seleccionados
+                  </Button>
+                )}
+              </div>
+            )}
             {isLoading ? (
               <p className="text-center py-8 text-muted-foreground">Cargando...</p>
             ) : docs.length === 0 ? (
@@ -449,6 +462,12 @@ export default function DocumentsList() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={sortedDocs.length > 0 && selectedIds.size === sortedDocs.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       {!isPedido && (
                         <TableHead>
                           {tipoFilter === "factura" ? "No. Factura" : "Número"}
@@ -475,9 +494,21 @@ export default function DocumentsList() {
                     {sortedDocs.map((doc: any) => (
                       <TableRow
                         key={doc.id}
-                        className="cursor-pointer transition-colors duration-150 hover:bg-muted/50"
+                        className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedIds.has(doc.id) ? "bg-muted/30" : ""}`}
                         onClick={() => navigate(`/documents/${doc.id}`)}
                       >
+                        <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(doc.id)}
+                            onCheckedChange={() => {
+                              setSelectedIds(prev => {
+                                const next = new Set(prev);
+                                next.has(doc.id) ? next.delete(doc.id) : next.add(doc.id);
+                                return next;
+                              });
+                            }}
+                          />
+                        </TableCell>
                         {!isPedido && (
                           <TableCell className="font-medium whitespace-nowrap">
                             {tipoFilter === "factura"
