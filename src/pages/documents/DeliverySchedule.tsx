@@ -701,18 +701,62 @@ export default function DeliverySchedule() {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Planeación de Entregas</h1>
-          <p className="text-muted-foreground text-xs">Arrastra pedidos del pool a las rutas para programarlos</p>
+      <div className="px-4 py-3 border-b shrink-0 space-y-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Planeación de Entregas</h1>
+            <p className="text-muted-foreground text-xs">Arrastra pedidos del pool a las rutas para programarlos</p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => setNewRouteOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Nueva Ruta
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/documents")}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Documentos
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setNewRouteOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Nueva Ruta
-          </Button>
-          <Button variant="outline" onClick={() => navigate("/documents")}>
-            <ArrowLeft className="h-4 w-4 mr-1" /> Documentos
-          </Button>
+        {/* Plaza filter chips + view toggle */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap">
+            <Button
+              size="sm"
+              variant={selectedPlaza === "all" ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setSelectedPlaza("all")}
+            >
+              Todas las plazas
+            </Button>
+            {plazas.map((p: any) => (
+              <Button
+                key={p.id}
+                size="sm"
+                variant={selectedPlaza === p.id ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setSelectedPlaza(p.id)}
+              >
+                {p.nombre}
+              </Button>
+            ))}
+          </div>
+          <div className="flex gap-1 border rounded-md p-0.5">
+            <Button
+              size="sm"
+              variant={routeViewMode === "list" ? "default" : "ghost"}
+              className="h-7 text-xs px-3"
+              onClick={() => { setRouteViewMode("list"); setCalendarDate(undefined); }}
+            >
+              <Truck className="h-3.5 w-3.5 mr-1" /> Lista
+            </Button>
+            <Button
+              size="sm"
+              variant={routeViewMode === "calendar" ? "default" : "ghost"}
+              className="h-7 text-xs px-3"
+              onClick={() => setRouteViewMode("calendar")}
+            >
+              <CalendarIcon className="h-3.5 w-3.5 mr-1" /> Calendario
+            </Button>
+          </div>
         </div>
       </div>
 
