@@ -137,6 +137,35 @@ export default function DocumentsList() {
     }, { replace: true });
   }, [setSearchParams]);
 
+  // Column visibility (persisted in localStorage by user + tipo_documento)
+  const [visibleCols, setVisibleCols] = useState<Set<ColumnKey>>(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      const raw = localStorage.getItem(colsStorageKey(user.id, tipoFilter));
+      if (raw) {
+        const arr = JSON.parse(raw) as ColumnKey[];
+        if (Array.isArray(arr)) setVisibleCols(new Set(arr));
+        else setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
+      } else {
+        setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
+      }
+    } catch {
+      setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
+    }
+  }, [user?.id, tipoFilter]);
+  const toggleCol = (key: ColumnKey) => {
+    setVisibleCols((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      if (user?.id) {
+        try { localStorage.setItem(colsStorageKey(user.id, tipoFilter), JSON.stringify(Array.from(next))); } catch {}
+      }
+      return next;
+    });
+  };
+  const isColVisible = (key: ColumnKey) => visibleCols.has(key);
+
   // Determine module based on tipoFilter
   const docModule = tipoFilter === "factura" ? "facturacion" as const : "cotizaciones" as const;
   const access = useModuleAccess(docModule);
