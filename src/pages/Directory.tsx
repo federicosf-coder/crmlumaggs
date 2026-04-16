@@ -78,6 +78,7 @@ export default function Directory() {
   const [editContact, setEditContact] = useState<ContactEditData | null>(null);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
   const access = useModuleAccess("directorio");
 
