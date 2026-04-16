@@ -615,6 +615,35 @@ export default function Directory() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Bulk edit dialog */}
+      <BulkEditDialog
+        open={bulkEditOpen}
+        onOpenChange={setBulkEditOpen}
+        selectedIds={Array.from(selectedIds)}
+        table={activeTab === "companies" ? "companies" : "contacts"}
+        fields={activeTab === "companies" ? [
+          { key: "plaza_id", label: "Plaza", type: "select", options: plazasList.map(p => ({ value: p.id, label: p.nombre })) },
+          { key: "lista_precios", label: "Lista de precios", type: "select", options: [
+            { value: "UF1", label: "UF1" }, { value: "UF2", label: "UF2" },
+            { value: "UF3", label: "UF3" }, { value: "UF4", label: "UF4" },
+            { value: "R1", label: "R1" }, { value: "R2", label: "R2" },
+            { value: "R3", label: "R3" }, { value: "R4", label: "R4" },
+            { value: "lista_galper", label: "Lista Galper" },
+          ]},
+          { key: "is_active", label: "Estado", type: "select", options: [
+            { value: "__true__", label: "Activo" }, { value: "__false__", label: "Inactivo" },
+          ]},
+          { key: "industry", label: "Industria", type: "text" },
+        ] : [
+          { key: "is_active", label: "Estado", type: "select", options: [
+            { value: "__true__", label: "Activo" }, { value: "__false__", label: "Inactivo" },
+          ]},
+          { key: "job_title", label: "Puesto", type: "text" },
+          { key: "department", label: "Departamento", type: "text" },
+        ]}
+        onSuccess={() => { setSelectedIds(new Set()); fetchData(); }}
+      />
     </div>
   );
 }
