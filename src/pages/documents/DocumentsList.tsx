@@ -606,6 +606,26 @@ export default function DocumentsList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk delete confirmation dialog */}
+      <Dialog open={bulkDeleteConfirm} onOpenChange={(open) => !open && setBulkDeleteConfirm(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar {selectedIds.size} documento(s)</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de eliminar los documentos seleccionados? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteConfirm(false)} disabled={bulkDeleting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDeleting}>
+              {bulkDeleting ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
