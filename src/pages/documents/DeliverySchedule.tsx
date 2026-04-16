@@ -197,6 +197,21 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
       </SortableContext>
 
       <Separator className="mt-2 mb-1" />
+      {(() => {
+        const presSummary: Record<string, number> = {};
+        items.forEach(item => {
+          if (item.type === "pedido" && item.raw?.documento_productos) {
+            (item.raw.documento_productos as any[]).forEach((dp: any) => {
+              const presName = dp.productos?.presentaciones?.nombre || "Sin presentación";
+              presSummary[presName] = (presSummary[presName] || 0) + Number(dp.cantidad);
+            });
+          }
+        });
+        const summaryText = Object.entries(presSummary).map(([name, qty]) => `${qty} ${name}`).join(", ");
+        return summaryText ? (
+          <p className="text-[11px] text-muted-foreground truncate mb-0.5">📦 {summaryText}</p>
+        ) : null;
+      })()}
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>{items.length} items</span>
         <span>${items.reduce((s, i) => s + (i.total || 0), 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
