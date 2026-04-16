@@ -384,10 +384,21 @@ export default function DeliverySchedule() {
     setRouteItems(map);
   }, [allRutas, allEntregas]);
 
+  // Filter rutas by selected plaza
+  const filteredRutas = useMemo(() => {
+    let rutas = allRutas;
+    if (selectedPlaza !== "all") rutas = rutas.filter((r: any) => r.plaza_id === selectedPlaza);
+    if (routeViewMode === "calendar" && calendarDate) {
+      const dateStr = format(calendarDate, "yyyy-MM-dd");
+      rutas = rutas.filter((r: any) => r.fecha_entrega === dateStr);
+    }
+    return rutas;
+  }, [allRutas, selectedPlaza, routeViewMode, calendarDate]);
+
   // Group rutas by plaza, then by day
   const rutasByPlazaDay = useMemo(() => {
     const groups: Record<string, { plaza: any; days: Record<string, any[]> }> = {};
-    for (const ruta of allRutas) {
+    for (const ruta of filteredRutas) {
       const pid = ruta.plaza_id;
       if (!groups[pid]) {
         groups[pid] = { plaza: ruta.plazas || { nombre: "Sin plaza" }, days: {} };
@@ -397,7 +408,14 @@ export default function DeliverySchedule() {
       groups[pid].days[day].push(ruta);
     }
     return groups;
-  }, [allRutas]);
+  }, [filteredRutas]);
+
+  // Dates that have rutas (for calendar highlighting)
+  const rutaDates = useMemo(() => {
+    let rutas = allRutas;
+    if (selectedPlaza !== "all") rutas = rutas.filter((r: any) => r.plaza_id === selectedPlaza);
+    return new Set(rutas.map((r: any) => r.fecha_entrega).filter(Boolean));
+  }, [allRutas, selectedPlaza]);
 
   // Filter pool
   const filteredPool = useMemo(() => {
