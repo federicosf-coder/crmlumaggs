@@ -91,7 +91,7 @@ export function ImportExportMenu({
     const errorDetails: string[] = [];
 
     // Fetch existing records by upsert key for matching
-    const { data: existing } = await (supabase.from(table) as any)
+    const { data: existing } = await (supabase.from as any)(table)
       .select("id, " + upsertKey);
     const existingMap = new Map<string, string>();
     (existing || []).forEach((r: any) => {
