@@ -583,8 +583,8 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     const sentSet = new Set(
       (sentLogs || []).map((l: any) => (l.recipient_email || "").toLowerCase())
     );
-    setPreviouslySentEmails(emails.filter((e) => sentSet.has(e.toLowerCase())).map((e) => e.toLowerCase()));
-    setDefaultEmails(emails);
+    setPreviouslySentEmails(filteredEmails.filter((e) => sentSet.has(e.toLowerCase())).map((e) => e.toLowerCase()));
+    setDefaultEmails(filteredEmails);
     setLoadingEmails(null);
     setOpenEnviar(true);
   };
