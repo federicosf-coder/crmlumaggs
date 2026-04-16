@@ -319,12 +319,13 @@ export default function Cobranza() {
                   <TableHead className="text-right">Aplicado a Facturas</TableHead>
                   <TableHead className="text-right">Aplicado a Cot/Pedidos</TableHead>
                   <TableHead className="text-right">Disponible (facturas)</TableHead>
-                  <TableHead>Referencia</TableHead>
+                  <TableHead>Forma</TableHead>
+                  <TableHead>Estatus Pago</TableHead>
                   <TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {loadingPagos && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
-                  {!loadingPagos && pagosFiltrados.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sin pagos registrados</TableCell></TableRow>}
+                  {loadingPagos && <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
+                  {!loadingPagos && pagosFiltrados.length === 0 && <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Sin pagos registrados</TableCell></TableRow>}
                   {pagosFiltrados.map((p) => {
                     const b = breakdowns[p.id];
                     const aplicadoFact = b?.aplicadoFacturas ?? 0;
