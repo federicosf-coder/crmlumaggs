@@ -850,6 +850,36 @@ export type Database = {
           },
         ]
       }
+      documento_archivos_firmados: {
+        Row: {
+          documento_id: string
+          fecha_carga: string
+          id: string
+          nombre_archivo: string
+          tipo_archivo: string
+          url_archivo: string
+          usuario_carga: string | null
+        }
+        Insert: {
+          documento_id: string
+          fecha_carga?: string
+          id?: string
+          nombre_archivo: string
+          tipo_archivo: string
+          url_archivo: string
+          usuario_carga?: string | null
+        }
+        Update: {
+          documento_id?: string
+          fecha_carga?: string
+          id?: string
+          nombre_archivo?: string
+          tipo_archivo?: string
+          url_archivo?: string
+          usuario_carga?: string | null
+        }
+        Relationships: []
+      }
       documento_fotos_entrega: {
         Row: {
           created_at: string
