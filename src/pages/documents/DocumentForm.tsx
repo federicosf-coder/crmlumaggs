@@ -101,6 +101,9 @@ export default function DocumentForm() {
   const [newAddrEstado, setNewAddrEstado] = useState("");
   const [newAddrCp, setNewAddrCp] = useState("");
   const [newAddrTipo, setNewAddrTipo] = useState("envio");
+  const [newAddrLat, setNewAddrLat] = useState("");
+  const [newAddrLng, setNewAddrLng] = useState("");
+  const [newAddrGoogle, setNewAddrGoogle] = useState("");
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [newProductForm, setNewProductForm] = useState({
     codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
