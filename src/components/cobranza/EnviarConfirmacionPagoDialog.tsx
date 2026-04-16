@@ -205,12 +205,13 @@ export function EnviarConfirmacionPagoDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />{" "}
-            {hasPrevious ? "Reenviar confirmación" : "Enviar confirmación"}
+            {title || (hasPrevious ? "Reenviar confirmación" : "Enviar confirmación")}
           </DialogTitle>
           <DialogDescription>
-            {hasPrevious
-              ? "Este pago ya tiene confirmaciones enviadas. Puedes reenviar a los mismos destinatarios o agregar nuevos."
-              : "¿Deseas enviar un correo de confirmación de este pago? Agrega los destinatarios o omite este paso."}
+            {description ||
+              (hasPrevious
+                ? "Este pago ya tiene correos enviados. Puedes reenviar a los mismos destinatarios o agregar nuevos."
+                : "Agrega los destinatarios o omite este paso.")}
           </DialogDescription>
         </DialogHeader>
 
