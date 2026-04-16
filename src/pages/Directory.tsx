@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess, type AccessLevel } from "@/hooks/useModuleAccess";
 import { useQuery } from "@tanstack/react-query";
