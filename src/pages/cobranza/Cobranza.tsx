@@ -123,6 +123,7 @@ function bucketLabel(dias: number | null): string {
 export default function Cobranza() {
   const { hasAnyRole } = useAuth();
   const canDelete = hasAnyRole(["admin", "manager"]);
+  const canEditEstatus = hasAnyRole(["admin", "manager", "accounting"]);
   const { pagos, breakdowns, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos();
   const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza();
 
