@@ -62,6 +62,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
     moneda: string;
     observaciones?: string;
     documentos: { tipo: string; numero: string; monto: string }[];
+    comprobantes: { nombre: string; url: string }[];
     registradoPor?: string;
     defaultEmails: string[];
   } | null>(null);
@@ -411,6 +412,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
         moneda={confirmData.moneda}
         observaciones={confirmData.observaciones}
         documentos={confirmData.documentos}
+        comprobantes={confirmData.comprobantes}
         registradoPor={confirmData.registradoPor}
         defaultEmails={confirmData.defaultEmails}
       />
