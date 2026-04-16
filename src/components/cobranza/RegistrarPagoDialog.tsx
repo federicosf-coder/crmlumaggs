@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Paperclip, X, FileText, Image as ImageIcon } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import { EnviarConfirmacionPagoDialog } from "./EnviarConfirmacionPagoDialog";
 
 interface Props {
   open: boolean;
@@ -36,8 +37,8 @@ const TIPO_LABEL: Record<string, string> = {
 };
 
 export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
-  const { user } = useAuth();
-  const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+  const { user, profile } = useAuth();
+  const [companies, setCompanies] = useState<{ id: string; name: string; email?: string | null }[]>([]);
   const [docs, setDocs] = useState<DocOption[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -51,9 +52,23 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
   const [seleccion, setSeleccion] = useState<Record<string, string>>({}); // doc_id -> monto a aplicar
   const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
 
+  // Confirmation email dialog state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState<{
+    pagoId: string;
+    empresa: string;
+    fechaPago: string;
+    montoTotal: string;
+    moneda: string;
+    observaciones?: string;
+    documentos: { tipo: string; numero: string; monto: string }[];
+    registradoPor?: string;
+    defaultEmails: string[];
+  } | null>(null);
+
   useEffect(() => {
     if (!open) return;
-    supabase.from("companies").select("id,name").eq("is_active", true).order("name")
+    supabase.from("companies").select("id,name,email").eq("is_active", true).order("name")
       .then(({ data }) => setCompanies(data || []));
   }, [open]);
 
@@ -178,12 +193,37 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
 
     setSaving(false);
     toast.success("Pago registrado y aplicado");
+
+    // Prepare confirmation email dialog data
+    const empresa = companies.find((c) => c.id === empresaId);
+    const docsLigados = aplicaciones.map((a) => {
+      const d = docs.find((x) => x.id === a.doc_id)!;
+      return {
+        tipo: TIPO_LABEL[d.tipo_documento],
+        numero: d.numero,
+        monto: formatCurrency(a.monto),
+      };
+    });
+    setConfirmData({
+      pagoId: pago.id,
+      empresa: empresa?.name || "—",
+      fechaPago,
+      montoTotal: formatCurrency(montoNum),
+      moneda: "MXN",
+      observaciones: observaciones || undefined,
+      documentos: docsLigados,
+      registradoPor: profile?.full_name || user?.email || undefined,
+      defaultEmails: empresa?.email ? [empresa.email] : [],
+    });
+    setConfirmOpen(true);
+
     onSaved();
     onOpenChange(false);
     reset();
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Registrar pago</DialogTitle></DialogHeader>
@@ -338,5 +378,21 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {confirmData && (
+      <EnviarConfirmacionPagoDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        pagoId={confirmData.pagoId}
+        empresa={confirmData.empresa}
+        fechaPago={confirmData.fechaPago}
+        montoTotal={confirmData.montoTotal}
+        moneda={confirmData.moneda}
+        observaciones={confirmData.observaciones}
+        documentos={confirmData.documentos}
+        registradoPor={confirmData.registradoPor}
+        defaultEmails={confirmData.defaultEmails}
+      />
+    )}
+    </>
   );
 }
