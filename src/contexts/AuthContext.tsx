@@ -12,6 +12,7 @@ interface Profile {
   phone: string | null;
   avatar_url: string | null;
   is_active: boolean;
+  plaza_id: string | null;
 }
 
 interface AuthContextType {

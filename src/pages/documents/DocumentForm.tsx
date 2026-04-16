@@ -55,7 +55,7 @@ export default function DocumentForm() {
   const isEdit = !!id;
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user, hasRole } = useAuth();
+  const { user, profile, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
@@ -181,6 +181,17 @@ export default function DocumentForm() {
       set("ejecutivo_venta_id", user.id);
     }
   }, [user?.id, isEdit]);
+
+  // Set default plaza for new documents (user's plaza, or "Plaza Predeterminada" fallback)
+  useEffect(() => {
+    if (isEdit || form.plaza_id || plazas.length === 0) return;
+    if (profile?.plaza_id) {
+      set("plaza_id", profile.plaza_id);
+    } else {
+      const def = plazas.find((p: any) => p.nombre === "Plaza Predeterminada");
+      if (def) set("plaza_id", def.id);
+    }
+  }, [profile?.plaza_id, plazas, isEdit, form.plaza_id]);
 
   // Auto-update fecha_vencimiento when fecha_documento changes (only if not editing existing)
   useEffect(() => {
@@ -363,6 +374,7 @@ export default function DocumentForm() {
   const handleSave = async () => {
     if (!form.empresa_vendedora) { toast.error("Selecciona la empresa vendedora"); return; }
     if (!form.tipo_documento) { toast.error("Selecciona el tipo de documento"); return; }
+    if (!form.plaza_id) { toast.error("La plaza es obligatoria"); return; }
     if (form.tipo_documento === "pedido" && !form.direccion_envio) { toast.error("La dirección de envío es obligatoria para pedidos"); return; }
     setSaving(true);
     try {
@@ -610,7 +622,7 @@ export default function DocumentForm() {
             </Select>
           </div>
           <div>
-            <Label>Plaza</Label>
+            <Label>Plaza *</Label>
             <SearchableSelect
               value={form.plaza_id}
               onValueChange={v => set("plaza_id", v)}
