@@ -108,7 +108,57 @@ export default function EntregaDetalle() {
 
   useEffect(() => {
     if (entrega?.notas !== undefined && entrega?.notas !== null) setNotas(entrega.notas);
-  }, [entrega?.notas]);
+    if (entrega?.fecha_entrega) setFechaEntrega(entrega.fecha_entrega);
+  }, [entrega?.notas, entrega?.fecha_entrega]);
+
+  useEffect(() => {
+    if (documento?.estatus_pedido) setEstatusPedido(documento.estatus_pedido);
+  }, [documento?.estatus_pedido]);
+
+  const ESTATUS_OPCIONES: { value: string; label: string }[] = [
+    { value: "confirmado_cliente", label: "Confirmado cliente" },
+    { value: "espera_autorizacion_precio", label: "Espera autorización precio" },
+    { value: "precio_autorizado", label: "Precio autorizado" },
+    { value: "validado_contabilidad", label: "Validado contabilidad" },
+    { value: "programado_entrega", label: "Programado entrega" },
+    { value: "entregado", label: "Entregado" },
+    { value: "cancelado", label: "Cancelado" },
+  ];
+
+  const saveEstatus = async (value: string) => {
+    if (!id) return;
+    setEstatusPedido(value);
+    setSavingEstatus(true);
+    const { error } = await supabase
+      .from("documentos")
+      .update({ estatus_pedido: value as any })
+      .eq("id", id);
+    setSavingEstatus(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Estatus actualizado");
+      queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
+    }
+  };
+
+  const saveFechaEntrega = async (value: string) => {
+    if (!entrega?.id) {
+      toast.error("No hay entrega programada");
+      return;
+    }
+    setFechaEntrega(value);
+    setSavingFecha(true);
+    const { error } = await supabase
+      .from("entregas_programadas")
+      .update({ fecha_entrega: value })
+      .eq("id", entrega.id);
+    setSavingFecha(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Fecha actualizada");
+      queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
+    }
+  };
 
   const saveNotas = async () => {
     if (!entrega?.id) {
