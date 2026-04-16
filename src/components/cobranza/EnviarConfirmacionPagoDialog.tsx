@@ -54,6 +54,11 @@ export function EnviarConfirmacionPagoDialog({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
 
+  useEffect(() => {
+    if (open) setEmails(defaultEmails.filter(isValidEmail));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultEmails.join(",")]);
+
   const addEmail = (raw?: string) => {
     const value = (raw ?? input).trim().replace(/,$/, "");
     if (!value) return;
