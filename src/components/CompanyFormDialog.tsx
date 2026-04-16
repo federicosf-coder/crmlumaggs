@@ -332,8 +332,11 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
             </TabsList>
 
             <TabsContent value="general" className="space-y-4 mt-4">
+              <div className="grid grid-cols-[1fr_140px] gap-3">
+                <div className="space-y-1.5"><Label className="text-xs">Nombre de Empresa *</Label><Input value={form.name} onChange={e => set("name", e.target.value)} required className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">ID Contpaq</Label><Input value={form.id_contpaq} onChange={e => set("id_contpaq", e.target.value)} className="h-9" placeholder="—" /></div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 space-y-1.5"><Label className="text-xs">Nombre de Empresa *</Label><Input value={form.name} onChange={e => set("name", e.target.value)} required className="h-9" /></div>
 
                 {/* Plaza (multi-select) */}
                 <div className="col-span-2 space-y-1.5">
