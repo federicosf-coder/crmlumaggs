@@ -181,8 +181,9 @@ export default function Cobranza() {
         <TabsContent value="dashboard" className="space-y-6">
           {bucketSel ? (
             <BucketDetalle
-              label={bucketSel}
-              facturas={facturas.filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(f.fecha_vencimiento)) === bucketSel)}
+              label={bucketSel.label}
+              scopeLabel={bucketSel.scope === "credito" ? "Crédito Directo" : bucketSel.scope === "credito_cescemex" ? "Crédito Cescemex" : "Todas las facturas"}
+              facturas={(bucketSel.scope === "credito" ? facturasCreditoDirecto : bucketSel.scope === "credito_cescemex" ? facturasCreditoCescemex : facturas).filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(f.fecha_vencimiento)) === bucketSel.label)}
               onBack={() => setBucketSel(null)}
             />
           ) : (
@@ -198,31 +199,11 @@ export default function Cobranza() {
             <KpiCard title="Total pagos" value={String(pagos.length)} icon={Wallet} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader><CardTitle>Reporte de vencimiento</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                {buckets.map((b) => {
-                  const max = Math.max(...buckets.map((x) => x.monto), 1);
-                  const pct = (b.monto / max) * 100;
-                  const isVencida = b.label === "Vencidas" || b.label === "Vencen hoy";
-                  const disabled = b.count === 0;
-                  return (
-                    <button
-                      key={b.label}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => setBucketSel(b.label)}
-                      className="w-full text-left rounded-md p-2 -mx-2 hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                    >
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className={isVencida ? "text-destructive font-medium" : ""}>{b.label} <span className="text-muted-foreground">({b.count})</span></span>
-                        <span className="font-medium">{formatCurrency(b.monto)}</span>
-                      </div>
-                      <div className="h-2 bg-muted rounded overflow-hidden">
-                        <div className={`h-full ${isVencida ? "bg-destructive" : "bg-primary"}`} style={{ width: `${pct}%` }} />
-                      </div>
-                    </button>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <BucketReportCard title="Reporte de vencimiento" buckets={buckets} onSelect={(label) => setBucketSel({ label, scope: "all" })} />
+            <BucketReportCard title="Crédito Directo" buckets={bucketsCreditoDirecto} onSelect={(label) => setBucketSel({ label, scope: "credito" })} />
+            <BucketReportCard title="Crédito Cescemex" buckets={bucketsCreditoCescemex} onSelect={(label) => setBucketSel({ label, scope: "credito_cescemex" })} />
+          </div>
                   );
                 })}
               </CardContent>
