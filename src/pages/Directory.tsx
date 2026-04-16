@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess, type AccessLevel } from "@/hooks/useModuleAccess";
 import { useQuery } from "@tanstack/react-query";
@@ -61,6 +62,7 @@ const TAB_COLORS: Record<string, { active: string; border: string }> = {
 export default function Directory() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "companies";
+  const { hasRole } = useAuth();
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -229,33 +231,35 @@ export default function Directory() {
           <p className="text-muted-foreground text-sm">Empresas y contactos</p>
         </div>
         <div className="flex items-center gap-2">
-          <ImportExportMenu
-            table={activeTab === "companies" ? "companies" : "contacts"}
-            entityLabel={activeTab === "companies" ? "Empresas" : "Contactos"}
-            upsertKey={activeTab === "companies" ? "name" : "email"}
-            fields={activeTab === "companies" ? [
-              { key: "name", label: "Nombre" },
-              { key: "industry", label: "Industria" },
-              { key: "phone", label: "Teléfono" },
-              { key: "email", label: "Correo" },
-              { key: "city", label: "Ciudad" },
-              { key: "state", label: "Estado" },
-              { key: "address", label: "Dirección" },
-              { key: "zip_code", label: "Código Postal" },
-              { key: "website", label: "Sitio Web" },
-              { key: "lista_precios", label: "Lista de Precios" },
-            ] : [
-              { key: "first_name", label: "Nombre" },
-              { key: "last_name", label: "Apellido" },
-              { key: "email", label: "Correo" },
-              { key: "phone", label: "Teléfono" },
-              { key: "mobile", label: "Celular" },
-              { key: "job_title", label: "Puesto" },
-              { key: "department", label: "Departamento" },
-            ]}
-            data={activeTab === "companies" ? filteredCompanies : filteredContacts}
-            onImported={fetchData}
-          />
+          {hasRole("admin") && (
+            <ImportExportMenu
+              table={activeTab === "companies" ? "companies" : "contacts"}
+              entityLabel={activeTab === "companies" ? "Empresas" : "Contactos"}
+              upsertKey={activeTab === "companies" ? "name" : "email"}
+              fields={activeTab === "companies" ? [
+                { key: "name", label: "Nombre" },
+                { key: "industry", label: "Industria" },
+                { key: "phone", label: "Teléfono" },
+                { key: "email", label: "Correo" },
+                { key: "city", label: "Ciudad" },
+                { key: "state", label: "Estado" },
+                { key: "address", label: "Dirección" },
+                { key: "zip_code", label: "Código Postal" },
+                { key: "website", label: "Sitio Web" },
+                { key: "lista_precios", label: "Lista de Precios" },
+              ] : [
+                { key: "first_name", label: "Nombre" },
+                { key: "last_name", label: "Apellido" },
+                { key: "email", label: "Correo" },
+                { key: "phone", label: "Teléfono" },
+                { key: "mobile", label: "Celular" },
+                { key: "job_title", label: "Puesto" },
+                { key: "department", label: "Departamento" },
+              ]}
+              data={activeTab === "companies" ? filteredCompanies : filteredContacts}
+              onImported={fetchData}
+            />
+          )}
           <Button
             size="sm"
             onClick={() => activeTab === "companies" ? setCompanyOpen(true) : setContactOpen(true)}
