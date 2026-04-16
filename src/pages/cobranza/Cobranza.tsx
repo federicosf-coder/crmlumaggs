@@ -416,7 +416,13 @@ export default function Cobranza() {
 
       <RegistrarPagoDialog open={openRegistrar} onOpenChange={setOpenRegistrar} onSaved={() => { refetchPagos(); refetchDocs(); }} />
       <AplicarPagoDialog open={openAplicar} onOpenChange={setOpenAplicar} pago={pagoSel} onSaved={() => { refetchPagos(); refetchDocs(); }} />
-      <DetallePagoSheet open={openDetalle} onOpenChange={setOpenDetalle} pago={pagoSel} onChanged={() => { refetchPagos(); refetchDocs(); }} onAplicar={(p) => { setOpenDetalle(false); handleAplicar(p); }} />
+      <DetallePagoSheet
+        open={openDetalle}
+        onOpenChange={setOpenDetalle}
+        pago={pagoSel ? (pagos.find((p) => p.id === pagoSel.id) || pagoSel) : null}
+        onChanged={() => { refetchPagos(); refetchDocs(); }}
+        onAplicar={(p) => { setOpenDetalle(false); handleAplicar(p); }}
+      />
     </div>
   );
 }
