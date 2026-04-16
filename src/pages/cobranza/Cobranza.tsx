@@ -84,18 +84,25 @@ export default function Cobranza() {
     return { abierta, vencida, porVencer, noAplicado, cobradoMes, facturasParciales, facturasPagadas };
   }, [facturas, pagos]);
 
-  // Buckets de vencimiento
-  const buckets = useMemo(() => {
+  // Buckets de vencimiento (helper reusable)
+  const buildBuckets = (lista: typeof facturas) => {
     const orden = ["Vencidas", "Vencen hoy", "1-5 días", "6-10 días", "11-20 días", "21-30 días", "Más de 30 días"];
     const acc: Record<string, { count: number; monto: number }> = {};
     orden.forEach((b) => acc[b] = { count: 0, monto: 0 });
-    facturas.forEach((f) => {
+    lista.forEach((f) => {
       if (Number(f.saldo_pendiente_cobranza) <= 0) return;
       const lbl = bucketLabel(diasParaVencer(f.fecha_vencimiento));
       if (acc[lbl]) { acc[lbl].count++; acc[lbl].monto += Number(f.saldo_pendiente_cobranza); }
     });
     return orden.map((b) => ({ label: b, ...acc[b] }));
-  }, [facturas]);
+  };
+
+  const facturasCreditoDirecto = useMemo(() => facturas.filter((f) => f.tipo_pago === "credito"), [facturas]);
+  const facturasCreditoCescemex = useMemo(() => facturas.filter((f) => f.tipo_pago === "credito_cescemex"), [facturas]);
+
+  const buckets = useMemo(() => buildBuckets(facturas), [facturas]);
+  const bucketsCreditoDirecto = useMemo(() => buildBuckets(facturasCreditoDirecto), [facturasCreditoDirecto]);
+  const bucketsCreditoCescemex = useMemo(() => buildBuckets(facturasCreditoCescemex), [facturasCreditoCescemex]);
 
   const proximasVencer = useMemo(() => {
     return [...facturas]
