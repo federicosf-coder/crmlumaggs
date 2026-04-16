@@ -855,6 +855,7 @@ export default function DeliverySchedule() {
               </SortableContext>
             </ScrollArea>
           </div>
+          )}
 
           {/* RIGHT: Routes kanban / Calendar */}
           <ScrollArea className="flex-1">
