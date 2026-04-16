@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, Undo2, PanelLeftClose, PanelLeftOpen,
+  FileSignature,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -181,6 +182,20 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
               <div className="pl-5">
                 <DraggablePoolCard item={item} />
               </div>
+              {item.type === "pedido" && (
+                <div className="absolute top-1 right-8 z-10">
+                  <Button
+                    size="icon"
+                    variant="default"
+                    className="h-6 w-6 shadow"
+                    title="Abrir entrega"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/delivery/entrega/${item.id}`); }}
+                  >
+                    <FileSignature className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
               <div className="absolute top-1 right-1 hidden group-hover:flex gap-0.5">
                 {item.estatus === "programado_entrega" && item.type === "pedido" && (
                   <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => onDeliver(item)}>
