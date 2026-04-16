@@ -49,9 +49,16 @@ export default function DeliveryAddresses() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
 
-  const [form, setForm] = useState({
-    empresa_id: "", tipos: ["envio"] as string[], calle: "", ciudad: "", estado: "",
-    codigo_postal: "", referencia: "", coordenadas_lat: "", coordenadas_lng: "", codigo_google: "",
+  const [form, setForm] = useState<{
+    empresa_id: string;
+    tipos: string[];
+    referencia: string;
+    address: AddressValue;
+  }>({
+    empresa_id: "",
+    tipos: ["envio"],
+    referencia: "",
+    address: { ...emptyAddress },
   });
 
   const { data: tiposCatalog = [] } = useQuery({
