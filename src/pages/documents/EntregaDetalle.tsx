@@ -109,13 +109,14 @@ export default function EntregaDetalle() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
   };
 
-  const handleFiles = async (files: FileList | null) => {
+  const handleFiles = async (files: FileList | null, categoria: "evidencia" | "firmado") => {
     if (!files || files.length === 0 || !id) return;
-    setUploading(true);
+    setUploading(categoria);
     try {
       for (const file of Array.from(files)) {
         const ext = file.name.split(".").pop();
-        const path = `firmados/${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const folder = categoria === "evidencia" ? "evidencias" : "firmados";
+        const path = `${folder}/${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("document-files")
           .upload(path, file, { upsert: false });
@@ -127,7 +128,8 @@ export default function EntregaDetalle() {
           tipo_archivo: file.type || "application/octet-stream",
           url_archivo: urlData.publicUrl,
           usuario_carga: user?.id,
-        });
+          categoria,
+        } as any);
         if (insErr) throw insErr;
       }
       toast.success("Archivos cargados");
@@ -135,7 +137,7 @@ export default function EntregaDetalle() {
     } catch (e: any) {
       toast.error(e.message || "Error al cargar archivos");
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
   };
 
