@@ -288,6 +288,8 @@ export default function Cobranza() {
               </CardContent>
             </Card>
           </div>
+          </>
+          )}
         </TabsContent>
 
         {/* PAGOS */}
