@@ -565,9 +565,18 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
           <SheetTitle>Detalle del pago</SheetTitle>
         </SheetHeader>
         <div className="space-y-4 mt-6">
-          <div className="flex justify-end">
-            <Button size="sm" variant="outline" onClick={handleEnviarCorreo} disabled={loadingEmails}>
-              <Mail className="h-4 w-4 mr-2" /> {loadingEmails ? "Cargando..." : "Enviar por correo"}
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("contado")} disabled={loadingEmails !== null}>
+              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "contado" ? "Cargando..." : "Enviar correo Contado"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("credito")} disabled={loadingEmails !== null}>
+              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito" ? "Cargando..." : "Enviar correo Crédito Directo"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("credito_cescemex")} disabled={loadingEmails !== null}>
+              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito_cescemex" ? "Cargando..." : "Enviar correo Crédito Cescemex"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => loadEmailsAndOpen("general")} disabled={loadingEmails !== null}>
+              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "general" ? "Cargando..." : "Confirmación"}
             </Button>
           </div>
           <Card>
@@ -575,7 +584,8 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
               <div><p className="text-muted-foreground text-xs">Cliente</p><p className="font-medium">{pago.empresa?.name}</p></div>
               <div><p className="text-muted-foreground text-xs">Plaza</p><p>{pago.plaza?.nombre || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Fecha</p><p>{formatDate(pago.fecha_pago)}</p></div>
-              <div><p className="text-muted-foreground text-xs">Tipo</p><p>{pago.tipo_pago || "—"}</p></div>
+              <div><p className="text-muted-foreground text-xs">Forma de pago</p><p>{FORMA_PAGO_LABEL[pago.tipo_pago || ""] || pago.tipo_pago || "—"}</p></div>
+              <div><p className="text-muted-foreground text-xs">Estatus Pago</p><p><Badge variant="outline">{ESTATUS_PAGO_LABEL[pago.estatus_pago] || pago.estatus_pago}</Badge></p></div>
               <div><p className="text-muted-foreground text-xs">Banco</p><p>{pago.banco || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Referencia</p><p>{pago.referencia_pago || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Monto total</p><p className="font-semibold">{formatCurrency(pago.monto_total)}</p></div>
