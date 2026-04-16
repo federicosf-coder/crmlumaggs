@@ -19,7 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
-  Pencil, Trash2, Package, ListChecks, Search, Undo2,
+  Pencil, Trash2, Package, ListChecks, Search, Undo2, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -226,6 +226,7 @@ export default function DeliverySchedule() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  const [showPool, setShowPool] = useState(false);
   const [searchPool, setSearchPool] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [activeItem, setActiveItem] = useState<PoolItem | null>(null);
@@ -753,9 +754,19 @@ export default function DeliverySchedule() {
             </Button>
           </div>
         </div>
-        {/* Plaza filter chips + view toggle */}
+        {/* Plaza filter chips + pool toggle + view toggle */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap items-center">
+            <Button
+              size="sm"
+              variant={showPool ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setShowPool(!showPool)}
+            >
+              {showPool ? <PanelLeftClose className="h-3.5 w-3.5 mr-1" /> : <PanelLeftOpen className="h-3.5 w-3.5 mr-1" />}
+              Pool de Pedidos
+            </Button>
+            <Separator orientation="vertical" className="h-5 mx-1" />
             <Button
               size="sm"
               variant={selectedPlaza === "all" ? "default" : "outline"}
@@ -802,6 +813,7 @@ export default function DeliverySchedule() {
         onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex flex-1 overflow-hidden">
           {/* LEFT: Pool */}
+          {showPool && (
           <div ref={setPoolRef}
             className={cn("w-[360px] shrink-0 border-r flex flex-col bg-muted/30",
               isPoolOver && "bg-accent/30")}>
@@ -843,6 +855,7 @@ export default function DeliverySchedule() {
               </SortableContext>
             </ScrollArea>
           </div>
+          )}
 
           {/* RIGHT: Routes kanban / Calendar */}
           <ScrollArea className="flex-1">
