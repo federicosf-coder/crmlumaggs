@@ -83,7 +83,7 @@ const USO_CFDI_OPTS = [
 
 export interface CompanyData {
   id?: string;
-  name: string; industry: string | null; website: string | null;
+  name: string; razon_social?: string | null; industry: string | null; website: string | null;
   phone: string | null; email: string | null; address: string | null;
   city: string | null; state: string | null; zip_code: string | null;
   notes: string | null; plaza_id: string | null;
@@ -105,7 +105,7 @@ interface Props {
 }
 
 const emptyForm = {
-  name: "", industry: "", website: "", phone: "", email: "",
+  name: "", razon_social: "", industry: "", website: "", phone: "", email: "",
   notes: "",
   lista_precios: "",
   industrias: [] as string[],
@@ -197,6 +197,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
     if (open && editData) {
       setForm({
         name: editData.name || "",
+        razon_social: (editData as any).razon_social || "",
         industry: editData.industry || "",
         website: editData.website || "",
         phone: editData.phone || "",
@@ -241,7 +242,9 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
     setSaving(true);
 
     const payload = {
-      name: form.name, industry: form.industry || null, website: form.website || null,
+      name: form.name,
+      razon_social: form.razon_social?.trim() || form.name,
+      industry: form.industry || null, website: form.website || null,
       phone: form.phone || null, email: form.email || null,
       notes: form.notes || null,
       plaza_id: form.plaza_ids.length > 0 ? form.plaza_ids[0] : null,
@@ -333,8 +336,32 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
             <TabsContent value="general" className="space-y-4 mt-4">
               <div className="grid grid-cols-[1fr_140px] gap-3">
-                <div className="space-y-1.5"><Label className="text-xs">Nombre de Empresa *</Label><Input value={form.name} onChange={e => set("name", e.target.value)} required className="h-9" /></div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nombre Comercial *</Label>
+                  <Input
+                    value={form.name}
+                    onChange={e => {
+                      const v = e.target.value;
+                      setForm(prev => {
+                        // Auto-copy to razon_social only if it was empty or matched previous name (untouched)
+                        const shouldSync = !prev.razon_social || prev.razon_social === prev.name;
+                        return { ...prev, name: v, razon_social: shouldSync ? v : prev.razon_social };
+                      });
+                    }}
+                    required
+                    className="h-9"
+                  />
+                </div>
                 <div className="space-y-1.5"><Label className="text-xs">ID Contpaq</Label><Input value={form.id_contpaq} onChange={e => set("id_contpaq", e.target.value)} className="h-9" placeholder="—" /></div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Razón Social</Label>
+                <Input
+                  value={form.razon_social}
+                  onChange={e => set("razon_social", e.target.value)}
+                  className="h-9"
+                  placeholder="Nombre legal/fiscal (opcional)"
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
 
