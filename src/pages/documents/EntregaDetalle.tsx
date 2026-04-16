@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
+import { AddressDisplay } from "@/components/AddressDisplay";
 
 export default function EntregaDetalle() {
   const { id } = useParams<{ id: string }>();
