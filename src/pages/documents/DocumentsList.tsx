@@ -484,6 +484,9 @@ export default function DocumentsList() {
                 <CheckSquare className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
                 <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Deseleccionar</Button>
+                <Button variant="outline" size="sm" onClick={() => setBulkEditOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-1" /> Editar seleccionados
+                </Button>
                 {isAdmin && (
                   <Button variant="destructive" size="sm" onClick={() => setBulkDeleteConfirm(true)}>
                     <Trash2 className="h-4 w-4 mr-1" /> Eliminar seleccionados
