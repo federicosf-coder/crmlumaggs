@@ -41,6 +41,11 @@ interface Props {
   registradoPor?: string;
   defaultEmails?: string[];
   previouslySentEmails?: string[];
+  templateName?: string;
+  extraTemplateData?: Record<string, any>;
+  title?: string;
+  description?: string;
+  onSent?: () => void;
 }
 
 const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -59,6 +64,11 @@ export function EnviarConfirmacionPagoDialog({
   registradoPor,
   defaultEmails = [],
   previouslySentEmails = [],
+  templateName = "pago-confirmation",
+  extraTemplateData,
+  title,
+  description,
+  onSent,
 }: Props) {
   const [emails, setEmails] = useState<string[]>(defaultEmails.filter(isValidEmail));
   const [input, setInput] = useState("");
