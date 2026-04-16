@@ -326,7 +326,10 @@ export default function Cobranza() {
                             <Button size="sm" variant="outline" onClick={() => handleAplicar(p)}>Aplicar</Button>
                           )}
                           {p.estado_pago !== "cancelado" && (
-                            <Button size="sm" variant="ghost" onClick={() => handleCancelarPago(p)}><X className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleCancelarPago(p)} title="Cancelar"><X className="h-4 w-4" /></Button>
+                          )}
+                          {canDelete && (
+                            <Button size="sm" variant="ghost" onClick={() => handleEliminarPago(p)} title="Eliminar"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                           )}
                         </div>
                       </TableCell>
