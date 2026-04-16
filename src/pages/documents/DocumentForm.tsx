@@ -37,7 +37,7 @@ const USO_CFDI_OPTS = [
   { v: "D10", l: "D10 - Pagos por servicios educativos" }, { v: "P01", l: "P01 - Por definir" }, { v: "S01", l: "S01 - Sin efectos fiscales" },
   { v: "CP01", l: "CP01 - Pagos" }, { v: "CN01", l: "CN01 - Nómina" },
 ];
-const TIPO_DIRECCION_LABELS: Record<string, string> = { envio: "Envío", fiscal: "Fiscal", comercial: "Comercial" };
+const TIPO_DIRECCION_LABELS: Record<string, string> = { envio: "Entrega", fiscal: "Fiscal", comercial: "Comercial", sucursal: "Sucursal", principal: "Principal" };
 
 interface LineItem {
   id?: string;
