@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2 } from "lucide-react";
+import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2, Download, Upload } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ImportExportMenu } from "@/components/ImportExportMenu";
 
 interface Company {
   id: string; name: string; industry: string | null; phone: string | null;
@@ -227,13 +228,42 @@ export default function Directory() {
           <h1 className="text-2xl font-bold text-foreground">Directorio</h1>
           <p className="text-muted-foreground text-sm">Empresas y contactos</p>
         </div>
-        <Button
-          size="sm"
-          onClick={() => activeTab === "companies" ? setCompanyOpen(true) : setContactOpen(true)}
-        >
-          <Plus className="mr-1 h-4 w-4" />
-          {activeTab === "companies" ? "Agregar Empresa" : "Agregar Contacto"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <ImportExportMenu
+            table={activeTab === "companies" ? "companies" : "contacts"}
+            entityLabel={activeTab === "companies" ? "Empresas" : "Contactos"}
+            upsertKey={activeTab === "companies" ? "name" : "email"}
+            fields={activeTab === "companies" ? [
+              { key: "name", label: "Nombre" },
+              { key: "industry", label: "Industria" },
+              { key: "phone", label: "Teléfono" },
+              { key: "email", label: "Correo" },
+              { key: "city", label: "Ciudad" },
+              { key: "state", label: "Estado" },
+              { key: "address", label: "Dirección" },
+              { key: "zip_code", label: "Código Postal" },
+              { key: "website", label: "Sitio Web" },
+              { key: "lista_precios", label: "Lista de Precios" },
+            ] : [
+              { key: "first_name", label: "Nombre" },
+              { key: "last_name", label: "Apellido" },
+              { key: "email", label: "Correo" },
+              { key: "phone", label: "Teléfono" },
+              { key: "mobile", label: "Celular" },
+              { key: "job_title", label: "Puesto" },
+              { key: "department", label: "Departamento" },
+            ]}
+            data={activeTab === "companies" ? filteredCompanies : filteredContacts}
+            onImported={fetchData}
+          />
+          <Button
+            size="sm"
+            onClick={() => activeTab === "companies" ? setCompanyOpen(true) : setContactOpen(true)}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            {activeTab === "companies" ? "Agregar Empresa" : "Agregar Contacto"}
+          </Button>
+        </div>
       </div>
 
       {/* Tabs — button style matching Documentos */}
