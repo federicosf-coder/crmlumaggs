@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageBanner } from "@/components/PageBanner";
@@ -14,6 +14,7 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useCobranzaPagos, useDocumentosCobranza, useCobranzaAplicaciones, type CobranzaPago } from "@/hooks/useCobranza";
 import { RegistrarPagoDialog } from "@/components/cobranza/RegistrarPagoDialog";
 import { AplicarPagoDialog } from "@/components/cobranza/AplicarPagoDialog";
+import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
