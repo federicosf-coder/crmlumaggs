@@ -14,6 +14,7 @@ import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Plus, Search, Pencil } from "lucide-react";
+import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 
 interface TipoCatalogItem {
   id: string;
@@ -31,6 +32,8 @@ interface Address {
   ciudad: string | null;
   estado: string | null;
   codigo_postal: string | null;
+  pais: string | null;
+  direccion_completa: string | null;
   referencia: string | null;
   coordenadas_lat: number | null;
   coordenadas_lng: number | null;
