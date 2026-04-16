@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,361 +13,188 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
+import {
+  CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
+  Pencil, Trash2, Package, ListChecks, Search, Undo2,
+} from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import {
-  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
+  DragOverlay, useDroppable, type DragStartEvent, type DragEndEvent, type DragOverEvent,
 } from "@dnd-kit/core";
 import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-// ─── Sortable Item ───────────────────────────────────────────
-function SortableDeliveryItem({ id, doc, index, onDeliver, onRemove }: {
-  id: string; doc: any; index: number; onDeliver: (doc: any) => void; onRemove: (docId: string) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+// ─── Status config ───────────────────────────────────────────
+const POOL_STATUSES = ["confirmado_cliente", "espera_autorizacion_precio", "precio_autorizado", "validado_contabilidad"] as const;
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  confirmado_cliente: { label: "Confirmado", color: "text-red-700 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700" },
+  espera_autorizacion_precio: { label: "Espera Autorización", color: "text-yellow-700 dark:text-yellow-400", bg: "bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700" },
+  precio_autorizado: { label: "Precio Autorizado", color: "text-green-700 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700" },
+  validado_contabilidad: { label: "Validado", color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700" },
+  programado_entrega: { label: "Programado", color: "text-purple-700 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700" },
+};
+
+// ─── Types ────────────────────────────────────────────────────
+type PoolItem = {
+  id: string;
+  type: "pedido" | "tarea";
+  title: string;
+  subtitle: string;
+  address?: string;
+  total?: number;
+  estatus: string;
+  plaza_id?: string;
+  raw: any;
+};
+
+// ─── Draggable Card ──────────────────────────────────────────
+function DraggablePoolCard({ item }: { item: PoolItem }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
+  const cfg = STATUS_CONFIG[item.estatus] || STATUS_CONFIG.confirmado_cliente;
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
-      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground">
-        <GripVertical className="h-4 w-4" />
-      </button>
-      <Card className="flex-1">
-        <CardContent className="p-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="text-xs font-mono">{index + 1}</Badge>
-            <div>
-              <p className="font-medium text-sm">{doc.numero_pedido || doc.numero_cotizacion || "Sin número"}</p>
-              <p className="text-xs text-muted-foreground">{doc.companies?.name || doc._company_name || "Sin cliente"}</p>
-              {doc.direccion_envio && <p className="text-xs text-muted-foreground truncate max-w-[250px]">📍 {doc.direccion_envio}</p>}
-            </div>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}
+      className={cn("border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-colors", cfg.bg)}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 mb-1">
+            {item.type === "tarea" ? <ListChecks className="h-3.5 w-3.5 shrink-0" /> : <Package className="h-3.5 w-3.5 shrink-0" />}
+            <span className="font-medium text-sm truncate">{item.title}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
-            {doc.estatus_pedido === "programado_entrega" && (
-              <Button size="sm" variant="outline" onClick={() => onDeliver(doc)}>
-                <Check className="h-3 w-3 mr-1" /> Entregar
-              </Button>
-            )}
-            <Button size="sm" variant="ghost" className="text-destructive h-7 w-7 p-0" onClick={() => onRemove(doc.id)}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
+          {item.address && <p className="text-xs text-muted-foreground truncate mt-0.5">📍 {item.address}</p>}
+        </div>
+        <div className="text-right shrink-0">
+          {item.total != null && (
+            <span className="text-sm font-semibold">${Number(item.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+          )}
+          <Badge variant="outline" className={cn("text-[10px] mt-1 block", cfg.color)}>{cfg.label}</Badge>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─── Route Card Component ────────────────────────────────────
-function RouteCard({ ruta, vehiculos, repartidores, availablePedidos, dateStr, onRefresh }: {
-  ruta: any; vehiculos: any[]; repartidores: any[]; availablePedidos: any[]; dateStr: string; onRefresh: () => void;
-}) {
-  const queryClient = useQueryClient();
-  const [orderedDocs, setOrderedDocs] = useState<any[]>([]);
-  const [editingRoute, setEditingRoute] = useState(false);
-  const [vehiculoId, setVehiculoId] = useState(ruta.vehiculo_id);
-  const [repartidorId, setRepartidorId] = useState(ruta.repartidor_id);
-  const [addingPedido, setAddingPedido] = useState(false);
-
-  // Deliver dialog
-  const [deliverDialog, setDeliverDialog] = useState(false);
-  const [deliverDoc, setDeliverDoc] = useState<any>(null);
-  const [deliverNotes, setDeliverNotes] = useState("");
-  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-
-  // Fetch entregas for this route
-  const { data: entregas = [], refetch: refetchEntregas } = useQuery({
-    queryKey: ["entregas-ruta", ruta.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("entregas_programadas")
-        .select("*, documentos(*, companies(name))")
-        .eq("ruta_id", ruta.id)
-        .order("orden_ruta");
-      return data || [];
-    },
-  });
-
-  useEffect(() => {
-    setOrderedDocs(entregas.map((e: any) => ({
-      ...e.documentos,
-      _entrega_id: e.id,
-      _orden_ruta: e.orden_ruta,
-      _is_scheduled: true,
-    })));
-  }, [entregas]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+// ─── Overlay Card (while dragging) ───────────────────────────
+function OverlayCard({ item }: { item: PoolItem }) {
+  const cfg = STATUS_CONFIG[item.estatus] || STATUS_CONFIG.confirmado_cliente;
+  return (
+    <div className={cn("border rounded-lg p-3 shadow-xl", cfg.bg)} style={{ width: 320 }}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 mb-1">
+            {item.type === "tarea" ? <ListChecks className="h-3.5 w-3.5" /> : <Package className="h-3.5 w-3.5" />}
+            <span className="font-medium text-sm truncate">{item.title}</span>
+          </div>
+          <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
+        </div>
+        {item.total != null && (
+          <span className="text-sm font-semibold">${Number(item.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+        )}
+      </div>
+    </div>
   );
+}
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setOrderedDocs((items) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
-  };
-
-  // Save order
-  const saveOrder = useMutation({
-    mutationFn: async () => {
-      for (let i = 0; i < orderedDocs.length; i++) {
-        const doc = orderedDocs[i];
-        if (doc._entrega_id) {
-          await supabase.from("entregas_programadas").update({ orden_ruta: i }).eq("id", doc._entrega_id);
-        }
-      }
-    },
-    onSuccess: () => { toast.success("Orden actualizado"); refetchEntregas(); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  // Update route vehicle/driver
-  const updateRoute = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("rutas_entrega").update({
-        vehiculo_id: vehiculoId,
-        repartidor_id: repartidorId,
-      }).eq("id", ruta.id);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Ruta actualizada"); setEditingRoute(false); onRefresh(); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  // Add pedido to route
-  const addPedido = useMutation({
-    mutationFn: async (docId: string) => {
-      const { error } = await supabase.from("entregas_programadas").insert({
-        documento_id: docId,
-        ruta_id: ruta.id,
-        vehiculo_id: ruta.vehiculo_id,
-        repartidor_id: ruta.repartidor_id,
-        fecha_entrega: dateStr,
-        orden_ruta: orderedDocs.length,
-      });
-      if (error) throw error;
-      await supabase.from("documentos").update({ estatus_pedido: "programado_entrega" }).eq("id", docId);
-    },
-    onSuccess: () => {
-      toast.success("Pedido agregado a la ruta");
-      refetchEntregas();
-      queryClient.invalidateQueries({ queryKey: ["pedidos-for-schedule"] });
-      setAddingPedido(false);
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  // Remove pedido from route
-  const removePedido = async (docId: string) => {
-    await supabase.from("entregas_programadas").delete().eq("documento_id", docId).eq("ruta_id", ruta.id);
-    await supabase.from("documentos").update({ estatus_pedido: "validado_contabilidad" }).eq("id", docId);
-    toast.success("Pedido removido de la ruta");
-    refetchEntregas();
-    queryClient.invalidateQueries({ queryKey: ["pedidos-for-schedule"] });
-  };
-
-  // Delete route
-  const deleteRoute = useMutation({
-    mutationFn: async () => {
-      // Reset all docs to validado_contabilidad
-      for (const doc of orderedDocs) {
-        if (doc.estatus_pedido === "programado_entrega") {
-          await supabase.from("documentos").update({ estatus_pedido: "validado_contabilidad" }).eq("id", doc.id);
-        }
-      }
-      const { error } = await supabase.from("rutas_entrega").delete().eq("id", ruta.id);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Ruta eliminada"); onRefresh(); queryClient.invalidateQueries({ queryKey: ["pedidos-for-schedule"] }); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const handleOpenDeliver = (doc: any) => {
-    setDeliverDoc(doc);
-    setDeliverNotes("");
-    setEvidenceFile(null);
-    setDeliverDialog(true);
-  };
-
-  const handleConfirmDelivery = async () => {
-    if (!deliverDoc) return;
-    setUploading(true);
-    try {
-      let evidenciaUrl: string | null = null;
-      if (evidenceFile) {
-        const ext = evidenceFile.name.split(".").pop();
-        const path = `entregas/${deliverDoc.id}_${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("document-files").upload(path, evidenceFile);
-        if (upErr) throw upErr;
-        const { data: urlData } = supabase.storage.from("document-files").getPublicUrl(path);
-        evidenciaUrl = urlData.publicUrl;
-      }
-      await supabase.from("entregas_programadas").update({
-        fecha_entrega_real: new Date().toISOString(),
-        notas: deliverNotes || null,
-        evidencia_url: evidenciaUrl,
-      }).eq("documento_id", deliverDoc.id).eq("ruta_id", ruta.id);
-      await supabase.from("documentos").update({ estatus_pedido: "entregado" }).eq("id", deliverDoc.id);
-      toast.success("Entrega registrada");
-      setDeliverDialog(false);
-      refetchEntregas();
-      queryClient.invalidateQueries({ queryKey: ["documentos"] });
-    } catch (err: any) {
-      toast.error("Error: " + (err.message || "Error"));
-    } finally {
-      setUploading(false);
-    }
-  };
-
+// ─── Route Drop Column ───────────────────────────────────────
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onRemoveItem, onDeliver, onReorder }: {
+  ruta: any;
+  items: PoolItem[];
+  vehiculos: any[];
+  repartidoresAll: any[];
+  repartidoresRuta: any[];
+  onEditRoute: (ruta: any) => void;
+  onDeleteRoute: (rutaId: string) => void;
+  onRemoveItem: (itemId: string) => void;
+  onDeliver: (item: PoolItem) => void;
+  onReorder: (rutaId: string, items: PoolItem[]) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: `ruta-${ruta.id}` });
   const vehiculo = vehiculos.find((v: any) => v.id === ruta.vehiculo_id);
-  const repartidor = repartidores.find((r: any) => r.id === ruta.repartidor_id);
-
-  // Available pedidos not already in ANY route for this date
-  const scheduledDocIds = new Set(orderedDocs.map(d => d.id));
-  const unassignedPedidos = availablePedidos.filter((p: any) => !scheduledDocIds.has(p.id));
+  const repartidorNames = repartidoresRuta.map(rr => {
+    const rep = repartidoresAll.find((r: any) => r.id === rr.repartidor_id);
+    return rep?.nombre || "?";
+  });
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Truck className="h-4 w-4" />
-              {vehiculo?.nombre || "Sin vehículo"} {vehiculo?.placas ? `(${vehiculo.placas})` : ""}
-              <span className="text-muted-foreground">·</span>
-              {repartidor?.nombre || "Sin repartidor"}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">{orderedDocs.length} entregas programadas</p>
+    <div ref={setNodeRef}
+      className={cn("border rounded-xl p-3 min-w-[320px] w-[340px] shrink-0 flex flex-col transition-colors",
+        isOver ? "bg-accent/50 border-primary" : "bg-card")}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <Truck className="h-4 w-4 text-primary" />
+            <span className="font-semibold text-sm">{vehiculo?.nombre || "Sin vehículo"}</span>
+            {vehiculo?.placas && <span className="text-xs text-muted-foreground">({vehiculo.placas})</span>}
           </div>
-          <div className="flex gap-1">
-            <Button size="sm" variant="outline" onClick={() => setAddingPedido(true)}>
-              <Plus className="h-3.5 w-3.5 mr-1" /> Agregar
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => { setVehiculoId(ruta.vehiculo_id); setRepartidorId(ruta.repartidor_id); setEditingRoute(true); }}>
-              <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => saveOrder.mutate()} disabled={saveOrder.isPending}>
-              {saveOrder.isPending ? "..." : "Guardar Orden"}
-            </Button>
-            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("¿Eliminar esta ruta?")) deleteRoute.mutate(); }}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            👤 {repartidorNames.length > 0 ? repartidorNames.join(", ") : "Sin repartidor"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            📅 {ruta.fecha_entrega ? format(new Date(ruta.fecha_entrega + "T12:00:00"), "dd MMM yyyy", { locale: es }) : "Sin fecha"}
+          </p>
         </div>
-      </CardHeader>
-      <CardContent>
-        {orderedDocs.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
-            <Truck className="mx-auto h-8 w-8 mb-2 opacity-40" />
-            <p className="text-sm">Sin entregas. Agrega pedidos a esta ruta.</p>
-          </div>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={orderedDocs.map(d => d.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2">
-                {orderedDocs.map((doc, index) => (
-                  <SortableDeliveryItem key={doc.id} id={doc.id} doc={doc} index={index} onDeliver={handleOpenDeliver} onRemove={removePedido} />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
-      </CardContent>
+        <div className="flex gap-1">
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEditRoute(ruta)}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("¿Eliminar esta ruta y devolver pedidos al pool?")) onDeleteRoute(ruta.id); }}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+      <Separator className="mb-2" />
 
-      {/* Edit route dialog */}
-      <Dialog open={editingRoute} onOpenChange={setEditingRoute}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Editar Ruta</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Vehículo</Label>
-              <Select value={vehiculoId} onValueChange={setVehiculoId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{vehiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.nombre} {v.placas ? `(${v.placas})` : ""}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Repartidor</Label>
-              <Select value={repartidorId} onValueChange={setRepartidorId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{repartidores.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingRoute(false)}>Cancelar</Button>
-            <Button onClick={() => updateRoute.mutate()} disabled={updateRoute.isPending}>
-              {updateRoute.isPending ? "Guardando..." : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add pedido dialog */}
-      <Dialog open={addingPedido} onOpenChange={setAddingPedido}>
-        <DialogContent className="sm:max-w-lg max-h-[70vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Agregar Pedido a Ruta</DialogTitle></DialogHeader>
-          {unassignedPedidos.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No hay pedidos disponibles para esta fecha.</p>
-          ) : (
-            <div className="space-y-2">
-              {unassignedPedidos.map((p: any) => (
-                <Card key={p.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => addPedido.mutate(p.id)}>
-                  <CardContent className="p-3 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-sm">{p.numero_pedido || "Sin número"}</p>
-                      <p className="text-xs text-muted-foreground">{p.companies?.name}</p>
-                      {p.direccion_envio && <p className="text-xs text-muted-foreground truncate max-w-[300px]">📍 {p.direccion_envio}</p>}
-                    </div>
-                    <span className="text-sm font-semibold">${Number(p.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
-                  </CardContent>
-                </Card>
-              ))}
+      {/* Items */}
+      <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+        <div className="space-y-2 flex-1 min-h-[80px]">
+          {items.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+              <Package className="h-6 w-6 mb-1 opacity-40" />
+              <p className="text-xs">Arrastra pedidos aquí</p>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+          {items.map((item, idx) => (
+            <div key={item.id} className="relative group">
+              <div className="absolute -left-1 top-1/2 -translate-y-1/2 z-10">
+                <Badge variant="outline" className="text-[10px] px-1.5 font-mono bg-background">{idx + 1}</Badge>
+              </div>
+              <div className="pl-5">
+                <DraggablePoolCard item={item} />
+              </div>
+              <div className="absolute top-1 right-1 hidden group-hover:flex gap-0.5">
+                {item.estatus === "programado_entrega" && item.type === "pedido" && (
+                  <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => onDeliver(item)}>
+                    <Check className="h-3 w-3" />
+                  </Button>
+                )}
+                <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => onRemoveItem(item.id)}>
+                  <Undo2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SortableContext>
 
-      {/* Deliver dialog */}
-      <Dialog open={deliverDialog} onOpenChange={setDeliverDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Confirmar Entrega</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm font-medium">{deliverDoc?.numero_pedido || deliverDoc?.numero_cotizacion}</p>
-              <p className="text-xs text-muted-foreground">{deliverDoc?.companies?.name || deliverDoc?._company_name}</p>
-            </div>
-            <div className="space-y-2">
-              <Label>Notas de entrega</Label>
-              <Textarea value={deliverNotes} onChange={(e) => setDeliverNotes(e.target.value)} rows={2} placeholder="Observaciones..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Evidencia (PDF o Foto)</Label>
-              <Input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} />
-              {evidenceFile && <p className="text-xs text-muted-foreground flex items-center gap-1"><ImageIcon className="h-3 w-3" /> {evidenceFile.name}</p>}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeliverDialog(false)}>Cancelar</Button>
-            <Button onClick={handleConfirmDelivery} disabled={uploading}>{uploading ? "Subiendo..." : "Confirmar Entrega"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+      <Separator className="mt-2 mb-1" />
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>{items.length} items</span>
+        <span>${items.reduce((s, i) => s + (i.total || 0), 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+      </div>
+    </div>
   );
 }
 
@@ -377,16 +204,32 @@ export default function DeliverySchedule() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [selectedPlaza, setSelectedPlaza] = useState("");
+  const [searchPool, setSearchPool] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [activeItem, setActiveItem] = useState<PoolItem | null>(null);
 
-  // New route dialog
+  // Route items keyed by ruta id
+  const [routeItems, setRouteItems] = useState<Record<string, PoolItem[]>>({});
+
+  // Dialogs
   const [newRouteOpen, setNewRouteOpen] = useState(false);
+  const [newPlaza, setNewPlaza] = useState("");
+  const [newFecha, setNewFecha] = useState<Date | undefined>(undefined);
   const [newVehiculo, setNewVehiculo] = useState("");
-  const [newRepartidor, setNewRepartidor] = useState("");
+  const [newRepartidores, setNewRepartidores] = useState<string[]>([]);
 
-  const dateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
+  const [editRouteData, setEditRouteData] = useState<any>(null);
+  const [editVehiculo, setEditVehiculo] = useState("");
+  const [editRepartidores, setEditRepartidores] = useState<string[]>([]);
+  const [editFecha, setEditFecha] = useState<Date | undefined>(undefined);
 
+  const [deliverDialog, setDeliverDialog] = useState(false);
+  const [deliverItem, setDeliverItem] = useState<PoolItem | null>(null);
+  const [deliverNotes, setDeliverNotes] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // ─── Data queries ─────────────────────────────────────────
   const { data: plazas = [] } = useQuery({
     queryKey: ["plazas-active"],
     queryFn: async () => {
@@ -403,7 +246,7 @@ export default function DeliverySchedule() {
     },
   });
 
-  const { data: repartidores = [] } = useQuery({
+  const { data: repartidoresAll = [] } = useQuery({
     queryKey: ["repartidores"],
     queryFn: async () => {
       const { data } = await supabase.from("repartidores").select("*").eq("is_active", true).order("nombre");
@@ -411,181 +254,656 @@ export default function DeliverySchedule() {
     },
   });
 
-  // Fetch routes for selected date + plaza
-  const { data: rutas = [], refetch: refetchRutas } = useQuery({
-    queryKey: ["rutas-entrega", dateStr, selectedPlaza],
+  // Pool: all pedidos with pool statuses, not yet programmed
+  const { data: poolPedidos = [], refetch: refetchPool } = useQuery({
+    queryKey: ["pool-pedidos"],
     queryFn: async () => {
-      if (!dateStr || !selectedPlaza) return [];
-      const { data } = await supabase
-        .from("rutas_entrega")
-        .select("*")
-        .eq("fecha_entrega", dateStr)
-        .eq("plaza_id", selectedPlaza)
-        .order("created_at");
-      return data || [];
-    },
-    enabled: !!dateStr && !!selectedPlaza,
-  });
-
-  // Fetch available pedidos (validated, matching date, matching plaza)
-  const { data: availablePedidos = [] } = useQuery({
-    queryKey: ["pedidos-for-schedule", dateStr, selectedPlaza],
-    queryFn: async () => {
-      if (!dateStr || !selectedPlaza) return [];
       const { data } = await supabase
         .from("documentos")
         .select("*, companies(name)")
         .eq("tipo_documento", "pedido")
         .eq("is_active", true)
-        .eq("estatus_pedido", "validado_contabilidad")
-        .eq("fecha_entrega_programada", dateStr)
-        .eq("plaza_id", selectedPlaza)
-        .order("created_at");
+        .in("estatus_pedido", [...POOL_STATUSES])
+        .order("created_at", { ascending: false });
       return data || [];
     },
-    enabled: !!dateStr && !!selectedPlaza,
   });
 
-  // Create new route
+  // Pool: tasks with programable_entrega
+  const { data: poolTasks = [], refetch: refetchPoolTasks } = useQuery({
+    queryKey: ["pool-tasks-entrega"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("crm_tasks")
+        .select("*, companies(name), contacts(first_name, last_name)")
+        .eq("programable_entrega", true)
+        .eq("completed", false)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+  });
+
+  // All routes (no filter by date/plaza - show all active)
+  const { data: allRutas = [], refetch: refetchRutas } = useQuery({
+    queryKey: ["all-rutas-entrega"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("rutas_entrega")
+        .select("*, plazas(nombre)")
+        .order("fecha_entrega", { ascending: true });
+      return data || [];
+    },
+  });
+
+  // All ruta_repartidores
+  const { data: allRutaRepartidores = [], refetch: refetchRutaRepartidores } = useQuery({
+    queryKey: ["all-ruta-repartidores"],
+    queryFn: async () => {
+      const { data } = await supabase.from("ruta_repartidores").select("*");
+      return data || [];
+    },
+  });
+
+  // All entregas_programadas
+  const { data: allEntregas = [], refetch: refetchEntregas } = useQuery({
+    queryKey: ["all-entregas-programadas"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("entregas_programadas")
+        .select("*, documentos(*, companies(name))")
+        .order("orden_ruta");
+      return data || [];
+    },
+  });
+
+  // Build pool items
+  const poolItems = useMemo<PoolItem[]>(() => {
+    const scheduledDocIds = new Set(allEntregas.map((e: any) => e.documento_id));
+    // TODO: also track scheduled tasks if we add task scheduling
+
+    const pedidoItems: PoolItem[] = poolPedidos
+      .filter((p: any) => !scheduledDocIds.has(p.id))
+      .map((p: any) => ({
+        id: p.id,
+        type: "pedido" as const,
+        title: p.numero_pedido || p.numero_cotizacion || "Sin número",
+        subtitle: p.companies?.name || "Sin cliente",
+        address: p.direccion_envio || undefined,
+        total: Number(p.total) || 0,
+        estatus: p.estatus_pedido || "confirmado_cliente",
+        plaza_id: p.plaza_id || undefined,
+        raw: p,
+      }));
+
+    const taskItems: PoolItem[] = poolTasks.map((t: any) => ({
+      id: `task-${t.id}`,
+      type: "tarea" as const,
+      title: t.title,
+      subtitle: t.companies?.name || (t.contacts ? `${t.contacts.first_name} ${t.contacts.last_name}` : "Sin asignar"),
+      total: undefined,
+      estatus: "confirmado_cliente",
+      plaza_id: undefined,
+      raw: t,
+    }));
+
+    return [...pedidoItems, ...taskItems];
+  }, [poolPedidos, poolTasks, allEntregas]);
+
+  // Build route items from entregas
+  useEffect(() => {
+    const map: Record<string, PoolItem[]> = {};
+    for (const ruta of allRutas) {
+      const entregas = allEntregas.filter((e: any) => e.ruta_id === ruta.id);
+      map[ruta.id] = entregas.map((e: any) => ({
+        id: e.documento_id,
+        type: "pedido" as const,
+        title: e.documentos?.numero_pedido || e.documentos?.numero_cotizacion || "Sin número",
+        subtitle: e.documentos?.companies?.name || "Sin cliente",
+        address: e.documentos?.direccion_envio || undefined,
+        total: Number(e.documentos?.total) || 0,
+        estatus: e.documentos?.estatus_pedido || "programado_entrega",
+        plaza_id: e.documentos?.plaza_id || undefined,
+        raw: e.documentos,
+      }));
+    }
+    setRouteItems(map);
+  }, [allRutas, allEntregas]);
+
+  // Group rutas by plaza
+  const rutasByPlaza = useMemo(() => {
+    const groups: Record<string, { plaza: any; rutas: any[] }> = {};
+    for (const ruta of allRutas) {
+      const pid = ruta.plaza_id;
+      if (!groups[pid]) {
+        groups[pid] = { plaza: ruta.plazas || { nombre: "Sin plaza" }, rutas: [] };
+      }
+      groups[pid].rutas.push(ruta);
+    }
+    return groups;
+  }, [allRutas]);
+
+  // Filter pool
+  const filteredPool = useMemo(() => {
+    let items = poolItems;
+    if (filterStatus !== "all") items = items.filter(i => i.estatus === filterStatus);
+    if (searchPool.trim()) {
+      const q = searchPool.toLowerCase();
+      items = items.filter(i => i.title.toLowerCase().includes(q) || i.subtitle.toLowerCase().includes(q));
+    }
+    return items;
+  }, [poolItems, filterStatus, searchPool]);
+
+  // ─── DnD handlers ────────────────────────────────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const findContainer = (id: string): string | null => {
+    if (poolItems.some(i => i.id === id)) return "pool";
+    for (const [rutaId, items] of Object.entries(routeItems)) {
+      if (items.some(i => i.id === id)) return rutaId;
+    }
+    return null;
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const item = poolItems.find(i => i.id === active.id) ||
+      Object.values(routeItems).flat().find(i => i.id === active.id);
+    setActiveItem(item || null);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveItem(null);
+    if (!over) return;
+
+    const activeContainer = findContainer(active.id as string);
+    let overContainer = findContainer(over.id as string);
+
+    // Dropped on a ruta droppable zone
+    if (String(over.id).startsWith("ruta-")) {
+      overContainer = String(over.id).replace("ruta-", "");
+    }
+
+    if (!activeContainer || !overContainer) return;
+
+    // Same container reorder
+    if (activeContainer === overContainer && activeContainer !== "pool") {
+      const items = routeItems[activeContainer] || [];
+      const oldIdx = items.findIndex(i => i.id === active.id);
+      const newIdx = items.findIndex(i => i.id === over.id);
+      if (oldIdx !== -1 && newIdx !== -1 && oldIdx !== newIdx) {
+        const reordered = arrayMove(items, oldIdx, newIdx);
+        setRouteItems(prev => ({ ...prev, [activeContainer]: reordered }));
+        // Persist order
+        for (let i = 0; i < reordered.length; i++) {
+          await supabase.from("entregas_programadas")
+            .update({ orden_ruta: i })
+            .eq("documento_id", reordered[i].id)
+            .eq("ruta_id", activeContainer);
+        }
+      }
+      return;
+    }
+
+    // Pool → Route
+    if (activeContainer === "pool" && overContainer !== "pool") {
+      const item = poolItems.find(i => i.id === active.id);
+      if (!item) return;
+      const ruta = allRutas.find((r: any) => r.id === overContainer);
+      if (!ruta) return;
+
+      if (item.type === "pedido") {
+        const { error } = await supabase.from("entregas_programadas").insert({
+          documento_id: item.id,
+          ruta_id: ruta.id,
+          vehiculo_id: ruta.vehiculo_id,
+          repartidor_id: ruta.repartidor_id,
+          fecha_entrega: ruta.fecha_entrega,
+          orden_ruta: (routeItems[ruta.id]?.length || 0),
+        });
+        if (error) { toast.error(error.message); return; }
+        await supabase.from("documentos").update({
+          estatus_pedido: "programado_entrega",
+          plaza_id: ruta.plaza_id,
+          fecha_entrega_programada: ruta.fecha_entrega,
+        }).eq("id", item.id);
+        toast.success("Pedido programado en ruta");
+      }
+      // TODO: handle task drop
+
+      refetchPool();
+      refetchEntregas();
+      return;
+    }
+
+    // Route → Pool (return to pool)
+    if (activeContainer !== "pool" && overContainer === "pool") {
+      const item = (routeItems[activeContainer] || []).find(i => i.id === active.id);
+      if (!item || item.type !== "pedido") return;
+
+      await supabase.from("entregas_programadas").delete()
+        .eq("documento_id", item.id).eq("ruta_id", activeContainer);
+      // Reset status to the previous pool status - use validado_contabilidad as default
+      await supabase.from("documentos").update({
+        estatus_pedido: "validado_contabilidad",
+        fecha_entrega_programada: null,
+      }).eq("id", item.id);
+      toast.success("Pedido devuelto al pool");
+      refetchPool();
+      refetchEntregas();
+      return;
+    }
+
+    // Route → different Route
+    if (activeContainer !== "pool" && overContainer !== "pool" && activeContainer !== overContainer) {
+      const item = (routeItems[activeContainer] || []).find(i => i.id === active.id);
+      if (!item || item.type !== "pedido") return;
+      const newRuta = allRutas.find((r: any) => r.id === overContainer);
+      if (!newRuta) return;
+
+      await supabase.from("entregas_programadas").update({
+        ruta_id: newRuta.id,
+        vehiculo_id: newRuta.vehiculo_id,
+        repartidor_id: newRuta.repartidor_id,
+        fecha_entrega: newRuta.fecha_entrega,
+        orden_ruta: (routeItems[newRuta.id]?.length || 0),
+      }).eq("documento_id", item.id).eq("ruta_id", activeContainer);
+
+      await supabase.from("documentos").update({
+        plaza_id: newRuta.plaza_id,
+        fecha_entrega_programada: newRuta.fecha_entrega,
+      }).eq("id", item.id);
+
+      toast.success("Pedido movido a otra ruta");
+      refetchEntregas();
+      return;
+    }
+  };
+
+  // ─── Mutations ────────────────────────────────────────────
   const createRoute = useMutation({
     mutationFn: async () => {
-      if (!newVehiculo || !newRepartidor) throw new Error("Selecciona vehículo y repartidor");
-      const { error } = await supabase.from("rutas_entrega").insert({
-        plaza_id: selectedPlaza,
+      if (!newPlaza || !newVehiculo || !newFecha || newRepartidores.length === 0) throw new Error("Completa todos los campos");
+      const dateStr = format(newFecha, "yyyy-MM-dd");
+      const { data: ruta, error } = await supabase.from("rutas_entrega").insert({
+        plaza_id: newPlaza,
         vehiculo_id: newVehiculo,
-        repartidor_id: newRepartidor,
+        repartidor_id: newRepartidores[0], // Legacy field - use first
         fecha_entrega: dateStr,
         created_by: user?.id,
-      });
+      }).select().single();
       if (error) throw error;
+      // Insert all repartidores
+      for (const repId of newRepartidores) {
+        await supabase.from("ruta_repartidores").insert({ ruta_id: ruta.id, repartidor_id: repId });
+      }
     },
     onSuccess: () => {
       toast.success("Ruta creada");
       setNewRouteOpen(false);
+      setNewPlaza("");
       setNewVehiculo("");
-      setNewRepartidor("");
+      setNewFecha(undefined);
+      setNewRepartidores([]);
       refetchRutas();
+      refetchRutaRepartidores();
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const handleRefresh = () => {
+  const deleteRoute = async (rutaId: string) => {
+    const items = routeItems[rutaId] || [];
+    for (const item of items) {
+      if (item.type === "pedido") {
+        await supabase.from("documentos").update({
+          estatus_pedido: "validado_contabilidad",
+          fecha_entrega_programada: null,
+        }).eq("id", item.id);
+      }
+    }
+    await supabase.from("entregas_programadas").delete().eq("ruta_id", rutaId);
+    await supabase.from("ruta_repartidores").delete().eq("ruta_id", rutaId);
+    await supabase.from("rutas_entrega").delete().eq("id", rutaId);
+    toast.success("Ruta eliminada");
     refetchRutas();
-    queryClient.invalidateQueries({ queryKey: ["pedidos-for-schedule"] });
+    refetchEntregas();
+    refetchPool();
+    refetchRutaRepartidores();
   };
 
-  const plazaName = plazas.find((p: any) => p.id === selectedPlaza)?.nombre;
+  const removeItemFromRoute = async (itemId: string) => {
+    const container = findContainer(itemId);
+    if (!container || container === "pool") return;
+    await supabase.from("entregas_programadas").delete()
+      .eq("documento_id", itemId).eq("ruta_id", container);
+    await supabase.from("documentos").update({
+      estatus_pedido: "validado_contabilidad",
+      fecha_entrega_programada: null,
+    }).eq("id", itemId);
+    toast.success("Pedido devuelto al pool");
+    refetchPool();
+    refetchEntregas();
+  };
+
+  const handleOpenEditRoute = (ruta: any) => {
+    setEditRouteData(ruta);
+    setEditVehiculo(ruta.vehiculo_id);
+    setEditFecha(ruta.fecha_entrega ? new Date(ruta.fecha_entrega + "T12:00:00") : undefined);
+    const reps = allRutaRepartidores.filter((rr: any) => rr.ruta_id === ruta.id).map((rr: any) => rr.repartidor_id);
+    setEditRepartidores(reps.length > 0 ? reps : [ruta.repartidor_id]);
+  };
+
+  const saveEditRoute = async () => {
+    if (!editRouteData) return;
+    const dateStr = editFecha ? format(editFecha, "yyyy-MM-dd") : editRouteData.fecha_entrega;
+    await supabase.from("rutas_entrega").update({
+      vehiculo_id: editVehiculo,
+      repartidor_id: editRepartidores[0] || editRouteData.repartidor_id,
+      fecha_entrega: dateStr,
+    }).eq("id", editRouteData.id);
+    // Sync repartidores
+    await supabase.from("ruta_repartidores").delete().eq("ruta_id", editRouteData.id);
+    for (const repId of editRepartidores) {
+      await supabase.from("ruta_repartidores").insert({ ruta_id: editRouteData.id, repartidor_id: repId });
+    }
+    toast.success("Ruta actualizada");
+    setEditRouteData(null);
+    refetchRutas();
+    refetchRutaRepartidores();
+  };
+
+  const handleDeliver = (item: PoolItem) => {
+    setDeliverItem(item);
+    setDeliverNotes("");
+    setEvidenceFile(null);
+    setDeliverDialog(true);
+  };
+
+  const confirmDelivery = async () => {
+    if (!deliverItem) return;
+    setUploading(true);
+    try {
+      let evidenciaUrl: string | null = null;
+      if (evidenceFile) {
+        const ext = evidenceFile.name.split(".").pop();
+        const path = `entregas/${deliverItem.id}_${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("document-files").upload(path, evidenceFile);
+        if (upErr) throw upErr;
+        const { data: urlData } = supabase.storage.from("document-files").getPublicUrl(path);
+        evidenciaUrl = urlData.publicUrl;
+      }
+      const container = findContainer(deliverItem.id);
+      if (container && container !== "pool") {
+        await supabase.from("entregas_programadas").update({
+          fecha_entrega_real: new Date().toISOString(),
+          notas: deliverNotes || null,
+          evidencia_url: evidenciaUrl,
+        }).eq("documento_id", deliverItem.id).eq("ruta_id", container);
+      }
+      await supabase.from("documentos").update({ estatus_pedido: "entregado" }).eq("id", deliverItem.id);
+      toast.success("Entrega registrada");
+      setDeliverDialog(false);
+      refetchEntregas();
+      refetchPool();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Toggle repartidor in multi-select
+  const toggleRepartidor = (repId: string, list: string[], setter: (v: string[]) => void) => {
+    setter(list.includes(repId) ? list.filter(r => r !== repId) : [...list, repId]);
+  };
+
+  // Pool droppable
+  const { setNodeRef: setPoolRef, isOver: isPoolOver } = useDroppable({ id: "pool" });
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Programación de Entregas</h1>
-          <p className="text-muted-foreground text-sm">Define rutas de entrega por día y plaza</p>
+          <h1 className="text-xl font-bold text-foreground">Planeación de Entregas</h1>
+          <p className="text-muted-foreground text-xs">Arrastra pedidos del pool a las rutas para programarlos</p>
         </div>
-        <Button variant="outline" onClick={() => navigate("/documents")}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Documentos
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setNewRouteOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Nueva Ruta
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/documents")}>
+            <ArrowLeft className="h-4 w-4 mr-1" /> Documentos
+          </Button>
+        </div>
       </div>
 
-      {/* Filters: Date + Plaza */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">1. Fecha de Entrega</CardTitle></CardHeader>
-          <CardContent>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP", { locale: es }) : "Seleccionar fecha"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} initialFocus className="p-3 pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">2. Plaza</CardTitle></CardHeader>
-          <CardContent>
-            <Select value={selectedPlaza} onValueChange={setSelectedPlaza}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar plaza" /></SelectTrigger>
-              <SelectContent>
-                {plazas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {plazas.length === 0 && <p className="text-xs text-muted-foreground mt-1">No hay plazas registradas. Agrégalas en Catálogos.</p>}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Routes */}
-      {dateStr && selectedPlaza && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              Rutas — {plazaName} — {selectedDate ? format(selectedDate, "dd/MM/yyyy") : ""}
-            </h2>
-            <Button onClick={() => setNewRouteOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Nueva Ruta
-            </Button>
+      {/* Main DnD area */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter}
+        onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <div className="flex flex-1 overflow-hidden">
+          {/* LEFT: Pool */}
+          <div ref={setPoolRef}
+            className={cn("w-[360px] shrink-0 border-r flex flex-col bg-muted/30",
+              isPoolOver && "bg-accent/30")}>
+            <div className="p-3 border-b space-y-2 shrink-0">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-sm flex items-center gap-1.5">
+                  <Package className="h-4 w-4" /> Pool de Pedidos
+                  <Badge variant="secondary" className="ml-1">{filteredPool.length}</Badge>
+                </h2>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input placeholder="Buscar..." className="pl-8 h-8 text-sm"
+                  value={searchPool} onChange={e => setSearchPool(e.target.value)} />
+              </div>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estatus</SelectItem>
+                  <SelectItem value="confirmado_cliente">🔴 Confirmado</SelectItem>
+                  <SelectItem value="espera_autorizacion_precio">🟡 Espera Autorización</SelectItem>
+                  <SelectItem value="precio_autorizado">🟢 Precio Autorizado</SelectItem>
+                  <SelectItem value="validado_contabilidad">🔵 Validado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <ScrollArea className="flex-1">
+              <SortableContext items={filteredPool.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                <div className="p-2 space-y-2">
+                  {filteredPool.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Package className="mx-auto h-8 w-8 mb-2 opacity-40" />
+                      <p className="text-sm">Sin pedidos disponibles</p>
+                    </div>
+                  ) : (
+                    filteredPool.map(item => <DraggablePoolCard key={item.id} item={item} />)
+                  )}
+                </div>
+              </SortableContext>
+            </ScrollArea>
           </div>
 
-          {rutas.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                <Truck className="mx-auto h-10 w-10 mb-2 opacity-40" />
-                <p>No hay rutas para esta fecha y plaza.</p>
-                <p className="text-sm">Crea una nueva ruta para comenzar.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            rutas.map((ruta: any) => (
-              <RouteCard
-                key={ruta.id}
-                ruta={ruta}
-                vehiculos={vehiculos}
-                repartidores={repartidores}
-                availablePedidos={availablePedidos}
-                dateStr={dateStr}
-                onRefresh={handleRefresh}
-              />
-            ))
-          )}
+          {/* RIGHT: Routes kanban */}
+          <ScrollArea className="flex-1">
+            <div className="p-4 min-w-max">
+              {Object.keys(rutasByPlaza).length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <Truck className="h-12 w-12 mb-3 opacity-30" />
+                  <p className="text-lg font-medium">Sin rutas creadas</p>
+                  <p className="text-sm">Crea una ruta para comenzar a planificar</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {Object.entries(rutasByPlaza).map(([plazaId, { plaza, rutas }]) => (
+                    <div key={plazaId}>
+                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-3">
+                        📍 {plaza.nombre || "Sin plaza"}
+                      </h3>
+                      <div className="flex gap-4 overflow-x-auto pb-2">
+                        {rutas.map(ruta => (
+                          <RouteDropColumn
+                            key={ruta.id}
+                            ruta={ruta}
+                            items={routeItems[ruta.id] || []}
+                            vehiculos={vehiculos}
+                            repartidoresAll={repartidoresAll}
+                            repartidoresRuta={allRutaRepartidores.filter((rr: any) => rr.ruta_id === ruta.id)}
+                            onEditRoute={handleOpenEditRoute}
+                            onDeleteRoute={deleteRoute}
+                            onRemoveItem={removeItemFromRoute}
+                            onDeliver={handleDeliver}
+                            onReorder={() => {}}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         </div>
-      )}
 
-      {/* New route dialog */}
+        <DragOverlay>
+          {activeItem && <OverlayCard item={activeItem} />}
+        </DragOverlay>
+      </DndContext>
+
+      {/* New Route Dialog */}
       <Dialog open={newRouteOpen} onOpenChange={setNewRouteOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Nueva Ruta</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Plaza</Label>
-              <Input disabled value={plazaName || ""} />
+              <Select value={newPlaza} onValueChange={setNewPlaza}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar plaza" /></SelectTrigger>
+                <SelectContent>
+                  {plazas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Fecha de entrega</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start", !newFecha && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {newFecha ? format(newFecha, "PPP", { locale: es }) : "Seleccionar fecha"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={newFecha} onSelect={setNewFecha} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label>Vehículo</Label>
               <Select value={newVehiculo} onValueChange={setNewVehiculo}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar vehículo" /></SelectTrigger>
-                <SelectContent>{vehiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.nombre} {v.placas ? `(${v.placas})` : ""}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {vehiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.nombre} {v.placas ? `(${v.placas})` : ""}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Repartidor</Label>
-              <Select value={newRepartidor} onValueChange={setNewRepartidor}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar repartidor" /></SelectTrigger>
-                <SelectContent>{repartidores.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>)}</SelectContent>
-              </Select>
+              <Label>Repartidores</Label>
+              <div className="border rounded-md p-2 space-y-1 max-h-40 overflow-y-auto">
+                {repartidoresAll.map((r: any) => (
+                  <label key={r.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 rounded p-1">
+                    <Checkbox checked={newRepartidores.includes(r.id)}
+                      onCheckedChange={() => toggleRepartidor(r.id, newRepartidores, setNewRepartidores)} />
+                    {r.nombre}
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewRouteOpen(false)}>Cancelar</Button>
-            <Button onClick={() => createRoute.mutate()} disabled={!newVehiculo || !newRepartidor || createRoute.isPending}>
+            <Button onClick={() => createRoute.mutate()}
+              disabled={!newPlaza || !newVehiculo || !newFecha || newRepartidores.length === 0 || createRoute.isPending}>
               {createRoute.isPending ? "Creando..." : "Crear Ruta"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Route Dialog */}
+      <Dialog open={!!editRouteData} onOpenChange={(open) => { if (!open) setEditRouteData(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Editar Ruta</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Fecha de entrega</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start", !editFecha && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {editFecha ? format(editFecha, "PPP", { locale: es }) : "Seleccionar fecha"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={editFecha} onSelect={setEditFecha} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div>
+              <Label>Vehículo</Label>
+              <Select value={editVehiculo} onValueChange={setEditVehiculo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {vehiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.nombre} {v.placas ? `(${v.placas})` : ""}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Repartidores</Label>
+              <div className="border rounded-md p-2 space-y-1 max-h-40 overflow-y-auto">
+                {repartidoresAll.map((r: any) => (
+                  <label key={r.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/50 rounded p-1">
+                    <Checkbox checked={editRepartidores.includes(r.id)}
+                      onCheckedChange={() => toggleRepartidor(r.id, editRepartidores, setEditRepartidores)} />
+                    {r.nombre}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditRouteData(null)}>Cancelar</Button>
+            <Button onClick={saveEditRoute}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deliver Dialog */}
+      <Dialog open={deliverDialog} onOpenChange={setDeliverDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Confirmar Entrega</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium">{deliverItem?.title}</p>
+              <p className="text-xs text-muted-foreground">{deliverItem?.subtitle}</p>
+            </div>
+            <div>
+              <Label>Notas de entrega</Label>
+              <Textarea value={deliverNotes} onChange={(e) => setDeliverNotes(e.target.value)} rows={2} placeholder="Observaciones..." />
+            </div>
+            <div>
+              <Label>Evidencia (PDF o Foto)</Label>
+              <Input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} />
+              {evidenceFile && <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><ImageIcon className="h-3 w-3" /> {evidenceFile.name}</p>}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeliverDialog(false)}>Cancelar</Button>
+            <Button onClick={confirmDelivery} disabled={uploading}>{uploading ? "Subiendo..." : "Confirmar Entrega"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -597,6 +597,7 @@ export type Database = {
           due_date: string | null
           id: string
           priority: string
+          programable_entrega: boolean
           title: string
           updated_at: string
           user_id: string
@@ -611,6 +612,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           priority?: string
+          programable_entrega?: boolean
           title: string
           updated_at?: string
           user_id: string
@@ -625,6 +627,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           priority?: string
+          programable_entrega?: boolean
           title?: string
           updated_at?: string
           user_id?: string
@@ -1449,8 +1452,46 @@ export type Database = {
         }
         Relationships: []
       }
+      ruta_repartidores: {
+        Row: {
+          created_at: string
+          id: string
+          repartidor_id: string
+          ruta_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          repartidor_id: string
+          ruta_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          repartidor_id?: string
+          ruta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ruta_repartidores_repartidor_id_fkey"
+            columns: ["repartidor_id"]
+            isOneToOne: false
+            referencedRelation: "repartidores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ruta_repartidores_ruta_id_fkey"
+            columns: ["ruta_id"]
+            isOneToOne: false
+            referencedRelation: "rutas_entrega"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rutas_entrega: {
         Row: {
+          capacidad_kg: number | null
+          capacidad_volumen: number | null
           created_at: string
           created_by: string | null
           fecha_entrega: string
@@ -1461,6 +1502,8 @@ export type Database = {
           vehiculo_id: string
         }
         Insert: {
+          capacidad_kg?: number | null
+          capacidad_volumen?: number | null
           created_at?: string
           created_by?: string | null
           fecha_entrega: string
@@ -1471,6 +1514,8 @@ export type Database = {
           vehiculo_id: string
         }
         Update: {
+          capacidad_kg?: number | null
+          capacidad_volumen?: number | null
           created_at?: string
           created_by?: string | null
           fecha_entrega?: string
@@ -1735,6 +1780,8 @@ export type Database = {
         | "cancelada"
       estatus_pedido:
         | "confirmado_cliente"
+        | "espera_autorizacion_precio"
+        | "precio_autorizado"
         | "validado_contabilidad"
         | "programado_entrega"
         | "entregado"
@@ -1948,6 +1995,8 @@ export const Constants = {
       ],
       estatus_pedido: [
         "confirmado_cliente",
+        "espera_autorizacion_precio",
+        "precio_autorizado",
         "validado_contabilidad",
         "programado_entrega",
         "entregado",
