@@ -729,7 +729,7 @@ export default function DeliverySchedule() {
           </div>
 
           {/* RIGHT: Routes kanban */}
-          <ScrollArea className="flex-1" orientation="horizontal">
+          <ScrollArea className="flex-1">
             <div className="p-4 min-w-max">
               {Object.keys(rutasByPlaza).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
