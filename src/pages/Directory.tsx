@@ -99,6 +99,14 @@ export default function Directory() {
     },
   });
 
+  const { data: plazasList = [] } = useQuery({
+    queryKey: ["plazas_bulk"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre");
+      return data || [];
+    },
+  });
+
   // Company ejecutivos for selected company
   const { data: selectedCompanyEjecutivos = [] } = useQuery({
     queryKey: ["company_ejecutivos_detail", selectedCompany?.id],
@@ -299,6 +307,9 @@ export default function Directory() {
               <CheckSquare className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
               <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Deseleccionar</Button>
+              <Button variant="outline" size="sm" onClick={() => setBulkEditOpen(true)}>
+                <Pencil className="h-4 w-4 mr-1" /> Editar seleccionados
+              </Button>
               <Button variant="outline" size="sm" onClick={() => handleBulkToggleActive(true)}>Activar</Button>
               <Button variant="outline" size="sm" onClick={() => handleBulkToggleActive(false)}>Desactivar</Button>
             </div>
