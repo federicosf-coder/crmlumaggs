@@ -745,6 +745,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         comprobantes={comprobantes}
         registradoPor={profile?.full_name || user?.email || undefined}
         defaultEmails={defaultEmails}
+        blockedEmails={blockedEmails}
         previouslySentEmails={previouslySentEmails}
         templateName={activeFlow.templateName}
         title={activeFlow.title}
