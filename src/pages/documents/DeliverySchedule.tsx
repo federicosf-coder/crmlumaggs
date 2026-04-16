@@ -754,9 +754,19 @@ export default function DeliverySchedule() {
             </Button>
           </div>
         </div>
-        {/* Plaza filter chips + view toggle */}
+        {/* Plaza filter chips + pool toggle + view toggle */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap items-center">
+            <Button
+              size="sm"
+              variant={showPool ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setShowPool(!showPool)}
+            >
+              {showPool ? <PanelLeftClose className="h-3.5 w-3.5 mr-1" /> : <PanelLeftOpen className="h-3.5 w-3.5 mr-1" />}
+              Pool de Pedidos
+            </Button>
+            <Separator orientation="vertical" className="h-5 mx-1" />
             <Button
               size="sm"
               variant={selectedPlaza === "all" ? "default" : "outline"}
