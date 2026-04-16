@@ -25,7 +25,7 @@ import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { AddressDisplay } from "@/components/AddressDisplay";
 
 interface Company {
-  id: string; name: string; industry: string | null; phone: string | null;
+  id: string; name: string; razon_social: string | null; industry: string | null; phone: string | null;
   email: string | null; city: string | null; is_active: boolean;
   address: string | null; state: string | null; zip_code: string | null;
   website: string | null; notes: string | null; plaza_id: string | null;
@@ -239,7 +239,8 @@ export default function Directory() {
               entityLabel={activeTab === "companies" ? "Empresas" : "Contactos"}
               upsertKey={activeTab === "companies" ? "name" : "email"}
               fields={activeTab === "companies" ? [
-                { key: "name", label: "Nombre" },
+                { key: "name", label: "Nombre Comercial" },
+                { key: "razon_social", label: "Razón Social" },
                 { key: "industry", label: "Industria" },
                 { key: "phone", label: "Teléfono" },
                 { key: "email", label: "Correo" },
@@ -554,8 +555,13 @@ export default function Directory() {
         <SheetContent className="overflow-y-auto sm:max-w-lg">
           {selectedCompany && (
             <>
-              <SheetHeader className="flex flex-row items-center justify-between">
-                <SheetTitle>{selectedCompany.name}</SheetTitle>
+              <SheetHeader className="flex flex-row items-start justify-between">
+                <div className="space-y-0.5">
+                  <SheetTitle>{selectedCompany.name}</SheetTitle>
+                  {selectedCompany.razon_social && selectedCompany.razon_social !== selectedCompany.name && (
+                    <p className="text-xs text-muted-foreground">Razón Social: {selectedCompany.razon_social}</p>
+                  )}
+                </div>
                 <Button size="sm" variant="outline" onClick={() => setEditCompany(selectedCompany)}>
                   <Pencil className="h-4 w-4 mr-1" /> Editar
                 </Button>
@@ -569,6 +575,7 @@ export default function Directory() {
 
                 <TabsContent value="general" className="space-y-3 mt-4">
                   <div className="grid grid-cols-2 gap-3">
+                    <DetailRow label="Razón Social" value={selectedCompany.razon_social} />
                     <DetailRow label="Industria" value={selectedCompany.industry} />
                     <DetailRow label="Plaza" value={(selectedCompany.plazas as any)?.nombre} />
                     <DetailRow label="Ejecutivo(s) de Venta" value={getEjecutivoNames(selectedCompanyEjecutivos).join(", ") || "—"} />
