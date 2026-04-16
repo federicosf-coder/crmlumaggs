@@ -417,6 +417,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const [openEnviar, setOpenEnviar] = useState(false);
   const [defaultEmails, setDefaultEmails] = useState<string[]>([]);
   const [comprobantes, setComprobantes] = useState<{ nombre: string; url: string }[]>([]);
+  const [previouslySentEmails, setPreviouslySentEmails] = useState<string[]>([]);
   const [loadingEmails, setLoadingEmails] = useState(false);
 
   const handleCancelarAplicacion = async (id: string) => {
@@ -452,6 +453,24 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     setComprobantes(
       (archivos || []).map((a: any) => ({ nombre: a.nombre_archivo, url: a.url_archivo }))
     );
+    // Envíos previos para este pago: buscar message_ids en log que correspondan a este pago.
+    // Como el log no guarda pago_id, usamos la convención del idempotencyKey embebido.
+    // En su lugar consultamos por template + recipient con metadata si existe.
+    // Estrategia simple: traer todos los 'sent' del template y filtrar por destinatarios actuales después.
+    // Mejor: consultar todos los logs 'sent' para pago-confirmation cuyo recipient esté en `emails`
+    // o que coincidan con un patrón. Usamos un enfoque por destinatario.
+    const { data: sentLogs } = await supabase
+      .from("email_send_log")
+      .select("recipient_email,status,metadata,message_id,created_at")
+      .eq("template_name", "pago-confirmation")
+      .eq("status", "sent");
+    // Como el log no incluye pago_id, una mejora futura es guardarlo en metadata.
+    // Por ahora marcamos como "previamente enviado" cualquier destinatario en emails que ya tenga
+    // al menos un envío exitoso de este template. Es una aproximación útil para evitar reenvíos accidentales.
+    const sentSet = new Set(
+      (sentLogs || []).map((l: any) => (l.recipient_email || "").toLowerCase())
+    );
+    setPreviouslySentEmails(emails.filter((e) => sentSet.has(e.toLowerCase())).map((e) => e.toLowerCase()));
     setDefaultEmails(emails);
     setLoadingEmails(false);
     setOpenEnviar(true);
