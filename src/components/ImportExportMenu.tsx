@@ -120,14 +120,14 @@ export function ImportExportMenu({
       try {
         if (existingId) {
           // Update
-          const { error } = await (supabase.from(table) as any)
+          const { error } = await (supabase.from as any)(table)
             .update(record)
             .eq("id", existingId);
           if (error) throw error;
           updated++;
         } else {
           // Insert
-          const { error } = await (supabase.from(table) as any)
+          const { error } = await (supabase.from as any)(table)
             .insert(record);
           if (error) throw error;
           created++;
