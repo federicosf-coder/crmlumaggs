@@ -568,6 +568,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         comprobantes={comprobantes}
         registradoPor={profile?.full_name || user?.email || undefined}
         defaultEmails={defaultEmails}
+        previouslySentEmails={previouslySentEmails}
       />
     </Sheet>
   );
