@@ -1,15 +1,17 @@
+import { useEffect, useRef } from "react";
 import { MapPin, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGoogleMaps } from "@/hooks/useGoogleMaps";
 
 interface Props {
   address?: string | null;
   lat?: number | null;
   lng?: number | null;
-  /** Show the address text. Default true. Set false in tight cells where only icon is wanted. */
+  /** Show the address text. Default true. */
   showText?: boolean;
-  /** Show a small embedded map below the address. Default false. */
+  /** Show an embedded interactive map below the address. Default false. */
   showMap?: boolean;
-  /** Map height in px. Default 160. */
+  /** Map height in px. Default 200. */
   mapHeight?: number;
   /** Truncate the address text. Default false. */
   truncate?: boolean;
@@ -28,16 +30,48 @@ function buildMapsUrl(address?: string | null, lat?: number | null, lng?: number
   return null;
 }
 
-function buildStaticMapSrc(address?: string | null, lat?: number | null, lng?: number | null, width = 600, height = 300) {
-  // OpenStreetMap static image (no API key, no iframe blocking).
-  if (lat != null && lng != null) {
-    const latN = Number(lat);
-    const lngN = Number(lng);
-    const delta = 0.01;
-    const bbox = `${lngN - delta},${latN - delta},${lngN + delta},${latN + delta}`;
-    return `https://staticmap.openstreetmap.de/staticmap.php?center=${latN},${lngN}&zoom=15&size=${width}x${height}&markers=${latN},${lngN},red-pushpin&bbox=${bbox}`;
-  }
-  return null;
+function MiniMap({ lat, lng, address, height }: { lat?: number | null; lng?: number | null; address?: string | null; height: number }) {
+  const { ready } = useGoogleMaps();
+  const ref = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!ready || !ref.current) return;
+    const g = (window as any).google;
+    if (!g?.maps) return;
+
+    const place = (latNum: number, lngNum: number) => {
+      const center = { lat: latNum, lng: lngNum };
+      if (!mapRef.current) {
+        mapRef.current = new g.maps.Map(ref.current!, {
+          center,
+          zoom: 15,
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: "cooperative",
+        });
+      } else {
+        mapRef.current.setCenter(center);
+      }
+      if (markerRef.current) markerRef.current.setMap(null);
+      markerRef.current = new g.maps.Marker({ position: center, map: mapRef.current });
+    };
+
+    if (lat != null && lng != null) {
+      place(Number(lat), Number(lng));
+    } else if (address) {
+      const geocoder = new g.maps.Geocoder();
+      geocoder.geocode({ address }, (results: any, status: string) => {
+        if (status === "OK" && results?.[0]?.geometry?.location) {
+          const loc = results[0].geometry.location;
+          place(loc.lat(), loc.lng());
+        }
+      });
+    }
+  }, [ready, lat, lng, address]);
+
+  return <div ref={ref} className="w-full rounded-md border bg-muted" style={{ height }} />;
 }
 
 export function AddressDisplay({
@@ -46,13 +80,12 @@ export function AddressDisplay({
   lng,
   showText = true,
   showMap = false,
-  mapHeight = 160,
+  mapHeight = 200,
   truncate = false,
   className,
   iconOnly = false,
 }: Props) {
   const url = buildMapsUrl(address, lat, lng);
-  const mapImg = showMap ? buildStaticMapSrc(address, lat, lng) : null;
   const hasData = !!url;
 
   if (!hasData) {
@@ -91,24 +124,16 @@ export function AddressDisplay({
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
       </div>
-      {mapImg && (
+      {showMap && (
         <a
           href={url!}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="block overflow-hidden rounded-md border bg-muted"
-          style={{ height: mapHeight }}
+          className="block"
           title="Abrir en Google Maps"
         >
-          <img
-            src={mapImg}
-            alt="Mapa de ubicación"
-            className="w-full h-full object-cover"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }}
-          />
+          <MiniMap lat={lat} lng={lng} address={address} height={mapHeight} />
         </a>
       )}
     </div>
