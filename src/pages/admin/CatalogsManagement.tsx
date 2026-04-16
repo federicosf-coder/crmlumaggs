@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText, Building2, Truck, User, Mail } from "lucide-react";
 import { EmailGroupsTab } from "@/components/admin/EmailGroupsTab";
+import { SystemSettingsTab } from "@/components/admin/SystemSettingsTab";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
 
@@ -1382,6 +1383,7 @@ export default function CatalogsManagement() {
           <TabsTrigger value="repartidores">Repartidores</TabsTrigger>
           <TabsTrigger value="tipos_direccion">Tipos de Dirección</TabsTrigger>
           <TabsTrigger value="email_groups">Grupos de Correo</TabsTrigger>
+          <TabsTrigger value="system_settings">Parámetros</TabsTrigger>
         </TabsList>
         <TabsContent value="plazas"><PlazasTab /></TabsContent>
         <TabsContent value="presentaciones"><PresentacionesTab /></TabsContent>
@@ -1394,6 +1396,7 @@ export default function CatalogsManagement() {
         <TabsContent value="repartidores"><RepartidoresTab /></TabsContent>
         <TabsContent value="tipos_direccion"><TiposDireccionTab /></TabsContent>
         <TabsContent value="email_groups"><EmailGroupsTab /></TabsContent>
+        <TabsContent value="system_settings"><SystemSettingsTab /></TabsContent>
       </Tabs>
     </div>
   );
