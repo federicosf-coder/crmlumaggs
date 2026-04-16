@@ -736,7 +736,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
               <div><p className="text-muted-foreground text-xs">Plaza</p><p>{pago.plaza?.nombre || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Fecha</p><p>{formatDate(pago.fecha_pago)}</p></div>
               <div><p className="text-muted-foreground text-xs">Forma de pago</p><p>{FORMA_PAGO_LABEL[pago.tipo_pago || ""] || pago.tipo_pago || "—"}</p></div>
-              <div><p className="text-muted-foreground text-xs">Estatus Pago</p><p><Badge variant="outline">{ESTATUS_PAGO_LABEL[pago.estatus_pago] || pago.estatus_pago}</Badge></p></div>
+              <div><p className="text-muted-foreground text-xs">Estatus Pago</p><div className="mt-1"><EstatusPagoEditor pagoId={pago.id} value={pago.estatus_pago} canEdit={canEditEstatus} onChanged={onChanged} /></div></div>
               <div><p className="text-muted-foreground text-xs">Banco</p><p>{pago.banco || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Referencia</p><p>{pago.referencia_pago || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Monto total</p><p className="font-semibold">{formatCurrency(pago.monto_total)}</p></div>
