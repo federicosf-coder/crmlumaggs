@@ -52,7 +52,7 @@ export function AddressDisplay({
   iconOnly = false,
 }: Props) {
   const url = buildMapsUrl(address, lat, lng);
-  const embed = showMap ? buildEmbedSrc(address, lat, lng) : null;
+  const mapImg = showMap ? buildStaticMapSrc(address, lat, lng) : null;
   const hasData = !!url;
 
   if (!hasData) {
