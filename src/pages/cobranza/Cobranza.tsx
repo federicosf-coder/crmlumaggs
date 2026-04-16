@@ -85,7 +85,7 @@ export default function Cobranza() {
     const facturasParciales = facturas.filter((f) => f.estado_cobranza === "parcial").length;
     const facturasPagadas = facturas.filter((f) => f.estado_cobranza === "pagada").length;
     return { abierta, vencida, porVencer, noAplicado, cobradoMes, facturasParciales, facturasPagadas };
-  }, [facturas, pagos]);
+  }, [facturas, pagos, breakdowns]);
 
   // Buckets de vencimiento (helper reusable)
   const buildBuckets = (lista: typeof facturas) => {
