@@ -268,12 +268,11 @@ export default function DocumentsList() {
     return profile?.full_name || "-";
   };
 
-  // Clear selection when filters change
   const tabColor = TAB_COLORS[tipoFilter] || TAB_COLORS.cotizacion;
   const isPedido = tipoFilter === "pedido";
 
   // Reset selection when tab/filter changes
-  useState(() => { setSelectedIds(new Set()); });
+  useEffect(() => { setSelectedIds(new Set()); }, [tipoFilter, empresaFilter, ejecutivoFilter]);
 
   const toggleSelect = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
