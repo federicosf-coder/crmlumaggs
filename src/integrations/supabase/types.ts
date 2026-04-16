@@ -660,7 +660,10 @@ export type Database = {
         Row: {
           calle: string
           ciudad: string | null
+          codigo_google: string | null
           codigo_postal: string | null
+          coordenadas_lat: number | null
+          coordenadas_lng: number | null
           created_at: string
           empresa_id: string
           estado: string | null
@@ -673,7 +676,10 @@ export type Database = {
         Insert: {
           calle: string
           ciudad?: string | null
+          codigo_google?: string | null
           codigo_postal?: string | null
+          coordenadas_lat?: number | null
+          coordenadas_lng?: number | null
           created_at?: string
           empresa_id: string
           estado?: string | null
@@ -686,7 +692,10 @@ export type Database = {
         Update: {
           calle?: string
           ciudad?: string | null
+          codigo_google?: string | null
           codigo_postal?: string | null
+          coordenadas_lat?: number | null
+          coordenadas_lng?: number | null
           created_at?: string
           empresa_id?: string
           estado?: string | null
@@ -1795,7 +1804,12 @@ export type Database = {
         | "viscosidad"
         | "categoria"
         | "linea"
-      tipo_direccion: "envio" | "fiscal" | "comercial"
+      tipo_direccion:
+        | "envio"
+        | "fiscal"
+        | "comercial"
+        | "sucursal"
+        | "principal"
       tipo_documento: "cotizacion" | "pedido" | "factura"
       tipo_pago: "contado" | "credito" | "credito_cescemex"
       uso_cfdi:
@@ -2012,7 +2026,7 @@ export const Constants = {
         "categoria",
         "linea",
       ],
-      tipo_direccion: ["envio", "fiscal", "comercial"],
+      tipo_direccion: ["envio", "fiscal", "comercial", "sucursal", "principal"],
       tipo_documento: ["cotizacion", "pedido", "factura"],
       tipo_pago: ["contado", "credito", "credito_cescemex"],
       uso_cfdi: [

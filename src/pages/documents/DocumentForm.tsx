@@ -37,7 +37,7 @@ const USO_CFDI_OPTS = [
   { v: "D10", l: "D10 - Pagos por servicios educativos" }, { v: "P01", l: "P01 - Por definir" }, { v: "S01", l: "S01 - Sin efectos fiscales" },
   { v: "CP01", l: "CP01 - Pagos" }, { v: "CN01", l: "CN01 - Nómina" },
 ];
-const TIPO_DIRECCION_LABELS: Record<string, string> = { envio: "Envío", fiscal: "Fiscal", comercial: "Comercial" };
+const TIPO_DIRECCION_LABELS: Record<string, string> = { envio: "Entrega", fiscal: "Fiscal", comercial: "Comercial", sucursal: "Sucursal", principal: "Principal" };
 
 interface LineItem {
   id?: string;
@@ -101,6 +101,9 @@ export default function DocumentForm() {
   const [newAddrEstado, setNewAddrEstado] = useState("");
   const [newAddrCp, setNewAddrCp] = useState("");
   const [newAddrTipo, setNewAddrTipo] = useState("envio");
+  const [newAddrLat, setNewAddrLat] = useState("");
+  const [newAddrLng, setNewAddrLng] = useState("");
+  const [newAddrGoogle, setNewAddrGoogle] = useState("");
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [newProductForm, setNewProductForm] = useState({
     codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
@@ -292,6 +295,17 @@ export default function DocumentForm() {
     }
   }, [form.empresa_id, companies]);
 
+  // Auto-select address: if exactly 1 "envio" address, auto-select it
+  const [addrAutoFilled, setAddrAutoFilled] = useState(false);
+  useEffect(() => {
+    if (isEdit && !addrAutoFilled) { setAddrAutoFilled(true); return; }
+    if (!form.empresa_id || addresses.length === 0) return;
+    const envioAddrs = addresses.filter((a: any) => a.tipo === "envio");
+    if (envioAddrs.length === 1) {
+      set("direccion_envio", envioAddrs[0].id);
+    }
+  }, [addresses]);
+
   // Quick-add handlers via shared dialogs
   const handleCompanyCreated = async (id: string) => {
     await refetchCompanies();
@@ -309,11 +323,15 @@ export default function DocumentForm() {
     const { data, error } = await supabase.from("direcciones_empresa").insert({
       empresa_id: form.empresa_id, tipo: newAddrTipo as any, calle: newAddrCalle.trim(),
       ciudad: newAddrCiudad.trim() || null, estado: newAddrEstado.trim() || null, codigo_postal: newAddrCp.trim() || null,
-    }).select("id").single();
+      coordenadas_lat: newAddrLat ? Number(newAddrLat) : null,
+      coordenadas_lng: newAddrLng ? Number(newAddrLng) : null,
+      codigo_google: newAddrGoogle.trim() || null,
+    } as any).select("id").single();
     if (error) { toast.error(error.message); return; }
     await refetchAddresses();
     set("direccion_envio", data.id);
     setNewAddrCalle(""); setNewAddrCiudad(""); setNewAddrEstado(""); setNewAddrCp(""); setNewAddrTipo("envio");
+    setNewAddrLat(""); setNewAddrLng(""); setNewAddrGoogle("");
     setShowNewAddress(false);
     toast.success("Dirección creada");
   };
@@ -342,6 +360,7 @@ export default function DocumentForm() {
   const handleSave = async () => {
     if (!form.empresa_vendedora) { toast.error("Selecciona la empresa vendedora"); return; }
     if (!form.tipo_documento) { toast.error("Selecciona el tipo de documento"); return; }
+    if (form.tipo_documento === "pedido" && !form.direccion_envio) { toast.error("La dirección de envío es obligatoria para pedidos"); return; }
     setSaving(true);
     try {
       // resolve address text from selected address
@@ -861,7 +880,7 @@ export default function DocumentForm() {
         <CardHeader><CardTitle>Información Adicional</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Dirección de Envío</Label>
+            <Label>Dirección de Envío {form.tipo_documento === "pedido" && <span className="text-destructive">*</span>}</Label>
             <div className="flex gap-1">
               <SearchableSelect
                 value={form.direccion_envio}
@@ -911,9 +930,11 @@ export default function DocumentForm() {
               <Select value={newAddrTipo} onValueChange={setNewAddrTipo}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="envio">Envío</SelectItem>
+                  <SelectItem value="envio">Entrega</SelectItem>
                   <SelectItem value="fiscal">Fiscal</SelectItem>
                   <SelectItem value="comercial">Comercial</SelectItem>
+                  <SelectItem value="sucursal">Sucursal</SelectItem>
+                  <SelectItem value="principal">Principal</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -922,7 +943,14 @@ export default function DocumentForm() {
               <div><Label>Ciudad</Label><Input value={newAddrCiudad} onChange={e => setNewAddrCiudad(e.target.value)} /></div>
               <div><Label>Estado</Label><Input value={newAddrEstado} onChange={e => setNewAddrEstado(e.target.value)} /></div>
             </div>
-            <div><Label>Código Postal</Label><Input value={newAddrCp} onChange={e => setNewAddrCp(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Código Postal</Label><Input value={newAddrCp} onChange={e => setNewAddrCp(e.target.value)} /></div>
+              <div><Label>Código Google</Label><Input value={newAddrGoogle} onChange={e => setNewAddrGoogle(e.target.value)} placeholder="Ej: ChIJ..." /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Latitud</Label><Input type="number" step="any" value={newAddrLat} onChange={e => setNewAddrLat(e.target.value)} placeholder="25.6866" /></div>
+              <div><Label>Longitud</Label><Input type="number" step="any" value={newAddrLng} onChange={e => setNewAddrLng(e.target.value)} placeholder="-100.3161" /></div>
+            </div>
           </div>
           <DialogFooter><Button onClick={handleAddAddress} disabled={!newAddrCalle.trim()}>Crear Dirección</Button></DialogFooter>
         </DialogContent>
