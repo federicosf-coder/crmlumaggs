@@ -77,7 +77,7 @@ export function useCobranzaPagos() {
     setLoading(true);
     const { data, error } = await supabase
       .from("cobranza_pagos")
-      .select("*, empresa:companies(id,name), plaza:plazas(id,nombre)")
+      .select("*, empresa:companies(id,name,email), plaza:plazas(id,nombre)")
       .order("fecha_pago", { ascending: false });
     if (!error && data) {
       setPagos(data as any);
