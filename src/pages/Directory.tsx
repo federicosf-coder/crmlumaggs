@@ -73,6 +73,8 @@ export default function Directory() {
   const [contactSort, setContactSort] = useState("last_name_asc");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [editContact, setEditContact] = useState<ContactEditData | null>(null);
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
 
   const access = useModuleAccess("directorio");
 
