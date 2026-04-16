@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +53,11 @@ export function EnviarConfirmacionPagoDialog({
   const [emails, setEmails] = useState<string[]>(defaultEmails.filter(isValidEmail));
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (open) setEmails(defaultEmails.filter(isValidEmail));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultEmails.join(",")]);
 
   const addEmail = (raw?: string) => {
     const value = (raw ?? input).trim().replace(/,$/, "");
