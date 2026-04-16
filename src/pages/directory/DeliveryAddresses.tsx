@@ -263,7 +263,17 @@ export default function DeliveryAddresses() {
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell>{a.calle}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="truncate">{a.calle}</span>
+                          <AddressDisplay
+                            address={a.direccion_completa || a.calle}
+                            lat={a.coordenadas_lat}
+                            lng={a.coordenadas_lng}
+                            iconOnly
+                          />
+                        </div>
+                      </TableCell>
                       <TableCell>{a.ciudad || "—"}</TableCell>
                       <TableCell>{a.estado || "—"}</TableCell>
                       <TableCell>{a.codigo_postal || "—"}</TableCell>
