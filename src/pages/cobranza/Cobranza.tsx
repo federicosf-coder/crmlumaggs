@@ -55,7 +55,7 @@ function bucketLabel(dias: number | null): string {
 export default function Cobranza() {
   const { hasAnyRole } = useAuth();
   const canDelete = hasAnyRole(["admin", "manager"]);
-  const { pagos, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos();
+  const { pagos, breakdowns, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos();
   const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza();
 
   const [openRegistrar, setOpenRegistrar] = useState(false);
@@ -78,14 +78,14 @@ export default function Cobranza() {
       return d !== null && d < 0 && Number(f.saldo_pendiente_cobranza) > 0;
     }).reduce((s, f) => s + Number(f.saldo_pendiente_cobranza), 0);
     const porVencer = abierta - vencida;
-    const noAplicado = pagos.filter((p) => p.estado_pago !== "cancelado").reduce((s, p) => s + Number(p.monto_disponible), 0);
+    const noAplicado = pagos.filter((p) => p.estado_pago !== "cancelado").reduce((s, p) => s + (breakdowns[p.id]?.disponibleFacturas ?? Number(p.monto_disponible)), 0);
     const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
     const cobradoMes = pagos.filter((p) => p.estado_pago !== "cancelado" && new Date(p.fecha_pago) >= inicioMes)
       .reduce((s, p) => s + Number(p.monto_total), 0);
     const facturasParciales = facturas.filter((f) => f.estado_cobranza === "parcial").length;
     const facturasPagadas = facturas.filter((f) => f.estado_cobranza === "pagada").length;
     return { abierta, vencida, porVencer, noAplicado, cobradoMes, facturasParciales, facturasPagadas };
-  }, [facturas, pagos]);
+  }, [facturas, pagos, breakdowns]);
 
   // Buckets de vencimiento (helper reusable)
   const buildBuckets = (lista: typeof facturas) => {
@@ -115,8 +115,8 @@ export default function Cobranza() {
   }, [facturas]);
 
   const pagosNoAplicados = useMemo(
-    () => pagos.filter((p) => p.estado_pago !== "cancelado" && p.monto_disponible > 0).slice(0, 10),
-    [pagos]
+    () => pagos.filter((p) => p.estado_pago !== "cancelado" && (breakdowns[p.id]?.disponibleFacturas ?? p.monto_disponible) > 0).slice(0, 10),
+    [pagos, breakdowns]
   );
 
   const carteraPorPlaza = useMemo(() => {
@@ -281,7 +281,7 @@ export default function Cobranza() {
                       <TableRow key={p.id}>
                         <TableCell>{formatDate(p.fecha_pago)}</TableCell>
                         <TableCell className="truncate max-w-[160px]">{p.empresa?.name}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(p.monto_disponible)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(breakdowns[p.id]?.disponibleFacturas ?? p.monto_disponible)}</TableCell>
                         <TableCell><Button size="sm" variant="outline" onClick={() => handleAplicar(p)}>Aplicar</Button></TableCell>
                       </TableRow>
                     ))}
@@ -302,27 +302,36 @@ export default function Cobranza() {
               <Table>
                 <TableHeader><TableRow>
                   <TableHead>Fecha</TableHead><TableHead>Cliente</TableHead><TableHead>Plaza</TableHead>
-                  <TableHead className="text-right">Total</TableHead><TableHead className="text-right">Aplicado</TableHead>
-                  <TableHead className="text-right">Disponible</TableHead><TableHead>Referencia</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Aplicado a Facturas</TableHead>
+                  <TableHead className="text-right">Aplicado a Cot/Pedidos</TableHead>
+                  <TableHead className="text-right">Disponible (facturas)</TableHead>
+                  <TableHead>Referencia</TableHead>
                   <TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {loadingPagos && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
-                  {!loadingPagos && pagosFiltrados.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sin pagos registrados</TableCell></TableRow>}
-                  {pagosFiltrados.map((p) => (
+                  {loadingPagos && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
+                  {!loadingPagos && pagosFiltrados.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sin pagos registrados</TableCell></TableRow>}
+                  {pagosFiltrados.map((p) => {
+                    const b = breakdowns[p.id];
+                    const aplicadoFact = b?.aplicadoFacturas ?? 0;
+                    const aplicadoOtros = b?.aplicadoOtros ?? 0;
+                    const dispFact = b?.disponibleFacturas ?? Number(p.monto_disponible);
+                    return (
                     <TableRow key={p.id}>
                       <TableCell>{formatDate(p.fecha_pago)}</TableCell>
                       <TableCell className="truncate max-w-[200px]">{p.empresa?.name}</TableCell>
                       <TableCell>{p.plaza?.nombre || "—"}</TableCell>
                       <TableCell className="text-right">{formatCurrency(p.monto_total)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(p.monto_aplicado)}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(p.monto_disponible)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(aplicadoFact)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{aplicadoOtros > 0 ? formatCurrency(aplicadoOtros) : "—"}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(dispFact)}</TableCell>
                       <TableCell className="text-xs">{p.referencia_pago || "—"}</TableCell>
                       <TableCell><Badge variant={p.estado_pago === "aplicado_total" ? "default" : p.estado_pago === "cancelado" ? "destructive" : "secondary"}>{ESTADO_PAGO_LABEL[p.estado_pago]}</Badge></TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => handleVerDetalle(p)}><Eye className="h-4 w-4" /></Button>
-                          {p.estado_pago !== "cancelado" && p.monto_disponible > 0 && (
+                          {p.estado_pago !== "cancelado" && dispFact > 0 && (
                             <Button size="sm" variant="outline" onClick={() => handleAplicar(p)}>Aplicar</Button>
                           )}
                           {p.estado_pago !== "cancelado" && (
@@ -334,7 +343,8 @@ export default function Cobranza() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -479,9 +489,11 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   if (!pago) return null;
 
   const TIPO_LABEL: Record<string, string> = { factura: "Factura", pedido: "Pedido", cotizacion: "Cotización" };
-  const documentosLigados = aplicaciones
-    .filter((a) => a.estatus_aplicacion === "activa")
-    .map((a) => ({
+  const aplicacionesActivas = aplicaciones.filter((a) => a.estatus_aplicacion === "activa");
+  const aplicadoFacturas = aplicacionesActivas.filter((a) => a.tipo_documento === "factura").reduce((s, a) => s + Number(a.monto_aplicado || 0), 0);
+  const aplicadoOtros = aplicacionesActivas.filter((a) => a.tipo_documento !== "factura").reduce((s, a) => s + Number(a.monto_aplicado || 0), 0);
+  const disponibleFacturas = Math.max(0, Number(pago.monto_total) - aplicadoFacturas);
+  const documentosLigados = aplicacionesActivas.map((a) => ({
       tipo: TIPO_LABEL[a.tipo_documento] || a.tipo_documento,
       numero: a.documento?.numero_factura || a.documento?.numero_pedido || a.documento?.numero_cotizacion || a.documento_id.slice(0, 8),
       monto: formatCurrency(Number(a.monto_aplicado)),
@@ -508,15 +520,16 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
               <div><p className="text-muted-foreground text-xs">Banco</p><p>{pago.banco || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Referencia</p><p>{pago.referencia_pago || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Monto total</p><p className="font-semibold">{formatCurrency(pago.monto_total)}</p></div>
-              <div><p className="text-muted-foreground text-xs">Aplicado</p><p>{formatCurrency(pago.monto_aplicado)}</p></div>
-              <div className="col-span-2"><p className="text-muted-foreground text-xs">Disponible</p><p className="text-lg font-bold text-primary">{formatCurrency(pago.monto_disponible)}</p></div>
+              <div><p className="text-muted-foreground text-xs">Aplicado a Facturas</p><p>{formatCurrency(aplicadoFacturas)}</p></div>
+              <div><p className="text-muted-foreground text-xs">Aplicado a Cot/Pedidos</p><p className="text-muted-foreground">{aplicadoOtros > 0 ? formatCurrency(aplicadoOtros) : "—"}</p></div>
+              <div><p className="text-muted-foreground text-xs">Disponible (a facturas)</p><p className="text-lg font-bold text-primary">{formatCurrency(disponibleFacturas)}</p></div>
               {pago.observaciones && <div className="col-span-2"><p className="text-muted-foreground text-xs">Observaciones</p><p>{pago.observaciones}</p></div>}
             </CardContent>
           </Card>
 
           <div className="flex justify-between items-center">
             <h3 className="font-semibold">Aplicaciones</h3>
-            {pago.estado_pago !== "cancelado" && pago.monto_disponible > 0 && (
+            {pago.estado_pago !== "cancelado" && disponibleFacturas > 0 && (
               <Button size="sm" onClick={() => onAplicar(pago)}><Plus className="h-4 w-4 mr-1" /> Aplicar</Button>
             )}
           </div>

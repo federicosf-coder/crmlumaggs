@@ -59,8 +59,15 @@ export interface DocumentoCobranza {
   plaza?: { id: string; nombre: string } | null;
 }
 
+export interface PagoBreakdown {
+  aplicadoFacturas: number;
+  aplicadoOtros: number; // pedidos + cotizaciones
+  disponibleFacturas: number; // monto_total - aplicadoFacturas (lo que falta por aplicar a facturas)
+}
+
 export function useCobranzaPagos() {
   const [pagos, setPagos] = useState<CobranzaPago[]>([]);
+  const [breakdowns, setBreakdowns] = useState<Record<string, PagoBreakdown>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchPagos = useCallback(async () => {
@@ -69,13 +76,41 @@ export function useCobranzaPagos() {
       .from("cobranza_pagos")
       .select("*, empresa:companies(id,name), plaza:plazas(id,nombre)")
       .order("fecha_pago", { ascending: false });
-    if (!error && data) setPagos(data as any);
+    if (!error && data) {
+      setPagos(data as any);
+      const ids = (data as any[]).map((p) => p.id);
+      if (ids.length > 0) {
+        const { data: aplics } = await supabase
+          .from("cobranza_aplicaciones")
+          .select("pago_id,tipo_documento,monto_aplicado,estatus_aplicacion")
+          .in("pago_id", ids)
+          .eq("estatus_aplicacion", "activa");
+        const map: Record<string, PagoBreakdown> = {};
+        (data as any[]).forEach((p) => {
+          map[p.id] = { aplicadoFacturas: 0, aplicadoOtros: 0, disponibleFacturas: Number(p.monto_total) };
+        });
+        (aplics || []).forEach((a: any) => {
+          const b = map[a.pago_id];
+          if (!b) return;
+          const monto = Number(a.monto_aplicado) || 0;
+          if (a.tipo_documento === "factura") b.aplicadoFacturas += monto;
+          else b.aplicadoOtros += monto;
+        });
+        Object.keys(map).forEach((k) => {
+          const total = Number((data as any[]).find((p) => p.id === k)?.monto_total || 0);
+          map[k].disponibleFacturas = Math.max(0, total - map[k].aplicadoFacturas);
+        });
+        setBreakdowns(map);
+      } else {
+        setBreakdowns({});
+      }
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchPagos(); }, [fetchPagos]);
 
-  return { pagos, loading, refetch: fetchPagos };
+  return { pagos, breakdowns, loading, refetch: fetchPagos };
 }
 
 export function useCobranzaAplicaciones(pagoId: string | null) {
