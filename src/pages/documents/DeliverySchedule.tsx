@@ -377,17 +377,31 @@ export default function DeliverySchedule() {
     const map: Record<string, PoolItem[]> = {};
     for (const ruta of allRutas) {
       const entregas = allEntregas.filter((e: any) => e.ruta_id === ruta.id);
-      map[ruta.id] = entregas.map((e: any) => ({
-        id: e.documento_id,
-        type: "pedido" as const,
-        title: e.documentos?.numero_pedido || e.documentos?.numero_cotizacion || "Sin número",
-        subtitle: e.documentos?.companies?.name || "Sin cliente",
-        address: e.documentos?.direccion_envio || undefined,
-        total: Number(e.documentos?.total) || 0,
-        estatus: e.documentos?.estatus_pedido || "programado_entrega",
-        plaza_id: e.documentos?.plaza_id || undefined,
-        raw: e.documentos,
-      }));
+      map[ruta.id] = entregas.map((e: any) => {
+        const doc = e.documentos;
+        // Group quantities by presentacion (same logic as pool)
+        const presByName: Record<string, number> = {};
+        (doc?.documento_productos || []).forEach((dp: any) => {
+          const presName = dp.productos?.presentaciones?.nombre || "Sin presentación";
+          presByName[presName] = (presByName[presName] || 0) + Number(dp.cantidad);
+        });
+        const productSummary = Object.entries(presByName)
+          .map(([name, qty]) => `${qty} ${name}`)
+          .join(", ") || "Sin productos";
+
+        return {
+          id: e.documento_id,
+          type: "pedido" as const,
+          title: doc?.companies?.name || "Sin cliente",
+          subtitle: productSummary,
+          address: doc?.direccion_envio || undefined,
+          total: Number(doc?.total) || 0,
+          estatus: doc?.estatus_pedido || "programado_entrega",
+          plaza_id: doc?.plaza_id || undefined,
+          fecha_documento: doc?.fecha_documento || undefined,
+          raw: doc,
+        };
+      });
     }
     setRouteItems(map);
   }, [allRutas, allEntregas]);
