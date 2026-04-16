@@ -91,7 +91,7 @@ export default function PermissionsManagement() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Permisos por Módulo</h1>
       <p className="text-muted-foreground">
-        Configura el nivel de acceso a registros que cada rol tiene en cada módulo: <strong>Todos</strong> (ve todo), <strong>Equipo</strong> (solo registros de su equipo), <strong>Propio</strong> (solo sus registros) o <strong>Ninguno</strong>.
+        Configura el nivel de acceso a registros que cada rol tiene en cada módulo: <strong>Todos</strong> (ve todo), <strong>Equipo</strong> (solo registros de su equipo), <strong>Propio</strong> (solo sus registros) o <strong>Ninguno</strong>. Los permisos <strong>Modificar PDF Documento</strong> y <strong>Eliminar PDF Documento</strong> aplican a los 3 tipos: cotizaciones, pedidos y facturas.
       </p>
       <Card>
         <CardHeader><CardTitle>Matriz de Permisos</CardTitle></CardHeader>
