@@ -207,6 +207,9 @@ export default function DeliverySchedule() {
   const [searchPool, setSearchPool] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [activeItem, setActiveItem] = useState<PoolItem | null>(null);
+  const [selectedPlaza, setSelectedPlaza] = useState<string>("all");
+  const [routeViewMode, setRouteViewMode] = useState<"list" | "calendar">("list");
+  const [calendarDate, setCalendarDate] = useState<Date | undefined>(undefined);
 
   // Route items keyed by ruta id
   const [routeItems, setRouteItems] = useState<Record<string, PoolItem[]>>({});
