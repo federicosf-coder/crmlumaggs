@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X } from "lucide-react";
+import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2 } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { PageBanner } from "@/components/PageBanner";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useCobranzaPagos, useDocumentosCobranza, useCobranzaAplicaciones, type CobranzaPago } from "@/hooks/useCobranza";
@@ -458,8 +460,116 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
               </Table>
             </CardContent>
           </Card>
+
+          <PagoArchivosSection pagoId={pago.id} />
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+interface PagoArchivo {
+  id: string;
+  url_archivo: string;
+  nombre_archivo: string;
+  tipo_archivo: string;
+  fecha_carga: string;
+}
+
+function PagoArchivosSection({ pagoId }: { pagoId: string }) {
+  const { user } = useAuth();
+  const [archivos, setArchivos] = useState<PagoArchivo[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const fetchArchivos = async () => {
+    const { data } = await supabase
+      .from("cobranza_pago_archivos")
+      .select("id,url_archivo,nombre_archivo,tipo_archivo,fecha_carga")
+      .eq("pago_id", pagoId)
+      .order("fecha_carga", { ascending: false });
+    setArchivos(data || []);
+  };
+
+  useEffect(() => { fetchArchivos(); /* eslint-disable-next-line */ }, [pagoId]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = Array.from(e.target.files || []);
+    const valid = list.filter((f) => f.type.startsWith("image/") || f.type === "application/pdf");
+    if (valid.length === 0) { toast.error("Solo PDF o imágenes"); return; }
+    setUploading(true);
+    try {
+      for (const file of valid) {
+        const ext = file.name.split(".").pop();
+        const path = `pagos/${pagoId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("document-files").upload(path, file);
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from("document-files").getPublicUrl(path);
+        const { error: insErr } = await supabase.from("cobranza_pago_archivos").insert({
+          pago_id: pagoId,
+          url_archivo: pub.publicUrl,
+          nombre_archivo: file.name,
+          tipo_archivo: file.type,
+          usuario_carga: user?.id,
+        });
+        if (insErr) throw insErr;
+      }
+      toast.success("Archivos subidos");
+      fetchArchivos();
+    } catch (e: any) {
+      toast.error(e.message || "Error al subir");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Eliminar este archivo?")) return;
+    const { error } = await supabase.from("cobranza_pago_archivos").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Archivo eliminado");
+    fetchArchivos();
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="font-semibold">Comprobantes</h3>
+        <input ref={inputRef} type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={handleUpload} />
+        <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={uploading}>
+          <Paperclip className="h-4 w-4 mr-1" /> {uploading ? "Subiendo..." : "Adjuntar"}
+        </Button>
+      </div>
+      <Card>
+        <CardContent className="p-3">
+          {archivos.length === 0 ? (
+            <p className="text-center text-muted-foreground text-sm py-4">Sin comprobantes</p>
+          ) : (
+            <div className="space-y-2">
+              {archivos.map((a) => (
+                <div key={a.id} className="flex items-center justify-between gap-2 bg-muted/50 rounded px-2 py-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {a.tipo_archivo === "application/pdf" ? <FileText className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                    <div className="min-w-0">
+                      <p className="text-sm truncate">{a.nombre_archivo}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(a.fecha_carga)}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
+                      <a href={a.url_archivo} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDelete(a.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

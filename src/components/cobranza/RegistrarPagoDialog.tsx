@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Paperclip, X, FileText, Image as ImageIcon } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -21,6 +22,8 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [plazas, setPlazas] = useState<{ id: string; nombre: string }[]>([]);
   const [saving, setSaving] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     empresa_id: "",
     plaza_id: "",
@@ -41,12 +44,22 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
 
   const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
+  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = Array.from(e.target.files || []);
+    const valid = list.filter((f) => f.type.startsWith("image/") || f.type === "application/pdf");
+    if (valid.length !== list.length) toast.error("Solo se permiten imágenes o PDF");
+    setFiles((prev) => [...prev, ...valid]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
+
   const handleSave = async () => {
     if (!form.empresa_id) { toast.error("Selecciona la empresa"); return; }
     const monto = Number(form.monto_total);
     if (!monto || monto <= 0) { toast.error("Monto inválido"); return; }
     setSaving(true);
-    const { error } = await supabase.from("cobranza_pagos").insert({
+    const { data: pago, error } = await supabase.from("cobranza_pagos").insert({
       empresa_id: form.empresa_id,
       plaza_id: form.plaza_id || null,
       fecha_pago: form.fecha_pago,
@@ -58,18 +71,40 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
       banco: form.banco || null,
       observaciones: form.observaciones || null,
       creado_por: user?.id,
-    });
+    }).select("id").single();
+
+    if (error || !pago) { setSaving(false); toast.error(error?.message || "Error"); return; }
+
+    // Subir archivos
+    if (files.length > 0) {
+      const uploads = files.map(async (file) => {
+        const ext = file.name.split(".").pop();
+        const path = `pagos/${pago.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("document-files").upload(path, file);
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from("document-files").getPublicUrl(path);
+        return supabase.from("cobranza_pago_archivos").insert({
+          pago_id: pago.id,
+          url_archivo: pub.publicUrl,
+          nombre_archivo: file.name,
+          tipo_archivo: file.type,
+          usuario_carga: user?.id,
+        });
+      });
+      try { await Promise.all(uploads); } catch (e: any) { toast.error("Pago guardado, pero algunos archivos no se subieron"); }
+    }
+
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
     toast.success("Pago registrado");
     onSaved();
     onOpenChange(false);
+    setFiles([]);
     setForm({ ...form, empresa_id: "", monto_total: "", referencia_pago: "", banco: "", observaciones: "" });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Registrar pago</DialogTitle></DialogHeader>
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
@@ -132,6 +167,36 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
           <div className="col-span-2">
             <Label>Observaciones</Label>
             <Textarea value={form.observaciones} onChange={(e) => set("observaciones", e.target.value)} />
+          </div>
+
+          <div className="col-span-2">
+            <Label>Comprobantes (PDF / Imágenes)</Label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              multiple
+              className="hidden"
+              onChange={handleFilesSelected}
+            />
+            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Paperclip className="h-4 w-4 mr-2" /> Adjuntar archivos
+            </Button>
+            {files.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {files.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm bg-muted/50 rounded px-2 py-1">
+                    <div className="flex items-center gap-2 truncate">
+                      {f.type === "application/pdf" ? <FileText className="h-4 w-4 text-muted-foreground" /> : <ImageIcon className="h-4 w-4 text-muted-foreground" />}
+                      <span className="truncate">{f.name}</span>
+                    </div>
+                    <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeFile(i)}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <DialogFooter>
