@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2, CheckSquare } from "lucide-react";
+import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2, CheckSquare, Columns3 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
@@ -20,6 +21,26 @@ import { toast } from "sonner";
 import { DocumentKanban } from "@/components/documents/DocumentKanban";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { ExportFieldsDialog, ExportField } from "@/components/documents/ExportFieldsDialog";
+
+// Column visibility config per document type
+type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_programada" | "total" | "estatus" | "pdf";
+const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
+  { key: "numero", label: "Número" },
+  { key: "cliente", label: "Cliente" },
+  { key: "ejecutivo", label: "Ejecutivo" },
+  { key: "plaza", label: "Plaza" },
+  { key: "fecha", label: "Fecha Documento" },
+  { key: "fecha_programada", label: "Fecha Programada" },
+  { key: "total", label: "Total" },
+  { key: "estatus", label: "Estatus" },
+  { key: "pdf", label: "PDF" },
+];
+const DEFAULT_COLS_BY_TIPO: Record<string, ColumnKey[]> = {
+  cotizacion: ["numero", "cliente", "ejecutivo", "fecha", "total", "estatus", "pdf"],
+  pedido: ["cliente", "ejecutivo", "fecha", "fecha_programada", "total", "estatus", "pdf"],
+  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "total", "estatus", "pdf"],
+};
+const colsStorageKey = (userId: string, tipo: string) => `doc-cols:${userId}:${tipo}`;
 
 const ESTATUS_COT_LABELS: Record<string, string> = {
   borrador: "Borrador", impresa: "Impresa", enviada: "Enviada",
