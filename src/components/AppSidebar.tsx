@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, ShoppingCart, FileText, Package, Truck,
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
-  Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database,
+  Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -26,7 +26,7 @@ interface NavItem {
 const mainItems: NavItem[] = [
   { title: "Inicio", url: "/", icon: LayoutDashboard, roles: "all" },
   { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
-  { title: "Direcciones", url: "/directory/addresses", icon: Search, roles: "all" },
+  { title: "Direcciones", url: "/directory/addresses", icon: MapPin, roles: "all" },
   { title: "CRM", url: "/crm", icon: ShoppingCart, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Documentos", url: "/documents", icon: FileText, roles: ["admin", "manager", "sales"] },
   { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
