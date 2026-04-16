@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, MapPin, Upload, FileText, Image as ImageIcon, Trash2, Check,
   Navigation, Pencil, Loader2, ExternalLink,
@@ -39,6 +40,10 @@ export default function EntregaDetalle() {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [notas, setNotas] = useState("");
   const [savingNotas, setSavingNotas] = useState(false);
+  const [estatusPedido, setEstatusPedido] = useState<string>("");
+  const [fechaEntrega, setFechaEntrega] = useState<string>("");
+  const [savingEstatus, setSavingEstatus] = useState(false);
+  const [savingFecha, setSavingFecha] = useState(false);
 
   // Documento
   const { data: documento, isLoading } = useQuery({
@@ -103,7 +108,57 @@ export default function EntregaDetalle() {
 
   useEffect(() => {
     if (entrega?.notas !== undefined && entrega?.notas !== null) setNotas(entrega.notas);
-  }, [entrega?.notas]);
+    if (entrega?.fecha_entrega) setFechaEntrega(entrega.fecha_entrega);
+  }, [entrega?.notas, entrega?.fecha_entrega]);
+
+  useEffect(() => {
+    if (documento?.estatus_pedido) setEstatusPedido(documento.estatus_pedido);
+  }, [documento?.estatus_pedido]);
+
+  const ESTATUS_OPCIONES: { value: string; label: string }[] = [
+    { value: "confirmado_cliente", label: "Confirmado cliente" },
+    { value: "espera_autorizacion_precio", label: "Espera autorización precio" },
+    { value: "precio_autorizado", label: "Precio autorizado" },
+    { value: "validado_contabilidad", label: "Validado contabilidad" },
+    { value: "programado_entrega", label: "Programado entrega" },
+    { value: "entregado", label: "Entregado" },
+    { value: "cancelado", label: "Cancelado" },
+  ];
+
+  const saveEstatus = async (value: string) => {
+    if (!id) return;
+    setEstatusPedido(value);
+    setSavingEstatus(true);
+    const { error } = await supabase
+      .from("documentos")
+      .update({ estatus_pedido: value as any })
+      .eq("id", id);
+    setSavingEstatus(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Estatus actualizado");
+      queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
+    }
+  };
+
+  const saveFechaEntrega = async (value: string) => {
+    if (!entrega?.id) {
+      toast.error("No hay entrega programada");
+      return;
+    }
+    setFechaEntrega(value);
+    setSavingFecha(true);
+    const { error } = await supabase
+      .from("entregas_programadas")
+      .update({ fecha_entrega: value })
+      .eq("id", entrega.id);
+    setSavingFecha(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Fecha actualizada");
+      queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
+    }
+  };
 
   const saveNotas = async () => {
     if (!entrega?.id) {
@@ -189,7 +244,9 @@ export default function EntregaDetalle() {
     if (error) toast.error(error.message);
     else {
       toast.success("Marcado como entregado");
+      setEstatusPedido("entregado");
       queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
+      queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
     }
   };
 
@@ -305,7 +362,6 @@ export default function EntregaDetalle() {
             <>
               <div><span className="text-muted-foreground">Vehículo:</span> {entrega.vehiculos?.nombre || "—"} {entrega.vehiculos?.placas && `(${entrega.vehiculos.placas})`}</div>
               <div><span className="text-muted-foreground">Repartidor:</span> {entrega.repartidores?.nombre || "—"}</div>
-              <div><span className="text-muted-foreground">Fecha:</span> {entrega.fecha_entrega ? format(new Date(entrega.fecha_entrega + "T12:00:00"), "dd MMM yyyy", { locale: es }) : "—"}</div>
               {entrega.fecha_entrega_real && (
                 <div className="text-green-600 dark:text-green-400">
                   <Check className="inline h-3.5 w-3.5 mr-1" />
@@ -314,6 +370,38 @@ export default function EntregaDetalle() {
               )}
             </>
           )}
+          <Separator className="my-2" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="space-y-1">
+              <Label htmlFor="estatus-pedido" className="text-xs text-muted-foreground">Estatus Pedido</Label>
+              <Select value={estatusPedido} onValueChange={saveEstatus} disabled={savingEstatus}>
+                <SelectTrigger id="estatus-pedido" className="h-9">
+                  <SelectValue placeholder="Selecciona estatus" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ESTATUS_OPCIONES.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="fecha-entrega" className="text-xs text-muted-foreground">Fecha Entrega</Label>
+              <Input
+                id="fecha-entrega"
+                type="date"
+                className="h-9"
+                value={fechaEntrega}
+                onChange={(e) => setFechaEntrega(e.target.value)}
+                onBlur={(e) => {
+                  if (e.target.value && e.target.value !== entrega?.fecha_entrega) {
+                    saveFechaEntrega(e.target.value);
+                  }
+                }}
+                disabled={savingFecha || !entrega}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
