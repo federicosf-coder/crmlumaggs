@@ -37,6 +37,8 @@ export default function EntregaDetalle() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [savingAddr, setSavingAddr] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [notas, setNotas] = useState("");
+  const [savingNotas, setSavingNotas] = useState(false);
 
   // Documento
   const { data: documento, isLoading } = useQuery({
