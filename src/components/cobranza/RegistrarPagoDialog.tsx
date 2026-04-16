@@ -173,6 +173,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
     if (appErr) { setSaving(false); toast.error("Pago guardado, pero falló alguna aplicación: " + appErr.message); return; }
 
     // Archivos
+    const comprobantesUploaded: { nombre: string; url: string }[] = [];
     if (files.length > 0) {
       const uploads = files.map(async (file) => {
         const ext = file.name.split(".").pop();
@@ -180,6 +181,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
         const { error: upErr } = await supabase.storage.from("document-files").upload(path, file);
         if (upErr) throw upErr;
         const { data: pub } = supabase.storage.from("document-files").getPublicUrl(path);
+        comprobantesUploaded.push({ nombre: file.name, url: pub.publicUrl });
         return supabase.from("cobranza_pago_archivos").insert({
           pago_id: pago.id,
           url_archivo: pub.publicUrl,
