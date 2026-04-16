@@ -74,6 +74,9 @@ function DraggablePoolCard({ item }: { item: PoolItem }) {
             <span className="font-medium text-sm truncate">{item.title}</span>
           </div>
           <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
+          {item.fecha_documento && (
+            <p className="text-xs text-muted-foreground mt-0.5">📅 {format(new Date(item.fecha_documento + "T12:00:00"), "dd MMM yyyy", { locale: es })}</p>
+          )}
           {item.address && <p className="text-xs text-muted-foreground truncate mt-0.5">📍 {item.address}</p>}
         </div>
         <div className="text-right shrink-0">
@@ -99,6 +102,9 @@ function OverlayCard({ item }: { item: PoolItem }) {
             <span className="font-medium text-sm truncate">{item.title}</span>
           </div>
           <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
+          {item.fecha_documento && (
+            <p className="text-xs text-muted-foreground mt-0.5">📅 {format(new Date(item.fecha_documento + "T12:00:00"), "dd MMM yyyy", { locale: es })}</p>
+          )}
         </div>
         {item.total != null && (
           <span className="text-sm font-semibold">${Number(item.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
