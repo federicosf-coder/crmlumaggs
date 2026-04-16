@@ -52,6 +52,7 @@ export interface DocumentoCobranza {
   total: number;
   saldo_pendiente_cobranza: number;
   estado_cobranza: "pendiente" | "parcial" | "pagada" | "vencida" | "cancelada" | null;
+  tipo_pago: "contado" | "credito" | "credito_cescemex" | null;
   empresa_id: string | null;
   plaza_id: string | null;
   empresa?: { id: string; name: string } | null;
