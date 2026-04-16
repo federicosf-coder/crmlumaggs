@@ -62,6 +62,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
     moneda: string;
     observaciones?: string;
     documentos: { tipo: string; numero: string; monto: string }[];
+    comprobantes: { nombre: string; url: string }[];
     registradoPor?: string;
     defaultEmails: string[];
   } | null>(null);
@@ -173,6 +174,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
     if (appErr) { setSaving(false); toast.error("Pago guardado, pero falló alguna aplicación: " + appErr.message); return; }
 
     // Archivos
+    const comprobantesUploaded: { nombre: string; url: string }[] = [];
     if (files.length > 0) {
       const uploads = files.map(async (file) => {
         const ext = file.name.split(".").pop();
@@ -180,6 +182,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
         const { error: upErr } = await supabase.storage.from("document-files").upload(path, file);
         if (upErr) throw upErr;
         const { data: pub } = supabase.storage.from("document-files").getPublicUrl(path);
+        comprobantesUploaded.push({ nombre: file.name, url: pub.publicUrl });
         return supabase.from("cobranza_pago_archivos").insert({
           pago_id: pago.id,
           url_archivo: pub.publicUrl,
@@ -232,6 +235,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
       moneda: "MXN",
       observaciones: observaciones || undefined,
       documentos: docsLigados,
+      comprobantes: comprobantesUploaded,
       registradoPor: profile?.full_name || user?.email || undefined,
       defaultEmails,
     });
@@ -409,6 +413,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
         moneda={confirmData.moneda}
         observaciones={confirmData.observaciones}
         documentos={confirmData.documentos}
+        comprobantes={confirmData.comprobantes}
         registradoPor={confirmData.registradoPor}
         defaultEmails={confirmData.defaultEmails}
       />

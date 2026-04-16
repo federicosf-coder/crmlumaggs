@@ -6,6 +6,7 @@ import {
   Heading,
   Hr,
   Html,
+  Link,
   Preview,
   Section,
   Text,
@@ -21,6 +22,7 @@ interface PagoConfirmationProps {
   moneda?: string
   observaciones?: string
   documentos?: Array<{ tipo: string; numero: string; monto: string }>
+  comprobantes?: Array<{ nombre: string; url: string }>
   registradoPor?: string
 }
 
@@ -31,6 +33,7 @@ const PagoConfirmationEmail = ({
   moneda,
   observaciones,
   documentos,
+  comprobantes,
   registradoPor,
 }: PagoConfirmationProps) => (
   <Html lang="es" dir="ltr">
@@ -68,6 +71,23 @@ const PagoConfirmationEmail = ({
                     <strong>{d.tipo}</strong> {d.numero}
                   </Text>
                   <Text style={docAmount}>{d.monto}</Text>
+                </div>
+              ))}
+            </Section>
+          </>
+        )}
+
+        {comprobantes && comprobantes.length > 0 && (
+          <>
+            <Heading as="h2" style={h2}>
+              Comprobantes
+            </Heading>
+            <Section style={card}>
+              {comprobantes.map((c, i) => (
+                <div key={i} style={docRow}>
+                  <Link href={c.url} style={linkStyle}>
+                    {c.nombre}
+                  </Link>
                 </div>
               ))}
             </Section>
@@ -122,9 +142,18 @@ export const template = {
       { tipo: 'Factura', numero: 'F-001', monto: '$10,000.00' },
       { tipo: 'Factura', numero: 'F-002', monto: '$5,000.00' },
     ],
+    comprobantes: [
+      { nombre: 'comprobante.pdf', url: 'https://example.com/file.pdf' },
+    ],
     registradoPor: 'Juan Pérez',
   },
 } satisfies TemplateEntry
+
+const linkStyle = {
+  fontSize: '13px',
+  color: '#2563eb',
+  textDecoration: 'underline',
+}
 
 const main = {
   backgroundColor: '#ffffff',
