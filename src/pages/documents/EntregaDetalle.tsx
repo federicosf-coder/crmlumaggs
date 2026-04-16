@@ -37,6 +37,8 @@ export default function EntregaDetalle() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [savingAddr, setSavingAddr] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [notas, setNotas] = useState("");
+  const [savingNotas, setSavingNotas] = useState(false);
 
   // Documento
   const { data: documento, isLoading } = useQuery({
@@ -98,6 +100,28 @@ export default function EntregaDetalle() {
   useEffect(() => {
     if (documento?.direccion_envio) setNewAddress(documento.direccion_envio);
   }, [documento?.direccion_envio]);
+
+  useEffect(() => {
+    if (entrega?.notas !== undefined && entrega?.notas !== null) setNotas(entrega.notas);
+  }, [entrega?.notas]);
+
+  const saveNotas = async () => {
+    if (!entrega?.id) {
+      toast.error("No hay entrega programada para guardar notas");
+      return;
+    }
+    setSavingNotas(true);
+    const { error } = await supabase
+      .from("entregas_programadas")
+      .update({ notas })
+      .eq("id", entrega.id);
+    setSavingNotas(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Notas guardadas");
+      queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
+    }
+  };
 
   const openMaps = () => {
     if (!documento) return;
@@ -337,7 +361,24 @@ export default function EntregaDetalle() {
         onUpload={(fl) => handleFiles(fl, "firmado")}
         onDelete={deleteFile}
       />
-
+      {/* Notas */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Notas</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Textarea
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            rows={3}
+            placeholder="Notas de la entrega..."
+          />
+          <Button size="sm" onClick={saveNotas} disabled={savingNotas || !entrega}>
+            {savingNotas && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Guardar notas
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Acción principal */}
       {documento.estatus_pedido !== "entregado" && (
