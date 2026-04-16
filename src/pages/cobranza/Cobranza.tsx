@@ -393,7 +393,11 @@ function KpiCard({ title, value, icon: Icon, variant }: { title: string; value: 
 }
 
 function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { open: boolean; onOpenChange: (o: boolean) => void; pago: CobranzaPago | null; onChanged: () => void; onAplicar: (p: CobranzaPago) => void }) {
+  const { user, profile } = useAuth();
   const { aplicaciones, refetch } = useCobranzaAplicaciones(pago?.id || null);
+  const [openEnviar, setOpenEnviar] = useState(false);
+  const [defaultEmails, setDefaultEmails] = useState<string[]>([]);
+  const [loadingEmails, setLoadingEmails] = useState(false);
 
   const handleCancelarAplicacion = async (id: string) => {
     if (!confirm("¿Cancelar esta aplicación?")) return;
@@ -403,7 +407,38 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     refetch(); onChanged();
   };
 
+  const handleEnviarCorreo = async () => {
+    if (!pago) return;
+    setLoadingEmails(true);
+    const emails: string[] = [];
+    // Empresa email
+    const { data: emp } = await supabase.from("companies").select("email").eq("id", pago.empresa_id).maybeSingle();
+    if (emp?.email) emails.push(emp.email);
+    // Grupo Contabilidad
+    const { data: contGroup } = await supabase
+      .from("email_groups").select("id").eq("nombre", "Contabilidad").eq("is_active", true).maybeSingle();
+    if (contGroup?.id) {
+      const { data: members } = await supabase
+        .from("email_group_members").select("email").eq("group_id", contGroup.id);
+      (members || []).forEach((m: any) => {
+        if (m.email && !emails.includes(m.email)) emails.push(m.email);
+      });
+    }
+    setDefaultEmails(emails);
+    setLoadingEmails(false);
+    setOpenEnviar(true);
+  };
+
   if (!pago) return null;
+
+  const TIPO_LABEL: Record<string, string> = { factura: "Factura", pedido: "Pedido", cotizacion: "Cotización" };
+  const documentosLigados = aplicaciones
+    .filter((a) => a.estatus_aplicacion === "activa")
+    .map((a) => ({
+      tipo: TIPO_LABEL[a.tipo_documento] || a.tipo_documento,
+      numero: a.documento?.numero_factura || a.documento?.numero_pedido || a.documento?.numero_cotizacion || a.documento_id.slice(0, 8),
+      monto: formatCurrency(Number(a.monto_aplicado)),
+    }));
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -412,6 +447,11 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
           <SheetTitle>Detalle del pago</SheetTitle>
         </SheetHeader>
         <div className="space-y-4 mt-6">
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={handleEnviarCorreo} disabled={loadingEmails}>
+              <Mail className="h-4 w-4 mr-2" /> {loadingEmails ? "Cargando..." : "Enviar por correo"}
+            </Button>
+          </div>
           <Card>
             <CardContent className="p-4 grid grid-cols-2 gap-3 text-sm">
               <div><p className="text-muted-foreground text-xs">Cliente</p><p className="font-medium">{pago.empresa?.name}</p></div>
@@ -468,6 +508,19 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
           <PagoArchivosSection pagoId={pago.id} />
         </div>
       </SheetContent>
+      <EnviarConfirmacionPagoDialog
+        open={openEnviar}
+        onOpenChange={setOpenEnviar}
+        pagoId={pago.id}
+        empresa={pago.empresa?.name || "—"}
+        fechaPago={pago.fecha_pago}
+        montoTotal={formatCurrency(pago.monto_total)}
+        moneda={pago.moneda || "MXN"}
+        observaciones={pago.observaciones || undefined}
+        documentos={documentosLigados}
+        registradoPor={profile?.full_name || user?.email || undefined}
+        defaultEmails={defaultEmails}
+      />
     </Sheet>
   );
 }
