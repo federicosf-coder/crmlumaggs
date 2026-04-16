@@ -2017,6 +2017,7 @@ export type Database = {
         | "modificar_pdf_cotizacion"
         | "eliminar_pdf_cotizacion"
         | "cobranza"
+        | "pedidos"
       app_role:
         | "admin"
         | "manager"
@@ -2248,6 +2249,7 @@ export const Constants = {
         "modificar_pdf_cotizacion",
         "eliminar_pdf_cotizacion",
         "cobranza",
+        "pedidos",
       ],
       app_role: [
         "admin",
