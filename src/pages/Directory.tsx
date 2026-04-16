@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess, type AccessLevel } from "@/hooks/useModuleAccess";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin } from "lucide-react";
+import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
