@@ -673,6 +673,16 @@ export default function DocumentsList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk edit dialog */}
+      <BulkEditDialog
+        open={bulkEditOpen}
+        onOpenChange={setBulkEditOpen}
+        selectedIds={Array.from(selectedIds)}
+        table="documentos"
+        fields={getDocBulkFields()}
+        onSuccess={() => { setSelectedIds(new Set()); refetch(); }}
+      />
     </div>
   );
 }
