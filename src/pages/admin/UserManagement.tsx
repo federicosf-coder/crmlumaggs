@@ -22,12 +22,18 @@ interface Team {
   name: string;
 }
 
+interface Plaza {
+  id: string;
+  nombre: string;
+}
+
 interface UserWithRoles {
   user_id: string;
   full_name: string | null;
   email: string | null;
   is_active: boolean;
   phone: string | null;
+  plaza_id: string | null;
   roles: AppRole[];
   team_ids: string[];
 }
@@ -40,20 +46,24 @@ export default function UserManagement() {
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editTeamIds, setEditTeamIds] = useState<string[]>([]);
+  const [editPlazaId, setEditPlazaId] = useState<string>("");
+  const [plazas, setPlazas] = useState<Plaza[]>([]);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const { hasRole } = useAuth();
 
   const fetchUsers = async () => {
     setLoading(true);
-    const [{ data: profiles }, { data: allRoles }, { data: teamsData }, { data: membersData }] = await Promise.all([
+    const [{ data: profiles }, { data: allRoles }, { data: teamsData }, { data: membersData }, { data: plazasData }] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("user_roles").select("*"),
       supabase.from("teams").select("id, name").eq("is_active", true),
       supabase.from("team_members").select("*"),
+      supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre"),
     ]);
 
     setTeams(teamsData || []);
+    setPlazas(plazasData || []);
 
     const mapped = (profiles || []).map((p) => ({
       user_id: p.user_id,
@@ -61,6 +71,7 @@ export default function UserManagement() {
       email: p.email,
       is_active: p.is_active,
       phone: p.phone,
+      plaza_id: (p as any).plaza_id ?? null,
       roles: (allRoles || []).filter((r) => r.user_id === p.user_id).map((r) => r.role as AppRole),
       team_ids: (membersData || []).filter((m) => m.user_id === p.user_id).map((m) => m.team_id),
     }));
@@ -90,11 +101,25 @@ export default function UserManagement() {
     }
   };
 
+  const updateUserPlaza = async (userId: string, plazaId: string) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ plaza_id: plazaId || null })
+      .eq("user_id", userId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Plaza actualizada" });
+      fetchUsers();
+    }
+  };
+
   const openEdit = (u: UserWithRoles) => {
     setEditUser(u);
     setEditName(u.full_name || "");
     setEditPhone(u.phone || "");
     setEditTeamIds([...u.team_ids]);
+    setEditPlazaId(u.plaza_id || "");
   };
 
   const toggleTeam = (teamId: string) => {
@@ -110,7 +135,7 @@ export default function UserManagement() {
       // Update profile
       const { error: profErr } = await supabase
         .from("profiles")
-        .update({ full_name: editName, phone: editPhone || null })
+        .update({ full_name: editName, phone: editPhone || null, plaza_id: editPlazaId || null })
         .eq("user_id", editUser.user_id);
       if (profErr) throw profErr;
 
@@ -167,6 +192,18 @@ export default function UserManagement() {
                 <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Opcional" />
               </div>
               <div className="space-y-2">
+                <Label>Plaza Predeterminada</Label>
+                <Select value={editPlazaId || "__none__"} onValueChange={(v) => setEditPlazaId(v === "__none__" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Sin plaza" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sin plaza</SelectItem>
+                    {plazas.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Equipos</Label>
                 <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
                   {teams.length === 0 ? (
@@ -209,6 +246,7 @@ export default function UserManagement() {
                   <TableHead>Estado</TableHead>
                   <TableHead>Roles</TableHead>
                   <TableHead>Equipos</TableHead>
+                  <TableHead>Plaza</TableHead>
                   <TableHead>Agregar Rol</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
@@ -244,6 +282,22 @@ export default function UserManagement() {
                         ))}
                         {u.team_ids.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={u.plaza_id || "__none__"}
+                        onValueChange={(v) => updateUserPlaza(u.user_id, v === "__none__" ? "" : v)}
+                      >
+                        <SelectTrigger className="w-44">
+                          <SelectValue placeholder="Sin plaza" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">Sin plaza</SelectItem>
+                          {plazas.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
                       <Select onValueChange={(v) => addRole(u.user_id, v as AppRole)}>
