@@ -930,9 +930,11 @@ export default function DocumentForm() {
               <Select value={newAddrTipo} onValueChange={setNewAddrTipo}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="envio">Envío</SelectItem>
+                  <SelectItem value="envio">Entrega</SelectItem>
                   <SelectItem value="fiscal">Fiscal</SelectItem>
                   <SelectItem value="comercial">Comercial</SelectItem>
+                  <SelectItem value="sucursal">Sucursal</SelectItem>
+                  <SelectItem value="principal">Principal</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -941,7 +943,14 @@ export default function DocumentForm() {
               <div><Label>Ciudad</Label><Input value={newAddrCiudad} onChange={e => setNewAddrCiudad(e.target.value)} /></div>
               <div><Label>Estado</Label><Input value={newAddrEstado} onChange={e => setNewAddrEstado(e.target.value)} /></div>
             </div>
-            <div><Label>Código Postal</Label><Input value={newAddrCp} onChange={e => setNewAddrCp(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Código Postal</Label><Input value={newAddrCp} onChange={e => setNewAddrCp(e.target.value)} /></div>
+              <div><Label>Código Google</Label><Input value={newAddrGoogle} onChange={e => setNewAddrGoogle(e.target.value)} placeholder="Ej: ChIJ..." /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Latitud</Label><Input type="number" step="any" value={newAddrLat} onChange={e => setNewAddrLat(e.target.value)} placeholder="25.6866" /></div>
+              <div><Label>Longitud</Label><Input type="number" step="any" value={newAddrLng} onChange={e => setNewAddrLng(e.target.value)} placeholder="-100.3161" /></div>
+            </div>
           </div>
           <DialogFooter><Button onClick={handleAddAddress} disabled={!newAddrCalle.trim()}>Crear Dirección</Button></DialogFooter>
         </DialogContent>
