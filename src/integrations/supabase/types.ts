@@ -101,6 +101,44 @@ export type Database = {
           },
         ]
       }
+      cobranza_pago_archivos: {
+        Row: {
+          fecha_carga: string
+          id: string
+          nombre_archivo: string
+          pago_id: string
+          tipo_archivo: string
+          url_archivo: string
+          usuario_carga: string | null
+        }
+        Insert: {
+          fecha_carga?: string
+          id?: string
+          nombre_archivo: string
+          pago_id: string
+          tipo_archivo: string
+          url_archivo: string
+          usuario_carga?: string | null
+        }
+        Update: {
+          fecha_carga?: string
+          id?: string
+          nombre_archivo?: string
+          pago_id?: string
+          tipo_archivo?: string
+          url_archivo?: string
+          usuario_carga?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobranza_pago_archivos_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "cobranza_pagos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cobranza_pagos: {
         Row: {
           banco: string | null
