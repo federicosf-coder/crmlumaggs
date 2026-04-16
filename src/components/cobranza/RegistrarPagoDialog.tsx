@@ -80,9 +80,21 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    supabase.from("companies").select("id,name,email").eq("is_active", true).order("name")
+    supabase.from("companies").select("id,name,email,tipo_pago").eq("is_active", true).order("name")
       .then(({ data }) => setCompanies(data || []));
   }, [open]);
+
+  // Cuando cambia la empresa, prellenar Forma de pago desde la empresa si es válida
+  useEffect(() => {
+    if (!empresaId) { setFormaPago(""); return; }
+    const emp = companies.find((c) => c.id === empresaId);
+    const t = (emp?.tipo_pago || "").toLowerCase();
+    if (VALID_FORMAS.includes(t as FormaPago)) {
+      setFormaPago(t as FormaPago);
+    } else {
+      setFormaPago("");
+    }
+  }, [empresaId, companies]);
 
   // Cargar documentos al cambiar empresa
   useEffect(() => {
