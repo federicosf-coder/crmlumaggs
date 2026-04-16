@@ -108,7 +108,7 @@ function getStatusBadgeClass(doc: any): string {
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const isAdmin = hasRole("admin");
   const qc = useQueryClient();
 
