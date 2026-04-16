@@ -300,7 +300,10 @@ export default function DocumentForm() {
   useEffect(() => {
     if (isEdit && !addrAutoFilled) { setAddrAutoFilled(true); return; }
     if (!form.empresa_id || addresses.length === 0) return;
-    const envioAddrs = addresses.filter((a: any) => a.tipo === "envio");
+    const envioAddrs = addresses.filter((a: any) => {
+      const tipos = Array.isArray(a.tipos) && a.tipos.length > 0 ? a.tipos : [a.tipo];
+      return tipos.includes("envio");
+    });
     if (envioAddrs.length === 1) {
       set("direccion_envio", envioAddrs[0].id);
     }
