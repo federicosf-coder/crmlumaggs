@@ -353,6 +353,7 @@ export default function DocumentForm() {
   const handleSave = async () => {
     if (!form.empresa_vendedora) { toast.error("Selecciona la empresa vendedora"); return; }
     if (!form.tipo_documento) { toast.error("Selecciona el tipo de documento"); return; }
+    if (form.tipo_documento === "pedido" && !form.direccion_envio) { toast.error("La dirección de envío es obligatoria para pedidos"); return; }
     setSaving(true);
     try {
       // resolve address text from selected address
