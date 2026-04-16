@@ -294,11 +294,11 @@ export default function DeliveryAddresses() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) resetForm(); setDialogOpen(v); }}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg flex flex-col max-h-[90vh] p-0">
+          <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
             <DialogTitle>{editing ? "Editar Dirección" : "Nueva Dirección"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 overflow-y-auto px-6 py-2 flex-1">
             <div>
               <Label>Empresa *</Label>
               <SearchableSelect
@@ -343,7 +343,7 @@ export default function DeliveryAddresses() {
               <Input value={form.referencia} onChange={(e) => setForm((p) => ({ ...p, referencia: e.target.value }))} placeholder="Detalles adicionales (entre calles, color de fachada, etc.)" />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="px-6 py-4 border-t bg-background shrink-0">
             <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
             <Button onClick={handleSave} disabled={!form.empresa_id || !form.address.direccion_completa.trim() || form.tipos.length === 0}>
               {editing ? "Guardar" : "Crear"}

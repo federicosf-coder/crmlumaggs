@@ -20,21 +20,22 @@ interface Props {
 
 function buildMapsUrl(address?: string | null, lat?: number | null, lng?: number | null) {
   if (lat != null && lng != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    return `https://www.google.com/maps?q=${lat},${lng}`;
   }
   if (address) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    return `https://www.google.com/maps?q=${encodeURIComponent(address)}`;
   }
   return null;
 }
 
-function buildEmbedSrc(address?: string | null, lat?: number | null, lng?: number | null) {
-  // Public embed (no API key). Renders a basic map with pin centered on the query.
+function buildStaticMapSrc(address?: string | null, lat?: number | null, lng?: number | null, width = 600, height = 300) {
+  // OpenStreetMap static image (no API key, no iframe blocking).
   if (lat != null && lng != null) {
-    return `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
-  }
-  if (address) {
-    return `https://maps.google.com/maps?q=${encodeURIComponent(address)}&z=15&output=embed`;
+    const latN = Number(lat);
+    const lngN = Number(lng);
+    const delta = 0.01;
+    const bbox = `${lngN - delta},${latN - delta},${lngN + delta},${latN + delta}`;
+    return `https://staticmap.openstreetmap.de/staticmap.php?center=${latN},${lngN}&zoom=15&size=${width}x${height}&markers=${latN},${lngN},red-pushpin&bbox=${bbox}`;
   }
   return null;
 }
@@ -51,7 +52,7 @@ export function AddressDisplay({
   iconOnly = false,
 }: Props) {
   const url = buildMapsUrl(address, lat, lng);
-  const embed = showMap ? buildEmbedSrc(address, lat, lng) : null;
+  const mapImg = showMap ? buildStaticMapSrc(address, lat, lng) : null;
   const hasData = !!url;
 
   if (!hasData) {
@@ -90,15 +91,25 @@ export function AddressDisplay({
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
       </div>
-      {embed && (
-        <iframe
-          src={embed}
-          title="Mapa"
-          className="w-full rounded-md border"
+      {mapImg && (
+        <a
+          href={url!}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="block overflow-hidden rounded-md border bg-muted"
           style={{ height: mapHeight }}
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        />
+          title="Abrir en Google Maps"
+        >
+          <img
+            src={mapImg}
+            alt="Mapa de ubicación"
+            className="w-full h-full object-cover"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }}
+          />
+        </a>
       )}
     </div>
   );
