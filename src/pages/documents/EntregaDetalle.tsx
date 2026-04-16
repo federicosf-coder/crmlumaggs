@@ -244,7 +244,9 @@ export default function EntregaDetalle() {
     if (error) toast.error(error.message);
     else {
       toast.success("Marcado como entregado");
+      setEstatusPedido("entregado");
       queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
+      queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
     }
   };
 
