@@ -813,6 +813,7 @@ export default function DeliverySchedule() {
         onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex flex-1 overflow-hidden">
           {/* LEFT: Pool */}
+          {showPool && (
           <div ref={setPoolRef}
             className={cn("w-[360px] shrink-0 border-r flex flex-col bg-muted/30",
               isPoolOver && "bg-accent/30")}>
