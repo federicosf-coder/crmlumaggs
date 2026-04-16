@@ -841,10 +841,12 @@ export type Database = {
           coordenadas_lat: number | null
           coordenadas_lng: number | null
           created_at: string
+          direccion_completa: string | null
           empresa_id: string
           estado: string | null
           id: string
           is_active: boolean
+          pais: string | null
           referencia: string | null
           tipo: Database["public"]["Enums"]["tipo_direccion"]
           tipos: string[]
@@ -858,10 +860,12 @@ export type Database = {
           coordenadas_lat?: number | null
           coordenadas_lng?: number | null
           created_at?: string
+          direccion_completa?: string | null
           empresa_id: string
           estado?: string | null
           id?: string
           is_active?: boolean
+          pais?: string | null
           referencia?: string | null
           tipo?: Database["public"]["Enums"]["tipo_direccion"]
           tipos?: string[]
@@ -875,10 +879,12 @@ export type Database = {
           coordenadas_lat?: number | null
           coordenadas_lng?: number | null
           created_at?: string
+          direccion_completa?: string | null
           empresa_id?: string
           estado?: string | null
           id?: string
           is_active?: boolean
+          pais?: string | null
           referencia?: string | null
           tipo?: Database["public"]["Enums"]["tipo_direccion"]
           tipos?: string[]
