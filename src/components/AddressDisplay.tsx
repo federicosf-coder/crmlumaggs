@@ -20,10 +20,10 @@ interface Props {
 
 function buildMapsUrl(address?: string | null, lat?: number | null, lng?: number | null) {
   if (lat != null && lng != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    return `https://www.google.com/maps?q=${lat},${lng}`;
   }
   if (address) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    return `https://www.google.com/maps?q=${encodeURIComponent(address)}`;
   }
   return null;
 }
