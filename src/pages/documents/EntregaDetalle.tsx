@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,31 +8,39 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, FileSignature, MapPin, Truck, Upload, FileText, Image as ImageIcon, Trash2, ExternalLink, Loader2 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  ArrowLeft, MapPin, Upload, FileText, Image as ImageIcon, Trash2, Check,
+  Navigation, Pencil, Loader2, ExternalLink,
+} from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-
-const STATUS_LABEL: Record<string, string> = {
-  confirmado_cliente: "Confirmado por cliente",
-  espera_autorizacion_precio: "Espera autorización de precio",
-  precio_autorizado: "Precio autorizado",
-  validado_contabilidad: "Validado por contabilidad",
-  programado_entrega: "Programado para entrega",
-  entregado: "Entregado",
-  cancelado: "Cancelado",
-};
 
 export default function EntregaDetalle() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [uploading, setUploading] = useState(false);
 
+  const [uploading, setUploading] = useState(false);
+  const [marking, setMarking] = useState(false);
+  const [editAddrOpen, setEditAddrOpen] = useState(false);
+  const [newAddress, setNewAddress] = useState("");
+  const [newLat, setNewLat] = useState<number | null>(null);
+  const [newLng, setNewLng] = useState<number | null>(null);
+  const [origenCambio, setOrigenCambio] = useState<"manual" | "ubicacion_actual">("manual");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [savingAddr, setSavingAddr] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
+
+  // Documento
   const { data: documento, isLoading } = useQuery({
-    queryKey: ["entrega-documento", id],
+    queryKey: ["entrega-doc", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("documentos")
@@ -45,12 +53,13 @@ export default function EntregaDetalle() {
     enabled: !!id,
   });
 
+  // Entrega programada
   const { data: entrega } = useQuery({
     queryKey: ["entrega-programada", id],
     queryFn: async () => {
       const { data } = await supabase
         .from("entregas_programadas")
-        .select("*, rutas_entrega(*, plazas(nombre)), repartidores(nombre, telefono), vehiculos(nombre, placas)")
+        .select("*, vehiculos(nombre, placas), repartidores(nombre)")
         .eq("documento_id", id!)
         .maybeSingle();
       return data;
@@ -58,8 +67,9 @@ export default function EntregaDetalle() {
     enabled: !!id,
   });
 
+  // Archivos firmados
   const { data: archivos = [], refetch: refetchArchivos } = useQuery({
-    queryKey: ["entrega-archivos-firmados", id],
+    queryKey: ["archivos-firmados", id],
     queryFn: async () => {
       const { data } = await supabase
         .from("documento_archivos_firmados")
@@ -71,159 +81,236 @@ export default function EntregaDetalle() {
     enabled: !!id,
   });
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0 || !id) return;
+  // Bitácora de cambios de dirección
+  const { data: bitacora = [], refetch: refetchBitacora } = useQuery({
+    queryKey: ["bitacora-direccion", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("documento_direccion_bitacora")
+        .select("*")
+        .eq("documento_id", id!)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  useEffect(() => {
+    if (documento?.direccion_envio) setNewAddress(documento.direccion_envio);
+  }, [documento?.direccion_envio]);
+
+  const openMaps = () => {
+    if (!documento) return;
+    const lat = (documento as any).direccion_envio_lat;
+    const lng = (documento as any).direccion_envio_lng;
+    const q = lat && lng
+      ? `${lat},${lng}`
+      : encodeURIComponent(documento.direccion_envio || "");
+    window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
+  };
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0 || !id) return;
     setUploading(true);
     try {
-      for (const file of files) {
+      for (const file of Array.from(files)) {
         const ext = file.name.split(".").pop();
-        const path = `firmados/${id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("document-files").upload(path, file);
+        const path = `firmados/${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("document-files")
+          .upload(path, file, { upsert: false });
         if (upErr) throw upErr;
         const { data: urlData } = supabase.storage.from("document-files").getPublicUrl(path);
         const { error: insErr } = await supabase.from("documento_archivos_firmados").insert({
           documento_id: id,
-          tipo_archivo: file.type || (ext === "pdf" ? "application/pdf" : "image/*"),
           nombre_archivo: file.name,
+          tipo_archivo: file.type || "application/octet-stream",
           url_archivo: urlData.publicUrl,
           usuario_carga: user?.id,
         });
         if (insErr) throw insErr;
       }
-      toast.success(`${files.length} archivo(s) cargados`);
+      toast.success("Archivos cargados");
       refetchArchivos();
-      e.target.value = "";
-    } catch (err: any) {
-      toast.error(err.message || "Error al cargar archivo");
+    } catch (e: any) {
+      toast.error(e.message || "Error al cargar archivos");
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDelete = async (archivoId: string) => {
-    if (!confirm("¿Eliminar este archivo firmado?")) return;
+  const deleteFile = async (archivoId: string) => {
+    if (!confirm("¿Eliminar este archivo?")) return;
     const { error } = await supabase.from("documento_archivos_firmados").delete().eq("id", archivoId);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Archivo eliminado");
-    refetchArchivos();
+    if (error) toast.error(error.message);
+    else { toast.success("Eliminado"); refetchArchivos(); }
   };
 
-  const marcarEntregado = async () => {
+  const markDelivered = async () => {
     if (!id) return;
-    if (!confirm("¿Marcar como entregado?")) return;
-    const { error: e1 } = await supabase.from("documentos").update({ estatus_pedido: "entregado" }).eq("id", id);
-    if (e1) { toast.error(e1.message); return; }
-    if (entrega) {
-      await supabase.from("entregas_programadas")
+    setMarking(true);
+    const { error } = await supabase
+      .from("documentos")
+      .update({ estatus_pedido: "entregado" })
+      .eq("id", id);
+    if (!error && entrega) {
+      await supabase
+        .from("entregas_programadas")
         .update({ fecha_entrega_real: new Date().toISOString() })
-        .eq("documento_id", id);
+        .eq("id", entrega.id);
     }
-    toast.success("Entrega marcada como completada");
-    queryClient.invalidateQueries({ queryKey: ["entrega-documento", id] });
-    queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
+    setMarking(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Marcado como entregado");
+      queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
+    }
   };
 
-  if (isLoading) {
-    return <div className="p-6 flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando...</div>;
-  }
-  if (!documento) {
-    return (
-      <div className="p-6">
-        <Button variant="outline" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4 mr-1" /> Volver</Button>
-        <p className="mt-4 text-muted-foreground">Documento no encontrado.</p>
-      </div>
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Tu dispositivo no soporta geolocalización");
+      return;
+    }
+    setGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setNewLat(lat);
+        setNewLng(lng);
+        setOrigenCambio("ubicacion_actual");
+        // Reverse geocode (best-effort, no API key required)
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            { headers: { "Accept-Language": "es" } }
+          );
+          const json = await res.json();
+          if (json?.display_name) setNewAddress(json.display_name);
+          else setNewAddress(`Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`);
+        } catch {
+          setNewAddress(`Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`);
+        }
+        setGettingLocation(false);
+        toast.success("Ubicación capturada");
+      },
+      (err) => {
+        setGettingLocation(false);
+        toast.error(
+          err.code === err.PERMISSION_DENIED
+            ? "Permiso de ubicación denegado"
+            : "No se pudo obtener tu ubicación"
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
-  }
+  };
 
-  const estatus = documento.estatus_pedido || "confirmado_cliente";
-  const isImage = (tipo: string) => tipo?.startsWith("image/");
-  const ruta = entrega?.rutas_entrega;
-  const repartidor = entrega?.repartidores;
-  const vehiculo = entrega?.vehiculos;
+  const saveAddress = async () => {
+    if (!id || !documento) return;
+    if (!newAddress.trim()) {
+      toast.error("La dirección no puede estar vacía");
+      return;
+    }
+    setSavingAddr(true);
+    try {
+      const updates: any = { direccion_envio: newAddress.trim() };
+      if (newLat !== null) updates.direccion_envio_lat = newLat;
+      if (newLng !== null) updates.direccion_envio_lng = newLng;
+      const { error } = await supabase.from("documentos").update(updates).eq("id", id);
+      if (error) throw error;
+      await supabase.from("documento_direccion_bitacora").insert({
+        documento_id: id,
+        direccion_anterior: documento.direccion_envio,
+        direccion_nueva: newAddress.trim(),
+        latitud: newLat,
+        longitud: newLng,
+        origen: origenCambio,
+        usuario_id: user?.id,
+      });
+      toast.success("Dirección actualizada");
+      setEditAddrOpen(false);
+      setConfirmOpen(false);
+      setNewLat(null);
+      setNewLng(null);
+      setOrigenCambio("manual");
+      queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
+      refetchBitacora();
+    } catch (e: any) {
+      toast.error(e.message || "Error al guardar");
+    } finally {
+      setSavingAddr(false);
+    }
+  };
+
+  if (isLoading) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
+  if (!documento) return <div className="p-8 text-center text-muted-foreground">Documento no encontrado</div>;
+
+  const numero = documento.numero_pedido || documento.numero_factura || documento.numero_cotizacion || documento.id.slice(0, 8);
+  const docLat = (documento as any).direccion_envio_lat;
+  const docLng = (documento as any).direccion_envio_lng;
 
   return (
-    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-4">
+    <div className="container max-w-3xl mx-auto p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4 mr-1" /> Volver
-          </Button>
-          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-            <FileSignature className="h-5 w-5" /> Pantalla de Entrega
-          </h1>
+      <div className="flex items-center gap-2">
+        <Button size="icon" variant="ghost" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold truncate">Entrega · {numero}</h1>
+          <p className="text-sm text-muted-foreground">{documento.companies?.name}</p>
         </div>
-        {estatus !== "entregado" && (
-          <Button onClick={marcarEntregado} className="bg-success text-success-foreground hover:bg-success/90">
-            Marcar como Entregado
-          </Button>
-        )}
+        <Badge variant={documento.estatus_pedido === "entregado" ? "default" : "secondary"}>
+          {documento.estatus_pedido || "—"}
+        </Badge>
       </div>
 
-      {/* Info principal */}
+      {/* Información */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2 flex-wrap">
-            <CardTitle className="text-base">{documento.numero_pedido || documento.numero_cotizacion || "Documento"}</CardTitle>
-            <Badge variant="outline" className="capitalize">{STATUS_LABEL[estatus] || estatus}</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-muted-foreground">Cliente</Label>
-              <p className="font-medium">{(documento as any).companies?.name || "Sin cliente"}</p>
-              {(documento as any).companies?.phone && (
-                <p className="text-xs text-muted-foreground">📞 {(documento as any).companies.phone}</p>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Información</CardTitle></CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div><span className="text-muted-foreground">Cliente:</span> <strong>{documento.companies?.name || "—"}</strong></div>
+          {documento.contacts && (
+            <div><span className="text-muted-foreground">Contacto:</span> {documento.contacts.first_name} {documento.contacts.last_name} {documento.contacts.phone && `· ${documento.contacts.phone}`}</div>
+          )}
+          {entrega && (
+            <>
+              <div><span className="text-muted-foreground">Vehículo:</span> {entrega.vehiculos?.nombre || "—"} {entrega.vehiculos?.placas && `(${entrega.vehiculos.placas})`}</div>
+              <div><span className="text-muted-foreground">Repartidor:</span> {entrega.repartidores?.nombre || "—"}</div>
+              <div><span className="text-muted-foreground">Fecha:</span> {entrega.fecha_entrega ? format(new Date(entrega.fecha_entrega + "T12:00:00"), "dd MMM yyyy", { locale: es }) : "—"}</div>
+              {entrega.fecha_entrega_real && (
+                <div className="text-green-600 dark:text-green-400">
+                  <Check className="inline h-3.5 w-3.5 mr-1" />
+                  Entregado: {format(new Date(entrega.fecha_entrega_real), "dd MMM yyyy HH:mm", { locale: es })}
+                </div>
               )}
-            </div>
-            {(documento as any).contacts && (
-              <div>
-                <Label className="text-xs text-muted-foreground">Contacto</Label>
-                <p className="font-medium">{(documento as any).contacts.first_name} {(documento as any).contacts.last_name}</p>
-                {(documento as any).contacts.phone && (
-                  <p className="text-xs text-muted-foreground">📞 {(documento as any).contacts.phone}</p>
-                )}
-              </div>
-            )}
-          </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
-          <Separator />
-
-          <div>
-            <Label className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Dirección de entrega</Label>
-            {documento.direccion_envio ? (
-              <div className="flex items-start gap-2 mt-1">
-                <p className="flex-1">{documento.direccion_envio}</p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(documento.direccion_envio!)}`, "_blank")}
-                >
-                  <MapPin className="h-3.5 w-3.5 mr-1" /> Abrir
-                </Button>
-              </div>
-            ) : (
-              <p className="text-muted-foreground italic mt-1">Sin dirección registrada</p>
-            )}
-          </div>
-
-          <Separator />
-
-          <div>
-            <Label className="text-xs text-muted-foreground flex items-center gap-1"><Truck className="h-3 w-3" /> Ruta de entrega</Label>
-            {ruta ? (
-              <div className="mt-1 space-y-0.5">
-                <p>📅 {ruta.fecha_entrega ? format(new Date(ruta.fecha_entrega + "T12:00:00"), "EEEE dd MMM yyyy", { locale: es }) : "Sin fecha"}</p>
-                <p>📍 {ruta.plazas?.nombre || "Sin plaza"}</p>
-                {vehiculo && <p>🚚 {vehiculo.nombre}{vehiculo.placas ? ` (${vehiculo.placas})` : ""}</p>}
-                {repartidor && <p>👤 {repartidor.nombre}{repartidor.telefono ? ` — ${repartidor.telefono}` : ""}</p>}
-              </div>
-            ) : (
-              <p className="text-muted-foreground italic mt-1">Sin ruta asignada</p>
-            )}
-          </div>
+      {/* Dirección */}
+      <Card>
+        <CardHeader className="pb-3 flex-row items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <MapPin className="h-4 w-4" /> Dirección de Entrega
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={() => { setNewLat(null); setNewLng(null); setOrigenCambio("manual"); setNewAddress(documento.direccion_envio || ""); setEditAddrOpen(true); }}>
+            <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-sm">{documento.direccion_envio || <span className="text-muted-foreground italic">Sin dirección</span>}</p>
+          {(docLat && docLng) && (
+            <p className="text-xs text-muted-foreground">📍 {Number(docLat).toFixed(6)}, {Number(docLng).toFixed(6)}</p>
+          )}
+          {documento.direccion_envio && (
+            <Button size="sm" variant="default" onClick={openMaps} className="w-full sm:w-auto">
+              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir en Google Maps
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -231,66 +318,132 @@ export default function EntregaDetalle() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <FileSignature className="h-4 w-4" /> Documento Firmado
-            <Badge variant="secondary">{archivos.length}</Badge>
+            <FileText className="h-4 w-4" /> Documento Firmado
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div>
-            <Label htmlFor="firmado-upload" className="block">
-              <div className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-accent/50 transition-colors ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
-                {uploading ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <p className="text-sm">Cargando archivos...</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <Upload className="h-6 w-6 text-primary" />
-                    <p className="text-sm font-medium">Toca aquí para cargar</p>
-                    <p className="text-xs text-muted-foreground">Imágenes o PDFs (puedes seleccionar varios)</p>
-                  </div>
-                )}
-              </div>
-            </Label>
-            <Input
-              id="firmado-upload"
+          <Label htmlFor="files" className="block">
+            <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-accent/30 transition-colors">
+              <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm font-medium">{uploading ? "Cargando..." : "Toca para subir fotos o PDFs"}</p>
+              <p className="text-xs text-muted-foreground mt-1">Múltiples archivos · imágenes y PDF</p>
+            </div>
+            <input
+              id="files"
               type="file"
-              accept="image/*,.pdf"
               multiple
+              accept="image/*,application/pdf"
               className="hidden"
-              onChange={handleUpload}
               disabled={uploading}
+              onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
             />
-          </div>
+          </Label>
 
           {archivos.length > 0 && (
-            <div className="space-y-2">
-              {archivos.map((a: any) => (
-                <div key={a.id} className="flex items-center gap-2 p-2 border rounded-md hover:bg-accent/30">
-                  {isImage(a.tipo_archivo) ? (
-                    <ImageIcon className="h-4 w-4 text-primary shrink-0" />
-                  ) : (
-                    <FileText className="h-4 w-4 text-primary shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{a.nombre_archivo}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {format(new Date(a.fecha_carga), "dd MMM yyyy HH:mm", { locale: es })}
-                    </p>
+            <div className="space-y-1.5">
+              {archivos.map((a: any) => {
+                const isImg = a.tipo_archivo?.startsWith("image/");
+                return (
+                  <div key={a.id} className="flex items-center gap-2 p-2 border rounded-md">
+                    {isImg ? <ImageIcon className="h-4 w-4 text-primary shrink-0" /> : <FileText className="h-4 w-4 text-primary shrink-0" />}
+                    <a href={a.url_archivo} target="_blank" rel="noreferrer" className="flex-1 text-sm truncate hover:underline">{a.nombre_archivo}</a>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteFile(a.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => window.open(a.url_archivo, "_blank")} title="Abrir">
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(a.id)} title="Eliminar">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Acción principal */}
+      {documento.estatus_pedido !== "entregado" && (
+        <Button className="w-full h-12 text-base" onClick={markDelivered} disabled={marking}>
+          {marking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+          Marcar como Entregado
+        </Button>
+      )}
+
+      {/* Bitácora */}
+      {bitacora.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Historial de Dirección</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {bitacora.map((b: any) => (
+              <div key={b.id} className="text-xs border-l-2 border-primary pl-2 py-1">
+                <div className="text-muted-foreground">{format(new Date(b.created_at), "dd MMM yyyy HH:mm", { locale: es })} · {b.origen}</div>
+                <div>{b.direccion_nueva}</div>
+                {b.latitud && b.longitud && (
+                  <div className="text-muted-foreground">📍 {Number(b.latitud).toFixed(6)}, {Number(b.longitud).toFixed(6)}</div>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Editar dirección */}
+      <Dialog open={editAddrOpen} onOpenChange={setEditAddrOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Actualizar dirección</DialogTitle>
+            <DialogDescription>Edita la dirección o usa tu ubicación actual</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={useCurrentLocation}
+              disabled={gettingLocation}
+            >
+              {gettingLocation ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Navigation className="h-4 w-4 mr-2" />}
+              Usar mi ubicación actual
+            </Button>
+            <div>
+              <Label htmlFor="addr">Dirección</Label>
+              <Textarea
+                id="addr"
+                value={newAddress}
+                onChange={(e) => setNewAddress(e.target.value)}
+                rows={3}
+                placeholder="Calle, número, colonia, ciudad..."
+              />
+            </div>
+            {newLat !== null && newLng !== null && (
+              <p className="text-xs text-muted-foreground">📍 {newLat.toFixed(6)}, {newLng.toFixed(6)}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditAddrOpen(false)}>Cancelar</Button>
+            <Button onClick={() => setConfirmOpen(true)} disabled={!newAddress.trim()}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmación */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>¿Confirmar cambio?</DialogTitle>
+            <DialogDescription>Esta acción actualizará la dirección del documento y quedará registrada en la bitácora.</DialogDescription>
+          </DialogHeader>
+          <div className="text-sm space-y-2">
+            <div><span className="text-muted-foreground">Anterior:</span><br />{documento.direccion_envio || "—"}</div>
+            <Separator />
+            <div><span className="text-muted-foreground">Nueva:</span><br /><strong>{newAddress}</strong></div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
+            <Button onClick={saveAddress} disabled={savingAddr}>
+              {savingAddr && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

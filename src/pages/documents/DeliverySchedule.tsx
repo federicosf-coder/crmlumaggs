@@ -19,7 +19,8 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
-  Pencil, Trash2, Package, ListChecks, Search, Undo2, PanelLeftClose, PanelLeftOpen, MapPin, FileSignature,
+  Pencil, Trash2, Package, ListChecks, Search, Undo2, PanelLeftClose, PanelLeftOpen,
+  FileSignature,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -64,12 +65,6 @@ function DraggablePoolCard({ item }: { item: PoolItem }) {
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   const cfg = STATUS_CONFIG[item.estatus] || STATUS_CONFIG.confirmado_cliente;
 
-  const openMaps = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!item.address) return;
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`, "_blank");
-  };
-
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}
       className={cn("border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-colors", cfg.bg)}>
@@ -83,6 +78,7 @@ function DraggablePoolCard({ item }: { item: PoolItem }) {
           {item.fecha_documento && (
             <p className="text-xs text-muted-foreground mt-0.5">📅 {format(new Date(item.fecha_documento + "T12:00:00"), "dd MMM yyyy", { locale: es })}</p>
           )}
+          {item.address && <p className="text-xs text-muted-foreground truncate mt-0.5">📍 {item.address}</p>}
         </div>
         <div className="text-right shrink-0">
           {item.total != null && (
@@ -91,22 +87,6 @@ function DraggablePoolCard({ item }: { item: PoolItem }) {
           <Badge variant="outline" className={cn("text-[10px] mt-1 block", cfg.color)}>{cfg.label}</Badge>
         </div>
       </div>
-      {item.address && (
-        <div className="mt-2 pt-2 border-t border-border/50 flex items-start gap-1.5">
-          <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground" />
-          <p className="text-xs text-muted-foreground flex-1 break-words">{item.address}</p>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6 shrink-0 -mt-0.5"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={openMaps}
-            title="Abrir en Google Maps"
-          >
-            <MapPin className="h-3.5 w-3.5 text-primary" />
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
@@ -131,18 +111,12 @@ function OverlayCard({ item }: { item: PoolItem }) {
           <span className="text-sm font-semibold">${Number(item.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
         )}
       </div>
-      {item.address && (
-        <div className="mt-2 pt-2 border-t border-border/50 flex items-start gap-1.5">
-          <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground" />
-          <p className="text-xs text-muted-foreground flex-1 break-words">{item.address}</p>
-        </div>
-      )}
     </div>
   );
 }
 
 // ─── Route Drop Column ───────────────────────────────────────
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onRemoveItem, onDeliver, onReorder, onOpenEntrega }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onRemoveItem, onDeliver, onReorder }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -153,8 +127,8 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onRemoveItem: (itemId: string) => void;
   onDeliver: (item: PoolItem) => void;
   onReorder: (rutaId: string, items: PoolItem[]) => void;
-  onOpenEntrega: (itemId: string) => void;
 }) {
+  const navigate = useNavigate();
   const { setNodeRef, isOver } = useDroppable({ id: `ruta-${ruta.id}` });
   const vehiculo = vehiculos.find((v: any) => v.id === ruta.vehiculo_id);
   const repartidorNames = repartidoresRuta.map(rr => {
@@ -209,29 +183,29 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
               <div className="pl-5">
                 <DraggablePoolCard item={item} />
               </div>
-              <div className="absolute top-1 right-1 flex gap-0.5">
-                {item.type === "pedido" && (
+              {item.type === "pedido" && (
+                <div className="absolute top-1 right-8 z-10">
                   <Button
                     size="icon"
                     variant="default"
-                    className="h-7 w-7 shadow-md"
+                    className="h-6 w-6 shadow"
+                    title="Abrir entrega"
                     onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); onOpenEntrega(item.id); }}
-                    title="Abrir pantalla de entrega"
+                    onClick={(e) => { e.stopPropagation(); navigate(`/delivery/entrega/${item.id}`); }}
                   >
-                    <FileSignature className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-                <div className="hidden group-hover:flex gap-0.5">
-                  {item.estatus === "programado_entrega" && item.type === "pedido" && (
-                    <Button size="icon" variant="secondary" className="h-7 w-7" onPointerDown={(e) => e.stopPropagation()} onClick={() => onDeliver(item)}>
-                      <Check className="h-3 w-3" />
-                    </Button>
-                  )}
-                  <Button size="icon" variant="secondary" className="h-7 w-7" onPointerDown={(e) => e.stopPropagation()} onClick={() => onRemoveItem(item.id)}>
-                    <Undo2 className="h-3 w-3" />
+                    <FileSignature className="h-3 w-3" />
                   </Button>
                 </div>
+              )}
+              <div className="absolute top-1 right-1 hidden group-hover:flex gap-0.5">
+                {item.estatus === "programado_entrega" && item.type === "pedido" && (
+                  <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => onDeliver(item)}>
+                    <Check className="h-3 w-3" />
+                  </Button>
+                )}
+                <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => onRemoveItem(item.id)}>
+                  <Undo2 className="h-3 w-3" />
+                </Button>
               </div>
             </div>
           ))}
@@ -966,7 +940,6 @@ export default function DeliverySchedule() {
                                   onRemoveItem={removeItemFromRoute}
                                   onDeliver={handleDeliver}
                                   onReorder={() => {}}
-                                  onOpenEntrega={(itemId) => navigate(`/delivery/entrega/${itemId}`)}
                                 />
                               ))}
                             </div>
