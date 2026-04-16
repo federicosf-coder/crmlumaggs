@@ -6,6 +6,7 @@ import {
   Heading,
   Hr,
   Html,
+  Link,
   Preview,
   Section,
   Text,
@@ -24,12 +25,24 @@ interface PagoValidacionProps {
   formaPago?: string
   observaciones?: string
   registradoPor?: string
+  documentos?: Array<{ tipo: string; numero: string; monto: string }>
+  comprobantes?: Array<{ nombre: string; url: string }>
 }
 
 const FORMA_LABEL: Record<string, string> = {
   contado: 'Contado',
   credito: 'Crédito Directo',
   credito_cescemex: 'Crédito Cescemex',
+}
+
+const isValidUrl = (u?: string) => {
+  if (!u || typeof u !== 'string') return false
+  try {
+    const url = new URL(u)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 const PagoValidacionEmail = ({
@@ -42,55 +55,100 @@ const PagoValidacionEmail = ({
   formaPago,
   observaciones,
   registradoPor,
-}: PagoValidacionProps) => (
-  <Html lang="es" dir="ltr">
-    <Head />
-    <Preview>
-      Solicitud de validación de pago{empresa ? ` — ${empresa}` : ''}
-    </Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>Solicitud de validación de pago</Heading>
-        <Text style={text}>
-          Se ha registrado un nuevo pago en {SITE_NAME}
-          {registradoPor ? ` por ${registradoPor}` : ''}. Solicitamos su
-          validación y aplicación correspondiente.
-        </Text>
+  documentos,
+  comprobantes,
+}: PagoValidacionProps) => {
+  const validComprobantes = (comprobantes || []).filter((c) => isValidUrl(c?.url))
+  const validDocumentos = (documentos || []).filter((d) => d?.tipo || d?.numero)
 
-        <Section style={card}>
-          <Row label="Cliente" value={cliente || empresa || '—'} />
-          <Row label="Empresa" value={empresa || '—'} />
-          <Row label="Fecha de pago" value={fechaPago || '—'} />
-          <Row
-            label="Monto"
-            value={`${montoTotal || '0.00'} ${moneda || 'MXN'}`}
-            highlight
-          />
-          <Row label="Referencia" value={referencia || '—'} />
-          <Row
-            label="Forma de pago"
-            value={(formaPago && FORMA_LABEL[formaPago]) || formaPago || '—'}
-          />
-        </Section>
+  return (
+    <Html lang="es" dir="ltr">
+      <Head />
+      <Preview>
+        Solicitud de validación de pago{empresa ? ` — ${empresa}` : ''}
+      </Preview>
+      <Body style={main}>
+        <Container style={container}>
+          <Heading style={h1}>Solicitud de validación de pago</Heading>
+          <Text style={text}>
+            Se ha registrado un nuevo pago en {SITE_NAME}
+            {registradoPor ? ` por ${registradoPor}` : ''}. Solicitamos su
+            validación y aplicación correspondiente.
+          </Text>
 
-        {observaciones && (
-          <>
-            <Heading as="h2" style={h2}>
-              Observaciones
-            </Heading>
-            <Text style={text}>{observaciones}</Text>
-          </>
-        )}
+          <Section style={card}>
+            <Row label="Cliente" value={cliente || empresa || '—'} />
+            <Row label="Empresa" value={empresa || '—'} />
+            <Row label="Fecha de pago" value={fechaPago || '—'} />
+            <Row
+              label="Monto"
+              value={`${montoTotal || '0.00'} ${moneda || 'MXN'}`}
+              highlight
+            />
+            <Row label="Referencia" value={referencia || '—'} />
+            <Row
+              label="Forma de pago"
+              value={(formaPago && FORMA_LABEL[formaPago]) || formaPago || '—'}
+            />
+          </Section>
 
-        <Hr style={hr} />
-        <Text style={footer}>
-          Este es un correo automático de {SITE_NAME}. Por favor proceda con la
-          validación y aplicación de este pago.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
-)
+          {validDocumentos.length > 0 && (
+            <>
+              <Heading as="h2" style={h2}>
+                Documentos relacionados
+              </Heading>
+              <Section style={card}>
+                {validDocumentos.map((d, i) => (
+                  <div key={i} style={docRow}>
+                    <Text style={docText}>
+                      <strong>{d.tipo || 'Documento'}</strong> {d.numero || ''}
+                    </Text>
+                    {d.monto && <Text style={docAmount}>{d.monto}</Text>}
+                  </div>
+                ))}
+              </Section>
+            </>
+          )}
+
+          {validComprobantes.length > 0 && (
+            <>
+              <Heading as="h2" style={h2}>
+                Comprobantes adjuntos
+              </Heading>
+              <Text style={text}>
+                Los siguientes archivos están disponibles para su descarga:
+              </Text>
+              <Section style={card}>
+                {validComprobantes.map((c, i) => (
+                  <div key={i} style={docRow}>
+                    <Link href={c.url} style={linkStyle}>
+                      {c.nombre || `Archivo ${i + 1}`}
+                    </Link>
+                  </div>
+                ))}
+              </Section>
+            </>
+          )}
+
+          {observaciones && (
+            <>
+              <Heading as="h2" style={h2}>
+                Observaciones
+              </Heading>
+              <Text style={text}>{observaciones}</Text>
+            </>
+          )}
+
+          <Hr style={hr} />
+          <Text style={footer}>
+            Este es un correo automático de {SITE_NAME}. Por favor proceda con la
+            validación y aplicación de este pago.
+          </Text>
+        </Container>
+      </Body>
+    </Html>
+  )
+}
 
 const Row = ({
   label,
@@ -126,9 +184,21 @@ export const template = {
     formaPago: 'contado',
     observaciones: 'Pago recibido por transferencia bancaria.',
     registradoPor: 'Juan Pérez',
+    documentos: [
+      { tipo: 'Factura', numero: 'F-001', monto: '$10,000.00' },
+      { tipo: 'Pedido', numero: 'P-045', monto: '$5,000.00' },
+    ],
+    comprobantes: [
+      { nombre: 'comprobante.pdf', url: 'https://example.com/file.pdf' },
+    ],
   },
 } satisfies TemplateEntry
 
+const linkStyle = {
+  fontSize: '13px',
+  color: '#2563eb',
+  textDecoration: 'underline',
+}
 const main = {
   backgroundColor: '#ffffff',
   fontFamily:
@@ -154,5 +224,12 @@ const rowStyle = {
 const rowLabel = { fontSize: '13px', color: '#64748b', margin: '0' }
 const rowValue = { fontSize: '13px', color: '#0f172a', fontWeight: '500', margin: '0' }
 const rowValueHighlight = { fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0' }
+const docRow = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  padding: '4px 0',
+}
+const docText = { fontSize: '13px', color: '#0f172a', margin: '0' }
+const docAmount = { fontSize: '13px', color: '#0f172a', fontWeight: '600', margin: '0' }
 const hr = { border: 'none', borderTop: '1px solid #e2e8f0', margin: '24px 0' }
 const footer = { fontSize: '12px', color: '#94a3b8', margin: '0' }
