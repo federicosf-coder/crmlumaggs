@@ -55,7 +55,7 @@ function bucketLabel(dias: number | null): string {
 export default function Cobranza() {
   const { hasAnyRole } = useAuth();
   const canDelete = hasAnyRole(["admin", "manager"]);
-  const { pagos, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos();
+  const { pagos, breakdowns, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos();
   const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza();
 
   const [openRegistrar, setOpenRegistrar] = useState(false);
