@@ -41,6 +41,138 @@ export type Database = {
         }
         Relationships: []
       }
+      cobranza_aplicaciones: {
+        Row: {
+          creado_por: string | null
+          created_at: string
+          documento_id: string
+          estatus_aplicacion: Database["public"]["Enums"]["estatus_aplicacion_cobranza"]
+          fecha_aplicacion: string
+          id: string
+          monto_aplicado: number
+          observaciones: string | null
+          origen_aplicacion: string | null
+          pago_id: string
+          tipo_documento: Database["public"]["Enums"]["tipo_doc_cobranza"]
+          updated_at: string
+        }
+        Insert: {
+          creado_por?: string | null
+          created_at?: string
+          documento_id: string
+          estatus_aplicacion?: Database["public"]["Enums"]["estatus_aplicacion_cobranza"]
+          fecha_aplicacion?: string
+          id?: string
+          monto_aplicado: number
+          observaciones?: string | null
+          origen_aplicacion?: string | null
+          pago_id: string
+          tipo_documento: Database["public"]["Enums"]["tipo_doc_cobranza"]
+          updated_at?: string
+        }
+        Update: {
+          creado_por?: string | null
+          created_at?: string
+          documento_id?: string
+          estatus_aplicacion?: Database["public"]["Enums"]["estatus_aplicacion_cobranza"]
+          fecha_aplicacion?: string
+          id?: string
+          monto_aplicado?: number
+          observaciones?: string | null
+          origen_aplicacion?: string | null
+          pago_id?: string
+          tipo_documento?: Database["public"]["Enums"]["tipo_doc_cobranza"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobranza_aplicaciones_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobranza_aplicaciones_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "cobranza_pagos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cobranza_pagos: {
+        Row: {
+          banco: string | null
+          creado_por: string | null
+          created_at: string
+          empresa_id: string
+          estado_pago: Database["public"]["Enums"]["estado_pago_cobranza"]
+          fecha_pago: string
+          id: string
+          moneda: string
+          monto_aplicado: number
+          monto_disponible: number
+          monto_total: number
+          observaciones: string | null
+          plaza_id: string | null
+          referencia_pago: string | null
+          tipo_pago: string | null
+          updated_at: string
+        }
+        Insert: {
+          banco?: string | null
+          creado_por?: string | null
+          created_at?: string
+          empresa_id: string
+          estado_pago?: Database["public"]["Enums"]["estado_pago_cobranza"]
+          fecha_pago?: string
+          id?: string
+          moneda?: string
+          monto_aplicado?: number
+          monto_disponible?: number
+          monto_total: number
+          observaciones?: string | null
+          plaza_id?: string | null
+          referencia_pago?: string | null
+          tipo_pago?: string | null
+          updated_at?: string
+        }
+        Update: {
+          banco?: string | null
+          creado_por?: string | null
+          created_at?: string
+          empresa_id?: string
+          estado_pago?: Database["public"]["Enums"]["estado_pago_cobranza"]
+          fecha_pago?: string
+          id?: string
+          moneda?: string
+          monto_aplicado?: number
+          monto_disponible?: number
+          monto_total?: number
+          observaciones?: string | null
+          plaza_id?: string | null
+          referencia_pago?: string | null
+          tipo_pago?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobranza_pagos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobranza_pagos_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -811,6 +943,9 @@ export type Database = {
           ejecutivo_venta_id: string | null
           empresa_id: string | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          estado_cobranza:
+            | Database["public"]["Enums"]["estado_cobranza_doc"]
+            | null
           estatus_cotizacion:
             | Database["public"]["Enums"]["estatus_cotizacion"]
             | null
@@ -832,6 +967,7 @@ export type Database = {
           numero_pedido: string | null
           pdf_url: string | null
           plaza_id: string | null
+          saldo_pendiente_cobranza: number
           subtotal: number
           tipo_documento: Database["public"]["Enums"]["tipo_documento"]
           tipo_pago: Database["public"]["Enums"]["tipo_pago"] | null
@@ -849,6 +985,9 @@ export type Database = {
           ejecutivo_venta_id?: string | null
           empresa_id?: string | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          estado_cobranza?:
+            | Database["public"]["Enums"]["estado_cobranza_doc"]
+            | null
           estatus_cotizacion?:
             | Database["public"]["Enums"]["estatus_cotizacion"]
             | null
@@ -872,6 +1011,7 @@ export type Database = {
           numero_pedido?: string | null
           pdf_url?: string | null
           plaza_id?: string | null
+          saldo_pendiente_cobranza?: number
           subtotal?: number
           tipo_documento?: Database["public"]["Enums"]["tipo_documento"]
           tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
@@ -889,6 +1029,9 @@ export type Database = {
           ejecutivo_venta_id?: string | null
           empresa_id?: string | null
           empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
+          estado_cobranza?:
+            | Database["public"]["Enums"]["estado_cobranza_doc"]
+            | null
           estatus_cotizacion?:
             | Database["public"]["Enums"]["estatus_cotizacion"]
             | null
@@ -912,6 +1055,7 @@ export type Database = {
           numero_pedido?: string | null
           pdf_url?: string | null
           plaza_id?: string | null
+          saldo_pendiente_cobranza?: number
           subtotal?: number
           tipo_documento?: Database["public"]["Enums"]["tipo_documento"]
           tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
@@ -1771,6 +1915,11 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recompute_documento_cobranza: {
+        Args: { _documento_id: string }
+        Returns: undefined
+      }
+      recompute_pago_balance: { Args: { _pago_id: string }; Returns: undefined }
       seed_crm_pipeline:
         | { Args: { p_marca: string; p_user_id: string }; Returns: string }
         | {
@@ -1805,6 +1954,19 @@ export type Database = {
         | "customer_service"
         | "accounting"
       empresa_vendedora: "lumaggs_chevron" | "galsa_phillips66"
+      estado_cobranza_doc:
+        | "pendiente"
+        | "parcial"
+        | "pagada"
+        | "vencida"
+        | "cancelada"
+      estado_pago_cobranza:
+        | "registrado"
+        | "no_aplicado"
+        | "aplicado_parcial"
+        | "aplicado_total"
+        | "cancelado"
+      estatus_aplicacion_cobranza: "activa" | "cancelada"
       estatus_cotizacion:
         | "borrador"
         | "enviada"
@@ -1841,6 +2003,7 @@ export type Database = {
         | "comercial"
         | "sucursal"
         | "principal"
+      tipo_doc_cobranza: "factura" | "pedido" | "cotizacion"
       tipo_documento: "cotizacion" | "pedido" | "factura"
       tipo_pago: "contado" | "credito" | "credito_cescemex"
       uso_cfdi:
@@ -2024,6 +2187,21 @@ export const Constants = {
         "accounting",
       ],
       empresa_vendedora: ["lumaggs_chevron", "galsa_phillips66"],
+      estado_cobranza_doc: [
+        "pendiente",
+        "parcial",
+        "pagada",
+        "vencida",
+        "cancelada",
+      ],
+      estado_pago_cobranza: [
+        "registrado",
+        "no_aplicado",
+        "aplicado_parcial",
+        "aplicado_total",
+        "cancelado",
+      ],
+      estatus_aplicacion_cobranza: ["activa", "cancelada"],
       estatus_cotizacion: [
         "borrador",
         "enviada",
@@ -2059,6 +2237,7 @@ export const Constants = {
         "linea",
       ],
       tipo_direccion: ["envio", "fiscal", "comercial", "sucursal", "principal"],
+      tipo_doc_cobranza: ["factura", "pedido", "cotizacion"],
       tipo_documento: ["cotizacion", "pedido", "factura"],
       tipo_pago: ["contado", "credito", "credito_cescemex"],
       uso_cfdi: [
