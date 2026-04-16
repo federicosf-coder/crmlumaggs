@@ -476,6 +476,25 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
       flow === "credito_cescemex" ? "Cobranza Cescemex" :
       "Contabilidad";
 
+    // 1) Parámetros del sistema (system_settings) — fuente principal
+    const settingKey =
+      flow === "contado" ? "destinatarios_default_contado" :
+      flow === "credito" ? "destinatarios_default_credito_directo" :
+      flow === "credito_cescemex" ? "destinatarios_default_credito_cescemex" :
+      null;
+    if (settingKey) {
+      const { data: setting } = await supabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", settingKey)
+        .maybeSingle();
+      const list = Array.isArray(setting?.value) ? (setting!.value as any[]) : [];
+      list.forEach((e: any) => {
+        if (typeof e === "string" && e && !emails.includes(e)) emails.push(e);
+      });
+    }
+
+    // 2) Grupos de correo (compatibilidad / complementario)
     const { data: grp } = await supabase
       .from("email_groups").select("id").eq("nombre", groupName).eq("is_active", true).maybeSingle();
     if (grp?.id) {
