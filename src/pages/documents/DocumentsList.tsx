@@ -459,6 +459,24 @@ export default function DocumentsList() {
               </Button>
             </>
           )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Columns3 className="mr-1 h-4 w-4" /> Columnas
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <p className="text-sm font-medium mb-2">Columnas visibles</p>
+              <div className="space-y-2">
+                {ALL_COLUMNS.map((c) => (
+                  <label key={c.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={visibleCols.has(c.key)} onCheckedChange={() => toggleCol(c.key)} />
+                    <span>{c.label}</span>
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           <Button variant="outline" size="sm" onClick={() => navigate("/delivery/schedule")}>
             <Truck className="mr-1 h-4 w-4" /> Programar Entregas
           </Button>
