@@ -100,8 +100,7 @@ export function EnviarConfirmacionPagoDialog({
     }
   };
 
-  const handleSend = async () => {
-    // Make sure pending input is added
+  const computeFinalEmails = () => {
     let finalEmails = emails;
     if (input.trim()) {
       const value = input.trim();
@@ -110,19 +109,24 @@ export function EnviarConfirmacionPagoDialog({
         setEmails(finalEmails);
       }
     }
-    if (finalEmails.length === 0) {
-      toast.error("Agrega al menos un correo");
-      return;
-    }
+    return finalEmails;
+  };
+
+  const alreadySentMatches = (list: string[]) =>
+    list.filter((e) => previouslySentEmails.includes(e.toLowerCase()));
+
+  const doSend = async (finalEmails: string[]) => {
     setSending(true);
     try {
+      const ts = Date.now();
       const results = await Promise.allSettled(
         finalEmails.map((email) =>
           supabase.functions.invoke("send-transactional-email", {
             body: {
               templateName: "pago-confirmation",
               recipientEmail: email,
-              idempotencyKey: `pago-confirm-${pagoId}-${email}`,
+              // Unique per attempt so resends are not blocked by idempotency
+              idempotencyKey: `pago-confirm-${pagoId}-${email}-${ts}`,
               templateData: {
                 empresa,
                 fechaPago,
@@ -152,21 +156,49 @@ export function EnviarConfirmacionPagoDialog({
       toast.error(e?.message || "Error al enviar");
     } finally {
       setSending(false);
+      setConfirmingResend(false);
     }
   };
 
+  const handleSend = async () => {
+    const finalEmails = computeFinalEmails();
+    if (finalEmails.length === 0) {
+      toast.error("Agrega al menos un correo");
+      return;
+    }
+    const dupes = alreadySentMatches(finalEmails);
+    if (dupes.length > 0 && !confirmingResend) {
+      setConfirmingResend(true);
+      return;
+    }
+    await doSend(finalEmails);
+  };
+
   const handleSkip = () => onOpenChange(false);
+
+  const finalEmailsPreview = computeFinalEmails();
+  const dupes = alreadySentMatches(finalEmailsPreview);
+  const hasPrevious = previouslySentEmails.length > 0;
+  const buttonLabel = sending
+    ? "Enviando..."
+    : confirmingResend
+    ? "Sí, reenviar"
+    : hasPrevious
+    ? "Reenviar correo"
+    : "Enviar correo";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" /> Enviar confirmación
+            <Mail className="h-5 w-5" />{" "}
+            {hasPrevious ? "Reenviar confirmación" : "Enviar confirmación"}
           </DialogTitle>
           <DialogDescription>
-            ¿Deseas enviar un correo de confirmación de este pago? Agrega los
-            destinatarios o omite este paso.
+            {hasPrevious
+              ? "Este pago ya tiene confirmaciones enviadas. Puedes reenviar a los mismos destinatarios o agregar nuevos."
+              : "¿Deseas enviar un correo de confirmación de este pago? Agrega los destinatarios o omite este paso."}
           </DialogDescription>
         </DialogHeader>
 
@@ -184,21 +216,50 @@ export function EnviarConfirmacionPagoDialog({
             </div>
           </div>
 
+          {confirmingResend && dupes.length > 0 && (
+            <Alert variant="default" className="border-amber-500/50 bg-amber-500/5">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-sm">
+                <p className="font-medium mb-1">
+                  Este correo ya aparece registrado como enviado a:
+                </p>
+                <ul className="list-disc list-inside space-y-0.5 text-xs">
+                  {dupes.map((e) => (
+                    <li key={e}>{e}</li>
+                  ))}
+                </ul>
+                <p className="mt-2">¿Deseas proceder con el reenvío? Se generará un nuevo registro.</p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div>
             <Label>Correos destinatarios</Label>
             <div className="flex flex-wrap gap-1 mb-2 mt-1 min-h-[28px]">
-              {emails.map((e) => (
-                <Badge key={e} variant="secondary" className="gap-1">
-                  {e}
-                  <button
-                    type="button"
-                    onClick={() => removeEmail(e)}
-                    className="hover:text-destructive"
+              {emails.map((e) => {
+                const wasSent = previouslySentEmails.includes(e.toLowerCase());
+                return (
+                  <Badge
+                    key={e}
+                    variant={wasSent ? "outline" : "secondary"}
+                    className="gap-1"
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
+                    {e}
+                    {wasSent && (
+                      <span className="text-[10px] text-amber-600 font-medium">
+                        (enviado)
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeEmail(e)}
+                      className="hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })}
             </div>
             <div className="flex gap-2">
               <Input
@@ -220,11 +281,21 @@ export function EnviarConfirmacionPagoDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleSkip} disabled={sending}>
-            Omitir
-          </Button>
+          {confirmingResend ? (
+            <Button
+              variant="outline"
+              onClick={() => setConfirmingResend(false)}
+              disabled={sending}
+            >
+              Cancelar
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={handleSkip} disabled={sending}>
+              Omitir
+            </Button>
+          )}
           <Button onClick={handleSend} disabled={sending}>
-            {sending ? "Enviando..." : "Enviar correo"}
+            {buttonLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
