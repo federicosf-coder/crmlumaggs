@@ -223,6 +223,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Registrar pago</DialogTitle></DialogHeader>
