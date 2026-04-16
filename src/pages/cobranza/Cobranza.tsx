@@ -448,6 +448,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const { aplicaciones, refetch } = useCobranzaAplicaciones(pago?.id || null);
   const [openEnviar, setOpenEnviar] = useState(false);
   const [defaultEmails, setDefaultEmails] = useState<string[]>([]);
+  const [blockedEmails, setBlockedEmails] = useState<string[]>([]);
   const [comprobantes, setComprobantes] = useState<{ nombre: string; url: string }[]>([]);
   const [previouslySentEmails, setPreviouslySentEmails] = useState<string[]>([]);
   const [loadingEmails, setLoadingEmails] = useState<null | "contado" | "credito" | "credito_cescemex" | "general">(null);
@@ -479,9 +480,27 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     if (!pago) return;
     setLoadingEmails(flow);
     const emails: string[] = [];
-    // Empresa email (siempre incluir si existe)
+    const isValidacion = flow !== "general";
+
+    // Empresa email
     const { data: emp } = await supabase.from("companies").select("email").eq("id", pago.empresa_id).maybeSingle();
-    if (emp?.email) emails.push(emp.email);
+
+    // Correos PROHIBIDOS para validación: empresa + contactos relacionados
+    const blocked: string[] = [];
+    if (isValidacion) {
+      if (emp?.email) blocked.push(emp.email.toLowerCase());
+      const { data: contactos } = await supabase
+        .from("contacts").select("email").eq("company_id", pago.empresa_id);
+      (contactos || []).forEach((c: any) => {
+        if (c.email) {
+          const e = c.email.toLowerCase();
+          if (!blocked.includes(e)) blocked.push(e);
+        }
+      });
+    } else {
+      // Confirmación general (no validación) mantiene comportamiento previo
+      if (emp?.email) emails.push(emp.email);
+    }
 
     // Determinar grupo según flujo
     const groupName =
@@ -518,6 +537,13 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         if (m.email && !emails.includes(m.email)) emails.push(m.email);
       });
     }
+
+    // Filtrar correos prohibidos para validación
+    const filteredEmails = isValidacion
+      ? emails.filter((e) => !blocked.includes(e.toLowerCase()))
+      : emails;
+    setBlockedEmails(blocked);
+
 
     // Comprobantes
     const { data: archivos } = await supabase
@@ -557,8 +583,8 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     const sentSet = new Set(
       (sentLogs || []).map((l: any) => (l.recipient_email || "").toLowerCase())
     );
-    setPreviouslySentEmails(emails.filter((e) => sentSet.has(e.toLowerCase())).map((e) => e.toLowerCase()));
-    setDefaultEmails(emails);
+    setPreviouslySentEmails(filteredEmails.filter((e) => sentSet.has(e.toLowerCase())).map((e) => e.toLowerCase()));
+    setDefaultEmails(filteredEmails);
     setLoadingEmails(null);
     setOpenEnviar(true);
   };
@@ -719,6 +745,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         comprobantes={comprobantes}
         registradoPor={profile?.full_name || user?.email || undefined}
         defaultEmails={defaultEmails}
+        blockedEmails={blockedEmails}
         previouslySentEmails={previouslySentEmails}
         templateName={activeFlow.templateName}
         title={activeFlow.title}
