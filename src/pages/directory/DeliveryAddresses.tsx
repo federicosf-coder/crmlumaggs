@@ -325,7 +325,7 @@ export default function DeliveryAddresses() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.empresa_id || !form.calle.trim() || form.tipos.length === 0}>
+            <Button onClick={handleSave} disabled={!form.empresa_id || !form.address.direccion_completa.trim() || form.tipos.length === 0}>
               {editing ? "Guardar" : "Crear"}
             </Button>
           </DialogFooter>
