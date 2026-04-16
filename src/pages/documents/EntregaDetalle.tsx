@@ -421,6 +421,16 @@ export default function EntregaDetalle() {
           {(docLat && docLng) && (
             <p className="text-xs text-muted-foreground">📍 {Number(docLat).toFixed(6)}, {Number(docLng).toFixed(6)}</p>
           )}
+          {(documento.direccion_envio || (docLat && docLng)) && (
+            <AddressDisplay
+              address={documento.direccion_envio}
+              lat={docLat}
+              lng={docLng}
+              showText={false}
+              showMap
+              mapHeight={180}
+            />
+          )}
           {documento.direccion_envio && (
             <Button size="sm" variant="default" onClick={openMaps} className="w-full sm:w-auto">
               <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir en Google Maps
