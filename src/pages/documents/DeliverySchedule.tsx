@@ -54,6 +54,7 @@ type PoolItem = {
   total?: number;
   estatus: string;
   plaza_id?: string;
+  fecha_documento?: string;
   raw: any;
 };
 
