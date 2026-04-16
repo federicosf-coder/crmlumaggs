@@ -397,6 +397,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const { aplicaciones, refetch } = useCobranzaAplicaciones(pago?.id || null);
   const [openEnviar, setOpenEnviar] = useState(false);
   const [defaultEmails, setDefaultEmails] = useState<string[]>([]);
+  const [comprobantes, setComprobantes] = useState<{ nombre: string; url: string }[]>([]);
   const [loadingEmails, setLoadingEmails] = useState(false);
 
   const handleCancelarAplicacion = async (id: string) => {
@@ -424,6 +425,14 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         if (m.email && !emails.includes(m.email)) emails.push(m.email);
       });
     }
+    // Comprobantes (archivos del pago)
+    const { data: archivos } = await supabase
+      .from("cobranza_pago_archivos")
+      .select("nombre_archivo,url_archivo")
+      .eq("pago_id", pago.id);
+    setComprobantes(
+      (archivos || []).map((a: any) => ({ nombre: a.nombre_archivo, url: a.url_archivo }))
+    );
     setDefaultEmails(emails);
     setLoadingEmails(false);
     setOpenEnviar(true);
@@ -518,6 +527,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         moneda={pago.moneda || "MXN"}
         observaciones={pago.observaciones || undefined}
         documentos={documentosLigados}
+        comprobantes={comprobantes}
         registradoPor={profile?.full_name || user?.email || undefined}
         defaultEmails={defaultEmails}
       />
