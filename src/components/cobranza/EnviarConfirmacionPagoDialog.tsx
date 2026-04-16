@@ -40,6 +40,7 @@ interface Props {
   comprobantes?: Comprobante[];
   registradoPor?: string;
   defaultEmails?: string[];
+  previouslySentEmails?: string[];
 }
 
 const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -57,13 +58,18 @@ export function EnviarConfirmacionPagoDialog({
   comprobantes = [],
   registradoPor,
   defaultEmails = [],
+  previouslySentEmails = [],
 }: Props) {
   const [emails, setEmails] = useState<string[]>(defaultEmails.filter(isValidEmail));
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [confirmingResend, setConfirmingResend] = useState(false);
 
   useEffect(() => {
-    if (open) setEmails(defaultEmails.filter(isValidEmail));
+    if (open) {
+      setEmails(defaultEmails.filter(isValidEmail));
+      setConfirmingResend(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, defaultEmails.join(",")]);
 
