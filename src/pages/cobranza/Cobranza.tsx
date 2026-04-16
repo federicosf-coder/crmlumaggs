@@ -302,27 +302,36 @@ export default function Cobranza() {
               <Table>
                 <TableHeader><TableRow>
                   <TableHead>Fecha</TableHead><TableHead>Cliente</TableHead><TableHead>Plaza</TableHead>
-                  <TableHead className="text-right">Total</TableHead><TableHead className="text-right">Aplicado</TableHead>
-                  <TableHead className="text-right">Disponible</TableHead><TableHead>Referencia</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Aplicado a Facturas</TableHead>
+                  <TableHead className="text-right">Aplicado a Cot/Pedidos</TableHead>
+                  <TableHead className="text-right">Disponible (facturas)</TableHead>
+                  <TableHead>Referencia</TableHead>
                   <TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {loadingPagos && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
-                  {!loadingPagos && pagosFiltrados.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sin pagos registrados</TableCell></TableRow>}
-                  {pagosFiltrados.map((p) => (
+                  {loadingPagos && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
+                  {!loadingPagos && pagosFiltrados.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sin pagos registrados</TableCell></TableRow>}
+                  {pagosFiltrados.map((p) => {
+                    const b = breakdowns[p.id];
+                    const aplicadoFact = b?.aplicadoFacturas ?? 0;
+                    const aplicadoOtros = b?.aplicadoOtros ?? 0;
+                    const dispFact = b?.disponibleFacturas ?? Number(p.monto_disponible);
+                    return (
                     <TableRow key={p.id}>
                       <TableCell>{formatDate(p.fecha_pago)}</TableCell>
                       <TableCell className="truncate max-w-[200px]">{p.empresa?.name}</TableCell>
                       <TableCell>{p.plaza?.nombre || "—"}</TableCell>
                       <TableCell className="text-right">{formatCurrency(p.monto_total)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(p.monto_aplicado)}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(p.monto_disponible)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(aplicadoFact)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{aplicadoOtros > 0 ? formatCurrency(aplicadoOtros) : "—"}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(dispFact)}</TableCell>
                       <TableCell className="text-xs">{p.referencia_pago || "—"}</TableCell>
                       <TableCell><Badge variant={p.estado_pago === "aplicado_total" ? "default" : p.estado_pago === "cancelado" ? "destructive" : "secondary"}>{ESTADO_PAGO_LABEL[p.estado_pago]}</Badge></TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => handleVerDetalle(p)}><Eye className="h-4 w-4" /></Button>
-                          {p.estado_pago !== "cancelado" && p.monto_disponible > 0 && (
+                          {p.estado_pago !== "cancelado" && dispFact > 0 && (
                             <Button size="sm" variant="outline" onClick={() => handleAplicar(p)}>Aplicar</Button>
                           )}
                           {p.estado_pago !== "cancelado" && (
@@ -334,7 +343,8 @@ export default function Cobranza() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
