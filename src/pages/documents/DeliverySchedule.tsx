@@ -19,7 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
-  Pencil, Trash2, Package, ListChecks, Search, Undo2, PanelLeftClose, PanelLeftOpen, MapPin,
+  Pencil, Trash2, Package, ListChecks, Search, Undo2, PanelLeftClose, PanelLeftOpen, MapPin, FileSignature,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -142,7 +142,7 @@ function OverlayCard({ item }: { item: PoolItem }) {
 }
 
 // ─── Route Drop Column ───────────────────────────────────────
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onRemoveItem, onDeliver, onReorder }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onRemoveItem, onDeliver, onReorder, onOpenEntrega }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -153,6 +153,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onRemoveItem: (itemId: string) => void;
   onDeliver: (item: PoolItem) => void;
   onReorder: (rutaId: string, items: PoolItem[]) => void;
+  onOpenEntrega: (itemId: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `ruta-${ruta.id}` });
   const vehiculo = vehiculos.find((v: any) => v.id === ruta.vehiculo_id);
@@ -208,15 +209,29 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
               <div className="pl-5">
                 <DraggablePoolCard item={item} />
               </div>
-              <div className="absolute top-1 right-1 hidden group-hover:flex gap-0.5">
-                {item.estatus === "programado_entrega" && item.type === "pedido" && (
-                  <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => onDeliver(item)}>
-                    <Check className="h-3 w-3" />
+              <div className="absolute top-1 right-1 flex gap-0.5">
+                {item.type === "pedido" && (
+                  <Button
+                    size="icon"
+                    variant="default"
+                    className="h-7 w-7 shadow-md"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); onOpenEntrega(item.id); }}
+                    title="Abrir pantalla de entrega"
+                  >
+                    <FileSignature className="h-3.5 w-3.5" />
                   </Button>
                 )}
-                <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => onRemoveItem(item.id)}>
-                  <Undo2 className="h-3 w-3" />
-                </Button>
+                <div className="hidden group-hover:flex gap-0.5">
+                  {item.estatus === "programado_entrega" && item.type === "pedido" && (
+                    <Button size="icon" variant="secondary" className="h-7 w-7" onPointerDown={(e) => e.stopPropagation()} onClick={() => onDeliver(item)}>
+                      <Check className="h-3 w-3" />
+                    </Button>
+                  )}
+                  <Button size="icon" variant="secondary" className="h-7 w-7" onPointerDown={(e) => e.stopPropagation()} onClick={() => onRemoveItem(item.id)}>
+                    <Undo2 className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
@@ -951,6 +966,7 @@ export default function DeliverySchedule() {
                                   onRemoveItem={removeItemFromRoute}
                                   onDeliver={handleDeliver}
                                   onReorder={() => {}}
+                                  onOpenEntrega={(itemId) => navigate(`/delivery/entrega/${itemId}`)}
                                 />
                               ))}
                             </div>

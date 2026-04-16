@@ -155,7 +155,7 @@ export default function EntregaDetalle() {
           </h1>
         </div>
         {estatus !== "entregado" && (
-          <Button onClick={marcarEntregado} className="bg-green-600 hover:bg-green-700 text-white">
+          <Button onClick={marcarEntregado} className="bg-success text-success-foreground hover:bg-success/90">
             Marcar como Entregado
           </Button>
         )}
