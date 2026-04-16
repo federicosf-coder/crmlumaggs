@@ -180,6 +180,33 @@ export default function Directory() {
   const setView = activeTab === "companies" ? setCompanyView : setContactView;
   const tabColor = TAB_COLORS[activeTab] || TAB_COLORS.companies;
 
+  const selectedIds = activeTab === "companies" ? selectedCompanyIds : selectedContactIds;
+  const setSelectedIds = activeTab === "companies" ? setSelectedCompanyIds : setSelectedContactIds;
+  const currentList = activeTab === "companies" ? filteredCompanies : filteredContacts;
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === currentList.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(currentList.map(i => i.id)));
+    }
+  };
+
+  const handleBulkToggleActive = async (active: boolean) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    try {
+      const table = activeTab === "companies" ? "companies" : "contacts";
+      const { error } = await supabase.from(table).update({ is_active: active }).in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} registro(s) ${active ? "activados" : "desactivados"}`);
+      setSelectedIds(new Set());
+      fetchData();
+    } catch (err: any) {
+      toast.error("Error: " + (err.message || "Error"));
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header — matches Documentos */}
