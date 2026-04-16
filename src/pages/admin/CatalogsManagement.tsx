@@ -1152,13 +1152,132 @@ function RepartidoresTab() {
   );
 }
 
+// ─── Tipos de Dirección ──────────────────────────────────────
+function TiposDireccionTab() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [clave, setClave] = useState("");
+  const [etiqueta, setEtiqueta] = useState("");
+  const [editItem, setEditItem] = useState<any>(null);
+  const [editClave, setEditClave] = useState("");
+  const [editEtiqueta, setEditEtiqueta] = useState("");
+  const [editActive, setEditActive] = useState(true);
+
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["tipos_direccion_all"],
+    queryFn: async () => {
+      const { data } = await (supabase.from as any)("tipos_direccion").select("*").order("etiqueta");
+      return data || [];
+    },
+  });
+
+  const create = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase.from as any)("tipos_direccion").insert({
+        clave: clave.trim().toLowerCase(),
+        etiqueta: etiqueta.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tipos_direccion_all"] });
+      qc.invalidateQueries({ queryKey: ["tipos_direccion_catalog"] });
+      setOpen(false); setClave(""); setEtiqueta(""); toast.success("Tipo creado");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase.from as any)("tipos_direccion")
+        .update({ clave: editClave.trim().toLowerCase(), etiqueta: editEtiqueta.trim(), is_active: editActive })
+        .eq("id", editItem.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tipos_direccion_all"] });
+      qc.invalidateQueries({ queryKey: ["tipos_direccion_catalog"] });
+      setEditItem(null); toast.success("Tipo actualizado");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from as any)("tipos_direccion").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tipos_direccion_all"] });
+      qc.invalidateQueries({ queryKey: ["tipos_direccion_catalog"] });
+      toast.success("Tipo eliminado");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const openEdit = (item: any) => {
+    setEditItem(item); setEditClave(item.clave); setEditEtiqueta(item.etiqueta); setEditActive(item.is_active);
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex-row justify-between items-center">
+        <CardTitle>Tipos de Dirección</CardTitle>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Nuevo</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Nuevo Tipo de Dirección</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Clave (sin espacios)</Label><Input value={clave} onChange={e => setClave(e.target.value)} placeholder="Ej: bodega" /></div>
+              <div><Label>Etiqueta</Label><Input value={etiqueta} onChange={e => setEtiqueta(e.target.value)} placeholder="Ej: Bodega" /></div>
+            </div>
+            <DialogFooter><Button onClick={() => create.mutate()} disabled={!clave || !etiqueta || create.isPending}>{create.isPending ? "Creando..." : "Crear"}</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <p className="text-sm text-muted-foreground">Cargando...</p> : (
+          <Table>
+            <TableHeader><TableRow><TableHead>Clave</TableHead><TableHead>Etiqueta</TableHead><TableHead>Activo</TableHead><TableHead className="w-24"></TableHead></TableRow></TableHeader>
+            <TableBody>
+              {data.map((t: any) => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-mono text-xs">{t.clave}</TableCell>
+                  <TableCell>{t.etiqueta}</TableCell>
+                  <TableCell>{t.is_active ? "Sí" : "No"}</TableCell>
+                  <TableCell className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => { if (confirm(`¿Eliminar "${t.etiqueta}"?`)) remove.mutate(t.id); }}><Trash2 className="h-4 w-4" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      <Dialog open={!!editItem} onOpenChange={v => !v && setEditItem(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Tipo</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Clave</Label><Input value={editClave} onChange={e => setEditClave(e.target.value)} /></div>
+            <div><Label>Etiqueta</Label><Input value={editEtiqueta} onChange={e => setEditEtiqueta(e.target.value)} /></div>
+            <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
+          </div>
+          <DialogFooter><Button onClick={() => update.mutate()} disabled={!editClave || !editEtiqueta || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
 // ─── Main Page ───────────────────────────────────────────────
 export default function CatalogsManagement() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Catálogos</h1>
-        <p className="text-muted-foreground">Administra plazas, presentaciones, clasificaciones, embudos, logos, condiciones, marcas por empresa, vehículos y repartidores.</p>
+        <p className="text-muted-foreground">Administra plazas, presentaciones, clasificaciones, embudos, logos, condiciones, marcas por empresa, vehículos, repartidores y tipos de dirección.</p>
       </div>
       <Tabs defaultValue="plazas">
         <TabsList className="flex-wrap">
@@ -1171,6 +1290,7 @@ export default function CatalogsManagement() {
           <TabsTrigger value="empresa_marcas">Marcas por Empresa</TabsTrigger>
           <TabsTrigger value="vehiculos">Vehículos</TabsTrigger>
           <TabsTrigger value="repartidores">Repartidores</TabsTrigger>
+          <TabsTrigger value="tipos_direccion">Tipos de Dirección</TabsTrigger>
         </TabsList>
         <TabsContent value="plazas"><PlazasTab /></TabsContent>
         <TabsContent value="presentaciones"><PresentacionesTab /></TabsContent>
@@ -1181,6 +1301,7 @@ export default function CatalogsManagement() {
         <TabsContent value="empresa_marcas"><EmpresaMarcasTab /></TabsContent>
         <TabsContent value="vehiculos"><VehiculosTab /></TabsContent>
         <TabsContent value="repartidores"><RepartidoresTab /></TabsContent>
+        <TabsContent value="tipos_direccion"><TiposDireccionTab /></TabsContent>
       </Tabs>
     </div>
   );
