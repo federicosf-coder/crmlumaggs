@@ -281,7 +281,7 @@ export default function Cobranza() {
                       <TableRow key={p.id}>
                         <TableCell>{formatDate(p.fecha_pago)}</TableCell>
                         <TableCell className="truncate max-w-[160px]">{p.empresa?.name}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(p.monto_disponible)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(breakdowns[p.id]?.disponibleFacturas ?? p.monto_disponible)}</TableCell>
                         <TableCell><Button size="sm" variant="outline" onClick={() => handleAplicar(p)}>Aplicar</Button></TableCell>
                       </TableRow>
                     ))}
