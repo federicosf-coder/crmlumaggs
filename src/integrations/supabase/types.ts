@@ -236,6 +236,7 @@ export type Database = {
           phone: string | null
           plaza_id: string | null
           potencial_unidades: string | null
+          razon_social: string | null
           riesgo_cambio_marca: string | null
           rol_lubricante: string | null
           state: string | null
@@ -269,6 +270,7 @@ export type Database = {
           phone?: string | null
           plaza_id?: string | null
           potencial_unidades?: string | null
+          razon_social?: string | null
           riesgo_cambio_marca?: string | null
           rol_lubricante?: string | null
           state?: string | null
@@ -302,6 +304,7 @@ export type Database = {
           phone?: string | null
           plaza_id?: string | null
           potencial_unidades?: string | null
+          razon_social?: string | null
           riesgo_cambio_marca?: string | null
           rol_lubricante?: string | null
           state?: string | null
