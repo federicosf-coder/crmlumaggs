@@ -311,25 +311,16 @@ export default function DeliveryAddresses() {
                 ))}
               </div>
             </div>
-            <div>
-              <Label>Calle / Dirección *</Label>
-              <Input value={form.calle} onChange={(e) => setForm((p) => ({ ...p, calle: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Ciudad</Label><Input value={form.ciudad} onChange={(e) => setForm((p) => ({ ...p, ciudad: e.target.value }))} /></div>
-              <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => setForm((p) => ({ ...p, estado: e.target.value }))} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Código Postal</Label><Input value={form.codigo_postal} onChange={(e) => setForm((p) => ({ ...p, codigo_postal: e.target.value }))} /></div>
-              <div><Label>Código Google</Label><Input value={form.codigo_google} onChange={(e) => setForm((p) => ({ ...p, codigo_google: e.target.value }))} placeholder="Ej: ChIJ..." /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Latitud</Label><Input type="number" step="any" value={form.coordenadas_lat} onChange={(e) => setForm((p) => ({ ...p, coordenadas_lat: e.target.value }))} placeholder="Ej: 25.6866" /></div>
-              <div><Label>Longitud</Label><Input type="number" step="any" value={form.coordenadas_lng} onChange={(e) => setForm((p) => ({ ...p, coordenadas_lng: e.target.value }))} placeholder="Ej: -100.3161" /></div>
-            </div>
+            <AddressAutocompleteInput
+              value={form.address}
+              onChange={(v) => setForm((p) => ({ ...p, address: v }))}
+              label="Dirección completa"
+              required
+              placeholder="Buscar dirección en Google Maps..."
+            />
             <div>
               <Label>Referencia</Label>
-              <Input value={form.referencia} onChange={(e) => setForm((p) => ({ ...p, referencia: e.target.value }))} />
+              <Input value={form.referencia} onChange={(e) => setForm((p) => ({ ...p, referencia: e.target.value }))} placeholder="Detalles adicionales (entre calles, color de fachada, etc.)" />
             </div>
           </div>
           <DialogFooter>
