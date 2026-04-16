@@ -127,12 +127,13 @@ export function EnviarConfirmacionPagoDialog({
     let finalEmails = emails;
     if (input.trim()) {
       const value = input.trim();
-      if (isValidEmail(value) && !finalEmails.includes(value)) {
+      if (isValidEmail(value) && !isBlocked(value) && !finalEmails.includes(value)) {
         finalEmails = [...finalEmails, value];
         setEmails(finalEmails);
       }
     }
-    return finalEmails;
+    // Defensa: nunca enviar a correos bloqueados
+    return finalEmails.filter((e) => !isBlocked(e));
   };
 
   const alreadySentMatches = (list: string[]) =>
