@@ -65,6 +65,7 @@ export function EnviarConfirmacionPagoDialog({
   comprobantes = [],
   registradoPor,
   defaultEmails = [],
+  blockedEmails = [],
   previouslySentEmails = [],
   templateName = "pago-confirmation",
   extraTemplateData,
@@ -72,24 +73,34 @@ export function EnviarConfirmacionPagoDialog({
   description,
   onSent,
 }: Props) {
-  const [emails, setEmails] = useState<string[]>(defaultEmails.filter(isValidEmail));
+  const blockedSet = new Set(blockedEmails.map((e) => e.toLowerCase()));
+  const isBlocked = (e: string) => blockedSet.has(e.toLowerCase());
+  const sanitize = (list: string[]) =>
+    list.filter((e) => isValidEmail(e) && !isBlocked(e));
+
+  const [emails, setEmails] = useState<string[]>(sanitize(defaultEmails));
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [confirmingResend, setConfirmingResend] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setEmails(defaultEmails.filter(isValidEmail));
+      setEmails(sanitize(defaultEmails));
       setConfirmingResend(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, defaultEmails.join(",")]);
+  }, [open, defaultEmails.join(","), blockedEmails.join(",")]);
 
   const addEmail = (raw?: string) => {
     const value = (raw ?? input).trim().replace(/,$/, "");
     if (!value) return;
     if (!isValidEmail(value)) {
       toast.error("Correo inválido");
+      return;
+    }
+    if (isBlocked(value)) {
+      toast.error("Este correo está bloqueado (cliente, empresa o contacto). No se permite para este envío.");
+      setInput("");
       return;
     }
     if (emails.includes(value)) {
