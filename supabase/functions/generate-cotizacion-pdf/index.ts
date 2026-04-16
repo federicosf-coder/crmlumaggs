@@ -21,7 +21,7 @@ serve(async (req) => {
     // Fetch document
     const { data: doc, error: docErr } = await sb
       .from("documentos")
-      .select("*, companies(name, address, city, state, zip_code, phone, email), contacts(first_name, last_name, email, phone)")
+      .select("*, companies(name, razon_social, address, city, state, zip_code, phone, email), contacts(first_name, last_name, email, phone)")
       .eq("id", documento_id)
       .single();
     if (docErr || !doc) throw new Error("Documento no encontrado");
@@ -203,7 +203,8 @@ serve(async (req) => {
 
     drawText("Dirigido a:", margin, y);
     y -= 14;
-    const clientName = company?.name || "";
+    // Use razon_social (legal name) for billing/PDF context, fallback to name
+    const clientName = company?.razon_social || company?.name || "";
     drawText(clientName, margin, y, fontSize, fontBold);
     y -= 14;
     const contactName = contact ? `${contact.first_name || ""} ${contact.last_name || ""}`.trim() : "";
