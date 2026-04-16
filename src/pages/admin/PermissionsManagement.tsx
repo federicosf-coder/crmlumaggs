@@ -7,11 +7,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { roleLabel } from "@/lib/roles";
 
 type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
-type AppModule = "directorio" | "crm_chevron" | "crm_phillips66" | "cotizaciones" | "inventario" | "entregas" | "transferencias" | "facturacion" | "productos" | "proyectos" | "capacitacion" | "reportes" | "modificar_pdf_cotizacion" | "eliminar_pdf_cotizacion";
+type AppModule = "directorio" | "crm_chevron" | "crm_phillips66" | "cotizaciones" | "pedidos" | "inventario" | "entregas" | "transferencias" | "facturacion" | "cobranza" | "productos" | "proyectos" | "capacitacion" | "reportes" | "modificar_pdf_cotizacion" | "eliminar_pdf_cotizacion";
 type AccessLevel = "todos" | "equipo" | "propio" | "ninguno";
 
 const ALL_ROLES: AppRole[] = ["admin", "manager", "sales", "delivery", "warehouse", "customer_service", "accounting"];
-const ALL_MODULES: AppModule[] = ["directorio", "crm_chevron", "crm_phillips66", "cotizaciones", "inventario", "entregas", "transferencias", "facturacion", "productos", "proyectos", "capacitacion", "reportes", "modificar_pdf_cotizacion", "eliminar_pdf_cotizacion"];
+const ALL_MODULES: AppModule[] = ["directorio", "crm_chevron", "crm_phillips66", "cotizaciones", "pedidos", "inventario", "entregas", "transferencias", "facturacion", "cobranza", "productos", "proyectos", "capacitacion", "reportes", "modificar_pdf_cotizacion", "eliminar_pdf_cotizacion"];
 const ACCESS_LEVELS: { value: AccessLevel; label: string }[] = [
   { value: "todos", label: "Todos" },
   { value: "equipo", label: "Equipo" },
@@ -24,10 +24,12 @@ const MODULE_LABELS: Record<AppModule, string> = {
   crm_chevron: "CRM Chevron",
   crm_phillips66: "CRM Phillips 66",
   cotizaciones: "Cotizaciones",
+  pedidos: "Pedidos",
   inventario: "Inventario",
   entregas: "Entregas",
   transferencias: "Transferencias",
   facturacion: "Facturación",
+  cobranza: "Cobranza",
   productos: "Productos",
   proyectos: "Proyectos",
   capacitacion: "Capacitación",
