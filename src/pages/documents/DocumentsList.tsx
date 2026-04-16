@@ -309,6 +309,49 @@ export default function DocumentsList() {
     }
   };
 
+  const getDocBulkFields = () => {
+    const fields: { key: string; label: string; type: "select" | "text"; options?: { value: string; label: string }[] }[] = [
+      {
+        key: "ejecutivo_venta_id",
+        label: "Ejecutivo de venta",
+        type: "select",
+        options: profiles.map((p) => ({ value: p.user_id, label: p.full_name || p.user_id })),
+      },
+      {
+        key: "empresa_vendedora",
+        label: "Empresa vendedora",
+        type: "select",
+        options: [
+          { value: "lumaggs_chevron", label: "Lumaggs Chevron" },
+          { value: "galsa_phillips66", label: "Galsa Phillips 66" },
+        ],
+      },
+    ];
+    if (tipoFilter === "cotizacion") {
+      fields.push({
+        key: "estatus_cotizacion",
+        label: "Estatus",
+        type: "select",
+        options: Object.entries(ESTATUS_COT_LABELS).map(([v, l]) => ({ value: v, label: l })),
+      });
+    } else if (tipoFilter === "pedido") {
+      fields.push({
+        key: "estatus_pedido",
+        label: "Estatus",
+        type: "select",
+        options: Object.entries(ESTATUS_PED_LABELS).map(([v, l]) => ({ value: v, label: l })),
+      });
+    } else if (tipoFilter === "factura") {
+      fields.push({
+        key: "estatus_factura",
+        label: "Estatus",
+        type: "select",
+        options: Object.entries(ESTATUS_FAC_LABELS).map(([v, l]) => ({ value: v, label: l })),
+      });
+    }
+    return fields;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
