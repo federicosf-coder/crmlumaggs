@@ -110,7 +110,7 @@ export default function DeliveryAddresses() {
   });
 
   const resetForm = () => {
-    setForm({ empresa_id: "", tipos: ["envio"], calle: "", ciudad: "", estado: "", codigo_postal: "", referencia: "", coordenadas_lat: "", coordenadas_lng: "", codigo_google: "" });
+    setForm({ empresa_id: "", tipos: ["envio"], referencia: "", address: { ...emptyAddress } });
     setEditing(null);
   };
 
@@ -122,14 +122,17 @@ export default function DeliveryAddresses() {
     setForm({
       empresa_id: a.empresa_id,
       tipos,
-      calle: a.calle,
-      ciudad: a.ciudad || "",
-      estado: a.estado || "",
-      codigo_postal: a.codigo_postal || "",
       referencia: a.referencia || "",
-      coordenadas_lat: a.coordenadas_lat != null ? String(a.coordenadas_lat) : "",
-      coordenadas_lng: a.coordenadas_lng != null ? String(a.coordenadas_lng) : "",
-      codigo_google: a.codigo_google || "",
+      address: {
+        direccion_completa: a.direccion_completa || a.calle || "",
+        latitud: a.coordenadas_lat,
+        longitud: a.coordenadas_lng,
+        ciudad: a.ciudad,
+        estado: a.estado,
+        pais: a.pais,
+        codigo_postal: a.codigo_postal,
+        codigo_google: a.codigo_google,
+      },
     });
     setDialogOpen(true);
   };
@@ -142,7 +145,8 @@ export default function DeliveryAddresses() {
   };
 
   const handleSave = async () => {
-    if (!form.empresa_id || !form.calle.trim()) {
+    const dir = form.address.direccion_completa.trim();
+    if (!form.empresa_id || !dir) {
       toast.error("Empresa y Dirección son obligatorios");
       return;
     }
@@ -156,14 +160,16 @@ export default function DeliveryAddresses() {
       empresa_id: form.empresa_id,
       tipo: primaryTipo,
       tipos: form.tipos,
-      calle: form.calle.trim(),
-      ciudad: form.ciudad.trim() || null,
-      estado: form.estado.trim() || null,
-      codigo_postal: form.codigo_postal.trim() || null,
+      calle: dir, // legacy NOT NULL column kept in sync
+      direccion_completa: dir,
+      ciudad: form.address.ciudad || null,
+      estado: form.address.estado || null,
+      pais: form.address.pais || null,
+      codigo_postal: form.address.codigo_postal || null,
       referencia: form.referencia.trim() || null,
-      coordenadas_lat: form.coordenadas_lat ? Number(form.coordenadas_lat) : null,
-      coordenadas_lng: form.coordenadas_lng ? Number(form.coordenadas_lng) : null,
-      codigo_google: form.codigo_google.trim() || null,
+      coordenadas_lat: form.address.latitud,
+      coordenadas_lng: form.address.longitud,
+      codigo_google: form.address.codigo_google || null,
     };
 
     if (editing) {
