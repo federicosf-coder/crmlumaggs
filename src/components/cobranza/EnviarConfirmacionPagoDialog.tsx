@@ -21,6 +21,11 @@ interface DocumentoLigado {
   monto: string;
 }
 
+interface Comprobante {
+  nombre: string;
+  url: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -31,6 +36,7 @@ interface Props {
   moneda: string;
   observaciones?: string;
   documentos: DocumentoLigado[];
+  comprobantes?: Comprobante[];
   registradoPor?: string;
   defaultEmails?: string[];
 }
@@ -47,6 +53,7 @@ export function EnviarConfirmacionPagoDialog({
   moneda,
   observaciones,
   documentos,
+  comprobantes = [],
   registradoPor,
   defaultEmails = [],
 }: Props) {
@@ -116,6 +123,7 @@ export function EnviarConfirmacionPagoDialog({
                 moneda,
                 observaciones,
                 documentos,
+                comprobantes,
                 registradoPor,
               },
             },
