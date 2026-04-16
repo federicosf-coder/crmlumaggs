@@ -402,6 +402,12 @@ export default function Directory() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={filteredContacts.length > 0 && selectedContactIds.size === filteredContacts.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>Nombre</TableHead>
                       <TableHead>Apellido</TableHead>
                       <TableHead className="hidden sm:table-cell">Celular</TableHead>
@@ -412,7 +418,19 @@ export default function Directory() {
                   </TableHeader>
                   <TableBody>
                     {filteredContacts.map(c => (
-                      <TableRow key={c.id} className="cursor-pointer transition-colors duration-150 hover:bg-muted/50" onClick={() => setSelectedContact(c)}>
+                      <TableRow key={c.id} className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedContactIds.has(c.id) ? "bg-muted/30" : ""}`} onClick={() => setSelectedContact(c)}>
+                        <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedContactIds.has(c.id)}
+                            onCheckedChange={() => {
+                              setSelectedContactIds(prev => {
+                                const next = new Set(prev);
+                                next.has(c.id) ? next.delete(c.id) : next.add(c.id);
+                                return next;
+                              });
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{c.first_name}</TableCell>
                         <TableCell>{c.last_name}</TableCell>
                         <TableCell className="hidden sm:table-cell">{c.mobile || "—"}</TableCell>
