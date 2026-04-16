@@ -18,6 +18,7 @@ import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { DocumentKanban } from "@/components/documents/DocumentKanban";
+import { BulkEditDialog } from "@/components/BulkEditDialog";
 
 const ESTATUS_COT_LABELS: Record<string, string> = {
   borrador: "Borrador", impresa: "Impresa", enviada: "Enviada",
@@ -103,6 +104,7 @@ export default function DocumentsList() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
   const setFilter = useCallback((key: string, value: string) => {
     setSearchParams(prev => {
