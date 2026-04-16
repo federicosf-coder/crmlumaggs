@@ -216,11 +216,7 @@ export function EnviarConfirmacionPagoDialog({
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-1">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Empresa</span>
-              <span className="font-medium">{empresa}</span>
-            </div>
+          <div className="rounded-md border bg-muted/30 p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Monto</span>
               <span className="font-semibold">

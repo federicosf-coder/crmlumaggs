@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail } from "lucide-react";
+import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageBanner } from "@/components/PageBanner";
@@ -444,12 +445,19 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const [comprobantes, setComprobantes] = useState<{ nombre: string; url: string }[]>([]);
   const [previouslySentEmails, setPreviouslySentEmails] = useState<string[]>([]);
   const [loadingEmails, setLoadingEmails] = useState<null | "contado" | "credito" | "credito_cescemex" | "general">(null);
+  const [editandoFormaPago, setEditandoFormaPago] = useState(false);
+  const [nuevaFormaPago, setNuevaFormaPago] = useState<string>(pago?.tipo_pago || "");
   const [activeFlow, setActiveFlow] = useState<{
     templateName: string;
     title: string;
     description: string;
     formaPago?: string;
   }>({ templateName: "pago-confirmation", title: "Enviar confirmación", description: "" });
+
+  useEffect(() => {
+    setNuevaFormaPago(pago?.tipo_pago || "");
+    setEditandoFormaPago(false);
+  }, [pago?.id, pago?.tipo_pago]);
 
   const handleCancelarAplicacion = async (id: string) => {
     if (!confirm("¿Cancelar esta aplicación?")) return;
@@ -585,19 +593,55 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         </SheetHeader>
         <div className="space-y-4 mt-6">
           <div className="flex flex-wrap justify-end gap-2">
-            <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("contado")} disabled={loadingEmails !== null}>
-              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "contado" ? "Cargando..." : "Enviar correo Contado"}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("credito")} disabled={loadingEmails !== null}>
-              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito" ? "Cargando..." : "Enviar correo Crédito Directo"}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("credito_cescemex")} disabled={loadingEmails !== null}>
-              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito_cescemex" ? "Cargando..." : "Enviar correo Crédito Cescemex"}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => loadEmailsAndOpen("general")} disabled={loadingEmails !== null}>
-              <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "general" ? "Cargando..." : "Confirmación"}
+            {(!pago.tipo_pago || pago.tipo_pago === "contado") && (
+              <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("contado")} disabled={loadingEmails !== null}>
+                <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "contado" ? "Cargando..." : "Enviar correo Contado"}
+              </Button>
+            )}
+            {(!pago.tipo_pago || pago.tipo_pago === "credito") && (
+              <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("credito")} disabled={loadingEmails !== null}>
+                <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito" ? "Cargando..." : "Enviar correo Crédito Directo"}
+              </Button>
+            )}
+            {(!pago.tipo_pago || pago.tipo_pago === "credito_cescemex") && (
+              <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("credito_cescemex")} disabled={loadingEmails !== null}>
+                <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito_cescemex" ? "Cargando..." : "Enviar correo Crédito Cescemex"}
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => setEditandoFormaPago(true)}>
+              <Pencil className="h-4 w-4 mr-2" /> Editar
             </Button>
           </div>
+          {editandoFormaPago && (
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <Label className="text-sm font-semibold">Editar Forma de Pago</Label>
+                <select
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  value={nuevaFormaPago}
+                  onChange={(e) => setNuevaFormaPago(e.target.value)}
+                >
+                  <option value="">— Sin definir —</option>
+                  <option value="contado">Contado</option>
+                  <option value="credito">Crédito Directo</option>
+                  <option value="credito_cescemex">Crédito Cescemex</option>
+                </select>
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setEditandoFormaPago(false)}>Cancelar</Button>
+                  <Button size="sm" onClick={async () => {
+                    const { error } = await supabase
+                      .from("cobranza_pagos")
+                      .update({ tipo_pago: (nuevaFormaPago || null) as any })
+                      .eq("id", pago.id);
+                    if (error) { toast.error(error.message); return; }
+                    toast.success("Forma de pago actualizada");
+                    setEditandoFormaPago(false);
+                    onChanged();
+                  }}>Guardar</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardContent className="p-4 grid grid-cols-2 gap-3 text-sm">
               <div><p className="text-muted-foreground text-xs">Cliente</p><p className="font-medium">{pago.empresa?.name}</p></div>
