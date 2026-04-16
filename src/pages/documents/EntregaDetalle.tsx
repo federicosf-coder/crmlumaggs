@@ -40,6 +40,10 @@ export default function EntregaDetalle() {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [notas, setNotas] = useState("");
   const [savingNotas, setSavingNotas] = useState(false);
+  const [estatusPedido, setEstatusPedido] = useState<string>("");
+  const [fechaEntrega, setFechaEntrega] = useState<string>("");
+  const [savingEstatus, setSavingEstatus] = useState(false);
+  const [savingFecha, setSavingFecha] = useState(false);
 
   // Documento
   const { data: documento, isLoading } = useQuery({
