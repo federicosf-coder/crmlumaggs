@@ -329,6 +329,15 @@ export default function DeliveryAddresses() {
               required
               placeholder="Buscar dirección en Google Maps..."
             />
+            {(form.address.direccion_completa || (form.address.latitud != null && form.address.longitud != null)) && (
+              <AddressDisplay
+                address={form.address.direccion_completa}
+                lat={form.address.latitud}
+                lng={form.address.longitud}
+                showText={false}
+                showMap
+              />
+            )}
             <div>
               <Label>Referencia</Label>
               <Input value={form.referencia} onChange={(e) => setForm((p) => ({ ...p, referencia: e.target.value }))} placeholder="Detalles adicionales (entre calles, color de fachada, etc.)" />
