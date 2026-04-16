@@ -290,6 +290,16 @@ export default function Directory() {
           </div>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
+          {/* Bulk action bar */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 px-4 py-2 mb-2 bg-muted rounded-md">
+              <CheckSquare className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Deseleccionar</Button>
+              <Button variant="outline" size="sm" onClick={() => handleBulkToggleActive(true)}>Activar</Button>
+              <Button variant="outline" size="sm" onClick={() => handleBulkToggleActive(false)}>Desactivar</Button>
+            </div>
+          )}
           {activeTab === "companies" ? (
             /* ─── EMPRESAS ─── */
             loading ? (
@@ -305,6 +315,12 @@ export default function Directory() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={filteredCompanies.length > 0 && selectedCompanyIds.size === filteredCompanies.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>Empresa</TableHead>
                       <TableHead className="hidden sm:table-cell">Industria</TableHead>
                       <TableHead>Contactos</TableHead>
@@ -314,7 +330,19 @@ export default function Directory() {
                   </TableHeader>
                   <TableBody>
                     {filteredCompanies.map(c => (
-                      <TableRow key={c.id} className="cursor-pointer transition-colors duration-150 hover:bg-muted/50" onClick={() => setSelectedCompany(c)}>
+                      <TableRow key={c.id} className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedCompanyIds.has(c.id) ? "bg-muted/30" : ""}`} onClick={() => setSelectedCompany(c)}>
+                        <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedCompanyIds.has(c.id)}
+                            onCheckedChange={() => {
+                              setSelectedCompanyIds(prev => {
+                                const next = new Set(prev);
+                                next.has(c.id) ? next.delete(c.id) : next.add(c.id);
+                                return next;
+                              });
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{c.name}</TableCell>
                         <TableCell className="hidden sm:table-cell">{c.industry || "—"}</TableCell>
                         <TableCell>{(c.contacts as any[])?.length || 0}</TableCell>
