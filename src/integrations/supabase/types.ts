@@ -850,6 +850,72 @@ export type Database = {
           },
         ]
       }
+      documento_archivos_firmados: {
+        Row: {
+          documento_id: string
+          fecha_carga: string
+          id: string
+          nombre_archivo: string
+          tipo_archivo: string
+          url_archivo: string
+          usuario_carga: string | null
+        }
+        Insert: {
+          documento_id: string
+          fecha_carga?: string
+          id?: string
+          nombre_archivo: string
+          tipo_archivo: string
+          url_archivo: string
+          usuario_carga?: string | null
+        }
+        Update: {
+          documento_id?: string
+          fecha_carga?: string
+          id?: string
+          nombre_archivo?: string
+          tipo_archivo?: string
+          url_archivo?: string
+          usuario_carga?: string | null
+        }
+        Relationships: []
+      }
+      documento_direccion_bitacora: {
+        Row: {
+          created_at: string
+          direccion_anterior: string | null
+          direccion_nueva: string
+          documento_id: string
+          id: string
+          latitud: number | null
+          longitud: number | null
+          origen: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          direccion_anterior?: string | null
+          direccion_nueva: string
+          documento_id: string
+          id?: string
+          latitud?: number | null
+          longitud?: number | null
+          origen?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          direccion_anterior?: string | null
+          direccion_nueva?: string
+          documento_id?: string
+          id?: string
+          latitud?: number | null
+          longitud?: number | null
+          origen?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       documento_fotos_entrega: {
         Row: {
           created_at: string
@@ -940,6 +1006,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           direccion_envio: string | null
+          direccion_envio_lat: number | null
+          direccion_envio_lng: number | null
           ejecutivo_venta_id: string | null
           empresa_id: string | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
@@ -982,6 +1050,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           direccion_envio?: string | null
+          direccion_envio_lat?: number | null
+          direccion_envio_lng?: number | null
           ejecutivo_venta_id?: string | null
           empresa_id?: string | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
@@ -1026,6 +1096,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           direccion_envio?: string | null
+          direccion_envio_lat?: number | null
+          direccion_envio_lng?: number | null
           ejecutivo_venta_id?: string | null
           empresa_id?: string | null
           empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
