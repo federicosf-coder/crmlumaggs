@@ -210,8 +210,8 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Documentos a ligar (facturas, pedidos o cotizaciones) *</Label>
+            <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+              <Label>Documentos a ligar *</Label>
               {montoNum > 0 && (
                 <div className="text-xs text-muted-foreground">
                   Asignado: <span className="font-medium text-foreground">{formatCurrency(totalAsignado)}</span> /{" "}
@@ -224,6 +224,22 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
                 </div>
               )}
             </div>
+            <div className="flex gap-1 mb-2">
+              {(["factura", "pedido", "cotizacion"] as const).map((t) => {
+                const count = docs.filter((d) => d.tipo_documento === t).length;
+                return (
+                  <Button
+                    key={t}
+                    type="button"
+                    size="sm"
+                    variant={tipoFiltro === t ? "default" : "outline"}
+                    onClick={() => setTipoFiltro(t)}
+                  >
+                    {TIPO_LABEL[t]}s {empresaId && <span className="ml-1 opacity-70">({count})</span>}
+                  </Button>
+                );
+              })}
+            </div>
             <div className="border rounded-md">
               {!empresaId && (
                 <div className="p-6 text-sm text-center text-muted-foreground">Selecciona una empresa para ver sus documentos</div>
@@ -231,16 +247,15 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
               {empresaId && loadingDocs && (
                 <div className="p-6 text-sm text-center text-muted-foreground">Cargando documentos...</div>
               )}
-              {empresaId && !loadingDocs && docs.length === 0 && (
-                <div className="p-6 text-sm text-center text-muted-foreground">Esta empresa no tiene documentos</div>
+              {empresaId && !loadingDocs && docs.filter((d) => d.tipo_documento === tipoFiltro).length === 0 && (
+                <div className="p-6 text-sm text-center text-muted-foreground">No hay {TIPO_LABEL[tipoFiltro].toLowerCase()}s para esta empresa</div>
               )}
-              {empresaId && !loadingDocs && docs.length > 0 && (
+              {empresaId && !loadingDocs && docs.filter((d) => d.tipo_documento === tipoFiltro).length > 0 && (
                 <ScrollArea className="h-64">
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-muted/50 border-b">
                       <tr className="text-left">
                         <th className="p-2 w-8"></th>
-                        <th className="p-2">Tipo</th>
                         <th className="p-2">Folio</th>
                         <th className="p-2">Fecha</th>
                         <th className="p-2 text-right">Total</th>
@@ -249,15 +264,12 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
                       </tr>
                     </thead>
                     <tbody>
-                      {docs.map((d) => {
+                      {docs.filter((d) => d.tipo_documento === tipoFiltro).map((d) => {
                         const checked = seleccion[d.id] !== undefined;
                         return (
                           <tr key={d.id} className="border-b last:border-0 hover:bg-muted/30">
                             <td className="p-2">
                               <Checkbox checked={checked} onCheckedChange={(v) => toggleDoc(d, !!v)} />
-                            </td>
-                            <td className="p-2">
-                              <Badge variant="outline" className="text-xs">{TIPO_LABEL[d.tipo_documento]}</Badge>
                             </td>
                             <td className="p-2 font-mono text-xs">{d.numero}</td>
                             <td className="p-2 text-xs">{formatDate(d.fecha_documento)}</td>
