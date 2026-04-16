@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { DocumentKanban } from "@/components/documents/DocumentKanban";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
+import { ExportFieldsDialog, ExportField } from "@/components/documents/ExportFieldsDialog";
 
 const ESTATUS_COT_LABELS: Record<string, string> = {
   borrador: "Borrador", impresa: "Impresa", enviada: "Enviada",
