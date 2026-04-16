@@ -445,12 +445,19 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const [comprobantes, setComprobantes] = useState<{ nombre: string; url: string }[]>([]);
   const [previouslySentEmails, setPreviouslySentEmails] = useState<string[]>([]);
   const [loadingEmails, setLoadingEmails] = useState<null | "contado" | "credito" | "credito_cescemex" | "general">(null);
+  const [editandoFormaPago, setEditandoFormaPago] = useState(false);
+  const [nuevaFormaPago, setNuevaFormaPago] = useState<string>(pago?.tipo_pago || "");
   const [activeFlow, setActiveFlow] = useState<{
     templateName: string;
     title: string;
     description: string;
     formaPago?: string;
   }>({ templateName: "pago-confirmation", title: "Enviar confirmación", description: "" });
+
+  useEffect(() => {
+    setNuevaFormaPago(pago?.tipo_pago || "");
+    setEditandoFormaPago(false);
+  }, [pago?.id, pago?.tipo_pago]);
 
   const handleCancelarAplicacion = async (id: string) => {
     if (!confirm("¿Cancelar esta aplicación?")) return;
