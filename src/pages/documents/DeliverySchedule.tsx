@@ -260,7 +260,7 @@ export default function DeliverySchedule() {
     queryFn: async () => {
       const { data } = await supabase
         .from("documentos")
-        .select("*, companies(name)")
+        .select("*, companies(name), documento_productos(cantidad, producto_id, productos(presentacion_id, presentaciones(nombre)))")
         .eq("tipo_documento", "pedido")
         .eq("is_active", true)
         .in("estatus_pedido", [...POOL_STATUSES])
@@ -323,17 +323,29 @@ export default function DeliverySchedule() {
 
     const pedidoItems: PoolItem[] = poolPedidos
       .filter((p: any) => !scheduledDocIds.has(p.id))
-      .map((p: any) => ({
-        id: p.id,
-        type: "pedido" as const,
-        title: p.numero_pedido || p.numero_cotizacion || "Sin número",
-        subtitle: p.companies?.name || "Sin cliente",
-        address: p.direccion_envio || undefined,
-        total: Number(p.total) || 0,
-        estatus: p.estatus_pedido || "confirmado_cliente",
-        plaza_id: p.plaza_id || undefined,
-        raw: p,
-      }));
+      .map((p: any) => {
+        // Group quantities by presentacion
+        const presByName: Record<string, number> = {};
+        (p.documento_productos || []).forEach((dp: any) => {
+          const presName = dp.productos?.presentaciones?.nombre || "Sin presentación";
+          presByName[presName] = (presByName[presName] || 0) + Number(dp.cantidad);
+        });
+        const productSummary = Object.entries(presByName)
+          .map(([name, qty]) => `${qty} ${name}`)
+          .join(", ") || "Sin productos";
+
+        return {
+          id: p.id,
+          type: "pedido" as const,
+          title: p.companies?.name || "Sin cliente",
+          subtitle: productSummary,
+          address: p.direccion_envio || undefined,
+          total: Number(p.total) || 0,
+          estatus: p.estatus_pedido || "confirmado_cliente",
+          plaza_id: p.plaza_id || undefined,
+          raw: p,
+        };
+      });
 
     const taskItems: PoolItem[] = poolTasks.map((t: any) => ({
       id: `task-${t.id}`,
