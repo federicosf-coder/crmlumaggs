@@ -320,7 +320,7 @@ export default function DeliverySchedule() {
     queryFn: async () => {
       const { data } = await supabase
         .from("entregas_programadas")
-        .select("*, documentos(*, companies(name))")
+        .select("*, documentos(*, companies(name), documento_productos(cantidad, producto_id, productos(presentacion_id, presentaciones(nombre))))")
         .order("orden_ruta");
       return data || [];
     },
