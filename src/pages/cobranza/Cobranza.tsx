@@ -651,6 +651,15 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         registradoPor={profile?.full_name || user?.email || undefined}
         defaultEmails={defaultEmails}
         previouslySentEmails={previouslySentEmails}
+        templateName={activeFlow.templateName}
+        title={activeFlow.title}
+        description={activeFlow.description}
+        extraTemplateData={{
+          cliente: pago.empresa?.name,
+          referencia: pago.referencia_pago,
+          formaPago: activeFlow.formaPago || pago.tipo_pago,
+        }}
+        onSent={activeFlow.templateName === "pago-validacion" ? handleSentValidacion : undefined}
       />
     </Sheet>
   );
