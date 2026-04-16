@@ -62,7 +62,7 @@ export default function Cobranza() {
 
   const [searchPagos, setSearchPagos] = useState("");
   const [searchFacturas, setSearchFacturas] = useState("");
-  const [bucketSel, setBucketSel] = useState<string | null>(null);
+  const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
 
   // Solo facturas activas para cartera/dashboard
   const facturas = useMemo(() => documentos.filter((d) => d.tipo_documento === "factura" && d.estado_cobranza !== "cancelada"), [documentos]);
