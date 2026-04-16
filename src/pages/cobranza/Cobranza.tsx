@@ -151,7 +151,7 @@ export default function Cobranza() {
       <PageBanner
         title="Cobranza"
         description="Gestión de pagos, aplicaciones y cartera por cobrar"
-        icon={Wallet}
+        avatar={<div className="h-10 w-10 rounded-md bg-primary/10 text-primary flex items-center justify-center"><Wallet className="h-5 w-5" /></div>}
       />
 
       <div className="flex justify-end">
