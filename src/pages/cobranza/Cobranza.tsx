@@ -489,9 +489,11 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   if (!pago) return null;
 
   const TIPO_LABEL: Record<string, string> = { factura: "Factura", pedido: "Pedido", cotizacion: "Cotización" };
-  const documentosLigados = aplicaciones
-    .filter((a) => a.estatus_aplicacion === "activa")
-    .map((a) => ({
+  const aplicacionesActivas = aplicaciones.filter((a) => a.estatus_aplicacion === "activa");
+  const aplicadoFacturas = aplicacionesActivas.filter((a) => a.tipo_documento === "factura").reduce((s, a) => s + Number(a.monto_aplicado || 0), 0);
+  const aplicadoOtros = aplicacionesActivas.filter((a) => a.tipo_documento !== "factura").reduce((s, a) => s + Number(a.monto_aplicado || 0), 0);
+  const disponibleFacturas = Math.max(0, Number(pago.monto_total) - aplicadoFacturas);
+  const documentosLigados = aplicacionesActivas.map((a) => ({
       tipo: TIPO_LABEL[a.tipo_documento] || a.tipo_documento,
       numero: a.documento?.numero_factura || a.documento?.numero_pedido || a.documento?.numero_cotizacion || a.documento_id.slice(0, 8),
       monto: formatCurrency(Number(a.monto_aplicado)),
