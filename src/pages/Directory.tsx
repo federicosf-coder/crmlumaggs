@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess, type AccessLevel } from "@/hooks/useModuleAccess";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin } from "lucide-react";
+import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
@@ -16,6 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 interface Company {
   id: string; name: string; industry: string | null; phone: string | null;
@@ -72,6 +74,8 @@ export default function Directory() {
   const [contactSort, setContactSort] = useState("last_name_asc");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [editContact, setEditContact] = useState<ContactEditData | null>(null);
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
 
   const access = useModuleAccess("directorio");
 
@@ -177,6 +181,33 @@ export default function Directory() {
   const setView = activeTab === "companies" ? setCompanyView : setContactView;
   const tabColor = TAB_COLORS[activeTab] || TAB_COLORS.companies;
 
+  const selectedIds = activeTab === "companies" ? selectedCompanyIds : selectedContactIds;
+  const setSelectedIds = activeTab === "companies" ? setSelectedCompanyIds : setSelectedContactIds;
+  const currentList = activeTab === "companies" ? filteredCompanies : filteredContacts;
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === currentList.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(currentList.map(i => i.id)));
+    }
+  };
+
+  const handleBulkToggleActive = async (active: boolean) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    try {
+      const table = activeTab === "companies" ? "companies" : "contacts";
+      const { error } = await supabase.from(table).update({ is_active: active }).in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} registro(s) ${active ? "activados" : "desactivados"}`);
+      setSelectedIds(new Set());
+      fetchData();
+    } catch (err: any) {
+      toast.error("Error: " + (err.message || "Error"));
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header — matches Documentos */}
@@ -259,6 +290,16 @@ export default function Directory() {
           </div>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
+          {/* Bulk action bar */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 px-4 py-2 mb-2 bg-muted rounded-md">
+              <CheckSquare className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Deseleccionar</Button>
+              <Button variant="outline" size="sm" onClick={() => handleBulkToggleActive(true)}>Activar</Button>
+              <Button variant="outline" size="sm" onClick={() => handleBulkToggleActive(false)}>Desactivar</Button>
+            </div>
+          )}
           {activeTab === "companies" ? (
             /* ─── EMPRESAS ─── */
             loading ? (
@@ -274,6 +315,12 @@ export default function Directory() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={filteredCompanies.length > 0 && selectedCompanyIds.size === filteredCompanies.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>Empresa</TableHead>
                       <TableHead className="hidden sm:table-cell">Industria</TableHead>
                       <TableHead>Contactos</TableHead>
@@ -283,7 +330,19 @@ export default function Directory() {
                   </TableHeader>
                   <TableBody>
                     {filteredCompanies.map(c => (
-                      <TableRow key={c.id} className="cursor-pointer transition-colors duration-150 hover:bg-muted/50" onClick={() => setSelectedCompany(c)}>
+                      <TableRow key={c.id} className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedCompanyIds.has(c.id) ? "bg-muted/30" : ""}`} onClick={() => setSelectedCompany(c)}>
+                        <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedCompanyIds.has(c.id)}
+                            onCheckedChange={() => {
+                              setSelectedCompanyIds(prev => {
+                                const next = new Set(prev);
+                                next.has(c.id) ? next.delete(c.id) : next.add(c.id);
+                                return next;
+                              });
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{c.name}</TableCell>
                         <TableCell className="hidden sm:table-cell">{c.industry || "—"}</TableCell>
                         <TableCell>{(c.contacts as any[])?.length || 0}</TableCell>
@@ -343,6 +402,12 @@ export default function Directory() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={filteredContacts.length > 0 && selectedContactIds.size === filteredContacts.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>Nombre</TableHead>
                       <TableHead>Apellido</TableHead>
                       <TableHead className="hidden sm:table-cell">Celular</TableHead>
@@ -353,7 +418,19 @@ export default function Directory() {
                   </TableHeader>
                   <TableBody>
                     {filteredContacts.map(c => (
-                      <TableRow key={c.id} className="cursor-pointer transition-colors duration-150 hover:bg-muted/50" onClick={() => setSelectedContact(c)}>
+                      <TableRow key={c.id} className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedContactIds.has(c.id) ? "bg-muted/30" : ""}`} onClick={() => setSelectedContact(c)}>
+                        <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedContactIds.has(c.id)}
+                            onCheckedChange={() => {
+                              setSelectedContactIds(prev => {
+                                const next = new Set(prev);
+                                next.has(c.id) ? next.delete(c.id) : next.add(c.id);
+                                return next;
+                              });
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{c.first_name}</TableCell>
                         <TableCell>{c.last_name}</TableCell>
                         <TableCell className="hidden sm:table-cell">{c.mobile || "—"}</TableCell>

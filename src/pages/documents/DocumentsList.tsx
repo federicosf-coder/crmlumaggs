@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2 } from "lucide-react";
+import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2, CheckSquare } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
@@ -99,6 +100,9 @@ export default function DocumentsList() {
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
   const setFilter = useCallback((key: string, value: string) => {
     setSearchParams(prev => {
@@ -267,6 +271,42 @@ export default function DocumentsList() {
   const tabColor = TAB_COLORS[tipoFilter] || TAB_COLORS.cotizacion;
   const isPedido = tipoFilter === "pedido";
 
+  // Reset selection when tab/filter changes
+  useEffect(() => { setSelectedIds(new Set()); }, [tipoFilter, empresaFilter, ejecutivoFilter]);
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === sortedDocs.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sortedDocs.map((d: any) => d.id)));
+    }
+  };
+  const handleBulkDelete = async () => {
+    if (!isAdmin || selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase.from("documentos").update({ is_active: false }).in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} documento(s) eliminados`);
+      setSelectedIds(new Set());
+      refetch();
+    } catch (err: any) {
+      toast.error("Error: " + (err.message || "Error"));
+    } finally {
+      setBulkDeleting(false);
+      setBulkDeleteConfirm(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -393,6 +433,19 @@ export default function DocumentsList() {
             </div>
           </CardHeader>
           <CardContent className="px-0 sm:px-6">
+            {/* Bulk action bar */}
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-3 px-4 py-2 mb-2 bg-muted rounded-md">
+                <CheckSquare className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Deseleccionar</Button>
+                {isAdmin && (
+                  <Button variant="destructive" size="sm" onClick={() => setBulkDeleteConfirm(true)}>
+                    <Trash2 className="h-4 w-4 mr-1" /> Eliminar seleccionados
+                  </Button>
+                )}
+              </div>
+            )}
             {isLoading ? (
               <p className="text-center py-8 text-muted-foreground">Cargando...</p>
             ) : docs.length === 0 ? (
@@ -408,6 +461,12 @@ export default function DocumentsList() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={sortedDocs.length > 0 && selectedIds.size === sortedDocs.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       {!isPedido && (
                         <TableHead>
                           {tipoFilter === "factura" ? "No. Factura" : "Número"}
@@ -434,9 +493,21 @@ export default function DocumentsList() {
                     {sortedDocs.map((doc: any) => (
                       <TableRow
                         key={doc.id}
-                        className="cursor-pointer transition-colors duration-150 hover:bg-muted/50"
+                        className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedIds.has(doc.id) ? "bg-muted/30" : ""}`}
                         onClick={() => navigate(`/documents/${doc.id}`)}
                       >
+                        <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(doc.id)}
+                            onCheckedChange={() => {
+                              setSelectedIds(prev => {
+                                const next = new Set(prev);
+                                next.has(doc.id) ? next.delete(doc.id) : next.add(doc.id);
+                                return next;
+                              });
+                            }}
+                          />
+                        </TableCell>
                         {!isPedido && (
                           <TableCell className="font-medium whitespace-nowrap">
                             {tipoFilter === "factura"
@@ -530,6 +601,26 @@ export default function DocumentsList() {
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk delete confirmation dialog */}
+      <Dialog open={bulkDeleteConfirm} onOpenChange={(open) => !open && setBulkDeleteConfirm(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar {selectedIds.size} documento(s)</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de eliminar los documentos seleccionados? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteConfirm(false)} disabled={bulkDeleting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDeleting}>
+              {bulkDeleting ? "Eliminando..." : "Eliminar"}
             </Button>
           </DialogFooter>
         </DialogContent>
