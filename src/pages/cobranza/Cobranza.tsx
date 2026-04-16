@@ -115,8 +115,8 @@ export default function Cobranza() {
   }, [facturas]);
 
   const pagosNoAplicados = useMemo(
-    () => pagos.filter((p) => p.estado_pago !== "cancelado" && p.monto_disponible > 0).slice(0, 10),
-    [pagos]
+    () => pagos.filter((p) => p.estado_pago !== "cancelado" && (breakdowns[p.id]?.disponibleFacturas ?? p.monto_disponible) > 0).slice(0, 10),
+    [pagos, breakdowns]
   );
 
   const carteraPorPlaza = useMemo(() => {
