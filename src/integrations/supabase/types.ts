@@ -671,6 +671,7 @@ export type Database = {
           is_active: boolean
           referencia: string | null
           tipo: Database["public"]["Enums"]["tipo_direccion"]
+          tipos: string[]
           updated_at: string
         }
         Insert: {
@@ -687,6 +688,7 @@ export type Database = {
           is_active?: boolean
           referencia?: string | null
           tipo?: Database["public"]["Enums"]["tipo_direccion"]
+          tipos?: string[]
           updated_at?: string
         }
         Update: {
@@ -703,6 +705,7 @@ export type Database = {
           is_active?: boolean
           referencia?: string | null
           tipo?: Database["public"]["Enums"]["tipo_direccion"]
+          tipos?: string[]
           updated_at?: string
         }
         Relationships: [
@@ -1634,6 +1637,33 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tipos_direccion: {
+        Row: {
+          clave: string
+          created_at: string
+          etiqueta: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          clave: string
+          created_at?: string
+          etiqueta: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          clave?: string
+          created_at?: string
+          etiqueta?: string
+          id?: string
+          is_active?: boolean
           updated_at?: string
         }
         Relationships: []
