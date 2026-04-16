@@ -18,6 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { BulkEditDialog } from "@/components/BulkEditDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface Company {
   id: string; name: string; industry: string | null; phone: string | null;
@@ -76,6 +78,7 @@ export default function Directory() {
   const [editContact, setEditContact] = useState<ContactEditData | null>(null);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
   const access = useModuleAccess("directorio");
 
@@ -92,6 +95,14 @@ export default function Directory() {
     queryKey: ["profiles_all"],
     queryFn: async () => {
       const { data } = await supabase.from("profiles").select("user_id, full_name, email");
+      return data || [];
+    },
+  });
+
+  const { data: plazasList = [] } = useQuery({
+    queryKey: ["plazas_bulk"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre");
       return data || [];
     },
   });
@@ -296,6 +307,9 @@ export default function Directory() {
               <CheckSquare className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
               <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Deseleccionar</Button>
+              <Button variant="outline" size="sm" onClick={() => setBulkEditOpen(true)}>
+                <Pencil className="h-4 w-4 mr-1" /> Editar seleccionados
+              </Button>
               <Button variant="outline" size="sm" onClick={() => handleBulkToggleActive(true)}>Activar</Button>
               <Button variant="outline" size="sm" onClick={() => handleBulkToggleActive(false)}>Desactivar</Button>
             </div>
@@ -601,6 +615,35 @@ export default function Directory() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Bulk edit dialog */}
+      <BulkEditDialog
+        open={bulkEditOpen}
+        onOpenChange={setBulkEditOpen}
+        selectedIds={Array.from(selectedIds)}
+        table={activeTab === "companies" ? "companies" : "contacts"}
+        fields={activeTab === "companies" ? [
+          { key: "plaza_id", label: "Plaza", type: "select", options: plazasList.map(p => ({ value: p.id, label: p.nombre })) },
+          { key: "lista_precios", label: "Lista de precios", type: "select", options: [
+            { value: "UF1", label: "UF1" }, { value: "UF2", label: "UF2" },
+            { value: "UF3", label: "UF3" }, { value: "UF4", label: "UF4" },
+            { value: "R1", label: "R1" }, { value: "R2", label: "R2" },
+            { value: "R3", label: "R3" }, { value: "R4", label: "R4" },
+            { value: "lista_galper", label: "Lista Galper" },
+          ]},
+          { key: "is_active", label: "Estado", type: "select", options: [
+            { value: "__true__", label: "Activo" }, { value: "__false__", label: "Inactivo" },
+          ]},
+          { key: "industry", label: "Industria", type: "text" },
+        ] : [
+          { key: "is_active", label: "Estado", type: "select", options: [
+            { value: "__true__", label: "Activo" }, { value: "__false__", label: "Inactivo" },
+          ]},
+          { key: "job_title", label: "Puesto", type: "text" },
+          { key: "department", label: "Departamento", type: "text" },
+        ]}
+        onSuccess={() => { setSelectedIds(new Set()); fetchData(); }}
+      />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { DocumentKanban } from "@/components/documents/DocumentKanban";
+import { BulkEditDialog } from "@/components/BulkEditDialog";
 
 const ESTATUS_COT_LABELS: Record<string, string> = {
   borrador: "Borrador", impresa: "Impresa", enviada: "Enviada",
@@ -103,6 +104,7 @@ export default function DocumentsList() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
   const setFilter = useCallback((key: string, value: string) => {
     setSearchParams(prev => {
@@ -307,6 +309,49 @@ export default function DocumentsList() {
     }
   };
 
+  const getDocBulkFields = () => {
+    const fields: { key: string; label: string; type: "select" | "text"; options?: { value: string; label: string }[] }[] = [
+      {
+        key: "ejecutivo_venta_id",
+        label: "Ejecutivo de venta",
+        type: "select",
+        options: profiles.map((p) => ({ value: p.user_id, label: p.full_name || p.user_id })),
+      },
+      {
+        key: "empresa_vendedora",
+        label: "Empresa vendedora",
+        type: "select",
+        options: [
+          { value: "lumaggs_chevron", label: "Lumaggs Chevron" },
+          { value: "galsa_phillips66", label: "Galsa Phillips 66" },
+        ],
+      },
+    ];
+    if (tipoFilter === "cotizacion") {
+      fields.push({
+        key: "estatus_cotizacion",
+        label: "Estatus",
+        type: "select",
+        options: Object.entries(ESTATUS_COT_LABELS).map(([v, l]) => ({ value: v, label: l })),
+      });
+    } else if (tipoFilter === "pedido") {
+      fields.push({
+        key: "estatus_pedido",
+        label: "Estatus",
+        type: "select",
+        options: Object.entries(ESTATUS_PED_LABELS).map(([v, l]) => ({ value: v, label: l })),
+      });
+    } else if (tipoFilter === "factura") {
+      fields.push({
+        key: "estatus_factura",
+        label: "Estatus",
+        type: "select",
+        options: Object.entries(ESTATUS_FAC_LABELS).map(([v, l]) => ({ value: v, label: l })),
+      });
+    }
+    return fields;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -439,6 +484,9 @@ export default function DocumentsList() {
                 <CheckSquare className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
                 <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Deseleccionar</Button>
+                <Button variant="outline" size="sm" onClick={() => setBulkEditOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-1" /> Editar seleccionados
+                </Button>
                 {isAdmin && (
                   <Button variant="destructive" size="sm" onClick={() => setBulkDeleteConfirm(true)}>
                     <Trash2 className="h-4 w-4 mr-1" /> Eliminar seleccionados
@@ -625,6 +673,16 @@ export default function DocumentsList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk edit dialog */}
+      <BulkEditDialog
+        open={bulkEditOpen}
+        onOpenChange={setBulkEditOpen}
+        selectedIds={Array.from(selectedIds)}
+        table="documentos"
+        fields={getDocBulkFields()}
+        onSuccess={() => { setSelectedIds(new Set()); refetch(); }}
+      />
     </div>
   );
 }
