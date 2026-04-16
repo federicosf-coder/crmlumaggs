@@ -146,6 +146,7 @@ export type Database = {
           created_at: string
           empresa_id: string
           estado_pago: Database["public"]["Enums"]["estado_pago_cobranza"]
+          estatus_pago: Database["public"]["Enums"]["estatus_pago_cobranza"]
           fecha_pago: string
           id: string
           moneda: string
@@ -164,6 +165,7 @@ export type Database = {
           created_at?: string
           empresa_id: string
           estado_pago?: Database["public"]["Enums"]["estado_pago_cobranza"]
+          estatus_pago?: Database["public"]["Enums"]["estatus_pago_cobranza"]
           fecha_pago?: string
           id?: string
           moneda?: string
@@ -182,6 +184,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string
           estado_pago?: Database["public"]["Enums"]["estado_pago_cobranza"]
+          estatus_pago?: Database["public"]["Enums"]["estatus_pago_cobranza"]
           fecha_pago?: string
           id?: string
           moneda?: string
@@ -2176,6 +2179,11 @@ export type Database = {
         | "parcial"
         | "vencida"
         | "cancelada"
+      estatus_pago_cobranza:
+        | "recibido"
+        | "enviado_validar"
+        | "validado"
+        | "aplicado"
       estatus_pedido:
         | "confirmado_cliente"
         | "espera_autorizacion_precio"
@@ -2413,6 +2421,12 @@ export const Constants = {
         "parcial",
         "vencida",
         "cancelada",
+      ],
+      estatus_pago_cobranza: [
+        "recibido",
+        "enviado_validar",
+        "validado",
+        "aplicado",
       ],
       estatus_pedido: [
         "confirmado_cliente",
