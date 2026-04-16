@@ -361,7 +361,24 @@ export default function EntregaDetalle() {
         onUpload={(fl) => handleFiles(fl, "firmado")}
         onDelete={deleteFile}
       />
-
+      {/* Notas */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Notas</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Textarea
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            rows={3}
+            placeholder="Notas de la entrega..."
+          />
+          <Button size="sm" onClick={saveNotas} disabled={savingNotas || !entrega}>
+            {savingNotas && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Guardar notas
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Acción principal */}
       {documento.estatus_pedido !== "entregado" && (
