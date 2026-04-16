@@ -362,7 +362,6 @@ export default function EntregaDetalle() {
             <>
               <div><span className="text-muted-foreground">Vehículo:</span> {entrega.vehiculos?.nombre || "—"} {entrega.vehiculos?.placas && `(${entrega.vehiculos.placas})`}</div>
               <div><span className="text-muted-foreground">Repartidor:</span> {entrega.repartidores?.nombre || "—"}</div>
-              <div><span className="text-muted-foreground">Fecha:</span> {entrega.fecha_entrega ? format(new Date(entrega.fecha_entrega + "T12:00:00"), "dd MMM yyyy", { locale: es }) : "—"}</div>
               {entrega.fecha_entrega_real && (
                 <div className="text-green-600 dark:text-green-400">
                   <Check className="inline h-3.5 w-3.5 mr-1" />
@@ -371,6 +370,38 @@ export default function EntregaDetalle() {
               )}
             </>
           )}
+          <Separator className="my-2" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="space-y-1">
+              <Label htmlFor="estatus-pedido" className="text-xs text-muted-foreground">Estatus Pedido</Label>
+              <Select value={estatusPedido} onValueChange={saveEstatus} disabled={savingEstatus}>
+                <SelectTrigger id="estatus-pedido" className="h-9">
+                  <SelectValue placeholder="Selecciona estatus" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ESTATUS_OPCIONES.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="fecha-entrega" className="text-xs text-muted-foreground">Fecha Entrega</Label>
+              <Input
+                id="fecha-entrega"
+                type="date"
+                className="h-9"
+                value={fechaEntrega}
+                onChange={(e) => setFechaEntrega(e.target.value)}
+                onBlur={(e) => {
+                  if (e.target.value && e.target.value !== entrega?.fecha_entrega) {
+                    saveFechaEntrega(e.target.value);
+                  }
+                }}
+                disabled={savingFecha || !entrega}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
