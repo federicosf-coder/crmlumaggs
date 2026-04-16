@@ -78,7 +78,7 @@ export default function Cobranza() {
       return d !== null && d < 0 && Number(f.saldo_pendiente_cobranza) > 0;
     }).reduce((s, f) => s + Number(f.saldo_pendiente_cobranza), 0);
     const porVencer = abierta - vencida;
-    const noAplicado = pagos.filter((p) => p.estado_pago !== "cancelado").reduce((s, p) => s + Number(p.monto_disponible), 0);
+    const noAplicado = pagos.filter((p) => p.estado_pago !== "cancelado").reduce((s, p) => s + (breakdowns[p.id]?.disponibleFacturas ?? Number(p.monto_disponible)), 0);
     const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
     const cobradoMes = pagos.filter((p) => p.estado_pago !== "cancelado" && new Date(p.fecha_pago) >= inicioMes)
       .reduce((s, p) => s + Number(p.monto_total), 0);
