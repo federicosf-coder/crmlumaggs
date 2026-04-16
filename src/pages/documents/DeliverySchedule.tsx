@@ -54,6 +54,7 @@ type PoolItem = {
   total?: number;
   estatus: string;
   plaza_id?: string;
+  fecha_documento?: string;
   raw: any;
 };
 
@@ -73,6 +74,9 @@ function DraggablePoolCard({ item }: { item: PoolItem }) {
             <span className="font-medium text-sm truncate">{item.title}</span>
           </div>
           <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
+          {item.fecha_documento && (
+            <p className="text-xs text-muted-foreground mt-0.5">📅 {format(new Date(item.fecha_documento + "T12:00:00"), "dd MMM yyyy", { locale: es })}</p>
+          )}
           {item.address && <p className="text-xs text-muted-foreground truncate mt-0.5">📍 {item.address}</p>}
         </div>
         <div className="text-right shrink-0">
@@ -98,6 +102,9 @@ function OverlayCard({ item }: { item: PoolItem }) {
             <span className="font-medium text-sm truncate">{item.title}</span>
           </div>
           <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
+          {item.fecha_documento && (
+            <p className="text-xs text-muted-foreground mt-0.5">📅 {format(new Date(item.fecha_documento + "T12:00:00"), "dd MMM yyyy", { locale: es })}</p>
+          )}
         </div>
         {item.total != null && (
           <span className="text-sm font-semibold">${Number(item.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
@@ -313,7 +320,7 @@ export default function DeliverySchedule() {
     queryFn: async () => {
       const { data } = await supabase
         .from("entregas_programadas")
-        .select("*, documentos(*, companies(name))")
+        .select("*, documentos(*, companies(name), documento_productos(cantidad, producto_id, productos(presentacion_id, presentaciones(nombre))))")
         .order("orden_ruta");
       return data || [];
     },
@@ -346,6 +353,7 @@ export default function DeliverySchedule() {
           total: Number(p.total) || 0,
           estatus: p.estatus_pedido || "confirmado_cliente",
           plaza_id: p.plaza_id || undefined,
+          fecha_documento: p.fecha_documento || undefined,
           raw: p,
         };
       });
@@ -369,17 +377,31 @@ export default function DeliverySchedule() {
     const map: Record<string, PoolItem[]> = {};
     for (const ruta of allRutas) {
       const entregas = allEntregas.filter((e: any) => e.ruta_id === ruta.id);
-      map[ruta.id] = entregas.map((e: any) => ({
-        id: e.documento_id,
-        type: "pedido" as const,
-        title: e.documentos?.numero_pedido || e.documentos?.numero_cotizacion || "Sin número",
-        subtitle: e.documentos?.companies?.name || "Sin cliente",
-        address: e.documentos?.direccion_envio || undefined,
-        total: Number(e.documentos?.total) || 0,
-        estatus: e.documentos?.estatus_pedido || "programado_entrega",
-        plaza_id: e.documentos?.plaza_id || undefined,
-        raw: e.documentos,
-      }));
+      map[ruta.id] = entregas.map((e: any) => {
+        const doc = e.documentos;
+        // Group quantities by presentacion (same logic as pool)
+        const presByName: Record<string, number> = {};
+        (doc?.documento_productos || []).forEach((dp: any) => {
+          const presName = dp.productos?.presentaciones?.nombre || "Sin presentación";
+          presByName[presName] = (presByName[presName] || 0) + Number(dp.cantidad);
+        });
+        const productSummary = Object.entries(presByName)
+          .map(([name, qty]) => `${qty} ${name}`)
+          .join(", ") || "Sin productos";
+
+        return {
+          id: e.documento_id,
+          type: "pedido" as const,
+          title: doc?.companies?.name || "Sin cliente",
+          subtitle: productSummary,
+          address: doc?.direccion_envio || undefined,
+          total: Number(doc?.total) || 0,
+          estatus: doc?.estatus_pedido || "programado_entrega",
+          plaza_id: doc?.plaza_id || undefined,
+          fecha_documento: doc?.fecha_documento || undefined,
+          raw: doc,
+        };
+      });
     }
     setRouteItems(map);
   }, [allRutas, allEntregas]);
