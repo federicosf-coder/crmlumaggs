@@ -1073,32 +1073,87 @@ function RepartidoresTab() {
     queryKey: ["repartidores_all"],
     queryFn: async () => { const { data, error } = await supabase.from("repartidores").select("*").order("nombre"); if (error) throw error; return data; },
   });
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles_for_repartidores"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("user_id, full_name, email").eq("is_active", true).order("full_name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const [open, setOpen] = useState(false);
+  const [userId, setUserId] = useState<string>("");
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [licencia, setLicencia] = useState("");
   const [editItem, setEditItem] = useState<any>(null);
+  const [editUserId, setEditUserId] = useState<string>("");
   const [editNombre, setEditNombre] = useState("");
   const [editTelefono, setEditTelefono] = useState("");
   const [editLicencia, setEditLicencia] = useState("");
   const [editActive, setEditActive] = useState(true);
 
+  const usedUserIds = new Set(items.map((r: any) => r.user_id).filter(Boolean));
+  const availableProfilesNew = profiles.filter((p: any) => !usedUserIds.has(p.user_id));
+  const availableProfilesEdit = profiles.filter((p: any) => !usedUserIds.has(p.user_id) || p.user_id === editItem?.user_id);
+
+  const profileLabel = (p: any) => p.full_name?.trim() ? `${p.full_name} (${p.email || "sin correo"})` : (p.email || p.user_id);
+  const profileById = (uid: string) => profiles.find((p: any) => p.user_id === uid);
+
   const add = useMutation({
-    mutationFn: async () => { const { error } = await supabase.from("repartidores").insert({ nombre, telefono: telefono || null, licencia: licencia || null }); if (error) throw error; },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["repartidores_all"] }); setOpen(false); setNombre(""); setTelefono(""); setLicencia(""); toast.success("Repartidor creado"); },
+    mutationFn: async () => {
+      const { error } = await supabase.from("repartidores").insert({
+        nombre,
+        telefono: telefono || null,
+        licencia: licencia || null,
+        user_id: userId || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["repartidores_all"] });
+      setOpen(false); setUserId(""); setNombre(""); setTelefono(""); setLicencia("");
+      toast.success("Repartidor creado");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
   const update = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("repartidores").update({ nombre: editNombre, telefono: editTelefono || null, licencia: editLicencia || null, is_active: editActive }).eq("id", editItem.id);
+      const { error } = await supabase.from("repartidores").update({
+        nombre: editNombre,
+        telefono: editTelefono || null,
+        licencia: editLicencia || null,
+        is_active: editActive,
+        user_id: editUserId || null,
+      }).eq("id", editItem.id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["repartidores_all"] }); setEditItem(null); toast.success("Repartidor actualizado"); },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const openEdit = (item: any) => { setEditItem(item); setEditNombre(item.nombre); setEditTelefono(item.telefono || ""); setEditLicencia(item.licencia || ""); setEditActive(item.is_active); };
+  const openEdit = (item: any) => {
+    setEditItem(item);
+    setEditUserId(item.user_id || "");
+    setEditNombre(item.nombre);
+    setEditTelefono(item.telefono || "");
+    setEditLicencia(item.licencia || "");
+    setEditActive(item.is_active);
+  };
+
+  const handlePickUserNew = (uid: string) => {
+    setUserId(uid);
+    const p = profileById(uid);
+    if (p && !nombre) setNombre(p.full_name || p.email || "");
+  };
+
+  const handlePickUserEdit = (uid: string) => {
+    setEditUserId(uid);
+    const p = profileById(uid);
+    if (p && (!editNombre || editNombre === editItem?.nombre)) setEditNombre(p.full_name || p.email || editNombre);
+  };
 
   return (
     <Card>
@@ -1107,12 +1162,27 @@ function RepartidoresTab() {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Nuevo</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Nuevo Repartidor</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Nuevo Repartidor</DialogTitle>
+              <DialogDescription>Vincula un usuario registrado. Se le asignará automáticamente el rol Delivery.</DialogDescription>
+            </DialogHeader>
             <div className="space-y-3">
-              <div><Label>Nombre *</Label><Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Juan López" /></div>
+              <div>
+                <Label>Usuario *</Label>
+                <Select value={userId} onValueChange={handlePickUserNew}>
+                  <SelectTrigger><SelectValue placeholder="Selecciona un usuario" /></SelectTrigger>
+                  <SelectContent>
+                    {availableProfilesNew.length === 0 && <div className="px-2 py-1.5 text-sm text-muted-foreground">No hay usuarios disponibles</div>}
+                    {availableProfilesNew.map((p: any) => (
+                      <SelectItem key={p.user_id} value={p.user_id}>{profileLabel(p)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Nombre a mostrar *</Label><Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Juan López" /></div>
               <div><Label>Teléfono</Label><Input value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="Ej: 55 1234 5678" /></div>
               <div><Label>Licencia</Label><Input value={licencia} onChange={e => setLicencia(e.target.value)} placeholder="Ej: LIC-12345" /></div>
-              <Button onClick={() => add.mutate()} disabled={!nombre || add.isPending}>{add.isPending ? "Guardando..." : "Guardar"}</Button>
+              <Button onClick={() => add.mutate()} disabled={!nombre || !userId || add.isPending}>{add.isPending ? "Guardando..." : "Guardar"}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -1120,26 +1190,45 @@ function RepartidoresTab() {
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
           <Table>
-            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Teléfono</TableHead><TableHead>Licencia</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Usuario</TableHead><TableHead>Teléfono</TableHead><TableHead>Licencia</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
             <TableBody>
-              {items.map(r => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.nombre}</TableCell>
-                  <TableCell>{r.telefono || "—"}</TableCell>
-                  <TableCell>{r.licencia || "—"}</TableCell>
-                  <TableCell><Badge variant={r.is_active ? "default" : "secondary"}>{r.is_active ? "Sí" : "No"}</Badge></TableCell>
-                  <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button></TableCell>
-                </TableRow>
-              ))}
-              {items.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin repartidores</TableCell></TableRow>}
+              {items.map((r: any) => {
+                const p = r.user_id ? profileById(r.user_id) : null;
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">{r.nombre}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p ? (p.email || p.full_name) : <Badge variant="outline">Sin usuario</Badge>}</TableCell>
+                    <TableCell>{r.telefono || "—"}</TableCell>
+                    <TableCell>{r.licencia || "—"}</TableCell>
+                    <TableCell><Badge variant={r.is_active ? "default" : "secondary"}>{r.is_active ? "Sí" : "No"}</Badge></TableCell>
+                    <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button></TableCell>
+                  </TableRow>
+                );
+              })}
+              {items.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin repartidores</TableCell></TableRow>}
             </TableBody>
           </Table>
         )}
       </CardContent>
       <Dialog open={!!editItem} onOpenChange={v => { if (!v) setEditItem(null); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Editar Repartidor</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Editar Repartidor</DialogTitle>
+            <DialogDescription>Vincula o cambia el usuario asociado a este repartidor.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
+            <div>
+              <Label>Usuario</Label>
+              <Select value={editUserId || "__none__"} onValueChange={(v) => handlePickUserEdit(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Sin usuario vinculado" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin usuario vinculado</SelectItem>
+                  {availableProfilesEdit.map((p: any) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>{profileLabel(p)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>Nombre</Label><Input value={editNombre} onChange={e => setEditNombre(e.target.value)} /></div>
             <div><Label>Teléfono</Label><Input value={editTelefono} onChange={e => setEditTelefono(e.target.value)} /></div>
             <div><Label>Licencia</Label><Input value={editLicencia} onChange={e => setEditLicencia(e.target.value)} /></div>
