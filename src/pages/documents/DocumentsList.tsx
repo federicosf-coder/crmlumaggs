@@ -1,15 +1,17 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2 } from "lucide-react";
 import { SortMenu } from "@/components/SortMenu";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
@@ -21,7 +23,8 @@ const ESTATUS_COT_LABELS: Record<string, string> = {
   aceptada: "Aceptada", rechazada: "Rechazada", vencida: "Vencida",
 };
 const ESTATUS_PED_LABELS: Record<string, string> = {
-  confirmado_cliente: "Confirmado Cliente", validado_contabilidad: "Validado Contab.",
+  confirmado_cliente: "Confirmado Cliente", espera_autorizacion_precio: "Espera Autoriz.",
+  precio_autorizado: "Precio Autoriz.", validado_contabilidad: "Validado Contab.",
   programado_entrega: "Prog. Entrega", entregado: "Entregado", cancelado: "Cancelado",
 };
 const ESTATUS_FAC_LABELS: Record<string, string> = {
@@ -39,27 +42,76 @@ function getEstatusLabel(doc: any) {
 function getEstatusVariant(doc: any): "default" | "secondary" | "destructive" | "outline" {
   const st = doc.tipo_documento === "cotizacion" ? doc.estatus_cotizacion
     : doc.tipo_documento === "pedido" ? doc.estatus_pedido : doc.estatus_factura;
-  if (["aceptada", "confirmado_cliente", "pagada", "entregado", "impresa"].includes(st)) return "default";
+  if (["aceptada", "confirmado_cliente", "pagada", "entregado", "impresa", "precio_autorizado"].includes(st)) return "default";
   if (["rechazada", "cancelado", "cancelada", "vencida"].includes(st)) return "destructive";
   if (["validado_contabilidad", "programado_entrega"].includes(st)) return "outline";
   return "secondary";
 }
 
+// Color config per tab type
+const TAB_COLORS: Record<string, { active: string; badge: string; border: string }> = {
+  cotizacion: { active: "bg-blue-600 text-white hover:bg-blue-700", badge: "bg-blue-100 text-blue-800", border: "border-blue-500" },
+  pedido: { active: "bg-amber-500 text-white hover:bg-amber-600", badge: "bg-amber-100 text-amber-800", border: "border-amber-500" },
+  factura: { active: "bg-emerald-600 text-white hover:bg-emerald-700", badge: "bg-emerald-100 text-emerald-800", border: "border-emerald-500" },
+};
+
+// Status badge colors
+function getStatusBadgeClass(doc: any): string {
+  const st = doc.tipo_documento === "cotizacion" ? doc.estatus_cotizacion
+    : doc.tipo_documento === "pedido" ? doc.estatus_pedido : doc.estatus_factura;
+  const map: Record<string, string> = {
+    borrador: "bg-slate-100 text-slate-700 border-slate-300",
+    impresa: "bg-blue-50 text-blue-700 border-blue-200",
+    enviada: "bg-sky-50 text-sky-700 border-sky-200",
+    aceptada: "bg-green-50 text-green-700 border-green-200",
+    rechazada: "bg-red-50 text-red-700 border-red-200",
+    vencida: "bg-orange-50 text-orange-700 border-orange-200",
+    confirmado_cliente: "bg-blue-50 text-blue-700 border-blue-200",
+    espera_autorizacion_precio: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    precio_autorizado: "bg-teal-50 text-teal-700 border-teal-200",
+    validado_contabilidad: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    programado_entrega: "bg-purple-50 text-purple-700 border-purple-200",
+    entregado: "bg-green-50 text-green-700 border-green-200",
+    cancelado: "bg-red-50 text-red-700 border-red-200",
+    pendiente: "bg-slate-100 text-slate-700 border-slate-300",
+    pagada: "bg-green-50 text-green-700 border-green-200",
+    parcial: "bg-amber-50 text-amber-700 border-amber-200",
+    cancelada: "bg-red-50 text-red-700 border-red-200",
+  };
+  return map[st] || "bg-slate-100 text-slate-700 border-slate-300";
+}
+
 export default function DocumentsList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
+  const qc = useQueryClient();
+
+  // Persist filters via URL search params
+  const tipoFilter = searchParams.get("tipo") || "cotizacion";
+  const empresaFilter = searchParams.get("empresa") || "lumaggs_chevron";
+  const ejecutivoFilter = searchParams.get("ejecutivo") || "all";
+
   const [search, setSearch] = useState("");
   const [duplicating, setDuplicating] = useState<string | null>(null);
-  const [empresaFilter, setEmpresaFilter] = useState<string>("lumaggs_chevron");
-  const [tipoFilter, setTipoFilter] = useState<string>("cotizacion");
-  const [ejecutivoFilter, setEjecutivoFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState("date_desc");
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const setFilter = useCallback((key: string, value: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set(key, value);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // Determine module based on tipoFilter
   const docModule = tipoFilter === "factura" ? "facturacion" as const : "cotizaciones" as const;
   const access = useModuleAccess(docModule);
 
-  // Fetch profiles for ejecutivo filter
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-for-filter"],
     queryFn: async () => {
@@ -77,7 +129,6 @@ export default function DocumentsList() {
     queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, access.accessLevel, access.teamMemberIds],
     queryFn: async () => {
       if (!access.canView) return [];
-
       let q = supabase
         .from("documentos")
         .select("*, companies(name), contacts(first_name, last_name), plazas(nombre)")
@@ -86,18 +137,13 @@ export default function DocumentsList() {
         .order("created_at", { ascending: false });
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
-
-      // Apply access filtering
       if (access.accessLevel === "propio" && access.userId) {
         q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
         q = q.or(`created_by.in.(${access.teamMemberIds.join(",")}),ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`);
       }
-
       const { data, error } = await q;
       if (error) throw error;
-
-      // Client-side search to include company name
       if (search) {
         const s = search.toLowerCase();
         return data.filter((doc: any) => {
@@ -130,7 +176,6 @@ export default function DocumentsList() {
       const { data: srcDoc, error: srcErr } = await supabase.from("documentos").select("*").eq("id", doc.id).single();
       if (srcErr || !srcDoc) throw srcErr || new Error("No encontrado");
       const { data: srcItems } = await supabase.from("documento_productos").select("*").eq("documento_id", doc.id);
-
       const { id: _id, created_at, updated_at, numero_cotizacion, numero_pedido, numero_factura, pdf_url, estatus_cotizacion, ...rest } = srcDoc;
       const newDoc: any = {
         ...rest, pdf_url: null,
@@ -138,17 +183,14 @@ export default function DocumentsList() {
         numero_cotizacion: null, numero_pedido: null, numero_factura: null,
         cotizacion_original_id: srcDoc.tipo_documento === "cotizacion" ? doc.id : (srcDoc.cotizacion_original_id || null),
       };
-
       const { data: inserted, error: insErr } = await supabase.from("documentos").insert(newDoc).select("id").single();
       if (insErr) throw insErr;
-
       if (srcItems && srcItems.length > 0) {
         const newItems = srcItems.map(({ id: _iid, created_at: _ca, documento_id, ...itemRest }: any) => ({
           ...itemRest, documento_id: inserted.id,
         }));
         await supabase.from("documento_productos").insert(newItems);
       }
-
       refetch();
       toast.success("Documento duplicado");
       navigate(`/documents/${inserted.id}`);
@@ -159,12 +201,71 @@ export default function DocumentsList() {
     }
   };
 
-  // Get ejecutivo name from profiles
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("documentos").update({ is_active: false }).eq("id", deleteTarget.id);
+      if (error) throw error;
+      toast.success("Documento eliminado");
+      refetch();
+    } catch (err: any) {
+      toast.error("Error al eliminar: " + (err.message || "Error"));
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleExport = () => {
+    if (sortedDocs.length === 0) { toast.error("No hay datos para exportar"); return; }
+    const headers = ["Número", "Cliente", "Ejecutivo", "Fecha", "Total", "Estatus"];
+    const rows = sortedDocs.map((doc: any) => [
+      doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "",
+      (doc.companies as any)?.name || "",
+      getEjecutivoName(doc.ejecutivo_venta_id),
+      format(new Date(doc.fecha_documento), "dd/MM/yyyy"),
+      Number(doc.total).toFixed(2),
+      getEstatusLabel(doc),
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `documentos_${tipoFilter}_${format(new Date(), "yyyyMMdd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Exportación completada");
+  };
+
+  const handleImport = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const lines = text.split("\n").filter((l: string) => l.trim());
+        if (lines.length < 2) { toast.error("Archivo vacío o sin datos"); return; }
+        toast.info(`Archivo cargado con ${lines.length - 1} registros. Importación pendiente de implementación completa.`);
+      } catch (err: any) {
+        toast.error("Error al leer archivo: " + err.message);
+      }
+    };
+    input.click();
+  };
+
   const getEjecutivoName = (ejecutivoId: string | null) => {
     if (!ejecutivoId) return "-";
     const profile = profiles.find((p) => p.user_id === ejecutivoId);
     return profile?.full_name || "-";
   };
+
+  const tabColor = TAB_COLORS[tipoFilter] || TAB_COLORS.cotizacion;
+  const isPedido = tipoFilter === "pedido";
 
   return (
     <div className="space-y-4">
@@ -173,7 +274,17 @@ export default function DocumentsList() {
           <h1 className="text-2xl font-bold text-foreground">Documentos</h1>
           <p className="text-muted-foreground text-sm">Cotizaciones, pedidos y facturas</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {isAdmin && (
+            <>
+              <Button size="sm" onClick={handleImport}>
+                <Upload className="mr-1 h-4 w-4" /> Importar
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <FileDown className="mr-1 h-4 w-4" /> Exportar
+              </Button>
+            </>
+          )}
           <Button variant="outline" size="sm" onClick={() => navigate("/delivery/schedule")}>
             <Truck className="mr-1 h-4 w-4" /> Programar Entregas
           </Button>
@@ -193,30 +304,35 @@ export default function DocumentsList() {
             key={emp.value}
             variant={empresaFilter === emp.value ? "default" : "outline"}
             size="sm"
-            onClick={() => setEmpresaFilter(emp.value)}
+            onClick={() => setFilter("empresa", emp.value)}
           >
             {emp.label}
           </Button>
         ))}
       </div>
 
-      {/* Tipo + view toggle */}
+      {/* Tipo tabs with color coding + view toggle */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
           {[
             { value: "cotizacion", label: "Cotizaciones" },
             { value: "pedido", label: "Pedidos" },
             { value: "factura", label: "Facturas" },
-          ].map((tipo) => (
-            <Button
-              key={tipo.value}
-              variant={tipoFilter === tipo.value ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTipoFilter(tipo.value)}
-            >
-              {tipo.label}
-            </Button>
-          ))}
+          ].map((tipo) => {
+            const isActive = tipoFilter === tipo.value;
+            const colors = TAB_COLORS[tipo.value];
+            return (
+              <Button
+                key={tipo.value}
+                size="sm"
+                className={`transition-all duration-150 ${isActive ? colors.active : "bg-background text-foreground border border-input hover:bg-accent"}`}
+                variant={isActive ? "default" : "outline"}
+                onClick={() => setFilter("tipo", tipo.value)}
+              >
+                {tipo.label}
+              </Button>
+            );
+          })}
         </div>
         <div className="flex gap-1">
           <Button variant={viewMode === "list" ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setViewMode("list")}>
@@ -238,7 +354,7 @@ export default function DocumentsList() {
           )}
         </div>
       ) : (
-        <Card>
+        <Card className={`border-t-2 ${tabColor.border}`}>
           <CardHeader className="pb-3">
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
@@ -250,7 +366,7 @@ export default function DocumentsList() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Select value={ejecutivoFilter} onValueChange={setEjecutivoFilter}>
+              <Select value={ejecutivoFilter} onValueChange={v => setFilter("ejecutivo", v)}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="Ejecutivo" />
                 </SelectTrigger>
@@ -282,22 +398,30 @@ export default function DocumentsList() {
             ) : docs.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                <p className="mt-2 text-muted-foreground">No hay documentos</p>
+                <p className="mt-2 text-muted-foreground">
+                  {tipoFilter === "cotizacion" ? "No hay cotizaciones" : tipoFilter === "pedido" ? "No hay pedidos" : "No hay facturas"}
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Crea un nuevo documento para comenzar</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>
-                        {tipoFilter === "factura" ? "No. Factura" : "Número"}
-                      </TableHead>
+                      {!isPedido && (
+                        <TableHead>
+                          {tipoFilter === "factura" ? "No. Factura" : "Número"}
+                        </TableHead>
+                      )}
                       <TableHead className="min-w-[180px]">Cliente</TableHead>
                       <TableHead className="hidden sm:table-cell">Ejecutivo</TableHead>
                       {tipoFilter === "factura" && (
                         <TableHead className="hidden md:table-cell">Plaza</TableHead>
                       )}
                       <TableHead className="hidden md:table-cell">Fecha</TableHead>
+                      {isPedido && (
+                        <TableHead className="hidden md:table-cell">Fecha Programada</TableHead>
+                      )}
                       <TableHead>Total</TableHead>
                       <TableHead>
                         {tipoFilter === "factura" ? "Estatus Factura" : "Estatus"}
@@ -310,14 +434,16 @@ export default function DocumentsList() {
                     {sortedDocs.map((doc: any) => (
                       <TableRow
                         key={doc.id}
-                        className="cursor-pointer"
+                        className="cursor-pointer transition-colors duration-150 hover:bg-muted/50"
                         onClick={() => navigate(`/documents/${doc.id}`)}
                       >
-                        <TableCell className="font-medium whitespace-nowrap">
-                          {tipoFilter === "factura"
-                            ? (doc.numero_factura || "-")
-                            : (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "-")}
-                        </TableCell>
+                        {!isPedido && (
+                          <TableCell className="font-medium whitespace-nowrap">
+                            {tipoFilter === "factura"
+                              ? (doc.numero_factura || "-")
+                              : (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "-")}
+                          </TableCell>
+                        )}
                         <TableCell>{(doc.companies as any)?.name || "-"}</TableCell>
                         <TableCell className="hidden sm:table-cell">
                           {getEjecutivoName(doc.ejecutivo_venta_id)}
@@ -330,11 +456,20 @@ export default function DocumentsList() {
                         <TableCell className="hidden md:table-cell whitespace-nowrap">
                           {format(new Date(doc.fecha_documento), "dd/MM/yyyy")}
                         </TableCell>
+                        {isPedido && (
+                          <TableCell className="hidden md:table-cell whitespace-nowrap">
+                            {doc.fecha_entrega_programada
+                              ? format(new Date(doc.fecha_entrega_programada), "dd/MM/yyyy")
+                              : "-"}
+                          </TableCell>
+                        )}
                         <TableCell className="whitespace-nowrap">
                           ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getEstatusVariant(doc)}>{getEstatusLabel(doc)}</Badge>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(doc)}`}>
+                            {getEstatusLabel(doc)}
+                          </span>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           {doc.pdf_url ? (
@@ -357,6 +492,17 @@ export default function DocumentsList() {
                             <Button variant="ghost" size="icon" disabled={duplicating === doc.id} onClick={(e) => handleDuplicate(e, doc)} title="Duplicar">
                               <Copy className="h-4 w-4" />
                             </Button>
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={(e) => { e.stopPropagation(); setDeleteTarget(doc); }}
+                                title="Eliminar"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -368,6 +514,26 @@ export default function DocumentsList() {
           </CardContent>
         </Card>
       )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar documento</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

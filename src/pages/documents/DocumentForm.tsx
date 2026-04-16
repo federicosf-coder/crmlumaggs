@@ -55,7 +55,8 @@ export default function DocumentForm() {
   const isEdit = !!id;
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
 
@@ -509,7 +510,7 @@ export default function DocumentForm() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/documents")}><ArrowLeft className="h-5 w-5" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
         <h1 className="text-2xl font-bold text-foreground">
           {viewMode ? "Ver Documento" : isEdit ? "Editar Documento" : "Nuevo Documento"}
         </h1>
@@ -548,9 +549,14 @@ export default function DocumentForm() {
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
             </Button>
-            <Button variant="outline" onClick={() => setViewMode(false)}>
-              <Pencil className="mr-2 h-4 w-4" /> Editar
-            </Button>
+            {(!existingDoc?.pdf_url || isAdmin) && (
+              <Button variant="outline" onClick={() => setViewMode(false)}>
+                <Pencil className="mr-2 h-4 w-4" /> Editar
+              </Button>
+            )}
+            {existingDoc?.pdf_url && !isAdmin && (
+              <span className="text-sm text-muted-foreground italic">Documento con PDF — solo Admin puede editar</span>
+            )}
           </div>
         )}
       </div>
