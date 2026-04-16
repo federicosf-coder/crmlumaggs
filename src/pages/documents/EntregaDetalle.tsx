@@ -27,7 +27,7 @@ export default function EntregaDetalle() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<"evidencia" | "firmado" | null>(null);
   const [marking, setMarking] = useState(false);
   const [editAddrOpen, setEditAddrOpen] = useState(false);
   const [newAddress, setNewAddress] = useState("");
@@ -109,13 +109,14 @@ export default function EntregaDetalle() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
   };
 
-  const handleFiles = async (files: FileList | null) => {
+  const handleFiles = async (files: FileList | null, categoria: "evidencia" | "firmado") => {
     if (!files || files.length === 0 || !id) return;
-    setUploading(true);
+    setUploading(categoria);
     try {
       for (const file of Array.from(files)) {
         const ext = file.name.split(".").pop();
-        const path = `firmados/${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const folder = categoria === "evidencia" ? "evidencias" : "firmados";
+        const path = `${folder}/${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("document-files")
           .upload(path, file, { upsert: false });
@@ -127,7 +128,8 @@ export default function EntregaDetalle() {
           tipo_archivo: file.type || "application/octet-stream",
           url_archivo: urlData.publicUrl,
           usuario_carga: user?.id,
-        });
+          categoria,
+        } as any);
         if (insErr) throw insErr;
       }
       toast.success("Archivos cargados");
@@ -135,7 +137,7 @@ export default function EntregaDetalle() {
     } catch (e: any) {
       toast.error(e.message || "Error al cargar archivos");
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
   };
 
@@ -314,49 +316,28 @@ export default function EntregaDetalle() {
         </CardContent>
       </Card>
 
-      {/* Documento Firmado */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileText className="h-4 w-4" /> Documento Firmado
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Label htmlFor="files" className="block">
-            <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-accent/30 transition-colors">
-              <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm font-medium">{uploading ? "Cargando..." : "Toca para subir fotos o PDFs"}</p>
-              <p className="text-xs text-muted-foreground mt-1">Múltiples archivos · imágenes y PDF</p>
-            </div>
-            <input
-              id="files"
-              type="file"
-              multiple
-              accept="image/*,application/pdf"
-              className="hidden"
-              disabled={uploading}
-              onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
-            />
-          </Label>
+      {/* Evidencia de Entrega */}
+      <ArchivosCard
+        titulo="Evidencia de Entrega"
+        categoria="evidencia"
+        inputId="files-evidencia"
+        archivos={(archivos as any[]).filter((a) => (a.categoria || "firmado") === "evidencia")}
+        uploading={uploading === "evidencia"}
+        onUpload={(fl) => handleFiles(fl, "evidencia")}
+        onDelete={deleteFile}
+      />
 
-          {archivos.length > 0 && (
-            <div className="space-y-1.5">
-              {archivos.map((a: any) => {
-                const isImg = a.tipo_archivo?.startsWith("image/");
-                return (
-                  <div key={a.id} className="flex items-center gap-2 p-2 border rounded-md">
-                    {isImg ? <ImageIcon className="h-4 w-4 text-primary shrink-0" /> : <FileText className="h-4 w-4 text-primary shrink-0" />}
-                    <a href={a.url_archivo} target="_blank" rel="noreferrer" className="flex-1 text-sm truncate hover:underline">{a.nombre_archivo}</a>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteFile(a.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Documento Firmado */}
+      <ArchivosCard
+        titulo="Documento Firmado"
+        categoria="firmado"
+        inputId="files-firmado"
+        archivos={(archivos as any[]).filter((a) => (a.categoria || "firmado") === "firmado")}
+        uploading={uploading === "firmado"}
+        onUpload={(fl) => handleFiles(fl, "firmado")}
+        onDelete={deleteFile}
+      />
+
 
       {/* Acción principal */}
       {documento.estatus_pedido !== "entregado" && (
@@ -445,5 +426,62 @@ export default function EntregaDetalle() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function ArchivosCard({
+  titulo, categoria, inputId, archivos, uploading, onUpload, onDelete,
+}: {
+  titulo: string;
+  categoria: "evidencia" | "firmado";
+  inputId: string;
+  archivos: any[];
+  uploading: boolean;
+  onUpload: (files: FileList | null) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <FileText className="h-4 w-4" /> {titulo}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Label htmlFor={inputId} className="block">
+          <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-accent/30 transition-colors">
+            <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm font-medium">{uploading ? "Cargando..." : "Toca para subir fotos o PDFs"}</p>
+            <p className="text-xs text-muted-foreground mt-1">Múltiples archivos · imágenes y PDF</p>
+          </div>
+          <input
+            id={inputId}
+            type="file"
+            multiple
+            accept="image/*,application/pdf"
+            className="hidden"
+            disabled={uploading}
+            onChange={(e) => { onUpload(e.target.files); e.target.value = ""; }}
+          />
+        </Label>
+
+        {archivos.length > 0 && (
+          <div className="space-y-1.5">
+            {archivos.map((a) => {
+              const isImg = a.tipo_archivo?.startsWith("image/");
+              return (
+                <div key={a.id} className="flex items-center gap-2 p-2 border rounded-md">
+                  {isImg ? <ImageIcon className="h-4 w-4 text-primary shrink-0" /> : <FileText className="h-4 w-4 text-primary shrink-0" />}
+                  <a href={a.url_archivo} target="_blank" rel="noreferrer" className="flex-1 text-sm truncate hover:underline">{a.nombre_archivo}</a>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => onDelete(a.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

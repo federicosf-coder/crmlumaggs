@@ -890,6 +890,7 @@ export type Database = {
       }
       documento_archivos_firmados: {
         Row: {
+          categoria: string
           documento_id: string
           fecha_carga: string
           id: string
@@ -899,6 +900,7 @@ export type Database = {
           usuario_carga: string | null
         }
         Insert: {
+          categoria?: string
           documento_id: string
           fecha_carga?: string
           id?: string
@@ -908,6 +910,7 @@ export type Database = {
           usuario_carga?: string | null
         }
         Update: {
+          categoria?: string
           documento_id?: string
           fecha_carga?: string
           id?: string
