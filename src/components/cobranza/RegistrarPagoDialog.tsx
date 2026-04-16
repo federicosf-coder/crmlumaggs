@@ -235,6 +235,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
       moneda: "MXN",
       observaciones: observaciones || undefined,
       documentos: docsLigados,
+      comprobantes: comprobantesUploaded,
       registradoPor: profile?.full_name || user?.email || undefined,
       defaultEmails,
     });
