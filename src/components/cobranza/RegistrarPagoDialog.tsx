@@ -36,9 +36,19 @@ const TIPO_LABEL: Record<string, string> = {
   cotizacion: "Cotización",
 };
 
+type FormaPago = "contado" | "credito" | "credito_cescemex";
+
+const FORMA_PAGO_OPTIONS: { value: FormaPago; label: string }[] = [
+  { value: "contado", label: "Contado" },
+  { value: "credito", label: "Crédito Directo" },
+  { value: "credito_cescemex", label: "Crédito Cescemex" },
+];
+
+const VALID_FORMAS: FormaPago[] = ["contado", "credito", "credito_cescemex"];
+
 export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
   const { user, profile } = useAuth();
-  const [companies, setCompanies] = useState<{ id: string; name: string; email?: string | null }[]>([]);
+  const [companies, setCompanies] = useState<{ id: string; name: string; email?: string | null; tipo_pago?: string | null }[]>([]);
   const [docs, setDocs] = useState<DocOption[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -49,6 +59,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
   const [fechaPago, setFechaPago] = useState(new Date().toISOString().split("T")[0]);
   const [montoTotal, setMontoTotal] = useState("");
   const [observaciones, setObservaciones] = useState("");
+  const [formaPago, setFormaPago] = useState<FormaPago | "">("");
   const [seleccion, setSeleccion] = useState<Record<string, string>>({}); // doc_id -> monto a aplicar
   const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
 
