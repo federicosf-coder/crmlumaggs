@@ -499,7 +499,8 @@ function KpiCard({ title, value, icon: Icon, variant }: { title: string; value: 
 }
 
 function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { open: boolean; onOpenChange: (o: boolean) => void; pago: CobranzaPago | null; onChanged: () => void; onAplicar: (p: CobranzaPago) => void }) {
-  const { user, profile } = useAuth();
+  const { user, profile, hasAnyRole } = useAuth();
+  const canEditEstatus = hasAnyRole(["admin", "manager", "accounting"]);
   const { aplicaciones, refetch } = useCobranzaAplicaciones(pago?.id || null);
   const [openEnviar, setOpenEnviar] = useState(false);
   const [defaultEmails, setDefaultEmails] = useState<string[]>([]);
