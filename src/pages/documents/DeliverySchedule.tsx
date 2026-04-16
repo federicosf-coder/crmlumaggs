@@ -19,7 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
-  Pencil, Trash2, Package, ListChecks, Search, Undo2,
+  Pencil, Trash2, Package, ListChecks, Search, Undo2, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -226,6 +226,7 @@ export default function DeliverySchedule() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  const [showPool, setShowPool] = useState(false);
   const [searchPool, setSearchPool] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [activeItem, setActiveItem] = useState<PoolItem | null>(null);
