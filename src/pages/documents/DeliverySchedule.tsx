@@ -33,6 +33,7 @@ import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { AddressDisplay } from "@/components/AddressDisplay";
 
 // ─── Status config ───────────────────────────────────────────
 const POOL_STATUSES = ["confirmado_cliente", "espera_autorizacion_precio", "precio_autorizado", "validado_contabilidad"] as const;
