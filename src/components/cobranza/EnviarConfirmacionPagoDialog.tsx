@@ -40,6 +40,8 @@ interface Props {
   comprobantes?: Comprobante[];
   registradoPor?: string;
   defaultEmails?: string[];
+  /** Lista de correos PROHIBIDOS (empresa, cliente, contactos). Se filtran al inicializar y se bloquean al agregar manualmente. */
+  blockedEmails?: string[];
   previouslySentEmails?: string[];
   templateName?: string;
   extraTemplateData?: Record<string, any>;
