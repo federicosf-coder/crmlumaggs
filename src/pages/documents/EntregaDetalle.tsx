@@ -316,49 +316,28 @@ export default function EntregaDetalle() {
         </CardContent>
       </Card>
 
-      {/* Documento Firmado */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileText className="h-4 w-4" /> Documento Firmado
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Label htmlFor="files" className="block">
-            <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-accent/30 transition-colors">
-              <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm font-medium">{uploading ? "Cargando..." : "Toca para subir fotos o PDFs"}</p>
-              <p className="text-xs text-muted-foreground mt-1">Múltiples archivos · imágenes y PDF</p>
-            </div>
-            <input
-              id="files"
-              type="file"
-              multiple
-              accept="image/*,application/pdf"
-              className="hidden"
-              disabled={uploading}
-              onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
-            />
-          </Label>
+      {/* Evidencia de Entrega */}
+      <ArchivosCard
+        titulo="Evidencia de Entrega"
+        categoria="evidencia"
+        inputId="files-evidencia"
+        archivos={(archivos as any[]).filter((a) => (a.categoria || "firmado") === "evidencia")}
+        uploading={uploading === "evidencia"}
+        onUpload={(fl) => handleFiles(fl, "evidencia")}
+        onDelete={deleteFile}
+      />
 
-          {archivos.length > 0 && (
-            <div className="space-y-1.5">
-              {archivos.map((a: any) => {
-                const isImg = a.tipo_archivo?.startsWith("image/");
-                return (
-                  <div key={a.id} className="flex items-center gap-2 p-2 border rounded-md">
-                    {isImg ? <ImageIcon className="h-4 w-4 text-primary shrink-0" /> : <FileText className="h-4 w-4 text-primary shrink-0" />}
-                    <a href={a.url_archivo} target="_blank" rel="noreferrer" className="flex-1 text-sm truncate hover:underline">{a.nombre_archivo}</a>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteFile(a.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Documento Firmado */}
+      <ArchivosCard
+        titulo="Documento Firmado"
+        categoria="firmado"
+        inputId="files-firmado"
+        archivos={(archivos as any[]).filter((a) => (a.categoria || "firmado") === "firmado")}
+        uploading={uploading === "firmado"}
+        onUpload={(fl) => handleFiles(fl, "firmado")}
+        onDelete={deleteFile}
+      />
+
 
       {/* Acción principal */}
       {documento.estatus_pedido !== "entregado" && (
