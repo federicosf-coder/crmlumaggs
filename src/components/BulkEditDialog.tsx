@@ -41,7 +41,7 @@ export function BulkEditDialog({ open, onOpenChange, selectedIds, table, fields,
     }
     setSaving(true);
     try {
-      const { error } = await supabase.from(table).update(updates).in("id", selectedIds);
+      const { error } = await (supabase.from(table) as any).update(updates).in("id", selectedIds);
       if (error) throw error;
       toast.success(`${selectedIds.length} registro(s) actualizados`);
       setValues({});
