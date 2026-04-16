@@ -346,7 +346,7 @@ export default function EntregaDetalle() {
           <p className="text-sm text-muted-foreground">{documento.companies?.name}</p>
         </div>
         <Badge variant={documento.estatus_pedido === "entregado" ? "default" : "secondary"}>
-          {documento.estatus_pedido || "—"}
+          {ESTATUS_OPCIONES.find((o) => o.value === documento.estatus_pedido)?.label || "—"}
         </Badge>
       </div>
 
