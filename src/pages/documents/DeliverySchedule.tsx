@@ -33,6 +33,7 @@ import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { AddressDisplay } from "@/components/AddressDisplay";
 
 // ─── Status config ───────────────────────────────────────────
 const POOL_STATUSES = ["confirmado_cliente", "espera_autorizacion_precio", "precio_autorizado", "validado_contabilidad"] as const;
@@ -80,7 +81,12 @@ function DraggablePoolCard({ item }: { item: PoolItem }) {
           {item.fecha_documento && (
             <p className="text-xs text-muted-foreground mt-0.5">📅 {format(new Date(item.fecha_documento + "T12:00:00"), "dd MMM yyyy", { locale: es })}</p>
           )}
-          {item.address && <p className="text-xs text-muted-foreground truncate mt-0.5">📍 {item.address}</p>}
+          {item.address && (
+            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 min-w-0">
+              <span className="truncate">📍 {item.address}</span>
+              <AddressDisplay address={item.address} iconOnly />
+            </p>
+          )}
         </div>
         <div className="text-right shrink-0">
           {item.total != null && (

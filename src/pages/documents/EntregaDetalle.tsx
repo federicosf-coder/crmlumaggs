@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
+import { AddressDisplay } from "@/components/AddressDisplay";
 
 export default function EntregaDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -420,6 +421,16 @@ export default function EntregaDetalle() {
           <p className="text-sm">{documento.direccion_envio || <span className="text-muted-foreground italic">Sin dirección</span>}</p>
           {(docLat && docLng) && (
             <p className="text-xs text-muted-foreground">📍 {Number(docLat).toFixed(6)}, {Number(docLng).toFixed(6)}</p>
+          )}
+          {(documento.direccion_envio || (docLat && docLng)) && (
+            <AddressDisplay
+              address={documento.direccion_envio}
+              lat={docLat}
+              lng={docLng}
+              showText={false}
+              showMap
+              mapHeight={180}
+            />
           )}
           {documento.direccion_envio && (
             <Button size="sm" variant="default" onClick={openMaps} className="w-full sm:w-auto">

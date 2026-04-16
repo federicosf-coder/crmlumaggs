@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Plus, Search, Pencil } from "lucide-react";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
+import { AddressDisplay } from "@/components/AddressDisplay";
 
 interface TipoCatalogItem {
   id: string;
@@ -263,7 +264,17 @@ export default function DeliveryAddresses() {
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell>{a.calle}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="truncate">{a.calle}</span>
+                          <AddressDisplay
+                            address={a.direccion_completa || a.calle}
+                            lat={a.coordenadas_lat}
+                            lng={a.coordenadas_lng}
+                            iconOnly
+                          />
+                        </div>
+                      </TableCell>
                       <TableCell>{a.ciudad || "—"}</TableCell>
                       <TableCell>{a.estado || "—"}</TableCell>
                       <TableCell>{a.codigo_postal || "—"}</TableCell>
@@ -318,6 +329,15 @@ export default function DeliveryAddresses() {
               required
               placeholder="Buscar dirección en Google Maps..."
             />
+            {(form.address.direccion_completa || (form.address.latitud != null && form.address.longitud != null)) && (
+              <AddressDisplay
+                address={form.address.direccion_completa}
+                lat={form.address.latitud}
+                lng={form.address.longitud}
+                showText={false}
+                showMap
+              />
+            )}
             <div>
               <Label>Referencia</Label>
               <Input value={form.referencia} onChange={(e) => setForm((p) => ({ ...p, referencia: e.target.value }))} placeholder="Detalles adicionales (entre calles, color de fachada, etc.)" />
