@@ -207,6 +207,9 @@ export default function DeliverySchedule() {
   const [searchPool, setSearchPool] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [activeItem, setActiveItem] = useState<PoolItem | null>(null);
+  const [selectedPlaza, setSelectedPlaza] = useState<string>("all");
+  const [routeViewMode, setRouteViewMode] = useState<"list" | "calendar">("list");
+  const [calendarDate, setCalendarDate] = useState<Date | undefined>(undefined);
 
   // Route items keyed by ruta id
   const [routeItems, setRouteItems] = useState<Record<string, PoolItem[]>>({});
@@ -381,10 +384,21 @@ export default function DeliverySchedule() {
     setRouteItems(map);
   }, [allRutas, allEntregas]);
 
+  // Filter rutas by selected plaza
+  const filteredRutas = useMemo(() => {
+    let rutas = allRutas;
+    if (selectedPlaza !== "all") rutas = rutas.filter((r: any) => r.plaza_id === selectedPlaza);
+    if (routeViewMode === "calendar" && calendarDate) {
+      const dateStr = format(calendarDate, "yyyy-MM-dd");
+      rutas = rutas.filter((r: any) => r.fecha_entrega === dateStr);
+    }
+    return rutas;
+  }, [allRutas, selectedPlaza, routeViewMode, calendarDate]);
+
   // Group rutas by plaza, then by day
   const rutasByPlazaDay = useMemo(() => {
     const groups: Record<string, { plaza: any; days: Record<string, any[]> }> = {};
-    for (const ruta of allRutas) {
+    for (const ruta of filteredRutas) {
       const pid = ruta.plaza_id;
       if (!groups[pid]) {
         groups[pid] = { plaza: ruta.plazas || { nombre: "Sin plaza" }, days: {} };
@@ -394,7 +408,14 @@ export default function DeliverySchedule() {
       groups[pid].days[day].push(ruta);
     }
     return groups;
-  }, [allRutas]);
+  }, [filteredRutas]);
+
+  // Dates that have rutas (for calendar highlighting)
+  const rutaDates = useMemo(() => {
+    let rutas = allRutas;
+    if (selectedPlaza !== "all") rutas = rutas.filter((r: any) => r.plaza_id === selectedPlaza);
+    return new Set(rutas.map((r: any) => r.fecha_entrega).filter(Boolean));
+  }, [allRutas, selectedPlaza]);
 
   // Filter pool
   const filteredPool = useMemo(() => {
@@ -680,18 +701,62 @@ export default function DeliverySchedule() {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Planeación de Entregas</h1>
-          <p className="text-muted-foreground text-xs">Arrastra pedidos del pool a las rutas para programarlos</p>
+      <div className="px-4 py-3 border-b shrink-0 space-y-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Planeación de Entregas</h1>
+            <p className="text-muted-foreground text-xs">Arrastra pedidos del pool a las rutas para programarlos</p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => setNewRouteOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Nueva Ruta
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/documents")}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Documentos
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setNewRouteOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Nueva Ruta
-          </Button>
-          <Button variant="outline" onClick={() => navigate("/documents")}>
-            <ArrowLeft className="h-4 w-4 mr-1" /> Documentos
-          </Button>
+        {/* Plaza filter chips + view toggle */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap">
+            <Button
+              size="sm"
+              variant={selectedPlaza === "all" ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setSelectedPlaza("all")}
+            >
+              Todas las plazas
+            </Button>
+            {plazas.map((p: any) => (
+              <Button
+                key={p.id}
+                size="sm"
+                variant={selectedPlaza === p.id ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setSelectedPlaza(p.id)}
+              >
+                {p.nombre}
+              </Button>
+            ))}
+          </div>
+          <div className="flex gap-1 border rounded-md p-0.5">
+            <Button
+              size="sm"
+              variant={routeViewMode === "list" ? "default" : "ghost"}
+              className="h-7 text-xs px-3"
+              onClick={() => { setRouteViewMode("list"); setCalendarDate(undefined); }}
+            >
+              <Truck className="h-3.5 w-3.5 mr-1" /> Lista
+            </Button>
+            <Button
+              size="sm"
+              variant={routeViewMode === "calendar" ? "default" : "ghost"}
+              className="h-7 text-xs px-3"
+              onClick={() => setRouteViewMode("calendar")}
+            >
+              <CalendarIcon className="h-3.5 w-3.5 mr-1" /> Calendario
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -742,9 +807,38 @@ export default function DeliverySchedule() {
             </ScrollArea>
           </div>
 
-          {/* RIGHT: Routes kanban */}
+          {/* RIGHT: Routes kanban / Calendar */}
           <ScrollArea className="flex-1">
             <div className="p-4 min-w-max">
+              {/* Calendar selector */}
+              {routeViewMode === "calendar" && (
+                <div className="mb-4 flex gap-4 items-start">
+                  <Card className="shrink-0">
+                    <CardContent className="p-2">
+                      <Calendar
+                        mode="single"
+                        selected={calendarDate}
+                        onSelect={(d) => setCalendarDate(d)}
+                        className="p-2 pointer-events-auto"
+                        locale={es}
+                        modifiers={{
+                          hasDelivery: (date) => rutaDates.has(format(date, "yyyy-MM-dd")),
+                        }}
+                        modifiersClassNames={{
+                          hasDelivery: "bg-primary/20 font-bold text-primary",
+                        }}
+                      />
+                    </CardContent>
+                  </Card>
+                  <div className="text-sm text-muted-foreground">
+                    {calendarDate ? (
+                      <p>Mostrando rutas del <span className="font-semibold text-foreground">{format(calendarDate, "EEEE dd MMM yyyy", { locale: es })}</span></p>
+                    ) : (
+                      <p>Selecciona una fecha para ver las entregas programadas. Los días con entregas están <span className="font-semibold text-primary">resaltados</span>.</p>
+                    )}
+                  </div>
+                </div>
+              )}
               {Object.keys(rutasByPlazaDay).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                   <Truck className="h-12 w-12 mb-3 opacity-30" />
