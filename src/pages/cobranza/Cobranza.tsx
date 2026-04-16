@@ -448,6 +448,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const { aplicaciones, refetch } = useCobranzaAplicaciones(pago?.id || null);
   const [openEnviar, setOpenEnviar] = useState(false);
   const [defaultEmails, setDefaultEmails] = useState<string[]>([]);
+  const [blockedEmails, setBlockedEmails] = useState<string[]>([]);
   const [comprobantes, setComprobantes] = useState<{ nombre: string; url: string }[]>([]);
   const [previouslySentEmails, setPreviouslySentEmails] = useState<string[]>([]);
   const [loadingEmails, setLoadingEmails] = useState<null | "contado" | "credito" | "credito_cescemex" | "general">(null);
