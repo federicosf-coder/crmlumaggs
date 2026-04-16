@@ -38,11 +38,13 @@ import { CSS } from "@dnd-kit/utilities";
 const POOL_STATUSES = ["confirmado_cliente", "espera_autorizacion_precio", "precio_autorizado", "validado_contabilidad"] as const;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  confirmado_cliente: { label: "Confirmado", color: "text-red-700 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700" },
+  confirmado_cliente: { label: "Confirmado Cliente", color: "text-red-700 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700" },
   espera_autorizacion_precio: { label: "Espera Autorización", color: "text-yellow-700 dark:text-yellow-400", bg: "bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700" },
   precio_autorizado: { label: "Precio Autorizado", color: "text-green-700 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700" },
-  validado_contabilidad: { label: "Validado", color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700" },
-  programado_entrega: { label: "Programado", color: "text-purple-700 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700" },
+  validado_contabilidad: { label: "Validado Contabilidad", color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700" },
+  programado_entrega: { label: "Programado Entrega", color: "text-purple-700 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700" },
+  entregado: { label: "Entregado", color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700" },
+  cancelado: { label: "Cancelado", color: "text-gray-700 dark:text-gray-400", bg: "bg-gray-100 dark:bg-gray-900/30 border-gray-300 dark:border-gray-700" },
 };
 
 // ─── Types ────────────────────────────────────────────────────
