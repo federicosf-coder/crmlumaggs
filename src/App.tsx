@@ -19,6 +19,7 @@ import ProductCatalog from "@/pages/inventory/ProductCatalog";
 import DocumentsList from "@/pages/documents/DocumentsList";
 import DocumentForm from "@/pages/documents/DocumentForm";
 import DeliverySchedule from "@/pages/documents/DeliverySchedule";
+import EntregaDetalle from "@/pages/documents/EntregaDetalle";
 import CrmLanding from "@/pages/crm/CrmLanding";
 import CrmPipeline from "@/pages/crm/CrmPipeline";
 import CrmActivitiesTasks from "@/pages/crm/CrmActivitiesTasks";
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/delivery" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/schedule" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
+            <Route path="/delivery/entrega/:id" element={<ProtectedRoute><EntregaDetalle /></ProtectedRoute>} />
             <Route path="/cobranza" element={<ProtectedRoute><Cobranza /></ProtectedRoute>} />
             <Route path="/transfers" element={<ProtectedRoute><ModulePlaceholder title="Transferencias de Inventario" description="Gestión de transferencias entre almacenes. Próximamente en Fase 3." /></ProtectedRoute>} />
             
