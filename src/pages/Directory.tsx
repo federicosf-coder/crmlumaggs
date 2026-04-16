@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ImportExportMenu } from "@/components/ImportExportMenu";
+import { AddressDisplay } from "@/components/AddressDisplay";
 
 interface Company {
   id: string; name: string; industry: string | null; phone: string | null;
