@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Plus, Search, Pencil } from "lucide-react";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
+import { AddressDisplay } from "@/components/AddressDisplay";
 
 interface TipoCatalogItem {
   id: string;
