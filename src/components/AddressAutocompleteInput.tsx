@@ -151,6 +151,10 @@ export function AddressAutocompleteInput({
       toast.error("Tu navegador no soporta geolocalización");
       return;
     }
+    const ok = window.confirm(
+      "Se actualizará la dirección con base en la ubicación actual de este dispositivo. ¿Deseas continuar?"
+    );
+    if (!ok) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => reverseGeocode(pos.coords.latitude, pos.coords.longitude),
       (err) => toast.error(err.message || "No se pudo obtener tu ubicación"),
