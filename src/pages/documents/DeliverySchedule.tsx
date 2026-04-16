@@ -128,6 +128,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onDeliver: (item: PoolItem) => void;
   onReorder: (rutaId: string, items: PoolItem[]) => void;
 }) {
+  const navigate = useNavigate();
   const { setNodeRef, isOver } = useDroppable({ id: `ruta-${ruta.id}` });
   const vehiculo = vehiculos.find((v: any) => v.id === ruta.vehiculo_id);
   const repartidorNames = repartidoresRuta.map(rr => {
