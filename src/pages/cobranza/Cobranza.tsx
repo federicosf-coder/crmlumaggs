@@ -204,11 +204,8 @@ export default function Cobranza() {
             <BucketReportCard title="Crédito Directo" buckets={bucketsCreditoDirecto} onSelect={(label) => setBucketSel({ label, scope: "credito" })} />
             <BucketReportCard title="Crédito Cescemex" buckets={bucketsCreditoCescemex} onSelect={(label) => setBucketSel({ label, scope: "credito_cescemex" })} />
           </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader><CardTitle>Cartera por plaza</CardTitle></CardHeader>
               <CardContent>
