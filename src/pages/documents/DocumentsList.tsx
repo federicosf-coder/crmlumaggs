@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { DocumentKanban } from "@/components/documents/DocumentKanban";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
+import { ExportFieldsDialog, ExportField } from "@/components/documents/ExportFieldsDialog";
 
 const ESTATUS_COT_LABELS: Record<string, string> = {
   borrador: "Borrador", impresa: "Impresa", enviada: "Enviada",
@@ -105,6 +106,7 @@ export default function DocumentsList() {
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const setFilter = useCallback((key: string, value: string) => {
     setSearchParams(prev => {
@@ -167,9 +169,24 @@ export default function DocumentsList() {
     switch (sortBy) {
       case "date_desc": return new Date(b.fecha_documento).getTime() - new Date(a.fecha_documento).getTime();
       case "date_asc": return new Date(a.fecha_documento).getTime() - new Date(b.fecha_documento).getTime();
+      case "created_desc": return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "created_asc": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       case "total_desc": return Number(b.total) - Number(a.total);
       case "total_asc": return Number(a.total) - Number(b.total);
       case "client_asc": return ((a.companies as any)?.name || "").localeCompare((b.companies as any)?.name || "");
+      case "client_desc": return ((b.companies as any)?.name || "").localeCompare((a.companies as any)?.name || "");
+      case "numero_asc": {
+        const na = a.numero_cotizacion || a.numero_pedido || a.numero_factura || "";
+        const nb = b.numero_cotizacion || b.numero_pedido || b.numero_factura || "";
+        return String(na).localeCompare(String(nb), undefined, { numeric: true });
+      }
+      case "numero_desc": {
+        const na = a.numero_cotizacion || a.numero_pedido || a.numero_factura || "";
+        const nb = b.numero_cotizacion || b.numero_pedido || b.numero_factura || "";
+        return String(nb).localeCompare(String(na), undefined, { numeric: true });
+      }
+      case "ejecutivo_asc": return getEjecutivoName(a.ejecutivo_venta_id).localeCompare(getEjecutivoName(b.ejecutivo_venta_id));
+      case "estatus_asc": return getEstatusLabel(a).localeCompare(getEstatusLabel(b));
       default: return 0;
     }
   });
@@ -225,25 +242,47 @@ export default function DocumentsList() {
 
   const handleExport = () => {
     if (sortedDocs.length === 0) { toast.error("No hay datos para exportar"); return; }
-    const headers = ["Número", "Cliente", "Ejecutivo", "Fecha", "Total", "Estatus"];
-    const rows = sortedDocs.map((doc: any) => [
-      doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "",
-      (doc.companies as any)?.name || "",
-      getEjecutivoName(doc.ejecutivo_venta_id),
-      format(new Date(doc.fecha_documento), "dd/MM/yyyy"),
-      Number(doc.total).toFixed(2),
-      getEstatusLabel(doc),
-    ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `documentos_${tipoFilter}_${format(new Date(), "yyyyMMdd")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Exportación completada");
+    setExportOpen(true);
   };
+
+  const exportFields: ExportField[] = [
+    { key: "numero", label: "Número", accessor: (d) => d.numero_cotizacion || d.numero_pedido || d.numero_factura || "" },
+    { key: "numero_cotizacion", label: "No. Cotización" },
+    { key: "numero_pedido", label: "No. Pedido" },
+    { key: "numero_factura", label: "No. Factura" },
+    { key: "numero_oc_cliente", label: "No. OC Cliente" },
+    { key: "tipo_documento", label: "Tipo Documento" },
+    { key: "empresa_vendedora", label: "Empresa Vendedora" },
+    { key: "cliente", label: "Cliente", accessor: (d) => (d.companies as any)?.name || "" },
+    { key: "contacto", label: "Contacto", accessor: (d) => {
+      const c = d.contacts as any;
+      return c ? `${c.first_name || ""} ${c.last_name || ""}`.trim() : "";
+    }},
+    { key: "ejecutivo", label: "Ejecutivo", accessor: (d) => getEjecutivoName(d.ejecutivo_venta_id) },
+    { key: "plaza", label: "Plaza", accessor: (d) => (d.plazas as any)?.nombre || "" },
+    { key: "fecha_documento", label: "Fecha Documento", accessor: (d) => d.fecha_documento ? format(new Date(d.fecha_documento), "dd/MM/yyyy") : "" },
+    { key: "fecha_vencimiento", label: "Fecha Vencimiento", accessor: (d) => d.fecha_vencimiento ? format(new Date(d.fecha_vencimiento), "dd/MM/yyyy") : "" },
+    { key: "fecha_entrega_programada", label: "Fecha Entrega Prog.", accessor: (d) => d.fecha_entrega_programada ? format(new Date(d.fecha_entrega_programada), "dd/MM/yyyy") : "" },
+    { key: "created_at", label: "Fecha de Creación", accessor: (d) => d.created_at ? format(new Date(d.created_at), "dd/MM/yyyy HH:mm") : "" },
+    { key: "subtotal", label: "Subtotal", accessor: (d) => Number(d.subtotal).toFixed(2) },
+    { key: "iva_porcentaje", label: "IVA %" },
+    { key: "iva_importe", label: "IVA Importe", accessor: (d) => Number(d.iva_importe).toFixed(2) },
+    { key: "total", label: "Total", accessor: (d) => Number(d.total).toFixed(2) },
+    { key: "saldo_pendiente_cobranza", label: "Saldo Pendiente", accessor: (d) => Number(d.saldo_pendiente_cobranza || 0).toFixed(2) },
+    { key: "unidades_equivalentes_total", label: "Unidades Equiv. Total" },
+    { key: "estatus", label: "Estatus", accessor: (d) => getEstatusLabel(d) },
+    { key: "estatus_cotizacion", label: "Estatus Cotización" },
+    { key: "estatus_pedido", label: "Estatus Pedido" },
+    { key: "estatus_factura", label: "Estatus Factura" },
+    { key: "estado_cobranza", label: "Estado Cobranza" },
+    { key: "tipo_pago", label: "Tipo de Pago" },
+    { key: "metodo_pago", label: "Método de Pago" },
+    { key: "uso_cfdi", label: "Uso CFDI" },
+    { key: "direccion_envio", label: "Dirección de Envío" },
+    { key: "negocio_crm", label: "Negocio CRM" },
+    { key: "notas", label: "Notas" },
+    { key: "pdf_url", label: "URL PDF" },
+  ];
 
   const handleImport = () => {
     const input = document.createElement("input");
@@ -468,11 +507,18 @@ export default function DocumentsList() {
                 value={sortBy}
                 onChange={setSortBy}
                 options={[
-                  { value: "date_desc", label: "Fecha ↓" },
-                  { value: "date_asc", label: "Fecha ↑" },
+                  { value: "date_desc", label: "Fecha Documento ↓" },
+                  { value: "date_asc", label: "Fecha Documento ↑" },
+                  { value: "created_desc", label: "Fecha Creación ↓" },
+                  { value: "created_asc", label: "Fecha Creación ↑" },
+                  { value: "numero_desc", label: "Número ↓" },
+                  { value: "numero_asc", label: "Número ↑" },
                   { value: "total_desc", label: "Total ↓" },
                   { value: "total_asc", label: "Total ↑" },
                   { value: "client_asc", label: "Cliente A-Z" },
+                  { value: "client_desc", label: "Cliente Z-A" },
+                  { value: "ejecutivo_asc", label: "Ejecutivo A-Z" },
+                  { value: "estatus_asc", label: "Estatus A-Z" },
                 ]}
               />
             </div>
@@ -525,7 +571,7 @@ export default function DocumentsList() {
                       {tipoFilter === "factura" && (
                         <TableHead className="hidden md:table-cell">Plaza</TableHead>
                       )}
-                      <TableHead className="hidden md:table-cell">Fecha</TableHead>
+                      <TableHead className="hidden md:table-cell">{tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}</TableHead>
                       {isPedido && (
                         <TableHead className="hidden md:table-cell">Fecha Programada</TableHead>
                       )}
@@ -682,6 +728,16 @@ export default function DocumentsList() {
         table="documentos"
         fields={getDocBulkFields()}
         onSuccess={() => { setSelectedIds(new Set()); refetch(); }}
+      />
+
+      {/* Export field selection dialog */}
+      <ExportFieldsDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        data={sortedDocs}
+        fields={exportFields}
+        defaultSelected={["numero", "cliente", "ejecutivo", "fecha_documento", "total", "estatus"]}
+        filenameBase={`documentos_${tipoFilter}`}
       />
     </div>
   );
