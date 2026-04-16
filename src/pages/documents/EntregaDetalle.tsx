@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, MapPin, Upload, FileText, Image as ImageIcon, Trash2, Check,
   Navigation, Pencil, Loader2, ExternalLink,
