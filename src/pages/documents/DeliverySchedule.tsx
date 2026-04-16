@@ -381,15 +381,17 @@ export default function DeliverySchedule() {
     setRouteItems(map);
   }, [allRutas, allEntregas]);
 
-  // Group rutas by plaza
-  const rutasByPlaza = useMemo(() => {
-    const groups: Record<string, { plaza: any; rutas: any[] }> = {};
+  // Group rutas by plaza, then by day
+  const rutasByPlazaDay = useMemo(() => {
+    const groups: Record<string, { plaza: any; days: Record<string, any[]> }> = {};
     for (const ruta of allRutas) {
       const pid = ruta.plaza_id;
       if (!groups[pid]) {
-        groups[pid] = { plaza: ruta.plazas || { nombre: "Sin plaza" }, rutas: [] };
+        groups[pid] = { plaza: ruta.plazas || { nombre: "Sin plaza" }, days: {} };
       }
-      groups[pid].rutas.push(ruta);
+      const day = ruta.fecha_entrega || "sin-fecha";
+      if (!groups[pid].days[day]) groups[pid].days[day] = [];
+      groups[pid].days[day].push(ruta);
     }
     return groups;
   }, [allRutas]);
@@ -743,7 +745,7 @@ export default function DeliverySchedule() {
           {/* RIGHT: Routes kanban */}
           <ScrollArea className="flex-1">
             <div className="p-4 min-w-max">
-              {Object.keys(rutasByPlaza).length === 0 ? (
+              {Object.keys(rutasByPlazaDay).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                   <Truck className="h-12 w-12 mb-3 opacity-30" />
                   <p className="text-lg font-medium">Sin rutas creadas</p>
@@ -751,26 +753,37 @@ export default function DeliverySchedule() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {Object.entries(rutasByPlaza).map(([plazaId, { plaza, rutas }]) => (
+                  {Object.entries(rutasByPlazaDay).map(([plazaId, { plaza, days }]) => (
                     <div key={plazaId}>
                       <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-3">
                         📍 {plaza.nombre || "Sin plaza"}
                       </h3>
-                      <div className="flex gap-4 overflow-x-auto pb-2">
-                        {rutas.map(ruta => (
-                          <RouteDropColumn
-                            key={ruta.id}
-                            ruta={ruta}
-                            items={routeItems[ruta.id] || []}
-                            vehiculos={vehiculos}
-                            repartidoresAll={repartidoresAll}
-                            repartidoresRuta={allRutaRepartidores.filter((rr: any) => rr.ruta_id === ruta.id)}
-                            onEditRoute={handleOpenEditRoute}
-                            onDeleteRoute={deleteRoute}
-                            onRemoveItem={removeItemFromRoute}
-                            onDeliver={handleDeliver}
-                            onReorder={() => {}}
-                          />
+                      <div className="space-y-4">
+                        {Object.entries(days)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([day, rutas]) => (
+                          <div key={day}>
+                            <p className="text-xs font-semibold text-muted-foreground mb-2 ml-1">
+                              📅 {day !== "sin-fecha" ? format(new Date(day + "T12:00:00"), "EEEE dd MMM yyyy", { locale: es }) : "Sin fecha"}
+                            </p>
+                            <div className="flex gap-4 overflow-x-auto pb-2">
+                              {rutas.map(ruta => (
+                                <RouteDropColumn
+                                  key={ruta.id}
+                                  ruta={ruta}
+                                  items={routeItems[ruta.id] || []}
+                                  vehiculos={vehiculos}
+                                  repartidoresAll={repartidoresAll}
+                                  repartidoresRuta={allRutaRepartidores.filter((rr: any) => rr.ruta_id === ruta.id)}
+                                  onEditRoute={handleOpenEditRoute}
+                                  onDeleteRoute={deleteRoute}
+                                  onRemoveItem={removeItemFromRoute}
+                                  onDeliver={handleDeliver}
+                                  onReorder={() => {}}
+                                />
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
