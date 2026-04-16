@@ -133,10 +133,10 @@ export function EnviarConfirmacionPagoDialog({
         finalEmails.map((email) =>
           supabase.functions.invoke("send-transactional-email", {
             body: {
-              templateName: "pago-confirmation",
+              templateName,
               recipientEmail: email,
               // Unique per attempt so resends are not blocked by idempotency
-              idempotencyKey: `pago-confirm-${pagoId}-${email}-${ts}`,
+              idempotencyKey: `${templateName}-${pagoId}-${email}-${ts}`,
               templateData: {
                 empresa,
                 fechaPago,
@@ -146,6 +146,7 @@ export function EnviarConfirmacionPagoDialog({
                 documentos,
                 comprobantes,
                 registradoPor,
+                ...(extraTemplateData || {}),
               },
             },
           })
@@ -154,10 +155,11 @@ export function EnviarConfirmacionPagoDialog({
       const failed = results.filter((r) => r.status === "rejected").length;
       if (failed === 0) {
         toast.success(
-          `Confirmación enviada a ${finalEmails.length} ${
+          `Correo enviado a ${finalEmails.length} ${
             finalEmails.length === 1 ? "destinatario" : "destinatarios"
           }`
         );
+        onSent?.();
         onOpenChange(false);
       } else {
         toast.error(`Falló el envío a ${failed} de ${finalEmails.length}`);
