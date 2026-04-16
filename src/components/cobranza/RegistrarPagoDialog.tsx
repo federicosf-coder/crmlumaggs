@@ -193,6 +193,30 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
 
     setSaving(false);
     toast.success("Pago registrado y aplicado");
+
+    // Prepare confirmation email dialog data
+    const empresa = companies.find((c) => c.id === empresaId);
+    const docsLigados = aplicaciones.map((a) => {
+      const d = docs.find((x) => x.id === a.doc_id)!;
+      return {
+        tipo: TIPO_LABEL[d.tipo_documento],
+        numero: d.numero,
+        monto: formatCurrency(a.monto),
+      };
+    });
+    setConfirmData({
+      pagoId: pago.id,
+      empresa: empresa?.name || "—",
+      fechaPago,
+      montoTotal: formatCurrency(montoNum),
+      moneda: "MXN",
+      observaciones: observaciones || undefined,
+      documentos: docsLigados,
+      registradoPor: profile?.full_name || user?.email || undefined,
+      defaultEmails: empresa?.email ? [empresa.email] : [],
+    });
+    setConfirmOpen(true);
+
     onSaved();
     onOpenChange(false);
     reset();
