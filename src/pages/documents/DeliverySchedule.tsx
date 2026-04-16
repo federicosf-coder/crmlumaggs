@@ -807,9 +807,38 @@ export default function DeliverySchedule() {
             </ScrollArea>
           </div>
 
-          {/* RIGHT: Routes kanban */}
+          {/* RIGHT: Routes kanban / Calendar */}
           <ScrollArea className="flex-1">
             <div className="p-4 min-w-max">
+              {/* Calendar selector */}
+              {routeViewMode === "calendar" && (
+                <div className="mb-4 flex gap-4 items-start">
+                  <Card className="shrink-0">
+                    <CardContent className="p-2">
+                      <Calendar
+                        mode="single"
+                        selected={calendarDate}
+                        onSelect={(d) => setCalendarDate(d)}
+                        className="p-2 pointer-events-auto"
+                        locale={es}
+                        modifiers={{
+                          hasDelivery: (date) => rutaDates.has(format(date, "yyyy-MM-dd")),
+                        }}
+                        modifiersClassNames={{
+                          hasDelivery: "bg-primary/20 font-bold text-primary",
+                        }}
+                      />
+                    </CardContent>
+                  </Card>
+                  <div className="text-sm text-muted-foreground">
+                    {calendarDate ? (
+                      <p>Mostrando rutas del <span className="font-semibold text-foreground">{format(calendarDate, "EEEE dd MMM yyyy", { locale: es })}</span></p>
+                    ) : (
+                      <p>Selecciona una fecha para ver las entregas programadas. Los días con entregas están <span className="font-semibold text-primary">resaltados</span>.</p>
+                    )}
+                  </div>
+                </div>
+              )}
               {Object.keys(rutasByPlazaDay).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                   <Truck className="h-12 w-12 mb-3 opacity-30" />
