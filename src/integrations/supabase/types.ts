@@ -1637,6 +1637,7 @@ export type Database = {
           id: string
           is_active: boolean
           phone: string | null
+          plaza_id: string | null
           updated_at: string
           user_id: string
         }
@@ -1648,6 +1649,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           phone?: string | null
+          plaza_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1659,10 +1661,19 @@ export type Database = {
           id?: string
           is_active?: boolean
           phone?: string | null
+          plaza_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       repartidores: {
         Row: {
