@@ -204,6 +204,26 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
         monto: formatCurrency(a.monto),
       };
     });
+
+    // Cargar correos del grupo "Contabilidad" + correo de empresa
+    const defaultEmails: string[] = [];
+    if (empresa?.email) defaultEmails.push(empresa.email);
+    const { data: contGroup } = await supabase
+      .from("email_groups")
+      .select("id")
+      .eq("nombre", "Contabilidad")
+      .eq("is_active", true)
+      .maybeSingle();
+    if (contGroup?.id) {
+      const { data: members } = await supabase
+        .from("email_group_members")
+        .select("email")
+        .eq("group_id", contGroup.id);
+      (members || []).forEach((m: any) => {
+        if (m.email && !defaultEmails.includes(m.email)) defaultEmails.push(m.email);
+      });
+    }
+
     setConfirmData({
       pagoId: pago.id,
       empresa: empresa?.name || "—",
@@ -213,7 +233,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
       observaciones: observaciones || undefined,
       documentos: docsLigados,
       registradoPor: profile?.full_name || user?.email || undefined,
-      defaultEmails: empresa?.email ? [empresa.email] : [],
+      defaultEmails,
     });
     setConfirmOpen(true);
 
