@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2, CheckSquare } from "lucide-react";
+import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2, CheckSquare, Columns3 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format } from "date-fns";
@@ -20,6 +21,26 @@ import { toast } from "sonner";
 import { DocumentKanban } from "@/components/documents/DocumentKanban";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { ExportFieldsDialog, ExportField } from "@/components/documents/ExportFieldsDialog";
+
+// Column visibility config per document type
+type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_programada" | "total" | "estatus" | "pdf";
+const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
+  { key: "numero", label: "Número" },
+  { key: "cliente", label: "Cliente" },
+  { key: "ejecutivo", label: "Ejecutivo" },
+  { key: "plaza", label: "Plaza" },
+  { key: "fecha", label: "Fecha Documento" },
+  { key: "fecha_programada", label: "Fecha Programada" },
+  { key: "total", label: "Total" },
+  { key: "estatus", label: "Estatus" },
+  { key: "pdf", label: "PDF" },
+];
+const DEFAULT_COLS_BY_TIPO: Record<string, ColumnKey[]> = {
+  cotizacion: ["numero", "cliente", "ejecutivo", "fecha", "total", "estatus", "pdf"],
+  pedido: ["cliente", "ejecutivo", "fecha", "fecha_programada", "total", "estatus", "pdf"],
+  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "total", "estatus", "pdf"],
+};
+const colsStorageKey = (userId: string, tipo: string) => `doc-cols:${userId}:${tipo}`;
 
 const ESTATUS_COT_LABELS: Record<string, string> = {
   borrador: "Borrador", impresa: "Impresa", enviada: "Enviada",
@@ -87,7 +108,7 @@ function getStatusBadgeClass(doc: any): string {
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const isAdmin = hasRole("admin");
   const qc = useQueryClient();
 
@@ -115,6 +136,35 @@ export default function DocumentsList() {
       return next;
     }, { replace: true });
   }, [setSearchParams]);
+
+  // Column visibility (persisted in localStorage by user + tipo_documento)
+  const [visibleCols, setVisibleCols] = useState<Set<ColumnKey>>(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      const raw = localStorage.getItem(colsStorageKey(user.id, tipoFilter));
+      if (raw) {
+        const arr = JSON.parse(raw) as ColumnKey[];
+        if (Array.isArray(arr)) setVisibleCols(new Set(arr));
+        else setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
+      } else {
+        setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
+      }
+    } catch {
+      setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
+    }
+  }, [user?.id, tipoFilter]);
+  const toggleCol = (key: ColumnKey) => {
+    setVisibleCols((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      if (user?.id) {
+        try { localStorage.setItem(colsStorageKey(user.id, tipoFilter), JSON.stringify(Array.from(next))); } catch {}
+      }
+      return next;
+    });
+  };
+  const isColVisible = (key: ColumnKey) => visibleCols.has(key);
 
   // Determine module based on tipoFilter
   const docModule = tipoFilter === "factura" ? "facturacion" as const : "cotizaciones" as const;
@@ -409,6 +459,24 @@ export default function DocumentsList() {
               </Button>
             </>
           )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Columns3 className="mr-1 h-4 w-4" /> Columnas
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56">
+              <p className="text-sm font-medium mb-2">Columnas visibles</p>
+              <div className="space-y-2">
+                {ALL_COLUMNS.map((c) => (
+                  <label key={c.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={visibleCols.has(c.key)} onCheckedChange={() => toggleCol(c.key)} />
+                    <span>{c.label}</span>
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           <Button variant="outline" size="sm" onClick={() => navigate("/delivery/schedule")}>
             <Truck className="mr-1 h-4 w-4" /> Programar Entregas
           </Button>
@@ -561,25 +629,29 @@ export default function DocumentsList() {
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
-                      {!isPedido && (
+                      {!isPedido && isColVisible("numero") && (
                         <TableHead>
                           {tipoFilter === "factura" ? "No. Factura" : "Número"}
                         </TableHead>
                       )}
-                      <TableHead className="min-w-[180px]">Cliente</TableHead>
-                      <TableHead className="hidden sm:table-cell">Ejecutivo</TableHead>
-                      {tipoFilter === "factura" && (
+                      {isColVisible("cliente") && <TableHead className="min-w-[180px]">Cliente</TableHead>}
+                      {isColVisible("ejecutivo") && <TableHead className="hidden sm:table-cell">Ejecutivo</TableHead>}
+                      {tipoFilter === "factura" && isColVisible("plaza") && (
                         <TableHead className="hidden md:table-cell">Plaza</TableHead>
                       )}
-                      <TableHead className="hidden md:table-cell">{tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}</TableHead>
-                      {isPedido && (
+                      {isColVisible("fecha") && (
+                        <TableHead className="hidden md:table-cell">{tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}</TableHead>
+                      )}
+                      {isPedido && isColVisible("fecha_programada") && (
                         <TableHead className="hidden md:table-cell">Fecha Programada</TableHead>
                       )}
-                      <TableHead>Total</TableHead>
-                      <TableHead>
-                        {tipoFilter === "factura" ? "Estatus Factura" : "Estatus"}
-                      </TableHead>
-                      <TableHead className="hidden sm:table-cell">PDF</TableHead>
+                      {isColVisible("total") && <TableHead>Total</TableHead>}
+                      {isColVisible("estatus") && (
+                        <TableHead>
+                          {tipoFilter === "factura" ? "Estatus Factura" : "Estatus"}
+                        </TableHead>
+                      )}
+                      {isColVisible("pdf") && <TableHead className="hidden sm:table-cell">PDF</TableHead>}
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -602,53 +674,63 @@ export default function DocumentsList() {
                             }}
                           />
                         </TableCell>
-                        {!isPedido && (
+                        {!isPedido && isColVisible("numero") && (
                           <TableCell className="font-medium whitespace-nowrap">
                             {tipoFilter === "factura"
                               ? (doc.numero_factura || "-")
                               : (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "-")}
                           </TableCell>
                         )}
-                        <TableCell>{(doc.companies as any)?.name || "-"}</TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          {getEjecutivoName(doc.ejecutivo_venta_id)}
-                        </TableCell>
-                        {tipoFilter === "factura" && (
+                        {isColVisible("cliente") && <TableCell>{(doc.companies as any)?.name || "-"}</TableCell>}
+                        {isColVisible("ejecutivo") && (
+                          <TableCell className="hidden sm:table-cell">
+                            {getEjecutivoName(doc.ejecutivo_venta_id)}
+                          </TableCell>
+                        )}
+                        {tipoFilter === "factura" && isColVisible("plaza") && (
                           <TableCell className="hidden md:table-cell">
                             {(doc.plazas as any)?.nombre || "-"}
                           </TableCell>
                         )}
-                        <TableCell className="hidden md:table-cell whitespace-nowrap">
-                          {format(new Date(doc.fecha_documento), "dd/MM/yyyy")}
-                        </TableCell>
-                        {isPedido && (
+                        {isColVisible("fecha") && (
+                          <TableCell className="hidden md:table-cell whitespace-nowrap">
+                            {format(new Date(doc.fecha_documento), "dd/MM/yyyy")}
+                          </TableCell>
+                        )}
+                        {isPedido && isColVisible("fecha_programada") && (
                           <TableCell className="hidden md:table-cell whitespace-nowrap">
                             {doc.fecha_entrega_programada
                               ? format(new Date(doc.fecha_entrega_programada), "dd/MM/yyyy")
                               : "-"}
                           </TableCell>
                         )}
-                        <TableCell className="whitespace-nowrap">
-                          ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(doc)}`}>
-                            {getEstatusLabel(doc)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          {doc.pdf_url ? (
-                            <Button variant="ghost" size="icon" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                              <a href={doc.pdf_url} target="_blank" rel="noopener noreferrer" title="Ver PDF">
-                                <Download className="h-4 w-4" />
-                              </a>
-                            </Button>
-                          ) : doc.tipo_documento === "cotizacion" ? (
-                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); downloadCotizacionPdf(doc.id, () => refetch()); }} title="Generar PDF">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                          ) : null}
-                        </TableCell>
+                        {isColVisible("total") && (
+                          <TableCell className="whitespace-nowrap">
+                            ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                          </TableCell>
+                        )}
+                        {isColVisible("estatus") && (
+                          <TableCell>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(doc)}`}>
+                              {getEstatusLabel(doc)}
+                            </span>
+                          </TableCell>
+                        )}
+                        {isColVisible("pdf") && (
+                          <TableCell className="hidden sm:table-cell">
+                            {doc.pdf_url ? (
+                              <Button variant="ghost" size="icon" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                <a href={doc.pdf_url} target="_blank" rel="noopener noreferrer" title="Ver PDF">
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            ) : doc.tipo_documento === "cotizacion" ? (
+                              <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); downloadCotizacionPdf(doc.id, () => refetch()); }} title="Generar PDF">
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            ) : null}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/documents/${doc.id}`); }} title="Editar">
