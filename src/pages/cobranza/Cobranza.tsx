@@ -397,7 +397,7 @@ export default function Cobranza() {
                       <TableCell className="text-right text-muted-foreground">{aplicadoOtros > 0 ? formatCurrency(aplicadoOtros) : "—"}</TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(dispFact)}</TableCell>
                       <TableCell className="text-xs">{FORMA_PAGO_LABEL[p.tipo_pago || ""] || p.tipo_pago || "—"}</TableCell>
-                      <TableCell><Badge variant="outline">{ESTATUS_PAGO_LABEL[p.estatus_pago] || p.estatus_pago}</Badge></TableCell>
+                      <TableCell><EstatusPagoEditor pagoId={p.id} value={p.estatus_pago} canEdit={canEditEstatus} compact onChanged={refetchPagos} /></TableCell>
                       <TableCell><Badge variant={p.estado_pago === "aplicado_total" ? "default" : p.estado_pago === "cancelado" ? "destructive" : "secondary"}>{ESTADO_PAGO_LABEL[p.estado_pago]}</Badge></TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
