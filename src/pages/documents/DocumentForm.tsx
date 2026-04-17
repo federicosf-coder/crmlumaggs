@@ -746,7 +746,7 @@ export default function DocumentForm() {
             <>
               <div>
                 <Label>Número Factura</Label>
-                <Input value={form.numero_factura} onChange={e => set("numero_factura", e.target.value)} />
+                <Input value={form.numero_factura} onChange={e => set("numero_factura", e.target.value.replace(/\s+/g, ""))} />
               </div>
               <div>
                 <Label>Estatus Factura</Label>
