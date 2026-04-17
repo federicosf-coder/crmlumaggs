@@ -293,8 +293,13 @@ export default function DocumentsList() {
 
   const [exportData, setExportData] = useState<any[]>([]);
   const [exportLoading, setExportLoading] = useState(false);
+  const [exportFilterOpen, setExportFilterOpen] = useState(false);
 
-  const handleExport = async () => {
+  const handleExport = () => {
+    setExportFilterOpen(true);
+  };
+
+  const runExportWithFilters = async (filters: ExportFilters) => {
     setExportLoading(true);
     try {
       let q = supabase
@@ -302,7 +307,12 @@ export default function DocumentsList() {
         .select("*, companies(name, razon_social), contacts(first_name, last_name), plazas(nombre)")
         .eq("is_active", true)
         .eq("empresa_vendedora", empresaFilter as any)
+        .in("tipo_documento", filters.tipos as any)
         .order("created_at", { ascending: false });
+      if (!filters.allRecords) {
+        if (filters.startDate) q = q.gte("fecha_documento", filters.startDate);
+        if (filters.endDate) q = q.lte("fecha_documento", filters.endDate);
+      }
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
       if (access.accessLevel === "propio" && access.userId) {
         q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
@@ -313,6 +323,7 @@ export default function DocumentsList() {
       if (error) throw error;
       if (!data || data.length === 0) { toast.error("No hay datos para exportar"); return; }
       setExportData(data);
+      setExportFilterOpen(false);
       setExportOpen(true);
     } catch (err: any) {
       toast.error("Error al exportar: " + (err.message || "Error"));
