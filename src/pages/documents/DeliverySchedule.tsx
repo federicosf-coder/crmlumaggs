@@ -737,6 +737,8 @@ export default function DeliverySchedule() {
     toast.success(nuevoEstado ? "Ruta cerrada" : "Ruta reabierta");
     refetchRutas();
   };
+
+  const handleDeliver = (item: PoolItem) => {
     setDeliverItem(item);
     setDeliverNotes("");
     setEvidenceFile(null);
