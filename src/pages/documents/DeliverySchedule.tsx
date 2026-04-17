@@ -980,6 +980,7 @@ export default function DeliverySchedule() {
                                   onDeleteRoute={deleteRoute}
                                   onDeliver={handleDeliver}
                                   onReorder={() => {}}
+                                  onToggleCerrada={toggleRutaCerrada}
                                 />
                               ))}
                             </div>
