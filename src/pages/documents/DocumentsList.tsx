@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { DocumentKanban } from "@/components/documents/DocumentKanban";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { ExportFieldsDialog, ExportField } from "@/components/documents/ExportFieldsDialog";
+import { ExportFilterDialog, ExportFilters } from "@/components/documents/ExportFilterDialog";
 
 // Column visibility config per document type
 type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_programada" | "total" | "estatus" | "pdf";
