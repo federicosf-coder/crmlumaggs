@@ -170,7 +170,7 @@ export async function importDocumentos(params: ImportDocsParams): Promise<Import
         Object.entries(payload).forEach(([k, v]) => { if (v !== null && v !== undefined) updatePayload[k] = v; });
 
         if (existingId) {
-          const { error: uErr } = await supabase.from("documentos").update(updatePayload).eq("id", existingId);
+          const { error: uErr } = await supabase.from("documentos").update(updatePayload as any).eq("id", existingId);
           if (uErr) throw uErr;
           log.actualizados++;
         } else {
