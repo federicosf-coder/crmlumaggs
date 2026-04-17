@@ -859,6 +859,12 @@ export default function DocumentsList() {
         onSuccess={() => { setSelectedIds(new Set()); refetch(); }}
       />
 
+      <ExportFilterDialog
+        open={exportFilterOpen}
+        onOpenChange={setExportFilterOpen}
+        onConfirm={runExportWithFilters}
+        loading={exportLoading}
+      />
       {/* Export field selection dialog */}
       <ExportFieldsDialog
         open={exportOpen}
