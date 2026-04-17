@@ -53,16 +53,22 @@ export function ImportExportMenu({
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [summary, setSummary] = useState({ created: 0, updated: 0, errors: 0, errorDetails: [] as string[] });
   const [importing, setImporting] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportMode, setExportMode] = useState<"importable" | "all">("importable");
 
-  const handleExport = () => {
-    if (data.length === 0) { toast.info("No hay registros para exportar"); return; }
-    const headerRow = fields.map(f => f.label).join(",");
+  const importableCount = fields.filter(f => f.importable !== false).length;
+
+  const runExport = () => {
+    if (data.length === 0) { toast.info("No hay registros para exportar"); setExportOpen(false); return; }
+    const chosen = exportMode === "importable" ? fields.filter(f => f.importable !== false) : fields;
+    if (chosen.length === 0) { toast.error("No hay campos disponibles"); return; }
+    const headerRow = chosen.map(f => f.label).join(",");
     const rows = data.map(d =>
-      fields.map(f => {
+      chosen.map(f => {
         const val = d[f.key];
         if (val === null || val === undefined) return "";
         const str = Array.isArray(val) ? val.join("; ") : String(val);
-        return str.includes(",") ? `"${str}"` : str;
+        return str.includes(",") ? `"${str.replace(/"/g, '""')}"` : str;
       }).join(",")
     );
     const csv = [headerRow, ...rows].join("\n");
@@ -70,10 +76,11 @@ export function ImportExportMenu({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${table}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `${table}_${exportMode}_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`${data.length} registros exportados`);
+    setExportOpen(false);
   };
 
   const handleImport = async (file: File) => {
