@@ -730,7 +730,13 @@ export default function DeliverySchedule() {
     refetchRutaRepartidores();
   };
 
-  const handleDeliver = (item: PoolItem) => {
+  const toggleRutaCerrada = async (ruta: any) => {
+    const nuevoEstado = !ruta.cerrada;
+    const { error } = await supabase.from("rutas_entrega").update({ cerrada: nuevoEstado }).eq("id", ruta.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(nuevoEstado ? "Ruta cerrada" : "Ruta reabierta");
+    refetchRutas();
+  };
     setDeliverItem(item);
     setDeliverNotes("");
     setEvidenceFile(null);
