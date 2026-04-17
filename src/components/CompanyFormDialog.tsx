@@ -360,7 +360,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                   value={form.razon_social}
                   onChange={e => set("razon_social", e.target.value)}
                   className="h-9"
-                  placeholder="Nombre legal/fiscal (opcional)"
+                  placeholder="Nombre legal/fiscal"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
