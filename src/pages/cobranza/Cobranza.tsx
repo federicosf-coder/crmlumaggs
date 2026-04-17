@@ -258,7 +258,7 @@ export default function Cobranza() {
         </Button>
       </div>
 
-      <Tabs defaultValue="dashboard">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="pagos">Pagos</TabsTrigger>
@@ -471,7 +471,7 @@ export default function Cobranza() {
         </TabsContent>
       </Tabs>
 
-      <RegistrarPagoDialog open={openRegistrar} onOpenChange={setOpenRegistrar} onSaved={() => { refetchPagos(); refetchDocs(); }} />
+      <RegistrarPagoDialog open={openRegistrar} onOpenChange={setOpenRegistrar} onSaved={(newId) => { refetchPagos(); refetchDocs(); if (newId) { setActiveTab("pagos"); setPendingDetalleId(newId); } }} />
       <AplicarPagoDialog open={openAplicar} onOpenChange={setOpenAplicar} pago={pagoSel} onSaved={() => { refetchPagos(); refetchDocs(); }} />
       <DetallePagoSheet
         open={openDetalle}
