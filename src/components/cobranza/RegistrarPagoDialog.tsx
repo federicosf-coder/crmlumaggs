@@ -409,22 +409,6 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    {confirmData && (
-      <EnviarConfirmacionPagoDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        pagoId={confirmData.pagoId}
-        empresa={confirmData.empresa}
-        fechaPago={confirmData.fechaPago}
-        montoTotal={confirmData.montoTotal}
-        moneda={confirmData.moneda}
-        observaciones={confirmData.observaciones}
-        documentos={confirmData.documentos}
-        comprobantes={confirmData.comprobantes}
-        registradoPor={confirmData.registradoPor}
-        defaultEmails={confirmData.defaultEmails}
-      />
-    )}
     </>
   );
 }
