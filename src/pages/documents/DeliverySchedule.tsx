@@ -226,15 +226,9 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                   </Button>
                 </div>
               )}
-              <div className="absolute top-1 right-1 hidden group-hover:flex gap-0.5">
-                {item.estatus === "programado_entrega" && item.type === "pedido" && (
-                  <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => onDeliver(item)}>
-                    <Check className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
             </div>
           ))}
+
         </div>
       </SortableContext>
 
