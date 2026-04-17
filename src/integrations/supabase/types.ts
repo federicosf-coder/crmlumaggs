@@ -1855,6 +1855,7 @@ export type Database = {
         Row: {
           capacidad_kg: number | null
           capacidad_volumen: number | null
+          cerrada: boolean
           created_at: string
           created_by: string | null
           fecha_entrega: string
@@ -1867,6 +1868,7 @@ export type Database = {
         Insert: {
           capacidad_kg?: number | null
           capacidad_volumen?: number | null
+          cerrada?: boolean
           created_at?: string
           created_by?: string | null
           fecha_entrega: string
@@ -1879,6 +1881,7 @@ export type Database = {
         Update: {
           capacidad_kg?: number | null
           capacidad_volumen?: number | null
+          cerrada?: boolean
           created_at?: string
           created_by?: string | null
           fecha_entrega?: string

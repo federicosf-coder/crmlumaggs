@@ -1,0 +1,1 @@
+ALTER TABLE public.rutas_entrega ADD COLUMN IF NOT EXISTS cerrada boolean NOT NULL DEFAULT false;
