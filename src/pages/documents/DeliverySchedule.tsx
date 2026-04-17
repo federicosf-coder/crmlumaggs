@@ -956,7 +956,6 @@ export default function DeliverySchedule() {
                                   repartidoresRuta={allRutaRepartidores.filter((rr: any) => rr.ruta_id === ruta.id)}
                                   onEditRoute={handleOpenEditRoute}
                                   onDeleteRoute={deleteRoute}
-                                  onRemoveItem={removeItemFromRoute}
                                   onDeliver={handleDeliver}
                                   onReorder={() => {}}
                                 />
