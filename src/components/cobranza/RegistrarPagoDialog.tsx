@@ -154,7 +154,6 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
     const aplicaciones = Object.entries(seleccion)
       .map(([doc_id, monto]) => ({ doc_id, monto: Number(monto) || 0 }))
       .filter((a) => a.monto > 0);
-    if (aplicaciones.length === 0) { toast.error("Liga al menos un documento"); return; }
     if (totalAsignado > montoNum + 0.01) { toast.error("La suma asignada excede el monto del pago"); return; }
 
     setSaving(true);
