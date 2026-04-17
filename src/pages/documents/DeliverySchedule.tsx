@@ -19,8 +19,8 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
-  Pencil, Trash2, Package, ListChecks, Search, Undo2, PanelLeftClose, PanelLeftOpen,
-  FileSignature,
+  Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
+  ClipboardCheck, MapPin,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -124,7 +124,7 @@ function OverlayCard({ item }: { item: PoolItem }) {
 }
 
 // ─── Route Drop Column ───────────────────────────────────────
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onRemoveItem, onDeliver, onReorder }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -132,7 +132,6 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   repartidoresRuta: any[];
   onEditRoute: (ruta: any) => void;
   onDeleteRoute: (rutaId: string) => void;
-  onRemoveItem: (itemId: string) => void;
   onDeliver: (item: PoolItem) => void;
   onReorder: (rutaId: string, items: PoolItem[]) => void;
 }) {
@@ -192,7 +191,22 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                 <DraggablePoolCard item={item} />
               </div>
               {item.type === "pedido" && (
-                <div className="absolute top-1 right-8 z-10">
+                <div className="absolute top-1 right-8 z-10 flex gap-0.5">
+                  {item.address && (
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-6 w-6 shadow"
+                      title="Abrir mapa"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address!)}`, "_blank");
+                      }}
+                    >
+                      <MapPin className="h-3 w-3" />
+                    </Button>
+                  )}
                   <Button
                     size="icon"
                     variant="default"
@@ -201,7 +215,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); navigate(`/delivery/entrega/${item.id}`); }}
                   >
-                    <FileSignature className="h-3 w-3" />
+                    <ClipboardCheck className="h-3 w-3" />
                   </Button>
                 </div>
               )}
@@ -211,9 +225,6 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                     <Check className="h-3 w-3" />
                   </Button>
                 )}
-                <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => onRemoveItem(item.id)}>
-                  <Undo2 className="h-3 w-3" />
-                </Button>
               </div>
             </div>
           ))}
@@ -945,7 +956,6 @@ export default function DeliverySchedule() {
                                   repartidoresRuta={allRutaRepartidores.filter((rr: any) => rr.ruta_id === ruta.id)}
                                   onEditRoute={handleOpenEditRoute}
                                   onDeleteRoute={deleteRoute}
-                                  onRemoveItem={removeItemFromRoute}
                                   onDeliver={handleDeliver}
                                   onReorder={() => {}}
                                 />
