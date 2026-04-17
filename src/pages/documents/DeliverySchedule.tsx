@@ -946,7 +946,14 @@ export default function DeliverySchedule() {
                       </h3>
                       <div className="space-y-4">
                         {Object.entries(days)
-                          .sort(([a], [b]) => a.localeCompare(b))
+                          .sort(([a], [b]) => {
+                            if (a === "sin-fecha") return 1;
+                            if (b === "sin-fecha") return -1;
+                            const today = format(new Date(), "yyyy-MM-dd");
+                            if (a === today && b !== today) return -1;
+                            if (b === today && a !== today) return 1;
+                            return b.localeCompare(a);
+                          })
                           .map(([day, rutas]) => (
                           <div key={day}>
                             <p className="text-xs font-semibold text-muted-foreground mb-2 ml-1">
