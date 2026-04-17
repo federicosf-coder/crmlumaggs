@@ -376,6 +376,10 @@ export default function DocumentForm() {
     if (!form.tipo_documento) { toast.error("Selecciona el tipo de documento"); return; }
     if (!form.plaza_id) { toast.error("La plaza es obligatoria"); return; }
     if (form.tipo_documento === "pedido" && !form.direccion_envio) { toast.error("La dirección de envío es obligatoria para pedidos"); return; }
+    if (form.tipo_documento === "factura" && form.numero_factura && /\s/.test(form.numero_factura)) {
+      toast.error("El número de factura no puede contener espacios");
+      return;
+    }
     setSaving(true);
     try {
       // resolve address text from selected address
@@ -742,7 +746,7 @@ export default function DocumentForm() {
             <>
               <div>
                 <Label>Número Factura</Label>
-                <Input value={form.numero_factura} onChange={e => set("numero_factura", e.target.value)} />
+                <Input value={form.numero_factura} onChange={e => set("numero_factura", e.target.value.replace(/\s+/g, ""))} />
               </div>
               <div>
                 <Label>Estatus Factura</Label>
