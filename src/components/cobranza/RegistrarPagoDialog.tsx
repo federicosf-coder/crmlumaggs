@@ -64,20 +64,6 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
   const [seleccion, setSeleccion] = useState<Record<string, string>>({}); // doc_id -> monto a aplicar
   const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
 
-  // Confirmation email dialog state
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmData, setConfirmData] = useState<{
-    pagoId: string;
-    empresa: string;
-    fechaPago: string;
-    montoTotal: string;
-    moneda: string;
-    observaciones?: string;
-    documentos: { tipo: string; numero: string; monto: string }[];
-    comprobantes: { nombre: string; url: string }[];
-    registradoPor?: string;
-    defaultEmails: string[];
-  } | null>(null);
 
   useEffect(() => {
     if (!open) return;
