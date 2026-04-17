@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
-  ClipboardCheck, MapPin,
+  ClipboardCheck, MapPin, Lock, Unlock,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -124,7 +124,7 @@ function OverlayCard({ item }: { item: PoolItem }) {
 }
 
 // ─── Route Drop Column ───────────────────────────────────────
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -134,9 +134,11 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onDeleteRoute: (rutaId: string) => void;
   onDeliver: (item: PoolItem) => void;
   onReorder: (rutaId: string, items: PoolItem[]) => void;
+  onToggleCerrada: (ruta: any) => void;
 }) {
   const navigate = useNavigate();
-  const { setNodeRef, isOver } = useDroppable({ id: `ruta-${ruta.id}` });
+  const cerrada = !!ruta.cerrada;
+  const { setNodeRef, isOver } = useDroppable({ id: `ruta-${ruta.id}`, disabled: cerrada });
   const vehiculo = vehiculos.find((v: any) => v.id === ruta.vehiculo_id);
   const repartidorNames = repartidoresRuta.map(rr => {
     const rep = repartidoresAll.find((r: any) => r.id === rr.repartidor_id);
@@ -146,14 +148,16 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   return (
     <div ref={setNodeRef}
       className={cn("border rounded-xl p-3 min-w-[320px] w-[340px] shrink-0 flex flex-col transition-colors",
-        isOver ? "bg-accent/50 border-primary" : "bg-card")}>
+        isOver ? "bg-accent/50 border-primary" : "bg-card",
+        cerrada && "opacity-75 border-dashed")}>
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Truck className="h-4 w-4 text-primary" />
             <span className="font-semibold text-sm">{vehiculo?.nombre || "Sin vehículo"}</span>
             {vehiculo?.placas && <span className="text-xs text-muted-foreground">({vehiculo.placas})</span>}
+            {cerrada && <Badge variant="secondary" className="text-[10px] gap-1"><Lock className="h-3 w-3" />Cerrada</Badge>}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             👤 {repartidorNames.length > 0 ? repartidorNames.join(", ") : "Sin repartidor"}
@@ -163,7 +167,10 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
           </p>
         </div>
         <div className="flex gap-1">
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEditRoute(ruta)}>
+          <Button size="icon" variant="ghost" className="h-7 w-7" title={cerrada ? "Reabrir ruta" : "Cerrar ruta"} onClick={() => onToggleCerrada(ruta)}>
+            {cerrada ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEditRoute(ruta)} disabled={cerrada}>
             <Pencil className="h-3.5 w-3.5" />
           </Button>
           <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("¿Eliminar esta ruta y devolver pedidos al pool?")) onDeleteRoute(ruta.id); }}>
@@ -537,6 +544,14 @@ export default function DeliverySchedule() {
 
     if (!activeContainer || !overContainer) return;
 
+    // Block any move involving a closed route (source or destination)
+    const sourceRuta = activeContainer !== "pool" ? allRutas.find((r: any) => r.id === activeContainer) : null;
+    const destRuta = overContainer !== "pool" ? allRutas.find((r: any) => r.id === overContainer) : null;
+    if (sourceRuta?.cerrada || destRuta?.cerrada) {
+      toast.error("La ruta está cerrada");
+      return;
+    }
+
     // Same container reorder
     if (activeContainer === overContainer && activeContainer !== "pool") {
       const items = routeItems[activeContainer] || [];
@@ -721,6 +736,14 @@ export default function DeliverySchedule() {
     setEditRouteData(null);
     refetchRutas();
     refetchRutaRepartidores();
+  };
+
+  const toggleRutaCerrada = async (ruta: any) => {
+    const nuevoEstado = !ruta.cerrada;
+    const { error } = await supabase.from("rutas_entrega").update({ cerrada: nuevoEstado }).eq("id", ruta.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(nuevoEstado ? "Ruta cerrada" : "Ruta reabierta");
+    refetchRutas();
   };
 
   const handleDeliver = (item: PoolItem) => {
@@ -939,7 +962,14 @@ export default function DeliverySchedule() {
                       </h3>
                       <div className="space-y-4">
                         {Object.entries(days)
-                          .sort(([a], [b]) => a.localeCompare(b))
+                          .sort(([a], [b]) => {
+                            if (a === "sin-fecha") return 1;
+                            if (b === "sin-fecha") return -1;
+                            const today = format(new Date(), "yyyy-MM-dd");
+                            if (a === today && b !== today) return -1;
+                            if (b === today && a !== today) return 1;
+                            return b.localeCompare(a);
+                          })
                           .map(([day, rutas]) => (
                           <div key={day}>
                             <p className="text-xs font-semibold text-muted-foreground mb-2 ml-1">
@@ -958,6 +988,7 @@ export default function DeliverySchedule() {
                                   onDeleteRoute={deleteRoute}
                                   onDeliver={handleDeliver}
                                   onReorder={() => {}}
+                                  onToggleCerrada={toggleRutaCerrada}
                                 />
                               ))}
                             </div>
