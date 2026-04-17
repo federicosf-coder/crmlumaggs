@@ -544,6 +544,14 @@ export default function DeliverySchedule() {
 
     if (!activeContainer || !overContainer) return;
 
+    // Block any move involving a closed route (source or destination)
+    const sourceRuta = activeContainer !== "pool" ? allRutas.find((r: any) => r.id === activeContainer) : null;
+    const destRuta = overContainer !== "pool" ? allRutas.find((r: any) => r.id === overContainer) : null;
+    if (sourceRuta?.cerrada || destRuta?.cerrada) {
+      toast.error("La ruta está cerrada");
+      return;
+    }
+
     // Same container reorder
     if (activeContainer === overContainer && activeContainer !== "pool") {
       const items = routeItems[activeContainer] || [];
