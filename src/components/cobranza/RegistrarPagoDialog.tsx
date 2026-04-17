@@ -266,7 +266,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
 
           <div>
             <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-              <Label>Documentos a ligar *</Label>
+              <Label>Documentos a ligar</Label>
               {montoNum > 0 && (
                 <div className="text-xs text-muted-foreground">
                   Asignado: <span className="font-medium text-foreground">{formatCurrency(totalAsignado)}</span> /{" "}
