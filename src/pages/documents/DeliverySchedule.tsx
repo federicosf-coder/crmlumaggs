@@ -970,7 +970,7 @@ export default function DeliverySchedule() {
                               📅 {day !== "sin-fecha" ? format(new Date(day + "T12:00:00"), "EEEE dd MMM yyyy", { locale: es }) : "Sin fecha"}
                             </p>
                             <div className="flex gap-4 overflow-x-auto pb-2">
-                              {rutas.map(ruta => (
+                              {[...rutas].sort((a, b) => Number(!!a.cerrada) - Number(!!b.cerrada)).map(ruta => (
                                 <RouteDropColumn
                                   key={ruta.id}
                                   ruta={ruta}
