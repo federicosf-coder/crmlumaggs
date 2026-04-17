@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Download, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -8,6 +10,8 @@ import { toast } from "sonner";
 export interface ImportExportField {
   key: string;
   label: string;
+  /** Whether this field is importable (true) or calculated/referenced (false). Default true. */
+  importable?: boolean;
 }
 
 interface ImportExportMenuProps {
@@ -49,16 +53,22 @@ export function ImportExportMenu({
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [summary, setSummary] = useState({ created: 0, updated: 0, errors: 0, errorDetails: [] as string[] });
   const [importing, setImporting] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportMode, setExportMode] = useState<"importable" | "all">("importable");
 
-  const handleExport = () => {
-    if (data.length === 0) { toast.info("No hay registros para exportar"); return; }
-    const headerRow = fields.map(f => f.label).join(",");
+  const importableCount = fields.filter(f => f.importable !== false).length;
+
+  const runExport = () => {
+    if (data.length === 0) { toast.info("No hay registros para exportar"); setExportOpen(false); return; }
+    const chosen = exportMode === "importable" ? fields.filter(f => f.importable !== false) : fields;
+    if (chosen.length === 0) { toast.error("No hay campos disponibles"); return; }
+    const headerRow = chosen.map(f => f.label).join(",");
     const rows = data.map(d =>
-      fields.map(f => {
+      chosen.map(f => {
         const val = d[f.key];
         if (val === null || val === undefined) return "";
         const str = Array.isArray(val) ? val.join("; ") : String(val);
-        return str.includes(",") ? `"${str}"` : str;
+        return str.includes(",") ? `"${str.replace(/"/g, '""')}"` : str;
       }).join(",")
     );
     const csv = [headerRow, ...rows].join("\n");
@@ -66,10 +76,11 @@ export function ImportExportMenu({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${table}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `${table}_${exportMode}_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`${data.length} registros exportados`);
+    setExportOpen(false);
   };
 
   const handleImport = async (file: File) => {
@@ -146,7 +157,7 @@ export function ImportExportMenu({
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={handleExport} disabled={importing}>
+      <Button variant="outline" size="sm" onClick={() => setExportOpen(true)} disabled={importing}>
         <Download className="h-4 w-4 mr-1" /> Exportar
       </Button>
       <Button
@@ -168,6 +179,39 @@ export function ImportExportMenu({
           e.target.value = "";
         }}
       />
+
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exportar {entityLabel} a CSV</DialogTitle>
+            <DialogDescription>Elige qué campos quieres incluir en el archivo.</DialogDescription>
+          </DialogHeader>
+          <RadioGroup value={exportMode} onValueChange={(v) => setExportMode(v as any)} className="space-y-2 py-2">
+            <label htmlFor="exp-imp" className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted">
+              <RadioGroupItem value="importable" id="exp-imp" className="mt-1" />
+              <div className="flex-1">
+                <Label htmlFor="exp-imp" className="font-medium cursor-pointer">Solo campos importables</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Excluye campos calculados o referenciados. Útil para reimportar ({importableCount} campos)
+                </p>
+              </div>
+            </label>
+            <label htmlFor="exp-all" className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted">
+              <RadioGroupItem value="all" id="exp-all" className="mt-1" />
+              <div className="flex-1">
+                <Label htmlFor="exp-all" className="font-medium cursor-pointer">Todos los campos</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Incluye todos los campos disponibles ({fields.length} campos)
+                </p>
+              </div>
+            </label>
+          </RadioGroup>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={runExport}>Exportar CSV</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
         <DialogContent className="sm:max-w-md">
