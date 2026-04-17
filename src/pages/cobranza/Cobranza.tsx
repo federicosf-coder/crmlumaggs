@@ -217,6 +217,16 @@ export default function Cobranza() {
   const handleAplicar = (p: CobranzaPago) => { setPagoSel(p); setOpenAplicar(true); };
   const handleVerDetalle = (p: CobranzaPago) => { setPagoSel(p); setOpenDetalle(true); };
 
+  useEffect(() => {
+    if (!pendingDetalleId) return;
+    const found = pagos.find((p) => p.id === pendingDetalleId);
+    if (found) {
+      setPagoSel(found);
+      setOpenDetalle(true);
+      setPendingDetalleId(null);
+    }
+  }, [pendingDetalleId, pagos]);
+
   const handleCancelarPago = async (p: CobranzaPago) => {
     if (!confirm("¿Cancelar este pago? Se revertirán todas sus aplicaciones.")) return;
     // Cancelar aplicaciones activas
