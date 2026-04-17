@@ -131,6 +131,8 @@ export default function Cobranza() {
   const [openAplicar, setOpenAplicar] = useState(false);
   const [pagoSel, setPagoSel] = useState<CobranzaPago | null>(null);
   const [openDetalle, setOpenDetalle] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [pendingDetalleId, setPendingDetalleId] = useState<string | null>(null);
 
   const [searchPagos, setSearchPagos] = useState("");
   const [searchFacturas, setSearchFacturas] = useState("");
