@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Paperclip, X, FileText, Image as ImageIcon } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { EnviarConfirmacionPagoDialog } from "./EnviarConfirmacionPagoDialog";
+
 
 interface Props {
   open: boolean;
