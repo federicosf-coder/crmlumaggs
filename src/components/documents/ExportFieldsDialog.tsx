@@ -1,6 +1,5 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -18,6 +18,8 @@ export interface ExportField {
   label: string;
   /** Optional accessor to derive value from a doc row */
   accessor?: (doc: any) => any;
+  /** Whether this field is importable (true) or calculated/referenced (false). Default true. */
+  importable?: boolean;
 }
 
 interface ExportFieldsDialogProps {
@@ -25,43 +27,35 @@ interface ExportFieldsDialogProps {
   onOpenChange: (open: boolean) => void;
   data: any[];
   fields: ExportField[];
+  /** Ignored — kept for backwards compatibility */
   defaultSelected?: string[];
   filenameBase: string;
 }
+
+type Mode = "importable" | "all";
 
 export function ExportFieldsDialog({
   open,
   onOpenChange,
   data,
   fields,
-  defaultSelected,
   filenameBase,
 }: ExportFieldsDialogProps) {
-  const initial = useMemo(
-    () => new Set(defaultSelected ?? fields.map((f) => f.key)),
-    [defaultSelected, fields],
-  );
-  const [selected, setSelected] = useState<Set<string>>(initial);
+  const [mode, setMode] = useState<Mode>("importable");
 
-  const toggle = (key: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
-  };
-
-  const selectAll = () => setSelected(new Set(fields.map((f) => f.key)));
-  const clearAll = () => setSelected(new Set());
+  const importableCount = fields.filter((f) => f.importable !== false).length;
 
   const handleExport = () => {
     if (data.length === 0) {
       toast.error("No hay datos para exportar");
       return;
     }
-    const chosen = fields.filter((f) => selected.has(f.key));
+    const chosen =
+      mode === "importable"
+        ? fields.filter((f) => f.importable !== false)
+        : fields;
     if (chosen.length === 0) {
-      toast.error("Selecciona al menos un campo");
+      toast.error("No hay campos disponibles para exportar");
       return;
     }
     const headers = chosen.map((f) => f.label);
@@ -80,7 +74,7 @@ export function ExportFieldsDialog({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${filenameBase}_${format(new Date(), "yyyyMMdd")}.csv`;
+    a.download = `${filenameBase}_${mode}_${format(new Date(), "yyyyMMdd")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Exportación completada");
@@ -89,42 +83,48 @@ export function ExportFieldsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Exportar campos</DialogTitle>
+          <DialogTitle>Exportar a CSV</DialogTitle>
           <DialogDescription>
-            Selecciona los campos que deseas incluir en el archivo CSV.
+            Elige qué campos quieres incluir en el archivo.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            {selected.size} de {fields.length} seleccionados
-          </span>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={selectAll}>
-              Seleccionar todos
-            </Button>
-            <Button variant="ghost" size="sm" onClick={clearAll}>
-              Limpiar
-            </Button>
-          </div>
-        </div>
-        <ScrollArea className="h-72 pr-3">
-          <div className="grid grid-cols-2 gap-2">
-            {fields.map((f) => (
-              <label
-                key={f.key}
-                className="flex items-center gap-2 text-sm cursor-pointer rounded px-2 py-1.5 hover:bg-muted"
-              >
-                <Checkbox
-                  checked={selected.has(f.key)}
-                  onCheckedChange={() => toggle(f.key)}
-                />
-                <span>{f.label}</span>
-              </label>
-            ))}
-          </div>
-        </ScrollArea>
+        <RadioGroup
+          value={mode}
+          onValueChange={(v) => setMode(v as Mode)}
+          className="space-y-2"
+        >
+          <label
+            htmlFor="opt-importable"
+            className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted"
+          >
+            <RadioGroupItem value="importable" id="opt-importable" className="mt-1" />
+            <div className="flex-1">
+              <Label htmlFor="opt-importable" className="font-medium cursor-pointer">
+                Solo campos importables
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Excluye campos calculados o referenciados. Útil para reimportar
+                ({importableCount} campos)
+              </p>
+            </div>
+          </label>
+          <label
+            htmlFor="opt-all"
+            className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted"
+          >
+            <RadioGroupItem value="all" id="opt-all" className="mt-1" />
+            <div className="flex-1">
+              <Label htmlFor="opt-all" className="font-medium cursor-pointer">
+                Todos los campos
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Incluye todos los campos disponibles ({fields.length} campos)
+              </p>
+            </div>
+          </label>
+        </RadioGroup>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
