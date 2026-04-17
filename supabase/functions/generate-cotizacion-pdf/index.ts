@@ -198,7 +198,7 @@ serve(async (req) => {
     const clientPhone = contact?.phone || company?.phone || "";
 
     if (clientPhone) {
-      drawTextRight(clientPhone, rightEdge, y + 14);
+      drawTextRight(`Tel: ${clientPhone}`, rightEdge, y);
     }
 
     drawText("Dirigido a:", margin, y);
