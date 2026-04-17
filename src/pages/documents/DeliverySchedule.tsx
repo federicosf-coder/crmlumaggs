@@ -19,8 +19,8 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
-  Pencil, Trash2, Package, ListChecks, Search, Undo2, PanelLeftClose, PanelLeftOpen,
-  FileSignature,
+  Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
+  ClipboardCheck, MapPin,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
