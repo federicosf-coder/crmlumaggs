@@ -191,7 +191,22 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                 <DraggablePoolCard item={item} />
               </div>
               {item.type === "pedido" && (
-                <div className="absolute top-1 right-8 z-10">
+                <div className="absolute top-1 right-8 z-10 flex gap-0.5">
+                  {item.address && (
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-6 w-6 shadow"
+                      title="Abrir mapa"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address!)}`, "_blank");
+                      }}
+                    >
+                      <MapPin className="h-3 w-3" />
+                    </Button>
+                  )}
                   <Button
                     size="icon"
                     variant="default"
@@ -200,7 +215,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); navigate(`/delivery/entrega/${item.id}`); }}
                   >
-                    <FileSignature className="h-3 w-3" />
+                    <ClipboardCheck className="h-3 w-3" />
                   </Button>
                 </div>
               )}
@@ -210,9 +225,6 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                     <Check className="h-3 w-3" />
                   </Button>
                 )}
-                <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => onRemoveItem(item.id)}>
-                  <Undo2 className="h-3 w-3" />
-                </Button>
               </div>
             </div>
           ))}
