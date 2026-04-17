@@ -689,7 +689,12 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Detalle del pago</SheetTitle>
+          <div className="flex items-center justify-between gap-2">
+            <SheetTitle>Detalle del pago</SheetTitle>
+            <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Regresar a Pagos
+            </Button>
+          </div>
         </SheetHeader>
         <div className="space-y-4 mt-6">
           <div className="flex flex-wrap justify-end gap-2">
