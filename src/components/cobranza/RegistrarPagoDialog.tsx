@@ -13,7 +13,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Paperclip, X, FileText, Image as ImageIcon } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { EnviarConfirmacionPagoDialog } from "./EnviarConfirmacionPagoDialog";
+// Confirmation email flow removed per request.
+
 
 interface Props {
   open: boolean;
@@ -47,7 +48,7 @@ const FORMA_PAGO_OPTIONS: { value: FormaPago; label: string }[] = [
 const VALID_FORMAS: FormaPago[] = ["contado", "credito", "credito_cescemex"];
 
 export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [companies, setCompanies] = useState<{ id: string; name: string; email?: string | null; tipo_pago?: string | null }[]>([]);
   const [docs, setDocs] = useState<DocOption[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
@@ -63,20 +64,6 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
   const [seleccion, setSeleccion] = useState<Record<string, string>>({}); // doc_id -> monto a aplicar
   const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
 
-  // Confirmation email dialog state
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmData, setConfirmData] = useState<{
-    pagoId: string;
-    empresa: string;
-    fechaPago: string;
-    montoTotal: string;
-    moneda: string;
-    observaciones?: string;
-    documentos: { tipo: string; numero: string; monto: string }[];
-    comprobantes: { nombre: string; url: string }[];
-    registradoPor?: string;
-    defaultEmails: string[];
-  } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -207,7 +194,6 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
     if (appErr) { setSaving(false); toast.error("Pago guardado, pero falló alguna aplicación: " + appErr.message); return; }
 
     // Archivos
-    const comprobantesUploaded: { nombre: string; url: string }[] = [];
     if (files.length > 0) {
       const uploads = files.map(async (file) => {
         const ext = file.name.split(".").pop();
@@ -215,7 +201,6 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
         const { error: upErr } = await supabase.storage.from("document-files").upload(path, file);
         if (upErr) throw upErr;
         const { data: pub } = supabase.storage.from("document-files").getPublicUrl(path);
-        comprobantesUploaded.push({ nombre: file.name, url: pub.publicUrl });
         return supabase.from("cobranza_pago_archivos").insert({
           pago_id: pago.id,
           url_archivo: pub.publicUrl,
@@ -229,50 +214,6 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
 
     setSaving(false);
     toast.success("Pago registrado y aplicado");
-
-    // Prepare confirmation email dialog data
-    const empresa = companies.find((c) => c.id === empresaId);
-    const docsLigados = aplicaciones.map((a) => {
-      const d = docs.find((x) => x.id === a.doc_id)!;
-      return {
-        tipo: TIPO_LABEL[d.tipo_documento],
-        numero: d.numero,
-        monto: formatCurrency(a.monto),
-      };
-    });
-
-    // Cargar correos del grupo "Contabilidad" + correo de empresa
-    const defaultEmails: string[] = [];
-    if (empresa?.email) defaultEmails.push(empresa.email);
-    const { data: contGroup } = await supabase
-      .from("email_groups")
-      .select("id")
-      .eq("nombre", "Contabilidad")
-      .eq("is_active", true)
-      .maybeSingle();
-    if (contGroup?.id) {
-      const { data: members } = await supabase
-        .from("email_group_members")
-        .select("email")
-        .eq("group_id", contGroup.id);
-      (members || []).forEach((m: any) => {
-        if (m.email && !defaultEmails.includes(m.email)) defaultEmails.push(m.email);
-      });
-    }
-
-    setConfirmData({
-      pagoId: pago.id,
-      empresa: empresa?.name || "—",
-      fechaPago,
-      montoTotal: formatCurrency(montoNum),
-      moneda: "MXN",
-      observaciones: observaciones || undefined,
-      documentos: docsLigados,
-      comprobantes: comprobantesUploaded,
-      registradoPor: profile?.full_name || user?.email || undefined,
-      defaultEmails,
-    });
-    setConfirmOpen(true);
 
     onSaved();
     onOpenChange(false);
@@ -453,22 +394,6 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    {confirmData && (
-      <EnviarConfirmacionPagoDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        pagoId={confirmData.pagoId}
-        empresa={confirmData.empresa}
-        fechaPago={confirmData.fechaPago}
-        montoTotal={confirmData.montoTotal}
-        moneda={confirmData.moneda}
-        observaciones={confirmData.observaciones}
-        documentos={confirmData.documentos}
-        comprobantes={confirmData.comprobantes}
-        registradoPor={confirmData.registradoPor}
-        defaultEmails={confirmData.defaultEmails}
-      />
-    )}
     </>
   );
 }
