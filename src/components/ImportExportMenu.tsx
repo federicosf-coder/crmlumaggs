@@ -157,7 +157,7 @@ export function ImportExportMenu({
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={handleExport} disabled={importing}>
+      <Button variant="outline" size="sm" onClick={() => setExportOpen(true)} disabled={importing}>
         <Download className="h-4 w-4 mr-1" /> Exportar
       </Button>
       <Button
