@@ -58,17 +58,28 @@ function MiniMap({ lat, lng, address, height }: { lat?: number | null; lng?: num
       markerRef.current = new g.maps.Marker({ position: center, map: mapRef.current });
     };
 
-    if (lat != null && lng != null) {
-      place(Number(lat), Number(lng));
-    } else if (address) {
-      const geocoder = new g.maps.Geocoder();
-      geocoder.geocode({ address }, (results: any, status: string) => {
-        if (status === "OK" && results?.[0]?.geometry?.location) {
-          const loc = results[0].geometry.location;
-          place(loc.lat(), loc.lng());
+    (async () => {
+      try {
+        if (g.maps.importLibrary) {
+          await g.maps.importLibrary("maps");
+          await g.maps.importLibrary("marker");
         }
-      });
-    }
+        if (lat != null && lng != null) {
+          place(Number(lat), Number(lng));
+        } else if (address) {
+          if (g.maps.importLibrary) await g.maps.importLibrary("geocoding");
+          const geocoder = new g.maps.Geocoder();
+          geocoder.geocode({ address }, (results: any, status: string) => {
+            if (status === "OK" && results?.[0]?.geometry?.location) {
+              const loc = results[0].geometry.location;
+              place(loc.lat(), loc.lng());
+            }
+          });
+        }
+      } catch (e) {
+        console.error("Maps init error", e);
+      }
+    })();
   }, [ready, lat, lng, address]);
 
   return <div ref={ref} className="w-full rounded-md border bg-muted" style={{ height }} />;
