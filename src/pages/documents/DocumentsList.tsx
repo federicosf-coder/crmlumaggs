@@ -851,10 +851,10 @@ export default function DocumentsList() {
       <ExportFieldsDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
-        data={sortedDocs}
+        data={exportData}
         fields={exportFields}
-        defaultSelected={["numero", "cliente", "ejecutivo", "fecha_documento", "total", "estatus"]}
-        filenameBase={`documentos_${tipoFilter}`}
+        defaultSelected={exportFields.map((f) => f.key)}
+        filenameBase={`documentos_${empresaFilter}`}
       />
     </div>
   );
