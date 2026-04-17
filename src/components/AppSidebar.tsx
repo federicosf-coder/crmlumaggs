@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, ShoppingCart, FileText, Package, Truck,
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
-  Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet,
+  Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet, Upload,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -43,6 +43,7 @@ const adminItems: NavItem[] = [
   { title: "Permisos", url: "/admin/permissions", icon: Shield, roles: ["admin"] },
   { title: "Equipos", url: "/admin/teams", icon: Settings, roles: ["admin", "manager"] },
   { title: "Catálogos", url: "/admin/catalogs", icon: Database, roles: ["admin", "manager"] },
+  { title: "Importar Noloco", url: "/admin/import-noloco", icon: Upload, roles: ["admin"] },
 ];
 
 export function AppSidebar() {

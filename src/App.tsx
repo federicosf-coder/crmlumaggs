@@ -13,6 +13,7 @@ import UserManagement from "@/pages/admin/UserManagement";
 import TeamManagement from "@/pages/admin/TeamManagement";
 import PermissionsManagement from "@/pages/admin/PermissionsManagement";
 import CatalogsManagement from "@/pages/admin/CatalogsManagement";
+import ImportNoloco from "@/pages/admin/ImportNoloco";
 import ModulePlaceholder from "@/pages/ModulePlaceholder";
 import Directory from "@/pages/Directory";
 import ProductCatalog from "@/pages/inventory/ProductCatalog";
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/admin/teams" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
             <Route path="/admin/permissions" element={<ProtectedRoute><PermissionsManagement /></ProtectedRoute>} />
             <Route path="/admin/catalogs" element={<ProtectedRoute><CatalogsManagement /></ProtectedRoute>} />
+            <Route path="/admin/import-noloco" element={<ProtectedRoute><ImportNoloco /></ProtectedRoute>} />
 
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
             <Route path="/directory/addresses" element={<ProtectedRoute><DeliveryAddresses /></ProtectedRoute>} />
