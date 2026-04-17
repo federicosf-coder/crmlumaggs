@@ -107,6 +107,9 @@ export function AddressAutocompleteInput({
     if (!ready) return;
     setReverseLoading(true);
     try {
+      if ((window as any).google?.maps?.importLibrary) {
+        await (window as any).google.maps.importLibrary("geocoding");
+      }
       const geocoder = new window.google.maps.Geocoder();
       const res: any = await geocoder.geocode({ location: { lat, lng } });
       const place = res?.results?.[0];
