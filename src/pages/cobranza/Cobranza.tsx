@@ -131,6 +131,8 @@ export default function Cobranza() {
   const [openAplicar, setOpenAplicar] = useState(false);
   const [pagoSel, setPagoSel] = useState<CobranzaPago | null>(null);
   const [openDetalle, setOpenDetalle] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [pendingDetalleId, setPendingDetalleId] = useState<string | null>(null);
 
   const [searchPagos, setSearchPagos] = useState("");
   const [searchFacturas, setSearchFacturas] = useState("");
@@ -215,6 +217,16 @@ export default function Cobranza() {
   const handleAplicar = (p: CobranzaPago) => { setPagoSel(p); setOpenAplicar(true); };
   const handleVerDetalle = (p: CobranzaPago) => { setPagoSel(p); setOpenDetalle(true); };
 
+  useEffect(() => {
+    if (!pendingDetalleId) return;
+    const found = pagos.find((p) => p.id === pendingDetalleId);
+    if (found) {
+      setPagoSel(found);
+      setOpenDetalle(true);
+      setPendingDetalleId(null);
+    }
+  }, [pendingDetalleId, pagos]);
+
   const handleCancelarPago = async (p: CobranzaPago) => {
     if (!confirm("¿Cancelar este pago? Se revertirán todas sus aplicaciones.")) return;
     // Cancelar aplicaciones activas
@@ -256,7 +268,7 @@ export default function Cobranza() {
         </Button>
       </div>
 
-      <Tabs defaultValue="dashboard">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="pagos">Pagos</TabsTrigger>
@@ -469,7 +481,7 @@ export default function Cobranza() {
         </TabsContent>
       </Tabs>
 
-      <RegistrarPagoDialog open={openRegistrar} onOpenChange={setOpenRegistrar} onSaved={() => { refetchPagos(); refetchDocs(); }} />
+      <RegistrarPagoDialog open={openRegistrar} onOpenChange={setOpenRegistrar} onSaved={(newId) => { refetchPagos(); refetchDocs(); if (newId) { setActiveTab("pagos"); setPendingDetalleId(newId); } }} />
       <AplicarPagoDialog open={openAplicar} onOpenChange={setOpenAplicar} pago={pagoSel} onSaved={() => { refetchPagos(); refetchDocs(); }} />
       <DetallePagoSheet
         open={openDetalle}
@@ -677,7 +689,12 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Detalle del pago</SheetTitle>
+          <div className="flex items-center justify-between gap-2">
+            <SheetTitle>Detalle del pago</SheetTitle>
+            <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Regresar a Pagos
+            </Button>
+          </div>
         </SheetHeader>
         <div className="space-y-4 mt-6">
           <div className="flex flex-wrap justify-end gap-2">

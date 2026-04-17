@@ -19,7 +19,7 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  onSaved: () => void;
+  onSaved: (pagoId?: string) => void;
 }
 
 interface DocOption {
@@ -214,7 +214,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
     setSaving(false);
     toast.success("Pago registrado y aplicado");
 
-    onSaved();
+    onSaved(pago.id);
     onOpenChange(false);
     reset();
   };
