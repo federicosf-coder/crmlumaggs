@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Paperclip, X, FileText, Image as ImageIcon } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+// Confirmation email flow removed per request.
 
 
 interface Props {
