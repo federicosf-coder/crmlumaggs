@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Download, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -8,6 +10,8 @@ import { toast } from "sonner";
 export interface ImportExportField {
   key: string;
   label: string;
+  /** Whether this field is importable (true) or calculated/referenced (false). Default true. */
+  importable?: boolean;
 }
 
 interface ImportExportMenuProps {
