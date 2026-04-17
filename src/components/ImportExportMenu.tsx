@@ -180,6 +180,39 @@ export function ImportExportMenu({
         }}
       />
 
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exportar {entityLabel} a CSV</DialogTitle>
+            <DialogDescription>Elige qué campos quieres incluir en el archivo.</DialogDescription>
+          </DialogHeader>
+          <RadioGroup value={exportMode} onValueChange={(v) => setExportMode(v as any)} className="space-y-2 py-2">
+            <label htmlFor="exp-imp" className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted">
+              <RadioGroupItem value="importable" id="exp-imp" className="mt-1" />
+              <div className="flex-1">
+                <Label htmlFor="exp-imp" className="font-medium cursor-pointer">Solo campos importables</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Excluye campos calculados o referenciados. Útil para reimportar ({importableCount} campos)
+                </p>
+              </div>
+            </label>
+            <label htmlFor="exp-all" className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted">
+              <RadioGroupItem value="all" id="exp-all" className="mt-1" />
+              <div className="flex-1">
+                <Label htmlFor="exp-all" className="font-medium cursor-pointer">Todos los campos</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Incluye todos los campos disponibles ({fields.length} campos)
+                </p>
+              </div>
+            </label>
+          </RadioGroup>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={runExport}>Exportar CSV</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
