@@ -290,37 +290,65 @@ export default function DocumentsList() {
     }
   };
 
-  const handleExport = () => {
-    if (sortedDocs.length === 0) { toast.error("No hay datos para exportar"); return; }
-    setExportOpen(true);
+  const [exportData, setExportData] = useState<any[]>([]);
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const handleExport = async () => {
+    setExportLoading(true);
+    try {
+      let q = supabase
+        .from("documentos")
+        .select("*, companies(name, razon_social), contacts(first_name, last_name), plazas(nombre)")
+        .eq("is_active", true)
+        .eq("empresa_vendedora", empresaFilter as any)
+        .order("created_at", { ascending: false });
+      if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
+      if (access.accessLevel === "propio" && access.userId) {
+        q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
+      } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
+        q = q.in("created_by", access.teamMemberIds);
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      if (!data || data.length === 0) { toast.error("No hay datos para exportar"); return; }
+      setExportData(data);
+      setExportOpen(true);
+    } catch (err: any) {
+      toast.error("Error al exportar: " + (err.message || "Error"));
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   const exportFields: ExportField[] = [
-    { key: "numero", label: "Número", accessor: (d) => d.numero_cotizacion || d.numero_pedido || d.numero_factura || "" },
+    { key: "id", label: "ID" },
+    { key: "tipo_documento", label: "Tipo Documento" },
     { key: "numero_cotizacion", label: "No. Cotización" },
     { key: "numero_pedido", label: "No. Pedido" },
     { key: "numero_factura", label: "No. Factura" },
     { key: "numero_oc_cliente", label: "No. OC Cliente" },
-    { key: "tipo_documento", label: "Tipo Documento" },
     { key: "empresa_vendedora", label: "Empresa Vendedora" },
+    { key: "empresa_id", label: "Empresa ID" },
     { key: "cliente", label: "Cliente", accessor: (d) => (d.companies as any)?.name || "" },
+    { key: "razon_social", label: "Razón Social", accessor: (d) => (d.companies as any)?.razon_social || "" },
+    { key: "contacto_id", label: "Contacto ID" },
     { key: "contacto", label: "Contacto", accessor: (d) => {
       const c = d.contacts as any;
       return c ? `${c.first_name || ""} ${c.last_name || ""}`.trim() : "";
     }},
+    { key: "ejecutivo_venta_id", label: "Ejecutivo ID" },
     { key: "ejecutivo", label: "Ejecutivo", accessor: (d) => getEjecutivoName(d.ejecutivo_venta_id) },
+    { key: "plaza_id", label: "Plaza ID" },
     { key: "plaza", label: "Plaza", accessor: (d) => (d.plazas as any)?.nombre || "" },
-    { key: "fecha_documento", label: "Fecha Documento", accessor: (d) => d.fecha_documento ? format(new Date(d.fecha_documento), "dd/MM/yyyy") : "" },
-    { key: "fecha_vencimiento", label: "Fecha Vencimiento", accessor: (d) => d.fecha_vencimiento ? format(new Date(d.fecha_vencimiento), "dd/MM/yyyy") : "" },
-    { key: "fecha_entrega_programada", label: "Fecha Entrega Prog.", accessor: (d) => d.fecha_entrega_programada ? format(new Date(d.fecha_entrega_programada), "dd/MM/yyyy") : "" },
-    { key: "created_at", label: "Fecha de Creación", accessor: (d) => d.created_at ? format(new Date(d.created_at), "dd/MM/yyyy HH:mm") : "" },
-    { key: "subtotal", label: "Subtotal", accessor: (d) => Number(d.subtotal).toFixed(2) },
+    { key: "fecha_documento", label: "Fecha Documento" },
+    { key: "fecha_vencimiento", label: "Fecha Vencimiento" },
+    { key: "fecha_entrega_programada", label: "Fecha Entrega Prog." },
+    { key: "subtotal", label: "Subtotal" },
     { key: "iva_porcentaje", label: "IVA %" },
-    { key: "iva_importe", label: "IVA Importe", accessor: (d) => Number(d.iva_importe).toFixed(2) },
-    { key: "total", label: "Total", accessor: (d) => Number(d.total).toFixed(2) },
-    { key: "saldo_pendiente_cobranza", label: "Saldo Pendiente", accessor: (d) => Number(d.saldo_pendiente_cobranza || 0).toFixed(2) },
+    { key: "iva_importe", label: "IVA Importe" },
+    { key: "total", label: "Total" },
+    { key: "saldo_pendiente_cobranza", label: "Saldo Pendiente" },
     { key: "unidades_equivalentes_total", label: "Unidades Equiv. Total" },
-    { key: "estatus", label: "Estatus", accessor: (d) => getEstatusLabel(d) },
     { key: "estatus_cotizacion", label: "Estatus Cotización" },
     { key: "estatus_pedido", label: "Estatus Pedido" },
     { key: "estatus_factura", label: "Estatus Factura" },
@@ -329,9 +357,16 @@ export default function DocumentsList() {
     { key: "metodo_pago", label: "Método de Pago" },
     { key: "uso_cfdi", label: "Uso CFDI" },
     { key: "direccion_envio", label: "Dirección de Envío" },
+    { key: "direccion_envio_lat", label: "Dirección Envío Lat" },
+    { key: "direccion_envio_lng", label: "Dirección Envío Lng" },
     { key: "negocio_crm", label: "Negocio CRM" },
     { key: "notas", label: "Notas" },
     { key: "pdf_url", label: "URL PDF" },
+    { key: "cotizacion_original_id", label: "Cotización Original ID" },
+    { key: "is_active", label: "Activo" },
+    { key: "created_by", label: "Creado por" },
+    { key: "created_at", label: "Creado" },
+    { key: "updated_at", label: "Actualizado" },
   ];
 
   const handleImport = () => {
