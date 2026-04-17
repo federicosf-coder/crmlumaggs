@@ -124,7 +124,7 @@ function OverlayCard({ item }: { item: PoolItem }) {
 }
 
 // ─── Route Drop Column ───────────────────────────────────────
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onRemoveItem, onDeliver, onReorder }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -132,7 +132,6 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   repartidoresRuta: any[];
   onEditRoute: (ruta: any) => void;
   onDeleteRoute: (rutaId: string) => void;
-  onRemoveItem: (itemId: string) => void;
   onDeliver: (item: PoolItem) => void;
   onReorder: (rutaId: string, items: PoolItem[]) => void;
 }) {
