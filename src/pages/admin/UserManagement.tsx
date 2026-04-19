@@ -74,6 +74,8 @@ export default function UserManagement() {
       is_active: p.is_active,
       phone: p.phone,
       plaza_id: (p as any).plaza_id ?? null,
+      approval_status: ((p as any).approval_status ?? "aprobado") as "pendiente" | "aprobado" | "rechazado",
+      created_at: (p as any).created_at ?? "",
       roles: (allRoles || []).filter((r) => r.user_id === p.user_id).map((r) => r.role as AppRole),
       team_ids: (membersData || []).filter((m) => m.user_id === p.user_id).map((m) => m.team_id),
     }));
