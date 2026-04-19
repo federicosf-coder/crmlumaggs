@@ -34,6 +34,8 @@ interface UserWithRoles {
   is_active: boolean;
   phone: string | null;
   plaza_id: string | null;
+  approval_status: "pendiente" | "aprobado" | "rechazado";
+  created_at: string;
   roles: AppRole[];
   team_ids: string[];
 }
@@ -72,6 +74,8 @@ export default function UserManagement() {
       is_active: p.is_active,
       phone: p.phone,
       plaza_id: (p as any).plaza_id ?? null,
+      approval_status: ((p as any).approval_status ?? "aprobado") as "pendiente" | "aprobado" | "rechazado",
+      created_at: (p as any).created_at ?? "",
       roles: (allRoles || []).filter((r) => r.user_id === p.user_id).map((r) => r.role as AppRole),
       team_ids: (membersData || []).filter((m) => m.user_id === p.user_id).map((m) => m.team_id),
     }));
@@ -112,6 +116,26 @@ export default function UserManagement() {
       toast({ title: "Plaza actualizada" });
       fetchUsers();
     }
+  };
+
+  const setApprovalStatus = async (userId: string, status: "aprobado" | "rechazado") => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ approval_status: status } as any)
+      .eq("user_id", userId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (status === "aprobado") {
+      // Assign default 'sales' role if user has no roles yet
+      const target = users.find((u) => u.user_id === userId);
+      if (target && target.roles.length === 0) {
+        await supabase.from("user_roles").insert({ user_id: userId, role: "sales" });
+      }
+    }
+    toast({ title: status === "aprobado" ? "Usuario aprobado" : "Usuario rechazado" });
+    fetchUsers();
   };
 
   const openEdit = (u: UserWithRoles) => {
@@ -167,9 +191,53 @@ export default function UserManagement() {
   const getTeamNames = (teamIds: string[]) =>
     teamIds.map((id) => teams.find((t) => t.id === id)?.name).filter(Boolean);
 
+  const pendingUsers = users.filter((u) => u.approval_status === "pendiente");
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
+
+      {pendingUsers.length > 0 && (
+        <Card className="border-primary/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Pendientes de Aprobación
+              <Badge variant="secondary">{pendingUsers.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Correo</TableHead>
+                  <TableHead>Teléfono</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingUsers.map((u) => (
+                  <TableRow key={u.user_id}>
+                    <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
+                    <TableCell>{u.email}</TableCell>
+                    <TableCell>{u.phone || "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-2 justify-end">
+                        <Button size="sm" onClick={() => setApprovalStatus(u.user_id, "aprobado")}>
+                          Aprobar
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setApprovalStatus(u.user_id, "rechazado")}>
+                          Rechazar
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit User Dialog */}
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>

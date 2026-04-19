@@ -1710,6 +1710,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_status: Database["public"]["Enums"]["approval_status"]
           avatar_url: string | null
           created_at: string
           email: string | null
@@ -1722,6 +1723,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approval_status?: Database["public"]["Enums"]["approval_status"]
           avatar_url?: string | null
           created_at?: string
           email?: string | null
@@ -1734,6 +1736,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approval_status?: Database["public"]["Enums"]["approval_status"]
           avatar_url?: string | null
           created_at?: string
           email?: string | null
@@ -2110,6 +2113,13 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_admin_emails: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+        }[]
+      }
       get_user_module_access: {
         Args: {
           _module: Database["public"]["Enums"]["app_module"]
@@ -2188,6 +2198,7 @@ export type Database = {
         | "warehouse"
         | "customer_service"
         | "accounting"
+      approval_status: "pendiente" | "aprobado" | "rechazado"
       empresa_vendedora: "lumaggs_chevron" | "galsa_phillips66"
       estado_cobranza_doc:
         | "pendiente"
@@ -2427,6 +2438,7 @@ export const Constants = {
         "customer_service",
         "accounting",
       ],
+      approval_status: ["pendiente", "aprobado", "rechazado"],
       empresa_vendedora: ["lumaggs_chevron", "galsa_phillips66"],
       estado_cobranza_doc: [
         "pendiente",

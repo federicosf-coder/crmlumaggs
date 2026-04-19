@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Users, ShoppingCart, FileText, Package, Truck,
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
@@ -6,12 +7,14 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarFooter, SidebarHeader, useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
@@ -50,7 +53,29 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { profile, roles, signOut, hasAnyRole } = useAuth();
+  const { profile, roles, signOut, hasAnyRole, hasRole } = useAuth();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (!hasRole("admin")) return;
+    let cancelled = false;
+    const load = async () => {
+      const { count } = await (supabase as any)
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("approval_status", "pendiente");
+      if (!cancelled) setPendingCount(count || 0);
+    };
+    load();
+    const channel = supabase
+      .channel("profiles-pending-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, load)
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [hasRole]);
 
   const canAccess = (item: NavItem) => {
     if (item.roles === "all") return true;
@@ -101,16 +126,24 @@ export function AppSidebar() {
             <SidebarGroupLabel>Administración</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {visibleAdmin.map((item) => (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild>
-                      <NavLink to={item.url} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {visibleAdmin.map((item) => {
+                  const showBadge = item.url === "/admin/users" && pendingCount > 0;
+                  return (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={item.url} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {!collapsed && <span className="flex-1">{item.title}</span>}
+                          {showBadge && (
+                            <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px]">
+                              {pendingCount}
+                            </Badge>
+                          )}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

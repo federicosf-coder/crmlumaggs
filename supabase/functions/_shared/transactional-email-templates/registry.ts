@@ -11,8 +11,10 @@ export interface TemplateEntry {
 
 import { template as pagoConfirmation } from './pago-confirmation.tsx'
 import { template as pagoValidacion } from './pago-validacion.tsx'
+import { template as signupApprovalRequest } from './signup-approval-request.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'pago-confirmation': pagoConfirmation,
   'pago-validacion': pagoValidacion,
+  'signup-approval-request': signupApprovalRequest,
 }

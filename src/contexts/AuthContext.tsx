@@ -13,6 +13,7 @@ interface Profile {
   avatar_url: string | null;
   is_active: boolean;
   plaza_id: string | null;
+  approval_status: "pendiente" | "aprobado" | "rechazado";
 }
 
 interface AuthContextType {
