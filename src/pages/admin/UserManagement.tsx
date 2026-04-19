@@ -198,7 +198,7 @@ export default function UserManagement() {
       <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
 
       {pendingUsers.length > 0 && (
-        <Card className="border-amber-300 bg-amber-50/50 dark:bg-amber-950/10">
+        <Card className="border-primary/40">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               Pendientes de Aprobación
