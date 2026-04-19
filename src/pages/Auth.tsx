@@ -23,13 +23,32 @@ export default function Auth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      setLoading(false);
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      navigate("/");
+      return;
     }
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("approval_status")
+      .eq("user_id", data.user!.id)
+      .single();
+    const status = (profile as any)?.approval_status;
+    if (status !== "aprobado") {
+      await supabase.auth.signOut();
+      setLoading(false);
+      toast({
+        title: status === "rechazado" ? "Acceso rechazado" : "Cuenta pendiente de aprobación",
+        description: status === "rechazado"
+          ? "Un administrador ha rechazado tu acceso. Contacta al equipo de soporte."
+          : "Tu cuenta está pendiente de aprobación por un administrador. Recibirás acceso una vez aprobada.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setLoading(false);
+    navigate("/");
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -43,13 +62,42 @@ export default function Auth() {
         emailRedirectTo: window.location.origin,
       },
     });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Éxito", description: "Cuenta creada exitosamente." });
-      setMode("login");
+      return;
     }
+    try {
+      const { data: admins } = await supabase.rpc("get_admin_emails");
+      const reviewUrl = `${window.location.origin}/admin/users`;
+      const stamp = Date.now();
+      await Promise.all(
+        (admins || []).map((a: any) =>
+          supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "signup-approval-request",
+              recipientEmail: a.email,
+              idempotencyKey: `signup-approval-${email}-${a.email}-${stamp}`,
+              templateData: {
+                newUserName: fullName,
+                newUserEmail: email,
+                newUserPhone: phone,
+                reviewUrl,
+              },
+            },
+          })
+        )
+      );
+    } catch (err) {
+      console.error("Failed to notify admins:", err);
+    }
+    await supabase.auth.signOut();
+    setLoading(false);
+    toast({
+      title: "Cuenta creada",
+      description: "Tu cuenta fue creada y está pendiente de aprobación por un administrador. Recibirás acceso una vez aprobada.",
+    });
+    setMode("login");
   };
 
   const handleForgot = async (e: React.FormEvent) => {
