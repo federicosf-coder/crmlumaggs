@@ -118,6 +118,26 @@ export default function UserManagement() {
     }
   };
 
+  const setApprovalStatus = async (userId: string, status: "aprobado" | "rechazado") => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ approval_status: status } as any)
+      .eq("user_id", userId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (status === "aprobado") {
+      // Assign default 'sales' role if user has no roles yet
+      const target = users.find((u) => u.user_id === userId);
+      if (target && target.roles.length === 0) {
+        await supabase.from("user_roles").insert({ user_id: userId, role: "sales" });
+      }
+    }
+    toast({ title: status === "aprobado" ? "Usuario aprobado" : "Usuario rechazado" });
+    fetchUsers();
+  };
+
   const openEdit = (u: UserWithRoles) => {
     setEditUser(u);
     setEditName(u.full_name || "");
