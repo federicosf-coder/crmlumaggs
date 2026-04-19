@@ -34,6 +34,8 @@ interface UserWithRoles {
   is_active: boolean;
   phone: string | null;
   plaza_id: string | null;
+  approval_status: "pendiente" | "aprobado" | "rechazado";
+  created_at: string;
   roles: AppRole[];
   team_ids: string[];
 }

@@ -32,9 +32,13 @@ import Unsubscribe from "@/pages/Unsubscribe";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, profile, signOut } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Cargando...</div>;
   if (!session) return <Navigate to="/auth" replace />;
+  if (profile && profile.approval_status !== "aprobado") {
+    signOut();
+    return <Navigate to="/auth" replace />;
+  }
   return <AppLayout>{children}</AppLayout>;
 }
 
