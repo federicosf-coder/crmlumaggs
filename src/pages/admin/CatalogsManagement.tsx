@@ -993,28 +993,40 @@ function VehiculosTab() {
   const [nombre, setNombre] = useState("");
   const [placas, setPlacas] = useState("");
   const [tipo, setTipo] = useState("");
+  const [icon, setIcon] = useState<"pickup" | "truck">("truck");
+  const [color, setColor] = useState("#3b82f6");
   const [editItem, setEditItem] = useState<any>(null);
   const [editNombre, setEditNombre] = useState("");
   const [editPlacas, setEditPlacas] = useState("");
   const [editTipo, setEditTipo] = useState("");
+  const [editIcon, setEditIcon] = useState<"pickup" | "truck">("truck");
+  const [editColor, setEditColor] = useState("#3b82f6");
   const [editActive, setEditActive] = useState(true);
 
   const add = useMutation({
-    mutationFn: async () => { const { error } = await supabase.from("vehiculos").insert({ nombre, placas: placas || null, tipo: tipo || null }); if (error) throw error; },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehiculos_all"] }); setOpen(false); setNombre(""); setPlacas(""); setTipo(""); toast.success("Vehículo creado"); },
+    mutationFn: async () => { const { error } = await supabase.from("vehiculos").insert({ nombre, placas: placas || null, tipo: tipo || null, icon, color }); if (error) throw error; },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehiculos_all"] }); qc.invalidateQueries({ queryKey: ["vehiculos"] }); setOpen(false); setNombre(""); setPlacas(""); setTipo(""); setIcon("truck"); setColor("#3b82f6"); toast.success("Vehículo creado"); },
     onError: (e: any) => toast.error(e.message),
   });
 
   const update = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("vehiculos").update({ nombre: editNombre, placas: editPlacas || null, tipo: editTipo || null, is_active: editActive }).eq("id", editItem.id);
+      const { error } = await supabase.from("vehiculos").update({ nombre: editNombre, placas: editPlacas || null, tipo: editTipo || null, icon: editIcon, color: editColor, is_active: editActive }).eq("id", editItem.id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehiculos_all"] }); setEditItem(null); toast.success("Vehículo actualizado"); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vehiculos_all"] }); qc.invalidateQueries({ queryKey: ["vehiculos"] }); setEditItem(null); toast.success("Vehículo actualizado"); },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const openEdit = (item: any) => { setEditItem(item); setEditNombre(item.nombre); setEditPlacas(item.placas || ""); setEditTipo(item.tipo || ""); setEditActive(item.is_active); };
+  const openEdit = (item: any) => {
+    setEditItem(item);
+    setEditNombre(item.nombre);
+    setEditPlacas(item.placas || "");
+    setEditTipo(item.tipo || "");
+    setEditIcon((item.icon as "pickup" | "truck") || "truck");
+    setEditColor(item.color || "#3b82f6");
+    setEditActive(item.is_active);
+  };
 
   return (
     <Card>
@@ -1028,6 +1040,23 @@ function VehiculosTab() {
               <div><Label>Nombre *</Label><Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Camioneta 1" /></div>
               <div><Label>Placas</Label><Input value={placas} onChange={e => setPlacas(e.target.value)} placeholder="Ej: ABC-123" /></div>
               <div><Label>Tipo</Label><Input value={tipo} onChange={e => setTipo(e.target.value)} placeholder="Ej: Camioneta, Camión" /></div>
+              <div>
+                <Label>Icono del mapa</Label>
+                <Select value={icon} onValueChange={(v) => setIcon(v as any)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="truck">🚚 Camión</SelectItem>
+                    <SelectItem value="pickup">🛻 Pickup</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Color del pin</Label>
+                <div className="flex items-center gap-2">
+                  <Input type="color" value={color} onChange={e => setColor(e.target.value)} className="h-10 w-16 p-1" />
+                  <Input value={color} onChange={e => setColor(e.target.value)} placeholder="#3b82f6" />
+                </div>
+              </div>
               <Button onClick={() => add.mutate()} disabled={!nombre || add.isPending}>{add.isPending ? "Guardando..." : "Guardar"}</Button>
             </div>
           </DialogContent>
@@ -1036,18 +1065,25 @@ function VehiculosTab() {
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
           <Table>
-            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Placas</TableHead><TableHead>Tipo</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Placas</TableHead><TableHead>Tipo</TableHead><TableHead>Icono</TableHead><TableHead>Color</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
             <TableBody>
-              {items.map(v => (
+              {items.map((v: any) => (
                 <TableRow key={v.id}>
                   <TableCell className="font-medium">{v.nombre}</TableCell>
                   <TableCell>{v.placas || "—"}</TableCell>
                   <TableCell>{v.tipo || "—"}</TableCell>
+                  <TableCell>{v.icon === "pickup" ? "🛻 Pickup" : "🚚 Camión"}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block h-4 w-4 rounded border" style={{ backgroundColor: v.color || "#3b82f6" }} />
+                      <span className="text-xs text-muted-foreground font-mono">{v.color || "#3b82f6"}</span>
+                    </div>
+                  </TableCell>
                   <TableCell><Badge variant={v.is_active ? "default" : "secondary"}>{v.is_active ? "Sí" : "No"}</Badge></TableCell>
                   <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(v)}><Pencil className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               ))}
-              {items.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin vehículos</TableCell></TableRow>}
+              {items.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin vehículos</TableCell></TableRow>}
             </TableBody>
           </Table>
         )}
@@ -1059,6 +1095,23 @@ function VehiculosTab() {
             <div><Label>Nombre</Label><Input value={editNombre} onChange={e => setEditNombre(e.target.value)} /></div>
             <div><Label>Placas</Label><Input value={editPlacas} onChange={e => setEditPlacas(e.target.value)} /></div>
             <div><Label>Tipo</Label><Input value={editTipo} onChange={e => setEditTipo(e.target.value)} /></div>
+            <div>
+              <Label>Icono del mapa</Label>
+              <Select value={editIcon} onValueChange={(v) => setEditIcon(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="truck">🚚 Camión</SelectItem>
+                  <SelectItem value="pickup">🛻 Pickup</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Color del pin</Label>
+              <div className="flex items-center gap-2">
+                <Input type="color" value={editColor} onChange={e => setEditColor(e.target.value)} className="h-10 w-16 p-1" />
+                <Input value={editColor} onChange={e => setEditColor(e.target.value)} placeholder="#3b82f6" />
+              </div>
+            </div>
             <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
           </div>
           <DialogFooter><Button onClick={() => update.mutate()} disabled={!editNombre || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
