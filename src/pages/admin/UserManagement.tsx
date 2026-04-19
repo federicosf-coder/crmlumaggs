@@ -191,9 +191,53 @@ export default function UserManagement() {
   const getTeamNames = (teamIds: string[]) =>
     teamIds.map((id) => teams.find((t) => t.id === id)?.name).filter(Boolean);
 
+  const pendingUsers = users.filter((u) => u.approval_status === "pendiente");
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
+
+      {pendingUsers.length > 0 && (
+        <Card className="border-amber-300 bg-amber-50/50 dark:bg-amber-950/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Pendientes de Aprobación
+              <Badge variant="secondary">{pendingUsers.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Correo</TableHead>
+                  <TableHead>Teléfono</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingUsers.map((u) => (
+                  <TableRow key={u.user_id}>
+                    <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
+                    <TableCell>{u.email}</TableCell>
+                    <TableCell>{u.phone || "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-2 justify-end">
+                        <Button size="sm" onClick={() => setApprovalStatus(u.user_id, "aprobado")}>
+                          Aprobar
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setApprovalStatus(u.user_id, "rechazado")}>
+                          Rechazar
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit User Dialog */}
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
