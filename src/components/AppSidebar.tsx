@@ -60,10 +60,10 @@ export function AppSidebar() {
     if (!hasRole("admin")) return;
     let cancelled = false;
     const load = async () => {
-      const { count } = await supabase
+      const { count } = await (supabase as any)
         .from("profiles")
         .select("*", { count: "exact", head: true })
-        .eq("approval_status" as any, "pendiente");
+        .eq("approval_status", "pendiente");
       if (!cancelled) setPendingCount(count || 0);
     };
     load();
