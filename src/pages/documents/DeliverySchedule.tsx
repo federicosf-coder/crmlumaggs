@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
-  ClipboardCheck, MapPin, Lock, Unlock,
+  ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -34,6 +34,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { DeliveryMapView } from "@/components/documents/DeliveryMapView";
 
 // ─── Status config ───────────────────────────────────────────
 const POOL_STATUSES = ["confirmado_cliente", "espera_autorizacion_precio", "precio_autorizado", "validado_contabilidad"] as const;
@@ -269,6 +270,7 @@ export default function DeliverySchedule() {
   const [selectedPlaza, setSelectedPlaza] = useState<string>("all");
   const [routeViewMode, setRouteViewMode] = useState<"list" | "calendar">("list");
   const [calendarDate, setCalendarDate] = useState<Date | undefined>(undefined);
+  const [mainView, setMainView] = useState<"kanban" | "map">("kanban");
 
   // Route items keyed by ruta id
   const [routeItems, setRouteItems] = useState<Record<string, PoolItem[]>>({});
