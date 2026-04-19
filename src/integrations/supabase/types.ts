@@ -2072,7 +2072,9 @@ export type Database = {
       }
       vehiculos: {
         Row: {
+          color: string
           created_at: string
+          icon: Database["public"]["Enums"]["vehiculo_icon"]
           id: string
           is_active: boolean
           nombre: string
@@ -2081,7 +2083,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          color?: string
           created_at?: string
+          icon?: Database["public"]["Enums"]["vehiculo_icon"]
           id?: string
           is_active?: boolean
           nombre: string
@@ -2090,7 +2094,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          color?: string
           created_at?: string
+          icon?: Database["public"]["Enums"]["vehiculo_icon"]
           id?: string
           is_active?: boolean
           nombre?: string
@@ -2283,6 +2289,7 @@ export type Database = {
         | "S01"
         | "CP01"
         | "CN01"
+      vehiculo_icon: "pickup" | "truck"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2526,6 +2533,7 @@ export const Constants = {
         "CP01",
         "CN01",
       ],
+      vehiculo_icon: ["pickup", "truck"],
     },
   },
 } as const

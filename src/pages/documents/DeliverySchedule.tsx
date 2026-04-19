@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
-  ClipboardCheck, MapPin, Lock, Unlock,
+  ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -34,6 +34,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { DeliveryMapView } from "@/components/documents/DeliveryMapView";
 
 // ─── Status config ───────────────────────────────────────────
 const POOL_STATUSES = ["confirmado_cliente", "espera_autorizacion_precio", "precio_autorizado", "validado_contabilidad"] as const;
@@ -269,6 +270,7 @@ export default function DeliverySchedule() {
   const [selectedPlaza, setSelectedPlaza] = useState<string>("all");
   const [routeViewMode, setRouteViewMode] = useState<"list" | "calendar">("list");
   const [calendarDate, setCalendarDate] = useState<Date | undefined>(undefined);
+  const [mainView, setMainView] = useState<"kanban" | "map">("kanban");
 
   // Route items keyed by ruta id
   const [routeItems, setRouteItems] = useState<Record<string, PoolItem[]>>({});
@@ -839,23 +841,47 @@ export default function DeliverySchedule() {
               </Button>
             ))}
           </div>
-          <div className="flex gap-1 border rounded-md p-0.5">
-            <Button
-              size="sm"
-              variant={routeViewMode === "list" ? "default" : "ghost"}
-              className="h-7 text-xs px-3"
-              onClick={() => { setRouteViewMode("list"); setCalendarDate(undefined); }}
-            >
-              <Truck className="h-3.5 w-3.5 mr-1" /> Lista
-            </Button>
-            <Button
-              size="sm"
-              variant={routeViewMode === "calendar" ? "default" : "ghost"}
-              className="h-7 text-xs px-3"
-              onClick={() => setRouteViewMode("calendar")}
-            >
-              <CalendarIcon className="h-3.5 w-3.5 mr-1" /> Calendario
-            </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 border rounded-md p-0.5">
+              <Button
+                size="sm"
+                variant={mainView === "kanban" ? "default" : "ghost"}
+                className="h-7 text-xs px-3"
+                onClick={() => setMainView("kanban")}
+                title="Vista de lista (Kanban)"
+              >
+                <ListIcon className="h-3.5 w-3.5 mr-1" /> Lista
+              </Button>
+              <Button
+                size="sm"
+                variant={mainView === "map" ? "default" : "ghost"}
+                className="h-7 text-xs px-3"
+                onClick={() => setMainView("map")}
+                title="Vista de mapa"
+              >
+                <MapIcon className="h-3.5 w-3.5 mr-1" /> Mapa
+              </Button>
+            </div>
+            {mainView === "kanban" && (
+              <div className="flex gap-1 border rounded-md p-0.5">
+                <Button
+                  size="sm"
+                  variant={routeViewMode === "list" ? "default" : "ghost"}
+                  className="h-7 text-xs px-3"
+                  onClick={() => { setRouteViewMode("list"); setCalendarDate(undefined); }}
+                >
+                  <Truck className="h-3.5 w-3.5 mr-1" /> Rutas
+                </Button>
+                <Button
+                  size="sm"
+                  variant={routeViewMode === "calendar" ? "default" : "ghost"}
+                  className="h-7 text-xs px-3"
+                  onClick={() => setRouteViewMode("calendar")}
+                >
+                  <CalendarIcon className="h-3.5 w-3.5 mr-1" /> Calendario
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -909,7 +935,18 @@ export default function DeliverySchedule() {
           </div>
           )}
 
-          {/* RIGHT: Routes kanban / Calendar */}
+          {/* RIGHT: Routes kanban / Calendar / Map */}
+          {mainView === "map" ? (
+            <div className="flex-1 relative">
+              <DeliveryMapView
+                entregas={allEntregas as any}
+                rutas={allRutas as any}
+                vehiculos={vehiculos as any}
+                plazas={plazas as any}
+                selectedPlaza={selectedPlaza}
+              />
+            </div>
+          ) : (
           <ScrollArea className="flex-1">
             <div className="p-4 min-w-max">
               {/* Calendar selector */}
@@ -995,6 +1032,7 @@ export default function DeliverySchedule() {
               )}
             </div>
           </ScrollArea>
+          )}
         </div>
 
         <DragOverlay>
