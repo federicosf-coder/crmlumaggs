@@ -53,7 +53,29 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { profile, roles, signOut, hasAnyRole } = useAuth();
+  const { profile, roles, signOut, hasAnyRole, hasRole } = useAuth();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (!hasRole("admin")) return;
+    let cancelled = false;
+    const load = async () => {
+      const { count } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("approval_status" as any, "pendiente");
+      if (!cancelled) setPendingCount(count || 0);
+    };
+    load();
+    const channel = supabase
+      .channel("profiles-pending-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, load)
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [hasRole]);
 
   const canAccess = (item: NavItem) => {
     if (item.roles === "all") return true;
