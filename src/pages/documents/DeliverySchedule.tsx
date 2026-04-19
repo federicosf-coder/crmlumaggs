@@ -935,7 +935,18 @@ export default function DeliverySchedule() {
           </div>
           )}
 
-          {/* RIGHT: Routes kanban / Calendar */}
+          {/* RIGHT: Routes kanban / Calendar / Map */}
+          {mainView === "map" ? (
+            <div className="flex-1 relative">
+              <DeliveryMapView
+                entregas={allEntregas as any}
+                rutas={allRutas as any}
+                vehiculos={vehiculos as any}
+                plazas={plazas as any}
+                selectedPlaza={selectedPlaza}
+              />
+            </div>
+          ) : (
           <ScrollArea className="flex-1">
             <div className="p-4 min-w-max">
               {/* Calendar selector */}
@@ -1021,6 +1032,7 @@ export default function DeliverySchedule() {
               )}
             </div>
           </ScrollArea>
+          )}
         </div>
 
         <DragOverlay>
