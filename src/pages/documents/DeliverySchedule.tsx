@@ -841,23 +841,47 @@ export default function DeliverySchedule() {
               </Button>
             ))}
           </div>
-          <div className="flex gap-1 border rounded-md p-0.5">
-            <Button
-              size="sm"
-              variant={routeViewMode === "list" ? "default" : "ghost"}
-              className="h-7 text-xs px-3"
-              onClick={() => { setRouteViewMode("list"); setCalendarDate(undefined); }}
-            >
-              <Truck className="h-3.5 w-3.5 mr-1" /> Lista
-            </Button>
-            <Button
-              size="sm"
-              variant={routeViewMode === "calendar" ? "default" : "ghost"}
-              className="h-7 text-xs px-3"
-              onClick={() => setRouteViewMode("calendar")}
-            >
-              <CalendarIcon className="h-3.5 w-3.5 mr-1" /> Calendario
-            </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 border rounded-md p-0.5">
+              <Button
+                size="sm"
+                variant={mainView === "kanban" ? "default" : "ghost"}
+                className="h-7 text-xs px-3"
+                onClick={() => setMainView("kanban")}
+                title="Vista de lista (Kanban)"
+              >
+                <ListIcon className="h-3.5 w-3.5 mr-1" /> Lista
+              </Button>
+              <Button
+                size="sm"
+                variant={mainView === "map" ? "default" : "ghost"}
+                className="h-7 text-xs px-3"
+                onClick={() => setMainView("map")}
+                title="Vista de mapa"
+              >
+                <MapIcon className="h-3.5 w-3.5 mr-1" /> Mapa
+              </Button>
+            </div>
+            {mainView === "kanban" && (
+              <div className="flex gap-1 border rounded-md p-0.5">
+                <Button
+                  size="sm"
+                  variant={routeViewMode === "list" ? "default" : "ghost"}
+                  className="h-7 text-xs px-3"
+                  onClick={() => { setRouteViewMode("list"); setCalendarDate(undefined); }}
+                >
+                  <Truck className="h-3.5 w-3.5 mr-1" /> Rutas
+                </Button>
+                <Button
+                  size="sm"
+                  variant={routeViewMode === "calendar" ? "default" : "ghost"}
+                  className="h-7 text-xs px-3"
+                  onClick={() => setRouteViewMode("calendar")}
+                >
+                  <CalendarIcon className="h-3.5 w-3.5 mr-1" /> Calendario
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
