@@ -11,8 +11,18 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { X, Pencil } from "lucide-react";
+import { X, Pencil, Merge, Power, Trash2 } from "lucide-react";
 import { roleLabel } from "@/lib/roles";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
 const ALL_ROLES: AppRole[] = ["admin", "manager", "sales", "delivery", "warehouse", "customer_service", "accounting"];
@@ -52,7 +62,17 @@ export default function UserManagement() {
   const [plazas, setPlazas] = useState<Plaza[]>([]);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-  const { hasRole } = useAuth();
+  const { hasRole, user: currentUser } = useAuth();
+
+  // Merge dialog state
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [mergeSourceId, setMergeSourceId] = useState<string>("");
+  const [mergeTargetId, setMergeTargetId] = useState<string>("");
+  const [mergeBusy, setMergeBusy] = useState(false);
+
+  // Delete confirmation state
+  const [deleteUser, setDeleteUser] = useState<UserWithRoles | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -138,6 +158,63 @@ export default function UserManagement() {
     fetchUsers();
   };
 
+  const toggleActive = async (u: UserWithRoles) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_active: !u.is_active })
+      .eq("user_id", u.user_id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: u.is_active ? "Usuario desactivado" : "Usuario activado" });
+      fetchUsers();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteUser) return;
+    setDeleteBusy(true);
+    const { error } = await supabase.rpc("delete_user_safe", { _user_id: deleteUser.user_id });
+    setDeleteBusy(false);
+    if (error) {
+      toast({
+        title: "No se puede eliminar",
+        description: error.message + " — usa Desactivar.",
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Usuario eliminado" });
+      setDeleteUser(null);
+      fetchUsers();
+    }
+  };
+
+  const handleMerge = async () => {
+    if (!mergeSourceId || !mergeTargetId) {
+      toast({ title: "Selecciona ambos usuarios", variant: "destructive" });
+      return;
+    }
+    if (mergeSourceId === mergeTargetId) {
+      toast({ title: "Origen y destino deben ser distintos", variant: "destructive" });
+      return;
+    }
+    setMergeBusy(true);
+    const { error } = await supabase.rpc("merge_users", {
+      _source_user_id: mergeSourceId,
+      _target_user_id: mergeTargetId,
+    });
+    setMergeBusy(false);
+    if (error) {
+      toast({ title: "Error en merge", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Usuarios fusionados correctamente" });
+      setMergeOpen(false);
+      setMergeSourceId("");
+      setMergeTargetId("");
+      fetchUsers();
+    }
+  };
+
   const openEdit = (u: UserWithRoles) => {
     setEditUser(u);
     setEditName(u.full_name || "");
@@ -195,7 +272,12 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
+        <Button onClick={() => setMergeOpen(true)} variant="outline">
+          <Merge className="h-4 w-4 mr-2" /> Fusionar usuarios
+        </Button>
+      </div>
 
       {pendingUsers.length > 0 && (
         <Card className="border-primary/40">
@@ -383,6 +465,23 @@ export default function UserManagement() {
                       <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Editar usuario">
                         <Pencil className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleActive(u)}
+                        title={u.is_active ? "Desactivar" : "Activar"}
+                      >
+                        <Power className={`h-4 w-4 ${u.is_active ? "" : "text-muted-foreground"}`} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteUser(u)}
+                        title="Eliminar"
+                        disabled={u.user_id === currentUser?.id}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -391,6 +490,69 @@ export default function UserManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Merge Users Dialog */}
+      <Dialog open={mergeOpen} onOpenChange={(o) => !o && setMergeOpen(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Fusionar usuarios</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              El usuario origen será eliminado y todas sus referencias (documentos, pagos, deals, tareas, equipos, roles, etc.) se reasignarán al usuario destino. Esta acción no se puede deshacer.
+            </p>
+            <div className="space-y-2">
+              <Label>Origen (se eliminará)</Label>
+              <Select value={mergeSourceId} onValueChange={setMergeSourceId}>
+                <SelectTrigger><SelectValue placeholder="Selecciona usuario origen" /></SelectTrigger>
+                <SelectContent>
+                  {users.filter((u) => u.user_id !== currentUser?.id).map((u) => (
+                    <SelectItem key={u.user_id} value={u.user_id}>
+                      {u.full_name || u.email} ({u.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Destino (se conserva)</Label>
+              <Select value={mergeTargetId} onValueChange={setMergeTargetId}>
+                <SelectTrigger><SelectValue placeholder="Selecciona usuario destino" /></SelectTrigger>
+                <SelectContent>
+                  {users.filter((u) => u.user_id !== mergeSourceId).map((u) => (
+                    <SelectItem key={u.user_id} value={u.user_id}>
+                      {u.full_name || u.email} ({u.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleMerge} disabled={mergeBusy} className="w-full">
+              {mergeBusy ? "Fusionando..." : "Fusionar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteUser} onOpenChange={(o) => !o && setDeleteUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Solo se eliminará si no tiene registros relacionados. Si tiene historial, usa Desactivar en su lugar.
+              <br /><br />
+              <strong>{deleteUser?.full_name || deleteUser?.email}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteBusy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleteBusy} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleteBusy ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
