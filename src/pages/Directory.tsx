@@ -64,6 +64,7 @@ const TAB_COLORS: Record<string, { active: string; border: string }> = {
 export default function Directory() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "companies";
+  const selectId = searchParams.get("select");
   const { hasRole } = useAuth();
 
   const [companies, setCompanies] = useState<Company[]>([]);

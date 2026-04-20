@@ -134,6 +134,21 @@ export default function Cobranza() {
   const [openDetalle, setOpenDetalle] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [pendingDetalleId, setPendingDetalleId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Deep link: open pago detail when ?pagoId=... is present
+  useEffect(() => {
+    const pid = searchParams.get("pagoId");
+    if (!pid) return;
+    setActiveTab("pagos");
+    setPendingDetalleId(pid);
+    // Clear param so the detail can be reopened by visiting again
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("pagoId");
+      return next;
+    }, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const [searchPagos, setSearchPagos] = useState("");
   const [searchFacturas, setSearchFacturas] = useState("");
