@@ -11,6 +11,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [updating, setUpdating] = useState(false);
   const { session, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -22,6 +23,15 @@ export default function ResetPassword() {
       toast({
         title: "Sesión no detectada",
         description: "No se encontró una sesión activa de recuperación. Por favor, solicita un nuevo enlace.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Las contraseñas no coinciden",
+        description: "Por favor verifica que ambas contraseñas sean idénticas.",
         variant: "destructive",
       });
       return;
