@@ -108,10 +108,26 @@ export default function ResetPassword() {
                 className="focus-visible:ring-primary"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repite la contraseña"
+                required
+                minLength={6}
+                className="focus-visible:ring-primary"
+              />
+              {confirmPassword && password !== confirmPassword && (
+                <p className="text-sm text-destructive">Las contraseñas no coinciden</p>
+              )}
+            </div>
             <Button
               type="submit"
               className="w-full py-6 text-lg font-semibold transition-all hover:scale-[1.02]"
-              disabled={updating}
+              disabled={updating || !password || password !== confirmPassword}
             >
               {updating ? (
                 <>
