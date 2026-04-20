@@ -583,7 +583,7 @@ export default function DocumentsList() {
           <Button variant="outline" size="sm" onClick={() => navigate("/delivery/schedule")}>
             <Truck className="mr-1 h-4 w-4" /> Programar Entregas
           </Button>
-          <Button onClick={() => navigate("/documents/new")} size="sm">
+          <Button onClick={() => navigate(`/documents/new${tipoFilter && tipoFilter !== "all" ? `?tipo=${tipoFilter}` : ""}`)} size="sm">
             <Plus className="mr-1 h-4 w-4" /> Nuevo
           </Button>
         </div>
