@@ -206,7 +206,7 @@ export default function DocumentsList() {
   }, [profile?.plaza_id]);
 
   const { data: docs = [], isLoading, refetch } = useQuery({
-    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, access.accessLevel, access.teamMemberIds],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, access.accessLevel, access.teamMemberIds],
     queryFn: async () => {
       if (!access.canView) return [];
       let q = supabase
@@ -217,6 +217,7 @@ export default function DocumentsList() {
         .order("created_at", { ascending: false });
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
+      if (plazaFilter && plazaFilter !== "all") q = q.eq("plaza_id", plazaFilter);
       if (access.accessLevel === "propio" && access.userId) {
         q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
