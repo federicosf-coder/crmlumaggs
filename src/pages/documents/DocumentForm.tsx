@@ -260,6 +260,7 @@ export default function DocumentForm() {
   const total = subtotal + ivaImporte;
   const ueTotal = items.reduce((s, i) => s + i.unidades_equivalentes, 0);
 
+  const isEntregaCorp = form.tipo_documento === "entrega_corporativa";
   const addItem = () => setItems(prev => [...prev, { producto_id: "", cantidad: 1, precio_unitario: 0, descuento_porcentaje: 0, subtotal: 0, unidades_equivalentes: 0 }]);
 
   const getDefaultPrice = (prod: any) => {
@@ -280,14 +281,19 @@ export default function DocumentForm() {
       if (field === "producto_id") {
         const prod = productos.find((p: any) => p.id === val);
         if (prod) {
-          item.precio_unitario = getDefaultPrice(prod);
+          item.precio_unitario = isEntregaCorp ? 0 : getDefaultPrice(prod);
           item._nombre = `${prod.codigo} - ${prod.nombre_producto}`;
           const ue = (prod.presentaciones as any)?.unidades_equivalentes || 1;
           item.unidades_equivalentes = item.cantidad * ue;
         }
       }
+      if (isEntregaCorp && field === "precio_unitario") {
+        item.precio_unitario = 0;
+      }
       if (["cantidad", "precio_unitario", "descuento_porcentaje", "producto_id"].includes(field)) {
-        const base = item.cantidad * item.precio_unitario;
+        const unit = isEntregaCorp ? 0 : item.precio_unitario;
+        item.precio_unitario = unit;
+        const base = item.cantidad * unit;
         item.subtotal = base - (base * item.descuento_porcentaje / 100);
         const prod = productos.find((p: any) => p.id === item.producto_id);
         const ue = (prod?.presentaciones as any)?.unidades_equivalentes || 1;
