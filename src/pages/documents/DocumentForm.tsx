@@ -418,6 +418,10 @@ export default function DocumentForm() {
       toast.error("El número de factura no puede contener espacios");
       return;
     }
+    if (form.tipo_documento === "factura") {
+      if (!form.tipo_pago) { toast.error("La forma de pago es obligatoria para facturas"); return; }
+      if (!form.fecha_vencimiento) { toast.error("La fecha de vencimiento es obligatoria para facturas"); return; }
+    }
     setSaving(true);
     try {
       // resolve address text from selected address
