@@ -40,6 +40,7 @@ const DEFAULT_COLS_BY_TIPO: Record<string, ColumnKey[]> = {
   cotizacion: ["numero", "cliente", "ejecutivo", "fecha", "total", "estatus", "pdf"],
   pedido: ["cliente", "ejecutivo", "fecha", "fecha_programada", "total", "estatus", "pdf"],
   factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "total", "estatus", "pdf"],
+  entrega_corporativa: ["cliente", "ejecutivo", "fecha", "fecha_programada", "estatus"],
 };
 const colsStorageKey = (userId: string, tipo: string) => `doc-cols:${userId}:${tipo}`;
 
@@ -56,17 +57,24 @@ const ESTATUS_FAC_LABELS: Record<string, string> = {
   pendiente: "Pendiente", pagada: "Pagada", parcial: "Parcial",
   vencida: "Vencida", cancelada: "Cancelada",
 };
+const ESTATUS_ENT_CORP_LABELS: Record<string, string> = {
+  solicitada: "Solicitadas", programada: "Programadas",
+  entregada: "Entregadas", acuse_enviado: "Acuse Enviado",
+};
 
 function getEstatusLabel(doc: any) {
   if (doc.tipo_documento === "cotizacion") return ESTATUS_COT_LABELS[doc.estatus_cotizacion] || "-";
   if (doc.tipo_documento === "pedido") return ESTATUS_PED_LABELS[doc.estatus_pedido] || "-";
   if (doc.tipo_documento === "factura") return ESTATUS_FAC_LABELS[doc.estatus_factura] || "-";
+  if (doc.tipo_documento === "entrega_corporativa") return ESTATUS_ENT_CORP_LABELS[doc.estatus_entrega_corporativa] || "-";
   return "-";
 }
 
 function getEstatusVariant(doc: any): "default" | "secondary" | "destructive" | "outline" {
   const st = doc.tipo_documento === "cotizacion" ? doc.estatus_cotizacion
-    : doc.tipo_documento === "pedido" ? doc.estatus_pedido : doc.estatus_factura;
+    : doc.tipo_documento === "pedido" ? doc.estatus_pedido
+    : doc.tipo_documento === "factura" ? doc.estatus_factura
+    : doc.estatus_entrega_corporativa;
   if (["aceptada", "confirmado_cliente", "pagada", "entregado", "impresa", "precio_autorizado"].includes(st)) return "default";
   if (["rechazada", "cancelado", "cancelada", "vencida"].includes(st)) return "destructive";
   if (["validado_contabilidad", "programado_entrega"].includes(st)) return "outline";
@@ -78,12 +86,15 @@ const TAB_COLORS: Record<string, { active: string; badge: string; border: string
   cotizacion: { active: "bg-blue-600 text-white hover:bg-blue-700", badge: "bg-blue-100 text-blue-800", border: "border-blue-500" },
   pedido: { active: "bg-amber-500 text-white hover:bg-amber-600", badge: "bg-amber-100 text-amber-800", border: "border-amber-500" },
   factura: { active: "bg-emerald-600 text-white hover:bg-emerald-700", badge: "bg-emerald-100 text-emerald-800", border: "border-emerald-500" },
+  entrega_corporativa: { active: "bg-purple-600 text-white hover:bg-purple-700", badge: "bg-purple-100 text-purple-800", border: "border-purple-500" },
 };
 
 // Status badge colors
 function getStatusBadgeClass(doc: any): string {
   const st = doc.tipo_documento === "cotizacion" ? doc.estatus_cotizacion
-    : doc.tipo_documento === "pedido" ? doc.estatus_pedido : doc.estatus_factura;
+    : doc.tipo_documento === "pedido" ? doc.estatus_pedido
+    : doc.tipo_documento === "factura" ? doc.estatus_factura
+    : doc.estatus_entrega_corporativa;
   const map: Record<string, string> = {
     borrador: "bg-slate-100 text-slate-700 border-slate-300",
     impresa: "bg-blue-50 text-blue-700 border-blue-200",
@@ -102,6 +113,10 @@ function getStatusBadgeClass(doc: any): string {
     pagada: "bg-green-50 text-green-700 border-green-200",
     parcial: "bg-amber-50 text-amber-700 border-amber-200",
     cancelada: "bg-red-50 text-red-700 border-red-200",
+    solicitada: "bg-slate-100 text-slate-700 border-slate-300",
+    programada: "bg-amber-50 text-amber-700 border-amber-200",
+    entregada: "bg-green-50 text-green-700 border-green-200",
+    acuse_enviado: "bg-blue-50 text-blue-700 border-blue-200",
   };
   return map[st] || "bg-slate-100 text-slate-700 border-slate-300";
 }
