@@ -392,6 +392,13 @@ export default function DocumentForm() {
     if (!form.tipo_documento) { toast.error("Selecciona el tipo de documento"); return; }
     if (!form.plaza_id) { toast.error("La plaza es obligatoria"); return; }
     if (form.tipo_documento === "pedido" && !form.direccion_envio) { toast.error("La dirección de envío es obligatoria para pedidos"); return; }
+    if (form.tipo_documento === "entrega_corporativa") {
+      if (!form.empresa_id) { toast.error("El cliente es obligatorio"); return; }
+      if (!form.direccion_envio) { toast.error("La dirección de envío es obligatoria"); return; }
+      if (!form.numero_oc_cliente) { toast.error("El número de OC del cliente es obligatorio"); return; }
+      if (!form.fecha_oc_cliente) { toast.error("La fecha de OC del cliente es obligatoria"); return; }
+      if (!form.fecha_entrega_programada) { toast.error("La fecha de entrega solicitada es obligatoria"); return; }
+    }
     if (form.tipo_documento === "factura" && form.numero_factura && /\s/.test(form.numero_factura)) {
       toast.error("El número de factura no puede contener espacios");
       return;
@@ -419,16 +426,18 @@ export default function DocumentForm() {
         estatus_cotizacion: form.tipo_documento === "cotizacion" ? form.estatus_cotizacion : null,
         estatus_pedido: form.tipo_documento === "pedido" ? form.estatus_pedido : null,
         estatus_factura: form.tipo_documento === "factura" ? form.estatus_factura : null,
+        estatus_entrega_corporativa: form.tipo_documento === "entrega_corporativa" ? form.estatus_entrega_corporativa : null,
         subtotal, iva_importe: ivaImporte, total, unidades_equivalentes_total: ueTotal,
         negocio_crm: form.negocio_crm || null,
         notas: form.notas || null,
         numero_oc_cliente: form.numero_oc_cliente || null,
+        fecha_oc_cliente: form.tipo_documento === "entrega_corporativa" ? (form.fecha_oc_cliente || null) : null,
         direccion_envio: direccionText,
         cotizacion_original_id: form.cotizacion_original_id || null,
         tipo_pago: form.tipo_pago || null,
         uso_cfdi: form.uso_cfdi || null,
         metodo_pago: form.metodo_pago || null,
-        fecha_entrega_programada: form.tipo_documento === "pedido" ? (form.fecha_entrega_programada || null) : null,
+        fecha_entrega_programada: (form.tipo_documento === "pedido" || form.tipo_documento === "entrega_corporativa") ? (form.fecha_entrega_programada || null) : null,
       };
 
       let docId = id;
@@ -638,6 +647,7 @@ export default function DocumentForm() {
                 <SelectItem value="cotizacion">Cotización</SelectItem>
                 <SelectItem value="pedido">Pedido</SelectItem>
                 <SelectItem value="factura">Factura</SelectItem>
+                <SelectItem value="entrega_corporativa">Entrega Corporativa</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -773,6 +783,25 @@ export default function DocumentForm() {
               </div>
             </>
           )}
+          {td === "entrega_corporativa" && (
+            <>
+              <div>
+                <Label>Estatus Entrega <span className="text-destructive">*</span></Label>
+                <Select value={form.estatus_entrega_corporativa} onValueChange={v => set("estatus_entrega_corporativa", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ESTATUS_ENT_CORP.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Fecha OC Cliente <span className="text-destructive">*</span></Label>
+                <Input type="date" value={form.fecha_oc_cliente} onChange={e => set("fecha_oc_cliente", e.target.value)} />
+              </div>
+              <div>
+                <Label>Fecha Entrega Solicitada <span className="text-destructive">*</span></Label>
+                <Input type="date" value={form.fecha_entrega_programada} onChange={e => set("fecha_entrega_programada", e.target.value)} />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -831,7 +860,15 @@ export default function DocumentForm() {
                       </div>
                       <div>
                         <Label className="text-xs">Precio Unit.</Label>
-                        <Input type="number" className="h-9" value={item.precio_unitario} onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))} />
+                        <Input
+                          type="number"
+                          className="h-9"
+                          value={isEntregaCorp ? 0 : item.precio_unitario}
+                          disabled={isEntregaCorp}
+                          readOnly={isEntregaCorp}
+                          title={isEntregaCorp ? "Precio fijo en 0 para Entrega Corporativa" : undefined}
+                          onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))}
+                        />
                       </div>
                       <div>
                         <Label className="text-xs">Desc. %</Label>
