@@ -211,6 +211,19 @@ export default function DocumentForm() {
     }
   }, [form.fecha_documento, isEdit]);
 
+  // Auto-calculate fecha_vencimiento for Facturas based on tipo_pago
+  // Contado => same day; Crédito / Crédito Cescemex => +30 days
+  useEffect(() => {
+    if (form.tipo_documento !== "factura") return;
+    if (!form.fecha_documento || !form.tipo_pago) return;
+    const base = new Date(form.fecha_documento + "T12:00:00");
+    const days = form.tipo_pago === "contado" ? 0 : 30;
+    const venc = format(addDays(base, days), "yyyy-MM-dd");
+    if (venc !== form.fecha_vencimiento) {
+      set("fecha_vencimiento", venc);
+    }
+  }, [form.tipo_documento, form.tipo_pago, form.fecha_documento]);
+
   useEffect(() => {
     if (existingDoc) {
       setForm({
@@ -404,6 +417,10 @@ export default function DocumentForm() {
     if (form.tipo_documento === "factura" && form.numero_factura && /\s/.test(form.numero_factura)) {
       toast.error("El número de factura no puede contener espacios");
       return;
+    }
+    if (form.tipo_documento === "factura") {
+      if (!form.tipo_pago) { toast.error("La forma de pago es obligatoria para facturas"); return; }
+      if (!form.fecha_vencimiento) { toast.error("La fecha de vencimiento es obligatoria para facturas"); return; }
     }
     setSaving(true);
     try {
@@ -725,7 +742,17 @@ export default function DocumentForm() {
           </div>
           <div>
             <Label>Fecha Vencimiento</Label>
-            <Input type="date" value={form.fecha_vencimiento} onChange={e => set("fecha_vencimiento", e.target.value)} />
+            <Input
+              type="date"
+              value={form.fecha_vencimiento}
+              onChange={e => set("fecha_vencimiento", e.target.value)}
+              disabled={form.tipo_documento === "factura" && !isAdmin}
+            />
+            {form.tipo_documento === "factura" && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Se calcula automáticamente según la forma de pago{!isAdmin ? " (sólo admin puede editar)" : ""}.
+              </p>
+            )}
           </div>
           <div>
             <Label>IVA %</Label>
