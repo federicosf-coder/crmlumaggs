@@ -24,6 +24,12 @@ import { Link } from "react-router-dom";
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "confirmado_cliente", l: "Confirmado Cliente" }, { v: "validado_contabilidad", l: "Validado Contabilidad" }, { v: "programado_entrega", l: "Programado Entrega" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
 const ESTATUS_FAC = [{ v: "pendiente", l: "Pendiente" }, { v: "pagada", l: "Pagada" }, { v: "parcial", l: "Parcial" }, { v: "vencida", l: "Vencida" }, { v: "cancelada", l: "Cancelada" }];
+const ESTATUS_ENT_CORP = [
+  { v: "solicitada", l: "Solicitadas" },
+  { v: "programada", l: "Programadas" },
+  { v: "entregada", l: "Entregadas" },
+  { v: "acuse_enviado", l: "Acuse Enviado" },
+];
 const TIPO_PAGO_OPTS = [{ v: "contado", l: "Contado" }, { v: "credito", l: "Crédito" }, { v: "credito_cescemex", l: "Crédito Cescemex" }];
 const METODO_PAGO_OPTS = [{ v: "PUE", l: "PUE - Pago en una sola exhibición" }, { v: "PPD", l: "PPD - Pago en parcialidades o diferido" }];
 const USO_CFDI_OPTS = [
@@ -79,9 +85,11 @@ export default function DocumentForm() {
     estatus_cotizacion: "borrador",
     estatus_pedido: "confirmado_cliente",
     estatus_factura: "pendiente",
+    estatus_entrega_corporativa: "solicitada",
     negocio_crm: "",
     notas: "",
     numero_oc_cliente: "",
+    fecha_oc_cliente: "",
     direccion_envio: "",
     cotizacion_original_id: "",
     tipo_pago: "",
@@ -219,9 +227,11 @@ export default function DocumentForm() {
         estatus_cotizacion: existingDoc.estatus_cotizacion || "borrador",
         estatus_pedido: existingDoc.estatus_pedido || "confirmado_cliente",
         estatus_factura: existingDoc.estatus_factura || "pendiente",
+        estatus_entrega_corporativa: (existingDoc as any).estatus_entrega_corporativa || "solicitada",
         negocio_crm: existingDoc.negocio_crm || "",
         notas: existingDoc.notas || "",
         numero_oc_cliente: existingDoc.numero_oc_cliente || "",
+        fecha_oc_cliente: (existingDoc as any).fecha_oc_cliente || "",
         direccion_envio: existingDoc.direccion_envio || "",
         cotizacion_original_id: existingDoc.cotizacion_original_id || "",
         tipo_pago: existingDoc.tipo_pago || "",
