@@ -742,7 +742,17 @@ export default function DocumentForm() {
           </div>
           <div>
             <Label>Fecha Vencimiento</Label>
-            <Input type="date" value={form.fecha_vencimiento} onChange={e => set("fecha_vencimiento", e.target.value)} />
+            <Input
+              type="date"
+              value={form.fecha_vencimiento}
+              onChange={e => set("fecha_vencimiento", e.target.value)}
+              disabled={form.tipo_documento === "factura" && !isAdmin}
+            />
+            {form.tipo_documento === "factura" && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Se calcula automáticamente según la forma de pago{!isAdmin ? " (sólo admin puede editar)" : ""}.
+              </p>
+            )}
           </div>
           <div>
             <Label>IVA %</Label>
