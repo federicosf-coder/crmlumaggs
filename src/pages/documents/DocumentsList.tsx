@@ -840,6 +840,11 @@ export default function DocumentsList() {
                               : "-"}
                           </TableCell>
                         )}
+                        {tipoFilter === "entrega_corporativa" && isColVisible("oc_cliente") && (
+                          <TableCell className="hidden md:table-cell whitespace-nowrap">
+                            {doc.numero_oc_cliente || "-"}
+                          </TableCell>
+                        )}
                         {isColVisible("total") && (
                           <TableCell className="whitespace-nowrap">
                             ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
