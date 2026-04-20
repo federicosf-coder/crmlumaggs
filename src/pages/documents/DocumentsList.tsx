@@ -109,7 +109,7 @@ function getStatusBadgeClass(doc: any): string {
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { hasRole, user } = useAuth();
+  const { hasRole, user, profile } = useAuth();
   const isAdmin = hasRole("admin");
   const qc = useQueryClient();
 
@@ -117,6 +117,7 @@ export default function DocumentsList() {
   const tipoFilter = searchParams.get("tipo") || "cotizacion";
   const empresaFilter = searchParams.get("empresa") || "lumaggs_chevron";
   const ejecutivoFilter = searchParams.get("ejecutivo") || "all";
+  const plazaFilter = searchParams.get("plaza") || "";
 
   const [search, setSearch] = useState("");
   const [duplicating, setDuplicating] = useState<string | null>(null);
