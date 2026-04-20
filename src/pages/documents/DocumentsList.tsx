@@ -778,6 +778,9 @@ export default function DocumentsList() {
                       {showsScheduledDate && isColVisible("fecha_programada") && (
                         <TableHead className="hidden md:table-cell">Fecha Programada</TableHead>
                       )}
+                      {tipoFilter === "entrega_corporativa" && isColVisible("oc_cliente") && (
+                        <TableHead className="hidden md:table-cell">Núm. OC Cliente</TableHead>
+                      )}
                       {isColVisible("total") && <TableHead>Total</TableHead>}
                       {isColVisible("estatus") && (
                         <TableHead>
