@@ -2049,6 +2049,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_merge_log: {
+        Row: {
+          affected_counts: Json
+          created_at: string
+          id: string
+          performed_by: string | null
+          source_email: string | null
+          source_user_id: string
+          target_email: string | null
+          target_user_id: string
+        }
+        Insert: {
+          affected_counts?: Json
+          created_at?: string
+          id?: string
+          performed_by?: string | null
+          source_email?: string | null
+          source_user_id: string
+          target_email?: string | null
+          target_user_id: string
+        }
+        Update: {
+          affected_counts?: Json
+          created_at?: string
+          id?: string
+          performed_by?: string | null
+          source_email?: string | null
+          source_user_id?: string
+          target_email?: string | null
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2115,6 +2148,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      delete_user_safe: { Args: { _user_id: string }; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -2148,6 +2182,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      merge_users: {
+        Args: { _source_user_id: string; _target_user_id: string }
+        Returns: Json
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -2176,6 +2214,7 @@ export type Database = {
             Args: { p_marca: string; p_nombre?: string; p_user_id: string }
             Returns: string
           }
+      user_related_counts: { Args: { _user_id: string }; Returns: Json }
     }
     Enums: {
       access_level: "todos" | "equipo" | "propio" | "ninguno"
