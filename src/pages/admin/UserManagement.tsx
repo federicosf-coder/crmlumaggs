@@ -465,6 +465,23 @@ export default function UserManagement() {
                       <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Editar usuario">
                         <Pencil className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleActive(u)}
+                        title={u.is_active ? "Desactivar" : "Activar"}
+                      >
+                        <Power className={`h-4 w-4 ${u.is_active ? "" : "text-muted-foreground"}`} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteUser(u)}
+                        title="Eliminar"
+                        disabled={u.user_id === currentUser?.id}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
