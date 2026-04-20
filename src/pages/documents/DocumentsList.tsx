@@ -455,6 +455,8 @@ export default function DocumentsList() {
 
   const tabColor = TAB_COLORS[tipoFilter] || TAB_COLORS.cotizacion;
   const isPedido = tipoFilter === "pedido";
+  const showsScheduledDate = tipoFilter === "pedido" || tipoFilter === "entrega_corporativa";
+  const hidesNumber = tipoFilter === "pedido" || tipoFilter === "entrega_corporativa";
 
   // Reset selection when tab/filter changes
   useEffect(() => { setSelectedIds(new Set()); }, [tipoFilter, empresaFilter, ejecutivoFilter]);
@@ -759,7 +761,7 @@ export default function DocumentsList() {
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
-                      {!isPedido && isColVisible("numero") && (
+                      {!hidesNumber && isColVisible("numero") && (
                         <TableHead>
                           {tipoFilter === "factura" ? "No. Factura" : "Número"}
                         </TableHead>
@@ -772,7 +774,7 @@ export default function DocumentsList() {
                       {isColVisible("fecha") && (
                         <TableHead className="hidden md:table-cell">{tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}</TableHead>
                       )}
-                      {isPedido && isColVisible("fecha_programada") && (
+                      {showsScheduledDate && isColVisible("fecha_programada") && (
                         <TableHead className="hidden md:table-cell">Fecha Programada</TableHead>
                       )}
                       {isColVisible("total") && <TableHead>Total</TableHead>}
@@ -804,7 +806,7 @@ export default function DocumentsList() {
                             }}
                           />
                         </TableCell>
-                        {!isPedido && isColVisible("numero") && (
+                        {!hidesNumber && isColVisible("numero") && (
                           <TableCell className="font-medium whitespace-nowrap">
                             {tipoFilter === "factura"
                               ? (doc.numero_factura || "-")
@@ -827,7 +829,7 @@ export default function DocumentsList() {
                             {format(new Date(doc.fecha_documento), "dd/MM/yyyy")}
                           </TableCell>
                         )}
-                        {isPedido && isColVisible("fecha_programada") && (
+                        {showsScheduledDate && isColVisible("fecha_programada") && (
                           <TableCell className="hidden md:table-cell whitespace-nowrap">
                             {doc.fecha_entrega_programada
                               ? format(new Date(doc.fecha_entrega_programada), "dd/MM/yyyy")
