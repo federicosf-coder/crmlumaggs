@@ -62,7 +62,17 @@ export default function UserManagement() {
   const [plazas, setPlazas] = useState<Plaza[]>([]);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-  const { hasRole } = useAuth();
+  const { hasRole, user: currentUser } = useAuth();
+
+  // Merge dialog state
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [mergeSourceId, setMergeSourceId] = useState<string>("");
+  const [mergeTargetId, setMergeTargetId] = useState<string>("");
+  const [mergeBusy, setMergeBusy] = useState(false);
+
+  // Delete confirmation state
+  const [deleteUser, setDeleteUser] = useState<UserWithRoles | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
