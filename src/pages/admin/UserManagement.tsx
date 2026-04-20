@@ -272,7 +272,12 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
+        <Button onClick={() => setMergeOpen(true)} variant="outline">
+          <Merge className="h-4 w-4 mr-2" /> Fusionar usuarios
+        </Button>
+      </div>
 
       {pendingUsers.length > 0 && (
         <Card className="border-primary/40">
