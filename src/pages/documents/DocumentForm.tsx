@@ -798,6 +798,10 @@ export default function DocumentForm() {
                 </Select>
               </div>
               <div>
+                <Label>Núm. OC Cliente <span className="text-destructive">*</span></Label>
+                <Input value={form.numero_oc_cliente} onChange={e => set("numero_oc_cliente", e.target.value)} />
+              </div>
+              <div>
                 <Label>Fecha OC Cliente <span className="text-destructive">*</span></Label>
                 <Input type="date" value={form.fecha_oc_cliente} onChange={e => set("fecha_oc_cliente", e.target.value)} />
               </div>
