@@ -158,6 +158,63 @@ export default function UserManagement() {
     fetchUsers();
   };
 
+  const toggleActive = async (u: UserWithRoles) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_active: !u.is_active })
+      .eq("user_id", u.user_id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: u.is_active ? "Usuario desactivado" : "Usuario activado" });
+      fetchUsers();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteUser) return;
+    setDeleteBusy(true);
+    const { error } = await supabase.rpc("delete_user_safe", { _user_id: deleteUser.user_id });
+    setDeleteBusy(false);
+    if (error) {
+      toast({
+        title: "No se puede eliminar",
+        description: error.message + " — usa Desactivar.",
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Usuario eliminado" });
+      setDeleteUser(null);
+      fetchUsers();
+    }
+  };
+
+  const handleMerge = async () => {
+    if (!mergeSourceId || !mergeTargetId) {
+      toast({ title: "Selecciona ambos usuarios", variant: "destructive" });
+      return;
+    }
+    if (mergeSourceId === mergeTargetId) {
+      toast({ title: "Origen y destino deben ser distintos", variant: "destructive" });
+      return;
+    }
+    setMergeBusy(true);
+    const { error } = await supabase.rpc("merge_users", {
+      _source_user_id: mergeSourceId,
+      _target_user_id: mergeTargetId,
+    });
+    setMergeBusy(false);
+    if (error) {
+      toast({ title: "Error en merge", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Usuarios fusionados correctamente" });
+      setMergeOpen(false);
+      setMergeSourceId("");
+      setMergeTargetId("");
+      fetchUsers();
+    }
+  };
+
   const openEdit = (u: UserWithRoles) => {
     setEditUser(u);
     setEditName(u.full_name || "");
