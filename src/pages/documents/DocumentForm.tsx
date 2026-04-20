@@ -24,6 +24,12 @@ import { Link } from "react-router-dom";
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "confirmado_cliente", l: "Confirmado Cliente" }, { v: "validado_contabilidad", l: "Validado Contabilidad" }, { v: "programado_entrega", l: "Programado Entrega" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
 const ESTATUS_FAC = [{ v: "pendiente", l: "Pendiente" }, { v: "pagada", l: "Pagada" }, { v: "parcial", l: "Parcial" }, { v: "vencida", l: "Vencida" }, { v: "cancelada", l: "Cancelada" }];
+const ESTATUS_ENT_CORP = [
+  { v: "solicitada", l: "Solicitadas" },
+  { v: "programada", l: "Programadas" },
+  { v: "entregada", l: "Entregadas" },
+  { v: "acuse_enviado", l: "Acuse Enviado" },
+];
 const TIPO_PAGO_OPTS = [{ v: "contado", l: "Contado" }, { v: "credito", l: "Crédito" }, { v: "credito_cescemex", l: "Crédito Cescemex" }];
 const METODO_PAGO_OPTS = [{ v: "PUE", l: "PUE - Pago en una sola exhibición" }, { v: "PPD", l: "PPD - Pago en parcialidades o diferido" }];
 const USO_CFDI_OPTS = [
@@ -79,9 +85,11 @@ export default function DocumentForm() {
     estatus_cotizacion: "borrador",
     estatus_pedido: "confirmado_cliente",
     estatus_factura: "pendiente",
+    estatus_entrega_corporativa: "solicitada",
     negocio_crm: "",
     notas: "",
     numero_oc_cliente: "",
+    fecha_oc_cliente: "",
     direccion_envio: "",
     cotizacion_original_id: "",
     tipo_pago: "",
@@ -219,9 +227,11 @@ export default function DocumentForm() {
         estatus_cotizacion: existingDoc.estatus_cotizacion || "borrador",
         estatus_pedido: existingDoc.estatus_pedido || "confirmado_cliente",
         estatus_factura: existingDoc.estatus_factura || "pendiente",
+        estatus_entrega_corporativa: (existingDoc as any).estatus_entrega_corporativa || "solicitada",
         negocio_crm: existingDoc.negocio_crm || "",
         notas: existingDoc.notas || "",
         numero_oc_cliente: existingDoc.numero_oc_cliente || "",
+        fecha_oc_cliente: (existingDoc as any).fecha_oc_cliente || "",
         direccion_envio: existingDoc.direccion_envio || "",
         cotizacion_original_id: existingDoc.cotizacion_original_id || "",
         tipo_pago: existingDoc.tipo_pago || "",
@@ -250,6 +260,7 @@ export default function DocumentForm() {
   const total = subtotal + ivaImporte;
   const ueTotal = items.reduce((s, i) => s + i.unidades_equivalentes, 0);
 
+  const isEntregaCorp = form.tipo_documento === "entrega_corporativa";
   const addItem = () => setItems(prev => [...prev, { producto_id: "", cantidad: 1, precio_unitario: 0, descuento_porcentaje: 0, subtotal: 0, unidades_equivalentes: 0 }]);
 
   const getDefaultPrice = (prod: any) => {
@@ -270,14 +281,19 @@ export default function DocumentForm() {
       if (field === "producto_id") {
         const prod = productos.find((p: any) => p.id === val);
         if (prod) {
-          item.precio_unitario = getDefaultPrice(prod);
+          item.precio_unitario = isEntregaCorp ? 0 : getDefaultPrice(prod);
           item._nombre = `${prod.codigo} - ${prod.nombre_producto}`;
           const ue = (prod.presentaciones as any)?.unidades_equivalentes || 1;
           item.unidades_equivalentes = item.cantidad * ue;
         }
       }
+      if (isEntregaCorp && field === "precio_unitario") {
+        item.precio_unitario = 0;
+      }
       if (["cantidad", "precio_unitario", "descuento_porcentaje", "producto_id"].includes(field)) {
-        const base = item.cantidad * item.precio_unitario;
+        const unit = isEntregaCorp ? 0 : item.precio_unitario;
+        item.precio_unitario = unit;
+        const base = item.cantidad * unit;
         item.subtotal = base - (base * item.descuento_porcentaje / 100);
         const prod = productos.find((p: any) => p.id === item.producto_id);
         const ue = (prod?.presentaciones as any)?.unidades_equivalentes || 1;
@@ -376,6 +392,13 @@ export default function DocumentForm() {
     if (!form.tipo_documento) { toast.error("Selecciona el tipo de documento"); return; }
     if (!form.plaza_id) { toast.error("La plaza es obligatoria"); return; }
     if (form.tipo_documento === "pedido" && !form.direccion_envio) { toast.error("La dirección de envío es obligatoria para pedidos"); return; }
+    if (form.tipo_documento === "entrega_corporativa") {
+      if (!form.empresa_id) { toast.error("El cliente es obligatorio"); return; }
+      if (!form.direccion_envio) { toast.error("La dirección de envío es obligatoria"); return; }
+      if (!form.numero_oc_cliente) { toast.error("El número de OC del cliente es obligatorio"); return; }
+      if (!form.fecha_oc_cliente) { toast.error("La fecha de OC del cliente es obligatoria"); return; }
+      if (!form.fecha_entrega_programada) { toast.error("La fecha de entrega solicitada es obligatoria"); return; }
+    }
     if (form.tipo_documento === "factura" && form.numero_factura && /\s/.test(form.numero_factura)) {
       toast.error("El número de factura no puede contener espacios");
       return;
@@ -403,16 +426,18 @@ export default function DocumentForm() {
         estatus_cotizacion: form.tipo_documento === "cotizacion" ? form.estatus_cotizacion : null,
         estatus_pedido: form.tipo_documento === "pedido" ? form.estatus_pedido : null,
         estatus_factura: form.tipo_documento === "factura" ? form.estatus_factura : null,
+        estatus_entrega_corporativa: form.tipo_documento === "entrega_corporativa" ? form.estatus_entrega_corporativa : null,
         subtotal, iva_importe: ivaImporte, total, unidades_equivalentes_total: ueTotal,
         negocio_crm: form.negocio_crm || null,
         notas: form.notas || null,
         numero_oc_cliente: form.numero_oc_cliente || null,
+        fecha_oc_cliente: form.tipo_documento === "entrega_corporativa" ? (form.fecha_oc_cliente || null) : null,
         direccion_envio: direccionText,
         cotizacion_original_id: form.cotizacion_original_id || null,
         tipo_pago: form.tipo_pago || null,
         uso_cfdi: form.uso_cfdi || null,
         metodo_pago: form.metodo_pago || null,
-        fecha_entrega_programada: form.tipo_documento === "pedido" ? (form.fecha_entrega_programada || null) : null,
+        fecha_entrega_programada: (form.tipo_documento === "pedido" || form.tipo_documento === "entrega_corporativa") ? (form.fecha_entrega_programada || null) : null,
       };
 
       let docId = id;
@@ -427,10 +452,13 @@ export default function DocumentForm() {
       }
 
       if (items.length > 0) {
+        const forceZero = form.tipo_documento === "entrega_corporativa";
         const lineItems = items.filter(i => i.producto_id).map(i => ({
           documento_id: docId!, producto_id: i.producto_id, cantidad: i.cantidad,
-          precio_unitario: i.precio_unitario, descuento_porcentaje: i.descuento_porcentaje,
-          subtotal: i.subtotal, unidades_equivalentes: i.unidades_equivalentes,
+          precio_unitario: forceZero ? 0 : i.precio_unitario,
+          descuento_porcentaje: i.descuento_porcentaje,
+          subtotal: forceZero ? 0 : i.subtotal,
+          unidades_equivalentes: i.unidades_equivalentes,
         }));
         if (lineItems.length > 0) {
           const { error } = await supabase.from("documento_productos").insert(lineItems);
@@ -622,6 +650,7 @@ export default function DocumentForm() {
                 <SelectItem value="cotizacion">Cotización</SelectItem>
                 <SelectItem value="pedido">Pedido</SelectItem>
                 <SelectItem value="factura">Factura</SelectItem>
+                <SelectItem value="entrega_corporativa">Entrega Corporativa</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -757,6 +786,25 @@ export default function DocumentForm() {
               </div>
             </>
           )}
+          {td === "entrega_corporativa" && (
+            <>
+              <div>
+                <Label>Estatus Entrega <span className="text-destructive">*</span></Label>
+                <Select value={form.estatus_entrega_corporativa} onValueChange={v => set("estatus_entrega_corporativa", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ESTATUS_ENT_CORP.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Fecha OC Cliente <span className="text-destructive">*</span></Label>
+                <Input type="date" value={form.fecha_oc_cliente} onChange={e => set("fecha_oc_cliente", e.target.value)} />
+              </div>
+              <div>
+                <Label>Fecha Entrega Solicitada <span className="text-destructive">*</span></Label>
+                <Input type="date" value={form.fecha_entrega_programada} onChange={e => set("fecha_entrega_programada", e.target.value)} />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -815,7 +863,15 @@ export default function DocumentForm() {
                       </div>
                       <div>
                         <Label className="text-xs">Precio Unit.</Label>
-                        <Input type="number" className="h-9" value={item.precio_unitario} onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))} />
+                        <Input
+                          type="number"
+                          className="h-9"
+                          value={isEntregaCorp ? 0 : item.precio_unitario}
+                          disabled={isEntregaCorp}
+                          readOnly={isEntregaCorp}
+                          title={isEntregaCorp ? "Precio fijo en 0 para Entrega Corporativa" : undefined}
+                          onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))}
+                        />
                       </div>
                       <div>
                         <Label className="text-xs">Desc. %</Label>

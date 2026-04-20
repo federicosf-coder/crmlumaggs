@@ -12,11 +12,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
+type DocTipo = "cotizacion" | "pedido" | "factura" | "entrega_corporativa";
+
 export interface ExportFilters {
   allRecords: boolean;
   startDate: string;
   endDate: string;
-  tipos: ("cotizacion" | "pedido" | "factura")[];
+  tipos: DocTipo[];
 }
 
 interface Props {
@@ -26,18 +28,19 @@ interface Props {
   loading?: boolean;
 }
 
-const TIPO_OPTIONS: { key: "cotizacion" | "pedido" | "factura"; label: string }[] = [
+const TIPO_OPTIONS: { key: DocTipo; label: string }[] = [
   { key: "cotizacion", label: "Cotizaciones" },
   { key: "pedido", label: "Pedidos" },
   { key: "factura", label: "Facturas" },
+  { key: "entrega_corporativa", label: "Entregas Corporativas" },
 ];
 
 export function ExportFilterDialog({ open, onOpenChange, onConfirm, loading }: Props) {
   const [allRecords, setAllRecords] = useState(true);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [tipos, setTipos] = useState<Set<"cotizacion" | "pedido" | "factura">>(
-    new Set(["cotizacion", "pedido", "factura"]),
+  const [tipos, setTipos] = useState<Set<DocTipo>>(
+    new Set(["cotizacion", "pedido", "factura", "entrega_corporativa"]),
   );
 
   useEffect(() => {
@@ -45,11 +48,11 @@ export function ExportFilterDialog({ open, onOpenChange, onConfirm, loading }: P
       setAllRecords(true);
       setStartDate("");
       setEndDate("");
-      setTipos(new Set(["cotizacion", "pedido", "factura"]));
+      setTipos(new Set(["cotizacion", "pedido", "factura", "entrega_corporativa"]));
     }
   }, [open]);
 
-  const toggleTipo = (key: "cotizacion" | "pedido" | "factura") => {
+  const toggleTipo = (key: DocTipo) => {
     setTipos((prev) => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);

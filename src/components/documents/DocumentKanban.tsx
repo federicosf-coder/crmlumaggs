@@ -39,10 +39,18 @@ const FACTURA_COLUMNS = [
   { key: "cancelada", label: "Cancelada", color: "bg-red-100 dark:bg-red-900/30" },
 ];
 
+const ENTREGA_CORP_COLUMNS = [
+  { key: "solicitada", label: "Solicitadas", color: "bg-muted" },
+  { key: "programada", label: "Programadas", color: "bg-amber-100 dark:bg-amber-900/30" },
+  { key: "entregada", label: "Entregadas", color: "bg-green-100 dark:bg-green-900/30" },
+  { key: "acuse_enviado", label: "Acuse Enviado", color: "bg-blue-100 dark:bg-blue-900/30" },
+];
+
 function getColumns(tipo: string) {
   if (tipo === "cotizacion") return COTIZACION_COLUMNS;
   if (tipo === "pedido") return PEDIDO_COLUMNS;
   if (tipo === "factura") return FACTURA_COLUMNS;
+  if (tipo === "entrega_corporativa") return ENTREGA_CORP_COLUMNS;
   return COTIZACION_COLUMNS;
 }
 
@@ -50,6 +58,7 @@ function getStatusField(tipo: string) {
   if (tipo === "cotizacion") return "estatus_cotizacion";
   if (tipo === "pedido") return "estatus_pedido";
   if (tipo === "factura") return "estatus_factura";
+  if (tipo === "entrega_corporativa") return "estatus_entrega_corporativa";
   return "estatus_cotizacion";
 }
 

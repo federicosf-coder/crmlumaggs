@@ -1073,10 +1073,14 @@ export type Database = {
           estatus_cotizacion:
             | Database["public"]["Enums"]["estatus_cotizacion"]
             | null
+          estatus_entrega_corporativa:
+            | Database["public"]["Enums"]["estatus_entrega_corporativa"]
+            | null
           estatus_factura: Database["public"]["Enums"]["estatus_factura"] | null
           estatus_pedido: Database["public"]["Enums"]["estatus_pedido"] | null
           fecha_documento: string
           fecha_entrega_programada: string | null
+          fecha_oc_cliente: string | null
           fecha_vencimiento: string | null
           id: string
           is_active: boolean
@@ -1117,12 +1121,16 @@ export type Database = {
           estatus_cotizacion?:
             | Database["public"]["Enums"]["estatus_cotizacion"]
             | null
+          estatus_entrega_corporativa?:
+            | Database["public"]["Enums"]["estatus_entrega_corporativa"]
+            | null
           estatus_factura?:
             | Database["public"]["Enums"]["estatus_factura"]
             | null
           estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
           fecha_documento?: string
           fecha_entrega_programada?: string | null
+          fecha_oc_cliente?: string | null
           fecha_vencimiento?: string | null
           id?: string
           is_active?: boolean
@@ -1163,12 +1171,16 @@ export type Database = {
           estatus_cotizacion?:
             | Database["public"]["Enums"]["estatus_cotizacion"]
             | null
+          estatus_entrega_corporativa?:
+            | Database["public"]["Enums"]["estatus_entrega_corporativa"]
+            | null
           estatus_factura?:
             | Database["public"]["Enums"]["estatus_factura"]
             | null
           estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
           fecha_documento?: string
           fecha_entrega_programada?: string | null
+          fecha_oc_cliente?: string | null
           fecha_vencimiento?: string | null
           id?: string
           is_active?: boolean
@@ -2265,6 +2277,11 @@ export type Database = {
         | "rechazada"
         | "vencida"
         | "impresa"
+      estatus_entrega_corporativa:
+        | "solicitada"
+        | "programada"
+        | "entregada"
+        | "acuse_enviado"
       estatus_factura:
         | "pendiente"
         | "pagada"
@@ -2300,7 +2317,11 @@ export type Database = {
         | "sucursal"
         | "principal"
       tipo_doc_cobranza: "factura" | "pedido" | "cotizacion"
-      tipo_documento: "cotizacion" | "pedido" | "factura"
+      tipo_documento:
+        | "cotizacion"
+        | "pedido"
+        | "factura"
+        | "entrega_corporativa"
       tipo_pago: "contado" | "credito" | "credito_cescemex"
       uso_cfdi:
         | "G01"
@@ -2509,6 +2530,12 @@ export const Constants = {
         "vencida",
         "impresa",
       ],
+      estatus_entrega_corporativa: [
+        "solicitada",
+        "programada",
+        "entregada",
+        "acuse_enviado",
+      ],
       estatus_factura: [
         "pendiente",
         "pagada",
@@ -2543,7 +2570,12 @@ export const Constants = {
       ],
       tipo_direccion: ["envio", "fiscal", "comercial", "sucursal", "principal"],
       tipo_doc_cobranza: ["factura", "pedido", "cotizacion"],
-      tipo_documento: ["cotizacion", "pedido", "factura"],
+      tipo_documento: [
+        "cotizacion",
+        "pedido",
+        "factura",
+        "entrega_corporativa",
+      ],
       tipo_pago: ["contado", "credito", "credito_cescemex"],
       uso_cfdi: [
         "G01",
