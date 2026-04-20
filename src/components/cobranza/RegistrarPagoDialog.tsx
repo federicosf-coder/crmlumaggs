@@ -20,6 +20,8 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onSaved: (pagoId?: string) => void;
+  defaultEmpresaId?: string;
+  defaultDocumentoId?: string;
 }
 
 interface DocOption {
@@ -47,7 +49,7 @@ const FORMA_PAGO_OPTIONS: { value: FormaPago; label: string }[] = [
 
 const VALID_FORMAS: FormaPago[] = ["contado", "credito", "credito_cescemex"];
 
-export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
+export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpresaId, defaultDocumentoId }: Props) {
   const { user } = useAuth();
   const [companies, setCompanies] = useState<{ id: string; name: string; email?: string | null; tipo_pago?: string | null }[]>([]);
   const [docs, setDocs] = useState<DocOption[]>([]);
@@ -70,6 +72,26 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved }: Props) {
     supabase.from("companies").select("id,name,email,tipo_pago").eq("is_active", true).order("name")
       .then(({ data }) => setCompanies(data || []));
   }, [open]);
+
+  // Prefill empresa from default when dialog opens
+  useEffect(() => {
+    if (open && defaultEmpresaId) setEmpresaId(defaultEmpresaId);
+  }, [open, defaultEmpresaId]);
+
+  // Auto-select the default document once docs load
+  useEffect(() => {
+    if (!open || !defaultDocumentoId || docs.length === 0) return;
+    const doc = docs.find((d) => d.id === defaultDocumentoId);
+    if (!doc) return;
+    setTipoFiltro(doc.tipo_documento);
+    setSeleccion((prev) => {
+      if (prev[doc.id] !== undefined) return prev;
+      const restante = Math.max(0, (Number(montoTotal) || 0));
+      const sugerido = restante > 0 ? Math.min(doc.saldo, restante) : doc.saldo;
+      return { ...prev, [doc.id]: String(sugerido.toFixed(2)) };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultDocumentoId, docs]);
 
   // Cuando cambia la empresa, prellenar Forma de pago desde la empresa si es válida
   useEffect(() => {

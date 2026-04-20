@@ -14,12 +14,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart, ExternalLink } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { format, addDays } from "date-fns";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Link } from "react-router-dom";
+import { DocumentPagosSection } from "@/components/documents/DocumentPagosSection";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "confirmado_cliente", l: "Confirmado Cliente" }, { v: "validado_contabilidad", l: "Validado Contabilidad" }, { v: "programado_entrega", l: "Programado Entrega" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
@@ -694,7 +695,19 @@ export default function DocumentForm() {
 
           {/* Empresa (Cliente) with + button */}
           <div>
-            <Label>Empresa (Cliente)</Label>
+            <Label className="flex items-center gap-1">
+              Empresa (Cliente)
+              {viewMode && form.empresa_id && (
+                <Link
+                  to={`/directory?tab=companies&select=${form.empresa_id}`}
+                  className="text-primary hover:underline inline-flex"
+                  title="Ver empresa"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </Label>
             <div className="flex gap-1">
               <SearchableSelect
                 value={form.empresa_id}
@@ -716,7 +729,19 @@ export default function DocumentForm() {
 
           {/* Contacto with + button, filtered by empresa */}
           <div>
-            <Label>Contacto</Label>
+            <Label className="flex items-center gap-1">
+              Contacto
+              {viewMode && form.contacto_id && (
+                <Link
+                  to={`/directory?tab=contacts&select=${form.contacto_id}`}
+                  className="text-primary hover:underline inline-flex"
+                  title="Ver contacto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </Label>
             <div className="flex gap-1">
               <SearchableSelect
                 value={form.contacto_id}
@@ -1020,6 +1045,11 @@ export default function DocumentForm() {
         </CardContent>
       </Card>
       </fieldset>
+
+      {/* Pagos relacionados — solo en modo vista para Facturas/Pedidos/Cotizaciones */}
+      {viewMode && isEdit && id && form.tipo_documento !== "entrega_corporativa" && (
+        <DocumentPagosSection documentoId={id} empresaId={form.empresa_id || null} />
+      )}
 
       {/* Actions */}
       {!viewMode && (
