@@ -109,7 +109,7 @@ function getStatusBadgeClass(doc: any): string {
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { hasRole, user } = useAuth();
+  const { hasRole, user, profile } = useAuth();
   const isAdmin = hasRole("admin");
   const qc = useQueryClient();
 
@@ -117,6 +117,7 @@ export default function DocumentsList() {
   const tipoFilter = searchParams.get("tipo") || "cotizacion";
   const empresaFilter = searchParams.get("empresa") || "lumaggs_chevron";
   const ejecutivoFilter = searchParams.get("ejecutivo") || "all";
+  const plazaFilter = searchParams.get("plaza") || "";
 
   const [search, setSearch] = useState("");
   const [duplicating, setDuplicating] = useState<string | null>(null);
@@ -184,8 +185,28 @@ export default function DocumentsList() {
     },
   });
 
+  const { data: plazas = [] } = useQuery({
+    queryKey: ["plazas-for-filter"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("plazas")
+        .select("id, nombre")
+        .eq("is_active", true)
+        .order("nombre");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Set default plaza to user's plaza on first load
+  useEffect(() => {
+    if (!searchParams.get("plaza") && profile?.plaza_id) {
+      setFilter("plaza", profile.plaza_id);
+    }
+  }, [profile?.plaza_id]);
+
   const { data: docs = [], isLoading, refetch } = useQuery({
-    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, access.accessLevel, access.teamMemberIds],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, access.accessLevel, access.teamMemberIds],
     queryFn: async () => {
       if (!access.canView) return [];
       let q = supabase
@@ -196,6 +217,7 @@ export default function DocumentsList() {
         .order("created_at", { ascending: false });
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
+      if (plazaFilter && plazaFilter !== "all") q = q.eq("plaza_id", plazaFilter);
       if (access.accessLevel === "propio" && access.userId) {
         q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
@@ -582,6 +604,31 @@ export default function DocumentsList() {
           </Button>
         </div>
       </div>
+
+      {/* Plaza filter buttons */}
+      {plazas.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap">
+          <Button
+            size="sm"
+            variant={plazaFilter === "all" ? "default" : "outline"}
+            className="h-7 px-2.5 text-xs"
+            onClick={() => setFilter("plaza", "all")}
+          >
+            Todas
+          </Button>
+          {plazas.map((p: any) => (
+            <Button
+              key={p.id}
+              size="sm"
+              variant={plazaFilter === p.id ? "default" : "outline"}
+              className="h-7 px-2.5 text-xs"
+              onClick={() => setFilter("plaza", p.id)}
+            >
+              {p.nombre}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {/* Kanban view */}
       {viewMode === "kanban" ? (
