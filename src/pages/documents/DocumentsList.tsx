@@ -531,6 +531,13 @@ export default function DocumentsList() {
         type: "select",
         options: Object.entries(ESTATUS_FAC_LABELS).map(([v, l]) => ({ value: v, label: l })),
       });
+    } else if (tipoFilter === "entrega_corporativa") {
+      fields.push({
+        key: "estatus_entrega_corporativa",
+        label: "Estatus",
+        type: "select",
+        options: Object.entries(ESTATUS_ENT_CORP_LABELS).map(([v, l]) => ({ value: v, label: l })),
+      });
     }
     return fields;
   };
@@ -604,6 +611,7 @@ export default function DocumentsList() {
             { value: "cotizacion", label: "Cotizaciones" },
             { value: "pedido", label: "Pedidos" },
             { value: "factura", label: "Facturas" },
+            { value: "entrega_corporativa", label: "Entrega Corporativa" },
           ].map((tipo) => {
             const isActive = tipoFilter === tipo.value;
             const colors = TAB_COLORS[tipo.value];
@@ -733,7 +741,10 @@ export default function DocumentsList() {
               <div className="text-center py-12">
                 <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <p className="mt-2 text-muted-foreground">
-                  {tipoFilter === "cotizacion" ? "No hay cotizaciones" : tipoFilter === "pedido" ? "No hay pedidos" : "No hay facturas"}
+                  {tipoFilter === "cotizacion" ? "No hay cotizaciones"
+                    : tipoFilter === "pedido" ? "No hay pedidos"
+                    : tipoFilter === "factura" ? "No hay facturas"
+                    : "No hay entregas corporativas"}
                 </p>
                 <p className="text-xs text-muted-foreground/70 mt-1">Crea un nuevo documento para comenzar</p>
               </div>
