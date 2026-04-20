@@ -258,6 +258,16 @@ export default function DocumentsList() {
         const nb = b.numero_cotizacion || b.numero_pedido || b.numero_factura || "";
         return String(nb).localeCompare(String(na), undefined, { numeric: true });
       }
+      case "numero_factura_asc": {
+        const na = a.numero_factura || "";
+        const nb = b.numero_factura || "";
+        return String(na).localeCompare(String(nb), undefined, { numeric: true });
+      }
+      case "numero_factura_desc": {
+        const na = a.numero_factura || "";
+        const nb = b.numero_factura || "";
+        return String(nb).localeCompare(String(na), undefined, { numeric: true });
+      }
       case "ejecutivo_asc": return getEjecutivoName(a.ejecutivo_venta_id).localeCompare(getEjecutivoName(b.ejecutivo_venta_id));
       case "estatus_asc": return getEstatusLabel(a).localeCompare(getEstatusLabel(b));
       default: return 0;
