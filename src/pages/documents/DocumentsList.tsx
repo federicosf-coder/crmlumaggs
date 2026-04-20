@@ -24,7 +24,7 @@ import { ExportFieldsDialog, ExportField } from "@/components/documents/ExportFi
 import { ExportFilterDialog, ExportFilters } from "@/components/documents/ExportFilterDialog";
 
 // Column visibility config per document type
-type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_programada" | "total" | "estatus" | "pdf";
+type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_programada" | "total" | "estatus" | "pdf" | "oc_cliente";
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "numero", label: "Número" },
   { key: "cliente", label: "Cliente" },
@@ -32,6 +32,7 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "plaza", label: "Plaza" },
   { key: "fecha", label: "Fecha Documento" },
   { key: "fecha_programada", label: "Fecha Programada" },
+  { key: "oc_cliente", label: "Núm. OC Cliente" },
   { key: "total", label: "Total" },
   { key: "estatus", label: "Estatus" },
   { key: "pdf", label: "PDF" },
@@ -40,7 +41,7 @@ const DEFAULT_COLS_BY_TIPO: Record<string, ColumnKey[]> = {
   cotizacion: ["numero", "cliente", "ejecutivo", "fecha", "total", "estatus", "pdf"],
   pedido: ["cliente", "ejecutivo", "fecha", "fecha_programada", "total", "estatus", "pdf"],
   factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "total", "estatus", "pdf"],
-  entrega_corporativa: ["cliente", "ejecutivo", "fecha", "fecha_programada", "estatus"],
+  entrega_corporativa: ["cliente", "ejecutivo", "fecha", "fecha_programada", "oc_cliente", "estatus"],
 };
 const colsStorageKey = (userId: string, tipo: string) => `doc-cols:${userId}:${tipo}`;
 
@@ -583,7 +584,7 @@ export default function DocumentsList() {
           <Button variant="outline" size="sm" onClick={() => navigate("/delivery/schedule")}>
             <Truck className="mr-1 h-4 w-4" /> Programar Entregas
           </Button>
-          <Button onClick={() => navigate("/documents/new")} size="sm">
+          <Button onClick={() => navigate(`/documents/new${tipoFilter && tipoFilter !== "all" ? `?tipo=${tipoFilter}` : ""}`)} size="sm">
             <Plus className="mr-1 h-4 w-4" /> Nuevo
           </Button>
         </div>
@@ -777,6 +778,9 @@ export default function DocumentsList() {
                       {showsScheduledDate && isColVisible("fecha_programada") && (
                         <TableHead className="hidden md:table-cell">Fecha Programada</TableHead>
                       )}
+                      {tipoFilter === "entrega_corporativa" && isColVisible("oc_cliente") && (
+                        <TableHead className="hidden md:table-cell">Núm. OC Cliente</TableHead>
+                      )}
                       {isColVisible("total") && <TableHead>Total</TableHead>}
                       {isColVisible("estatus") && (
                         <TableHead>
@@ -834,6 +838,11 @@ export default function DocumentsList() {
                             {doc.fecha_entrega_programada
                               ? format(new Date(doc.fecha_entrega_programada), "dd/MM/yyyy")
                               : "-"}
+                          </TableCell>
+                        )}
+                        {tipoFilter === "entrega_corporativa" && isColVisible("oc_cliente") && (
+                          <TableCell className="hidden md:table-cell whitespace-nowrap">
+                            {doc.numero_oc_cliente || "-"}
                           </TableCell>
                         )}
                         {isColVisible("total") && (

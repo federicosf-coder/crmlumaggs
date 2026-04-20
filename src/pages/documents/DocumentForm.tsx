@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,6 +60,8 @@ export default function DocumentForm() {
   const { id } = useParams();
   const isEdit = !!id;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialTipo = searchParams.get("tipo");
   const qc = useQueryClient();
   const { user, profile, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
@@ -70,9 +72,9 @@ export default function DocumentForm() {
   const defaultVencimiento = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
   const [form, setForm] = useState({
-    empresa_vendedora: "" as string,
+    empresa_vendedora: (initialTipo === "entrega_corporativa" ? "lumaggs_chevron" : "") as string,
     plaza_id: "",
-    tipo_documento: "cotizacion" as string,
+    tipo_documento: (initialTipo === "entrega_corporativa" ? "entrega_corporativa" : "cotizacion") as string,
     ejecutivo_venta_id: "",
     empresa_id: "",
     contacto_id: "",
@@ -796,6 +798,10 @@ export default function DocumentForm() {
                 </Select>
               </div>
               <div>
+                <Label>Núm. OC Cliente <span className="text-destructive">*</span></Label>
+                <Input value={form.numero_oc_cliente} onChange={e => set("numero_oc_cliente", e.target.value)} />
+              </div>
+              <div>
                 <Label>Fecha OC Cliente <span className="text-destructive">*</span></Label>
                 <Input type="date" value={form.fecha_oc_cliente} onChange={e => set("fecha_oc_cliente", e.target.value)} />
               </div>
@@ -902,6 +908,7 @@ export default function DocumentForm() {
       </Card>
 
       {/* Fiscal & Payment */}
+      {td !== "entrega_corporativa" && (
       <Card>
         <CardHeader><CardTitle>Datos Fiscales y Pago</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -956,6 +963,7 @@ export default function DocumentForm() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Additional */}
       <Card>
