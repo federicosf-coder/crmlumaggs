@@ -908,6 +908,7 @@ export default function DocumentForm() {
       </Card>
 
       {/* Fiscal & Payment */}
+      {td !== "entrega_corporativa" && (
       <Card>
         <CardHeader><CardTitle>Datos Fiscales y Pago</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -962,6 +963,7 @@ export default function DocumentForm() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Additional */}
       <Card>
