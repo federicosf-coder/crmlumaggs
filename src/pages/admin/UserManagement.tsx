@@ -490,6 +490,69 @@ export default function UserManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Merge Users Dialog */}
+      <Dialog open={mergeOpen} onOpenChange={(o) => !o && setMergeOpen(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Fusionar usuarios</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              El usuario origen será eliminado y todas sus referencias (documentos, pagos, deals, tareas, equipos, roles, etc.) se reasignarán al usuario destino. Esta acción no se puede deshacer.
+            </p>
+            <div className="space-y-2">
+              <Label>Origen (se eliminará)</Label>
+              <Select value={mergeSourceId} onValueChange={setMergeSourceId}>
+                <SelectTrigger><SelectValue placeholder="Selecciona usuario origen" /></SelectTrigger>
+                <SelectContent>
+                  {users.filter((u) => u.user_id !== currentUser?.id).map((u) => (
+                    <SelectItem key={u.user_id} value={u.user_id}>
+                      {u.full_name || u.email} ({u.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Destino (se conserva)</Label>
+              <Select value={mergeTargetId} onValueChange={setMergeTargetId}>
+                <SelectTrigger><SelectValue placeholder="Selecciona usuario destino" /></SelectTrigger>
+                <SelectContent>
+                  {users.filter((u) => u.user_id !== mergeSourceId).map((u) => (
+                    <SelectItem key={u.user_id} value={u.user_id}>
+                      {u.full_name || u.email} ({u.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleMerge} disabled={mergeBusy} className="w-full">
+              {mergeBusy ? "Fusionando..." : "Fusionar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteUser} onOpenChange={(o) => !o && setDeleteUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Solo se eliminará si no tiene registros relacionados. Si tiene historial, usa Desactivar en su lugar.
+              <br /><br />
+              <strong>{deleteUser?.full_name || deleteUser?.email}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteBusy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleteBusy} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleteBusy ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
