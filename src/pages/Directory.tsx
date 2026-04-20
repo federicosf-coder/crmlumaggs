@@ -165,6 +165,32 @@ export default function Directory() {
 
   useEffect(() => { if (!access.isLoading) fetchData(); }, [access.isLoading, access.accessLevel]);
 
+  // Deep link: open detail when ?select=<id> matches a company/contact
+  useEffect(() => {
+    if (!selectId) return;
+    if (activeTab === "companies") {
+      const found = companies.find((c) => c.id === selectId);
+      if (found) {
+        setSelectedCompany(found);
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("select");
+          return next;
+        }, { replace: true });
+      }
+    } else if (activeTab === "contacts") {
+      const found = contacts.find((c) => c.id === selectId);
+      if (found) {
+        setSelectedContact(found);
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("select");
+          return next;
+        }, { replace: true });
+      }
+    }
+  }, [selectId, activeTab, companies, contacts, setSearchParams]);
+
   const filteredCompanies = companies
     .filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase()))
     .sort((a, b) => {
