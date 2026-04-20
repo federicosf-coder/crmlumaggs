@@ -137,7 +137,12 @@ export default function DocumentsList() {
 
   const [search, setSearch] = useState("");
   const [duplicating, setDuplicating] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState("date_desc");
+  const [sortBy, setSortBy] = useState(tipoFilter === "factura" ? "numero_factura_desc" : "date_desc");
+
+  // Reset to default sort when document type changes (or on mount/refresh)
+  useEffect(() => {
+    setSortBy(tipoFilter === "factura" ? "numero_factura_desc" : "date_desc");
+  }, [tipoFilter]);
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
