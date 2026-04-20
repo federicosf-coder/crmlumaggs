@@ -185,6 +185,26 @@ export default function DocumentsList() {
     },
   });
 
+  const { data: plazas = [] } = useQuery({
+    queryKey: ["plazas-for-filter"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("plazas")
+        .select("id, nombre")
+        .eq("is_active", true)
+        .order("nombre");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Set default plaza to user's plaza on first load
+  useEffect(() => {
+    if (!searchParams.get("plaza") && profile?.plaza_id) {
+      setFilter("plaza", profile.plaza_id);
+    }
+  }, [profile?.plaza_id]);
+
   const { data: docs = [], isLoading, refetch } = useQuery({
     queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, access.accessLevel, access.teamMemberIds],
     queryFn: async () => {
