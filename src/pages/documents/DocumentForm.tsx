@@ -452,10 +452,13 @@ export default function DocumentForm() {
       }
 
       if (items.length > 0) {
+        const forceZero = form.tipo_documento === "entrega_corporativa";
         const lineItems = items.filter(i => i.producto_id).map(i => ({
           documento_id: docId!, producto_id: i.producto_id, cantidad: i.cantidad,
-          precio_unitario: i.precio_unitario, descuento_porcentaje: i.descuento_porcentaje,
-          subtotal: i.subtotal, unidades_equivalentes: i.unidades_equivalentes,
+          precio_unitario: forceZero ? 0 : i.precio_unitario,
+          descuento_porcentaje: i.descuento_porcentaje,
+          subtotal: forceZero ? 0 : i.subtotal,
+          unidades_equivalentes: i.unidades_equivalentes,
         }));
         if (lineItems.length > 0) {
           const { error } = await supabase.from("documento_productos").insert(lineItems);
