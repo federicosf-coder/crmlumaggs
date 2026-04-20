@@ -605,6 +605,31 @@ export default function DocumentsList() {
         </div>
       </div>
 
+      {/* Plaza filter buttons */}
+      {plazas.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap">
+          <Button
+            size="sm"
+            variant={plazaFilter === "all" ? "default" : "outline"}
+            className="h-7 px-2.5 text-xs"
+            onClick={() => setFilter("plaza", "all")}
+          >
+            Todas
+          </Button>
+          {plazas.map((p: any) => (
+            <Button
+              key={p.id}
+              size="sm"
+              variant={plazaFilter === p.id ? "default" : "outline"}
+              className="h-7 px-2.5 text-xs"
+              onClick={() => setFilter("plaza", p.id)}
+            >
+              {p.nombre}
+            </Button>
+          ))}
+        </div>
+      )}
+
       {/* Kanban view */}
       {viewMode === "kanban" ? (
         <div>
