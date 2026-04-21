@@ -481,7 +481,8 @@ function ProductosTab() {
                    <TableHead className="w-10"></TableHead>
                    <TableHead>Descripción</TableHead>
                    <TableHead>Marca</TableHead>
-                   <TableHead>Base UF1</TableHead>
+                   <TableHead className="text-xs">Precios UF</TableHead>
+                   <TableHead className="text-xs">Precios R</TableHead>
                    <TableHead>Activo</TableHead>
                  </TableRow>
               </TableHeader>
@@ -502,12 +503,23 @@ function ProductosTab() {
                     </TableCell>
                     <TableCell className="font-medium">{descripcionConcat}</TableCell>
                     <TableCell>{p.marca?.value ?? "—"}</TableCell>
-                    <TableCell>${Number(p.precio_base_uf1 ?? 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      <div><span className="text-muted-foreground">UF1:</span> ${Number(p.precio_base_uf1 ?? 0).toFixed(2)}</div>
+                      <div><span className="text-muted-foreground">UF2:</span> ${Number(p.precio_uf2 ?? 0).toFixed(2)}</div>
+                      <div><span className="text-muted-foreground">UF3:</span> ${Number(p.precio_uf3 ?? 0).toFixed(2)}</div>
+                      <div><span className="text-muted-foreground">UF4:</span> ${Number(p.precio_uf4 ?? 0).toFixed(2)}</div>
+                    </TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      <div><span className="text-muted-foreground">R1:</span> ${Number(p.precio_r1 ?? 0).toFixed(2)}</div>
+                      <div><span className="text-muted-foreground">R2:</span> ${Number(p.precio_r2 ?? 0).toFixed(2)}</div>
+                      <div><span className="text-muted-foreground">R3:</span> ${Number(p.precio_r3 ?? 0).toFixed(2)}</div>
+                      <div><span className="text-muted-foreground">R4:</span> ${Number(p.precio_r4 ?? 0).toFixed(2)}</div>
+                    </TableCell>
                     <TableCell><Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Sí" : "No"}</Badge></TableCell>
                   </TableRow>
                   );
                 })}
-                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
+                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
