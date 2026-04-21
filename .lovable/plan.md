@@ -1,53 +1,34 @@
 
-# Business Management Platform — Phase 1: Foundation & User Management
 
-## Overview
-Build the foundation of a modular business management app for your Chevron/Phillips 66 lubricants distribution company. This first phase sets up authentication, roles, teams, and the app shell that all future modules will plug into.
+## Cambios en la lista del Catálogo de Productos
 
-## What we'll build
+Voy a reemplazar la columna actual "Base UF1" en la tabla de productos por **dos columnas compactas** que muestren todos los precios en texto pequeño.
 
-### 1. App Shell & Navigation
-- Sidebar layout with module navigation (CRM, Inventory, Quotes, Delivery, etc.)
-- Modules shown/hidden based on user permissions
-- Dashboard home page with quick stats and module shortcuts
-- Professional branding suited to an industrial/distribution business
+### Nueva estructura de columnas
 
-### 2. Authentication (Lovable Cloud)
-- Login & signup pages with email/password
-- Password reset flow
-- Session management
+| Acciones | Descripción | Marca | **Precios UF** | **Precios R** | Activo |
+|---|---|---|---|---|---|
 
-### 3. Roles & Teams System (Database)
-- **Roles**: Sales, Delivery, Warehouse, Customer Service, Accounting, Manager, Admin
-- **Teams**: Flexible team creation (e.g., "North Region Sales", "Main Warehouse")
-- Users can belong to multiple roles AND multiple teams
-- Database tables: `profiles`, `user_roles`, `teams`, `team_members`
-- Row-Level Security policies using security-definer functions
+- **Precios UF**: muestra UF1, UF2, UF3, UF4 apilados con etiquetas cortas.
+- **Precios R**: muestra R1, R2, R3, R4 apilados con etiquetas cortas.
+- Todos los valores se renderizan en `text-xs` (texto chiquito) con formato `$0.00`.
+- Las etiquetas (UF1:, R1:, etc.) en `text-muted-foreground` para no saturar visualmente.
 
-### 4. User Management (Admin UI)
-- Admin page to view all users
-- Assign/remove roles and teams per user
-- Create and manage teams
-- User profile page where users can view their own info
+### Ejemplo visual de cada celda
 
-### 5. Module Placeholder Pages
-- Stub pages for each future module: CRM, Inventory, Quotes, Delivery, Training, Inventory Transfers, Projects & Tasks, Product Inquiry
-- Each protected by role-based access
-- Ready to be built out in subsequent phases
+```text
+UF1: $12.34
+UF2: $11.20
+UF3: $10.50
+UF4: $9.80
+```
 
-## Permissions Model
-| Role | Accessible Modules |
-|------|-------------------|
-| Admin | All modules + User Management |
-| Manager | All modules (read), Team management |
-| Sales | CRM, Quotes, Product Inquiry |
-| Delivery | Delivery, Inventory (read) |
-| Warehouse | Inventory, Transfers |
-| Customer Service | CRM (read), Product Inquiry |
-| Accounting | Invoicing, Reports |
+### Detalles técnicos (`src/pages/inventory/ProductCatalog.tsx`)
 
-## Next phases (not in this plan)
-- Phase 2: CRM + Quotes module
-- Phase 3: Inventory & Product Catalog
-- Phase 4: Delivery management
-- Phase 5: Additional modules as needed
+- Reemplazar el `<TableHead>Base UF1</TableHead>` por dos `<TableHead>` ("Precios UF" y "Precios R"), también en `text-xs`.
+- En cada fila, reemplazar la `<TableCell>` de `precio_base_uf1` por dos celdas que rendericen un pequeño bloque vertical:
+  ```tsx
+  <TableCell className="text-xs whitespace-nowrap">
+    <div>UF1: ${Number(p.precio_base_uf1 ?? 0).toFixed(2)}</div>
+    <div>UF2: ${Number(p.precio_uf2 ?? 0).toFixed(2)}</div>
+    <div>UF3: ${
