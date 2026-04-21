@@ -466,7 +466,7 @@ function ProductosTab() {
                     </TableCell>
                     <TableCell className="font-medium">{descripcionConcat}</TableCell>
                     <TableCell>{p.marca?.value ?? "—"}</TableCell>
-                    <TableCell>${p.precio_base_uf1}</TableCell>
+                    <TableCell>${Number(p.precio_base_uf1 ?? 0).toFixed(2)}</TableCell>
                     <TableCell><Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Sí" : "No"}</Badge></TableCell>
                   </TableRow>
                   );
@@ -528,7 +528,7 @@ function ProductosTab() {
                   ["precio_r4", "R4"],
                   ["precio_lista_galper", "Lista Galper"],
                 ] as string[][]).map(([k, label]) => (
-                  <div key={k}><Label className="text-xs">{label}</Label><Input type="number" value={(form as any)[k]} onChange={e => set(k, Number(e.target.value))} /></div>
+                  <div key={k}><Label className="text-xs">{label}</Label><Input type="number" step="0.01" value={(form as any)[k]} onChange={e => set(k, Number(e.target.value))} /></div>
                 ))}
               </div>
             </div>
@@ -589,7 +589,7 @@ function ProductosTab() {
                     ["R4", viewProduct.precio_r4],
                     ["Lista Galper", viewProduct.precio_lista_galper],
                   ] as [string, number][]).map(([label, val]) => (
-                    <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="text-sm font-mono">${val ?? 0}</p></div>
+                    <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="text-sm font-mono">${Number(val ?? 0).toFixed(2)}</p></div>
                   ))}
                 </div>
               </div>
