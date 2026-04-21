@@ -1,34 +1,34 @@
 
 
-## Cambios en la lista del Catálogo de Productos
+## Actualizar `presentacion_id` de productos desde CSV
 
-Voy a reemplazar la columna actual "Base UF1" en la tabla de productos por **dos columnas compactas** que muestren todos los precios en texto pequeño.
+Mapear el archivo `catalogo_productos_2026-04-21_presentaciones.csv` por `codigo` y actualizar la presentación de cada producto vinculándola al catálogo `presentaciones` existente.
 
-### Nueva estructura de columnas
+### Cómo se hará
 
-| Acciones | Descripción | Marca | **Precios UF** | **Precios R** | Activo |
-|---|---|---|---|---|---|
+1. Cargar el CSV (382 filas) y, para cada fila con `presentacion` no vacía, buscar el `id` en `public.presentaciones` por `nombre` (coincidencia exacta).
+2. Actualizar `productos.presentacion_id` haciendo match por `codigo` (case-insensitive).
+3. Filas con `presentacion` vacía (ej. `013-1106-000`) se omiten — no se sobreescribe el valor existente.
+4. Si algún `codigo` no existe en `productos` o algún nombre de presentación no existe en el catálogo, se reporta sin abortar el lote.
 
-- **Precios UF**: muestra UF1, UF2, UF3, UF4 apilados con etiquetas cortas.
-- **Precios R**: muestra R1, R2, R3, R4 apilados con etiquetas cortas.
-- Todos los valores se renderizan en `text-xs` (texto chiquito) con formato `$0.00`.
-- Las etiquetas (UF1:, R1:, etc.) en `text-muted-foreground` para no saturar visualmente.
+### Detalles técnicos
 
-### Ejemplo visual de cada celda
+- Operación batch vía `supabase--insert` con un único:
+  ```sql
+  UPDATE productos p
+  SET presentacion_id = v.presentacion_id, updated_at = now()
+  FROM (VALUES
+    ('212046718'::text, '41e4b8b8-112a-4456-a346-18059f48159d'::uuid),
+    ...
+  ) AS v(codigo, presentacion_id)
+  WHERE lower(p.codigo) = lower(v.codigo);
+  ```
+- Verificación posterior con `read_query`: contar productos actualizados y mostrar 5 muestras (`codigo`, `nombre_producto`, nombre de presentación) para validar.
+- No se modifican otros campos (precios, costo, descripción, etc.).
+- No se requieren cambios de esquema ni archivos de código del front-end.
 
-```text
-UF1: $12.34
-UF2: $11.20
-UF3: $10.50
-UF4: $9.80
-```
+### Archivos / objetos afectados
 
-### Detalles técnicos (`src/pages/inventory/ProductCatalog.tsx`)
+- Tabla `public.productos`: solo columna `presentacion_id` (y `updated_at`).
+- Catálogo `public.presentaciones`: solo lectura, sin cambios.
 
-- Reemplazar el `<TableHead>Base UF1</TableHead>` por dos `<TableHead>` ("Precios UF" y "Precios R"), también en `text-xs`.
-- En cada fila, reemplazar la `<TableCell>` de `precio_base_uf1` por dos celdas que rendericen un pequeño bloque vertical:
-  ```tsx
-  <TableCell className="text-xs whitespace-nowrap">
-    <div>UF1: ${Number(p.precio_base_uf1 ?? 0).toFixed(2)}</div>
-    <div>UF2: ${Number(p.precio_uf2 ?? 0).toFixed(2)}</div>
-    <div>UF3: ${
