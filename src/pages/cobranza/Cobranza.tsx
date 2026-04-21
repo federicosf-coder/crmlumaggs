@@ -273,17 +273,50 @@ export default function Cobranza() {
   // Filtros listados
   const pagosFiltrados = useMemo(() => {
     const q = searchPagos.toLowerCase();
-    return pagos.filter((p) =>
+    const base = pagos.filter((p) =>
       !q || p.empresa?.name?.toLowerCase().includes(q) || p.referencia_pago?.toLowerCase().includes(q)
     );
-  }, [pagos, searchPagos]);
+    return evaluateConditions(base, pagosConditions, pagosCombinator, (p, key) => {
+      const b = breakdowns[p.id];
+      switch (key) {
+        case "fecha_pago": return p.fecha_pago;
+        case "empresa": return p.empresa?.name || "";
+        case "plaza": return p.plaza?.nombre || "";
+        case "referencia_pago": return p.referencia_pago || "";
+        case "banco": return p.banco || "";
+        case "monto_total": return Number(p.monto_total);
+        case "aplicado_facturas": return b?.aplicadoFacturas ?? 0;
+        case "aplicado_otros": return b?.aplicadoOtros ?? 0;
+        case "disponible_facturas": return b?.disponibleFacturas ?? Number(p.monto_disponible);
+        case "tipo_pago": return p.tipo_pago || "";
+        case "estatus_pago": return p.estatus_pago;
+        case "estado_pago": return p.estado_pago;
+        default: return "";
+      }
+    });
+  }, [pagos, searchPagos, pagosConditions, pagosCombinator, breakdowns]);
 
   const facturasFiltradas = useMemo(() => {
     const q = searchFacturas.toLowerCase();
-    return facturas.filter((f) =>
+    const base = facturas.filter((f) =>
       !q || f.empresa?.name?.toLowerCase().includes(q) || f.numero_factura?.toLowerCase().includes(q)
     );
-  }, [facturas, searchFacturas]);
+    return evaluateConditions(base, facturasConditions, facturasCombinator, (f, key) => {
+      switch (key) {
+        case "numero_factura": return f.numero_factura || "";
+        case "empresa": return f.empresa?.name || "";
+        case "plaza": return f.plaza?.nombre || "";
+        case "fecha_documento": return f.fecha_documento;
+        case "fecha_vencimiento": return f.fecha_vencimiento;
+        case "dias": return diasParaVencer(f.fecha_vencimiento);
+        case "total": return Number(f.total);
+        case "saldo_pendiente_cobranza": return Number(f.saldo_pendiente_cobranza);
+        case "tipo_pago": return f.tipo_pago || "";
+        case "estado_cobranza": return f.estado_cobranza || "pendiente";
+        default: return "";
+      }
+    });
+  }, [facturas, searchFacturas, facturasConditions, facturasCombinator]);
 
   const handleAplicar = (p: CobranzaPago) => { setPagoSel(p); setOpenAplicar(true); };
   const handleVerDetalle = (p: CobranzaPago) => { setPagoSel(p); setOpenDetalle(true); };
