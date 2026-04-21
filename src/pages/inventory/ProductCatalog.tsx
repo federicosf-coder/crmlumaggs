@@ -274,6 +274,32 @@ function ProductosTab() {
       let updated = 0, created = 0, errors = 0, skipped = 0;
 
       const numFields = ["costo_actual","precio_base_uf1","precio_uf2","precio_uf3","precio_uf4","precio_r1","precio_r2","precio_r3","precio_r4","precio_lista_galper"];
+      const textFields = new Set(["nombre_producto", "descripcion"]);
+      const numFieldsSet = new Set(numFields);
+      const lookupMap: Record<string, { field: string; resolve: (v: string) => string | null }> = {
+        presentacion: { field: "presentacion_id", resolve: (v) => presMap.get(v.toLowerCase()) || null },
+        marca:        { field: "marca_id",        resolve: (v) => findOpt("marca", v) },
+        aplicacion:   { field: "aplicacion_id",   resolve: (v) => findOpt("aplicacion", v) },
+        uso:          { field: "uso_id",          resolve: (v) => findOpt("uso", v) },
+        formula:      { field: "formula_id",      resolve: (v) => findOpt("formula", v) },
+        viscosidad:   { field: "viscosidad_id",   resolve: (v) => findOpt("viscosidad", v) },
+        categoria:    { field: "categoria_id",    resolve: (v) => findOpt("categoria", v) },
+        linea:        { field: "linea_id",        resolve: (v) => findOpt("linea", v) },
+      };
+      // Columns that are recognized but handled separately (codigo) or ignored as system fields
+      const systemCols = new Set(["id", "created_at", "updated_at", "created_by"]);
+      const unknownCols = new Set<string>();
+      for (const h of headers) {
+        if (!h) continue;
+        if (h === "codigo") continue;
+        if (h === "is_active") continue;
+        if (textFields.has(h)) continue;
+        if (numFieldsSet.has(h)) continue;
+        if (lookupMap[h]) continue;
+        if (systemCols.has(h)) continue;
+        unknownCols.add(h);
+      }
+
       // Helper: parse number that may include $, commas, spaces
       const toNum = (v: string): number | null => {
         if (v === "" || v == null) return null;
@@ -292,34 +318,26 @@ function ProductosTab() {
         // This mirrors the COALESCE behavior — empty cells do NOT overwrite existing data.
         const payload: any = {};
 
-        const nombre = get("nombre_producto");
-        if (nombre) payload.nombre_producto = nombre;
-        const desc = get("descripcion");
-        if (desc) payload.descripcion = desc;
+        // Iterate dynamically over CSV headers — only known columns are applied.
+        for (let i = 0; i < headers.length; i++) {
+          const h = headers[i];
+          if (!h || h === "codigo") continue;
+          const raw = i < cols.length ? cols[i] : "";
+          if (raw === "" || raw == null) continue; // empty cells preserve current value
 
-        const pres = get("presentacion");
-        if (pres) {
-          const id = presMap.get(pres.toLowerCase());
-          if (id) payload.presentacion_id = id;
-        }
-        const optionMap: Array<[string, string]> = [
-          ["marca", "marca_id"], ["aplicacion", "aplicacion_id"], ["uso", "uso_id"],
-          ["formula", "formula_id"], ["viscosidad", "viscosidad_id"],
-          ["categoria", "categoria_id"], ["linea", "linea_id"],
-        ];
-        for (const [col, field] of optionMap) {
-          const v = get(col);
-          if (v) {
-            const id = findOpt(col, v);
+          if (textFields.has(h)) {
+            payload[h] = raw;
+          } else if (numFieldsSet.has(h)) {
+            const n = toNum(raw);
+            if (n !== null) payload[h] = n;
+          } else if (h === "is_active") {
+            payload.is_active = raw.toLowerCase() !== "false";
+          } else if (lookupMap[h]) {
+            const { field, resolve } = lookupMap[h];
+            const id = resolve(raw);
             if (id) payload[field] = id;
           }
-        }
-        const isActiveRaw = get("is_active");
-        if (isActiveRaw !== "") payload.is_active = isActiveRaw.toLowerCase() !== "false";
-
-        for (const f of numFields) {
-          const n = toNum(get(f));
-          if (n !== null) payload[f] = n;
+          // unknown columns: ignored (already collected in unknownCols)
         }
 
         const existingId = existingMap.get(codigo.toLowerCase());
@@ -340,6 +358,9 @@ function ProductosTab() {
       if (skipped) parts.push(`${skipped} sin cambios`);
       if (errors) parts.push(`${errors} errores`);
       toast.success(`Importación completada: ${parts.join(", ")}`);
+      if (unknownCols.size > 0) {
+        toast.info(`Columnas ignoradas (no existen en productos): ${Array.from(unknownCols).join(", ")}`);
+      }
     } catch (err: any) {
       toast.error("Error al importar: " + err.message);
     } finally {
