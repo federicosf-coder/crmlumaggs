@@ -238,18 +238,20 @@ function ProductosTab() {
       const lines = text.split(/\r?\n/).filter(l => l.trim());
       if (lines.length < 2) { toast.error("El archivo está vacío"); return; }
       const headerLine = lines[0];
+      // Detect delimiter (`;` or `,`) from header
+      const delim = (headerLine.match(/;/g)?.length || 0) > (headerLine.match(/,/g)?.length || 0) ? ";" : ",";
       // Parse CSV respecting quotes
       const parseLine = (line: string): string[] => {
         const result: string[] = []; let cur = ""; let inQuote = false;
         for (let i = 0; i < line.length; i++) {
           const c = line[i];
           if (inQuote) { if (c === '"' && line[i+1] === '"') { cur += '"'; i++; } else if (c === '"') { inQuote = false; } else { cur += c; } }
-          else { if (c === '"') { inQuote = true; } else if (c === ',') { result.push(cur.trim()); cur = ""; } else { cur += c; } }
+          else { if (c === '"') { inQuote = true; } else if (c === delim) { result.push(cur.trim()); cur = ""; } else { cur += c; } }
         }
         result.push(cur.trim());
         return result;
       };
-      const headers = parseLine(headerLine).map(h => h.toLowerCase().replace(/^\uFEFF/, ""));
+      const headers = parseLine(headerLine).map(h => h.toLowerCase().replace(/^\uFEFF/, "").trim());
       const codigoIdx = headers.indexOf("codigo");
       if (codigoIdx === -1) { toast.error("El archivo debe tener una columna 'codigo'"); return; }
 
@@ -269,41 +271,75 @@ function ProductosTab() {
       const findOpt = (type: string, val: string) => val ? (optMap.get(type)?.get(val.toLowerCase()) || null) : null;
 
       const rows = lines.slice(1).map(l => parseLine(l));
-      let updated = 0, created = 0, errors = 0;
+      let updated = 0, created = 0, errors = 0, skipped = 0;
+
+      const numFields = ["costo_actual","precio_base_uf1","precio_uf2","precio_uf3","precio_uf4","precio_r1","precio_r2","precio_r3","precio_r4","precio_lista_galper"];
+      // Helper: parse number that may include $, commas, spaces
+      const toNum = (v: string): number | null => {
+        if (v === "" || v == null) return null;
+        const cleaned = String(v).replace(/[$\s]/g, "").replace(/,/g, "");
+        if (cleaned === "" || cleaned === "-") return null;
+        const n = Number(cleaned);
+        return isFinite(n) ? n : null;
+      };
 
       for (const cols of rows) {
         const get = (name: string) => { const i = headers.indexOf(name); return i >= 0 && i < cols.length ? cols[i] : ""; };
         const codigo = get("codigo");
         if (!codigo) { errors++; continue; }
 
-        const payload: any = {
-          codigo,
-          nombre_producto: get("nombre_producto") || codigo,
-          descripcion: get("descripcion") || null,
-          presentacion_id: presMap.get((get("presentacion") || "").toLowerCase()) || null,
-          marca_id: findOpt("marca", get("marca")),
-          aplicacion_id: findOpt("aplicacion", get("aplicacion")),
-          uso_id: findOpt("uso", get("uso")),
-          formula_id: findOpt("formula", get("formula")),
-          viscosidad_id: findOpt("viscosidad", get("viscosidad")),
-          categoria_id: findOpt("categoria", get("categoria")),
-          linea_id: findOpt("linea", get("linea")),
-          is_active: get("is_active") !== "false",
-        };
-        const numFields = ["costo_actual","precio_base_uf1","precio_uf2","precio_uf3","precio_uf4","precio_r1","precio_r2","precio_r3","precio_r4","precio_lista_galper"];
-        for (const f of numFields) { const v = get(f); if (v !== "") payload[f] = Number(v) || 0; }
+        // Build a partial payload: only include fields that have a value in the CSV.
+        // This mirrors the COALESCE behavior — empty cells do NOT overwrite existing data.
+        const payload: any = {};
+
+        const nombre = get("nombre_producto");
+        if (nombre) payload.nombre_producto = nombre;
+        const desc = get("descripcion");
+        if (desc) payload.descripcion = desc;
+
+        const pres = get("presentacion");
+        if (pres) {
+          const id = presMap.get(pres.toLowerCase());
+          if (id) payload.presentacion_id = id;
+        }
+        const optionMap: Array<[string, string]> = [
+          ["marca", "marca_id"], ["aplicacion", "aplicacion_id"], ["uso", "uso_id"],
+          ["formula", "formula_id"], ["viscosidad", "viscosidad_id"],
+          ["categoria", "categoria_id"], ["linea", "linea_id"],
+        ];
+        for (const [col, field] of optionMap) {
+          const v = get(col);
+          if (v) {
+            const id = findOpt(col, v);
+            if (id) payload[field] = id;
+          }
+        }
+        const isActiveRaw = get("is_active");
+        if (isActiveRaw !== "") payload.is_active = isActiveRaw.toLowerCase() !== "false";
+
+        for (const f of numFields) {
+          const n = toNum(get(f));
+          if (n !== null) payload[f] = n;
+        }
 
         const existingId = existingMap.get(codigo.toLowerCase());
         if (existingId) {
+          // Skip update if there's nothing to change beyond the lookup key
+          if (Object.keys(payload).length === 0) { skipped++; continue; }
           const { error } = await supabase.from("productos").update(payload).eq("id", existingId);
           if (error) { console.error(error); errors++; } else updated++;
         } else {
-          const { error } = await supabase.from("productos").insert(payload);
+          // Insert needs minimum fields
+          const insertPayload = { codigo, nombre_producto: payload.nombre_producto || codigo, ...payload };
+          const { error } = await supabase.from("productos").insert(insertPayload);
           if (error) { console.error(error); errors++; } else created++;
         }
       }
       qc.invalidateQueries({ queryKey: ["productos"] });
-      toast.success(`Importación completada: ${created} creados, ${updated} actualizados${errors ? `, ${errors} errores` : ""}`);
+      const parts = [`${created} creados`, `${updated} actualizados`];
+      if (skipped) parts.push(`${skipped} sin cambios`);
+      if (errors) parts.push(`${errors} errores`);
+      toast.success(`Importación completada: ${parts.join(", ")}`);
     } catch (err: any) {
       toast.error("Error al importar: " + err.message);
     } finally {
