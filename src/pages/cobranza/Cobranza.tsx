@@ -155,6 +155,60 @@ export default function Cobranza() {
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
 
+  // Filtros por columna
+  const [pagosConditions, setPagosConditions] = useState<ColumnFilterCondition[]>([]);
+  const [pagosCombinator, setPagosCombinator] = useState<"AND" | "OR">("AND");
+  const [facturasConditions, setFacturasConditions] = useState<ColumnFilterCondition[]>([]);
+  const [facturasCombinator, setFacturasCombinator] = useState<"AND" | "OR">("AND");
+
+  const pagosColumns: ColumnFilterDef[] = useMemo(() => [
+    { key: "fecha_pago", label: "Fecha", type: "date" },
+    { key: "empresa", label: "Cliente", type: "text" },
+    { key: "plaza", label: "Plaza", type: "text" },
+    { key: "referencia_pago", label: "Referencia", type: "text" },
+    { key: "banco", label: "Banco", type: "text" },
+    { key: "monto_total", label: "Total", type: "number" },
+    { key: "aplicado_facturas", label: "Aplicado a Facturas", type: "number" },
+    { key: "aplicado_otros", label: "Aplicado a Cot/Pedidos", type: "number" },
+    { key: "disponible_facturas", label: "Disponible (facturas)", type: "number" },
+    { key: "tipo_pago", label: "Forma", type: "select", options: [
+      { value: "contado", label: "Contado" },
+      { value: "credito", label: "Crédito Directo" },
+      { value: "credito_cescemex", label: "Crédito Cescemex" },
+    ]},
+    { key: "estatus_pago", label: "Estatus Pago", type: "select", options: ESTATUS_PAGO_OPTIONS },
+    { key: "estado_pago", label: "Estado", type: "select", options: [
+      { value: "registrado", label: "Registrado" },
+      { value: "no_aplicado", label: "No aplicado" },
+      { value: "aplicado_parcial", label: "Parcial" },
+      { value: "aplicado_total", label: "Aplicado" },
+      { value: "cancelado", label: "Cancelado" },
+    ]},
+  ], []);
+
+  const facturasColumns: ColumnFilterDef[] = useMemo(() => [
+    { key: "numero_factura", label: "Folio", type: "text" },
+    { key: "empresa", label: "Cliente", type: "text" },
+    { key: "plaza", label: "Plaza", type: "text" },
+    { key: "fecha_documento", label: "Emisión", type: "date" },
+    { key: "fecha_vencimiento", label: "Vence", type: "date" },
+    { key: "dias", label: "Días para vencer", type: "number" },
+    { key: "total", label: "Total", type: "number" },
+    { key: "saldo_pendiente_cobranza", label: "Saldo", type: "number" },
+    { key: "tipo_pago", label: "Forma", type: "select", options: [
+      { value: "contado", label: "Contado" },
+      { value: "credito", label: "Crédito Directo" },
+      { value: "credito_cescemex", label: "Crédito Cescemex" },
+    ]},
+    { key: "estado_cobranza", label: "Estado", type: "select", options: [
+      { value: "pendiente", label: "Pendiente" },
+      { value: "parcial", label: "Parcial" },
+      { value: "pagada", label: "Pagada" },
+      { value: "vencida", label: "Vencida" },
+      { value: "cancelada", label: "Cancelada" },
+    ]},
+  ], []);
+
   // Solo facturas activas para cartera/dashboard
   const facturas = useMemo(() => documentos.filter((d) => d.tipo_documento === "factura" && d.estado_cobranza !== "cancelada"), [documentos]);
 
