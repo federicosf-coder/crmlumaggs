@@ -18,6 +18,7 @@ import { useCobranzaPagos, useDocumentosCobranza, useCobranzaAplicaciones, type 
 import { RegistrarPagoDialog } from "@/components/cobranza/RegistrarPagoDialog";
 import { AplicarPagoDialog } from "@/components/cobranza/AplicarPagoDialog";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
+import { ColumnFilterBuilder, evaluateConditions, type ColumnFilterCondition, type ColumnFilterDef } from "@/components/cobranza/ColumnFilterBuilder";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -154,6 +155,60 @@ export default function Cobranza() {
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
 
+  // Filtros por columna
+  const [pagosConditions, setPagosConditions] = useState<ColumnFilterCondition[]>([]);
+  const [pagosCombinator, setPagosCombinator] = useState<"AND" | "OR">("AND");
+  const [facturasConditions, setFacturasConditions] = useState<ColumnFilterCondition[]>([]);
+  const [facturasCombinator, setFacturasCombinator] = useState<"AND" | "OR">("AND");
+
+  const pagosColumns: ColumnFilterDef[] = useMemo(() => [
+    { key: "fecha_pago", label: "Fecha", type: "date" },
+    { key: "empresa", label: "Cliente", type: "text" },
+    { key: "plaza", label: "Plaza", type: "text" },
+    { key: "referencia_pago", label: "Referencia", type: "text" },
+    { key: "banco", label: "Banco", type: "text" },
+    { key: "monto_total", label: "Total", type: "number" },
+    { key: "aplicado_facturas", label: "Aplicado a Facturas", type: "number" },
+    { key: "aplicado_otros", label: "Aplicado a Cot/Pedidos", type: "number" },
+    { key: "disponible_facturas", label: "Disponible (facturas)", type: "number" },
+    { key: "tipo_pago", label: "Forma", type: "select", options: [
+      { value: "contado", label: "Contado" },
+      { value: "credito", label: "Crédito Directo" },
+      { value: "credito_cescemex", label: "Crédito Cescemex" },
+    ]},
+    { key: "estatus_pago", label: "Estatus Pago", type: "select", options: ESTATUS_PAGO_OPTIONS },
+    { key: "estado_pago", label: "Estado", type: "select", options: [
+      { value: "registrado", label: "Registrado" },
+      { value: "no_aplicado", label: "No aplicado" },
+      { value: "aplicado_parcial", label: "Parcial" },
+      { value: "aplicado_total", label: "Aplicado" },
+      { value: "cancelado", label: "Cancelado" },
+    ]},
+  ], []);
+
+  const facturasColumns: ColumnFilterDef[] = useMemo(() => [
+    { key: "numero_factura", label: "Folio", type: "text" },
+    { key: "empresa", label: "Cliente", type: "text" },
+    { key: "plaza", label: "Plaza", type: "text" },
+    { key: "fecha_documento", label: "Emisión", type: "date" },
+    { key: "fecha_vencimiento", label: "Vence", type: "date" },
+    { key: "dias", label: "Días para vencer", type: "number" },
+    { key: "total", label: "Total", type: "number" },
+    { key: "saldo_pendiente_cobranza", label: "Saldo", type: "number" },
+    { key: "tipo_pago", label: "Forma", type: "select", options: [
+      { value: "contado", label: "Contado" },
+      { value: "credito", label: "Crédito Directo" },
+      { value: "credito_cescemex", label: "Crédito Cescemex" },
+    ]},
+    { key: "estado_cobranza", label: "Estado", type: "select", options: [
+      { value: "pendiente", label: "Pendiente" },
+      { value: "parcial", label: "Parcial" },
+      { value: "pagada", label: "Pagada" },
+      { value: "vencida", label: "Vencida" },
+      { value: "cancelada", label: "Cancelada" },
+    ]},
+  ], []);
+
   // Solo facturas activas para cartera/dashboard
   const facturas = useMemo(() => documentos.filter((d) => d.tipo_documento === "factura" && d.estado_cobranza !== "cancelada"), [documentos]);
 
@@ -218,17 +273,50 @@ export default function Cobranza() {
   // Filtros listados
   const pagosFiltrados = useMemo(() => {
     const q = searchPagos.toLowerCase();
-    return pagos.filter((p) =>
+    const base = pagos.filter((p) =>
       !q || p.empresa?.name?.toLowerCase().includes(q) || p.referencia_pago?.toLowerCase().includes(q)
     );
-  }, [pagos, searchPagos]);
+    return evaluateConditions(base, pagosConditions, pagosCombinator, (p, key) => {
+      const b = breakdowns[p.id];
+      switch (key) {
+        case "fecha_pago": return p.fecha_pago;
+        case "empresa": return p.empresa?.name || "";
+        case "plaza": return p.plaza?.nombre || "";
+        case "referencia_pago": return p.referencia_pago || "";
+        case "banco": return p.banco || "";
+        case "monto_total": return Number(p.monto_total);
+        case "aplicado_facturas": return b?.aplicadoFacturas ?? 0;
+        case "aplicado_otros": return b?.aplicadoOtros ?? 0;
+        case "disponible_facturas": return b?.disponibleFacturas ?? Number(p.monto_disponible);
+        case "tipo_pago": return p.tipo_pago || "";
+        case "estatus_pago": return p.estatus_pago;
+        case "estado_pago": return p.estado_pago;
+        default: return "";
+      }
+    });
+  }, [pagos, searchPagos, pagosConditions, pagosCombinator, breakdowns]);
 
   const facturasFiltradas = useMemo(() => {
     const q = searchFacturas.toLowerCase();
-    return facturas.filter((f) =>
+    const base = facturas.filter((f) =>
       !q || f.empresa?.name?.toLowerCase().includes(q) || f.numero_factura?.toLowerCase().includes(q)
     );
-  }, [facturas, searchFacturas]);
+    return evaluateConditions(base, facturasConditions, facturasCombinator, (f, key) => {
+      switch (key) {
+        case "numero_factura": return f.numero_factura || "";
+        case "empresa": return f.empresa?.name || "";
+        case "plaza": return f.plaza?.nombre || "";
+        case "fecha_documento": return f.fecha_documento;
+        case "fecha_vencimiento": return f.fecha_vencimiento;
+        case "dias": return diasParaVencer(f.fecha_vencimiento);
+        case "total": return Number(f.total);
+        case "saldo_pendiente_cobranza": return Number(f.saldo_pendiente_cobranza);
+        case "tipo_pago": return f.tipo_pago || "";
+        case "estado_cobranza": return f.estado_cobranza || "pendiente";
+        default: return "";
+      }
+    });
+  }, [facturas, searchFacturas, facturasConditions, facturasCombinator]);
 
   const handleAplicar = (p: CobranzaPago) => { setPagoSel(p); setOpenAplicar(true); };
   const handleVerDetalle = (p: CobranzaPago) => { setPagoSel(p); setOpenDetalle(true); };
@@ -393,7 +481,16 @@ export default function Cobranza() {
 
         {/* PAGOS */}
         <TabsContent value="pagos" className="space-y-4">
-          <Input placeholder="Buscar por empresa o referencia..." value={searchPagos} onChange={(e) => setSearchPagos(e.target.value)} className="max-w-md" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Input placeholder="Buscar por empresa o referencia..." value={searchPagos} onChange={(e) => setSearchPagos(e.target.value)} className="max-w-md" />
+            <ColumnFilterBuilder
+              columns={pagosColumns}
+              conditions={pagosConditions}
+              onChange={setPagosConditions}
+              combinator={pagosCombinator}
+              onCombinatorChange={setPagosCombinator}
+            />
+          </div>
           <Card>
             <CardContent className="p-0">
               <Table>
@@ -452,7 +549,16 @@ export default function Cobranza() {
 
         {/* FACTURAS */}
         <TabsContent value="facturas" className="space-y-4">
-          <Input placeholder="Buscar por cliente o folio..." value={searchFacturas} onChange={(e) => setSearchFacturas(e.target.value)} className="max-w-md" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Input placeholder="Buscar por cliente o folio..." value={searchFacturas} onChange={(e) => setSearchFacturas(e.target.value)} className="max-w-md" />
+            <ColumnFilterBuilder
+              columns={facturasColumns}
+              conditions={facturasConditions}
+              onChange={setFacturasConditions}
+              combinator={facturasCombinator}
+              onCombinatorChange={setFacturasCombinator}
+            />
+          </div>
           <Card>
             <CardContent className="p-0">
               <Table>
