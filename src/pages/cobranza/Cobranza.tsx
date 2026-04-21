@@ -549,7 +549,16 @@ export default function Cobranza() {
 
         {/* FACTURAS */}
         <TabsContent value="facturas" className="space-y-4">
-          <Input placeholder="Buscar por cliente o folio..." value={searchFacturas} onChange={(e) => setSearchFacturas(e.target.value)} className="max-w-md" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Input placeholder="Buscar por cliente o folio..." value={searchFacturas} onChange={(e) => setSearchFacturas(e.target.value)} className="max-w-md" />
+            <ColumnFilterBuilder
+              columns={facturasColumns}
+              conditions={facturasConditions}
+              onChange={setFacturasConditions}
+              combinator={facturasCombinator}
+              onCombinatorChange={setFacturasCombinator}
+            />
+          </div>
           <Card>
             <CardContent className="p-0">
               <Table>
