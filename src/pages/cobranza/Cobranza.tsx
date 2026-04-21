@@ -18,6 +18,7 @@ import { useCobranzaPagos, useDocumentosCobranza, useCobranzaAplicaciones, type 
 import { RegistrarPagoDialog } from "@/components/cobranza/RegistrarPagoDialog";
 import { AplicarPagoDialog } from "@/components/cobranza/AplicarPagoDialog";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
+import { ColumnFilterBuilder, evaluateConditions, type ColumnFilterCondition, type ColumnFilterDef } from "@/components/cobranza/ColumnFilterBuilder";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
