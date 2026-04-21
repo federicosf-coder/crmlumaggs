@@ -481,7 +481,16 @@ export default function Cobranza() {
 
         {/* PAGOS */}
         <TabsContent value="pagos" className="space-y-4">
-          <Input placeholder="Buscar por empresa o referencia..." value={searchPagos} onChange={(e) => setSearchPagos(e.target.value)} className="max-w-md" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Input placeholder="Buscar por empresa o referencia..." value={searchPagos} onChange={(e) => setSearchPagos(e.target.value)} className="max-w-md" />
+            <ColumnFilterBuilder
+              columns={pagosColumns}
+              conditions={pagosConditions}
+              onChange={setPagosConditions}
+              combinator={pagosCombinator}
+              onCombinatorChange={setPagosCombinator}
+            />
+          </div>
           <Card>
             <CardContent className="p-0">
               <Table>
