@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      _stg_prod_map: {
+        Row: {
+          aplicacion_id: string | null
+          codigo: string
+          formula_id: string | null
+          is_active: boolean | null
+          marca_id: string | null
+          uso_id: string | null
+          viscosidad_id: string | null
+        }
+        Insert: {
+          aplicacion_id?: string | null
+          codigo: string
+          formula_id?: string | null
+          is_active?: boolean | null
+          marca_id?: string | null
+          uso_id?: string | null
+          viscosidad_id?: string | null
+        }
+        Update: {
+          aplicacion_id?: string | null
+          codigo?: string
+          formula_id?: string | null
+          is_active?: boolean | null
+          marca_id?: string | null
+          uso_id?: string | null
+          viscosidad_id?: string | null
+        }
+        Relationships: []
+      }
       brand_logos: {
         Row: {
           created_at: string | null
