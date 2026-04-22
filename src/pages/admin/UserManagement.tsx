@@ -342,16 +342,27 @@ export default function UserManagement() {
 
   const pendingUsers = users.filter((u) => u.approval_status === "pendiente");
 
+  const filteredUsers = users.filter((u) => {
+    if (statusFilter === "active" && !u.is_active) return false;
+    if (statusFilter === "inactive" && u.is_active) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const hay = `${u.full_name ?? ""} ${u.email ?? ""} ${u.phone ?? ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
         <div className="flex gap-2">
-          <Button onClick={() => { resetCreateForm(); setCreateOpen(true); }}>
-            <UserPlus className="h-4 w-4 mr-2" /> Nuevo usuario
+          <Button size="sm" onClick={() => { resetCreateForm(); setCreateOpen(true); }}>
+            <UserPlus className="h-4 w-4 mr-1" /> Nuevo usuario
           </Button>
-          <Button onClick={() => setMergeOpen(true)} variant="outline">
-            <Merge className="h-4 w-4 mr-2" /> Fusionar usuarios
+          <Button size="sm" onClick={() => setMergeOpen(true)} variant="outline">
+            <Merge className="h-4 w-4 mr-1" /> Fusionar
           </Button>
         </div>
       </div>
