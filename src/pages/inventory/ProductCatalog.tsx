@@ -518,14 +518,14 @@ function ProductosTab() {
         </div>
         {(() => {
           const filterDefs: { key: keyof typeof selectedFilters; label: string; opts: { id: string; value: string }[] }[] = [
-            { key: "marca", label: "Marca", opts: optionsFor("marca").map(o => ({ id: o.id, value: o.value })) },
-            { key: "presentacion", label: "Presentación", opts: presentaciones.filter(p => p.is_active).map(p => ({ id: p.id, value: p.nombre })) },
-            { key: "aplicacion", label: "Aplicación", opts: optionsFor("aplicacion").map(o => ({ id: o.id, value: o.value })) },
-            { key: "uso", label: "Uso", opts: optionsFor("uso").map(o => ({ id: o.id, value: o.value })) },
-            { key: "formula", label: "Fórmula", opts: optionsFor("formula").map(o => ({ id: o.id, value: o.value })) },
-            { key: "viscosidad", label: "Viscosidad", opts: optionsFor("viscosidad").map(o => ({ id: o.id, value: o.value })) },
-            { key: "categoria", label: "Categoría", opts: optionsFor("categoria").map(o => ({ id: o.id, value: o.value })) },
-            { key: "linea", label: "Línea", opts: optionsFor("linea").map(o => ({ id: o.id, value: o.value })) },
+            { key: "marca", label: "Marca", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("marca").map(o => ({ id: o.id, value: o.value }))] },
+            { key: "presentacion", label: "Presentación", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...presentaciones.filter(p => p.is_active).map(p => ({ id: p.id, value: p.nombre }))] },
+            { key: "aplicacion", label: "Aplicación", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("aplicacion").map(o => ({ id: o.id, value: o.value }))] },
+            { key: "uso", label: "Uso", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("uso").map(o => ({ id: o.id, value: o.value }))] },
+            { key: "formula", label: "Fórmula", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("formula").map(o => ({ id: o.id, value: o.value }))] },
+            { key: "viscosidad", label: "Viscosidad", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("viscosidad").map(o => ({ id: o.id, value: o.value }))] },
+            { key: "categoria", label: "Categoría", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("categoria").map(o => ({ id: o.id, value: o.value }))] },
+            { key: "linea", label: "Línea", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("linea").map(o => ({ id: o.id, value: o.value }))] },
             { key: "activo", label: "Estado", opts: [{ id: "true", value: "Activo" }, { id: "false", value: "Inactivo" }] },
           ];
           const totalActive = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0);
