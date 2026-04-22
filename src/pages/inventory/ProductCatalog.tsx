@@ -520,6 +520,7 @@ function ProductosTab() {
             { key: "viscosidad", label: "Viscosidad", opts: optionsFor("viscosidad").map(o => ({ id: o.id, value: o.value })) },
             { key: "categoria", label: "Categoría", opts: optionsFor("categoria").map(o => ({ id: o.id, value: o.value })) },
             { key: "linea", label: "Línea", opts: optionsFor("linea").map(o => ({ id: o.id, value: o.value })) },
+            { key: "activo", label: "Estado", opts: [{ id: "true", value: "Activo" }, { id: "false", value: "Inactivo" }] },
           ];
           const totalActive = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0);
           const addFilter = (key: keyof typeof selectedFilters, id: string) => {
