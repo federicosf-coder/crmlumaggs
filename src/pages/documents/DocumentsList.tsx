@@ -24,13 +24,14 @@ import { ExportFieldsDialog, ExportField } from "@/components/documents/ExportFi
 import { ExportFilterDialog, ExportFilters } from "@/components/documents/ExportFilterDialog";
 
 // Column visibility config per document type
-type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_programada" | "total" | "estatus" | "pdf" | "oc_cliente";
+type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "fecha_programada" | "total" | "estatus" | "pdf" | "oc_cliente";
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "numero", label: "Número" },
   { key: "cliente", label: "Cliente" },
   { key: "ejecutivo", label: "Ejecutivo" },
   { key: "plaza", label: "Plaza" },
   { key: "fecha", label: "Fecha Documento" },
+  { key: "fecha_vencimiento", label: "Fecha Vencimiento" },
   { key: "fecha_programada", label: "Fecha Programada" },
   { key: "oc_cliente", label: "Núm. OC Cliente" },
   { key: "total", label: "Total" },
@@ -40,7 +41,7 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
 const DEFAULT_COLS_BY_TIPO: Record<string, ColumnKey[]> = {
   cotizacion: ["numero", "cliente", "ejecutivo", "fecha", "total", "estatus", "pdf"],
   pedido: ["cliente", "ejecutivo", "fecha", "fecha_programada", "total", "estatus", "pdf"],
-  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "total", "estatus", "pdf"],
+  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "fecha_vencimiento", "total", "estatus", "pdf"],
   entrega_corporativa: ["cliente", "ejecutivo", "fecha", "fecha_programada", "oc_cliente", "estatus"],
 };
 const colsStorageKey = (userId: string, tipo: string) => `doc-cols:${userId}:${tipo}`;
