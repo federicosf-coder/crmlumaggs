@@ -838,12 +838,12 @@ export default function DocumentsList() {
                           </TableCell>
                         )}
                         {isColVisible("fecha") && (
-                          <TableCell className="hidden md:table-cell whitespace-nowrap">
+                          <TableCell className="whitespace-nowrap">
                             {format(new Date(doc.fecha_documento), "dd/MM/yyyy")}
                           </TableCell>
                         )}
                         {tipoFilter === "factura" && isColVisible("fecha_vencimiento") && (
-                          <TableCell className="hidden md:table-cell whitespace-nowrap">
+                          <TableCell className="whitespace-nowrap">
                             {doc.fecha_vencimiento
                               ? format(new Date(doc.fecha_vencimiento), "dd/MM/yyyy")
                               : "-"}
