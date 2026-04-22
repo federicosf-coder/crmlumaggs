@@ -697,11 +697,13 @@ export default function DocumentForm() {
           <div>
             <Label className="flex items-center gap-1">
               Empresa (Cliente)
-              {viewMode && form.empresa_id && (
+              {form.empresa_id && (
                 <Link
                   to={`/directory?tab=companies&select=${form.empresa_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-primary hover:underline inline-flex"
-                  title="Ver empresa"
+                  title="Abrir empresa para editar"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
@@ -731,11 +733,13 @@ export default function DocumentForm() {
           <div>
             <Label className="flex items-center gap-1">
               Contacto
-              {viewMode && form.contacto_id && (
+              {form.contacto_id && (
                 <Link
                   to={`/directory?tab=contacts&select=${form.contacto_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-primary hover:underline inline-flex"
-                  title="Ver contacto"
+                  title="Abrir contacto para editar"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
