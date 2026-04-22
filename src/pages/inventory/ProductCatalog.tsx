@@ -194,8 +194,17 @@ function ProductosTab() {
   const isAdmin = hasRole("admin");
   const canImportExport = isAdmin || hasRole("manager");
   const [search, setSearch] = useState("");
-  const [marcaFilter, setMarcaFilter] = useState<string>("all");
   const [productSort, setProductSort] = useState("code_asc");
+  const [selectedFilters, setSelectedFilters] = useState({
+    marca: [] as string[],
+    presentacion: [] as string[],
+    aplicacion: [] as string[],
+    uso: [] as string[],
+    formula: [] as string[],
+    viscosidad: [] as string[],
+    categoria: [] as string[],
+    linea: [] as string[],
+  });
   const { data: productos = [], isLoading } = useProductos(search);
   const { data: presentaciones = [] } = usePresentaciones();
   const { data: allOptions = [] } = useOptionValues();
