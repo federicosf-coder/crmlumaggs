@@ -390,7 +390,8 @@ function ProductosTab() {
       matchesMultiFilter(p.formula_id, selectedFilters.formula) &&
       matchesMultiFilter(p.viscosidad_id, selectedFilters.viscosidad) &&
       matchesMultiFilter(p.categoria_id, selectedFilters.categoria) &&
-      matchesMultiFilter(p.linea_id, selectedFilters.linea)
+      matchesMultiFilter(p.linea_id, selectedFilters.linea) &&
+      matchesMultiFilter(String(!!p.is_active), selectedFilters.activo)
     )
     .sort((a: any, b: any) => {
       switch (productSort) {
