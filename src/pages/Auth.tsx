@@ -120,7 +120,10 @@ export default function Auth() {
           </form>
           <div className="mt-4 text-center text-sm space-y-1">
             {mode === "login" && (
-              <button onClick={() => setMode("forgot")} className="text-primary hover:underline block w-full">¿Olvidaste tu contraseña?</button>
+              <>
+                <button onClick={() => setMode("forgot")} className="text-primary hover:underline block w-full">¿Olvidaste tu contraseña?</button>
+                <p className="text-muted-foreground">¿No tienes cuenta?{" "}<button onClick={() => setMode("signup")} className="text-primary hover:underline">Regístrate</button></p>
+              </>
             )}
             {(mode === "signup" || mode === "forgot") && (
               <p className="text-muted-foreground">¿Ya tienes cuenta?{" "}<button onClick={() => setMode("login")} className="text-primary hover:underline">Inicia sesión</button></p>
