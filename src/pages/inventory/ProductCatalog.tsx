@@ -382,9 +382,10 @@ function ProductosTab() {
     if (selected.length === 0) return true;
     const isEmpty = value == null || value === "";
     const hasEmptyFilter = selected.includes("__EMPTY__");
-    if (isEmpty) return hasEmptyFilter;
     const nonEmptySelected = selected.filter(s => s !== "__EMPTY__");
-    return nonEmptySelected.length === 0 || nonEmptySelected.includes(value);
+    if (isEmpty) return hasEmptyFilter;
+    if (nonEmptySelected.length === 0) return false;
+    return nonEmptySelected.includes(value as string);
   };
 
   const filteredProductos = productos
