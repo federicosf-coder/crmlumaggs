@@ -14,6 +14,193 @@ export type Database = {
   }
   public: {
     Tables: {
+      _stg_documento_productos: {
+        Row: {
+          cantidad: number
+          created_at: string
+          descuento_porcentaje: number
+          documento_id: string
+          id: string
+          precio_unitario: number
+          producto_id: string
+          subtotal: number
+          unidades_equivalentes: number
+        }
+        Insert: {
+          cantidad?: number
+          created_at?: string
+          descuento_porcentaje?: number
+          documento_id: string
+          id?: string
+          precio_unitario?: number
+          producto_id: string
+          subtotal?: number
+          unidades_equivalentes?: number
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          descuento_porcentaje?: number
+          documento_id?: string
+          id?: string
+          precio_unitario?: number
+          producto_id?: string
+          subtotal?: number
+          unidades_equivalentes?: number
+        }
+        Relationships: []
+      }
+      _stg_documentos: {
+        Row: {
+          contacto_id: string | null
+          cotizacion_original_id: string | null
+          created_at: string
+          created_by: string | null
+          direccion_envio: string | null
+          direccion_envio_lat: number | null
+          direccion_envio_lng: number | null
+          ejecutivo_venta_id: string | null
+          empresa_id: string | null
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          estado_cobranza:
+            | Database["public"]["Enums"]["estado_cobranza_doc"]
+            | null
+          estatus_cotizacion:
+            | Database["public"]["Enums"]["estatus_cotizacion"]
+            | null
+          estatus_entrega_corporativa:
+            | Database["public"]["Enums"]["estatus_entrega_corporativa"]
+            | null
+          estatus_factura: Database["public"]["Enums"]["estatus_factura"] | null
+          estatus_pedido: Database["public"]["Enums"]["estatus_pedido"] | null
+          fecha_documento: string
+          fecha_entrega_programada: string | null
+          fecha_oc_cliente: string | null
+          fecha_vencimiento: string | null
+          id: string
+          is_active: boolean
+          iva_importe: number
+          iva_porcentaje: number
+          metodo_pago: Database["public"]["Enums"]["metodo_pago_sat"] | null
+          negocio_crm: string | null
+          notas: string | null
+          numero_cotizacion: string | null
+          numero_factura: string | null
+          numero_oc_cliente: string | null
+          numero_pedido: string | null
+          pdf_url: string | null
+          plaza_id: string | null
+          saldo_pendiente_cobranza: number
+          subtotal: number
+          tipo_documento: Database["public"]["Enums"]["tipo_documento"]
+          tipo_pago: Database["public"]["Enums"]["tipo_pago"] | null
+          total: number
+          unidades_equivalentes_total: number
+          updated_at: string
+          uso_cfdi: Database["public"]["Enums"]["uso_cfdi"] | null
+        }
+        Insert: {
+          contacto_id?: string | null
+          cotizacion_original_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direccion_envio?: string | null
+          direccion_envio_lat?: number | null
+          direccion_envio_lng?: number | null
+          ejecutivo_venta_id?: string | null
+          empresa_id?: string | null
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          estado_cobranza?:
+            | Database["public"]["Enums"]["estado_cobranza_doc"]
+            | null
+          estatus_cotizacion?:
+            | Database["public"]["Enums"]["estatus_cotizacion"]
+            | null
+          estatus_entrega_corporativa?:
+            | Database["public"]["Enums"]["estatus_entrega_corporativa"]
+            | null
+          estatus_factura?:
+            | Database["public"]["Enums"]["estatus_factura"]
+            | null
+          estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
+          fecha_documento?: string
+          fecha_entrega_programada?: string | null
+          fecha_oc_cliente?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          is_active?: boolean
+          iva_importe?: number
+          iva_porcentaje?: number
+          metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
+          negocio_crm?: string | null
+          notas?: string | null
+          numero_cotizacion?: string | null
+          numero_factura?: string | null
+          numero_oc_cliente?: string | null
+          numero_pedido?: string | null
+          pdf_url?: string | null
+          plaza_id?: string | null
+          saldo_pendiente_cobranza?: number
+          subtotal?: number
+          tipo_documento?: Database["public"]["Enums"]["tipo_documento"]
+          tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
+          total?: number
+          unidades_equivalentes_total?: number
+          updated_at?: string
+          uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
+        }
+        Update: {
+          contacto_id?: string | null
+          cotizacion_original_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direccion_envio?: string | null
+          direccion_envio_lat?: number | null
+          direccion_envio_lng?: number | null
+          ejecutivo_venta_id?: string | null
+          empresa_id?: string | null
+          empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
+          estado_cobranza?:
+            | Database["public"]["Enums"]["estado_cobranza_doc"]
+            | null
+          estatus_cotizacion?:
+            | Database["public"]["Enums"]["estatus_cotizacion"]
+            | null
+          estatus_entrega_corporativa?:
+            | Database["public"]["Enums"]["estatus_entrega_corporativa"]
+            | null
+          estatus_factura?:
+            | Database["public"]["Enums"]["estatus_factura"]
+            | null
+          estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
+          fecha_documento?: string
+          fecha_entrega_programada?: string | null
+          fecha_oc_cliente?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          is_active?: boolean
+          iva_importe?: number
+          iva_porcentaje?: number
+          metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
+          negocio_crm?: string | null
+          notas?: string | null
+          numero_cotizacion?: string | null
+          numero_factura?: string | null
+          numero_oc_cliente?: string | null
+          numero_pedido?: string | null
+          pdf_url?: string | null
+          plaza_id?: string | null
+          saldo_pendiente_cobranza?: number
+          subtotal?: number
+          tipo_documento?: Database["public"]["Enums"]["tipo_documento"]
+          tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
+          total?: number
+          unidades_equivalentes_total?: number
+          updated_at?: string
+          uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
+        }
+        Relationships: []
+      }
       _stg_prod_map: {
         Row: {
           aplicacion_id: string | null
@@ -1085,6 +1272,42 @@ export type Database = {
           },
         ]
       }
+      documento_productos_backup_2026_04_22: {
+        Row: {
+          cantidad: number | null
+          created_at: string | null
+          descuento_porcentaje: number | null
+          documento_id: string | null
+          id: string | null
+          precio_unitario: number | null
+          producto_id: string | null
+          subtotal: number | null
+          unidades_equivalentes: number | null
+        }
+        Insert: {
+          cantidad?: number | null
+          created_at?: string | null
+          descuento_porcentaje?: number | null
+          documento_id?: string | null
+          id?: string | null
+          precio_unitario?: number | null
+          producto_id?: string | null
+          subtotal?: number | null
+          unidades_equivalentes?: number | null
+        }
+        Update: {
+          cantidad?: number | null
+          created_at?: string | null
+          descuento_porcentaje?: number | null
+          documento_id?: string | null
+          id?: string | null
+          precio_unitario?: number | null
+          producto_id?: string | null
+          subtotal?: number | null
+          unidades_equivalentes?: number | null
+        }
+        Relationships: []
+      }
       documentos: {
         Row: {
           contacto_id: string | null
@@ -1264,6 +1487,163 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      documentos_backup_2026_04_22: {
+        Row: {
+          contacto_id: string | null
+          cotizacion_original_id: string | null
+          created_at: string | null
+          created_by: string | null
+          direccion_envio: string | null
+          direccion_envio_lat: number | null
+          direccion_envio_lng: number | null
+          ejecutivo_venta_id: string | null
+          empresa_id: string | null
+          empresa_vendedora:
+            | Database["public"]["Enums"]["empresa_vendedora"]
+            | null
+          estado_cobranza:
+            | Database["public"]["Enums"]["estado_cobranza_doc"]
+            | null
+          estatus_cotizacion:
+            | Database["public"]["Enums"]["estatus_cotizacion"]
+            | null
+          estatus_entrega_corporativa:
+            | Database["public"]["Enums"]["estatus_entrega_corporativa"]
+            | null
+          estatus_factura: Database["public"]["Enums"]["estatus_factura"] | null
+          estatus_pedido: Database["public"]["Enums"]["estatus_pedido"] | null
+          fecha_documento: string | null
+          fecha_entrega_programada: string | null
+          fecha_oc_cliente: string | null
+          fecha_vencimiento: string | null
+          id: string | null
+          is_active: boolean | null
+          iva_importe: number | null
+          iva_porcentaje: number | null
+          metodo_pago: Database["public"]["Enums"]["metodo_pago_sat"] | null
+          negocio_crm: string | null
+          notas: string | null
+          numero_cotizacion: string | null
+          numero_factura: string | null
+          numero_oc_cliente: string | null
+          numero_pedido: string | null
+          pdf_url: string | null
+          plaza_id: string | null
+          saldo_pendiente_cobranza: number | null
+          subtotal: number | null
+          tipo_documento: Database["public"]["Enums"]["tipo_documento"] | null
+          tipo_pago: Database["public"]["Enums"]["tipo_pago"] | null
+          total: number | null
+          unidades_equivalentes_total: number | null
+          updated_at: string | null
+          uso_cfdi: Database["public"]["Enums"]["uso_cfdi"] | null
+        }
+        Insert: {
+          contacto_id?: string | null
+          cotizacion_original_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          direccion_envio?: string | null
+          direccion_envio_lat?: number | null
+          direccion_envio_lng?: number | null
+          ejecutivo_venta_id?: string | null
+          empresa_id?: string | null
+          empresa_vendedora?:
+            | Database["public"]["Enums"]["empresa_vendedora"]
+            | null
+          estado_cobranza?:
+            | Database["public"]["Enums"]["estado_cobranza_doc"]
+            | null
+          estatus_cotizacion?:
+            | Database["public"]["Enums"]["estatus_cotizacion"]
+            | null
+          estatus_entrega_corporativa?:
+            | Database["public"]["Enums"]["estatus_entrega_corporativa"]
+            | null
+          estatus_factura?:
+            | Database["public"]["Enums"]["estatus_factura"]
+            | null
+          estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
+          fecha_documento?: string | null
+          fecha_entrega_programada?: string | null
+          fecha_oc_cliente?: string | null
+          fecha_vencimiento?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          iva_importe?: number | null
+          iva_porcentaje?: number | null
+          metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
+          negocio_crm?: string | null
+          notas?: string | null
+          numero_cotizacion?: string | null
+          numero_factura?: string | null
+          numero_oc_cliente?: string | null
+          numero_pedido?: string | null
+          pdf_url?: string | null
+          plaza_id?: string | null
+          saldo_pendiente_cobranza?: number | null
+          subtotal?: number | null
+          tipo_documento?: Database["public"]["Enums"]["tipo_documento"] | null
+          tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
+          total?: number | null
+          unidades_equivalentes_total?: number | null
+          updated_at?: string | null
+          uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
+        }
+        Update: {
+          contacto_id?: string | null
+          cotizacion_original_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          direccion_envio?: string | null
+          direccion_envio_lat?: number | null
+          direccion_envio_lng?: number | null
+          ejecutivo_venta_id?: string | null
+          empresa_id?: string | null
+          empresa_vendedora?:
+            | Database["public"]["Enums"]["empresa_vendedora"]
+            | null
+          estado_cobranza?:
+            | Database["public"]["Enums"]["estado_cobranza_doc"]
+            | null
+          estatus_cotizacion?:
+            | Database["public"]["Enums"]["estatus_cotizacion"]
+            | null
+          estatus_entrega_corporativa?:
+            | Database["public"]["Enums"]["estatus_entrega_corporativa"]
+            | null
+          estatus_factura?:
+            | Database["public"]["Enums"]["estatus_factura"]
+            | null
+          estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
+          fecha_documento?: string | null
+          fecha_entrega_programada?: string | null
+          fecha_oc_cliente?: string | null
+          fecha_vencimiento?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          iva_importe?: number | null
+          iva_porcentaje?: number | null
+          metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
+          negocio_crm?: string | null
+          notas?: string | null
+          numero_cotizacion?: string | null
+          numero_factura?: string | null
+          numero_oc_cliente?: string | null
+          numero_pedido?: string | null
+          pdf_url?: string | null
+          plaza_id?: string | null
+          saldo_pendiente_cobranza?: number | null
+          subtotal?: number | null
+          tipo_documento?: Database["public"]["Enums"]["tipo_documento"] | null
+          tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
+          total?: number | null
+          unidades_equivalentes_total?: number | null
+          updated_at?: string | null
+          uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
+        }
+        Relationships: []
       }
       email_group_members: {
         Row: {
