@@ -486,6 +486,26 @@ export default function DocumentForm() {
         }
       }
 
+      // Sync forma de pago / uso CFDI / método de pago back to the company
+      if (form.empresa_id && (form.tipo_pago || form.uso_cfdi || form.metodo_pago)) {
+        const companyUpdate: {
+          tipo_pago?: any;
+          uso_cfdi?: any;
+          metodo_pago?: any;
+        } = {};
+        if (form.tipo_pago) companyUpdate.tipo_pago = form.tipo_pago;
+        if (form.uso_cfdi) companyUpdate.uso_cfdi = form.uso_cfdi;
+        if (form.metodo_pago) companyUpdate.metodo_pago = form.metodo_pago;
+        if (Object.keys(companyUpdate).length > 0) {
+          const { error: companyErr } = await supabase
+            .from("companies")
+            .update(companyUpdate as any)
+            .eq("id", form.empresa_id);
+          if (companyErr) console.error("No se pudo sincronizar la empresa:", companyErr);
+          else qc.invalidateQueries({ queryKey: ["companies"] });
+        }
+      }
+
       qc.invalidateQueries({ queryKey: ["documentos"] });
       qc.invalidateQueries({ queryKey: ["documento", docId] });
       toast.success(isEdit ? "Documento actualizado" : "Documento creado");
