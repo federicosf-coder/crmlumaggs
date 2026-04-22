@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { X, Pencil, Merge, Power, Trash2 } from "lucide-react";
+import { X, Pencil, Merge, Power, Trash2, UserPlus } from "lucide-react";
 import { roleLabel } from "@/lib/roles";
 import {
   AlertDialog,
@@ -73,6 +73,74 @@ export default function UserManagement() {
   // Delete confirmation state
   const [deleteUser, setDeleteUser] = useState<UserWithRoles | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+
+  // Create user dialog state
+  const canManageUsers = hasRole("admin") || hasRole("manager");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newPlazaId, setNewPlazaId] = useState("");
+  const [newTeamIds, setNewTeamIds] = useState<string[]>([]);
+  const [newRoles, setNewRoles] = useState<AppRole[]>(["sales"]);
+
+  const resetCreateForm = () => {
+    setNewEmail("");
+    setNewPassword("");
+    setNewName("");
+    setNewPhone("");
+    setNewPlazaId("");
+    setNewTeamIds([]);
+    setNewRoles(["sales"]);
+  };
+
+  const toggleNewTeam = (teamId: string) => {
+    setNewTeamIds((prev) =>
+      prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]
+    );
+  };
+
+  const toggleNewRole = (role: AppRole) => {
+    setNewRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+    );
+  };
+
+  const handleCreateUser = async () => {
+    const email = newEmail.trim().toLowerCase();
+    if (!email || !newPassword || !newName.trim()) {
+      toast({ title: "Completa nombre, correo y contraseña", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: "La contraseña debe tener al menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+    setCreateBusy(true);
+    const { data, error } = await supabase.functions.invoke("admin-create-user", {
+      body: {
+        email,
+        password: newPassword,
+        full_name: newName.trim(),
+        phone: newPhone.trim() || null,
+        plaza_id: newPlazaId || null,
+        team_ids: newTeamIds,
+        roles: newRoles,
+      },
+    });
+    setCreateBusy(false);
+    const errMsg = (data as any)?.error || error?.message;
+    if (errMsg) {
+      toast({ title: "Error al crear usuario", description: errMsg, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Usuario creado", description: "El usuario quedó aprobado y puede iniciar sesión." });
+    setCreateOpen(false);
+    resetCreateForm();
+    fetchUsers();
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -261,7 +329,7 @@ export default function UserManagement() {
     }
   };
 
-  if (!hasRole("admin")) {
+  if (!canManageUsers) {
     return <p className="text-muted-foreground">No tienes permiso para ver esta página.</p>;
   }
 
@@ -274,9 +342,14 @@ export default function UserManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
-        <Button onClick={() => setMergeOpen(true)} variant="outline">
-          <Merge className="h-4 w-4 mr-2" /> Fusionar usuarios
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => { resetCreateForm(); setCreateOpen(true); }}>
+            <UserPlus className="h-4 w-4 mr-2" /> Nuevo usuario
+          </Button>
+          <Button onClick={() => setMergeOpen(true)} variant="outline">
+            <Merge className="h-4 w-4 mr-2" /> Fusionar usuarios
+          </Button>
+        </div>
       </div>
 
       {pendingUsers.length > 0 && (
@@ -553,6 +626,86 @@ export default function UserManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={createOpen} onOpenChange={(o) => { if (!o) { setCreateOpen(false); resetCreateForm(); } }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nuevo Usuario</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nombre completo *</Label>
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Correo *</Label>
+              <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Contraseña temporal *</Label>
+              <Input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
+            </div>
+            <div className="space-y-2">
+              <Label>Teléfono</Label>
+              <Input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="Opcional" />
+            </div>
+            <div className="space-y-2">
+              <Label>Plaza Predeterminada</Label>
+              <Select value={newPlazaId || "__none__"} onValueChange={(v) => setNewPlazaId(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Sin plaza" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin plaza</SelectItem>
+                  {plazas.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Equipos</Label>
+              <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                {teams.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No hay equipos creados.</p>
+                ) : (
+                  teams.map((team) => (
+                    <div key={team.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`new-team-${team.id}`}
+                        checked={newTeamIds.includes(team.id)}
+                        onCheckedChange={() => toggleNewTeam(team.id)}
+                      />
+                      <label htmlFor={`new-team-${team.id}`} className="text-sm cursor-pointer">
+                        {team.name}
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Roles</Label>
+              <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                {ALL_ROLES.map((role) => (
+                  <div key={role} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`new-role-${role}`}
+                      checked={newRoles.includes(role)}
+                      onCheckedChange={() => toggleNewRole(role)}
+                    />
+                    <label htmlFor={`new-role-${role}`} className="text-sm cursor-pointer">
+                      {roleLabel(role)}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Button onClick={handleCreateUser} disabled={createBusy} className="w-full">
+              {createBusy ? "Creando..." : "Crear Usuario"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

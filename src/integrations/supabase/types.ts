@@ -2374,6 +2374,36 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_messages: {
+        Row: {
+          created_at: string | null
+          direction: string | null
+          id: string
+          message_body: string | null
+          sender_phone: string | null
+          status: string | null
+          wa_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          direction?: string | null
+          id?: string
+          message_body?: string | null
+          sender_phone?: string | null
+          status?: string | null
+          wa_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          direction?: string | null
+          id?: string
+          message_body?: string | null
+          sender_phone?: string | null
+          status?: string | null
+          wa_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
