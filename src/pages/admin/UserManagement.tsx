@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { X, Pencil, Merge, Power, Trash2, UserPlus } from "lucide-react";
+import { X, Pencil, Merge, Power, Trash2, UserPlus, Search } from "lucide-react";
 import { roleLabel } from "@/lib/roles";
 import {
   AlertDialog,
@@ -78,6 +78,10 @@ export default function UserManagement() {
   const canManageUsers = hasRole("admin") || hasRole("manager");
   const [createOpen, setCreateOpen] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
+
+  // List filters
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active");
+  const [search, setSearch] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newName, setNewName] = useState("");
@@ -338,16 +342,27 @@ export default function UserManagement() {
 
   const pendingUsers = users.filter((u) => u.approval_status === "pendiente");
 
+  const filteredUsers = users.filter((u) => {
+    if (statusFilter === "active" && !u.is_active) return false;
+    if (statusFilter === "inactive" && u.is_active) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const hay = `${u.full_name ?? ""} ${u.email ?? ""} ${u.phone ?? ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
         <div className="flex gap-2">
-          <Button onClick={() => { resetCreateForm(); setCreateOpen(true); }}>
-            <UserPlus className="h-4 w-4 mr-2" /> Nuevo usuario
+          <Button size="sm" onClick={() => { resetCreateForm(); setCreateOpen(true); }}>
+            <UserPlus className="h-4 w-4 mr-1" /> Nuevo usuario
           </Button>
-          <Button onClick={() => setMergeOpen(true)} variant="outline">
-            <Merge className="h-4 w-4 mr-2" /> Fusionar usuarios
+          <Button size="sm" onClick={() => setMergeOpen(true)} variant="outline">
+            <Merge className="h-4 w-4 mr-1" /> Fusionar
           </Button>
         </div>
       </div>
@@ -456,14 +471,41 @@ export default function UserManagement() {
       </Dialog>
 
       <Card>
-        <CardHeader><CardTitle>Todos los Usuarios</CardTitle></CardHeader>
-        <CardContent>
+        <CardHeader className="py-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="text-base">
+              Usuarios <span className="text-muted-foreground font-normal text-sm">({filteredUsers.length})</span>
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar nombre o correo..."
+                  className="pl-8 h-9 w-64"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Activos</SelectItem>
+                  <SelectItem value="inactive">No activos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
           {loading ? (
-            <p className="text-muted-foreground">Cargando...</p>
+            <p className="text-muted-foreground py-4 text-sm">Cargando...</p>
+          ) : filteredUsers.length === 0 ? (
+            <p className="text-muted-foreground py-6 text-sm text-center">No hay usuarios que coincidan con los filtros.</p>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="[&>th]:h-9 [&>th]:px-2 [&>th]:text-xs">
                   <TableHead>Nombre</TableHead>
                   <TableHead>Correo</TableHead>
                   <TableHead>Estado</TableHead>
@@ -475,19 +517,19 @@ export default function UserManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((u) => (
-                  <TableRow key={u.user_id}>
+                {filteredUsers.map((u) => (
+                  <TableRow key={u.user_id} className="[&>td]:py-1.5 [&>td]:px-2 text-sm">
                     <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
-                    <TableCell>{u.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{u.email}</TableCell>
                     <TableCell>
-                      <Badge variant={u.is_active ? "default" : "secondary"}>
+                      <Badge variant={u.is_active ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
                         {u.is_active ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {u.roles.map((r) => (
-                          <Badge key={r} variant="outline" className="gap-1">
+                          <Badge key={r} variant="outline" className="gap-1 text-[10px] px-1.5 py-0">
                             {roleLabel(r)}
                             <button onClick={() => removeRole(u.user_id, r)} className="hover:text-destructive">
                               <X className="h-3 w-3" />
@@ -499,7 +541,7 @@ export default function UserManagement() {
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {getTeamNames(u.team_ids).map((name) => (
-                          <Badge key={name} variant="secondary" className="text-xs">
+                          <Badge key={name} variant="secondary" className="text-[10px] px-1.5 py-0">
                             {name}
                           </Badge>
                         ))}
@@ -511,7 +553,7 @@ export default function UserManagement() {
                         value={u.plaza_id || "__none__"}
                         onValueChange={(v) => updateUserPlaza(u.user_id, v === "__none__" ? "" : v)}
                       >
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger className="w-36 h-8 text-xs">
                           <SelectValue placeholder="Sin plaza" />
                         </SelectTrigger>
                         <SelectContent>
@@ -524,7 +566,7 @@ export default function UserManagement() {
                     </TableCell>
                     <TableCell>
                       <Select onValueChange={(v) => addRole(u.user_id, v as AppRole)}>
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger className="w-36 h-8 text-xs">
                           <SelectValue placeholder="Agregar rol..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -535,26 +577,30 @@ export default function UserManagement() {
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Editar usuario">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleActive(u)}
-                        title={u.is_active ? "Desactivar" : "Activar"}
-                      >
-                        <Power className={`h-4 w-4 ${u.is_active ? "" : "text-muted-foreground"}`} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteUser(u)}
-                        title="Eliminar"
-                        disabled={u.user_id === currentUser?.id}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex items-center justify-end">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(u)} title="Editar usuario">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => toggleActive(u)}
+                          title={u.is_active ? "Desactivar" : "Activar"}
+                        >
+                          <Power className={`h-4 w-4 ${u.is_active ? "" : "text-muted-foreground"}`} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setDeleteUser(u)}
+                          title="Eliminar"
+                          disabled={u.user_id === currentUser?.id}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
