@@ -529,7 +529,7 @@ function ProductosTab() {
           const removeFilter = (key: keyof typeof selectedFilters, id: string) => {
             setSelectedFilters(prev => ({ ...prev, [key]: prev[key].filter(x => x !== id) }));
           };
-          const clearAll = () => setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [] });
+          const clearAll = () => setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [], activo: [] });
           return (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2 flex-wrap">
