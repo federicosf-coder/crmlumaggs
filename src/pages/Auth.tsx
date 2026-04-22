@@ -50,7 +50,7 @@ export default function Auth() {
     }
     toast({
       title: "Cuenta creada",
-      description: "Tu cuenta fue creada exitosamente. Ya puedes iniciar sesión.",
+      description: "Tu registro está pendiente de aprobación por un gerente o administrador. Recibirás acceso una vez aprobado.",
     });
     setMode("login");
   };
