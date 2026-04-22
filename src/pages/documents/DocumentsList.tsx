@@ -779,10 +779,10 @@ export default function DocumentsList() {
                         <TableHead className="hidden md:table-cell">Plaza</TableHead>
                       )}
                       {isColVisible("fecha") && (
-                        <TableHead className="hidden md:table-cell">{tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}</TableHead>
+                        <TableHead className="whitespace-nowrap">{tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}</TableHead>
                       )}
                       {tipoFilter === "factura" && isColVisible("fecha_vencimiento") && (
-                        <TableHead className="hidden md:table-cell">Fecha Vencimiento</TableHead>
+                        <TableHead className="whitespace-nowrap">Fecha Vencimiento</TableHead>
                       )}
                       {showsScheduledDate && isColVisible("fecha_programada") && (
                         <TableHead className="hidden md:table-cell">Fecha Programada</TableHead>
@@ -838,12 +838,12 @@ export default function DocumentsList() {
                           </TableCell>
                         )}
                         {isColVisible("fecha") && (
-                          <TableCell className="hidden md:table-cell whitespace-nowrap">
+                          <TableCell className="whitespace-nowrap">
                             {format(new Date(doc.fecha_documento), "dd/MM/yyyy")}
                           </TableCell>
                         )}
                         {tipoFilter === "factura" && isColVisible("fecha_vencimiento") && (
-                          <TableCell className="hidden md:table-cell whitespace-nowrap">
+                          <TableCell className="whitespace-nowrap">
                             {doc.fecha_vencimiento
                               ? format(new Date(doc.fecha_vencimiento), "dd/MM/yyyy")
                               : "-"}
