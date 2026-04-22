@@ -377,8 +377,20 @@ function ProductosTab() {
     }
   };
 
-  const marcas = optionsFor("marca");
-  const filteredProductos = (marcaFilter === "all" ? productos : productos.filter((p: any) => p.marca_id === marcaFilter))
+  const matchesMultiFilter = (value: string | null | undefined, selected: string[]) =>
+    selected.length === 0 || (value != null && selected.includes(value));
+
+  const filteredProductos = productos
+    .filter((p: any) =>
+      matchesMultiFilter(p.marca_id, selectedFilters.marca) &&
+      matchesMultiFilter(p.presentacion_id, selectedFilters.presentacion) &&
+      matchesMultiFilter(p.aplicacion_id, selectedFilters.aplicacion) &&
+      matchesMultiFilter(p.uso_id, selectedFilters.uso) &&
+      matchesMultiFilter(p.formula_id, selectedFilters.formula) &&
+      matchesMultiFilter(p.viscosidad_id, selectedFilters.viscosidad) &&
+      matchesMultiFilter(p.categoria_id, selectedFilters.categoria) &&
+      matchesMultiFilter(p.linea_id, selectedFilters.linea)
+    )
     .sort((a: any, b: any) => {
       switch (productSort) {
         case "code_asc": return (a.codigo || "").localeCompare(b.codigo || "");
