@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload } from "lucide-react";
+import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, X } from "lucide-react";
 import { SortMenu } from "@/components/SortMenu";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
@@ -194,8 +194,17 @@ function ProductosTab() {
   const isAdmin = hasRole("admin");
   const canImportExport = isAdmin || hasRole("manager");
   const [search, setSearch] = useState("");
-  const [marcaFilter, setMarcaFilter] = useState<string>("all");
   const [productSort, setProductSort] = useState("code_asc");
+  const [selectedFilters, setSelectedFilters] = useState({
+    marca: [] as string[],
+    presentacion: [] as string[],
+    aplicacion: [] as string[],
+    uso: [] as string[],
+    formula: [] as string[],
+    viscosidad: [] as string[],
+    categoria: [] as string[],
+    linea: [] as string[],
+  });
   const { data: productos = [], isLoading } = useProductos(search);
   const { data: presentaciones = [] } = usePresentaciones();
   const { data: allOptions = [] } = useOptionValues();
@@ -368,8 +377,20 @@ function ProductosTab() {
     }
   };
 
-  const marcas = optionsFor("marca");
-  const filteredProductos = (marcaFilter === "all" ? productos : productos.filter((p: any) => p.marca_id === marcaFilter))
+  const matchesMultiFilter = (value: string | null | undefined, selected: string[]) =>
+    selected.length === 0 || (value != null && selected.includes(value));
+
+  const filteredProductos = productos
+    .filter((p: any) =>
+      matchesMultiFilter(p.marca_id, selectedFilters.marca) &&
+      matchesMultiFilter(p.presentacion_id, selectedFilters.presentacion) &&
+      matchesMultiFilter(p.aplicacion_id, selectedFilters.aplicacion) &&
+      matchesMultiFilter(p.uso_id, selectedFilters.uso) &&
+      matchesMultiFilter(p.formula_id, selectedFilters.formula) &&
+      matchesMultiFilter(p.viscosidad_id, selectedFilters.viscosidad) &&
+      matchesMultiFilter(p.categoria_id, selectedFilters.categoria) &&
+      matchesMultiFilter(p.linea_id, selectedFilters.linea)
+    )
     .sort((a: any, b: any) => {
       switch (productSort) {
         case "code_asc": return (a.codigo || "").localeCompare(b.codigo || "");
@@ -454,16 +475,10 @@ function ProductosTab() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
+      <CardHeader className="gap-4">
+        <div className="flex flex-row items-center justify-between gap-4 flex-wrap">
         <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> Catálogo de Productos</CardTitle>
         <div className="flex items-center gap-2 flex-wrap">
-          <Select value={marcaFilter} onValueChange={setMarcaFilter}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="Marca" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las Marcas</SelectItem>
-              {marcas.map(m => <SelectItem key={m.id} value={m.id}>{m.value}</SelectItem>)}
-            </SelectContent>
-          </Select>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-8 w-60" placeholder="Buscar por código o nombre..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -492,6 +507,65 @@ function ProductosTab() {
             ]}
           />
         </div>
+        </div>
+        {(() => {
+          const filterDefs: { key: keyof typeof selectedFilters; label: string; opts: { id: string; value: string }[] }[] = [
+            { key: "marca", label: "Marca", opts: optionsFor("marca").map(o => ({ id: o.id, value: o.value })) },
+            { key: "presentacion", label: "Presentación", opts: presentaciones.filter(p => p.is_active).map(p => ({ id: p.id, value: p.nombre })) },
+            { key: "aplicacion", label: "Aplicación", opts: optionsFor("aplicacion").map(o => ({ id: o.id, value: o.value })) },
+            { key: "uso", label: "Uso", opts: optionsFor("uso").map(o => ({ id: o.id, value: o.value })) },
+            { key: "formula", label: "Fórmula", opts: optionsFor("formula").map(o => ({ id: o.id, value: o.value })) },
+            { key: "viscosidad", label: "Viscosidad", opts: optionsFor("viscosidad").map(o => ({ id: o.id, value: o.value })) },
+            { key: "categoria", label: "Categoría", opts: optionsFor("categoria").map(o => ({ id: o.id, value: o.value })) },
+            { key: "linea", label: "Línea", opts: optionsFor("linea").map(o => ({ id: o.id, value: o.value })) },
+          ];
+          const totalActive = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0);
+          const addFilter = (key: keyof typeof selectedFilters, id: string) => {
+            if (!id) return;
+            setSelectedFilters(prev => prev[key].includes(id) ? prev : { ...prev, [key]: [...prev[key], id] });
+          };
+          const removeFilter = (key: keyof typeof selectedFilters, id: string) => {
+            setSelectedFilters(prev => ({ ...prev, [key]: prev[key].filter(x => x !== id) }));
+          };
+          const clearAll = () => setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [] });
+          return (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">Filtros:</span>
+                {filterDefs.map(f => (
+                  <Select key={f.key} value="" onValueChange={(v) => addFilter(f.key, v)}>
+                    <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder={f.label} /></SelectTrigger>
+                    <SelectContent>
+                      {f.opts.filter(o => !selectedFilters[f.key].includes(o.id)).map(o => (
+                        <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ))}
+                {totalActive > 0 && (
+                  <Button size="sm" variant="ghost" className="h-8" onClick={clearAll}>Limpiar filtros</Button>
+                )}
+              </div>
+              {totalActive > 0 && (
+                <div className="flex items-center gap-1 flex-wrap">
+                  {filterDefs.flatMap(f =>
+                    selectedFilters[f.key].map(id => {
+                      const opt = f.opts.find(o => o.id === id);
+                      return (
+                        <Badge key={`${f.key}-${id}`} variant="secondary" className="gap-1">
+                          <span className="text-xs">{f.label}: {opt?.value ?? id}</span>
+                          <button type="button" onClick={() => removeFilter(f.key, id)} className="ml-1 hover:text-destructive">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
