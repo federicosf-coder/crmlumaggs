@@ -760,6 +760,12 @@ export default function Directory() {
         ]}
         onSuccess={() => { setSelectedIds(new Set()); fetchData(); }}
       />
+      <MergeDuplicatesDialog
+        open={mergeOpen}
+        onOpenChange={setMergeOpen}
+        entity={activeTab === "companies" ? "companies" : "contacts"}
+        onMerged={fetchData}
+      />
     </div>
   );
 }
