@@ -475,16 +475,10 @@ function ProductosTab() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
+      <CardHeader className="gap-4">
+        <div className="flex flex-row items-center justify-between gap-4 flex-wrap">
         <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> Catálogo de Productos</CardTitle>
         <div className="flex items-center gap-2 flex-wrap">
-          <Select value={marcaFilter} onValueChange={setMarcaFilter}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="Marca" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las Marcas</SelectItem>
-              {marcas.map(m => <SelectItem key={m.id} value={m.id}>{m.value}</SelectItem>)}
-            </SelectContent>
-          </Select>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-8 w-60" placeholder="Buscar por código o nombre..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -513,6 +507,65 @@ function ProductosTab() {
             ]}
           />
         </div>
+        </div>
+        {(() => {
+          const filterDefs: { key: keyof typeof selectedFilters; label: string; opts: { id: string; value: string }[] }[] = [
+            { key: "marca", label: "Marca", opts: optionsFor("marca").map(o => ({ id: o.id, value: o.value })) },
+            { key: "presentacion", label: "Presentación", opts: presentaciones.filter(p => p.is_active).map(p => ({ id: p.id, value: p.nombre })) },
+            { key: "aplicacion", label: "Aplicación", opts: optionsFor("aplicacion").map(o => ({ id: o.id, value: o.value })) },
+            { key: "uso", label: "Uso", opts: optionsFor("uso").map(o => ({ id: o.id, value: o.value })) },
+            { key: "formula", label: "Fórmula", opts: optionsFor("formula").map(o => ({ id: o.id, value: o.value })) },
+            { key: "viscosidad", label: "Viscosidad", opts: optionsFor("viscosidad").map(o => ({ id: o.id, value: o.value })) },
+            { key: "categoria", label: "Categoría", opts: optionsFor("categoria").map(o => ({ id: o.id, value: o.value })) },
+            { key: "linea", label: "Línea", opts: optionsFor("linea").map(o => ({ id: o.id, value: o.value })) },
+          ];
+          const totalActive = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0);
+          const addFilter = (key: keyof typeof selectedFilters, id: string) => {
+            if (!id) return;
+            setSelectedFilters(prev => prev[key].includes(id) ? prev : { ...prev, [key]: [...prev[key], id] });
+          };
+          const removeFilter = (key: keyof typeof selectedFilters, id: string) => {
+            setSelectedFilters(prev => ({ ...prev, [key]: prev[key].filter(x => x !== id) }));
+          };
+          const clearAll = () => setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [] });
+          return (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">Filtros:</span>
+                {filterDefs.map(f => (
+                  <Select key={f.key} value="" onValueChange={(v) => addFilter(f.key, v)}>
+                    <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder={f.label} /></SelectTrigger>
+                    <SelectContent>
+                      {f.opts.filter(o => !selectedFilters[f.key].includes(o.id)).map(o => (
+                        <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ))}
+                {totalActive > 0 && (
+                  <Button size="sm" variant="ghost" className="h-8" onClick={clearAll}>Limpiar filtros</Button>
+                )}
+              </div>
+              {totalActive > 0 && (
+                <div className="flex items-center gap-1 flex-wrap">
+                  {filterDefs.flatMap(f =>
+                    selectedFilters[f.key].map(id => {
+                      const opt = f.opts.find(o => o.id === id);
+                      return (
+                        <Badge key={`${f.key}-${id}`} variant="secondary" className="gap-1">
+                          <span className="text-xs">{f.label}: {opt?.value ?? id}</span>
+                          <button type="button" onClick={() => removeFilter(f.key, id)} className="ml-1 hover:text-destructive">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
