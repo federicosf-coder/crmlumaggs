@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { X, Pencil, Merge, Power, Trash2 } from "lucide-react";
+import { X, Pencil, Merge, Power, Trash2, UserPlus } from "lucide-react";
 import { roleLabel } from "@/lib/roles";
 import {
   AlertDialog,
@@ -73,6 +73,74 @@ export default function UserManagement() {
   // Delete confirmation state
   const [deleteUser, setDeleteUser] = useState<UserWithRoles | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+
+  // Create user dialog state
+  const canManageUsers = hasRole("admin") || hasRole("manager");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newPlazaId, setNewPlazaId] = useState("");
+  const [newTeamIds, setNewTeamIds] = useState<string[]>([]);
+  const [newRoles, setNewRoles] = useState<AppRole[]>(["sales"]);
+
+  const resetCreateForm = () => {
+    setNewEmail("");
+    setNewPassword("");
+    setNewName("");
+    setNewPhone("");
+    setNewPlazaId("");
+    setNewTeamIds([]);
+    setNewRoles(["sales"]);
+  };
+
+  const toggleNewTeam = (teamId: string) => {
+    setNewTeamIds((prev) =>
+      prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]
+    );
+  };
+
+  const toggleNewRole = (role: AppRole) => {
+    setNewRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+    );
+  };
+
+  const handleCreateUser = async () => {
+    const email = newEmail.trim().toLowerCase();
+    if (!email || !newPassword || !newName.trim()) {
+      toast({ title: "Completa nombre, correo y contraseña", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: "La contraseña debe tener al menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+    setCreateBusy(true);
+    const { data, error } = await supabase.functions.invoke("admin-create-user", {
+      body: {
+        email,
+        password: newPassword,
+        full_name: newName.trim(),
+        phone: newPhone.trim() || null,
+        plaza_id: newPlazaId || null,
+        team_ids: newTeamIds,
+        roles: newRoles,
+      },
+    });
+    setCreateBusy(false);
+    const errMsg = (data as any)?.error || error?.message;
+    if (errMsg) {
+      toast({ title: "Error al crear usuario", description: errMsg, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Usuario creado", description: "El usuario quedó aprobado y puede iniciar sesión." });
+    setCreateOpen(false);
+    resetCreateForm();
+    fetchUsers();
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -261,7 +329,7 @@ export default function UserManagement() {
     }
   };
 
-  if (!hasRole("admin")) {
+  if (!canManageUsers) {
     return <p className="text-muted-foreground">No tienes permiso para ver esta página.</p>;
   }
 
