@@ -1,4 +1,4 @@
-project_id = "fnqeicdqblkhfpyboxre"
+project_id = "pagkrffyrhnkyahtipqz"
 
 [functions.process-email-queue]
 verify_jwt = true
