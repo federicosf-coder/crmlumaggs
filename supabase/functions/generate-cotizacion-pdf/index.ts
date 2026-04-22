@@ -182,12 +182,14 @@ serve(async (req) => {
       drawTextRight("PSM 891005 QY7", rightEdge, rightInfoStartY - 28);
       drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42);
       drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56);
+      drawTextRight("+52 664 563 4361", rightEdge, rightInfoStartY - 70);
     } else {
       drawTextRight("lubricantes@dagal.com.mx", rightEdge, rightInfoStartY);
       drawTextRight("Proveedora Galsa SA de C.V.", rightEdge, rightInfoStartY - 14);
       drawTextRight("PGA850730EU0", rightEdge, rightInfoStartY - 28);
       drawTextRight("Tijuana | Mexicali | Ensenada", rightEdge, rightInfoStartY - 42);
       drawTextRight("San Quintin | Tecate", rightEdge, rightInfoStartY - 56);
+      drawTextRight("+52 664 563 4361", rightEdge, rightInfoStartY - 70);
     }
 
     y -= 44; // more space before "Dirigido a"
