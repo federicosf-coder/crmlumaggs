@@ -204,6 +204,7 @@ function ProductosTab() {
     viscosidad: [] as string[],
     categoria: [] as string[],
     linea: [] as string[],
+    activo: [] as string[],
   });
   const { data: productos = [], isLoading } = useProductos(search);
   const { data: presentaciones = [] } = usePresentaciones();
