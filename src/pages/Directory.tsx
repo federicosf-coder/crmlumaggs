@@ -742,12 +742,14 @@ export default function Directory() {
             { value: "__true__", label: "Activo" }, { value: "__false__", label: "Inactivo" },
           ]},
           { key: "industry", label: "Industria", type: "text" },
+          { key: "ejecutivos", label: "Ejecutivo(s) de Venta", type: "ejecutivos", junctionTable: "company_ejecutivos", junctionFkColumn: "company_id" },
         ] : [
           { key: "is_active", label: "Estado", type: "select", options: [
             { value: "__true__", label: "Activo" }, { value: "__false__", label: "Inactivo" },
           ]},
           { key: "job_title", label: "Puesto", type: "text" },
           { key: "department", label: "Departamento", type: "text" },
+          { key: "ejecutivos", label: "Ejecutivo(s) de Venta", type: "ejecutivos", junctionTable: "contact_ejecutivos", junctionFkColumn: "contact_id" },
         ]}
         onSuccess={() => { setSelectedIds(new Set()); fetchData(); }}
       />
