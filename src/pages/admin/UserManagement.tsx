@@ -626,6 +626,86 @@ export default function UserManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={createOpen} onOpenChange={(o) => { if (!o) { setCreateOpen(false); resetCreateForm(); } }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nuevo Usuario</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nombre completo *</Label>
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Correo *</Label>
+              <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Contraseña temporal *</Label>
+              <Input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
+            </div>
+            <div className="space-y-2">
+              <Label>Teléfono</Label>
+              <Input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="Opcional" />
+            </div>
+            <div className="space-y-2">
+              <Label>Plaza Predeterminada</Label>
+              <Select value={newPlazaId || "__none__"} onValueChange={(v) => setNewPlazaId(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Sin plaza" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin plaza</SelectItem>
+                  {plazas.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Equipos</Label>
+              <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                {teams.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No hay equipos creados.</p>
+                ) : (
+                  teams.map((team) => (
+                    <div key={team.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`new-team-${team.id}`}
+                        checked={newTeamIds.includes(team.id)}
+                        onCheckedChange={() => toggleNewTeam(team.id)}
+                      />
+                      <label htmlFor={`new-team-${team.id}`} className="text-sm cursor-pointer">
+                        {team.name}
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Roles</Label>
+              <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                {ALL_ROLES.map((role) => (
+                  <div key={role} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`new-role-${role}`}
+                      checked={newRoles.includes(role)}
+                      onCheckedChange={() => toggleNewRole(role)}
+                    />
+                    <label htmlFor={`new-role-${role}`} className="text-sm cursor-pointer">
+                      {roleLabel(role)}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Button onClick={handleCreateUser} disabled={createBusy} className="w-full">
+              {createBusy ? "Creando..." : "Crear Usuario"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
