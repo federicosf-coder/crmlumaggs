@@ -779,10 +779,10 @@ export default function DocumentsList() {
                         <TableHead className="hidden md:table-cell">Plaza</TableHead>
                       )}
                       {isColVisible("fecha") && (
-                        <TableHead className="hidden md:table-cell">{tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}</TableHead>
+                        <TableHead className="whitespace-nowrap">{tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}</TableHead>
                       )}
                       {tipoFilter === "factura" && isColVisible("fecha_vencimiento") && (
-                        <TableHead className="hidden md:table-cell">Fecha Vencimiento</TableHead>
+                        <TableHead className="whitespace-nowrap">Fecha Vencimiento</TableHead>
                       )}
                       {showsScheduledDate && isColVisible("fecha_programada") && (
                         <TableHead className="hidden md:table-cell">Fecha Programada</TableHead>
