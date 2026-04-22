@@ -10,6 +10,7 @@ const modules = [
   { title: "Directorio", description: "Empresas y contactos", icon: BookOpen, url: "/directory", color: "bg-primary" },
   { title: "CRM", description: "Ventas Chevron y Phillips 66", icon: ShoppingCart, url: "/crm", color: "bg-primary" },
   { title: "Documentos", description: "Cotizaciones, pedidos y facturas", icon: FileText, url: "/documents", color: "bg-primary" },
+  { title: "Cobranza", description: "Pagos y aplicaciones de cobro", icon: Receipt, url: "/cobranza", color: "bg-primary" },
   { title: "Tareas y Actividades", description: "Gestión de tareas y seguimiento", icon: FolderKanban, url: "/activities", color: "bg-primary" },
   { title: "Catálogo de Productos", description: "Catálogo de productos y existencias", icon: Package, url: "/inventory", color: "bg-primary" },
   { title: "Entregas", description: "Seguimiento de entregas", icon: Truck, url: "/delivery", color: "bg-primary" },
