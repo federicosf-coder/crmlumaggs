@@ -557,19 +557,20 @@ function ProductosTab() {
               </div>
               {totalActive > 0 && (
                 <div className="flex items-center gap-1 flex-wrap">
-                  {filterDefs.flatMap(f =>
-                    selectedFilters[f.key].map(id => {
-                      const opt = f.opts.find(o => o.id === id);
-                      return (
-                        <Badge key={`${f.key}-${id}`} variant="secondary" className="gap-1">
-                          <span className="text-xs">{f.label}: {opt?.value ?? id}</span>
-                          <button type="button" onClick={() => removeFilter(f.key, id)} className="ml-1 hover:text-destructive">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      );
-                    })
-                  )}
+                    {filterDefs.flatMap(f =>
+                      selectedFilters[f.key].map(id => {
+                        const isEmptyFilter = id === "__EMPTY__";
+                        const opt = isEmptyFilter ? { value: "Sin valor" } : f.opts.find(o => o.id === id);
+                        return (
+                          <Badge key={`${f.key}-${id}`} variant="secondary" className="gap-1">
+                            <span className="text-xs">{f.label}: {opt?.value ?? id}</span>
+                            <button type="button" onClick={() => removeFilter(f.key, id)} className="ml-1 hover:text-destructive">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })
+                    )}
                 </div>
               )}
             </div>
