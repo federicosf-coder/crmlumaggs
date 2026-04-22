@@ -204,6 +204,7 @@ function ProductosTab() {
     viscosidad: [] as string[],
     categoria: [] as string[],
     linea: [] as string[],
+    activo: [] as string[],
   });
   const { data: productos = [], isLoading } = useProductos(search);
   const { data: presentaciones = [] } = usePresentaciones();
@@ -389,7 +390,8 @@ function ProductosTab() {
       matchesMultiFilter(p.formula_id, selectedFilters.formula) &&
       matchesMultiFilter(p.viscosidad_id, selectedFilters.viscosidad) &&
       matchesMultiFilter(p.categoria_id, selectedFilters.categoria) &&
-      matchesMultiFilter(p.linea_id, selectedFilters.linea)
+      matchesMultiFilter(p.linea_id, selectedFilters.linea) &&
+      matchesMultiFilter(String(!!p.is_active), selectedFilters.activo)
     )
     .sort((a: any, b: any) => {
       switch (productSort) {
@@ -518,6 +520,7 @@ function ProductosTab() {
             { key: "viscosidad", label: "Viscosidad", opts: optionsFor("viscosidad").map(o => ({ id: o.id, value: o.value })) },
             { key: "categoria", label: "Categoría", opts: optionsFor("categoria").map(o => ({ id: o.id, value: o.value })) },
             { key: "linea", label: "Línea", opts: optionsFor("linea").map(o => ({ id: o.id, value: o.value })) },
+            { key: "activo", label: "Estado", opts: [{ id: "true", value: "Activo" }, { id: "false", value: "Inactivo" }] },
           ];
           const totalActive = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0);
           const addFilter = (key: keyof typeof selectedFilters, id: string) => {
@@ -527,7 +530,7 @@ function ProductosTab() {
           const removeFilter = (key: keyof typeof selectedFilters, id: string) => {
             setSelectedFilters(prev => ({ ...prev, [key]: prev[key].filter(x => x !== id) }));
           };
-          const clearAll = () => setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [] });
+          const clearAll = () => setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [], activo: [] });
           return (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2 flex-wrap">
