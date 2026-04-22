@@ -2417,6 +2417,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      merge_companies: {
+        Args: { _duplicate_id: string; _primary_id: string }
+        Returns: Json
+      }
+      merge_contacts: {
+        Args: { _duplicate_id: string; _primary_id: string }
+        Returns: Json
+      }
       merge_users: {
         Args: { _source_user_id: string; _target_user_id: string }
         Returns: Json

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2, Download, Upload } from "lucide-react";
+import { Merge } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
@@ -23,6 +24,7 @@ import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDialog";
 
 interface Company {
   id: string; name: string; razon_social: string | null; industry: string | null; phone: string | null;
@@ -85,6 +87,7 @@ export default function Directory() {
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
 
   const access = useModuleAccess("directorio");
 
@@ -324,6 +327,10 @@ export default function Directory() {
           >
             <Plus className="mr-1 h-4 w-4" />
             {activeTab === "companies" ? "Agregar Empresa" : "Agregar Contacto"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setMergeOpen(true)}>
+            <Merge className="mr-1 h-4 w-4" />
+            Fusionar duplicados
           </Button>
         </div>
       </div>
@@ -752,6 +759,12 @@ export default function Directory() {
           { key: "ejecutivos", label: "Ejecutivo(s) de Venta", type: "ejecutivos", junctionTable: "contact_ejecutivos", junctionFkColumn: "contact_id" },
         ]}
         onSuccess={() => { setSelectedIds(new Set()); fetchData(); }}
+      />
+      <MergeDuplicatesDialog
+        open={mergeOpen}
+        onOpenChange={setMergeOpen}
+        entity={activeTab === "companies" ? "companies" : "contacts"}
+        onMerged={fetchData}
       />
     </div>
   );
