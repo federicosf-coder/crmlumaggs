@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { X, Pencil, Merge, Power, Trash2, UserPlus } from "lucide-react";
+import { X, Pencil, Merge, Power, Trash2, UserPlus, Search } from "lucide-react";
 import { roleLabel } from "@/lib/roles";
 import {
   AlertDialog,
@@ -78,6 +78,10 @@ export default function UserManagement() {
   const canManageUsers = hasRole("admin") || hasRole("manager");
   const [createOpen, setCreateOpen] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
+
+  // List filters
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active");
+  const [search, setSearch] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newName, setNewName] = useState("");
