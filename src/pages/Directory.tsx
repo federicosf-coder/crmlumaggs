@@ -322,7 +322,7 @@ export default function Directory() {
                 { key: "last_name", label: "Apellido", importable: true },
                 { key: "email", label: "Correo", importable: true },
                 { key: "phone", label: "Teléfono", importable: true },
-                { key: "mobile", label: "Celular", importable: true },
+                { key: "mobile", label: "Celular / WhatsApp", importable: true },
                 { key: "job_title", label: "Puesto", importable: true },
                 { key: "department", label: "Departamento", importable: true },
                 { key: "company_id", label: "Empresa ID", importable: true },
