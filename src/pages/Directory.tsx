@@ -322,7 +322,7 @@ export default function Directory() {
                 { key: "last_name", label: "Apellido", importable: true },
                 { key: "email", label: "Correo", importable: true },
                 { key: "phone", label: "Teléfono", importable: true },
-                { key: "mobile", label: "Celular", importable: true },
+                { key: "mobile", label: "Celular / WhatsApp", importable: true },
                 { key: "job_title", label: "Puesto", importable: true },
                 { key: "department", label: "Departamento", importable: true },
                 { key: "company_id", label: "Empresa ID", importable: true },
@@ -540,7 +540,7 @@ export default function Directory() {
                       </TableHead>
                       <TableHead>Nombre</TableHead>
                       <TableHead>Apellido</TableHead>
-                      <TableHead className="hidden sm:table-cell">Celular</TableHead>
+                      <TableHead className="hidden sm:table-cell">Celular / WhatsApp</TableHead>
                       <TableHead className="hidden sm:table-cell">Empresa</TableHead>
                       <TableHead className="hidden md:table-cell">Plaza</TableHead>
                       <TableHead>Estado</TableHead>
@@ -781,7 +781,7 @@ export default function Directory() {
                 <DetailRow label="Apellido" value={selectedContact.last_name} />
                 <DetailRow label="Correo" value={selectedContact.email} />
                 <DetailRow label="Teléfono" value={selectedContact.phone} />
-                <DetailRow label="Celular" value={selectedContact.mobile} />
+                <DetailRow label="Celular / WhatsApp" value={selectedContact.mobile} />
                 <DetailRow label="Puesto" value={selectedContact.job_title} />
                 <DetailRow label="Departamento" value={selectedContact.department} />
                 <DetailRow label="Empresa" value={selectedContact.companies?.name} />
