@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Users, ShoppingCart, FileText, Package, Truck,
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
   Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet, Upload,
+  MessageCircle, Megaphone, FileBadge, Bot,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -34,6 +35,7 @@ const mainItems: NavItem[] = [
   { title: "Documentos", url: "/documents", icon: FileText, roles: ["admin", "manager", "sales"] },
   { title: "Cobranza", url: "/cobranza", icon: Wallet, roles: ["admin", "manager", "accounting"] },
   { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
+  { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle, roles: "all" },
   { title: "Catálogo de Productos", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
   { title: "Entregas", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
   { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
@@ -47,6 +49,10 @@ const adminItems: NavItem[] = [
   { title: "Equipos", url: "/admin/teams", icon: Settings, roles: ["admin", "manager"] },
   { title: "Catálogos", url: "/admin/catalogs", icon: Database, roles: ["admin", "manager"] },
   { title: "Importar Noloco", url: "/admin/import-noloco", icon: Upload, roles: ["admin"] },
+  { title: "WhatsApp · Campañas", url: "/whatsapp/campaigns", icon: Megaphone, roles: ["admin", "manager"] },
+  { title: "WhatsApp · Plantillas", url: "/whatsapp/templates", icon: FileBadge, roles: ["admin", "manager"] },
+  { title: "WhatsApp · Bot", url: "/whatsapp/rules", icon: Bot, roles: ["admin", "manager"] },
+  { title: "WhatsApp · Configuración", url: "/whatsapp/settings", icon: Settings, roles: ["admin", "manager"] },
 ];
 
 export function AppSidebar() {

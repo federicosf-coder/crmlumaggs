@@ -29,6 +29,10 @@ import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
 import Cobranza from "@/pages/cobranza/Cobranza";
 import Unsubscribe from "@/pages/Unsubscribe";
 import WhatsAppInbox from "@/pages/whatsapp/WhatsAppInbox";
+import WhatsAppCampaigns from "@/pages/whatsapp/WhatsAppCampaigns";
+import WhatsAppTemplates from "@/pages/whatsapp/WhatsAppTemplates";
+import WhatsAppRules from "@/pages/whatsapp/WhatsAppRules";
+import WhatsAppSettings from "@/pages/whatsapp/WhatsAppSettings";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +89,10 @@ const App = () => (
             <Route path="/delivery/entrega/:id" element={<ProtectedRoute><EntregaDetalle /></ProtectedRoute>} />
             <Route path="/cobranza" element={<ProtectedRoute><Cobranza /></ProtectedRoute>} />
             <Route path="/whatsapp" element={<ProtectedRoute><WhatsAppInbox /></ProtectedRoute>} />
+            <Route path="/whatsapp/campaigns" element={<ProtectedRoute><WhatsAppCampaigns /></ProtectedRoute>} />
+            <Route path="/whatsapp/templates" element={<ProtectedRoute><WhatsAppTemplates /></ProtectedRoute>} />
+            <Route path="/whatsapp/rules" element={<ProtectedRoute><WhatsAppRules /></ProtectedRoute>} />
+            <Route path="/whatsapp/settings" element={<ProtectedRoute><WhatsAppSettings /></ProtectedRoute>} />
             <Route path="/transfers" element={<ProtectedRoute><ModulePlaceholder title="Transferencias de Inventario" description="Gestión de transferencias entre almacenes. Próximamente en Fase 3." /></ProtectedRoute>} />
             
             <Route path="/training" element={<ProtectedRoute><ModulePlaceholder title="Capacitación" description="Materiales de capacitación y cursos para tu equipo." /></ProtectedRoute>} />
