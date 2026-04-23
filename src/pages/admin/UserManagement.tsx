@@ -106,6 +106,32 @@ export default function UserManagement() {
     setNewRoles(["sales"]);
   };
 
+  const handleChangePassword = async () => {
+    if (!pwdUser) return;
+    if (pwdNew.length < 6) {
+      toast({ title: "La contraseña debe tener al menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+    if (pwdNew !== pwdConfirm) {
+      toast({ title: "Las contraseñas no coinciden", variant: "destructive" });
+      return;
+    }
+    setPwdBusy(true);
+    const { data, error } = await supabase.functions.invoke("admin-set-user-password", {
+      body: { user_id: pwdUser.user_id, password: pwdNew },
+    });
+    setPwdBusy(false);
+    const errMsg = (data as any)?.error || error?.message;
+    if (errMsg) {
+      toast({ title: "Error", description: errMsg, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Contraseña actualizada", description: `Se cambió la contraseña de ${pwdUser.full_name || pwdUser.email}.` });
+    setPwdUser(null);
+    setPwdNew("");
+    setPwdConfirm("");
+  };
+
   const toggleNewTeam = (teamId: string) => {
     setNewTeamIds((prev) =>
       prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]
@@ -766,6 +792,37 @@ export default function UserManagement() {
             <Button onClick={handleCreateUser} disabled={createBusy} className="w-full">
               {createBusy ? "Creando..." : "Crear Usuario"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog (admin only) */}
+      <Dialog open={!!pwdUser} onOpenChange={(o) => { if (!o) { setPwdUser(null); setPwdNew(""); setPwdConfirm(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cambiar contraseña</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Usuario: <strong>{pwdUser?.full_name || pwdUser?.email}</strong>
+            </div>
+            <div className="space-y-2">
+              <Label>Nueva contraseña</Label>
+              <Input type="password" value={pwdNew} onChange={(e) => setPwdNew(e.target.value)} placeholder="Mínimo 6 caracteres" minLength={6} />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirmar nueva contraseña</Label>
+              <Input type="password" value={pwdConfirm} onChange={(e) => setPwdConfirm(e.target.value)} placeholder="Repite la contraseña" minLength={6} />
+              {pwdConfirm && pwdNew !== pwdConfirm && (
+                <p className="text-sm text-destructive">Las contraseñas no coinciden</p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setPwdUser(null)} disabled={pwdBusy}>Cancelar</Button>
+              <Button onClick={handleChangePassword} disabled={pwdBusy || !pwdNew || pwdNew !== pwdConfirm}>
+                {pwdBusy ? "Actualizando..." : "Cambiar contraseña"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
