@@ -1036,6 +1036,15 @@ export default function DocumentForm() {
             />
           </div>
           <div>
+            <Label>Forma de Pago</Label>
+            <SearchableSelect
+              value={form.forma_pago}
+              onValueChange={v => set("forma_pago", v)}
+              placeholder="Seleccionar"
+              options={FORMA_PAGO_OPTS.map(o => ({ value: o.v, label: o.l }))}
+            />
+          </div>
+          <div>
             <Label>Método de Pago</Label>
             <Select value={form.metodo_pago} onValueChange={v => set("metodo_pago", v)}>
               <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
