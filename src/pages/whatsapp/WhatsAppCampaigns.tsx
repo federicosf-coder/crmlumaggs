@@ -291,7 +291,7 @@ export default function WhatsAppCampaigns() {
                 <TableCell className="text-sm">{c.template_name} ({c.template_language})</TableCell>
                 <TableCell><Badge variant={statusVariant(c.status)}>{c.status}</Badge></TableCell>
                 <TableCell className="text-right">{c.total_recipients}</TableCell>
-                <TableCell className="text-right text-emerald-600">{c.sent_count}</TableCell>
+                <TableCell className="text-right text-primary">{c.sent_count}</TableCell>
                 <TableCell className="text-right text-destructive">{c.failed_count}</TableCell>
                 <TableCell className="text-right text-muted-foreground">{c.skipped_count}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">

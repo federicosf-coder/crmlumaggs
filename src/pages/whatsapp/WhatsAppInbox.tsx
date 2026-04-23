@@ -7,7 +7,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { MessageCircle, Send, UserPlus, Lock } from "lucide-react";
+import { MessageCircle, Send, UserPlus, Lock, Zap } from "lucide-react";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 
 type Conversation = {
   id: string;
@@ -33,6 +36,7 @@ type Message = {
 };
 
 type Template = { id: string; name: string; language: string; status: string; body: string | null };
+type QuickReply = { id: string; shortcut: string; content: string };
 
 export default function WhatsAppInbox() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -40,6 +44,8 @@ export default function WhatsAppInbox() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [contactName, setContactName] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
+  const [qrOpen, setQrOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [tplName, setTplName] = useState("");
   const [sending, setSending] = useState(false);
@@ -71,6 +77,11 @@ export default function WhatsAppInbox() {
       .select("id,name,language,status,body")
       .eq("status", "APPROVED")
       .then(({ data }) => setTemplates((data ?? []) as Template[]));
+    supabase
+      .from("whatsapp_quick_replies")
+      .select("id,shortcut,content")
+      .order("shortcut")
+      .then(({ data }) => setQuickReplies((data ?? []) as QuickReply[]));
   }, []);
 
   const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [activeId, conversations]);
