@@ -90,6 +90,7 @@ export default function DocumentForm() {
   const qc = useQueryClient();
   const { user, profile, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
+  const isSales = hasRole("sales");
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
 
