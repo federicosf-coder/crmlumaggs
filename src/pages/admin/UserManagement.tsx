@@ -328,6 +328,9 @@ export default function UserManagement() {
     setEditPhone(u.phone || "");
     setEditTeamIds([...u.team_ids]);
     setEditPlazaId(u.plaza_id || "");
+    setEditEmail("");
+    setEditPwd("");
+    setEditPwdConfirm("");
   };
 
   const toggleTeam = (teamId: string) => {
