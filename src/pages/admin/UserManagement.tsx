@@ -498,7 +498,26 @@ export default function UserManagement() {
               </div>
               <div className="space-y-2">
                 <Label>Correo</Label>
-                <Input value={editUser.email || ""} disabled className="bg-muted" />
+                {editUser.email && editUser.email.trim() ? (
+                  <>
+                    <Input value={editUser.email} disabled readOnly className="bg-muted" />
+                    <p className="text-xs text-muted-foreground">
+                      El correo no puede modificarse porque ya está vinculado a documentos, empresas y otros registros existentes.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      placeholder="usuario@dominio.com"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Este usuario no tiene correo asignado. Puedes asignarle uno por única vez.
+                    </p>
+                  </>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Teléfono</Label>
