@@ -399,6 +399,20 @@ export default function EntregaDetalle() {
                   Entregado: {format(new Date(entrega.fecha_entrega_real), "dd MMM yyyy HH:mm", { locale: es })}
                 </div>
               )}
+              {(entrega as any).delivered_latitude != null && (entrega as any).delivered_longitude != null && (
+                <div className="text-xs text-muted-foreground">
+                  📍 GPS de entrega: {Number((entrega as any).delivered_latitude).toFixed(6)}, {Number((entrega as any).delivered_longitude).toFixed(6)}
+                  {" · "}
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${(entrega as any).delivered_latitude},${(entrega as any).delivered_longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    ver
+                  </a>
+                </div>
+              )}
             </>
           )}
           <Separator className="my-2" />
