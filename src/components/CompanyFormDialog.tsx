@@ -287,6 +287,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       uso_cfdi: form.uso_cfdi || null,
       metodo_pago: form.metodo_pago || null,
       tipo_pago: form.tipo_pago || null,
+      forma_pago: form.forma_pago || null,
       id_contpaq: form.id_contpaq?.trim() || null,
     } as any;
 
