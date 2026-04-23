@@ -341,6 +341,25 @@ export default function UserManagement() {
 
   const saveEdit = async () => {
     if (!editUser) return;
+    const hasExistingEmail = !!(editUser.email && editUser.email.trim());
+    const wantsEmail = !hasExistingEmail && editEmail.trim().length > 0;
+    const wantsPwd = editPwd.length > 0;
+
+    if (wantsEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.trim())) {
+      toast({ title: "Correo inválido", variant: "destructive" });
+      return;
+    }
+    if (wantsPwd) {
+      if (editPwd.length < 6) {
+        toast({ title: "La contraseña debe tener al menos 6 caracteres", variant: "destructive" });
+        return;
+      }
+      if (editPwd !== editPwdConfirm) {
+        toast({ title: "Las contraseñas no coinciden", variant: "destructive" });
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       // Update profile
@@ -359,6 +378,24 @@ export default function UserManagement() {
       }
       for (const teamId of toAdd) {
         await supabase.from("team_members").insert({ user_id: editUser.user_id, team_id: teamId });
+      }
+
+      // Assign email (only if user had no previous email — backend re-validates)
+      if (wantsEmail) {
+        const { data, error } = await supabase.functions.invoke("admin-update-user-email", {
+          body: { user_id: editUser.user_id, email: editEmail.trim().toLowerCase() },
+        });
+        const errMsg = (data as any)?.error || error?.message;
+        if (errMsg) throw new Error(errMsg);
+      }
+
+      // Change password
+      if (wantsPwd) {
+        const { data, error } = await supabase.functions.invoke("admin-set-user-password", {
+          body: { user_id: editUser.user_id, password: editPwd },
+        });
+        const errMsg = (data as any)?.error || error?.message;
+        if (errMsg) throw new Error(errMsg);
       }
 
       toast({ title: "Usuario actualizado" });
