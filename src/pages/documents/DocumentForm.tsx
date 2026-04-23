@@ -90,6 +90,7 @@ export default function DocumentForm() {
   const qc = useQueryClient();
   const { user, profile, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
+  const isSales = hasRole("sales");
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
 
@@ -673,12 +674,14 @@ export default function DocumentForm() {
                 <Button variant="secondary" onClick={() => handleConvertTo("pedido")}>
                   <ShoppingCart className="mr-2 h-4 w-4" /> Convertir a Pedido
                 </Button>
-                <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
-                  <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
-                </Button>
+                {!isSales && (
+                  <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
+                    <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
+                  </Button>
+                )}
               </>
             )}
-            {form.tipo_documento === "pedido" && (
+            {form.tipo_documento === "pedido" && !isSales && (
               <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
                 <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
               </Button>
