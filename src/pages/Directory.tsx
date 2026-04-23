@@ -13,7 +13,7 @@ import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, M
 import { Merge } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
-import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
+import { CompanyFormDialog, type CompanyData, FORMA_PAGO_OPTS } from "@/components/CompanyFormDialog";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,6 +37,7 @@ interface Company {
   origen_contacto: string | null; evaluacion_lubricante: string | null;
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
   id_contpaq: string | null;
+  tipo_pago: string | null; forma_pago: string | null; metodo_pago: string | null; uso_cfdi: string | null;
   plazas?: { nombre: string } | null;
   contacts?: { id: string }[];
 }
@@ -57,6 +58,20 @@ function DetailRow({ label, value }: { label: string; value: string | null | und
     </div>
   );
 }
+
+const TIPO_PAGO_LABEL: Record<string, string> = {
+  contado: "Contado",
+  credito: "Crédito",
+  credito_cescemex: "Crédito Cescemex",
+};
+const METODO_PAGO_LABEL: Record<string, string> = {
+  PUE: "PUE - Pago en una sola exhibición",
+  PPD: "PPD - Pago en parcialidades o diferido",
+};
+const formaPagoLabel = (v?: string | null) => {
+  if (!v) return null;
+  return FORMA_PAGO_OPTS.find(o => o.v === v)?.l || v;
+};
 
 const TAB_COLORS: Record<string, { active: string; border: string }> = {
   companies: { active: "bg-blue-600 text-white hover:bg-blue-700", border: "border-blue-500" },
@@ -698,8 +713,24 @@ export default function Directory() {
                 </TabsContent>
 
                 <TabsContent value="clasificacion" className="space-y-3 mt-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Industrias</Label>
+                  {/* Datos fiscales y pago */}
+                  <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <Tag className="h-3.5 w-3.5" /> Datos fiscales y pago
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <DetailRow label="Tipo de Pago" value={selectedCompany.tipo_pago ? TIPO_PAGO_LABEL[selectedCompany.tipo_pago] || selectedCompany.tipo_pago : null} />
+                      <DetailRow label="Forma de Pago (SAT)" value={formaPagoLabel(selectedCompany.forma_pago)} />
+                      <DetailRow label="Método de Pago" value={selectedCompany.metodo_pago ? METODO_PAGO_LABEL[selectedCompany.metodo_pago] || selectedCompany.metodo_pago : null} />
+                      <DetailRow label="Uso de CFDI" value={selectedCompany.uso_cfdi} />
+                    </div>
+                  </div>
+
+                  {/* Industrias */}
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <Briefcase className="h-3.5 w-3.5" /> Industrias
+                    </div>
                     {selectedCompany.industrias && selectedCompany.industrias.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {selectedCompany.industrias.map(i => (
@@ -707,19 +738,25 @@ export default function Directory() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm">—</p>
+                      <p className="text-sm text-muted-foreground">—</p>
                     )}
                   </div>
-                  <Separator />
-                  <div className="grid grid-cols-2 gap-3">
-                    <DetailRow label="Tipo según destino" value={selectedCompany.tipo_destino_lubricante} />
-                    <DetailRow label="Potencial de unidades" value={selectedCompany.potencial_unidades} />
-                    <DetailRow label="Tomador de decisión" value={selectedCompany.tomador_decision} />
-                    <DetailRow label="Riesgo cambio de marca" value={selectedCompany.riesgo_cambio_marca} />
-                    <DetailRow label="Origen contacto" value={selectedCompany.origen_contacto} />
-                    <DetailRow label="Evaluación lubricante" value={selectedCompany.evaluacion_lubricante} />
-                    <DetailRow label="Rol del lubricante" value={selectedCompany.rol_lubricante} />
-                    <DetailRow label="Tipo cliente comercial" value={selectedCompany.tipo_cliente_comercial} />
+
+                  {/* Perfil comercial */}
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <Users className="h-3.5 w-3.5" /> Perfil comercial
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <DetailRow label="Tipo según destino" value={selectedCompany.tipo_destino_lubricante} />
+                      <DetailRow label="Potencial de unidades" value={selectedCompany.potencial_unidades} />
+                      <DetailRow label="Tomador de decisión" value={selectedCompany.tomador_decision} />
+                      <DetailRow label="Riesgo cambio de marca" value={selectedCompany.riesgo_cambio_marca} />
+                      <DetailRow label="Origen contacto" value={selectedCompany.origen_contacto} />
+                      <DetailRow label="Evaluación lubricante" value={selectedCompany.evaluacion_lubricante} />
+                      <DetailRow label="Rol del lubricante" value={selectedCompany.rol_lubricante} />
+                      <DetailRow label="Tipo cliente (clasificación)" value={selectedCompany.tipo_cliente_comercial} />
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
