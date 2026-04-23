@@ -59,6 +59,9 @@ export default function UserManagement() {
   const [editPhone, setEditPhone] = useState("");
   const [editTeamIds, setEditTeamIds] = useState<string[]>([]);
   const [editPlazaId, setEditPlazaId] = useState<string>("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPwd, setEditPwd] = useState("");
+  const [editPwdConfirm, setEditPwdConfirm] = useState("");
   const [plazas, setPlazas] = useState<Plaza[]>([]);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -325,6 +328,9 @@ export default function UserManagement() {
     setEditPhone(u.phone || "");
     setEditTeamIds([...u.team_ids]);
     setEditPlazaId(u.plaza_id || "");
+    setEditEmail("");
+    setEditPwd("");
+    setEditPwdConfirm("");
   };
 
   const toggleTeam = (teamId: string) => {
@@ -335,6 +341,25 @@ export default function UserManagement() {
 
   const saveEdit = async () => {
     if (!editUser) return;
+    const hasExistingEmail = !!(editUser.email && editUser.email.trim());
+    const wantsEmail = !hasExistingEmail && editEmail.trim().length > 0;
+    const wantsPwd = editPwd.length > 0;
+
+    if (wantsEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.trim())) {
+      toast({ title: "Correo inválido", variant: "destructive" });
+      return;
+    }
+    if (wantsPwd) {
+      if (editPwd.length < 6) {
+        toast({ title: "La contraseña debe tener al menos 6 caracteres", variant: "destructive" });
+        return;
+      }
+      if (editPwd !== editPwdConfirm) {
+        toast({ title: "Las contraseñas no coinciden", variant: "destructive" });
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       // Update profile
@@ -353,6 +378,24 @@ export default function UserManagement() {
       }
       for (const teamId of toAdd) {
         await supabase.from("team_members").insert({ user_id: editUser.user_id, team_id: teamId });
+      }
+
+      // Assign email (only if user had no previous email — backend re-validates)
+      if (wantsEmail) {
+        const { data, error } = await supabase.functions.invoke("admin-update-user-email", {
+          body: { user_id: editUser.user_id, email: editEmail.trim().toLowerCase() },
+        });
+        const errMsg = (data as any)?.error || error?.message;
+        if (errMsg) throw new Error(errMsg);
+      }
+
+      // Change password
+      if (wantsPwd) {
+        const { data, error } = await supabase.functions.invoke("admin-set-user-password", {
+          body: { user_id: editUser.user_id, password: editPwd },
+        });
+        const errMsg = (data as any)?.error || error?.message;
+        if (errMsg) throw new Error(errMsg);
       }
 
       toast({ title: "Usuario actualizado" });
@@ -455,7 +498,26 @@ export default function UserManagement() {
               </div>
               <div className="space-y-2">
                 <Label>Correo</Label>
-                <Input value={editUser.email || ""} disabled className="bg-muted" />
+                {editUser.email && editUser.email.trim() ? (
+                  <>
+                    <Input value={editUser.email} disabled readOnly className="bg-muted" />
+                    <p className="text-xs text-muted-foreground">
+                      El correo no puede modificarse porque ya está vinculado a documentos, empresas y otros registros existentes.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      placeholder="usuario@dominio.com"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Este usuario no tiene correo asignado. Puedes asignarle uno por única vez.
+                    </p>
+                  </>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Teléfono</Label>
@@ -494,6 +556,31 @@ export default function UserManagement() {
                   )}
                 </div>
               </div>
+              {hasRole("admin") && (
+                <div className="space-y-2 border-t pt-4">
+                  <Label>Cambiar contraseña (opcional)</Label>
+                  <Input
+                    type="password"
+                    value={editPwd}
+                    onChange={(e) => setEditPwd(e.target.value)}
+                    placeholder="Nueva contraseña (mín. 6)"
+                    autoComplete="new-password"
+                  />
+                  <Input
+                    type="password"
+                    value={editPwdConfirm}
+                    onChange={(e) => setEditPwdConfirm(e.target.value)}
+                    placeholder="Confirmar contraseña"
+                    autoComplete="new-password"
+                  />
+                  {editPwdConfirm && editPwd !== editPwdConfirm && (
+                    <p className="text-xs text-destructive">Las contraseñas no coinciden</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Deja en blanco para no modificar la contraseña actual.
+                  </p>
+                </div>
+              )}
               <Button onClick={saveEdit} disabled={saving} className="w-full">
                 {saving ? "Guardando..." : "Guardar Cambios"}
               </Button>
