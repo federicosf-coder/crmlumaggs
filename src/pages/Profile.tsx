@@ -18,6 +18,9 @@ export default function Profile() {
   const [phone, setPhone] = useState(profile?.phone || "");
   const [plazaId, setPlazaId] = useState<string>(profile?.plaza_id || "");
   const [saving, setSaving] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPwd, setSavingPwd] = useState(false);
 
   useEffect(() => {
     setFullName(profile?.full_name || "");
@@ -46,6 +49,28 @@ export default function Profile() {
     } else {
       toast({ title: "Perfil actualizado" });
       await refreshProfile();
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      toast({ title: "La contraseña debe tener al menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Las contraseñas no coinciden", variant: "destructive" });
+      return;
+    }
+    setSavingPwd(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setSavingPwd(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Contraseña actualizada", description: "Tu contraseña se cambió correctamente." });
+      setNewPassword("");
+      setConfirmPassword("");
     }
   };
 
@@ -97,6 +122,41 @@ export default function Profile() {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>Cambiar Contraseña</CardTitle></CardHeader>
+        <CardContent>
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nueva contraseña</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                minLength={6}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar nueva contraseña</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repite la contraseña"
+                minLength={6}
+              />
+              {confirmPassword && newPassword !== confirmPassword && (
+                <p className="text-sm text-destructive">Las contraseñas no coinciden</p>
+              )}
+            </div>
+            <Button type="submit" disabled={savingPwd || !newPassword || newPassword !== confirmPassword}>
+              {savingPwd ? "Actualizando..." : "Cambiar Contraseña"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
