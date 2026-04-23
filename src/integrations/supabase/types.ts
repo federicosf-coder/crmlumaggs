@@ -253,6 +253,7 @@ export type Database = {
           email: string | null
           equipo: string | null
           evaluacion_lubricante: string | null
+          forma_pago: string | null
           id: string
           id_contpaq: string | null
           industrias: string[] | null
@@ -287,6 +288,7 @@ export type Database = {
           email?: string | null
           equipo?: string | null
           evaluacion_lubricante?: string | null
+          forma_pago?: string | null
           id?: string
           id_contpaq?: string | null
           industrias?: string[] | null
@@ -321,6 +323,7 @@ export type Database = {
           email?: string | null
           equipo?: string | null
           evaluacion_lubricante?: string | null
+          forma_pago?: string | null
           id?: string
           id_contpaq?: string | null
           industrias?: string[] | null
@@ -1148,6 +1151,7 @@ export type Database = {
           fecha_entrega_programada: string | null
           fecha_oc_cliente: string | null
           fecha_vencimiento: string | null
+          forma_pago: string | null
           id: string
           is_active: boolean
           iva_importe: number
@@ -1198,6 +1202,7 @@ export type Database = {
           fecha_entrega_programada?: string | null
           fecha_oc_cliente?: string | null
           fecha_vencimiento?: string | null
+          forma_pago?: string | null
           id?: string
           is_active?: boolean
           iva_importe?: number
@@ -1248,6 +1253,7 @@ export type Database = {
           fecha_entrega_programada?: string | null
           fecha_oc_cliente?: string | null
           fecha_vencimiento?: string | null
+          forma_pago?: string | null
           id?: string
           is_active?: boolean
           iva_importe?: number

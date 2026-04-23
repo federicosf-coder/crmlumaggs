@@ -33,6 +33,30 @@ const ESTATUS_ENT_CORP = [
 ];
 const TIPO_PAGO_OPTS = [{ v: "contado", l: "Contado" }, { v: "credito", l: "Crédito" }, { v: "credito_cescemex", l: "Crédito Cescemex" }];
 const METODO_PAGO_OPTS = [{ v: "PUE", l: "PUE - Pago en una sola exhibición" }, { v: "PPD", l: "PPD - Pago en parcialidades o diferido" }];
+const FORMA_PAGO_OPTS = [
+  { v: "01", l: "01 - Efectivo" },
+  { v: "02", l: "02 - Cheque nominativo" },
+  { v: "03", l: "03 - Transferencia electrónica" },
+  { v: "04", l: "04 - Tarjeta de crédito" },
+  { v: "05", l: "05 - Monedero electrónico" },
+  { v: "06", l: "06 - Dinero electrónico" },
+  { v: "08", l: "08 - Vales de despensa" },
+  { v: "12", l: "12 - Dación en pago" },
+  { v: "13", l: "13 - Pago por subrogación" },
+  { v: "14", l: "14 - Pago por consignación" },
+  { v: "15", l: "15 - Condonación" },
+  { v: "17", l: "17 - Compensación" },
+  { v: "23", l: "23 - Novación" },
+  { v: "24", l: "24 - Confusión" },
+  { v: "25", l: "25 - Remisión de deuda" },
+  { v: "26", l: "26 - Prescripción o caducidad" },
+  { v: "27", l: "27 - A satisfacción del acreedor" },
+  { v: "28", l: "28 - Tarjeta de débito" },
+  { v: "29", l: "29 - Tarjeta de servicios" },
+  { v: "30", l: "30 - Aplicación de anticipos" },
+  { v: "31", l: "31 - Intermediario pagos" },
+  { v: "99", l: "99 - Por definir" },
+];
 const USO_CFDI_OPTS = [
   { v: "G01", l: "G01 - Adquisición de mercancías" }, { v: "G02", l: "G02 - Devoluciones, descuentos o bonificaciones" }, { v: "G03", l: "G03 - Gastos en general" },
   { v: "I01", l: "I01 - Construcciones" }, { v: "I02", l: "I02 - Mobiliario y equipo de oficina" }, { v: "I03", l: "I03 - Equipo de transporte" },
@@ -98,6 +122,7 @@ export default function DocumentForm() {
     tipo_pago: "",
     uso_cfdi: "",
     metodo_pago: "",
+    forma_pago: "",
     fecha_entrega_programada: "",
   });
   const [items, setItems] = useState<LineItem[]>([]);
@@ -127,7 +152,8 @@ export default function DocumentForm() {
 
   // Lookups
   const { data: plazas = [] } = useQuery({ queryKey: ["plazas"], queryFn: async () => { const { data } = await supabase.from("plazas").select("*").eq("is_active", true).order("nombre"); return data || []; } });
-  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name, lista_precios, uso_cfdi, metodo_pago, tipo_pago, id_contpaq").eq("is_active", true).order("name"); return data || []; } });
+  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name, lista_precios, uso_cfdi, metodo_pago, tipo_pago, forma_pago, id_contpaq").eq("is_active", true).order("name"); return data || []; } });
+  // Note: forma_pago is also fetched but typed as any via spread below
   const { data: contacts = [], refetch: refetchContacts } = useQuery({
     queryKey: ["contacts", form.empresa_id],
     queryFn: async () => {
@@ -253,6 +279,7 @@ export default function DocumentForm() {
         tipo_pago: existingDoc.tipo_pago || "",
         uso_cfdi: existingDoc.uso_cfdi || "",
         metodo_pago: existingDoc.metodo_pago || "",
+        forma_pago: (existingDoc as any).forma_pago || "",
         fecha_entrega_programada: (existingDoc as any).fecha_entrega_programada || "",
       });
     }
@@ -334,6 +361,7 @@ export default function DocumentForm() {
         uso_cfdi: (company as any).uso_cfdi || prev.uso_cfdi,
         metodo_pago: (company as any).metodo_pago || prev.metodo_pago,
         tipo_pago: (company as any).tipo_pago || prev.tipo_pago,
+        forma_pago: (company as any).forma_pago || prev.forma_pago,
       }));
     }
   }, [form.empresa_id, companies]);
@@ -457,6 +485,7 @@ export default function DocumentForm() {
         tipo_pago: form.tipo_pago || null,
         uso_cfdi: form.uso_cfdi || null,
         metodo_pago: form.metodo_pago || null,
+        forma_pago: form.forma_pago || null,
         fecha_entrega_programada: (form.tipo_documento === "pedido" || form.tipo_documento === "entrega_corporativa") ? (form.fecha_entrega_programada || null) : null,
       };
 
@@ -487,15 +516,17 @@ export default function DocumentForm() {
       }
 
       // Sync forma de pago / uso CFDI / método de pago back to the company
-      if (form.empresa_id && (form.tipo_pago || form.uso_cfdi || form.metodo_pago)) {
+      if (form.empresa_id && (form.tipo_pago || form.uso_cfdi || form.metodo_pago || form.forma_pago)) {
         const companyUpdate: {
           tipo_pago?: any;
           uso_cfdi?: any;
           metodo_pago?: any;
+          forma_pago?: any;
         } = {};
         if (form.tipo_pago) companyUpdate.tipo_pago = form.tipo_pago;
         if (form.uso_cfdi) companyUpdate.uso_cfdi = form.uso_cfdi;
         if (form.metodo_pago) companyUpdate.metodo_pago = form.metodo_pago;
+        if (form.forma_pago) companyUpdate.forma_pago = form.forma_pago;
         if (Object.keys(companyUpdate).length > 0) {
           const { error: companyErr } = await supabase
             .from("companies")
@@ -1002,6 +1033,15 @@ export default function DocumentForm() {
               onValueChange={v => set("uso_cfdi", v)}
               placeholder="Seleccionar"
               options={USO_CFDI_OPTS.map(o => ({ value: o.v, label: o.l }))}
+            />
+          </div>
+          <div>
+            <Label>Forma de Pago</Label>
+            <SearchableSelect
+              value={form.forma_pago}
+              onValueChange={v => set("forma_pago", v)}
+              placeholder="Seleccionar"
+              options={FORMA_PAGO_OPTS.map(o => ({ value: o.v, label: o.l }))}
             />
           </div>
           <div>
