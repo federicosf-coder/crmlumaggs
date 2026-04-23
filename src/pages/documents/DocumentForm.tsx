@@ -682,7 +682,7 @@ export default function DocumentForm() {
                 )}
               </>
             )}
-            {form.tipo_documento === "pedido" && !isSales && (
+            {form.tipo_documento === "pedido" && !isSales && !isDelivery && (
               <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
                 <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
               </Button>
