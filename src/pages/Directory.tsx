@@ -540,7 +540,7 @@ export default function Directory() {
                       </TableHead>
                       <TableHead>Nombre</TableHead>
                       <TableHead>Apellido</TableHead>
-                      <TableHead className="hidden sm:table-cell">Celular</TableHead>
+                      <TableHead className="hidden sm:table-cell">Celular / WhatsApp</TableHead>
                       <TableHead className="hidden sm:table-cell">Empresa</TableHead>
                       <TableHead className="hidden md:table-cell">Plaza</TableHead>
                       <TableHead>Estado</TableHead>
