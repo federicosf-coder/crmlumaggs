@@ -381,25 +381,24 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 </div>
                 <div className="space-y-1.5"><Label className="text-xs">ID Contpaq</Label><Input value={form.id_contpaq} onChange={e => set("id_contpaq", e.target.value)} className="h-9" placeholder="—" /></div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Razón Social</Label>
-                <Input
-                  value={form.razon_social}
-                  onChange={e => set("razon_social", e.target.value)}
-                  className="h-9"
-                  placeholder="Nombre legal/fiscal"
-                />
-              </div>
+              {/* Razón Social + Plaza */}
               <div className="grid grid-cols-2 gap-3">
-
-                {/* Plaza (multi-select) */}
-                <div className="col-span-2 space-y-1.5">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Razón Social</Label>
+                  <Input
+                    value={form.razon_social}
+                    onChange={e => set("razon_social", e.target.value)}
+                    className="h-9"
+                    placeholder="Nombre legal/fiscal"
+                  />
+                </div>
+                <div className="space-y-1.5">
                   <Label className="text-xs">Plaza(s)</Label>
-                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                  <div className="flex flex-wrap gap-1.5 mb-1.5 min-h-[0]">
                     {form.plaza_ids.map(pid => {
                       const p = plazas.find((pl: any) => pl.id === pid);
                       return p ? (
-                        <Badge key={pid} variant="secondary" className="gap-1">
+                        <Badge key={pid} variant="secondary" className="gap-1 text-xs">
                           {p.nombre}
                           <X className="h-3 w-3 cursor-pointer" onClick={() => togglePlaza(pid)} />
                         </Badge>
@@ -415,6 +414,16 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Contacto: Correo, Teléfono, Sitio Web */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5"><Label className="text-xs">Correo</Label><Input type="email" value={form.email} onChange={e => set("email", e.target.value)} className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Teléfono</Label><Input value={form.phone} onChange={e => set("phone", e.target.value)} className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Sitio Web</Label><Input value={form.website} onChange={e => set("website", e.target.value)} className="h-9" /></div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
 
                 {/* Ejecutivo de Venta (multi-select) */}
                 <div className="col-span-2 space-y-1.5">
@@ -437,11 +446,16 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                     placeholder="Agregar ejecutivo..."
                   />
                 </div>
+                <div className="col-span-2 space-y-1.5"><Label className="text-xs">Notas</Label><Textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} /></div>
+              </div>
+
+              {/* Datos comerciales y fiscales — compactos */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t">
                 {/* Lista de Precios */}
                 <div className="space-y-1.5">
                   <Label className="text-xs">Lista de Precios</Label>
                   <Select value={form.lista_precios} onValueChange={v => set("lista_precios", v === "none" ? "" : v)}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar lista..." /></SelectTrigger>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Sin asignar</SelectItem>
                       {LISTA_PRECIOS_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
@@ -449,23 +463,19 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                   </Select>
                 </div>
 
-                {/* Tipo de cliente (condición comercial) */}
-                {renderSelect("Tipo de cliente (condición comercial)", form.tipo_cliente_comercial, "tipo_cliente_comercial", TIPO_CLIENTE_OPTIONS)}
+                {/* Tipo de Pago (condición comercial) */}
+                {renderEnumSelect("Tipo de Pago", form.tipo_pago, "tipo_pago", TIPO_PAGO_OPTS)}
 
-                {/* Uso de CFDI */}
-                {renderEnumSelect("Uso de CFDI", form.uso_cfdi, "uso_cfdi", USO_CFDI_OPTS)}
-
-                {/* Forma de pago */}
-                {renderEnumSelect("Forma de pago", form.tipo_pago, "tipo_pago", TIPO_PAGO_OPTS)}
+                {/* Forma de Pago (SAT) */}
+                {renderEnumSelect("Forma de Pago (SAT)", form.forma_pago, "forma_pago", FORMA_PAGO_OPTS)}
 
                 {/* Método de pago */}
-                {renderEnumSelect("Método de pago", form.metodo_pago, "metodo_pago", METODO_PAGO_OPTS)}
+                {renderEnumSelect("Método de Pago", form.metodo_pago, "metodo_pago", METODO_PAGO_OPTS)}
 
-                <div className="space-y-1.5"><Label className="text-xs">Sitio Web</Label><Input value={form.website} onChange={e => set("website", e.target.value)} className="h-9" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Teléfono</Label><Input value={form.phone} onChange={e => set("phone", e.target.value)} className="h-9" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Correo</Label><Input value={form.email} onChange={e => set("email", e.target.value)} className="h-9" /></div>
-
-                <div className="col-span-2 space-y-1.5"><Label className="text-xs">Notas</Label><Textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} /></div>
+                {/* Uso de CFDI */}
+                <div className="col-span-2 md:col-span-2">
+                  {renderEnumSelect("Uso de CFDI", form.uso_cfdi, "uso_cfdi", USO_CFDI_OPTS)}
+                </div>
               </div>
             </TabsContent>
 
