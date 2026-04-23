@@ -485,6 +485,7 @@ export default function DocumentForm() {
         tipo_pago: form.tipo_pago || null,
         uso_cfdi: form.uso_cfdi || null,
         metodo_pago: form.metodo_pago || null,
+        forma_pago: form.forma_pago || null,
         fecha_entrega_programada: (form.tipo_documento === "pedido" || form.tipo_documento === "entrega_corporativa") ? (form.fecha_entrega_programada || null) : null,
       };
 
