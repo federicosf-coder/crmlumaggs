@@ -59,6 +59,9 @@ export default function UserManagement() {
   const [editPhone, setEditPhone] = useState("");
   const [editTeamIds, setEditTeamIds] = useState<string[]>([]);
   const [editPlazaId, setEditPlazaId] = useState<string>("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPwd, setEditPwd] = useState("");
+  const [editPwdConfirm, setEditPwdConfirm] = useState("");
   const [plazas, setPlazas] = useState<Plaza[]>([]);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
