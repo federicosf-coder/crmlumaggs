@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2, Download, Upload } from "lucide-react";
+import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2, Download, Upload, Mail, Globe, Briefcase, Users, Tag, FileText } from "lucide-react";
 import { Merge } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
