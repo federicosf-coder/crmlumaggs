@@ -232,20 +232,49 @@ export default function EntregaDetalle() {
   const markDelivered = async () => {
     if (!id) return;
     setMarking(true);
+
+    // Try to capture device GPS at the moment of delivery (best-effort)
+    const capturedCoords: { lat: number; lng: number } | null = await new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        toast.warning("Tu dispositivo no soporta geolocalización; se marcará entregada sin coordenadas.");
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) {
+            toast.warning("Permiso de ubicación denegado. Se marcará entregada sin coordenadas GPS.");
+          } else {
+            toast.warning("No se pudo obtener ubicación; se marcará entregada sin coordenadas.");
+          }
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+
     const { error } = await supabase
       .from("documentos")
       .update({ estatus_pedido: "entregado" })
       .eq("id", id);
+
     if (!error && entrega) {
-      await supabase
-        .from("entregas_programadas")
-        .update({ fecha_entrega_real: new Date().toISOString() })
-        .eq("id", entrega.id);
+      const updates: any = { fecha_entrega_real: new Date().toISOString() };
+      if (capturedCoords) {
+        updates.delivered_latitude = capturedCoords.lat;
+        updates.delivered_longitude = capturedCoords.lng;
+      }
+      await supabase.from("entregas_programadas").update(updates).eq("id", entrega.id);
     }
     setMarking(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Marcado como entregado");
+      toast.success(
+        capturedCoords
+          ? `Entregado · GPS ${capturedCoords.lat.toFixed(5)}, ${capturedCoords.lng.toFixed(5)}`
+          : "Marcado como entregado"
+      );
       setEstatusPedido("entregado");
       queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
       queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
