@@ -91,6 +91,7 @@ export default function DocumentForm() {
   const { user, profile, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   const isSales = hasRole("sales");
+  const isDelivery = hasRole("delivery");
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
 
