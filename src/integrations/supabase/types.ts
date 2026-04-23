@@ -1651,6 +1651,8 @@ export type Database = {
       entregas_programadas: {
         Row: {
           created_at: string
+          delivered_latitude: number | null
+          delivered_longitude: number | null
           documento_id: string
           evidencia_url: string | null
           fecha_entrega: string
@@ -1665,6 +1667,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          delivered_latitude?: number | null
+          delivered_longitude?: number | null
           documento_id: string
           evidencia_url?: string | null
           fecha_entrega: string
@@ -1679,6 +1683,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          delivered_latitude?: number | null
+          delivered_longitude?: number | null
           documento_id?: string
           evidencia_url?: string | null
           fecha_entrega?: string
