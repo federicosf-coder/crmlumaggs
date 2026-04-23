@@ -13,7 +13,7 @@ import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, M
 import { Merge } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
-import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
+import { CompanyFormDialog, type CompanyData, FORMA_PAGO_OPTS } from "@/components/CompanyFormDialog";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
