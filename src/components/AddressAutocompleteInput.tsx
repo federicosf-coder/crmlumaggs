@@ -74,29 +74,34 @@ export function AddressAutocompleteInput({
   // Wire up Places Autocomplete
   useEffect(() => {
     if (!ready || !inputRef.current || acRef.current) return;
-    const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
-      fields: ["formatted_address", "geometry", "address_components", "place_id"],
-      types: ["geocode"],
-    });
-    ac.addListener("place_changed", () => {
-      const place = ac.getPlace();
-      if (!place?.geometry?.location) return;
-      const lat = place.geometry.location.lat();
-      const lng = place.geometry.location.lng();
-      const comp = extractComponents(place);
-      onChange({
-        ...value,
-        ...comp,
-        direccion_completa: place.formatted_address || inputRef.current?.value || "",
-        latitud: lat,
-        longitud: lng,
-        codigo_google: place.place_id || null,
+    try {
+      if (!window.google?.maps?.places?.Autocomplete) return;
+      const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
+        fields: ["formatted_address", "geometry", "address_components", "place_id"],
+        types: ["geocode"],
       });
-    });
-    acRef.current = ac;
+      ac.addListener("place_changed", () => {
+        const place = ac.getPlace();
+        if (!place?.geometry?.location) return;
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const comp = extractComponents(place);
+        onChange({
+          ...value,
+          ...comp,
+          direccion_completa: place.formatted_address || inputRef.current?.value || "",
+          latitud: lat,
+          longitud: lng,
+          codigo_google: place.place_id || null,
+        });
+      });
+      acRef.current = ac;
+    } catch (err) {
+      console.warn("[AddressAutocompleteInput] No se pudo inicializar Autocomplete:", err);
+    }
     return () => {
       if (acRef.current) {
-        window.google?.maps?.event?.clearInstanceListeners(acRef.current);
+        try { window.google?.maps?.event?.clearInstanceListeners(acRef.current); } catch { /* noop */ }
         acRef.current = null;
       }
     };
