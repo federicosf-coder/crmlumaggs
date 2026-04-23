@@ -596,6 +596,17 @@ export default function UserManagement() {
                         >
                           <Power className={`h-4 w-4 ${u.is_active ? "" : "text-muted-foreground"}`} />
                         </Button>
+                        {hasRole("admin") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => { setPwdUser(u); setPwdNew(""); setPwdConfirm(""); }}
+                            title="Cambiar contraseña"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
