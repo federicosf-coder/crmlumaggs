@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2, Download, Upload } from "lucide-react";
+import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2, Download, Upload, Mail, Globe, Briefcase, Users, Tag, FileText } from "lucide-react";
 import { Merge } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
@@ -636,15 +636,41 @@ export default function Directory() {
                 </TabsList>
 
                 <TabsContent value="general" className="space-y-3 mt-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <DetailRow label="Razón Social" value={selectedCompany.razon_social} />
-                    <DetailRow label="Industria" value={selectedCompany.industry} />
-                    <DetailRow label="Plaza" value={(selectedCompany.plazas as any)?.nombre} />
+                  {/* Resumen destacado */}
+                  <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <DetailRow label="Razón Social" value={selectedCompany.razon_social} />
+                      <DetailRow label="Industria" value={selectedCompany.industry} />
+                      <DetailRow label="Plaza" value={(selectedCompany.plazas as any)?.nombre} />
+                      <DetailRow label="Lista de Precios" value={selectedCompany.lista_precios} />
+                    </div>
+                  </div>
+
+                  {/* Equipo comercial */}
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <Users className="h-3.5 w-3.5" /> Equipo comercial
+                    </div>
                     <DetailRow label="Ejecutivo(s) de Venta" value={getEjecutivoNames(selectedCompanyEjecutivos).join(", ") || "—"} />
-                    <DetailRow label="Sitio Web" value={selectedCompany.website} />
-                    <DetailRow label="Teléfono" value={selectedCompany.phone} />
-                    <DetailRow label="Correo" value={selectedCompany.email} />
-                    <DetailRow label="Lista de Precios" value={selectedCompany.lista_precios} />
+                  </div>
+
+                  {/* Contacto */}
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <Phone className="h-3.5 w-3.5" /> Contacto
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <DetailRow label="Correo" value={selectedCompany.email} />
+                      <DetailRow label="Teléfono" value={selectedCompany.phone} />
+                      <DetailRow label="Sitio Web" value={selectedCompany.website} />
+                    </div>
+                  </div>
+
+                  {/* Ubicación */}
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <MapPin className="h-3.5 w-3.5" /> Ubicación
+                    </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Dirección</Label>
                       {selectedCompany.address ? (
@@ -653,15 +679,21 @@ export default function Directory() {
                         <p className="text-sm text-muted-foreground">—</p>
                       )}
                     </div>
-                    <DetailRow label="Ciudad" value={selectedCompany.city} />
-                    <DetailRow label="Estado" value={selectedCompany.state} />
-                    <DetailRow label="Código Postal" value={selectedCompany.zip_code} />
+                    <div className="grid grid-cols-3 gap-3">
+                      <DetailRow label="Ciudad" value={selectedCompany.city} />
+                      <DetailRow label="Estado" value={selectedCompany.state} />
+                      <DetailRow label="C.P." value={selectedCompany.zip_code} />
+                    </div>
                   </div>
+
+                  {/* Notas */}
                   {selectedCompany.notes && (
-                    <>
-                      <Separator />
-                      <DetailRow label="Notas" value={selectedCompany.notes} />
-                    </>
+                    <div className="rounded-lg border bg-accent/30 p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                        <FileText className="h-3.5 w-3.5" /> Notas
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap">{selectedCompany.notes}</p>
+                    </div>
                   )}
                 </TabsContent>
 

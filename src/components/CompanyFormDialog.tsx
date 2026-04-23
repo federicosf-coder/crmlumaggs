@@ -423,30 +423,26 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 <div className="space-y-1.5"><Label className="text-xs">Sitio Web</Label><Input value={form.website} onChange={e => set("website", e.target.value)} className="h-9" /></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-
-                {/* Ejecutivo de Venta (multi-select) */}
-                <div className="col-span-2 space-y-1.5">
-                  <Label className="text-xs">Ejecutivo(s) de Venta</Label>
-                  <div className="flex flex-wrap gap-1.5 mb-1.5">
-                    {form.ejecutivo_ids.map(uid => {
-                      const p = profiles.find((pr: any) => pr.user_id === uid);
-                      return p ? (
-                        <Badge key={uid} variant="secondary" className="gap-1">
-                          {p.full_name || p.email}
-                          <X className="h-3 w-3 cursor-pointer" onClick={() => toggleEjecutivo(uid)} />
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
-                  <SearchableSelect
-                    value=""
-                    onValueChange={v => { if (v && !form.ejecutivo_ids.includes(v)) toggleEjecutivo(v); }}
-                    options={profiles.filter((p: any) => !form.ejecutivo_ids.includes(p.user_id)).map((p: any) => ({ value: p.user_id, label: p.full_name || p.email || "Sin nombre" }))}
-                    placeholder="Agregar ejecutivo..."
-                  />
+              {/* Ejecutivo de Venta (multi-select) */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Ejecutivo(s) de Venta</Label>
+                <div className="flex flex-wrap gap-1.5 mb-1.5">
+                  {form.ejecutivo_ids.map(uid => {
+                    const p = profiles.find((pr: any) => pr.user_id === uid);
+                    return p ? (
+                      <Badge key={uid} variant="secondary" className="gap-1">
+                        {p.full_name || p.email}
+                        <X className="h-3 w-3 cursor-pointer" onClick={() => toggleEjecutivo(uid)} />
+                      </Badge>
+                    ) : null;
+                  })}
                 </div>
-                <div className="col-span-2 space-y-1.5"><Label className="text-xs">Notas</Label><Textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} /></div>
+                <SearchableSelect
+                  value=""
+                  onValueChange={v => { if (v && !form.ejecutivo_ids.includes(v)) toggleEjecutivo(v); }}
+                  options={profiles.filter((p: any) => !form.ejecutivo_ids.includes(p.user_id)).map((p: any) => ({ value: p.user_id, label: p.full_name || p.email || "Sin nombre" }))}
+                  placeholder="Agregar ejecutivo..."
+                />
               </div>
 
               {/* Datos comerciales y fiscales — compactos */}
@@ -476,6 +472,12 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 <div className="col-span-2 md:col-span-2">
                   {renderEnumSelect("Uso de CFDI", form.uso_cfdi, "uso_cfdi", USO_CFDI_OPTS)}
                 </div>
+              </div>
+
+              {/* Notas — al final del formulario */}
+              <div className="space-y-1.5 pt-2 border-t">
+                <Label className="text-xs">Notas</Label>
+                <Textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={3} placeholder="Notas internas sobre la empresa..." />
               </div>
             </TabsContent>
 
