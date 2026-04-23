@@ -1,0 +1,20 @@
+{
+  "name": "LubriManager",
+  "short_name": "LubriManager",
+  "description": "Plataforma de gestión para distribución de lubricantes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#124da1",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
