@@ -37,6 +37,7 @@ interface Company {
   origen_contacto: string | null; evaluacion_lubricante: string | null;
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
   id_contpaq: string | null;
+  tipo_pago: string | null; forma_pago: string | null; metodo_pago: string | null; uso_cfdi: string | null;
   plazas?: { nombre: string } | null;
   contacts?: { id: string }[];
 }
