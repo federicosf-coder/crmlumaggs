@@ -553,6 +553,7 @@ export default function DocumentForm() {
 
       if (!isEdit) {
         navigate(`/documents/${docId}`);
+        setViewMode(true);
       } else {
         setViewMode(true);
       }
