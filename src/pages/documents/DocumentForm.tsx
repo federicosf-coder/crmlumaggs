@@ -33,6 +33,30 @@ const ESTATUS_ENT_CORP = [
 ];
 const TIPO_PAGO_OPTS = [{ v: "contado", l: "Contado" }, { v: "credito", l: "Crédito" }, { v: "credito_cescemex", l: "Crédito Cescemex" }];
 const METODO_PAGO_OPTS = [{ v: "PUE", l: "PUE - Pago en una sola exhibición" }, { v: "PPD", l: "PPD - Pago en parcialidades o diferido" }];
+const FORMA_PAGO_OPTS = [
+  { v: "01", l: "01 - Efectivo" },
+  { v: "02", l: "02 - Cheque nominativo" },
+  { v: "03", l: "03 - Transferencia electrónica" },
+  { v: "04", l: "04 - Tarjeta de crédito" },
+  { v: "05", l: "05 - Monedero electrónico" },
+  { v: "06", l: "06 - Dinero electrónico" },
+  { v: "08", l: "08 - Vales de despensa" },
+  { v: "12", l: "12 - Dación en pago" },
+  { v: "13", l: "13 - Pago por subrogación" },
+  { v: "14", l: "14 - Pago por consignación" },
+  { v: "15", l: "15 - Condonación" },
+  { v: "17", l: "17 - Compensación" },
+  { v: "23", l: "23 - Novación" },
+  { v: "24", l: "24 - Confusión" },
+  { v: "25", l: "25 - Remisión de deuda" },
+  { v: "26", l: "26 - Prescripción o caducidad" },
+  { v: "27", l: "27 - A satisfacción del acreedor" },
+  { v: "28", l: "28 - Tarjeta de débito" },
+  { v: "29", l: "29 - Tarjeta de servicios" },
+  { v: "30", l: "30 - Aplicación de anticipos" },
+  { v: "31", l: "31 - Intermediario pagos" },
+  { v: "99", l: "99 - Por definir" },
+];
 const USO_CFDI_OPTS = [
   { v: "G01", l: "G01 - Adquisición de mercancías" }, { v: "G02", l: "G02 - Devoluciones, descuentos o bonificaciones" }, { v: "G03", l: "G03 - Gastos en general" },
   { v: "I01", l: "I01 - Construcciones" }, { v: "I02", l: "I02 - Mobiliario y equipo de oficina" }, { v: "I03", l: "I03 - Equipo de transporte" },
