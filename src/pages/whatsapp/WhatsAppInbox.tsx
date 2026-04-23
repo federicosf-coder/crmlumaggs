@@ -284,10 +284,47 @@ export default function WhatsAppInbox() {
                 <Textarea
                   placeholder={windowOpen ? "Escribe un mensaje..." : "Bloqueado — usa una plantilla"}
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setDraft(v);
+                    if (v.endsWith("/") && quickReplies.length > 0) setQrOpen(true);
+                  }}
                   disabled={!windowOpen || sending}
                   className="min-h-[60px]"
                 />
+                <Popover open={qrOpen} onOpenChange={setQrOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      disabled={!windowOpen || quickReplies.length === 0}
+                      title="Respuestas rápidas"
+                    >
+                      <Zap className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 p-0">
+                    <div className="p-2 text-xs text-muted-foreground border-b">
+                      Respuestas rápidas
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {quickReplies.map((q) => (
+                        <button
+                          key={q.id}
+                          className="w-full text-left p-2 hover:bg-accent text-sm border-b last:border-b-0"
+                          onClick={() => {
+                            const base = draft.endsWith("/") ? draft.slice(0, -1) : draft;
+                            setDraft((base ? base + " " : "") + q.content);
+                            setQrOpen(false);
+                          }}
+                        >
+                          <div className="font-medium text-xs text-primary">/{q.shortcut}</div>
+                          <div className="text-xs text-muted-foreground truncate">{q.content}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Button onClick={sendText} disabled={!windowOpen || sending || !draft.trim()}>
                   <Send className="h-4 w-4" />
                 </Button>
