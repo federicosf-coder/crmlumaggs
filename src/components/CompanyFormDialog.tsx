@@ -241,6 +241,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         uso_cfdi: (editData as any).uso_cfdi || "",
         metodo_pago: (editData as any).metodo_pago || "",
         tipo_pago: (editData as any).tipo_pago || "",
+        forma_pago: (editData as any).forma_pago || "",
         id_contpaq: (editData as any).id_contpaq || "",
         plaza_ids: [],
         ejecutivo_ids: [],
