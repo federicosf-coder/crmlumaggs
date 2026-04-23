@@ -279,6 +279,7 @@ export default function DocumentForm() {
         tipo_pago: existingDoc.tipo_pago || "",
         uso_cfdi: existingDoc.uso_cfdi || "",
         metodo_pago: existingDoc.metodo_pago || "",
+        forma_pago: (existingDoc as any).forma_pago || "",
         fecha_entrega_programada: (existingDoc as any).fecha_entrega_programada || "",
       });
     }
