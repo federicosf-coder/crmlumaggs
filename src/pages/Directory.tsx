@@ -781,7 +781,7 @@ export default function Directory() {
                 <DetailRow label="Apellido" value={selectedContact.last_name} />
                 <DetailRow label="Correo" value={selectedContact.email} />
                 <DetailRow label="Teléfono" value={selectedContact.phone} />
-                <DetailRow label="Celular" value={selectedContact.mobile} />
+                <DetailRow label="Celular / WhatsApp" value={selectedContact.mobile} />
                 <DetailRow label="Puesto" value={selectedContact.job_title} />
                 <DetailRow label="Departamento" value={selectedContact.department} />
                 <DetailRow label="Empresa" value={selectedContact.companies?.name} />
