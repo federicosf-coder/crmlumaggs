@@ -361,6 +361,7 @@ export default function DocumentForm() {
         uso_cfdi: (company as any).uso_cfdi || prev.uso_cfdi,
         metodo_pago: (company as any).metodo_pago || prev.metodo_pago,
         tipo_pago: (company as any).tipo_pago || prev.tipo_pago,
+        forma_pago: (company as any).forma_pago || prev.forma_pago,
       }));
     }
   }, [form.empresa_id, companies]);
