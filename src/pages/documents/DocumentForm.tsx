@@ -122,6 +122,7 @@ export default function DocumentForm() {
     tipo_pago: "",
     uso_cfdi: "",
     metodo_pago: "",
+    forma_pago: "",
     fecha_entrega_programada: "",
   });
   const [items, setItems] = useState<LineItem[]>([]);
