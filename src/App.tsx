@@ -28,6 +28,7 @@ import NotFound from "@/pages/NotFound";
 import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
 import Cobranza from "@/pages/cobranza/Cobranza";
 import Unsubscribe from "@/pages/Unsubscribe";
+import WhatsAppInbox from "@/pages/whatsapp/WhatsAppInbox";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="/delivery/schedule" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/entrega/:id" element={<ProtectedRoute><EntregaDetalle /></ProtectedRoute>} />
             <Route path="/cobranza" element={<ProtectedRoute><Cobranza /></ProtectedRoute>} />
+            <Route path="/whatsapp" element={<ProtectedRoute><WhatsAppInbox /></ProtectedRoute>} />
             <Route path="/transfers" element={<ProtectedRoute><ModulePlaceholder title="Transferencias de Inventario" description="Gestión de transferencias entre almacenes. Próximamente en Fase 3." /></ProtectedRoute>} />
             
             <Route path="/training" element={<ProtectedRoute><ModulePlaceholder title="Capacitación" description="Materiales de capacitación y cursos para tu equipo." /></ProtectedRoute>} />
