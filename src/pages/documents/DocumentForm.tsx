@@ -675,7 +675,7 @@ export default function DocumentForm() {
                 <Button variant="secondary" onClick={() => handleConvertTo("pedido")}>
                   <ShoppingCart className="mr-2 h-4 w-4" /> Convertir a Pedido
                 </Button>
-                {!isSales && (
+                {!isSales && !isDelivery && (
                   <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
                     <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
                   </Button>
