@@ -58,6 +58,20 @@ function DetailRow({ label, value }: { label: string; value: string | null | und
   );
 }
 
+const TIPO_PAGO_LABEL: Record<string, string> = {
+  contado: "Contado",
+  credito: "Crédito",
+  credito_cescemex: "Crédito Cescemex",
+};
+const METODO_PAGO_LABEL: Record<string, string> = {
+  PUE: "PUE - Pago en una sola exhibición",
+  PPD: "PPD - Pago en parcialidades o diferido",
+};
+const formaPagoLabel = (v?: string | null) => {
+  if (!v) return null;
+  return FORMA_PAGO_OPTS.find(o => o.v === v)?.l || v;
+};
+
 const TAB_COLORS: Record<string, { active: string; border: string }> = {
   companies: { active: "bg-blue-600 text-white hover:bg-blue-700", border: "border-blue-500" },
   contacts: { active: "bg-emerald-600 text-white hover:bg-emerald-700", border: "border-emerald-500" },
