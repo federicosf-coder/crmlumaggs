@@ -159,7 +159,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
             <div className="space-y-2"><Label>Apellido *</Label><Input value={form.last_name} onChange={e => set("last_name", e.target.value)} required /></div>
             <div className="space-y-2"><Label>Correo</Label><Input type="email" value={form.email} onChange={e => set("email", e.target.value)} /></div>
             <div className="space-y-2"><Label>Teléfono</Label><Input value={form.phone} onChange={e => set("phone", e.target.value)} /></div>
-            <div className="space-y-2"><Label>Celular</Label><Input value={form.mobile} onChange={e => set("mobile", e.target.value)} /></div>
+            <div className="space-y-2"><Label>Celular / WhatsApp</Label><Input value={form.mobile} onChange={e => set("mobile", e.target.value)} /></div>
             <div className="space-y-2"><Label>Puesto</Label><Input value={form.job_title} onChange={e => set("job_title", e.target.value)} /></div>
             <div className="space-y-2"><Label>Departamento</Label><Input value={form.department} onChange={e => set("department", e.target.value)} /></div>
             <div className="space-y-2">
