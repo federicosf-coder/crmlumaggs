@@ -556,6 +556,31 @@ export default function UserManagement() {
                   )}
                 </div>
               </div>
+              {hasRole("admin") && (
+                <div className="space-y-2 border-t pt-4">
+                  <Label>Cambiar contraseña (opcional)</Label>
+                  <Input
+                    type="password"
+                    value={editPwd}
+                    onChange={(e) => setEditPwd(e.target.value)}
+                    placeholder="Nueva contraseña (mín. 6)"
+                    autoComplete="new-password"
+                  />
+                  <Input
+                    type="password"
+                    value={editPwdConfirm}
+                    onChange={(e) => setEditPwdConfirm(e.target.value)}
+                    placeholder="Confirmar contraseña"
+                    autoComplete="new-password"
+                  />
+                  {editPwdConfirm && editPwd !== editPwdConfirm && (
+                    <p className="text-xs text-destructive">Las contraseñas no coinciden</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Deja en blanco para no modificar la contraseña actual.
+                  </p>
+                </div>
+              )}
               <Button onClick={saveEdit} disabled={saving} className="w-full">
                 {saving ? "Guardando..." : "Guardar Cambios"}
               </Button>
