@@ -118,7 +118,7 @@ export interface CompanyData {
   tomador_decision: string | null; riesgo_cambio_marca: string | null;
   origen_contacto: string | null; evaluacion_lubricante: string | null;
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
-  uso_cfdi?: string | null; metodo_pago?: string | null; tipo_pago?: string | null;
+  uso_cfdi?: string | null; metodo_pago?: string | null; tipo_pago?: string | null; forma_pago?: string | null;
   id_contpaq?: string | null;
 }
 
@@ -137,7 +137,7 @@ const emptyForm = {
   tipo_destino_lubricante: "", potencial_unidades: "",
   tomador_decision: "", riesgo_cambio_marca: "", origen_contacto: "",
   evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
-  uso_cfdi: "", metodo_pago: "", tipo_pago: "",
+  uso_cfdi: "", metodo_pago: "", tipo_pago: "", forma_pago: "",
   id_contpaq: "",
   plaza_ids: [] as string[],
   ejecutivo_ids: [] as string[],
