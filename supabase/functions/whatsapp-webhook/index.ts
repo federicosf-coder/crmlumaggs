@@ -8,6 +8,74 @@ const corsHeaders = {
 
 const VERIFY_TOKEN = "LumaggsCRM2026";
 
+function normalizePhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/[^\d]/g, "");
+  if (!digits) return null;
+  return digits;
+}
+
+function isWithinBusinessHours(settings: any, now: Date): boolean {
+  try {
+    const bh = settings?.business_hours;
+    if (!bh) return true;
+    const tz = bh.timezone || "America/Mexico_City";
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      weekday: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const parts = fmt.formatToParts(now);
+    const weekday = parts.find((p) => p.type === "weekday")?.value?.toLowerCase() ?? "";
+    const hour = parts.find((p) => p.type === "hour")?.value ?? "00";
+    const minute = parts.find((p) => p.type === "minute")?.value ?? "00";
+    const cur = `${hour}:${minute}`;
+    const day = bh[weekday];
+    if (!day || !day.enabled) return false;
+    return cur >= day.start && cur <= day.end;
+  } catch {
+    return true;
+  }
+}
+
+async function sendWhatsAppText(toPhone: string, text: string) {
+  const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+  const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+  if (!TOKEN || !PHONE_ID) return { ok: false, error: "Missing WhatsApp credentials" };
+  const r = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: toPhone,
+      type: "text",
+      text: { body: text },
+    }),
+  });
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok, data };
+}
+
+async function sendWhatsAppTemplate(toPhone: string, name: string, language: string) {
+  const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+  const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+  if (!TOKEN || !PHONE_ID) return { ok: false, error: "Missing WhatsApp credentials" };
+  const r = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: toPhone,
+      type: "template",
+      template: { name, language: { code: language } },
+    }),
+  });
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok, data };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -40,42 +108,196 @@ Deno.serve(async (req) => {
       const body = await req.json().catch(() => ({}));
       console.log("WhatsApp webhook payload:", JSON.stringify(body));
 
-      const rows: Array<{
-        wa_id: string | null;
-        sender_phone: string | null;
-        message_body: string | null;
-        direction: string;
-        status: string | null;
-      }> = [];
+      // Load settings & rules once per webhook hit
+      const [{ data: settingsRow }, { data: rulesRows }] = await Promise.all([
+        admin.from("whatsapp_settings").select("*").eq("id", 1).maybeSingle(),
+        admin
+          .from("whatsapp_keyword_rules")
+          .select("*")
+          .eq("is_active", true)
+          .order("priority", { ascending: false }),
+      ]);
+      const settings = settingsRow ?? {};
+      const rules = rulesRows ?? [];
 
-      // Parse WhatsApp Cloud API payload structure
+      let inserted = 0;
       const entries = Array.isArray(body?.entry) ? body.entry : [];
       for (const entry of entries) {
         const changes = Array.isArray(entry?.changes) ? entry.changes : [];
         for (const change of changes) {
           const value = change?.value ?? {};
+          const contactsArr = Array.isArray(value?.contacts) ? value.contacts : [];
+          const profileNameByWa: Record<string, string> = {};
+          for (const c of contactsArr) {
+            const wa = normalizePhone(c?.wa_id);
+            if (wa && c?.profile?.name) profileNameByWa[wa] = c.profile.name;
+          }
+
           const messages = Array.isArray(value?.messages) ? value.messages : [];
           for (const msg of messages) {
+            const fromPhone = normalizePhone(msg?.from);
+            if (!fromPhone) continue;
+
             const text =
               msg?.text?.body ??
               msg?.button?.text ??
               msg?.interactive?.button_reply?.title ??
               msg?.interactive?.list_reply?.title ??
               (msg?.type ? `[${msg.type}]` : null);
-            rows.push({
+
+            const profileName = profileNameByWa[fromPhone] ?? null;
+
+            // Try to match contact by whatsapp_phone, then phone, then mobile
+            const { data: contactMatch } = await admin
+              .from("contacts")
+              .select("id")
+              .or(
+                `whatsapp_phone.eq.${fromPhone},phone.eq.${fromPhone},mobile.eq.${fromPhone}`,
+              )
+              .limit(1)
+              .maybeSingle();
+            const contactId = contactMatch?.id ?? null;
+
+            // Upsert conversation
+            const nowIso = new Date().toISOString();
+            const { data: existingConv } = await admin
+              .from("whatsapp_conversations")
+              .select("id, unread_count, contact_id")
+              .eq("wa_phone", fromPhone)
+              .maybeSingle();
+
+            let conversationId: string;
+            if (existingConv) {
+              conversationId = existingConv.id;
+              await admin
+                .from("whatsapp_conversations")
+                .update({
+                  contact_id: existingConv.contact_id ?? contactId,
+                  wa_profile_name: profileName ?? undefined,
+                  last_inbound_at: nowIso,
+                  last_message_preview: (text ?? "").slice(0, 120),
+                  unread_count: (existingConv.unread_count ?? 0) + 1,
+                  status: "open",
+                })
+                .eq("id", conversationId);
+            } else {
+              const { data: newConv } = await admin
+                .from("whatsapp_conversations")
+                .insert({
+                  wa_phone: fromPhone,
+                  contact_id: contactId,
+                  wa_profile_name: profileName,
+                  last_inbound_at: nowIso,
+                  last_message_preview: (text ?? "").slice(0, 120),
+                  unread_count: 1,
+                })
+                .select("id")
+                .single();
+              conversationId = newConv!.id;
+            }
+
+            const { error: insErr } = await admin.from("whatsapp_messages").insert({
               wa_id: msg?.id ?? null,
-              sender_phone: msg?.from ?? null,
+              sender_phone: fromPhone,
               message_body: text,
               direction: "inbound",
               status: "received",
+              contact_id: contactId,
+              conversation_id: conversationId,
+              wa_profile_name: profileName,
+              media_type: msg?.type ?? null,
             });
+            if (insErr) console.error("Insert message error:", insErr);
+            else inserted++;
+
+            // ===== Bot keyword matching =====
+            const lower = (text ?? "").toLowerCase();
+            if (settings?.bot_enabled && lower) {
+              for (const r of rules) {
+                const kw = String(r.keyword ?? "").toLowerCase();
+                if (!kw) continue;
+                const matched =
+                  r.match_type === "exact"
+                    ? lower.trim() === kw
+                    : r.match_type === "starts_with"
+                      ? lower.trim().startsWith(kw)
+                      : lower.includes(kw);
+                if (!matched) continue;
+                if (r.reply_template_name) {
+                  await sendWhatsAppTemplate(
+                    fromPhone,
+                    r.reply_template_name,
+                    r.reply_template_language || "es_MX",
+                  );
+                } else if (r.reply_text) {
+                  await sendWhatsAppText(fromPhone, r.reply_text);
+                }
+                await admin.from("whatsapp_messages").insert({
+                  sender_phone: fromPhone,
+                  message_body: r.reply_text ?? `[template: ${r.reply_template_name}]`,
+                  direction: "outbound",
+                  status: "sent",
+                  conversation_id: conversationId,
+                  contact_id: contactId,
+                  template_name: r.reply_template_name ?? null,
+                });
+                await admin
+                  .from("whatsapp_conversations")
+                  .update({ last_outbound_at: nowIso })
+                  .eq("id", conversationId);
+                break; // first matched rule wins
+              }
+            }
+
+            // ===== Auto-away outside business hours =====
+            if (
+              settings?.away_enabled &&
+              settings?.away_template_name &&
+              !isWithinBusinessHours(settings, new Date())
+            ) {
+              // Throttle: 1 per contact per 4h
+              const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+              const { data: recent } = await admin
+                .from("whatsapp_auto_replies_log")
+                .select("id")
+                .eq("wa_phone", fromPhone)
+                .gte("sent_at", fourHoursAgo)
+                .limit(1)
+                .maybeSingle();
+              if (!recent) {
+                await sendWhatsAppTemplate(
+                  fromPhone,
+                  settings.away_template_name,
+                  settings.away_template_language || "es_MX",
+                );
+                await admin.from("whatsapp_auto_replies_log").insert({
+                  wa_phone: fromPhone,
+                  reason: "outside_business_hours",
+                  template_name: settings.away_template_name,
+                });
+                await admin.from("whatsapp_messages").insert({
+                  sender_phone: fromPhone,
+                  message_body: `[template: ${settings.away_template_name}]`,
+                  direction: "outbound",
+                  status: "sent",
+                  conversation_id: conversationId,
+                  contact_id: contactId,
+                  template_name: settings.away_template_name,
+                });
+                await admin
+                  .from("whatsapp_conversations")
+                  .update({ last_outbound_at: new Date().toISOString() })
+                  .eq("id", conversationId);
+              }
+            }
           }
 
+          // Status updates from Meta
           const statuses = Array.isArray(value?.statuses) ? value.statuses : [];
           for (const s of statuses) {
-            rows.push({
+            await admin.from("whatsapp_messages").insert({
               wa_id: s?.id ?? null,
-              sender_phone: s?.recipient_id ?? null,
+              sender_phone: normalizePhone(s?.recipient_id),
               message_body: null,
               direction: "outbound",
               status: s?.status ?? null,
@@ -84,15 +306,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (rows.length > 0) {
-        const { error } = await admin.from("whatsapp_messages").insert(rows);
-        if (error) {
-          console.error("Insert error:", error);
-          return json({ error: error.message }, 500);
-        }
-      }
-
-      return json({ ok: true, inserted: rows.length }, 200);
+      return json({ ok: true, inserted }, 200);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error desconocido";
       console.error("Webhook error:", msg);
