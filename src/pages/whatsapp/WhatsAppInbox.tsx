@@ -275,7 +275,7 @@ export default function WhatsAppInbox() {
             </ScrollArea>
             <div className="p-3 border-t space-y-2">
               {!windowOpen && (
-                <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 p-2 rounded">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded">
                   <Lock className="h-3 w-3" />
                   Ventana de atención cerrada (24h). Use una plantilla para reanudar.
                 </div>
