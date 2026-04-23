@@ -57,7 +57,7 @@ export default function WhatsAppSettings() {
       .select("*")
       .eq("id", 1)
       .maybeSingle()
-      .then(({ data }) => setSettings(data as Settings | null));
+      .then(({ data }) => setSettings(data as unknown as Settings | null));
     supabase
       .from("whatsapp_templates")
       .select("name,language,status")
