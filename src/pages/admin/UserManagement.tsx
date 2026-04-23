@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { X, Pencil, Merge, Power, Trash2, UserPlus, Search } from "lucide-react";
+import { X, Pencil, Merge, Power, Trash2, UserPlus, Search, KeyRound } from "lucide-react";
 import { roleLabel } from "@/lib/roles";
 import {
   AlertDialog,
@@ -73,6 +73,12 @@ export default function UserManagement() {
   // Delete confirmation state
   const [deleteUser, setDeleteUser] = useState<UserWithRoles | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+
+  // Password change state
+  const [pwdUser, setPwdUser] = useState<UserWithRoles | null>(null);
+  const [pwdNew, setPwdNew] = useState("");
+  const [pwdConfirm, setPwdConfirm] = useState("");
+  const [pwdBusy, setPwdBusy] = useState(false);
 
   // Create user dialog state
   const canManageUsers = hasRole("admin") || hasRole("manager");
