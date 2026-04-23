@@ -565,6 +565,9 @@ export default function UserManagement() {
                     onChange={(e) => setEditPwd(e.target.value)}
                     placeholder="Nueva contraseña (mín. 6)"
                     autoComplete="new-password"
+                    name="new-password-no-autofill"
+                    readOnly
+                    onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
                   />
                   <Input
                     type="password"
@@ -572,6 +575,9 @@ export default function UserManagement() {
                     onChange={(e) => setEditPwdConfirm(e.target.value)}
                     placeholder="Confirmar contraseña"
                     autoComplete="new-password"
+                    name="confirm-password-no-autofill"
+                    readOnly
+                    onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
                   />
                   {editPwdConfirm && editPwd !== editPwdConfirm && (
                     <p className="text-xs text-destructive">Las contraseñas no coinciden</p>
