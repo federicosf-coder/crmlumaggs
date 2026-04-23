@@ -6,34 +6,91 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, AlertCircle } from "lucide-react";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [updating, setUpdating] = useState(false);
-  const { session, loading: authLoading } = useAuth();
+  const [validating, setValidating] = useState(true);
+  const [sessionReady, setSessionReady] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const init = async () => {
+      try {
+        // 1) PKCE flow: ?code=...
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (!error) {
+            setSessionReady(true);
+            // Clean URL
+            window.history.replaceState({}, document.title, "/reset-password");
+            return;
+          }
+        }
+
+        // 2) Implicit/hash flow: #access_token=...&type=recovery or #token_hash=...&type=recovery
+        const hash = window.location.hash.startsWith("#")
+          ? window.location.hash.substring(1)
+          : window.location.hash;
+        const hashParams = new URLSearchParams(hash);
+        const access_token = hashParams.get("access_token");
+        const refresh_token = hashParams.get("refresh_token");
+        const token_hash = hashParams.get("token_hash") || url.searchParams.get("token_hash");
+        const type = hashParams.get("type") || url.searchParams.get("type");
+
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (!error) {
+            setSessionReady(true);
+            window.history.replaceState({}, document.title, "/reset-password");
+            return;
+          }
+        }
+
+        if (token_hash && type) {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash,
+            type: type as "recovery",
+          });
+          if (!error) {
+            setSessionReady(true);
+            window.history.replaceState({}, document.title, "/reset-password");
+            return;
+          }
+        }
+
+        // 3) Already-signed-in fallback (user navigated here manually)
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          setSessionReady(true);
+          return;
+        }
+
+        setSessionReady(false);
+      } finally {
+        setValidating(false);
+      }
+    };
+    init();
+  }, []);
+
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!session) {
-      toast({
-        title: "Sesión no detectada",
-        description: "No se encontró una sesión activa de recuperación. Por favor, solicita un nuevo enlace.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (password !== confirmPassword) {
       toast({
         title: "Las contraseñas no coinciden",
         description: "Por favor verifica que ambas contraseñas sean idénticas.",
         variant: "destructive",
       });
+      return;
+    }
+    if (password.length < 6) {
+      toast({ title: "La contraseña debe tener al menos 6 caracteres", variant: "destructive" });
       return;
     }
 
@@ -45,22 +102,23 @@ export default function ResetPassword() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Contraseña actualizada", description: "Ya puedes iniciar sesión con tu nueva contraseña." });
+      await supabase.auth.signOut();
       navigate("/auth");
     }
   };
 
-  if (authLoading) {
+  if (validating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground animate-pulse">Validando sesión de recuperación...</p>
+          <p className="text-muted-foreground animate-pulse">Validando enlace de recuperación...</p>
         </div>
       </div>
     );
   }
 
-  if (!session) {
+  if (!sessionReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
         <Card className="w-full max-w-md border-destructive/20 shadow-lg">
@@ -70,8 +128,8 @@ export default function ResetPassword() {
               <CardTitle>Enlace Inválido</CardTitle>
             </div>
             <CardDescription>
-              No se ha podido validar la sesión de recuperación. Esto puede ocurrir si el enlace ya fue usado o ha
-              expirado.
+              No se ha podido validar el enlace de recuperación. Esto puede ocurrir si el enlace ya fue usado o ha expirado.
+              Solicita un nuevo enlace desde "¿Olvidaste tu contraseña?".
             </CardDescription>
           </CardHeader>
           <CardContent>
