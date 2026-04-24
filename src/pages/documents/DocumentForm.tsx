@@ -157,7 +157,19 @@ export default function DocumentForm() {
 
   // Lookups
   const { data: plazas = [] } = useQuery({ queryKey: ["plazas"], queryFn: async () => { const { data } = await supabase.from("plazas").select("*").eq("is_active", true).order("nombre"); return data || []; } });
-  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name, phone, lista_precios, uso_cfdi, metodo_pago, tipo_pago, forma_pago, id_contpaq").eq("is_active", true).order("name"); return data || []; } });
+  const { data: companies = [], refetch: refetchCompanies } = useQuery({
+    queryKey: ["companies", "documentform-all"],
+    queryFn: async () => {
+      return await fetchAllRows<any>((from, to) =>
+        supabase
+          .from("companies")
+          .select("id, name, phone, lista_precios, uso_cfdi, metodo_pago, tipo_pago, forma_pago, id_contpaq")
+          .eq("is_active", true)
+          .order("name")
+          .range(from, to)
+      );
+    },
+  });
   // Note: forma_pago is also fetched but typed as any via spread below
   const { data: contacts = [], refetch: refetchContacts } = useQuery({
     queryKey: ["contacts", form.empresa_id],
