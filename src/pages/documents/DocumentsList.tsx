@@ -22,6 +22,7 @@ import { DocumentKanban } from "@/components/documents/DocumentKanban";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { ExportFieldsDialog, ExportField } from "@/components/documents/ExportFieldsDialog";
 import { ExportFilterDialog, ExportFilters } from "@/components/documents/ExportFilterDialog";
+import { fetchAllRows } from "@/lib/supabasePagination";
 
 // Column visibility config per document type
 type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "fecha_programada" | "total" | "estatus" | "pdf" | "oc_cliente";
@@ -245,8 +246,7 @@ export default function DocumentsList() {
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
         q = q.or(`created_by.in.(${access.teamMemberIds.join(",")}),ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`);
       }
-      const { data, error } = await q;
-      if (error) throw error;
+      const data = await fetchAllRows<any>(q);
       if (search) {
         const s = search.toLowerCase();
         return data.filter((doc: any) => {
@@ -373,8 +373,7 @@ export default function DocumentsList() {
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
         q = q.in("created_by", access.teamMemberIds);
       }
-      const { data, error } = await q;
-      if (error) throw error;
+      const data = await fetchAllRows<any>(q);
       if (!data || data.length === 0) { toast.error("No hay datos para exportar"); return; }
       setExportData(data);
       setExportFilterOpen(false);
