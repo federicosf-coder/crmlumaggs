@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/AuthContext";
 import { WhatsAppTemplatesTab } from "@/components/admin/WhatsAppTemplatesTab";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -353,6 +355,8 @@ function OptionsTab() {
 // ─── Embudos de Venta Tab ────────────────────────────────────
 function EmbudosTab() {
   const qc = useQueryClient();
+  const { roles } = useAuth();
+  const isAdmin = roles.includes("admin");
   const { data: pipelines = [], isLoading } = useQuery({
     queryKey: ["all_pipelines_catalog"],
     queryFn: async () => {
@@ -406,6 +410,59 @@ function EmbudosTab() {
       qc.invalidateQueries({ queryKey: ["crm_pipeline_stages"] });
       setEditStage(null);
       toast.success("Etapa actualizada");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Delete pipeline (admin only)
+  const [deletePipeline, setDeletePipeline] = useState<any>(null);
+  const deletePipelineMutation = useMutation({
+    mutationFn: async () => {
+      // Check if pipeline has deals
+      const { count, error: cErr } = await supabase
+        .from("crm_deals")
+        .select("id", { count: "exact", head: true })
+        .eq("pipeline_id", deletePipeline.id);
+      if (cErr) throw cErr;
+      if ((count || 0) > 0) {
+        throw new Error(`No se puede eliminar: el embudo tiene ${count} negocio(s) asociado(s).`);
+      }
+      // Delete stages first
+      const { error: sErr } = await supabase.from("crm_pipeline_stages").delete().eq("pipeline_id", deletePipeline.id);
+      if (sErr) throw sErr;
+      const { error } = await supabase.from("crm_pipelines").delete().eq("id", deletePipeline.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["all_pipelines_catalog"] });
+      qc.invalidateQueries({ queryKey: ["crm_pipelines"] });
+      qc.invalidateQueries({ queryKey: ["crm_pipeline_stages"] });
+      if (expandedId === deletePipeline?.id) setExpandedId(null);
+      setDeletePipeline(null);
+      toast.success("Embudo eliminado");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Delete stage (admin only)
+  const [deleteStage, setDeleteStage] = useState<any>(null);
+  const deleteStageMutation = useMutation({
+    mutationFn: async () => {
+      const { count, error: cErr } = await supabase
+        .from("crm_deals")
+        .select("id", { count: "exact", head: true })
+        .eq("stage_id", deleteStage.id);
+      if (cErr) throw cErr;
+      if ((count || 0) > 0) {
+        throw new Error(`No se puede eliminar: la etapa tiene ${count} negocio(s) asociado(s).`);
+      }
+      const { error } = await supabase.from("crm_pipeline_stages").delete().eq("id", deleteStage.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crm_pipeline_stages"] });
+      setDeleteStage(null);
+      toast.success("Etapa eliminada");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -507,6 +564,7 @@ function EmbudosTab() {
                     <span className="font-medium">{p.nombre}</span>
                     <Badge variant="outline">{marcaLabel(p.marca)}</Badge>
                   </div>
+                  <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -518,6 +576,17 @@ function EmbudosTab() {
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => { e.stopPropagation(); setDeletePipeline(p); }}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                  </div>
                 </div>
                 {expandedId === p.id && (
                   <div className="border-t px-3 pb-3 pt-2">
@@ -548,13 +617,25 @@ function EmbudosTab() {
                               </TableCell>
                               <TableCell className="font-medium">{s.name}</TableCell>
                               <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => { setEditStage(s); setEditStageName(s.name); setEditStageColor(s.color); }}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => { setEditStage(s); setEditStageName(s.name); setEditStageColor(s.color); }}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  {isAdmin && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setDeleteStage(s)}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -671,6 +752,48 @@ function EmbudosTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete pipeline confirmation */}
+      <AlertDialog open={!!deletePipeline} onOpenChange={(v) => { if (!v) setDeletePipeline(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar embudo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará el embudo "{deletePipeline?.nombre}" y todas sus etapas. Esta acción no se puede deshacer. Si el embudo tiene negocios asociados, no podrá eliminarse.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); deletePipelineMutation.mutate(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePipelineMutation.isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete stage confirmation */}
+      <AlertDialog open={!!deleteStage} onOpenChange={(v) => { if (!v) setDeleteStage(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar etapa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará la etapa "{deleteStage?.name}". Si tiene negocios asociados, no podrá eliminarse.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); deleteStageMutation.mutate(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteStageMutation.isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
