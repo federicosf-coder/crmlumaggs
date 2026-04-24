@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 export default function EntregaDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +34,7 @@ export default function EntregaDetalle() {
   const [uploading, setUploading] = useState<"evidencia" | "firmado" | null>(null);
   const [marking, setMarking] = useState(false);
   const [editAddrOpen, setEditAddrOpen] = useState(false);
+  const [selectedDireccionId, setSelectedDireccionId] = useState<string>("");
   const [newAddress, setNewAddress] = useState("");
   const [newLat, setNewLat] = useState<number | null>(null);
   const [newLng, setNewLng] = useState<number | null>(null);
