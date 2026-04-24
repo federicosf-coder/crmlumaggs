@@ -170,15 +170,15 @@ export default function Directory() {
       if (access.accessLevel === "propio" && access.userId) {
         const userId = access.userId;
         return companyAssignedIds.length > 0
-          ? q.or(`created_by.eq.${userId},id.in.(${companyAssignedIds.join(",")})`)
-          : q.eq("created_by", userId);
+          ? q.or(`created_by.eq.${userId},created_by.is.null,id.in.(${companyAssignedIds.join(",")})`)
+          : q.or(`created_by.eq.${userId},created_by.is.null`);
       }
 
       if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
         const teamCsv = access.teamMemberIds.join(",");
         return companyAssignedIds.length > 0
-          ? q.or(`created_by.in.(${teamCsv}),id.in.(${companyAssignedIds.join(",")})`)
-          : q.in("created_by", access.teamMemberIds);
+          ? q.or(`created_by.in.(${teamCsv}),created_by.is.null,id.in.(${companyAssignedIds.join(",")})`)
+          : q.or(`created_by.in.(${teamCsv}),created_by.is.null`);
       }
 
       return q;
@@ -190,15 +190,15 @@ export default function Directory() {
       if (access.accessLevel === "propio" && access.userId) {
         const userId = access.userId;
         return contactAssignedIds.length > 0
-          ? q.or(`created_by.eq.${userId},id.in.(${contactAssignedIds.join(",")})`)
-          : q.eq("created_by", userId);
+          ? q.or(`created_by.eq.${userId},created_by.is.null,id.in.(${contactAssignedIds.join(",")})`)
+          : q.or(`created_by.eq.${userId},created_by.is.null`);
       }
 
       if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
         const teamCsv = access.teamMemberIds.join(",");
         return contactAssignedIds.length > 0
-          ? q.or(`created_by.in.(${teamCsv}),id.in.(${contactAssignedIds.join(",")})`)
-          : q.in("created_by", access.teamMemberIds);
+          ? q.or(`created_by.in.(${teamCsv}),created_by.is.null,id.in.(${contactAssignedIds.join(",")})`)
+          : q.or(`created_by.in.(${teamCsv}),created_by.is.null`);
       }
 
       return q;
