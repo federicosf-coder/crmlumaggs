@@ -355,6 +355,8 @@ function OptionsTab() {
 // ─── Embudos de Venta Tab ────────────────────────────────────
 function EmbudosTab() {
   const qc = useQueryClient();
+  const { roles } = useAuth();
+  const isAdmin = roles.includes("admin");
   const { data: pipelines = [], isLoading } = useQuery({
     queryKey: ["all_pipelines_catalog"],
     queryFn: async () => {
@@ -408,6 +410,59 @@ function EmbudosTab() {
       qc.invalidateQueries({ queryKey: ["crm_pipeline_stages"] });
       setEditStage(null);
       toast.success("Etapa actualizada");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Delete pipeline (admin only)
+  const [deletePipeline, setDeletePipeline] = useState<any>(null);
+  const deletePipelineMutation = useMutation({
+    mutationFn: async () => {
+      // Check if pipeline has deals
+      const { count, error: cErr } = await supabase
+        .from("crm_deals")
+        .select("id", { count: "exact", head: true })
+        .eq("pipeline_id", deletePipeline.id);
+      if (cErr) throw cErr;
+      if ((count || 0) > 0) {
+        throw new Error(`No se puede eliminar: el embudo tiene ${count} negocio(s) asociado(s).`);
+      }
+      // Delete stages first
+      const { error: sErr } = await supabase.from("crm_pipeline_stages").delete().eq("pipeline_id", deletePipeline.id);
+      if (sErr) throw sErr;
+      const { error } = await supabase.from("crm_pipelines").delete().eq("id", deletePipeline.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["all_pipelines_catalog"] });
+      qc.invalidateQueries({ queryKey: ["crm_pipelines"] });
+      qc.invalidateQueries({ queryKey: ["crm_pipeline_stages"] });
+      if (expandedId === deletePipeline?.id) setExpandedId(null);
+      setDeletePipeline(null);
+      toast.success("Embudo eliminado");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Delete stage (admin only)
+  const [deleteStage, setDeleteStage] = useState<any>(null);
+  const deleteStageMutation = useMutation({
+    mutationFn: async () => {
+      const { count, error: cErr } = await supabase
+        .from("crm_deals")
+        .select("id", { count: "exact", head: true })
+        .eq("stage_id", deleteStage.id);
+      if (cErr) throw cErr;
+      if ((count || 0) > 0) {
+        throw new Error(`No se puede eliminar: la etapa tiene ${count} negocio(s) asociado(s).`);
+      }
+      const { error } = await supabase.from("crm_pipeline_stages").delete().eq("id", deleteStage.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crm_pipeline_stages"] });
+      setDeleteStage(null);
+      toast.success("Etapa eliminada");
     },
     onError: (e: any) => toast.error(e.message),
   });
