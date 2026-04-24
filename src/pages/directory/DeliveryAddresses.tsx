@@ -107,6 +107,7 @@ export default function DeliveryAddresses() {
     const coord = `${a.coordenadas_lat ?? ""},${a.coordenadas_lng ?? ""}`;
     return (
       a.calle.toLowerCase().includes(q) ||
+      (a.nombre || "").toLowerCase().includes(q) ||
       (a.ciudad || "").toLowerCase().includes(q) ||
       (a.estado || "").toLowerCase().includes(q) ||
       (a.companies?.name || "").toLowerCase().includes(q) ||
