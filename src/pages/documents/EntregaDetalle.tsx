@@ -531,6 +531,33 @@ export default function EntregaDetalle() {
                   </a>
                 </div>
               )}
+              {entrega.fecha_entrega_real && (archivos as any[]).length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
+                  {(archivos as any[]).map((a) => {
+                    const isImg = a.tipo_archivo?.startsWith("image/");
+                    const isPdf = a.tipo_archivo === "application/pdf";
+                    return (
+                      <a
+                        key={a.id}
+                        href={a.url_archivo}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="border rounded-md p-2 hover:bg-accent/40 transition-colors flex flex-col gap-1 min-w-0"
+                        title={a.nombre_archivo}
+                      >
+                        {isImg ? (
+                          <img src={a.url_archivo} alt={a.nombre_archivo} className="h-16 w-full object-cover rounded" loading="lazy" />
+                        ) : (
+                          <div className="h-16 w-full flex items-center justify-center bg-muted rounded">
+                            {isPdf ? <FileText className="h-6 w-6 text-primary" /> : <FileText className="h-6 w-6 text-muted-foreground" />}
+                          </div>
+                        )}
+                        <div className="text-[11px] truncate">{a.nombre_archivo}</div>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
           <Separator className="my-2" />
