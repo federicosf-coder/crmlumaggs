@@ -443,6 +443,13 @@ export default function EntregaDetalle() {
       const updates: any = { direccion_envio: newAddress.trim() };
       if (newLat !== null) updates.direccion_envio_lat = newLat;
       if (newLng !== null) updates.direccion_envio_lng = newLng;
+      // Nombre: respect manual edits; only auto-fill if empty
+      const currentNombre = (documento as any).direccion_envio_nombre || "";
+      if (editNombreTouched) {
+        updates.direccion_envio_nombre = editNombre.trim();
+      } else if (!currentNombre) {
+        updates.direccion_envio_nombre = buildDefaultNombre(newAddress, newCity);
+      }
       const { error } = await supabase.from("documentos").update(updates).eq("id", id);
       if (error) throw error;
       await supabase.from("documento_direccion_bitacora").insert({
