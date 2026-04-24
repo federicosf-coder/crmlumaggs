@@ -982,11 +982,14 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          mensaje_sugerido: string | null
           priority: string
           programable_entrega: boolean
           title: string
           updated_at: string
           user_id: string
+          whatsapp_last_sent_at: string | null
+          whatsapp_status: Database["public"]["Enums"]["whatsapp_task_status"]
         }
         Insert: {
           company_id?: string | null
@@ -997,11 +1000,14 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          mensaje_sugerido?: string | null
           priority?: string
           programable_entrega?: boolean
           title: string
           updated_at?: string
           user_id: string
+          whatsapp_last_sent_at?: string | null
+          whatsapp_status?: Database["public"]["Enums"]["whatsapp_task_status"]
         }
         Update: {
           company_id?: string | null
@@ -1012,11 +1018,14 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          mensaje_sugerido?: string | null
           priority?: string
           programable_entrega?: boolean
           title?: string
           updated_at?: string
           user_id?: string
+          whatsapp_last_sent_at?: string | null
+          whatsapp_status?: Database["public"]["Enums"]["whatsapp_task_status"]
         }
         Relationships: [
           {
@@ -1376,6 +1385,7 @@ export type Database = {
           fecha_entrega_programada: string | null
           fecha_oc_cliente: string | null
           fecha_vencimiento: string | null
+          follow_up_status: Database["public"]["Enums"]["cotizacion_followup_status"]
           forma_pago: string | null
           id: string
           is_active: boolean
@@ -1398,6 +1408,7 @@ export type Database = {
           unidades_equivalentes_total: number
           updated_at: string
           uso_cfdi: Database["public"]["Enums"]["uso_cfdi"] | null
+          whatsapp_last_sent_at: string | null
         }
         Insert: {
           contacto_id?: string | null
@@ -1428,6 +1439,7 @@ export type Database = {
           fecha_entrega_programada?: string | null
           fecha_oc_cliente?: string | null
           fecha_vencimiento?: string | null
+          follow_up_status?: Database["public"]["Enums"]["cotizacion_followup_status"]
           forma_pago?: string | null
           id?: string
           is_active?: boolean
@@ -1450,6 +1462,7 @@ export type Database = {
           unidades_equivalentes_total?: number
           updated_at?: string
           uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
+          whatsapp_last_sent_at?: string | null
         }
         Update: {
           contacto_id?: string | null
@@ -1480,6 +1493,7 @@ export type Database = {
           fecha_entrega_programada?: string | null
           fecha_oc_cliente?: string | null
           fecha_vencimiento?: string | null
+          follow_up_status?: Database["public"]["Enums"]["cotizacion_followup_status"]
           forma_pago?: string | null
           id?: string
           is_active?: boolean
@@ -1502,6 +1516,7 @@ export type Database = {
           unidades_equivalentes_total?: number
           updated_at?: string
           uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
+          whatsapp_last_sent_at?: string | null
         }
         Relationships: [
           {
@@ -2845,6 +2860,53 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_message_templates: {
+        Row: {
+          activo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          mensaje: string
+          meta_template_id: string | null
+          nombre: string
+          orden: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mensaje: string
+          meta_template_id?: string | null
+          nombre: string
+          orden?: number
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mensaje?: string
+          meta_template_id?: string | null
+          nombre?: string
+          orden?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_message_templates_meta_template_id_fkey"
+            columns: ["meta_template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_messages: {
         Row: {
           contact_id: string | null
@@ -3139,6 +3201,13 @@ export type Database = {
         | "customer_service"
         | "accounting"
       approval_status: "pendiente" | "aprobado" | "rechazado"
+      cotizacion_followup_status:
+        | "enviada"
+        | "seguimiento_1"
+        | "seguimiento_2"
+        | "seguimiento_3"
+        | "vencida"
+        | "sin_actividad"
       empresa_vendedora: "lumaggs_chevron" | "galsa_phillips66"
       estado_cobranza_doc:
         | "pendiente"
@@ -3249,6 +3318,11 @@ export type Database = {
         | "CP01"
         | "CN01"
       vehiculo_icon: "pickup" | "truck"
+      whatsapp_task_status:
+        | "pendiente"
+        | "enviado"
+        | "respondido"
+        | "no_respondio"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3405,6 +3479,14 @@ export const Constants = {
         "accounting",
       ],
       approval_status: ["pendiente", "aprobado", "rechazado"],
+      cotizacion_followup_status: [
+        "enviada",
+        "seguimiento_1",
+        "seguimiento_2",
+        "seguimiento_3",
+        "vencida",
+        "sin_actividad",
+      ],
       empresa_vendedora: ["lumaggs_chevron", "galsa_phillips66"],
       estado_cobranza_doc: [
         "pendiente",
@@ -3521,6 +3603,12 @@ export const Constants = {
         "CN01",
       ],
       vehiculo_icon: ["pickup", "truck"],
+      whatsapp_task_status: [
+        "pendiente",
+        "enviado",
+        "respondido",
+        "no_respondio",
+      ],
     },
   },
 } as const
