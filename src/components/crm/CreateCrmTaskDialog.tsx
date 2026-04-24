@@ -73,9 +73,9 @@ export function CreateCrmTaskDialog({ open, onOpenChange, defaultDealId, default
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle>Crear Actividad / Tarea</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0"><DialogTitle>Crear Actividad / Tarea</DialogTitle></DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6 overflow-y-auto flex-1">
           <div className="space-y-2">
             <Label>Título *</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Dar seguimiento al cliente" required maxLength={200} />
