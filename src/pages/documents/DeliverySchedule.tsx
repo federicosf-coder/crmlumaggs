@@ -218,6 +218,16 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                   )}
                   <Button
                     size="icon"
+                    variant="secondary"
+                    className="h-6 w-6 shadow"
+                    title="Ver / editar pedido"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/documents/${item.id}/edit`); }}
+                  >
+                    <FileText className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="icon"
                     variant="default"
                     className="h-6 w-6 shadow"
                     title="Abrir entrega"
