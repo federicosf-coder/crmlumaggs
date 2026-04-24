@@ -3,7 +3,7 @@
  * (evita el límite por defecto de 1000 filas por respuesta).
  */
 export async function fetchAllRows<T>(
-  fetchPage: (from: number, to: number) => Promise<{ data: T[] | null; error: any }>,
+  fetchPage: (from: number, to: number) => any,
   pageSize = 1000
 ): Promise<T[]> {
   const all: T[] = [];
