@@ -133,15 +133,15 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) setEditing(false); onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-md p-0">
-        <div className="flex items-center justify-between border-b px-6 py-3">
+      <DialogContent className="sm:max-w-md p-0 max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between border-b px-6 py-3 shrink-0">
           <DialogTitle className="text-lg font-semibold truncate">{task.title}</DialogTitle>
           <Button variant="ghost" size="icon" onClick={() => setEditing(!editing)}>
             {editing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
           </Button>
         </div>
 
-        <div className="px-6 pb-6 pt-4 space-y-4">
+        <div className="px-6 pb-6 pt-4 space-y-4 overflow-y-auto flex-1">
           {editing ? (
             <div className="space-y-4">
               <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required /></div>
