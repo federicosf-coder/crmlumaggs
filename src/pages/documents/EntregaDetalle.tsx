@@ -715,12 +715,34 @@ export default function EntregaDetalle() {
                 setNewAddress(v.direccion_completa);
                 setNewLat(v.latitud);
                 setNewLng(v.longitud);
+                setNewCity(v.ciudad ?? null);
                 setOrigenCambio("manual");
               }}
               label="Dirección de entrega"
               required
               placeholder="Buscar dirección..."
             />
+            <div>
+              <Label>Nombre</Label>
+              <Input
+                value={editNombre}
+                onChange={(e) => { setEditNombre(e.target.value); setEditNombreTouched(true); }}
+                placeholder="Se generará automáticamente: Empresa | Tipo | Calle | Ciudad"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Identificador editable de la dirección. No se sobrescribe al actualizar.</p>
+            </div>
+            <div className="rounded-md border p-2 space-y-2">
+              <div className="text-xs text-muted-foreground">Coordenadas</div>
+              <div className="text-sm">
+                {newLat != null && newLng != null
+                  ? <>📍 {Number(newLat).toFixed(6)}, {Number(newLng).toFixed(6)}</>
+                  : <span className="text-muted-foreground italic">Sin coordenadas</span>}
+              </div>
+              <Button size="sm" variant="outline" onClick={refreshCoordsFromAddress} disabled={refreshingCoords}>
+                {refreshingCoords ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Navigation className="h-3.5 w-3.5 mr-1" />}
+                Actualizar coordenadas
+              </Button>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditAddrOpen(false)}>Cancelar</Button>
