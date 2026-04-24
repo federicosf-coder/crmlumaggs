@@ -14,8 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart, ExternalLink } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart, ExternalLink, MessageCircle } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
+import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
 import { format, addDays } from "date-fns";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
@@ -88,6 +89,7 @@ export default function DocumentForm() {
   const [searchParams] = useSearchParams();
   const initialTipo = searchParams.get("tipo");
   const qc = useQueryClient();
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
   const { user, profile, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   const isSales = hasRole("sales");
@@ -154,13 +156,13 @@ export default function DocumentForm() {
 
   // Lookups
   const { data: plazas = [] } = useQuery({ queryKey: ["plazas"], queryFn: async () => { const { data } = await supabase.from("plazas").select("*").eq("is_active", true).order("nombre"); return data || []; } });
-  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name, lista_precios, uso_cfdi, metodo_pago, tipo_pago, forma_pago, id_contpaq").eq("is_active", true).order("name"); return data || []; } });
+  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name, phone, lista_precios, uso_cfdi, metodo_pago, tipo_pago, forma_pago, id_contpaq").eq("is_active", true).order("name"); return data || []; } });
   // Note: forma_pago is also fetched but typed as any via spread below
   const { data: contacts = [], refetch: refetchContacts } = useQuery({
     queryKey: ["contacts", form.empresa_id],
     queryFn: async () => {
       if (!form.empresa_id) return [];
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name, company_id").eq("is_active", true).eq("company_id", form.empresa_id).order("first_name");
+      const { data } = await supabase.from("contacts").select("id, first_name, last_name, company_id, phone, mobile, whatsapp_phone").eq("is_active", true).eq("company_id", form.empresa_id).order("first_name");
       return data || [];
     },
   });
@@ -675,6 +677,9 @@ export default function DocumentForm() {
               <>
                 <Button variant="secondary" onClick={() => handleConvertTo("pedido")}>
                   <ShoppingCart className="mr-2 h-4 w-4" /> Convertir a Pedido
+                </Button>
+                <Button variant="secondary" onClick={() => setWhatsappOpen(true)}>
+                  <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp seguimiento
                 </Button>
                 {!isSales && !isDelivery && (
                   <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
@@ -1217,6 +1222,36 @@ export default function DocumentForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <WhatsAppActionDialog
+        open={whatsappOpen}
+        onOpenChange={setWhatsappOpen}
+        phone={
+          (contacts.find((c: any) => c.id === form.contacto_id) as any)?.whatsapp_phone ||
+          (contacts.find((c: any) => c.id === form.contacto_id) as any)?.mobile ||
+          (contacts.find((c: any) => c.id === form.contacto_id) as any)?.phone ||
+          (companies.find((co: any) => co.id === form.empresa_id) as any)?.phone ||
+          null
+        }
+        templateType="seguimiento_cotizacion"
+        variables={{
+          contacto_nombre: (() => {
+            const c: any = contacts.find((x: any) => x.id === form.contacto_id);
+            return c ? `${c.first_name} ${c.last_name}`.trim() : null;
+          })(),
+          empresa_nombre: (companies.find((co: any) => co.id === form.empresa_id) as any)?.name || null,
+          ejecutivo_nombre: profile?.full_name || null,
+          folio_cotizacion: form.numero_cotizacion || existingDoc?.numero_cotizacion || null,
+          total_cotizacion: existingDoc?.total != null ? `$${Number(existingDoc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : null,
+          fecha_vencimiento: form.fecha_vencimiento || null,
+        }}
+        context={{ company_id: form.empresa_id || null, contact_id: form.contacto_id || null }}
+        onSent={async () => {
+          if (!id) return;
+          await supabase.from("documentos").update({ whatsapp_last_sent_at: new Date().toISOString() }).eq("id", id);
+          qc.invalidateQueries({ queryKey: ["documento", id] });
+        }}
+      />
     </div>
   );
 }
