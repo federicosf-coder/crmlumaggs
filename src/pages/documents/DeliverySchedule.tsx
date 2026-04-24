@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
-  ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon,
+  ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon, FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -216,6 +216,16 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                       <MapPin className="h-3 w-3" />
                     </Button>
                   )}
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-6 w-6 shadow"
+                    title="Ver / editar pedido"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/documents/${item.id}/edit`); }}
+                  >
+                    <FileText className="h-3 w-3" />
+                  </Button>
                   <Button
                     size="icon"
                     variant="default"

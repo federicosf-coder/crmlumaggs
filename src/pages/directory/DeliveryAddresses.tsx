@@ -254,18 +254,15 @@ export default function DeliveryAddresses() {
                 <TableHead>Nombre</TableHead>
                 <TableHead>Tipos</TableHead>
                 <TableHead>Dirección</TableHead>
-                <TableHead>Ciudad</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>C.P.</TableHead>
                 <TableHead>Coordenadas</TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin direcciones</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin direcciones</TableCell></TableRow>
               ) : (
                 filtered.map((a) => {
                   const tipos = a.tipos && a.tipos.length ? a.tipos : [a.tipo];
@@ -285,7 +282,7 @@ export default function DeliveryAddresses() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="truncate">{a.calle}</span>
+                          <span className="truncate">{a.direccion_completa || a.calle}</span>
                           <AddressDisplay
                             address={a.direccion_completa || a.calle}
                             lat={a.coordenadas_lat}
@@ -294,9 +291,6 @@ export default function DeliveryAddresses() {
                           />
                         </div>
                       </TableCell>
-                      <TableCell>{a.ciudad || "—"}</TableCell>
-                      <TableCell>{a.estado || "—"}</TableCell>
-                      <TableCell>{a.codigo_postal || "—"}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{coords}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openEdit(a); }}>

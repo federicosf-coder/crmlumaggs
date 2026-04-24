@@ -23,6 +23,7 @@ import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Link } from "react-router-dom";
 import { DocumentPagosSection } from "@/components/documents/DocumentPagosSection";
 import { fetchAllRows } from "@/lib/supabasePagination";
+import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "confirmado_cliente", l: "Confirmado Cliente" }, { v: "validado_contabilidad", l: "Validado Contabilidad" }, { v: "programado_entrega", l: "Programado Entrega" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
@@ -137,14 +138,10 @@ export default function DocumentForm() {
   const [showNewCompany, setShowNewCompany] = useState(false);
   const [showNewContact, setShowNewContact] = useState(false);
   const [showNewAddress, setShowNewAddress] = useState(false);
-  const [newAddrCalle, setNewAddrCalle] = useState("");
-  const [newAddrCiudad, setNewAddrCiudad] = useState("");
-  const [newAddrEstado, setNewAddrEstado] = useState("");
-  const [newAddrCp, setNewAddrCp] = useState("");
   const [newAddrTipo, setNewAddrTipo] = useState("envio");
-  const [newAddrLat, setNewAddrLat] = useState("");
-  const [newAddrLng, setNewAddrLng] = useState("");
-  const [newAddrGoogle, setNewAddrGoogle] = useState("");
+  const [newAddrNombre, setNewAddrNombre] = useState("");
+  const [newAddrReferencia, setNewAddrReferencia] = useState("");
+  const [newAddrAddress, setNewAddrAddress] = useState<AddressValue>({ ...emptyAddress });
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [newProductForm, setNewProductForm] = useState({
     codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
@@ -410,19 +407,37 @@ export default function DocumentForm() {
   };
 
   const handleAddAddress = async () => {
-    if (!newAddrCalle.trim()) return;
+    const dir = newAddrAddress.direccion_completa.trim();
+    if (!dir) { toast.error("La dirección es obligatoria"); return; }
+    const empresaName = (companies as any[]).find((c) => c.id === form.empresa_id)?.name || "";
+    const calleShort = dir.split(",")[0]?.trim() || "";
+    const ciudad = newAddrAddress.ciudad || "";
+    const autoNombre = [empresaName, "Entrega", calleShort, ciudad]
+      .map((s) => (s || "").trim()).filter(Boolean).join(" | ");
+    const nombreFinal = newAddrNombre.trim() || autoNombre;
     const { data, error } = await supabase.from("direcciones_empresa").insert({
-      empresa_id: form.empresa_id, tipo: newAddrTipo as any, calle: newAddrCalle.trim(),
-      ciudad: newAddrCiudad.trim() || null, estado: newAddrEstado.trim() || null, codigo_postal: newAddrCp.trim() || null,
-      coordenadas_lat: newAddrLat ? Number(newAddrLat) : null,
-      coordenadas_lng: newAddrLng ? Number(newAddrLng) : null,
-      codigo_google: newAddrGoogle.trim() || null,
+      empresa_id: form.empresa_id,
+      tipo: newAddrTipo as any,
+      tipos: [newAddrTipo],
+      nombre: nombreFinal,
+      calle: dir,
+      direccion_completa: dir,
+      ciudad: newAddrAddress.ciudad || null,
+      estado: newAddrAddress.estado || null,
+      pais: newAddrAddress.pais || null,
+      codigo_postal: newAddrAddress.codigo_postal || null,
+      coordenadas_lat: newAddrAddress.latitud,
+      coordenadas_lng: newAddrAddress.longitud,
+      codigo_google: newAddrAddress.codigo_google || null,
+      referencia: newAddrReferencia.trim() || null,
     } as any).select("id").single();
     if (error) { toast.error(error.message); return; }
     await refetchAddresses();
     set("direccion_envio", data.id);
-    setNewAddrCalle(""); setNewAddrCiudad(""); setNewAddrEstado(""); setNewAddrCp(""); setNewAddrTipo("envio");
-    setNewAddrLat(""); setNewAddrLng(""); setNewAddrGoogle("");
+    setNewAddrTipo("envio");
+    setNewAddrNombre("");
+    setNewAddrReferencia("");
+    setNewAddrAddress({ ...emptyAddress });
     setShowNewAddress(false);
     toast.success("Dirección creada");
   };
@@ -1118,7 +1133,9 @@ export default function DocumentForm() {
                 disabled={!form.empresa_id}
                 options={addresses.map((a: any) => ({
                   value: a.id,
-                  label: `[${TIPO_DIRECCION_LABELS[a.tipo] || a.tipo}] ${a.calle}${a.ciudad ? `, ${a.ciudad}` : ""}`,
+                  label: a.nombre || `[${TIPO_DIRECCION_LABELS[a.tipo] || a.tipo}] ${a.calle}`,
+                  description: a.direccion_completa || `${a.calle}${a.ciudad ? `, ${a.ciudad}` : ""}${a.estado ? `, ${a.estado}` : ""}`,
+                  searchText: `${a.nombre || ""} ${a.direccion_completa || ""} ${a.calle || ""} ${a.ciudad || ""} ${a.estado || ""}`,
                 }))}
                 className="flex-1"
               />
@@ -1156,7 +1173,7 @@ export default function DocumentForm() {
 
       {/* Dialog: Nueva Dirección */}
       <Dialog open={showNewAddress} onOpenChange={setShowNewAddress}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Nueva Dirección</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
@@ -1172,21 +1189,33 @@ export default function DocumentForm() {
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>Calle / Dirección *</Label><Input value={newAddrCalle} onChange={e => setNewAddrCalle(e.target.value)} /></div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Ciudad</Label><Input value={newAddrCiudad} onChange={e => setNewAddrCiudad(e.target.value)} /></div>
-              <div><Label>Estado</Label><Input value={newAddrEstado} onChange={e => setNewAddrEstado(e.target.value)} /></div>
+            <AddressAutocompleteInput
+              value={newAddrAddress}
+              onChange={(v) => setNewAddrAddress(v)}
+              label="Dirección completa"
+              required
+              placeholder="Buscar dirección en Google Maps..."
+            />
+            <div>
+              <Label>Nombre</Label>
+              <Input
+                value={newAddrNombre}
+                onChange={e => setNewAddrNombre(e.target.value)}
+                placeholder="Se generará automáticamente: Empresa | Tipo | Calle | Ciudad"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Código Postal</Label><Input value={newAddrCp} onChange={e => setNewAddrCp(e.target.value)} /></div>
-              <div><Label>Código Google</Label><Input value={newAddrGoogle} onChange={e => setNewAddrGoogle(e.target.value)} placeholder="Ej: ChIJ..." /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Latitud</Label><Input type="number" step="any" value={newAddrLat} onChange={e => setNewAddrLat(e.target.value)} placeholder="25.6866" /></div>
-              <div><Label>Longitud</Label><Input type="number" step="any" value={newAddrLng} onChange={e => setNewAddrLng(e.target.value)} placeholder="-100.3161" /></div>
+            <div>
+              <Label>Referencia</Label>
+              <Input
+                value={newAddrReferencia}
+                onChange={e => setNewAddrReferencia(e.target.value)}
+                placeholder="Detalles adicionales (entre calles, color de fachada, etc.)"
+              />
             </div>
           </div>
-          <DialogFooter><Button onClick={handleAddAddress} disabled={!newAddrCalle.trim()}>Crear Dirección</Button></DialogFooter>
+          <DialogFooter>
+            <Button onClick={handleAddAddress} disabled={!newAddrAddress.direccion_completa.trim()}>Crear Dirección</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
