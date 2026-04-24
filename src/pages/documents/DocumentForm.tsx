@@ -162,7 +162,7 @@ export default function DocumentForm() {
     queryKey: ["contacts", form.empresa_id],
     queryFn: async () => {
       if (!form.empresa_id) return [];
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name, company_id").eq("is_active", true).eq("company_id", form.empresa_id).order("first_name");
+      const { data } = await supabase.from("contacts").select("id, first_name, last_name, company_id, phone, mobile, whatsapp_phone").eq("is_active", true).eq("company_id", form.empresa_id).order("first_name");
       return data || [];
     },
   });
