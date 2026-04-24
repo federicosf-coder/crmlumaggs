@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ImportExportMenu } from "@/components/ImportExportMenu";
+import { fetchAllRows } from "@/lib/supabasePagination";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDialog";
 
