@@ -164,10 +164,19 @@ export default function DeliveryAddresses() {
     }
     // Keep legacy `tipo` synced with first selection (DB column is NOT NULL)
     const primaryTipo = form.tipos[0];
+    const empresaName = (companies as any[]).find((c) => c.id === form.empresa_id)?.name || "";
+    const calleForName = (form.address.direccion_completa || "").split(",")[0]?.trim() || "";
+    const ciudadForName = form.address.ciudad || "";
+    const autoNombre = [empresaName, labelByClave(primaryTipo), calleForName, ciudadForName]
+      .map((s) => (s || "").trim())
+      .filter(Boolean)
+      .join(" | ");
+    const nombreFinal = form.nombre.trim() || autoNombre;
     const payload: any = {
       empresa_id: form.empresa_id,
       tipo: primaryTipo,
       tipos: form.tipos,
+      nombre: nombreFinal,
       calle: dir, // legacy NOT NULL column kept in sync
       direccion_completa: dir,
       ciudad: form.address.ciudad || null,
