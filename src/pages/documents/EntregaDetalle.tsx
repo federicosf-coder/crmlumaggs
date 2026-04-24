@@ -746,6 +746,50 @@ export default function EntregaDetalle() {
             <DialogDescription>Edita la dirección o usa tu ubicación actual</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {direccionesEmpresa.length > 0 && (
+              <div className="space-y-1">
+                <Label className="text-xs">Direcciones registradas de la empresa</Label>
+                <div className="flex gap-2">
+                  <div className="flex-1 min-w-0">
+                    <SearchableSelect
+                      value={selectedDireccionId}
+                      onValueChange={(val) => {
+                        setSelectedDireccionId(val);
+                        const d: any = direccionesEmpresa.find((x: any) => x.id === val);
+                        if (!d) return;
+                        const direccion = d.direccion_completa || [d.calle, d.ciudad, d.estado, d.codigo_postal].filter(Boolean).join(", ");
+                        setNewAddress(direccion);
+                        setNewLat(d.coordenadas_lat ?? null);
+                        setNewLng(d.coordenadas_lng ?? null);
+                        setNewCity(d.ciudad ?? null);
+                        setOrigenCambio("manual");
+                        if (!editNombreTouched && d.nombre) setEditNombre(d.nombre);
+                      }}
+                      options={(direccionesEmpresa as any[]).map((d) => ({
+                        value: d.id,
+                        label: d.nombre || d.direccion_completa || d.calle || "Sin nombre",
+                        searchText: `${d.nombre || ""} ${d.direccion_completa || ""} ${d.calle || ""} ${d.ciudad || ""}`,
+                      }))}
+                      placeholder="Selecciona una dirección..."
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    disabled={!selectedDireccionId}
+                    title="Ver / Editar en módulo Direcciones"
+                    onClick={() => {
+                      if (!empresaIdForAddrs) return;
+                      window.open(`/directorio/direcciones?empresa=${empresaIdForAddrs}&direccion=${selectedDireccionId}`, "_blank");
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Selecciona una existente o edita manualmente abajo.</p>
+              </div>
+            )}
             <AddressAutocompleteInput
               value={{
                 direccion_completa: newAddress,
@@ -763,6 +807,7 @@ export default function EntregaDetalle() {
                 setNewLng(v.longitud);
                 setNewCity(v.ciudad ?? null);
                 setOrigenCambio("manual");
+                setSelectedDireccionId("");
               }}
               label="Dirección de entrega"
               required
