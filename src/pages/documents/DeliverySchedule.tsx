@@ -25,6 +25,7 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
+import { fetchAllRows } from "@/lib/supabasePagination";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
   DragOverlay, useDroppable, type DragStartEvent, type DragEndEvent, type DragOverEvent,
@@ -322,14 +323,14 @@ export default function DeliverySchedule() {
   const { data: poolPedidos = [], refetch: refetchPool } = useQuery({
     queryKey: ["pool-pedidos"],
     queryFn: async () => {
-      const { data } = await supabase
+      const q = supabase
         .from("documentos")
         .select("*, companies(name), documento_productos(cantidad, producto_id, productos(presentacion_id, presentaciones(nombre)))")
         .eq("tipo_documento", "pedido")
         .eq("is_active", true)
         .in("estatus_pedido", [...POOL_STATUSES])
         .order("created_at", { ascending: false });
-      return data || [];
+      return await fetchAllRows<any>(q);
     },
   });
 
