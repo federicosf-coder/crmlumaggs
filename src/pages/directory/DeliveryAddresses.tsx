@@ -116,7 +116,7 @@ export default function DeliveryAddresses() {
   });
 
   const resetForm = () => {
-    setForm({ empresa_id: "", tipos: ["envio"], referencia: "", address: { ...emptyAddress } });
+    setForm({ empresa_id: "", tipos: ["envio"], nombre: "", nombre_touched: false, referencia: "", address: { ...emptyAddress } });
     setEditing(null);
   };
 
@@ -128,6 +128,8 @@ export default function DeliveryAddresses() {
     setForm({
       empresa_id: a.empresa_id,
       tipos,
+      nombre: a.nombre || "",
+      nombre_touched: !!(a.nombre && a.nombre.trim()),
       referencia: a.referencia || "",
       address: {
         direccion_completa: a.direccion_completa || a.calle || "",
