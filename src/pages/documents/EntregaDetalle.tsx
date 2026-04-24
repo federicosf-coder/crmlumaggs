@@ -36,6 +36,11 @@ export default function EntregaDetalle() {
   const [newAddress, setNewAddress] = useState("");
   const [newLat, setNewLat] = useState<number | null>(null);
   const [newLng, setNewLng] = useState<number | null>(null);
+  const [newCity, setNewCity] = useState<string | null>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editNombreTouched, setEditNombreTouched] = useState(false);
+  const [refreshingCoords, setRefreshingCoords] = useState(false);
+  const [usingMyLocation, setUsingMyLocation] = useState(false);
   const [origenCambio, setOrigenCambio] = useState<"manual" | "ubicacion_actual">("manual");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [savingAddr, setSavingAddr] = useState(false);
@@ -190,6 +195,112 @@ export default function EntregaDetalle() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
   };
 
+  // Build default name: Empresa | Tipo | Calle | Ciudad (skip empties)
+  const buildDefaultNombre = (calle: string, ciudad: string | null) => {
+    const empresa = (documento as any)?.companies?.name || "";
+    const tipo = "Entrega";
+    const calleShort = (calle || "").split(",")[0]?.trim() || "";
+    return [empresa, tipo, calleShort, ciudad || ""]
+      .map((s) => (s || "").trim())
+      .filter(Boolean)
+      .join(" | ");
+  };
+
+  const refreshCoordsFromAddress = async () => {
+    if (!newAddress.trim()) {
+      toast.error("Escribe primero una dirección");
+      return;
+    }
+    setRefreshingCoords(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(newAddress)}&limit=1&addressdetails=1`,
+        { headers: { "Accept-Language": "es" } }
+      );
+      const json = await res.json();
+      if (Array.isArray(json) && json[0]?.lat && json[0]?.lon) {
+        setNewLat(parseFloat(json[0].lat));
+        setNewLng(parseFloat(json[0].lon));
+        const a = json[0].address || {};
+        const ciudad = a.city || a.town || a.village || a.municipality || null;
+        if (ciudad) setNewCity(ciudad);
+        toast.success("Coordenadas actualizadas");
+      } else {
+        toast.error("No se encontraron coordenadas para esta dirección");
+      }
+    } catch {
+      toast.error("Error al obtener coordenadas");
+    } finally {
+      setRefreshingCoords(false);
+    }
+  };
+
+  const useMyLocationForDelivery = async () => {
+    if (!navigator.geolocation) {
+      toast.error("Tu dispositivo no soporta geolocalización");
+      return;
+    }
+    if (!documento || !id) return;
+    setUsingMyLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        let direccion = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+        let ciudad: string | null = null;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            { headers: { "Accept-Language": "es" } }
+          );
+          const json = await res.json();
+          if (json?.display_name) direccion = json.display_name;
+          const a = json?.address || {};
+          ciudad = a.city || a.town || a.village || a.municipality || null;
+        } catch { /* keep coords-only fallback */ }
+
+        try {
+          const updates: any = {
+            direccion_envio: direccion,
+            direccion_envio_lat: lat,
+            direccion_envio_lng: lng,
+          };
+          // Only autogenerate name if currently empty
+          if (!(documento as any).direccion_envio_nombre) {
+            updates.direccion_envio_nombre = buildDefaultNombre(direccion, ciudad);
+          }
+          const { error } = await supabase.from("documentos").update(updates).eq("id", id);
+          if (error) throw error;
+          await supabase.from("documento_direccion_bitacora").insert({
+            documento_id: id,
+            direccion_anterior: documento.direccion_envio,
+            direccion_nueva: direccion,
+            latitud: lat,
+            longitud: lng,
+            origen: "ubicacion_actual",
+            usuario_id: user?.id,
+          });
+          toast.success("Dirección actualizada con tu ubicación");
+          queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
+          refetchBitacora();
+        } catch (e: any) {
+          toast.error(e.message || "Error al guardar la ubicación");
+        } finally {
+          setUsingMyLocation(false);
+        }
+      },
+      (err) => {
+        setUsingMyLocation(false);
+        toast.error(
+          err.code === err.PERMISSION_DENIED
+            ? "Permiso de ubicación denegado"
+            : "No se pudo obtener tu ubicación"
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const handleFiles = async (files: FileList | null, categoria: "evidencia" | "firmado") => {
     if (!files || files.length === 0 || !id) return;
     setUploading(categoria);
@@ -332,6 +443,13 @@ export default function EntregaDetalle() {
       const updates: any = { direccion_envio: newAddress.trim() };
       if (newLat !== null) updates.direccion_envio_lat = newLat;
       if (newLng !== null) updates.direccion_envio_lng = newLng;
+      // Nombre: respect manual edits; only auto-fill if empty
+      const currentNombre = (documento as any).direccion_envio_nombre || "";
+      if (editNombreTouched) {
+        updates.direccion_envio_nombre = editNombre.trim();
+      } else if (!currentNombre) {
+        updates.direccion_envio_nombre = buildDefaultNombre(newAddress, newCity);
+      }
       const { error } = await supabase.from("documentos").update(updates).eq("id", id);
       if (error) throw error;
       await supabase.from("documento_direccion_bitacora").insert({
@@ -413,6 +531,33 @@ export default function EntregaDetalle() {
                   </a>
                 </div>
               )}
+              {entrega.fecha_entrega_real && (archivos as any[]).length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
+                  {(archivos as any[]).map((a) => {
+                    const isImg = a.tipo_archivo?.startsWith("image/");
+                    const isPdf = a.tipo_archivo === "application/pdf";
+                    return (
+                      <a
+                        key={a.id}
+                        href={a.url_archivo}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="border rounded-md p-2 hover:bg-accent/40 transition-colors flex flex-col gap-1 min-w-0"
+                        title={a.nombre_archivo}
+                      >
+                        {isImg ? (
+                          <img src={a.url_archivo} alt={a.nombre_archivo} className="h-16 w-full object-cover rounded" loading="lazy" />
+                        ) : (
+                          <div className="h-16 w-full flex items-center justify-center bg-muted rounded">
+                            {isPdf ? <FileText className="h-6 w-6 text-primary" /> : <FileText className="h-6 w-6 text-muted-foreground" />}
+                          </div>
+                        )}
+                        <div className="text-[11px] truncate">{a.nombre_archivo}</div>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
           <Separator className="my-2" />
@@ -456,11 +601,23 @@ export default function EntregaDetalle() {
           <CardTitle className="text-base flex items-center gap-2">
             <MapPin className="h-4 w-4" /> Dirección de Entrega
           </CardTitle>
-          <Button size="sm" variant="outline" onClick={() => { setNewLat(null); setNewLng(null); setOrigenCambio("manual"); setNewAddress(documento.direccion_envio || ""); setEditAddrOpen(true); }}>
+          <Button size="sm" variant="outline" onClick={() => {
+            setNewLat(docLat ?? null);
+            setNewLng(docLng ?? null);
+            setNewCity(null);
+            setOrigenCambio("manual");
+            setNewAddress(documento.direccion_envio || "");
+            setEditNombre((documento as any).direccion_envio_nombre || "");
+            setEditNombreTouched(false);
+            setEditAddrOpen(true);
+          }}>
             <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
           </Button>
         </CardHeader>
         <CardContent className="space-y-2">
+          {(documento as any).direccion_envio_nombre && (
+            <p className="text-sm font-medium">{(documento as any).direccion_envio_nombre}</p>
+          )}
           <p className="text-sm">{documento.direccion_envio || <span className="text-muted-foreground italic">Sin dirección</span>}</p>
           {(docLat && docLng) && (
             <p className="text-xs text-muted-foreground">📍 {Number(docLat).toFixed(6)}, {Number(docLng).toFixed(6)}</p>
@@ -480,6 +637,19 @@ export default function EntregaDetalle() {
               <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir en Google Maps
             </Button>
           )}
+          <div className="pt-2 border-t mt-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={useMyLocationForDelivery}
+              disabled={usingMyLocation}
+              className="w-full sm:w-auto"
+            >
+              {usingMyLocation ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Navigation className="h-3.5 w-3.5 mr-1" />}
+              Usar mi ubicación actual
+            </Button>
+            <p className="text-xs text-muted-foreground mt-1">Este botón actualiza la dirección usando tu ubicación actual.</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -572,12 +742,34 @@ export default function EntregaDetalle() {
                 setNewAddress(v.direccion_completa);
                 setNewLat(v.latitud);
                 setNewLng(v.longitud);
+                setNewCity(v.ciudad ?? null);
                 setOrigenCambio("manual");
               }}
               label="Dirección de entrega"
               required
               placeholder="Buscar dirección..."
             />
+            <div>
+              <Label>Nombre</Label>
+              <Input
+                value={editNombre}
+                onChange={(e) => { setEditNombre(e.target.value); setEditNombreTouched(true); }}
+                placeholder="Se generará automáticamente: Empresa | Tipo | Calle | Ciudad"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Identificador editable de la dirección. No se sobrescribe al actualizar.</p>
+            </div>
+            <div className="rounded-md border p-2 space-y-2">
+              <div className="text-xs text-muted-foreground">Coordenadas</div>
+              <div className="text-sm">
+                {newLat != null && newLng != null
+                  ? <>📍 {Number(newLat).toFixed(6)}, {Number(newLng).toFixed(6)}</>
+                  : <span className="text-muted-foreground italic">Sin coordenadas</span>}
+              </div>
+              <Button size="sm" variant="outline" onClick={refreshCoordsFromAddress} disabled={refreshingCoords}>
+                {refreshingCoords ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Navigation className="h-3.5 w-3.5 mr-1" />}
+                Actualizar coordenadas
+              </Button>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditAddrOpen(false)}>Cancelar</Button>

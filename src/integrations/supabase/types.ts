@@ -1139,6 +1139,7 @@ export type Database = {
           direccion_envio: string | null
           direccion_envio_lat: number | null
           direccion_envio_lng: number | null
+          direccion_envio_nombre: string | null
           ejecutivo_venta_id: string | null
           empresa_id: string | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
@@ -1188,6 +1189,7 @@ export type Database = {
           direccion_envio?: string | null
           direccion_envio_lat?: number | null
           direccion_envio_lng?: number | null
+          direccion_envio_nombre?: string | null
           ejecutivo_venta_id?: string | null
           empresa_id?: string | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
@@ -1239,6 +1241,7 @@ export type Database = {
           direccion_envio?: string | null
           direccion_envio_lat?: number | null
           direccion_envio_lng?: number | null
+          direccion_envio_nombre?: string | null
           ejecutivo_venta_id?: string | null
           empresa_id?: string | null
           empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
