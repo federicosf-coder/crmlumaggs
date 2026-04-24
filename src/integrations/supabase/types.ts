@@ -885,6 +885,7 @@ export type Database = {
           estado: string | null
           id: string
           is_active: boolean
+          nombre: string | null
           pais: string | null
           referencia: string | null
           tipo: Database["public"]["Enums"]["tipo_direccion"]
@@ -904,6 +905,7 @@ export type Database = {
           estado?: string | null
           id?: string
           is_active?: boolean
+          nombre?: string | null
           pais?: string | null
           referencia?: string | null
           tipo?: Database["public"]["Enums"]["tipo_direccion"]
@@ -923,6 +925,7 @@ export type Database = {
           estado?: string | null
           id?: string
           is_active?: boolean
+          nombre?: string | null
           pais?: string | null
           referencia?: string | null
           tipo?: Database["public"]["Enums"]["tipo_direccion"]
