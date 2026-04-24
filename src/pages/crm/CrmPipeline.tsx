@@ -296,8 +296,6 @@ export default function CrmPipeline() {
         onOpenChange={(o) => !o && setSelectedDeal(null)}
         stages={stages || []}
       />
-
-      {renderNewPipelineDialog()}
     </div>
   );
 }
