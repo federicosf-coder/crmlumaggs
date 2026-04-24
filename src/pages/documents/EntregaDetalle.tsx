@@ -36,6 +36,11 @@ export default function EntregaDetalle() {
   const [newAddress, setNewAddress] = useState("");
   const [newLat, setNewLat] = useState<number | null>(null);
   const [newLng, setNewLng] = useState<number | null>(null);
+  const [newCity, setNewCity] = useState<string | null>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editNombreTouched, setEditNombreTouched] = useState(false);
+  const [refreshingCoords, setRefreshingCoords] = useState(false);
+  const [usingMyLocation, setUsingMyLocation] = useState(false);
   const [origenCambio, setOrigenCambio] = useState<"manual" | "ubicacion_actual">("manual");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [savingAddr, setSavingAddr] = useState(false);
