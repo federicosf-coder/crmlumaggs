@@ -22,6 +22,7 @@ import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Link } from "react-router-dom";
 import { DocumentPagosSection } from "@/components/documents/DocumentPagosSection";
+import { fetchAllRows } from "@/lib/supabasePagination";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "confirmado_cliente", l: "Confirmado Cliente" }, { v: "validado_contabilidad", l: "Validado Contabilidad" }, { v: "programado_entrega", l: "Programado Entrega" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
@@ -156,7 +157,19 @@ export default function DocumentForm() {
 
   // Lookups
   const { data: plazas = [] } = useQuery({ queryKey: ["plazas"], queryFn: async () => { const { data } = await supabase.from("plazas").select("*").eq("is_active", true).order("nombre"); return data || []; } });
-  const { data: companies = [], refetch: refetchCompanies } = useQuery({ queryKey: ["companies"], queryFn: async () => { const { data } = await supabase.from("companies").select("id, name, phone, lista_precios, uso_cfdi, metodo_pago, tipo_pago, forma_pago, id_contpaq").eq("is_active", true).order("name"); return data || []; } });
+  const { data: companies = [], refetch: refetchCompanies } = useQuery({
+    queryKey: ["companies", "documentform-all"],
+    queryFn: async () => {
+      return await fetchAllRows<any>((from, to) =>
+        supabase
+          .from("companies")
+          .select("id, name, phone, lista_precios, uso_cfdi, metodo_pago, tipo_pago, forma_pago, id_contpaq")
+          .eq("is_active", true)
+          .order("name")
+          .range(from, to)
+      );
+    },
+  });
   // Note: forma_pago is also fetched but typed as any via spread below
   const { data: contacts = [], refetch: refetchContacts } = useQuery({
     queryKey: ["contacts", form.empresa_id],
