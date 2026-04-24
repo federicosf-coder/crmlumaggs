@@ -328,7 +328,11 @@ export default function Directory() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Directorio</h1>
-          <p className="text-muted-foreground text-sm">Empresas y contactos</p>
+          <p className="text-muted-foreground text-sm">
+            {activeTab === "companies"
+              ? `${filteredCompanies.length} de ${companies.length} empresas`
+              : `${filteredContacts.length} de ${contacts.length} contactos`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {hasRole("admin") && (
