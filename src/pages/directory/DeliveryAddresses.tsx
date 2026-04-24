@@ -345,6 +345,15 @@ export default function DeliveryAddresses() {
               required
               placeholder="Buscar dirección en Google Maps..."
             />
+            <div>
+              <Label>Nombre</Label>
+              <Input
+                value={form.nombre}
+                onChange={(e) => setForm((p) => ({ ...p, nombre: e.target.value, nombre_touched: true }))}
+                placeholder="Se generará automáticamente: Empresa | Tipo | Calle | Ciudad"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Identificador principal de la dirección. Editable libremente.</p>
+            </div>
             {(form.address.direccion_completa || (form.address.latitud != null && form.address.longitud != null)) && (
               <AddressDisplay
                 address={form.address.direccion_completa}
