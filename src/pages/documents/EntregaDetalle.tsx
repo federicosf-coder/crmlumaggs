@@ -628,6 +628,7 @@ export default function EntregaDetalle() {
             setNewAddress(documento.direccion_envio || "");
             setEditNombre((documento as any).direccion_envio_nombre || "");
             setEditNombreTouched(false);
+            setSelectedDireccionId("");
             setEditAddrOpen(true);
           }}>
             <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
