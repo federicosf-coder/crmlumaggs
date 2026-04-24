@@ -27,6 +27,7 @@ interface TipoCatalogItem {
 interface Address {
   id: string;
   empresa_id: string;
+  nombre: string | null;
   tipo: string;
   tipos: string[] | null;
   calle: string;
@@ -53,11 +54,15 @@ export default function DeliveryAddresses() {
   const [form, setForm] = useState<{
     empresa_id: string;
     tipos: string[];
+    nombre: string;
+    nombre_touched: boolean;
     referencia: string;
     address: AddressValue;
   }>({
     empresa_id: "",
     tipos: ["envio"],
+    nombre: "",
+    nombre_touched: false,
     referencia: "",
     address: { ...emptyAddress },
   });
