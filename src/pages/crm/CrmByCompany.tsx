@@ -17,12 +17,13 @@ export default function CrmByCompany() {
   const { data: companies, isLoading } = useQuery({
     queryKey: ["crm-by-company-list"],
     queryFn: async () => {
-      const rows = await fetchAllRows<any>(
+      const rows = await fetchAllRows<any>((from, to) =>
         supabase
           .from("companies")
           .select("id, name, industry, city, state")
           .eq("is_active", true)
           .order("name")
+          .range(from, to)
       );
       return rows;
     },
