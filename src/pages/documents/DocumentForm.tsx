@@ -407,19 +407,37 @@ export default function DocumentForm() {
   };
 
   const handleAddAddress = async () => {
-    if (!newAddrCalle.trim()) return;
+    const dir = newAddrAddress.direccion_completa.trim();
+    if (!dir) { toast.error("La dirección es obligatoria"); return; }
+    const empresaName = (companies as any[]).find((c) => c.id === form.empresa_id)?.name || "";
+    const calleShort = dir.split(",")[0]?.trim() || "";
+    const ciudad = newAddrAddress.ciudad || "";
+    const autoNombre = [empresaName, "Entrega", calleShort, ciudad]
+      .map((s) => (s || "").trim()).filter(Boolean).join(" | ");
+    const nombreFinal = newAddrNombre.trim() || autoNombre;
     const { data, error } = await supabase.from("direcciones_empresa").insert({
-      empresa_id: form.empresa_id, tipo: newAddrTipo as any, calle: newAddrCalle.trim(),
-      ciudad: newAddrCiudad.trim() || null, estado: newAddrEstado.trim() || null, codigo_postal: newAddrCp.trim() || null,
-      coordenadas_lat: newAddrLat ? Number(newAddrLat) : null,
-      coordenadas_lng: newAddrLng ? Number(newAddrLng) : null,
-      codigo_google: newAddrGoogle.trim() || null,
+      empresa_id: form.empresa_id,
+      tipo: newAddrTipo as any,
+      tipos: [newAddrTipo],
+      nombre: nombreFinal,
+      calle: dir,
+      direccion_completa: dir,
+      ciudad: newAddrAddress.ciudad || null,
+      estado: newAddrAddress.estado || null,
+      pais: newAddrAddress.pais || null,
+      codigo_postal: newAddrAddress.codigo_postal || null,
+      coordenadas_lat: newAddrAddress.latitud,
+      coordenadas_lng: newAddrAddress.longitud,
+      codigo_google: newAddrAddress.codigo_google || null,
+      referencia: newAddrReferencia.trim() || null,
     } as any).select("id").single();
     if (error) { toast.error(error.message); return; }
     await refetchAddresses();
     set("direccion_envio", data.id);
-    setNewAddrCalle(""); setNewAddrCiudad(""); setNewAddrEstado(""); setNewAddrCp(""); setNewAddrTipo("envio");
-    setNewAddrLat(""); setNewAddrLng(""); setNewAddrGoogle("");
+    setNewAddrTipo("envio");
+    setNewAddrNombre("");
+    setNewAddrReferencia("");
+    setNewAddrAddress({ ...emptyAddress });
     setShowNewAddress(false);
     toast.success("Dirección creada");
   };
