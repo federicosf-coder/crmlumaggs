@@ -198,23 +198,9 @@ export default function Directory() {
         : ctQuery.in("created_by", teamIds);
     }
 
-    // Paginar para superar el límite por defecto de 1000 filas de Supabase
-    const fetchAll = async <T,>(builder: any): Promise<T[]> => {
-      const pageSize = 1000;
-      const all: T[] = [];
-      let from = 0;
-      while (true) {
-        const { data, error } = await builder.range(from, from + pageSize - 1);
-        if (error || !data) break;
-        all.push(...(data as T[]));
-        if (data.length < pageSize) break;
-        from += pageSize;
-      }
-      return all;
-    };
     const [co, ct] = await Promise.all([
-      fetchAll<Company>(coQuery),
-      fetchAll<Contact>(ctQuery),
+      fetchAllRows<Company>(coQuery),
+      fetchAllRows<Contact>(ctQuery),
     ]);
     setCompanies(co);
     setContacts(ct);
