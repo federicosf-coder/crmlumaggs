@@ -564,6 +564,7 @@ function EmbudosTab() {
                     <span className="font-medium">{p.nombre}</span>
                     <Badge variant="outline">{marcaLabel(p.marca)}</Badge>
                   </div>
+                  <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -585,6 +586,7 @@ function EmbudosTab() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
+                  </div>
                 </div>
                 {expandedId === p.id && (
                   <div className="border-t px-3 pb-3 pt-2">
