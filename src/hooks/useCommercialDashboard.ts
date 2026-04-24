@@ -160,7 +160,10 @@ export function useCommercialDashboard(filters: CommercialFilters) {
           .gte("fecha_documento", fromIso.slice(0,10)).lte("fecha_documento", toIso.slice(0,10)),
 
         // Para riesgo/dormido y métricas globales (paginado por si supera 1000)
-        fetchAllRows(() => supabase.from("companies").select("id, name, created_by, plaza_id, segmento_id, tipo_cliente_id, estatus_recompra_chevron, estatus_recompra_phillips66, fecha_ultima_compra, fecha_ultima_compra_chevron, fecha_ultima_compra_phillips66")),
+        fetchAllRows<any>((from, to) => supabase
+          .from("companies")
+          .select("id, name, created_by, plaza_id, segmento_id, tipo_cliente_id, estatus_recompra_chevron, estatus_recompra_phillips66, fecha_ultima_compra, fecha_ultima_compra_chevron, fecha_ultima_compra_phillips66")
+          .range(from, to)),
 
         supabase.from("crm_tasks")
           .select("id, user_id, completed, due_date, created_at, title")
