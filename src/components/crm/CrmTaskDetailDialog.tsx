@@ -12,9 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, X, Save, Trash2, Calendar, Clock, LinkIcon } from "lucide-react";
+import { Pencil, X, Save, Trash2, Calendar, Clock, LinkIcon, MessageCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CrmTaskDetailDialogProps {
   task: CrmTask | null;
@@ -32,6 +34,22 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const updateTask = useUpdateCrmTask();
   const deleteTask = useDeleteCrmTask();
   const { toast } = useToast();
+  const { profile } = useAuth();
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
+
+  // Enriched contact + company for WhatsApp variables
+  const { data: enriched } = useQuery({
+    queryKey: ["task-enriched", task?.id],
+    queryFn: async () => {
+      if (!task) return null;
+      const [c, co] = await Promise.all([
+        task.contact_id ? supabase.from("contacts").select("first_name,last_name,phone,mobile,whatsapp_phone,company_id").eq("id", task.contact_id).maybeSingle() : Promise.resolve({ data: null } as any),
+        task.company_id ? supabase.from("companies").select("name,phone").eq("id", task.company_id).maybeSingle() : Promise.resolve({ data: null } as any),
+      ]);
+      return { contact: c.data, company: co.data };
+    },
+    enabled: !!task && open,
+  });
 
   const { data: contacts } = useQuery({
     queryKey: ["contacts-picker"],
@@ -69,6 +87,19 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   }, [task, editing]);
 
   if (!task) return null;
+
+  const phone =
+    enriched?.contact?.whatsapp_phone ||
+    enriched?.contact?.mobile ||
+    enriched?.contact?.phone ||
+    enriched?.company?.phone ||
+    null;
+  const variables = {
+    contacto_nombre: enriched?.contact ? `${enriched.contact.first_name} ${enriched.contact.last_name}`.trim() : null,
+    empresa_nombre: enriched?.company?.name || null,
+    ejecutivo_nombre: profile?.full_name || null,
+    folio_cotizacion: task.crm_deals?.title || null,
+  };
 
   const handleSave = () => {
     updateTask.mutate(
@@ -193,6 +224,14 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
 
               <Separator />
 
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => setWhatsappOpen(true)}>
+                  <MessageCircle className="h-4 w-4 mr-1" /> Enviar WhatsApp
+                </Button>
+              </div>
+
+              <Separator />
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4 mr-1" /> Eliminar</Button>
@@ -211,6 +250,16 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
             </div>
           )}
         </div>
+
+        <WhatsAppActionDialog
+          open={whatsappOpen}
+          onOpenChange={setWhatsappOpen}
+          phone={phone}
+          variables={variables}
+          defaultMessage={task.mensaje_sugerido || undefined}
+          context={{ company_id: task.company_id, contact_id: task.contact_id, deal_id: task.deal_id }}
+          onSent={() => updateTask.mutate({ id: task.id, whatsapp_status: "enviado", whatsapp_last_sent_at: new Date().toISOString() })}
+        />
       </DialogContent>
     </Dialog>
   );
