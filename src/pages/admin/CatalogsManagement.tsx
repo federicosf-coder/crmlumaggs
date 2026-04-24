@@ -617,13 +617,25 @@ function EmbudosTab() {
                               </TableCell>
                               <TableCell className="font-medium">{s.name}</TableCell>
                               <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => { setEditStage(s); setEditStageName(s.name); setEditStageColor(s.color); }}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => { setEditStage(s); setEditStageName(s.name); setEditStageColor(s.color); }}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  {isAdmin && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setDeleteStage(s)}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
