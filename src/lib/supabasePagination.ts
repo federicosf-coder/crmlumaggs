@@ -1,5 +1,3 @@
-import type { PostgrestBuilder } from "@supabase/postgrest-js";
-
 /**
  * Trae TODAS las filas de una consulta Supabase paginando en lotes de 1000
  * (evita el límite por defecto de 1000 filas por respuesta).
