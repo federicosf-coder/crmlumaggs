@@ -111,6 +111,23 @@ export default function EntregaDetalle() {
     enabled: !!id,
   });
 
+  // Direcciones registradas de la empresa (para lookup)
+  const empresaIdForAddrs = (documento as any)?.empresa_id;
+  const { data: direccionesEmpresa = [] } = useQuery({
+    queryKey: ["direcciones-empresa-lookup", empresaIdForAddrs],
+    queryFn: async () => {
+      if (!empresaIdForAddrs) return [];
+      const { data } = await supabase
+        .from("direcciones_empresa")
+        .select("id, nombre, direccion_completa, calle, ciudad, estado, codigo_postal, coordenadas_lat, coordenadas_lng, tipo, is_active")
+        .eq("empresa_id", empresaIdForAddrs)
+        .eq("is_active", true)
+        .order("nombre", { ascending: true });
+      return data || [];
+    },
+    enabled: !!empresaIdForAddrs,
+  });
+
   useEffect(() => {
     if (documento?.direccion_envio) setNewAddress(documento.direccion_envio);
   }, [documento?.direccion_envio]);
