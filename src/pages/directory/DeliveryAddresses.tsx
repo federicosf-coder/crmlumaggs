@@ -250,6 +250,7 @@ export default function DeliveryAddresses() {
             <TableHeader>
               <TableRow>
                 <TableHead>Empresa</TableHead>
+                <TableHead>Nombre</TableHead>
                 <TableHead>Tipos</TableHead>
                 <TableHead>Dirección</TableHead>
                 <TableHead>Ciudad</TableHead>
@@ -261,9 +262,9 @@ export default function DeliveryAddresses() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin direcciones</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin direcciones</TableCell></TableRow>
               ) : (
                 filtered.map((a) => {
                   const tipos = a.tipos && a.tipos.length ? a.tipos : [a.tipo];
@@ -273,6 +274,7 @@ export default function DeliveryAddresses() {
                   return (
                     <TableRow key={a.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(a)}>
                       <TableCell className="font-medium">{a.companies?.name || "—"}</TableCell>
+                      <TableCell className="font-medium">{a.nombre || "—"}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {tipos.map((t) => (
