@@ -254,11 +254,21 @@ export type Database = {
           email: string | null
           equipo: string | null
           estatus_cliente_id: string | null
+          estatus_recompra_chevron:
+            | Database["public"]["Enums"]["estatus_recompra"]
+            | null
+          estatus_recompra_phillips66:
+            | Database["public"]["Enums"]["estatus_recompra"]
+            | null
           evaluacion_lubricante: string | null
           fecha_conversion_cliente: string | null
           fecha_ultima_compra: string | null
+          fecha_ultima_compra_chevron: string | null
+          fecha_ultima_compra_phillips66: string | null
           forma_pago: string | null
+          frecuencia_compra_chevron_dias: number | null
           frecuencia_compra_dias: number | null
+          frecuencia_compra_phillips66_dias: number | null
           id: string
           id_contpaq: string | null
           industrias: string[] | null
@@ -273,17 +283,23 @@ export type Database = {
           plaza_id: string | null
           potencial_unidades: string | null
           prioridad_cliente_id: string | null
+          proxima_recompra_chevron: string | null
+          proxima_recompra_phillips66: string | null
           razon_social: string | null
           riesgo_cambio_marca: string | null
           rol_lubricante: string | null
           segmento_id: string | null
           state: string | null
           ticket_promedio: number | null
+          ticket_promedio_chevron: number | null
+          ticket_promedio_phillips66: number | null
           tipo_cliente_comercial: string | null
           tipo_cliente_id: string | null
           tipo_destino_lubricante: string | null
           tipo_pago: Database["public"]["Enums"]["tipo_pago"] | null
           tomador_decision: string | null
+          total_facturas_chevron: number | null
+          total_facturas_phillips66: number | null
           updated_at: string
           uso_cfdi: Database["public"]["Enums"]["uso_cfdi"] | null
           volumen_mensual_estimado: number | null
@@ -299,11 +315,21 @@ export type Database = {
           email?: string | null
           equipo?: string | null
           estatus_cliente_id?: string | null
+          estatus_recompra_chevron?:
+            | Database["public"]["Enums"]["estatus_recompra"]
+            | null
+          estatus_recompra_phillips66?:
+            | Database["public"]["Enums"]["estatus_recompra"]
+            | null
           evaluacion_lubricante?: string | null
           fecha_conversion_cliente?: string | null
           fecha_ultima_compra?: string | null
+          fecha_ultima_compra_chevron?: string | null
+          fecha_ultima_compra_phillips66?: string | null
           forma_pago?: string | null
+          frecuencia_compra_chevron_dias?: number | null
           frecuencia_compra_dias?: number | null
+          frecuencia_compra_phillips66_dias?: number | null
           id?: string
           id_contpaq?: string | null
           industrias?: string[] | null
@@ -318,17 +344,23 @@ export type Database = {
           plaza_id?: string | null
           potencial_unidades?: string | null
           prioridad_cliente_id?: string | null
+          proxima_recompra_chevron?: string | null
+          proxima_recompra_phillips66?: string | null
           razon_social?: string | null
           riesgo_cambio_marca?: string | null
           rol_lubricante?: string | null
           segmento_id?: string | null
           state?: string | null
           ticket_promedio?: number | null
+          ticket_promedio_chevron?: number | null
+          ticket_promedio_phillips66?: number | null
           tipo_cliente_comercial?: string | null
           tipo_cliente_id?: string | null
           tipo_destino_lubricante?: string | null
           tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
           tomador_decision?: string | null
+          total_facturas_chevron?: number | null
+          total_facturas_phillips66?: number | null
           updated_at?: string
           uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
           volumen_mensual_estimado?: number | null
@@ -344,11 +376,21 @@ export type Database = {
           email?: string | null
           equipo?: string | null
           estatus_cliente_id?: string | null
+          estatus_recompra_chevron?:
+            | Database["public"]["Enums"]["estatus_recompra"]
+            | null
+          estatus_recompra_phillips66?:
+            | Database["public"]["Enums"]["estatus_recompra"]
+            | null
           evaluacion_lubricante?: string | null
           fecha_conversion_cliente?: string | null
           fecha_ultima_compra?: string | null
+          fecha_ultima_compra_chevron?: string | null
+          fecha_ultima_compra_phillips66?: string | null
           forma_pago?: string | null
+          frecuencia_compra_chevron_dias?: number | null
           frecuencia_compra_dias?: number | null
+          frecuencia_compra_phillips66_dias?: number | null
           id?: string
           id_contpaq?: string | null
           industrias?: string[] | null
@@ -363,17 +405,23 @@ export type Database = {
           plaza_id?: string | null
           potencial_unidades?: string | null
           prioridad_cliente_id?: string | null
+          proxima_recompra_chevron?: string | null
+          proxima_recompra_phillips66?: string | null
           razon_social?: string | null
           riesgo_cambio_marca?: string | null
           rol_lubricante?: string | null
           segmento_id?: string | null
           state?: string | null
           ticket_promedio?: number | null
+          ticket_promedio_chevron?: number | null
+          ticket_promedio_phillips66?: number | null
           tipo_cliente_comercial?: string | null
           tipo_cliente_id?: string | null
           tipo_destino_lubricante?: string | null
           tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
           tomador_decision?: string | null
+          total_facturas_chevron?: number | null
+          total_facturas_phillips66?: number | null
           updated_at?: string
           uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
           volumen_mensual_estimado?: number | null
@@ -990,6 +1038,53 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_repurchase_metrics: {
+        Row: {
+          calculado_en: string
+          empresa_id: string
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          estatus: Database["public"]["Enums"]["estatus_recompra"] | null
+          fecha_ultima_compra: string | null
+          frecuencia_dias: number | null
+          id: string
+          proxima_recompra: string | null
+          ticket_promedio: number | null
+          total_facturas: number | null
+        }
+        Insert: {
+          calculado_en?: string
+          empresa_id: string
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          estatus?: Database["public"]["Enums"]["estatus_recompra"] | null
+          fecha_ultima_compra?: string | null
+          frecuencia_dias?: number | null
+          id?: string
+          proxima_recompra?: string | null
+          ticket_promedio?: number | null
+          total_facturas?: number | null
+        }
+        Update: {
+          calculado_en?: string
+          empresa_id?: string
+          empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
+          estatus?: Database["public"]["Enums"]["estatus_recompra"] | null
+          fecha_ultima_compra?: string | null
+          frecuencia_dias?: number | null
+          id?: string
+          proxima_recompra?: string | null
+          ticket_promedio?: number | null
+          total_facturas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_repurchase_metrics_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -2996,6 +3091,13 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recalc_repurchase_for_company: {
+        Args: {
+          _empresa_id: string
+          _empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+        }
+        Returns: undefined
+      }
       recompute_documento_cobranza: {
         Args: { _documento_id: string }
         Returns: undefined
@@ -3082,6 +3184,13 @@ export type Database = {
         | "programado_entrega"
         | "entregado"
         | "cancelado"
+      estatus_recompra:
+        | "al_dia"
+        | "proximo"
+        | "vencido"
+        | "en_riesgo"
+        | "dormido"
+        | "sin_historial"
       metodo_pago_sat: "PUE" | "PPD"
       product_option_type:
         | "marca"
@@ -3347,6 +3456,14 @@ export const Constants = {
         "programado_entrega",
         "entregado",
         "cancelado",
+      ],
+      estatus_recompra: [
+        "al_dia",
+        "proximo",
+        "vencido",
+        "en_riesgo",
+        "dormido",
+        "sin_historial",
       ],
       metodo_pago_sat: ["PUE", "PPD"],
       product_option_type: [

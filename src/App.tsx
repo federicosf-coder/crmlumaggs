@@ -24,6 +24,7 @@ import EntregaDetalle from "@/pages/documents/EntregaDetalle";
 import CrmLanding from "@/pages/crm/CrmLanding";
 import CrmPipeline from "@/pages/crm/CrmPipeline";
 import CrmActivitiesTasks from "@/pages/crm/CrmActivitiesTasks";
+import CrmRepurchase from "@/pages/crm/CrmRepurchase";
 import NotFound from "@/pages/NotFound";
 import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
 import Cobranza from "@/pages/cobranza/Cobranza";
@@ -78,6 +79,7 @@ const App = () => (
             <Route path="/directory/addresses" element={<ProtectedRoute><DeliveryAddresses /></ProtectedRoute>} />
             <Route path="/crm" element={<ProtectedRoute><CrmLanding /></ProtectedRoute>} />
             <Route path="/crm/:brand/pipeline" element={<ProtectedRoute><CrmPipeline /></ProtectedRoute>} />
+            <Route path="/crm/recompra" element={<ProtectedRoute><CrmRepurchase /></ProtectedRoute>} />
             <Route path="/activities" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsList /></ProtectedRoute>} />
             <Route path="/documents/new" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
