@@ -1222,6 +1222,36 @@ export default function DocumentForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <WhatsAppActionDialog
+        open={whatsappOpen}
+        onOpenChange={setWhatsappOpen}
+        phone={
+          (contacts.find((c: any) => c.id === form.contacto_id) as any)?.whatsapp_phone ||
+          (contacts.find((c: any) => c.id === form.contacto_id) as any)?.mobile ||
+          (contacts.find((c: any) => c.id === form.contacto_id) as any)?.phone ||
+          (companies.find((co: any) => co.id === form.empresa_id) as any)?.phone ||
+          null
+        }
+        templateType="seguimiento_cotizacion"
+        variables={{
+          contacto_nombre: (() => {
+            const c: any = contacts.find((x: any) => x.id === form.contacto_id);
+            return c ? `${c.first_name} ${c.last_name}`.trim() : null;
+          })(),
+          empresa_nombre: (companies.find((co: any) => co.id === form.empresa_id) as any)?.name || null,
+          ejecutivo_nombre: profile?.full_name || null,
+          folio_cotizacion: form.numero_cotizacion || existingDoc?.numero_cotizacion || null,
+          total_cotizacion: existingDoc?.total != null ? `$${Number(existingDoc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : null,
+          fecha_vencimiento: form.fecha_vencimiento || null,
+        }}
+        context={{ company_id: form.empresa_id || null, contact_id: form.contacto_id || null }}
+        onSent={async () => {
+          if (!id) return;
+          await supabase.from("documentos").update({ whatsapp_last_sent_at: new Date().toISOString() }).eq("id", id);
+          qc.invalidateQueries({ queryKey: ["documento", id] });
+        }}
+      />
     </div>
   );
 }
