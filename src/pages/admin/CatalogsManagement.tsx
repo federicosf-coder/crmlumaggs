@@ -102,6 +102,48 @@ function PlazasTab() {
           <DialogFooter><Button onClick={() => update.mutate()} disabled={!editNombre || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete pipeline confirmation */}
+      <AlertDialog open={!!deletePipeline} onOpenChange={(v) => { if (!v) setDeletePipeline(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar embudo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará el embudo "{deletePipeline?.nombre}" y todas sus etapas. Esta acción no se puede deshacer. Si el embudo tiene negocios asociados, no podrá eliminarse.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); deletePipelineMutation.mutate(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePipelineMutation.isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete stage confirmation */}
+      <AlertDialog open={!!deleteStage} onOpenChange={(v) => { if (!v) setDeleteStage(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar etapa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará la etapa "{deleteStage?.name}". Si tiene negocios asociados, no podrá eliminarse.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); deleteStageMutation.mutate(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteStageMutation.isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
