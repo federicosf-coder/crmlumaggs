@@ -1118,7 +1118,9 @@ export default function DocumentForm() {
                 disabled={!form.empresa_id}
                 options={addresses.map((a: any) => ({
                   value: a.id,
-                  label: `[${TIPO_DIRECCION_LABELS[a.tipo] || a.tipo}] ${a.calle}${a.ciudad ? `, ${a.ciudad}` : ""}`,
+                  label: a.nombre || `[${TIPO_DIRECCION_LABELS[a.tipo] || a.tipo}] ${a.calle}`,
+                  description: a.direccion_completa || `${a.calle}${a.ciudad ? `, ${a.ciudad}` : ""}${a.estado ? `, ${a.estado}` : ""}`,
+                  searchText: `${a.nombre || ""} ${a.direccion_completa || ""} ${a.calle || ""} ${a.ciudad || ""} ${a.estado || ""}`,
                 }))}
                 className="flex-1"
               />
