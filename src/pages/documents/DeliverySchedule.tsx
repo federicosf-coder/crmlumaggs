@@ -330,7 +330,7 @@ export default function DeliverySchedule() {
         .eq("is_active", true)
         .in("estatus_pedido", [...POOL_STATUSES])
         .order("created_at", { ascending: false });
-      return await fetchAllRows<any>(q);
+      return await fetchAllRows<any>((from, to) => q.range(from, to));
     },
   });
 
