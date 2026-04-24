@@ -168,11 +168,34 @@ export default function Directory() {
     let ctQuery = supabase.from("contacts").select("*, companies(name, plazas(nombre))").order("last_name");
 
     if (access.accessLevel === "propio" && access.userId) {
-      coQuery = coQuery.eq("created_by", access.userId);
-      ctQuery = ctQuery.eq("created_by", access.userId);
+      const userIds = [access.userId];
+      const [{ data: coAssign }, { data: ctAssign }] = await Promise.all([
+        supabase.from("company_ejecutivos").select("company_id").in("user_id", userIds),
+        supabase.from("contact_ejecutivos").select("contact_id").in("user_id", userIds),
+      ]);
+      const coIds = Array.from(new Set((coAssign || []).map((r: any) => r.company_id)));
+      const ctIds = Array.from(new Set((ctAssign || []).map((r: any) => r.contact_id)));
+      coQuery = coIds.length > 0
+        ? coQuery.or(`created_by.eq.${access.userId},id.in.(${coIds.join(",")})`)
+        : coQuery.eq("created_by", access.userId);
+      ctQuery = ctIds.length > 0
+        ? ctQuery.or(`created_by.eq.${access.userId},id.in.(${ctIds.join(",")})`)
+        : ctQuery.eq("created_by", access.userId);
     } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
-      coQuery = coQuery.in("created_by", access.teamMemberIds);
-      ctQuery = ctQuery.in("created_by", access.teamMemberIds);
+      const teamIds = access.teamMemberIds;
+      const [{ data: coAssign }, { data: ctAssign }] = await Promise.all([
+        supabase.from("company_ejecutivos").select("company_id").in("user_id", teamIds),
+        supabase.from("contact_ejecutivos").select("contact_id").in("user_id", teamIds),
+      ]);
+      const coIds = Array.from(new Set((coAssign || []).map((r: any) => r.company_id)));
+      const ctIds = Array.from(new Set((ctAssign || []).map((r: any) => r.contact_id)));
+      const teamCsv = teamIds.join(",");
+      coQuery = coIds.length > 0
+        ? coQuery.or(`created_by.in.(${teamCsv}),id.in.(${coIds.join(",")})`)
+        : coQuery.in("created_by", teamIds);
+      ctQuery = ctIds.length > 0
+        ? ctQuery.or(`created_by.in.(${teamCsv}),id.in.(${ctIds.join(",")})`)
+        : ctQuery.in("created_by", teamIds);
     }
 
     const [{ data: co }, { data: ct }] = await Promise.all([coQuery, ctQuery]);
