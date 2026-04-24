@@ -138,14 +138,10 @@ export default function DocumentForm() {
   const [showNewCompany, setShowNewCompany] = useState(false);
   const [showNewContact, setShowNewContact] = useState(false);
   const [showNewAddress, setShowNewAddress] = useState(false);
-  const [newAddrCalle, setNewAddrCalle] = useState("");
-  const [newAddrCiudad, setNewAddrCiudad] = useState("");
-  const [newAddrEstado, setNewAddrEstado] = useState("");
-  const [newAddrCp, setNewAddrCp] = useState("");
   const [newAddrTipo, setNewAddrTipo] = useState("envio");
-  const [newAddrLat, setNewAddrLat] = useState("");
-  const [newAddrLng, setNewAddrLng] = useState("");
-  const [newAddrGoogle, setNewAddrGoogle] = useState("");
+  const [newAddrNombre, setNewAddrNombre] = useState("");
+  const [newAddrReferencia, setNewAddrReferencia] = useState("");
+  const [newAddrAddress, setNewAddrAddress] = useState<AddressValue>({ ...emptyAddress });
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [newProductForm, setNewProductForm] = useState({
     codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
