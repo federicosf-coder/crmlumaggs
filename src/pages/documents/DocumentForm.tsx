@@ -1173,7 +1173,7 @@ export default function DocumentForm() {
 
       {/* Dialog: Nueva Dirección */}
       <Dialog open={showNewAddress} onOpenChange={setShowNewAddress}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Nueva Dirección</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
@@ -1189,21 +1189,33 @@ export default function DocumentForm() {
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>Calle / Dirección *</Label><Input value={newAddrCalle} onChange={e => setNewAddrCalle(e.target.value)} /></div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Ciudad</Label><Input value={newAddrCiudad} onChange={e => setNewAddrCiudad(e.target.value)} /></div>
-              <div><Label>Estado</Label><Input value={newAddrEstado} onChange={e => setNewAddrEstado(e.target.value)} /></div>
+            <AddressAutocompleteInput
+              value={newAddrAddress}
+              onChange={(v) => setNewAddrAddress(v)}
+              label="Dirección completa"
+              required
+              placeholder="Buscar dirección en Google Maps..."
+            />
+            <div>
+              <Label>Nombre</Label>
+              <Input
+                value={newAddrNombre}
+                onChange={e => setNewAddrNombre(e.target.value)}
+                placeholder="Se generará automáticamente: Empresa | Tipo | Calle | Ciudad"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Código Postal</Label><Input value={newAddrCp} onChange={e => setNewAddrCp(e.target.value)} /></div>
-              <div><Label>Código Google</Label><Input value={newAddrGoogle} onChange={e => setNewAddrGoogle(e.target.value)} placeholder="Ej: ChIJ..." /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Latitud</Label><Input type="number" step="any" value={newAddrLat} onChange={e => setNewAddrLat(e.target.value)} placeholder="25.6866" /></div>
-              <div><Label>Longitud</Label><Input type="number" step="any" value={newAddrLng} onChange={e => setNewAddrLng(e.target.value)} placeholder="-100.3161" /></div>
+            <div>
+              <Label>Referencia</Label>
+              <Input
+                value={newAddrReferencia}
+                onChange={e => setNewAddrReferencia(e.target.value)}
+                placeholder="Detalles adicionales (entre calles, color de fachada, etc.)"
+              />
             </div>
           </div>
-          <DialogFooter><Button onClick={handleAddAddress} disabled={!newAddrCalle.trim()}>Crear Dirección</Button></DialogFooter>
+          <DialogFooter>
+            <Button onClick={handleAddAddress} disabled={!newAddrAddress.direccion_completa.trim()}>Crear Dirección</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
