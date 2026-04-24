@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCrmPipelines, useCrmPipelineStages } from "@/hooks/useCrmPipelines";
+import { useCrmPipelines, useCrmPipelineStages, type PipelineType } from "@/hooks/useCrmPipelines";
 import { useCrmDeals } from "@/hooks/useCrmDeals";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +28,7 @@ function getStartDate(period: Period): string | null {
   return null;
 }
 
-export function CrmBrandDashboard({ marca }: { marca: string }) {
+export function CrmBrandDashboard({ marca, pipelineType = "primera_compra" }: { marca: string; pipelineType?: PipelineType }) {
   const { session } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -36,36 +36,17 @@ export function CrmBrandDashboard({ marca }: { marca: string }) {
   const [period, setPeriod] = useState<Period>("all");
   const since = getStartDate(period);
 
-  const { data: pipelines, isLoading: pipelinesLoading } = useCrmPipelines(marca);
-  // Use first pipeline for stats (or combined)
+  const { data: pipelines, isLoading: pipelinesLoading } = useCrmPipelines(marca, pipelineType);
   const firstPipeline = pipelines?.[0];
   const { data: stages } = useCrmPipelineStages(firstPipeline?.id);
   const { data: deals, isLoading: dealsLoading } = useCrmDeals(firstPipeline?.id, marca);
-
-  const handleCreatePipeline = async (name?: string) => {
-    if (!session?.user) return;
-    const { error } = await supabase.rpc("seed_crm_pipeline", { p_marca: marca, p_user_id: session.user.id, p_nombre: name || null });
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else {
-      toast({ title: "Pipeline creado" });
-      window.location.reload();
-    }
-  };
 
   if (!pipelinesLoading && (!pipelines || pipelines.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
         <Kanban className="h-16 w-16 text-muted-foreground/40 mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Sin Pipelines</h2>
-        <p className="text-muted-foreground mb-6">Crea tus pipelines para comenzar a rastrear negocios.</p>
-        <div className="flex gap-3">
-          <Button onClick={() => handleCreatePipeline("Prospectos Nuevos")} size="lg">
-            <Plus className="h-5 w-5 mr-2" /> Prospectos Nuevos
-          </Button>
-          <Button variant="outline" onClick={() => handleCreatePipeline("Clientes con Compra")} size="lg">
-            <Plus className="h-5 w-5 mr-2" /> Clientes con Compra
-          </Button>
-        </div>
+        <h2 className="text-2xl font-bold mb-2">Sin Pipeline</h2>
+        <p className="text-muted-foreground mb-6">No hay embudo configurado para {pipelineType === "primera_compra" ? "Primera Compra" : "Recompra"} en esta marca.</p>
       </div>
     );
   }
@@ -73,15 +54,16 @@ export function CrmBrandDashboard({ marca }: { marca: string }) {
   // Stats
   const totalDeals = deals?.length || 0;
   const totalValue = deals?.reduce((sum, d) => sum + Number(d.value || 0), 0) || 0;
-  const wonStage = stages?.find((s) => s.name === "Ganado");
-  const lostStage = stages?.find((s) => s.name === "Perdido");
+  const wonStage = stages?.find((s) => /ganado/i.test(s.name));
+  const lostStage = stages?.find((s) => /perdido/i.test(s.name));
   const wonCount = deals?.filter((d) => d.stage_id === wonStage?.id).length || 0;
   const lostCount = deals?.filter((d) => d.stage_id === lostStage?.id).length || 0;
   const closedTotal = wonCount + lostCount;
   const winRate = closedTotal > 0 ? Math.round((wonCount / closedTotal) * 100) : 0;
+  const typeLabel = pipelineType === "primera_compra" ? "Primera Compra" : "Recompra";
 
   const statCards = [
-    { label: "Total Negocios", value: String(totalDeals), icon: Target, color: "hsl(210, 70%, 55%)" },
+    { label: `Negocios ${typeLabel}`, value: String(totalDeals), icon: Target, color: "hsl(210, 70%, 55%)" },
     { label: "Valor Pipeline", value: formatCurrency(totalValue), icon: DollarSign, color: "hsl(170, 50%, 45%)" },
     { label: "Tasa de Cierre", value: `${winRate}%`, icon: TrendingUp, color: "hsl(262, 60%, 55%)" },
     { label: "Ganados", value: String(wonCount), icon: Clock, color: "hsl(14, 98%, 60%)" },
@@ -98,8 +80,8 @@ export function CrmBrandDashboard({ marca }: { marca: string }) {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => navigate(`/crm/${marca}/pipeline`)}>
-            <Kanban className="h-4 w-4 mr-2" /> Pipeline
+          <Button onClick={() => navigate(`/crm/${marca}/pipeline?type=${pipelineType}`)}>
+            <Kanban className="h-4 w-4 mr-2" /> Ver Pipeline {typeLabel}
           </Button>
           <Button variant="outline" onClick={() => navigate(`/activities?brand=${marca}`)}>
             Actividades / Tareas
