@@ -4,6 +4,7 @@ import { CrmBrandDashboard } from "@/components/crm/CrmBrandDashboard";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Building2 } from "lucide-react";
+import CommercialDashboard from "./CommercialDashboard";
 
 export default function CrmLanding() {
   const [tab, setTab] = useState("chevron");
@@ -26,6 +27,7 @@ export default function CrmLanding() {
         <TabsList>
           <TabsTrigger value="chevron">CRM Chevron</TabsTrigger>
           <TabsTrigger value="phillips66">CRM Phillips 66</TabsTrigger>
+          <TabsTrigger value="comercial">Dashboard Comercial</TabsTrigger>
         </TabsList>
 
         {(["chevron", "phillips66"] as const).map((m) => (
@@ -44,6 +46,10 @@ export default function CrmLanding() {
             </Tabs>
           </TabsContent>
         ))}
+
+        <TabsContent value="comercial" className="mt-6">
+          <CommercialDashboard />
+        </TabsContent>
       </Tabs>
     </div>
   );
