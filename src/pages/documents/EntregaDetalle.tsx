@@ -195,6 +195,112 @@ export default function EntregaDetalle() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
   };
 
+  // Build default name: Empresa | Tipo | Calle | Ciudad (skip empties)
+  const buildDefaultNombre = (calle: string, ciudad: string | null) => {
+    const empresa = (documento as any)?.companies?.name || "";
+    const tipo = "Entrega";
+    const calleShort = (calle || "").split(",")[0]?.trim() || "";
+    return [empresa, tipo, calleShort, ciudad || ""]
+      .map((s) => (s || "").trim())
+      .filter(Boolean)
+      .join(" | ");
+  };
+
+  const refreshCoordsFromAddress = async () => {
+    if (!newAddress.trim()) {
+      toast.error("Escribe primero una dirección");
+      return;
+    }
+    setRefreshingCoords(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(newAddress)}&limit=1&addressdetails=1`,
+        { headers: { "Accept-Language": "es" } }
+      );
+      const json = await res.json();
+      if (Array.isArray(json) && json[0]?.lat && json[0]?.lon) {
+        setNewLat(parseFloat(json[0].lat));
+        setNewLng(parseFloat(json[0].lon));
+        const a = json[0].address || {};
+        const ciudad = a.city || a.town || a.village || a.municipality || null;
+        if (ciudad) setNewCity(ciudad);
+        toast.success("Coordenadas actualizadas");
+      } else {
+        toast.error("No se encontraron coordenadas para esta dirección");
+      }
+    } catch {
+      toast.error("Error al obtener coordenadas");
+    } finally {
+      setRefreshingCoords(false);
+    }
+  };
+
+  const useMyLocationForDelivery = async () => {
+    if (!navigator.geolocation) {
+      toast.error("Tu dispositivo no soporta geolocalización");
+      return;
+    }
+    if (!documento || !id) return;
+    setUsingMyLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        let direccion = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+        let ciudad: string | null = null;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            { headers: { "Accept-Language": "es" } }
+          );
+          const json = await res.json();
+          if (json?.display_name) direccion = json.display_name;
+          const a = json?.address || {};
+          ciudad = a.city || a.town || a.village || a.municipality || null;
+        } catch { /* keep coords-only fallback */ }
+
+        try {
+          const updates: any = {
+            direccion_envio: direccion,
+            direccion_envio_lat: lat,
+            direccion_envio_lng: lng,
+          };
+          // Only autogenerate name if currently empty
+          if (!(documento as any).direccion_envio_nombre) {
+            updates.direccion_envio_nombre = buildDefaultNombre(direccion, ciudad);
+          }
+          const { error } = await supabase.from("documentos").update(updates).eq("id", id);
+          if (error) throw error;
+          await supabase.from("documento_direccion_bitacora").insert({
+            documento_id: id,
+            direccion_anterior: documento.direccion_envio,
+            direccion_nueva: direccion,
+            latitud: lat,
+            longitud: lng,
+            origen: "ubicacion_actual",
+            usuario_id: user?.id,
+          });
+          toast.success("Dirección actualizada con tu ubicación");
+          queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
+          refetchBitacora();
+        } catch (e: any) {
+          toast.error(e.message || "Error al guardar la ubicación");
+        } finally {
+          setUsingMyLocation(false);
+        }
+      },
+      (err) => {
+        setUsingMyLocation(false);
+        toast.error(
+          err.code === err.PERMISSION_DENIED
+            ? "Permiso de ubicación denegado"
+            : "No se pudo obtener tu ubicación"
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const handleFiles = async (files: FileList | null, categoria: "evidencia" | "firmado") => {
     if (!files || files.length === 0 || !id) return;
     setUploading(categoria);
