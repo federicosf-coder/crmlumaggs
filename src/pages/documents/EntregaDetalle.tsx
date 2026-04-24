@@ -635,9 +635,9 @@ export default function EntregaDetalle() {
           </Button>
         </CardHeader>
         <CardContent className="space-y-2">
-          {direccionesEmpresa.length > 0 && (
-            <div className="space-y-1 pb-2 border-b">
-              <Label className="text-xs">Seleccionar dirección registrada de la empresa</Label>
+          <div className="space-y-1 pb-2 border-b">
+            <Label className="text-xs">Seleccionar dirección registrada de la empresa</Label>
+            {direccionesEmpresa.length > 0 ? (
               <div className="flex gap-2">
                 <div className="flex-1 min-w-0">
                   <SearchableSelect
@@ -692,9 +692,23 @@ export default function EntregaDetalle() {
                   <ExternalLink className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">Elige una de las direcciones registradas o edita manualmente con el botón "Editar".</p>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-dashed p-2">
+                <p className="text-xs text-muted-foreground">Esta empresa no tiene direcciones registradas todavía.</p>
+                {empresaIdForAddrs && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open(`/directorio/direcciones?empresa=${empresaIdForAddrs}`, "_blank")}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 mr-1" /> Agregar dirección
+                  </Button>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Elige una de las direcciones registradas o edita manualmente con el botón "Editar".</p>
+          </div>
           {(documento as any).direccion_envio_nombre && (
             <p className="text-sm font-medium">{(documento as any).direccion_envio_nombre}</p>
           )}
