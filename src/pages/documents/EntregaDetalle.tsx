@@ -635,6 +635,66 @@ export default function EntregaDetalle() {
           </Button>
         </CardHeader>
         <CardContent className="space-y-2">
+          {direccionesEmpresa.length > 0 && (
+            <div className="space-y-1 pb-2 border-b">
+              <Label className="text-xs">Seleccionar dirección registrada de la empresa</Label>
+              <div className="flex gap-2">
+                <div className="flex-1 min-w-0">
+                  <SearchableSelect
+                    value={selectedDireccionId}
+                    onValueChange={async (val) => {
+                      setSelectedDireccionId(val);
+                      const d: any = direccionesEmpresa.find((x: any) => x.id === val);
+                      if (!d || !id || !documento) return;
+                      const direccion = d.direccion_completa || [d.calle, d.ciudad, d.estado, d.codigo_postal].filter(Boolean).join(", ");
+                      const updates: any = {
+                        direccion_envio: direccion,
+                        direccion_envio_lat: d.coordenadas_lat ?? null,
+                        direccion_envio_lng: d.coordenadas_lng ?? null,
+                      };
+                      if (!(documento as any).direccion_envio_nombre && d.nombre) {
+                        updates.direccion_envio_nombre = d.nombre;
+                      }
+                      const { error } = await supabase.from("documentos").update(updates).eq("id", id);
+                      if (error) { toast.error(error.message); return; }
+                      await supabase.from("documento_direccion_bitacora").insert({
+                        documento_id: id,
+                        direccion_anterior: documento.direccion_envio,
+                        direccion_nueva: direccion,
+                        latitud: d.coordenadas_lat ?? null,
+                        longitud: d.coordenadas_lng ?? null,
+                        origen: "lookup_direcciones_empresa",
+                        usuario_id: user?.id,
+                      });
+                      toast.success("Dirección actualizada desde catálogo");
+                      queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
+                      refetchBitacora();
+                    }}
+                    options={(direccionesEmpresa as any[]).map((d) => ({
+                      value: d.id,
+                      label: d.nombre || d.direccion_completa || d.calle || "Sin nombre",
+                      searchText: `${d.nombre || ""} ${d.direccion_completa || ""} ${d.calle || ""} ${d.ciudad || ""}`,
+                    }))}
+                    placeholder="Selecciona una dirección..."
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  disabled={!selectedDireccionId}
+                  title="Ver / Editar en módulo Direcciones"
+                  onClick={() => {
+                    if (!empresaIdForAddrs) return;
+                    window.open(`/directorio/direcciones?empresa=${empresaIdForAddrs}&direccion=${selectedDireccionId}`, "_blank");
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Elige una de las direcciones registradas o edita manualmente con el botón "Editar".</p>
+            </div>
+          )}
           {(documento as any).direccion_envio_nombre && (
             <p className="text-sm font-medium">{(documento as any).direccion_envio_nombre}</p>
           )}
@@ -747,50 +807,6 @@ export default function EntregaDetalle() {
             <DialogDescription>Edita la dirección o usa tu ubicación actual</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            {direccionesEmpresa.length > 0 && (
-              <div className="space-y-1">
-                <Label className="text-xs">Direcciones registradas de la empresa</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1 min-w-0">
-                    <SearchableSelect
-                      value={selectedDireccionId}
-                      onValueChange={(val) => {
-                        setSelectedDireccionId(val);
-                        const d: any = direccionesEmpresa.find((x: any) => x.id === val);
-                        if (!d) return;
-                        const direccion = d.direccion_completa || [d.calle, d.ciudad, d.estado, d.codigo_postal].filter(Boolean).join(", ");
-                        setNewAddress(direccion);
-                        setNewLat(d.coordenadas_lat ?? null);
-                        setNewLng(d.coordenadas_lng ?? null);
-                        setNewCity(d.ciudad ?? null);
-                        setOrigenCambio("manual");
-                        if (!editNombreTouched && d.nombre) setEditNombre(d.nombre);
-                      }}
-                      options={(direccionesEmpresa as any[]).map((d) => ({
-                        value: d.id,
-                        label: d.nombre || d.direccion_completa || d.calle || "Sin nombre",
-                        searchText: `${d.nombre || ""} ${d.direccion_completa || ""} ${d.calle || ""} ${d.ciudad || ""}`,
-                      }))}
-                      placeholder="Selecciona una dirección..."
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    disabled={!selectedDireccionId}
-                    title="Ver / Editar en módulo Direcciones"
-                    onClick={() => {
-                      if (!empresaIdForAddrs) return;
-                      window.open(`/directorio/direcciones?empresa=${empresaIdForAddrs}&direccion=${selectedDireccionId}`, "_blank");
-                    }}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">Selecciona una existente o edita manualmente abajo.</p>
-              </div>
-            )}
             <AddressAutocompleteInput
               value={{
                 direccion_completa: newAddress,
