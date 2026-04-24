@@ -164,9 +164,48 @@ export default function Directory() {
   const fetchData = async () => {
     if (access.isLoading || !access.canView) { setLoading(false); return; }
     setLoading(true);
+    const buildCompaniesQuery = () => {
+      let q = supabase.from("companies").select("*, plazas(nombre), contacts(id)").order("name");
 
-    let coQuery = supabase.from("companies").select("*, plazas(nombre), contacts(id)").order("name");
-    let ctQuery = supabase.from("contacts").select("*, companies(name, plazas(nombre))").order("last_name");
+      if (access.accessLevel === "propio" && access.userId) {
+        const userId = access.userId;
+        return companyAssignedIds.length > 0
+          ? q.or(`created_by.eq.${userId},id.in.(${companyAssignedIds.join(",")})`)
+          : q.eq("created_by", userId);
+      }
+
+      if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
+        const teamCsv = access.teamMemberIds.join(",");
+        return companyAssignedIds.length > 0
+          ? q.or(`created_by.in.(${teamCsv}),id.in.(${companyAssignedIds.join(",")})`)
+          : q.in("created_by", access.teamMemberIds);
+      }
+
+      return q;
+    };
+
+    const buildContactsQuery = () => {
+      let q = supabase.from("contacts").select("*, companies(name, plazas(nombre))").order("last_name");
+
+      if (access.accessLevel === "propio" && access.userId) {
+        const userId = access.userId;
+        return contactAssignedIds.length > 0
+          ? q.or(`created_by.eq.${userId},id.in.(${contactAssignedIds.join(",")})`)
+          : q.eq("created_by", userId);
+      }
+
+      if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
+        const teamCsv = access.teamMemberIds.join(",");
+        return contactAssignedIds.length > 0
+          ? q.or(`created_by.in.(${teamCsv}),id.in.(${contactAssignedIds.join(",")})`)
+          : q.in("created_by", access.teamMemberIds);
+      }
+
+      return q;
+    };
+
+    let companyAssignedIds: string[] = [];
+    let contactAssignedIds: string[] = [];
 
     if (access.accessLevel === "propio" && access.userId) {
       const userIds = [access.userId];
@@ -174,34 +213,21 @@ export default function Directory() {
         supabase.from("company_ejecutivos").select("company_id").in("user_id", userIds),
         supabase.from("contact_ejecutivos").select("contact_id").in("user_id", userIds),
       ]);
-      const coIds = Array.from(new Set((coAssign || []).map((r: any) => r.company_id)));
-      const ctIds = Array.from(new Set((ctAssign || []).map((r: any) => r.contact_id)));
-      coQuery = coIds.length > 0
-        ? coQuery.or(`created_by.eq.${access.userId},id.in.(${coIds.join(",")})`)
-        : coQuery.eq("created_by", access.userId);
-      ctQuery = ctIds.length > 0
-        ? ctQuery.or(`created_by.eq.${access.userId},id.in.(${ctIds.join(",")})`)
-        : ctQuery.eq("created_by", access.userId);
+      companyAssignedIds = Array.from(new Set((coAssign || []).map((r: any) => r.company_id)));
+      contactAssignedIds = Array.from(new Set((ctAssign || []).map((r: any) => r.contact_id)));
     } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
       const teamIds = access.teamMemberIds;
       const [{ data: coAssign }, { data: ctAssign }] = await Promise.all([
         supabase.from("company_ejecutivos").select("company_id").in("user_id", teamIds),
         supabase.from("contact_ejecutivos").select("contact_id").in("user_id", teamIds),
       ]);
-      const coIds = Array.from(new Set((coAssign || []).map((r: any) => r.company_id)));
-      const ctIds = Array.from(new Set((ctAssign || []).map((r: any) => r.contact_id)));
-      const teamCsv = teamIds.join(",");
-      coQuery = coIds.length > 0
-        ? coQuery.or(`created_by.in.(${teamCsv}),id.in.(${coIds.join(",")})`)
-        : coQuery.in("created_by", teamIds);
-      ctQuery = ctIds.length > 0
-        ? ctQuery.or(`created_by.in.(${teamCsv}),id.in.(${ctIds.join(",")})`)
-        : ctQuery.in("created_by", teamIds);
+      companyAssignedIds = Array.from(new Set((coAssign || []).map((r: any) => r.company_id)));
+      contactAssignedIds = Array.from(new Set((ctAssign || []).map((r: any) => r.contact_id)));
     }
 
     const [co, ct] = await Promise.all([
-      fetchAllRows<Company>(coQuery),
-      fetchAllRows<Contact>(ctQuery),
+      fetchAllRows<Company>((from, to) => buildCompaniesQuery().range(from, to)),
+      fetchAllRows<Contact>((from, to) => buildContactsQuery().range(from, to)),
     ]);
     setCompanies(co);
     setContacts(ct);
