@@ -574,11 +574,23 @@ export default function EntregaDetalle() {
           <CardTitle className="text-base flex items-center gap-2">
             <MapPin className="h-4 w-4" /> Dirección de Entrega
           </CardTitle>
-          <Button size="sm" variant="outline" onClick={() => { setNewLat(null); setNewLng(null); setOrigenCambio("manual"); setNewAddress(documento.direccion_envio || ""); setEditAddrOpen(true); }}>
+          <Button size="sm" variant="outline" onClick={() => {
+            setNewLat(docLat ?? null);
+            setNewLng(docLng ?? null);
+            setNewCity(null);
+            setOrigenCambio("manual");
+            setNewAddress(documento.direccion_envio || "");
+            setEditNombre((documento as any).direccion_envio_nombre || "");
+            setEditNombreTouched(false);
+            setEditAddrOpen(true);
+          }}>
             <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
           </Button>
         </CardHeader>
         <CardContent className="space-y-2">
+          {(documento as any).direccion_envio_nombre && (
+            <p className="text-sm font-medium">{(documento as any).direccion_envio_nombre}</p>
+          )}
           <p className="text-sm">{documento.direccion_envio || <span className="text-muted-foreground italic">Sin dirección</span>}</p>
           {(docLat && docLng) && (
             <p className="text-xs text-muted-foreground">📍 {Number(docLat).toFixed(6)}, {Number(docLng).toFixed(6)}</p>
@@ -598,6 +610,19 @@ export default function EntregaDetalle() {
               <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir en Google Maps
             </Button>
           )}
+          <div className="pt-2 border-t mt-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={useMyLocationForDelivery}
+              disabled={usingMyLocation}
+              className="w-full sm:w-auto"
+            >
+              {usingMyLocation ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Navigation className="h-3.5 w-3.5 mr-1" />}
+              Usar mi ubicación actual
+            </Button>
+            <p className="text-xs text-muted-foreground mt-1">Este botón actualiza la dirección usando tu ubicación actual.</p>
+          </div>
         </CardContent>
       </Card>
 
