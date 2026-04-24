@@ -772,6 +772,7 @@ export type Database = {
           origen_prospecto_id: string | null
           owner_id: string | null
           pipeline_id: string
+          pipeline_type: Database["public"]["Enums"]["pipeline_type"]
           probability: number
           proxima_fecha_seguimiento: string | null
           stage_id: string
@@ -796,6 +797,7 @@ export type Database = {
           origen_prospecto_id?: string | null
           owner_id?: string | null
           pipeline_id: string
+          pipeline_type?: Database["public"]["Enums"]["pipeline_type"]
           probability?: number
           proxima_fecha_seguimiento?: string | null
           stage_id: string
@@ -820,6 +822,7 @@ export type Database = {
           origen_prospecto_id?: string | null
           owner_id?: string | null
           pipeline_id?: string
+          pipeline_type?: Database["public"]["Enums"]["pipeline_type"]
           probability?: number
           proxima_fecha_seguimiento?: string | null
           stage_id?: string
@@ -923,6 +926,7 @@ export type Database = {
           id: string
           marca: string
           nombre: string
+          pipeline_type: Database["public"]["Enums"]["pipeline_type"] | null
           updated_at: string
         }
         Insert: {
@@ -931,6 +935,7 @@ export type Database = {
           id?: string
           marca: string
           nombre: string
+          pipeline_type?: Database["public"]["Enums"]["pipeline_type"] | null
           updated_at?: string
         }
         Update: {
@@ -939,6 +944,7 @@ export type Database = {
           id?: string
           marca?: string
           nombre?: string
+          pipeline_type?: Database["public"]["Enums"]["pipeline_type"] | null
           updated_at?: string
         }
         Relationships: []
@@ -3261,6 +3267,7 @@ export type Database = {
         | "dormido"
         | "sin_historial"
       metodo_pago_sat: "PUE" | "PPD"
+      pipeline_type: "primera_compra" | "recompra"
       product_option_type:
         | "marca"
         | "aplicacion"
@@ -3548,6 +3555,7 @@ export const Constants = {
         "sin_historial",
       ],
       metodo_pago_sat: ["PUE", "PPD"],
+      pipeline_type: ["primera_compra", "recompra"],
       product_option_type: [
         "marca",
         "aplicacion",

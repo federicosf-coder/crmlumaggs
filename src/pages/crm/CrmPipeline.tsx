@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCrmPipelines, useCrmPipelineStages } from "@/hooks/useCrmPipelines";
+import { useCrmPipelines, useCrmPipelineStages, type PipelineType } from "@/hooks/useCrmPipelines";
 import { useCrmDeals, CrmDeal } from "@/hooks/useCrmDeals";
 import { CrmKanbanBoard } from "@/components/crm/CrmKanbanBoard";
 import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
@@ -28,6 +28,9 @@ interface NewStage {
 
 export default function CrmPipeline() {
   const { brand } = useParams<{ brand: string }>();
+  const [params, setParams] = useSearchParams();
+  const pipelineType = (params.get("type") as PipelineType) || "primera_compra";
+  const typeLabel = pipelineType === "primera_compra" ? "Primera Compra" : "Recompra";
   const marca = brand || "chevron";
   const brandLabel = marca === "chevron" ? "Chevron" : "Phillips 66";
   const navigate = useNavigate();
@@ -35,7 +38,7 @@ export default function CrmPipeline() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const { data: pipelines, isLoading: pipelinesLoading } = useCrmPipelines(marca);
+  const { data: pipelines, isLoading: pipelinesLoading } = useCrmPipelines(marca, pipelineType);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
 
   const activePipelineId = selectedPipelineId || pipelines?.[0]?.id || "";
@@ -148,20 +151,16 @@ export default function CrmPipeline() {
   if (!pipelinesLoading && (!pipelines || pipelines.length === 0)) {
     return (
       <div className="space-y-6">
-        <PageBanner title={`Pipeline — ${brandLabel}`} description="Gestiona tus embudos de ventas.">
+        <PageBanner title={`${typeLabel} — ${brandLabel}`} description="Gestiona tus embudos de ventas.">
           <Button variant="outline" onClick={() => navigate(`/crm/${marca}`)}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Volver
           </Button>
         </PageBanner>
         <div className="flex flex-col items-center justify-center py-24">
           <Kanban className="h-16 w-16 text-muted-foreground/40 mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Sin Pipelines</h2>
-          <p className="text-muted-foreground mb-6">Crea tu primer pipeline para comenzar.</p>
-          <Button onClick={() => setNewPipelineOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Crear Pipeline
-          </Button>
+          <h2 className="text-2xl font-bold mb-2">Sin Pipeline</h2>
+          <p className="text-muted-foreground mb-6">No hay embudo de {typeLabel} para {brandLabel}.</p>
         </div>
-        {renderNewPipelineDialog()}
       </div>
     );
   }
@@ -229,7 +228,7 @@ export default function CrmPipeline() {
 
   return (
     <div className="space-y-6">
-      <PageBanner title={`Pipeline — ${brandLabel}`} description="Arrastra negocios entre etapas para actualizar su progreso.">
+      <PageBanner title={`${typeLabel} — ${brandLabel}`} description="Arrastra negocios entre etapas para actualizar su progreso.">
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate(`/crm/${marca}`)}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Volver
@@ -239,6 +238,16 @@ export default function CrmPipeline() {
           </Button>
         </div>
       </PageBanner>
+
+      {/* Switch primera vs recompra dentro del propio pipeline */}
+      <div className="flex flex-wrap gap-1 rounded-full bg-secondary p-1 w-fit">
+        <Button size="sm" variant={pipelineType === "primera_compra" ? "default" : "ghost"} className="rounded-full" onClick={() => setParams({ type: "primera_compra" })}>
+          Primera Compra
+        </Button>
+        <Button size="sm" variant={pipelineType === "recompra" ? "default" : "ghost"} className="rounded-full" onClick={() => setParams({ type: "recompra" })}>
+          Recompra
+        </Button>
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Select value={activePipelineId} onValueChange={setSelectedPipelineId}>
@@ -251,9 +260,6 @@ export default function CrmPipeline() {
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={() => setNewPipelineOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" /> Nuevo Pipeline
-        </Button>
         <div className="sm:ml-auto">
           <CrmPipelineFilters search={search} onSearchChange={setSearch} />
         </div>
@@ -290,8 +296,6 @@ export default function CrmPipeline() {
         onOpenChange={(o) => !o && setSelectedDeal(null)}
         stages={stages || []}
       />
-
-      {renderNewPipelineDialog()}
     </div>
   );
 }
