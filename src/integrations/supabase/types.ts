@@ -250,10 +250,15 @@ export type Database = {
           city: string | null
           created_at: string
           created_by: string | null
+          customer_score: number | null
           email: string | null
           equipo: string | null
+          estatus_cliente_id: string | null
           evaluacion_lubricante: string | null
+          fecha_conversion_cliente: string | null
+          fecha_ultima_compra: string | null
           forma_pago: string | null
+          frecuencia_compra_dias: number | null
           id: string
           id_contpaq: string | null
           industrias: string[] | null
@@ -267,16 +272,21 @@ export type Database = {
           phone: string | null
           plaza_id: string | null
           potencial_unidades: string | null
+          prioridad_cliente_id: string | null
           razon_social: string | null
           riesgo_cambio_marca: string | null
           rol_lubricante: string | null
+          segmento_id: string | null
           state: string | null
+          ticket_promedio: number | null
           tipo_cliente_comercial: string | null
+          tipo_cliente_id: string | null
           tipo_destino_lubricante: string | null
           tipo_pago: Database["public"]["Enums"]["tipo_pago"] | null
           tomador_decision: string | null
           updated_at: string
           uso_cfdi: Database["public"]["Enums"]["uso_cfdi"] | null
+          volumen_mensual_estimado: number | null
           website: string | null
           zip_code: string | null
         }
@@ -285,10 +295,15 @@ export type Database = {
           city?: string | null
           created_at?: string
           created_by?: string | null
+          customer_score?: number | null
           email?: string | null
           equipo?: string | null
+          estatus_cliente_id?: string | null
           evaluacion_lubricante?: string | null
+          fecha_conversion_cliente?: string | null
+          fecha_ultima_compra?: string | null
           forma_pago?: string | null
+          frecuencia_compra_dias?: number | null
           id?: string
           id_contpaq?: string | null
           industrias?: string[] | null
@@ -302,16 +317,21 @@ export type Database = {
           phone?: string | null
           plaza_id?: string | null
           potencial_unidades?: string | null
+          prioridad_cliente_id?: string | null
           razon_social?: string | null
           riesgo_cambio_marca?: string | null
           rol_lubricante?: string | null
+          segmento_id?: string | null
           state?: string | null
+          ticket_promedio?: number | null
           tipo_cliente_comercial?: string | null
+          tipo_cliente_id?: string | null
           tipo_destino_lubricante?: string | null
           tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
           tomador_decision?: string | null
           updated_at?: string
           uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
+          volumen_mensual_estimado?: number | null
           website?: string | null
           zip_code?: string | null
         }
@@ -320,10 +340,15 @@ export type Database = {
           city?: string | null
           created_at?: string
           created_by?: string | null
+          customer_score?: number | null
           email?: string | null
           equipo?: string | null
+          estatus_cliente_id?: string | null
           evaluacion_lubricante?: string | null
+          fecha_conversion_cliente?: string | null
+          fecha_ultima_compra?: string | null
           forma_pago?: string | null
+          frecuencia_compra_dias?: number | null
           id?: string
           id_contpaq?: string | null
           industrias?: string[] | null
@@ -337,25 +362,58 @@ export type Database = {
           phone?: string | null
           plaza_id?: string | null
           potencial_unidades?: string | null
+          prioridad_cliente_id?: string | null
           razon_social?: string | null
           riesgo_cambio_marca?: string | null
           rol_lubricante?: string | null
+          segmento_id?: string | null
           state?: string | null
+          ticket_promedio?: number | null
           tipo_cliente_comercial?: string | null
+          tipo_cliente_id?: string | null
           tipo_destino_lubricante?: string | null
           tipo_pago?: Database["public"]["Enums"]["tipo_pago"] | null
           tomador_decision?: string | null
           updated_at?: string
           uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
+          volumen_mensual_estimado?: number | null
           website?: string | null
           zip_code?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "companies_estatus_cliente_id_fkey"
+            columns: ["estatus_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "companies_plaza_id_fkey"
             columns: ["plaza_id"]
             isOneToOne: false
             referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_prioridad_cliente_id_fkey"
+            columns: ["prioridad_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_segmento_id_fkey"
+            columns: ["segmento_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_tipo_cliente_id_fkey"
+            columns: ["tipo_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
             referencedColumns: ["id"]
           },
         ]
@@ -487,12 +545,14 @@ export type Database = {
           email: string | null
           first_name: string
           id: string
+          influencia_id: string | null
           is_active: boolean
           job_title: string | null
           last_name: string
           mobile: string | null
           notes: string | null
           phone: string | null
+          rol_id: string | null
           updated_at: string
           whatsapp_phone: string | null
         }
@@ -504,12 +564,14 @@ export type Database = {
           email?: string | null
           first_name: string
           id?: string
+          influencia_id?: string | null
           is_active?: boolean
           job_title?: string | null
           last_name: string
           mobile?: string | null
           notes?: string | null
           phone?: string | null
+          rol_id?: string | null
           updated_at?: string
           whatsapp_phone?: string | null
         }
@@ -521,12 +583,14 @@ export type Database = {
           email?: string | null
           first_name?: string
           id?: string
+          influencia_id?: string | null
           is_active?: boolean
           job_title?: string | null
           last_name?: string
           mobile?: string | null
           notes?: string | null
           phone?: string | null
+          rol_id?: string | null
           updated_at?: string
           whatsapp_phone?: string | null
         }
@@ -536,6 +600,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_influencia_id_fkey"
+            columns: ["influencia_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_rol_id_fkey"
+            columns: ["rol_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
             referencedColumns: ["id"]
           },
         ]
@@ -632,54 +710,85 @@ export type Database = {
       }
       crm_deals: {
         Row: {
+          categoria_interes_id: string | null
           close_date: string | null
           company_id: string | null
           contact_id: string | null
+          convertido_a_cliente: boolean
           created_at: string
           created_by: string | null
+          fecha_conversion: string | null
           id: string
+          motivo_perdida_id: string | null
           notes: string | null
+          origen_prospecto_id: string | null
           owner_id: string | null
           pipeline_id: string
           probability: number
+          proxima_fecha_seguimiento: string | null
           stage_id: string
+          tipo_negocio: Database["public"]["Enums"]["tipo_negocio_crm"]
           title: string
           updated_at: string
           value: number
+          volumen_mensual_estimado: number | null
         }
         Insert: {
+          categoria_interes_id?: string | null
           close_date?: string | null
           company_id?: string | null
           contact_id?: string | null
+          convertido_a_cliente?: boolean
           created_at?: string
           created_by?: string | null
+          fecha_conversion?: string | null
           id?: string
+          motivo_perdida_id?: string | null
           notes?: string | null
+          origen_prospecto_id?: string | null
           owner_id?: string | null
           pipeline_id: string
           probability?: number
+          proxima_fecha_seguimiento?: string | null
           stage_id: string
+          tipo_negocio?: Database["public"]["Enums"]["tipo_negocio_crm"]
           title: string
           updated_at?: string
           value?: number
+          volumen_mensual_estimado?: number | null
         }
         Update: {
+          categoria_interes_id?: string | null
           close_date?: string | null
           company_id?: string | null
           contact_id?: string | null
+          convertido_a_cliente?: boolean
           created_at?: string
           created_by?: string | null
+          fecha_conversion?: string | null
           id?: string
+          motivo_perdida_id?: string | null
           notes?: string | null
+          origen_prospecto_id?: string | null
           owner_id?: string | null
           pipeline_id?: string
           probability?: number
+          proxima_fecha_seguimiento?: string | null
           stage_id?: string
+          tipo_negocio?: Database["public"]["Enums"]["tipo_negocio_crm"]
           title?: string
           updated_at?: string
           value?: number
+          volumen_mensual_estimado?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "crm_deals_categoria_interes_id_fkey"
+            columns: ["categoria_interes_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "crm_deals_company_id_fkey"
             columns: ["company_id"]
@@ -692,6 +801,20 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_motivo_perdida_id_fkey"
+            columns: ["motivo_perdida_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_origen_prospecto_id_fkey"
+            columns: ["origen_prospecto_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
             referencedColumns: ["id"]
           },
           {
@@ -2968,6 +3091,14 @@ export type Database = {
         | "viscosidad"
         | "categoria"
         | "linea"
+        | "estatus_cliente"
+        | "prioridad_cliente"
+        | "segmento_cliente"
+        | "tipo_cliente"
+        | "contacto_rol"
+        | "contacto_influencia"
+        | "origen_prospecto"
+        | "motivo_perdida"
       tipo_direccion:
         | "envio"
         | "fiscal"
@@ -2980,6 +3111,7 @@ export type Database = {
         | "pedido"
         | "factura"
         | "entrega_corporativa"
+      tipo_negocio_crm: "prospecto" | "expansion" | "recompra" | "otro"
       tipo_pago: "contado" | "credito" | "credito_cescemex"
       uso_cfdi:
         | "G01"
@@ -3225,6 +3357,14 @@ export const Constants = {
         "viscosidad",
         "categoria",
         "linea",
+        "estatus_cliente",
+        "prioridad_cliente",
+        "segmento_cliente",
+        "tipo_cliente",
+        "contacto_rol",
+        "contacto_influencia",
+        "origen_prospecto",
+        "motivo_perdida",
       ],
       tipo_direccion: ["envio", "fiscal", "comercial", "sucursal", "principal"],
       tipo_doc_cobranza: ["factura", "pedido", "cotizacion"],
@@ -3234,6 +3374,7 @@ export const Constants = {
         "factura",
         "entrega_corporativa",
       ],
+      tipo_negocio_crm: ["prospecto", "expansion", "recompra", "otro"],
       tipo_pago: ["contado", "credito", "credito_cescemex"],
       uso_cfdi: [
         "G01",
