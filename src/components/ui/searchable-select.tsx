@@ -10,6 +10,7 @@ interface SearchableSelectOption {
   value: string;
   label: string;
   searchText?: string;
+  description?: string;
 }
 
 interface SearchableSelectProps {
@@ -110,7 +111,12 @@ export function SearchableSelect({
                     value === option.value ? "opacity-100" : "opacity-0"
                   )}
                 />
-                <span className="whitespace-normal break-words">{option.label}</span>
+                <span className="flex flex-col min-w-0 flex-1">
+                  <span className="whitespace-normal break-words font-medium">{option.label}</span>
+                  {option.description && (
+                    <span className="whitespace-normal break-words text-xs text-muted-foreground">{option.description}</span>
+                  )}
+                </span>
               </button>
             ))
           )}
