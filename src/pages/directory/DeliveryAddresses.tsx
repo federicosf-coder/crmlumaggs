@@ -27,6 +27,7 @@ interface TipoCatalogItem {
 interface Address {
   id: string;
   empresa_id: string;
+  nombre: string | null;
   tipo: string;
   tipos: string[] | null;
   calle: string;
@@ -53,11 +54,15 @@ export default function DeliveryAddresses() {
   const [form, setForm] = useState<{
     empresa_id: string;
     tipos: string[];
+    nombre: string;
+    nombre_touched: boolean;
     referencia: string;
     address: AddressValue;
   }>({
     empresa_id: "",
     tipos: ["envio"],
+    nombre: "",
+    nombre_touched: false,
     referencia: "",
     address: { ...emptyAddress },
   });
@@ -102,6 +107,7 @@ export default function DeliveryAddresses() {
     const coord = `${a.coordenadas_lat ?? ""},${a.coordenadas_lng ?? ""}`;
     return (
       a.calle.toLowerCase().includes(q) ||
+      (a.nombre || "").toLowerCase().includes(q) ||
       (a.ciudad || "").toLowerCase().includes(q) ||
       (a.estado || "").toLowerCase().includes(q) ||
       (a.companies?.name || "").toLowerCase().includes(q) ||
@@ -111,7 +117,7 @@ export default function DeliveryAddresses() {
   });
 
   const resetForm = () => {
-    setForm({ empresa_id: "", tipos: ["envio"], referencia: "", address: { ...emptyAddress } });
+    setForm({ empresa_id: "", tipos: ["envio"], nombre: "", nombre_touched: false, referencia: "", address: { ...emptyAddress } });
     setEditing(null);
   };
 
@@ -123,6 +129,8 @@ export default function DeliveryAddresses() {
     setForm({
       empresa_id: a.empresa_id,
       tipos,
+      nombre: a.nombre || "",
+      nombre_touched: !!(a.nombre && a.nombre.trim()),
       referencia: a.referencia || "",
       address: {
         direccion_completa: a.direccion_completa || a.calle || "",
@@ -157,10 +165,19 @@ export default function DeliveryAddresses() {
     }
     // Keep legacy `tipo` synced with first selection (DB column is NOT NULL)
     const primaryTipo = form.tipos[0];
+    const empresaName = (companies as any[]).find((c) => c.id === form.empresa_id)?.name || "";
+    const calleForName = (form.address.direccion_completa || "").split(",")[0]?.trim() || "";
+    const ciudadForName = form.address.ciudad || "";
+    const autoNombre = [empresaName, labelByClave(primaryTipo), calleForName, ciudadForName]
+      .map((s) => (s || "").trim())
+      .filter(Boolean)
+      .join(" | ");
+    const nombreFinal = form.nombre.trim() || autoNombre;
     const payload: any = {
       empresa_id: form.empresa_id,
       tipo: primaryTipo,
       tipos: form.tipos,
+      nombre: nombreFinal,
       calle: dir, // legacy NOT NULL column kept in sync
       direccion_completa: dir,
       ciudad: form.address.ciudad || null,
@@ -234,6 +251,7 @@ export default function DeliveryAddresses() {
             <TableHeader>
               <TableRow>
                 <TableHead>Empresa</TableHead>
+                <TableHead>Nombre</TableHead>
                 <TableHead>Tipos</TableHead>
                 <TableHead>Dirección</TableHead>
                 <TableHead>Ciudad</TableHead>
@@ -245,9 +263,9 @@ export default function DeliveryAddresses() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin direcciones</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin direcciones</TableCell></TableRow>
               ) : (
                 filtered.map((a) => {
                   const tipos = a.tipos && a.tipos.length ? a.tipos : [a.tipo];
@@ -257,6 +275,7 @@ export default function DeliveryAddresses() {
                   return (
                     <TableRow key={a.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(a)}>
                       <TableCell className="font-medium">{a.companies?.name || "—"}</TableCell>
+                      <TableCell className="font-medium">{a.nombre || "—"}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {tipos.map((t) => (
@@ -329,6 +348,15 @@ export default function DeliveryAddresses() {
               required
               placeholder="Buscar dirección en Google Maps..."
             />
+            <div>
+              <Label>Nombre</Label>
+              <Input
+                value={form.nombre}
+                onChange={(e) => setForm((p) => ({ ...p, nombre: e.target.value, nombre_touched: true }))}
+                placeholder="Se generará automáticamente: Empresa | Tipo | Calle | Ciudad"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Identificador principal de la dirección. Editable libremente.</p>
+            </div>
             {(form.address.direccion_completa || (form.address.latitud != null && form.address.longitud != null)) && (
               <AddressDisplay
                 address={form.address.direccion_completa}
