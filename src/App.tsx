@@ -14,6 +14,7 @@ import TeamManagement from "@/pages/admin/TeamManagement";
 import PermissionsManagement from "@/pages/admin/PermissionsManagement";
 import CatalogsManagement from "@/pages/admin/CatalogsManagement";
 import ImportNoloco from "@/pages/admin/ImportNoloco";
+import TemplatesManagement from "@/pages/admin/TemplatesManagement";
 import ModulePlaceholder from "@/pages/ModulePlaceholder";
 import Directory from "@/pages/Directory";
 import ProductCatalog from "@/pages/inventory/ProductCatalog";
@@ -75,6 +76,7 @@ const App = () => (
             <Route path="/admin/permissions" element={<ProtectedRoute><PermissionsManagement /></ProtectedRoute>} />
             <Route path="/admin/catalogs" element={<ProtectedRoute><CatalogsManagement /></ProtectedRoute>} />
             <Route path="/admin/import-noloco" element={<ProtectedRoute><ImportNoloco /></ProtectedRoute>} />
+            <Route path="/admin/templates" element={<ProtectedRoute><TemplatesManagement /></ProtectedRoute>} />
 
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
             <Route path="/directory/addresses" element={<ProtectedRoute><DeliveryAddresses /></ProtectedRoute>} />
