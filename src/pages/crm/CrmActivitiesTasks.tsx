@@ -128,6 +128,7 @@ export default function CrmActivitiesTasks() {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <PageBanner title="Actividades / Tareas" description="Registra interacciones y gestiona pendientes.">
         <Button onClick={handleCreateOpen}>
           <Plus className="h-4 w-4 mr-2" /> Nueva
