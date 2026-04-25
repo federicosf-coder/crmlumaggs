@@ -1,6 +1,12 @@
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useDealUnitsProgress } from "@/hooks/useDealUnitsProgress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Pencil, Check, X } from "lucide-react";
+import { useUpdateCrmDeal } from "@/hooks/useCrmDeals";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   deal: any;
@@ -58,6 +64,29 @@ function ProgressRow({
 
 export function DealUnitsProgress({ deal }: Props) {
   const { data, isLoading } = useDealUnitsProgress(deal);
+  const updateDeal = useUpdateCrmDeal();
+  const { toast } = useToast();
+  const [editingPotencial, setEditingPotencial] = useState(false);
+  const [potencialInput, setPotencialInput] = useState("");
+
+  useEffect(() => {
+    if (deal) setPotencialInput(String(deal.potencial_unidades ?? deal.volumen_mensual_estimado ?? ""));
+  }, [deal?.id, deal?.potencial_unidades, deal?.volumen_mensual_estimado]);
+
+  const savePotencial = async () => {
+    const num = potencialInput === "" ? null : Number(potencialInput);
+    if (num !== null && (Number.isNaN(num) || num < 0)) {
+      toast({ title: "Valor inválido", variant: "destructive" });
+      return;
+    }
+    try {
+      await updateDeal.mutateAsync({ id: deal.id, potencial_unidades: num });
+      setEditingPotencial(false);
+      toast({ title: "Potencial actualizado" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
 
   if (isLoading) {
     return <Skeleton className="h-32 w-full" />;
@@ -74,6 +103,40 @@ export function DealUnitsProgress({ deal }: Props) {
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Potencial manual (u)
+        </span>
+        {editingPotencial ? (
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              min={0}
+              step="0.1"
+              value={potencialInput}
+              onChange={(e) => setPotencialInput(e.target.value)}
+              className="h-7 w-28 text-right font-mono text-xs"
+              autoFocus
+            />
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={savePotencial} disabled={updateDeal.isPending}>
+              <Check className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingPotencial(false)}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingPotencial(true)}
+            className="flex items-center gap-1.5 text-sm font-mono hover:text-primary"
+          >
+            {deal.potencial_unidades != null ? fmtUnits(Number(deal.potencial_unidades)) : "—"}
+            <Pencil className="h-3 w-3 opacity-60" />
+          </button>
+        )}
+      </div>
+
       {isRecompra && historico !== null && (
         <ProgressRow label="Histórico (prom. mensual)" value={historico} pct={100} variant="historic" />
       )}
@@ -83,7 +146,7 @@ export function DealUnitsProgress({ deal }: Props) {
       <ProgressRow label="Facturado (real)" value={facturado} pct={pctFacturado} base={potencial} />
       {potencial === 0 && (
         <p className="text-xs text-muted-foreground italic">
-          Define un potencial (volumen mensual estimado) para ver porcentajes.
+          Define un potencial manual arriba para ver los porcentajes.
         </p>
       )}
     </div>
