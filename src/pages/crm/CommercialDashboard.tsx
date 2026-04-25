@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TrendingUp, TrendingDown, Users, Target, DollarSign, Activity, Repeat, Award, AlertTriangle, Zap } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+import { BackButton } from "@/components/BackButton";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
 function fmtNum(n: number) {
