@@ -58,6 +58,7 @@ type PoolItem = {
   subtitle: string;
   address?: string;
   total?: number;
+  unidades?: number;
   estatus: string;
   plaza_id?: string;
   fecha_documento?: string;
