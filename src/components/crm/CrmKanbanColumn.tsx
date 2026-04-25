@@ -2,7 +2,6 @@ import { useState } from "react";
 import { CrmDeal } from "@/hooks/useCrmDeals";
 import { CrmPipelineStage } from "@/hooks/useCrmPipelines";
 import { CrmDealCard } from "./CrmDealCard";
-import { formatCurrency } from "@/lib/formatters";
 import { Kanban, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -16,7 +15,10 @@ interface CrmKanbanColumnProps {
 
 export function CrmKanbanColumn({ stage, deals, onDrop, onDealClick, onAddDeal }: CrmKanbanColumnProps) {
   const [isDragOver, setIsDragOver] = useState(false);
-  const totalValue = deals.reduce((sum, d) => sum + Number(d.value || 0), 0);
+  const totalUnidades = deals.reduce(
+    (sum, d: any) => sum + (Number(d.potencial_unidades) || Number(d.volumen_mensual_estimado) || 0),
+    0
+  );
 
   return (
     <div className="min-w-[260px] flex-shrink-0">
@@ -27,8 +29,10 @@ export function CrmKanbanColumn({ stage, deals, onDrop, onDealClick, onAddDeal }
           {deals.length}
         </span>
       </div>
-      {totalValue > 0 && (
-        <p className="mb-2 text-xs font-medium text-muted-foreground">{formatCurrency(totalValue)}</p>
+      {totalUnidades > 0 && (
+        <p className="mb-2 text-xs font-medium text-muted-foreground">
+          {new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(totalUnidades)} u
+        </p>
       )}
       <div
         className={`space-y-2 rounded-xl p-3 min-h-[400px] transition-colors ${isDragOver ? "bg-primary/10 ring-2 ring-primary/30" : "bg-muted/50"}`}
