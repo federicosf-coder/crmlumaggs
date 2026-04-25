@@ -179,8 +179,13 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
           <Separator />
 
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold">Tareas</h4>
+            <h4 className="text-sm font-semibold mb-3">Avance del negocio (en unidades)</h4>
+            <DealUnitsProgress deal={deal} />
+          </div>
+
+          <Separator />
+
+
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setTaskDialogOpen(true)}>
                 <Plus className="h-3 w-3 mr-1" /> Agregar Tarea
               </Button>
