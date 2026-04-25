@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, ShoppingCart, FileText, Package, Truck,
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
   Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet, Upload,
-  MessageCircle, Megaphone, FileBadge, Bot,
+  MessageCircle, Megaphone, FileBadge, Bot, FileStack,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -48,6 +48,7 @@ const adminItems: NavItem[] = [
   { title: "Permisos", url: "/admin/permissions", icon: Shield, roles: ["admin"] },
   { title: "Equipos", url: "/admin/teams", icon: Settings, roles: ["admin", "manager"] },
   { title: "Catálogos", url: "/admin/catalogs", icon: Database, roles: ["admin", "manager"] },
+  { title: "Plantillas", url: "/admin/templates", icon: FileStack, roles: ["admin", "manager", "sales"] },
   { title: "Importar Noloco", url: "/admin/import-noloco", icon: Upload, roles: ["admin"] },
   { title: "WhatsApp · Campañas", url: "/whatsapp/campaigns", icon: Megaphone, roles: ["admin", "manager"] },
   { title: "WhatsApp · Plantillas", url: "/whatsapp/templates", icon: FileBadge, roles: ["admin", "manager"] },
