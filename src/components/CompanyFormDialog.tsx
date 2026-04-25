@@ -356,6 +356,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{isEdit ? "Editar Empresa" : "Nueva Empresa"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isEdit && editData?.id && <CompanyUnitsHeader companyId={editData.id} />}
           <Tabs defaultValue="general">
             <TabsList className="w-full">
               <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
