@@ -114,6 +114,7 @@ export default function CommercialDashboard() {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div>
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <Zap className="h-6 w-6 text-primary" /> Dashboard Comercial
