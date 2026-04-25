@@ -279,7 +279,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
       })()}
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>{items.length} items</span>
-        <span>${items.reduce((s, i) => s + (i.total || 0), 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+        <span>{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(items.reduce((s, i) => s + (i.unidades || 0), 0))} u</span>
       </div>
     </div>
   );
