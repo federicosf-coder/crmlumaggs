@@ -75,7 +75,7 @@ export function AppSidebar() {
     };
     load();
     const channel = supabase
-      .channel("profiles-pending-count")
+      .channel(`profiles-pending-count-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, load)
       .subscribe();
     return () => {
