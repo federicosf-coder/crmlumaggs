@@ -7,6 +7,7 @@ import { CrmTaskItem } from "@/components/crm/CrmTaskItem";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
 import { PageBanner } from "@/components/PageBanner";
+import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
