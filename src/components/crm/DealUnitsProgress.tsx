@@ -43,7 +43,7 @@ function ProgressRow({
         <span className="font-mono">
           {fmtUnits(value)} u
           {base !== undefined && (
-            <span className={cn("ml-2", exceeds && "text-emerald-600 font-semibold")}>
+            <span className={cn("ml-2", exceeds && "text-primary font-semibold")}>
               {fmtUnits(pct)}%
             </span>
           )}
