@@ -65,14 +65,14 @@ type PoolItem = {
 };
 
 // ─── Draggable Card ──────────────────────────────────────────
-function DraggablePoolCard({ item }: { item: PoolItem }) {
+function DraggablePoolCard({ item, footerActions }: { item: PoolItem; footerActions?: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   const cfg = STATUS_CONFIG[item.estatus] || STATUS_CONFIG.confirmado_cliente;
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}
-      className={cn("border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-colors", cfg.bg)}>
+      className={cn("border rounded-lg p-4 cursor-grab active:cursor-grabbing transition-colors", cfg.bg)}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-1">
@@ -97,6 +97,11 @@ function DraggablePoolCard({ item }: { item: PoolItem }) {
           <Badge variant="outline" className={cn("text-[10px] mt-1 block", cfg.color)}>{cfg.label}</Badge>
         </div>
       </div>
+      {footerActions && (
+        <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-2" onPointerDown={(e) => e.stopPropagation()}>
+          {footerActions}
+        </div>
+      )}
     </div>
   );
 }
@@ -105,7 +110,7 @@ function DraggablePoolCard({ item }: { item: PoolItem }) {
 function OverlayCard({ item }: { item: PoolItem }) {
   const cfg = STATUS_CONFIG[item.estatus] || STATUS_CONFIG.confirmado_cliente;
   return (
-    <div className={cn("border rounded-lg p-3 shadow-xl", cfg.bg)} style={{ width: 320 }}>
+    <div className={cn("border rounded-lg p-4 shadow-xl", cfg.bg)} style={{ width: 320 }}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-1">
@@ -197,50 +202,54 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                 <Badge variant="outline" className="text-[10px] px-1.5 font-mono bg-background">{idx + 1}</Badge>
               </div>
               <div className="pl-5">
-                <DraggablePoolCard item={item} />
+                <DraggablePoolCard
+                  item={item}
+                  footerActions={
+                    item.type === "pedido" ? (
+                      <>
+                        {item.address && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="h-11 sm:h-8 px-3 gap-1.5 shadow"
+                            title="Abrir mapa"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address!)}`, "_blank");
+                            }}
+                          >
+                            <MapPin className="h-4 w-4" />
+                            <span className="text-xs">Mapa</span>
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-11 sm:h-8 px-3 gap-1.5 shadow"
+                          title="Ver / editar pedido"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/documents/${item.id}/edit`); }}
+                        >
+                          <FileText className="h-4 w-4" />
+                          <span className="text-xs">Editar</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="h-11 sm:h-8 px-3 gap-1.5 shadow"
+                          title="Abrir entrega"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/delivery/entrega/${item.id}`); }}
+                        >
+                          <ClipboardCheck className="h-4 w-4" />
+                          <span className="text-xs">Entrega</span>
+                        </Button>
+                      </>
+                    ) : undefined
+                  }
+                />
               </div>
-              {item.type === "pedido" && (
-                <div className="mt-1.5 pl-5 flex flex-wrap gap-2">
-                  {item.address && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-11 sm:h-8 px-3 gap-1.5 shadow"
-                      title="Abrir mapa"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address!)}`, "_blank");
-                      }}
-                    >
-                      <MapPin className="h-4 w-4" />
-                      <span className="text-xs">Mapa</span>
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="h-11 sm:h-8 px-3 gap-1.5 shadow"
-                    title="Ver / editar pedido"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); navigate(`/documents/${item.id}/edit`); }}
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span className="text-xs">Editar</span>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="h-11 sm:h-8 px-3 gap-1.5 shadow"
-                    title="Abrir entrega"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); navigate(`/delivery/entrega/${item.id}`); }}
-                  >
-                    <ClipboardCheck className="h-4 w-4" />
-                    <span className="text-xs">Entrega</span>
-                  </Button>
-                </div>
-              )}
             </div>
           ))}
 
