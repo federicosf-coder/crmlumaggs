@@ -185,7 +185,9 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
 
           <Separator />
 
-
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold">Tareas</h4>
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setTaskDialogOpen(true)}>
                 <Plus className="h-3 w-3 mr-1" /> Agregar Tarea
               </Button>
