@@ -8,8 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Target, DollarSign, TrendingUp, Clock, Kanban, Plus } from "lucide-react";
-import { formatCurrency } from "@/lib/formatters";
+import { Target, Package, TrendingUp, Clock, Kanban, Plus } from "lucide-react";
 import { CrmRecentActivity } from "./CrmRecentActivity";
 import { CrmClosingSoon } from "./CrmClosingSoon";
 import { CrmMiniPipelineChart } from "./CrmMiniPipelineChart";
@@ -53,7 +52,10 @@ export function CrmBrandDashboard({ marca, pipelineType = "primera_compra" }: { 
 
   // Stats
   const totalDeals = deals?.length || 0;
-  const totalValue = deals?.reduce((sum, d) => sum + Number(d.value || 0), 0) || 0;
+  const totalUnidades = deals?.reduce(
+    (sum, d: any) => sum + (Number(d.potencial_unidades) || Number(d.volumen_mensual_estimado) || 0),
+    0
+  ) || 0;
   const wonStage = stages?.find((s) => /ganado/i.test(s.name));
   const lostStage = stages?.find((s) => /perdido/i.test(s.name));
   const wonCount = deals?.filter((d) => d.stage_id === wonStage?.id).length || 0;
@@ -64,7 +66,7 @@ export function CrmBrandDashboard({ marca, pipelineType = "primera_compra" }: { 
 
   const statCards = [
     { label: `Negocios ${typeLabel}`, value: String(totalDeals), icon: Target, color: "hsl(210, 70%, 55%)" },
-    { label: "Valor Pipeline", value: formatCurrency(totalValue), icon: DollarSign, color: "hsl(170, 50%, 45%)" },
+    { label: "Unidades Pipeline", value: new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(totalUnidades), icon: Package, color: "hsl(170, 50%, 45%)" },
     { label: "Tasa de Cierre", value: `${winRate}%`, icon: TrendingUp, color: "hsl(262, 60%, 55%)" },
     { label: "Ganados", value: String(wonCount), icon: Clock, color: "hsl(14, 98%, 60%)" },
   ];
