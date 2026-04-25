@@ -92,8 +92,10 @@ function DraggablePoolCard({ item, footerActions }: { item: PoolItem; footerActi
           )}
         </div>
         <div className="text-right shrink-0">
-          {item.total != null && (
-            <span className="text-sm font-semibold">${Number(item.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+          {item.unidades != null && item.unidades > 0 && (
+            <span className="text-sm font-semibold">
+              {new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(item.unidades)} u
+            </span>
           )}
           <Badge variant="outline" className={cn("text-[10px] mt-1 block", cfg.color)}>{cfg.label}</Badge>
         </div>
@@ -123,8 +125,10 @@ function OverlayCard({ item }: { item: PoolItem }) {
             <p className="text-xs text-muted-foreground mt-0.5">📅 {format(new Date(item.fecha_documento + "T12:00:00"), "dd MMM yyyy", { locale: es })}</p>
           )}
         </div>
-        {item.total != null && (
-          <span className="text-sm font-semibold">${Number(item.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+        {item.unidades != null && item.unidades > 0 && (
+          <span className="text-sm font-semibold">
+            {new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(item.unidades)} u
+          </span>
         )}
       </div>
     </div>
