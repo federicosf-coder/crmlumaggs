@@ -200,12 +200,12 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                 <DraggablePoolCard item={item} />
               </div>
               {item.type === "pedido" && (
-                <div className="absolute top-1 right-8 z-10 flex gap-0.5">
+                <div className="mt-1.5 pl-5 flex flex-wrap gap-2">
                   {item.address && (
                     <Button
-                      size="icon"
+                      size="sm"
                       variant="secondary"
-                      className="h-6 w-6 shadow"
+                      className="h-11 sm:h-8 px-3 gap-1.5 shadow"
                       title="Abrir mapa"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
@@ -213,28 +213,31 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                         window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address!)}`, "_blank");
                       }}
                     >
-                      <MapPin className="h-3 w-3" />
+                      <MapPin className="h-4 w-4" />
+                      <span className="text-xs">Mapa</span>
                     </Button>
                   )}
                   <Button
-                    size="icon"
+                    size="sm"
                     variant="secondary"
-                    className="h-6 w-6 shadow"
+                    className="h-11 sm:h-8 px-3 gap-1.5 shadow"
                     title="Ver / editar pedido"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); navigate(`/documents/${item.id}/edit`); }}
                   >
-                    <FileText className="h-3 w-3" />
+                    <FileText className="h-4 w-4" />
+                    <span className="text-xs">Editar</span>
                   </Button>
                   <Button
-                    size="icon"
+                    size="sm"
                     variant="default"
-                    className="h-6 w-6 shadow"
+                    className="h-11 sm:h-8 px-3 gap-1.5 shadow"
                     title="Abrir entrega"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); navigate(`/delivery/entrega/${item.id}`); }}
                   >
-                    <ClipboardCheck className="h-3 w-3" />
+                    <ClipboardCheck className="h-4 w-4" />
+                    <span className="text-xs">Entrega</span>
                   </Button>
                 </div>
               )}
