@@ -14,7 +14,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TrendingUp, TrendingDown, Users, Target, DollarSign, Activity, Repeat, Award, AlertTriangle, Zap } from "lucide-react";
-import { formatCurrency } from "@/lib/formatters";
 import { BackButton } from "@/components/BackButton";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
@@ -212,7 +211,7 @@ export default function CommercialDashboard() {
             <h3 className="text-lg font-semibold flex items-center gap-2"><DollarSign className="h-4 w-4" /> Ventas (unidades equivalentes)</h3>
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
               <KpiCard label="Volumen total (uds eq.)" value={fmtNum(data.volumenTotal)} icon={DollarSign} color="hsl(14 98% 60%)" />
-              <KpiCard label="Ticket promedio" value={formatCurrency(data.ticketPromedio)} icon={TrendingUp} color="hsl(210 70% 55%)" />
+              <KpiCard label="Volumen recompra (uds)" value={fmtNum(data.volumenRecompra)} icon={Repeat} color="hsl(210 70% 55%)" />
               <KpiCard label="Volumen prom./cliente" value={fmtNum(data.volumenPromedioCliente)} icon={Users} color="hsl(262 60% 55%)" />
               <KpiCard label="Clientes con compra" value={fmtNum(data.topClientes.length)} icon={Award} color="hsl(170 50% 45%)" />
             </div>
