@@ -675,6 +675,7 @@ export type Database = {
           deal_id: string | null
           description: string | null
           id: string
+          template_id: string | null
           title: string
           type: string
           user_id: string
@@ -687,6 +688,7 @@ export type Database = {
           deal_id?: string | null
           description?: string | null
           id?: string
+          template_id?: string | null
           title: string
           type: string
           user_id: string
@@ -699,6 +701,7 @@ export type Database = {
           deal_id?: string | null
           description?: string | null
           id?: string
+          template_id?: string | null
           title?: string
           type?: string
           user_id?: string
@@ -723,6 +726,13 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
             referencedColumns: ["id"]
           },
         ]
@@ -2517,6 +2527,96 @@ export type Database = {
         }
         Relationships: []
       }
+      template_placeholders: {
+        Row: {
+          applies_to: Database["public"]["Enums"]["placeholder_scope"]
+          created_at: string
+          description: string | null
+          example_value: string | null
+          id: string
+          is_active: boolean
+          key: string
+          label: string
+          sort_order: number
+          source_field: string | null
+          source_table: string | null
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: Database["public"]["Enums"]["placeholder_scope"]
+          created_at?: string
+          description?: string | null
+          example_value?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          source_field?: string | null
+          source_table?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: Database["public"]["Enums"]["placeholder_scope"]
+          created_at?: string
+          description?: string | null
+          example_value?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          source_field?: string | null
+          source_table?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      templates: {
+        Row: {
+          body: string
+          category: Database["public"]["Enums"]["template_category"]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          subject: string | null
+          type: Database["public"]["Enums"]["template_type"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body: string
+          category?: Database["public"]["Enums"]["template_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          subject?: string | null
+          type: Database["public"]["Enums"]["template_type"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body?: string
+          category?: Database["public"]["Enums"]["template_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          subject?: string | null
+          type?: Database["public"]["Enums"]["template_type"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       tipos_direccion: {
         Row: {
           clave: string
@@ -3268,6 +3368,7 @@ export type Database = {
         | "sin_historial"
       metodo_pago_sat: "PUE" | "PPD"
       pipeline_type: "primera_compra" | "recompra"
+      placeholder_scope: "email" | "whatsapp" | "ambos"
       product_option_type:
         | "marca"
         | "aplicacion"
@@ -3284,6 +3385,17 @@ export type Database = {
         | "contacto_influencia"
         | "origen_prospecto"
         | "motivo_perdida"
+      template_category:
+        | "seguimiento_cotizacion"
+        | "recompra"
+        | "expansion"
+        | "prospecto"
+        | "cobranza"
+        | "entrega"
+        | "pago"
+        | "credito"
+        | "general"
+      template_type: "email" | "whatsapp"
       tipo_direccion:
         | "envio"
         | "fiscal"
@@ -3556,6 +3668,7 @@ export const Constants = {
       ],
       metodo_pago_sat: ["PUE", "PPD"],
       pipeline_type: ["primera_compra", "recompra"],
+      placeholder_scope: ["email", "whatsapp", "ambos"],
       product_option_type: [
         "marca",
         "aplicacion",
@@ -3573,6 +3686,18 @@ export const Constants = {
         "origen_prospecto",
         "motivo_perdida",
       ],
+      template_category: [
+        "seguimiento_cotizacion",
+        "recompra",
+        "expansion",
+        "prospecto",
+        "cobranza",
+        "entrega",
+        "pago",
+        "credito",
+        "general",
+      ],
+      template_type: ["email", "whatsapp"],
       tipo_direccion: ["envio", "fiscal", "comercial", "sucursal", "principal"],
       tipo_doc_cobranza: ["factura", "pedido", "cotizacion"],
       tipo_documento: [
