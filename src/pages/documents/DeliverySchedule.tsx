@@ -58,6 +58,7 @@ type PoolItem = {
   subtitle: string;
   address?: string;
   total?: number;
+  unidades?: number;
   estatus: string;
   plaza_id?: string;
   fecha_documento?: string;
@@ -91,8 +92,10 @@ function DraggablePoolCard({ item, footerActions }: { item: PoolItem; footerActi
           )}
         </div>
         <div className="text-right shrink-0">
-          {item.total != null && (
-            <span className="text-sm font-semibold">${Number(item.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+          {item.unidades != null && item.unidades > 0 && (
+            <span className="text-sm font-semibold">
+              {new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(item.unidades)} u
+            </span>
           )}
           <Badge variant="outline" className={cn("text-[10px] mt-1 block", cfg.color)}>{cfg.label}</Badge>
         </div>
@@ -122,8 +125,10 @@ function OverlayCard({ item }: { item: PoolItem }) {
             <p className="text-xs text-muted-foreground mt-0.5">📅 {format(new Date(item.fecha_documento + "T12:00:00"), "dd MMM yyyy", { locale: es })}</p>
           )}
         </div>
-        {item.total != null && (
-          <span className="text-sm font-semibold">${Number(item.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+        {item.unidades != null && item.unidades > 0 && (
+          <span className="text-sm font-semibold">
+            {new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(item.unidades)} u
+          </span>
         )}
       </div>
     </div>
@@ -274,7 +279,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
       })()}
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>{items.length} items</span>
-        <span>${items.reduce((s, i) => s + (i.total || 0), 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+        <span>{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(items.reduce((s, i) => s + (i.unidades || 0), 0))} u</span>
       </div>
     </div>
   );
@@ -428,6 +433,7 @@ export default function DeliverySchedule() {
           subtitle: productSummary,
           address: p.direccion_envio || undefined,
           total: Number(p.total) || 0,
+          unidades: Number(p.unidades_equivalentes_total) || 0,
           estatus: p.estatus_pedido || "confirmado_cliente",
           plaza_id: p.plaza_id || undefined,
           fecha_documento: p.fecha_documento || undefined,
@@ -473,6 +479,7 @@ export default function DeliverySchedule() {
           subtitle: productSummary,
           address: doc?.direccion_envio || undefined,
           total: Number(doc?.total) || 0,
+          unidades: Number(doc?.unidades_equivalentes_total) || 0,
           estatus: doc?.estatus_pedido || "programado_entrega",
           plaza_id: doc?.plaza_id || undefined,
           fecha_documento: doc?.fecha_documento || undefined,
