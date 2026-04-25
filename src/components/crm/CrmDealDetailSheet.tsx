@@ -165,7 +165,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Valor</span><p className="font-semibold text-lg">{formatCurrency(Number(deal.value))}</p></div>
+                <div><span className="text-muted-foreground">Potencial (u)</span><p className="font-semibold text-lg">{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(Number((deal as any).potencial_unidades) || Number((deal as any).volumen_mensual_estimado) || 0)}</p></div>
                 <div><span className="text-muted-foreground">Probabilidad</span><p className="font-semibold">{deal.probability}%</p></div>
                 <div><span className="text-muted-foreground">Etapa</span><Badge style={{ backgroundColor: currentStage?.color, color: "white" }}>{currentStage?.name}</Badge></div>
                 <div><span className="text-muted-foreground">Fecha de Cierre</span><p>{deal.close_date ? formatDate(deal.close_date) : "No definida"}</p></div>
