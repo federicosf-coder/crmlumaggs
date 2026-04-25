@@ -31,7 +31,14 @@ const CANCELLED_FACTURA = ["cancelada"];
 
 export function useDealUnitsProgress(deal: any | null) {
   return useQuery<DealUnitsProgress | null>({
-    queryKey: ["deal-units-progress", deal?.id, deal?.company_id, deal?.pipeline_type, deal?.volumen_mensual_estimado],
+    queryKey: [
+      "deal-units-progress",
+      deal?.id,
+      deal?.company_id,
+      deal?.pipeline_type,
+      deal?.potencial_unidades,
+      deal?.volumen_mensual_estimado,
+    ],
     enabled: !!deal && !!deal.company_id,
     queryFn: async () => {
       if (!deal || !deal.company_id) return null;
@@ -75,10 +82,12 @@ export function useDealUnitsProgress(deal: any | null) {
         historico = totalU / meses;
       }
 
-      const potencialManual = Number(deal.volumen_mensual_estimado) || 0;
-      const potencial = potencialManual > 0
-        ? potencialManual
-        : (historico ?? 0);
+      // Prioridad: potencial_unidades (nuevo manual editable) > volumen_mensual_estimado (legacy) > histórico (recompra)
+      const potencialManual =
+        Number(deal.potencial_unidades) ||
+        Number(deal.volumen_mensual_estimado) ||
+        0;
+      const potencial = potencialManual > 0 ? potencialManual : (historico ?? 0);
 
       const safeBase = potencial > 0 ? potencial : 1;
       return {
