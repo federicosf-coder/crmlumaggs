@@ -83,7 +83,7 @@ export default function TemplatesManagement() {
 
   return (
     <AppLayout>
-      <PageBanner title="Plantillas" description="Centraliza plantillas de email y WhatsApp para reutilizar en cotizaciones, cobranza, recompra y más." icon={FileText} />
+      <PageBanner title="Plantillas" description="Centraliza plantillas de email y WhatsApp para reutilizar en cotizaciones, cobranza, recompra y más." />
 
       <div className="space-y-4 px-4 md:px-6 py-4">
         <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
