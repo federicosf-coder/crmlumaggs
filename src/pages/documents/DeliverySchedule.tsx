@@ -110,7 +110,7 @@ function DraggablePoolCard({ item, footerActions }: { item: PoolItem; footerActi
 function OverlayCard({ item }: { item: PoolItem }) {
   const cfg = STATUS_CONFIG[item.estatus] || STATUS_CONFIG.confirmado_cliente;
   return (
-    <div className={cn("border rounded-lg p-3 shadow-xl", cfg.bg)} style={{ width: 320 }}>
+    <div className={cn("border rounded-lg p-4 shadow-xl", cfg.bg)} style={{ width: 320 }}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-1">
