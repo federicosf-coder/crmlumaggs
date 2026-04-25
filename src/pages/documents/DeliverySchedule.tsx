@@ -65,14 +65,14 @@ type PoolItem = {
 };
 
 // ─── Draggable Card ──────────────────────────────────────────
-function DraggablePoolCard({ item }: { item: PoolItem }) {
+function DraggablePoolCard({ item, footerActions }: { item: PoolItem; footerActions?: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   const cfg = STATUS_CONFIG[item.estatus] || STATUS_CONFIG.confirmado_cliente;
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}
-      className={cn("border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-colors", cfg.bg)}>
+      className={cn("border rounded-lg p-4 cursor-grab active:cursor-grabbing transition-colors", cfg.bg)}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-1">
@@ -97,6 +97,11 @@ function DraggablePoolCard({ item }: { item: PoolItem }) {
           <Badge variant="outline" className={cn("text-[10px] mt-1 block", cfg.color)}>{cfg.label}</Badge>
         </div>
       </div>
+      {footerActions && (
+        <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-2" onPointerDown={(e) => e.stopPropagation()}>
+          {footerActions}
+        </div>
+      )}
     </div>
   );
 }
