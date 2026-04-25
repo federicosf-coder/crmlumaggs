@@ -783,6 +783,7 @@ export type Database = {
           owner_id: string | null
           pipeline_id: string
           pipeline_type: Database["public"]["Enums"]["pipeline_type"]
+          potencial_unidades: number | null
           probability: number
           proxima_fecha_seguimiento: string | null
           stage_id: string
@@ -808,6 +809,7 @@ export type Database = {
           owner_id?: string | null
           pipeline_id: string
           pipeline_type?: Database["public"]["Enums"]["pipeline_type"]
+          potencial_unidades?: number | null
           probability?: number
           proxima_fecha_seguimiento?: string | null
           stage_id: string
@@ -833,6 +835,7 @@ export type Database = {
           owner_id?: string | null
           pipeline_id?: string
           pipeline_type?: Database["public"]["Enums"]["pipeline_type"]
+          potencial_unidades?: number | null
           probability?: number
           proxima_fecha_seguimiento?: string | null
           stage_id?: string
