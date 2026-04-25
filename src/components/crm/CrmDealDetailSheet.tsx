@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { CrmTaskItem } from "@/components/crm/CrmTaskItem";
 import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
+import { DealUnitsProgress } from "@/components/crm/DealUnitsProgress";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -174,6 +175,13 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               {deal.notes && <div className="text-sm"><span className="text-muted-foreground">Notas</span><p className="mt-1 whitespace-pre-wrap">{deal.notes}</p></div>}
             </>
           )}
+
+          <Separator />
+
+          <div>
+            <h4 className="text-sm font-semibold mb-3">Avance del negocio (en unidades)</h4>
+            <DealUnitsProgress deal={deal} />
+          </div>
 
           <Separator />
 

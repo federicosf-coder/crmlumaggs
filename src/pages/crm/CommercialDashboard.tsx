@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TrendingUp, TrendingDown, Users, Target, DollarSign, Activity, Repeat, Award, AlertTriangle, Zap } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+import { BackButton } from "@/components/BackButton";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
 function fmtNum(n: number) {
@@ -114,6 +115,7 @@ export default function CommercialDashboard() {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div>
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <Zap className="h-6 w-6 text-primary" /> Dashboard Comercial

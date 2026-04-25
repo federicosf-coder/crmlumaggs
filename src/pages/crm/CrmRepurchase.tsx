@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useRepurchaseDashboard, type EstatusRecompra, type RepurchaseCompany } from "@/hooks/useRepurchase";
 import { formatCurrency } from "@/lib/formatters";
+import { BackButton } from "@/components/BackButton";
 
 const STATUS_LABEL: Record<EstatusRecompra, string> = {
   al_dia: "Al día",
@@ -115,6 +116,7 @@ export default function CrmRepurchase() {
   const [tab, setTab] = useState<"chevron" | "phillips66">("chevron");
   return (
     <div className="space-y-6">
+      <BackButton />
       <div>
         <h1 className="text-3xl font-bold">Recompra</h1>
         <p className="text-muted-foreground mt-1">

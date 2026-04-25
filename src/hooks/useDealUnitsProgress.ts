@@ -1,0 +1,97 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Avance del negocio medido en UNIDADES EQUIVALENTES (no en dinero).
+ *
+ * Para PRIMERA COMPRA:
+ *  - potencial = crm_deals.volumen_mensual_estimado (manual)
+ *  - cotizado/pedido/facturado = suma de unidades_equivalentes_total de
+ *    documentos vinculados a la empresa de la oportunidad.
+ *
+ * Para RECOMPRA:
+ *  - histórico = promedio mensual de unidades facturadas a la empresa
+ *  - potencial = volumen_mensual_estimado si existe, si no = histórico
+ */
+export interface DealUnitsProgress {
+  potencial: number;
+  historico: number | null;
+  cotizado: number;
+  pedido: number;
+  facturado: number;
+  pctCotizado: number;
+  pctPedido: number;
+  pctFacturado: number;
+  isRecompra: boolean;
+}
+
+const CANCELLED_COTIZACION = ["rechazada", "vencida"];
+const CANCELLED_PEDIDO = ["cancelado"];
+const CANCELLED_FACTURA = ["cancelada"];
+
+export function useDealUnitsProgress(deal: any | null) {
+  return useQuery<DealUnitsProgress | null>({
+    queryKey: ["deal-units-progress", deal?.id, deal?.company_id, deal?.pipeline_type, deal?.volumen_mensual_estimado],
+    enabled: !!deal && !!deal.company_id,
+    queryFn: async () => {
+      if (!deal || !deal.company_id) return null;
+      const isRecompra = deal.pipeline_type === "recompra";
+
+      const { data: docs } = await supabase
+        .from("documentos")
+        .select(
+          "id, tipo_documento, estatus_cotizacion, estatus_pedido, estatus_factura, unidades_equivalentes_total, fecha_documento, is_active"
+        )
+        .eq("empresa_id", deal.company_id)
+        .eq("is_active", true);
+
+      let cotizado = 0;
+      let pedido = 0;
+      let facturado = 0;
+      const facturasParaHistorico: { fecha: string; unidades: number }[] = [];
+
+      (docs || []).forEach((d: any) => {
+        const u = Number(d.unidades_equivalentes_total) || 0;
+        if (d.tipo_documento === "cotizacion") {
+          if (!CANCELLED_COTIZACION.includes(d.estatus_cotizacion || "")) cotizado += u;
+        } else if (d.tipo_documento === "pedido") {
+          if (!CANCELLED_PEDIDO.includes(d.estatus_pedido || "")) pedido += u;
+        } else if (d.tipo_documento === "factura") {
+          if (!CANCELLED_FACTURA.includes(d.estatus_factura || "")) {
+            facturado += u;
+            if (d.fecha_documento) facturasParaHistorico.push({ fecha: d.fecha_documento, unidades: u });
+          }
+        }
+      });
+
+      // Histórico: promedio mensual de unidades facturadas
+      let historico: number | null = null;
+      if (isRecompra && facturasParaHistorico.length > 0) {
+        const fechas = facturasParaHistorico.map((f) => new Date(f.fecha).getTime());
+        const minF = Math.min(...fechas);
+        const maxF = Math.max(...fechas);
+        const meses = Math.max(1, Math.round((maxF - minF) / (1000 * 60 * 60 * 24 * 30)) + 1);
+        const totalU = facturasParaHistorico.reduce((s, f) => s + f.unidades, 0);
+        historico = totalU / meses;
+      }
+
+      const potencialManual = Number(deal.volumen_mensual_estimado) || 0;
+      const potencial = potencialManual > 0
+        ? potencialManual
+        : (historico ?? 0);
+
+      const safeBase = potencial > 0 ? potencial : 1;
+      return {
+        potencial,
+        historico,
+        cotizado,
+        pedido,
+        facturado,
+        pctCotizado: (cotizado / safeBase) * 100,
+        pctPedido: (pedido / safeBase) * 100,
+        pctFacturado: (facturado / safeBase) * 100,
+        isRecompra,
+      };
+    },
+  });
+}
