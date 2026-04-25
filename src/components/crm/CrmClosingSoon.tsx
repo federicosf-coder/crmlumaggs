@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate } from "@/lib/formatters";
+import { formatDate } from "@/lib/formatters";
 import { Clock, CheckSquare } from "lucide-react";
 
 export function CrmClosingSoon({ pipelineId, since }: { pipelineId?: string; since?: string | null }) {
@@ -74,7 +74,9 @@ export function CrmClosingSoon({ pipelineId, since }: { pipelineId?: string; sin
                       <p className="text-sm font-medium">{d.title}</p>
                       <p className="text-xs text-muted-foreground">{d.companies?.name} · {formatDate(d.close_date)}</p>
                     </div>
-                    <span className="text-sm font-semibold">{formatCurrency(Number(d.value))}</span>
+                    <span className="text-sm font-semibold">
+                      {new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(Number((d as any).potencial_unidades) || Number((d as any).volumen_mensual_estimado) || 0)} u
+                    </span>
                   </div>
                 ))}
               </div>
