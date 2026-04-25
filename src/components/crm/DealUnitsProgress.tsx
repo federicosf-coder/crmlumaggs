@@ -33,7 +33,7 @@ function ProgressRow({
       : variant === "historic"
         ? "bg-muted-foreground/60"
         : exceeds
-          ? "bg-emerald-500"
+          ? "bg-primary"
           : "bg-primary/70";
 
   return (
