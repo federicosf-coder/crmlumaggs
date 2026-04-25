@@ -1,6 +1,6 @@
 import { CrmDeal } from "@/hooks/useCrmDeals";
-import { formatCurrency, formatDate } from "@/lib/formatters";
-import { Calendar, DollarSign, GripVertical } from "lucide-react";
+import { formatDate } from "@/lib/formatters";
+import { Calendar, GripVertical, Package } from "lucide-react";
 
 interface CrmDealCardProps {
   deal: CrmDeal;
@@ -29,10 +29,10 @@ export function CrmDealCard({ deal, stageColor, onClick }: CrmDealCardProps) {
           <p className="text-xs text-muted-foreground">{deal.companies.name}</p>
         )}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {deal.value > 0 && (
+          {Number((deal as any).volumen_mensual_estimado) > 0 && (
             <span className="flex items-center gap-1 font-medium text-foreground">
-              <DollarSign className="h-3 w-3" />
-              {formatCurrency(deal.value)}
+              <Package className="h-3 w-3" />
+              {new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(Number((deal as any).volumen_mensual_estimado))} u
             </span>
           )}
           {deal.close_date && (
