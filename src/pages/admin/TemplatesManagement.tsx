@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Copy, Power, Search, FileText, MessageCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, Power, Search, FileText, MessageCircle, Paperclip } from "lucide-react";
 import { CATEGORY_LABELS, Template, TemplateCategory, TemplateType } from "@/lib/templates";
 import { TemplateFormDialog } from "@/components/templates/TemplateFormDialog";
 
@@ -28,10 +28,11 @@ export default function TemplatesManagement() {
     queryKey: ["templates"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("templates").select("*")
+        .from("templates")
+        .select("*, template_attachments(id)")
         .order("type").order("category").order("name");
       if (error) throw error;
-      return (data || []) as Template[];
+      return (data || []) as (Template & { template_attachments?: { id: string }[] })[];
     },
   });
 
@@ -141,6 +142,13 @@ export default function TemplatesManagement() {
                   </TableCell>
                   <TableCell><Badge variant="secondary">{CATEGORY_LABELS[t.category]}</Badge></TableCell>
                   <TableCell>{t.is_active ? <Badge>Activa</Badge> : <Badge variant="secondary">Inactiva</Badge>}</TableCell>
+                  <TableCell>
+                    {((t as any).template_attachments?.length ?? 0) > 0 ? (
+                      <Badge variant="outline" className="gap-1">
+                        <Paperclip className="h-3 w-3" /> {(t as any).template_attachments.length}
+                      </Badge>
+                    ) : <span className="text-xs text-muted-foreground">—</span>}
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{new Date(t.updated_at).toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(t)} title="Editar"><Pencil className="h-4 w-4" /></Button>
