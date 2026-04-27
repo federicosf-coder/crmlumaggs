@@ -978,6 +978,15 @@ export default function DeliverySchedule() {
                 </Button>
               </div>
             )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() => navigate("/reports/daily-delivery")}
+              title="Reporte Diario de Entregas"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1" /> Reportes
+            </Button>
           </div>
         </div>
       </div>
