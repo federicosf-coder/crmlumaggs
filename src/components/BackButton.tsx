@@ -4,26 +4,29 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface BackButtonProps {
-  /** Ruta de fallback cuando no hay historial. Default: /crm */
+  /** Ruta segura a la que debe volver. Default: /crm */
   fallback?: string;
   className?: string;
   label?: string;
+  /** Permite volver por historial solo cuando se necesite explícitamente. */
+  useHistory?: boolean;
 }
 
 /**
  * Botón "Regresar" reutilizable.
- * - Vuelve al historial anterior cuando es posible.
- * - Si no hay historial (entrada directa), navega al fallback.
+ * - Por defecto navega al fallback para evitar regresar a rutas rotas/404.
+ * - Si useHistory=true, intenta regresar al historial y usa fallback como respaldo.
  */
-export function BackButton({ fallback = "/crm", className, label = "Regresar" }: BackButtonProps) {
+export function BackButton({ fallback = "/crm", className, label = "Regresar", useHistory = false }: BackButtonProps) {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
+    if (useHistory && typeof window !== "undefined" && window.history.length > 1) {
       navigate(-1);
-    } else {
-      navigate(fallback);
+      return;
     }
+
+    navigate(fallback, { replace: true });
   };
 
   return (
