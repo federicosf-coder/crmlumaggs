@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { X } from "lucide-react";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
@@ -25,6 +26,8 @@ export interface ContactEditData {
   department: string | null;
   company_id: string | null;
   notes: string | null;
+  comm_email?: boolean | null;
+  comm_whatsapp?: boolean | null;
 }
 
 interface Props {
@@ -42,12 +45,18 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
 
   const autosave = useAutosaveStatus(async (changes) => {
     if (!isEdit || !editData?.id) return;
+    // Validate communication rules before persisting
+    const merged = { ...form, ...changes } as any;
+    const commValidation = validateComm(merged);
+    if (commValidation) throw new Error(commValidation);
     const dbPayload: Record<string, any> = {};
     for (const k of Object.keys(changes)) {
       if (k === "ejecutivo_ids") continue;
       const v = changes[k];
       if (k === "first_name" || k === "last_name") {
         dbPayload[k] = (v ?? "").toString();
+      } else if (k === "comm_email" || k === "comm_whatsapp") {
+        dbPayload[k] = !!v;
       } else {
         dbPayload[k] = v === "" || v == null ? null : v;
       }
@@ -70,12 +79,17 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
     first_name: "", last_name: "", email: "", phone: "", mobile: "",
     job_title: "", department: "", company_id: defaultCompanyId || "", notes: "",
     ejecutivo_ids: [] as string[],
+    comm_email: false, comm_whatsapp: false,
   };
 
   const [form, setForm] = useState(emptyForm);
   const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
   const setAndSchedule = (k: string, v: string) => { set(k, v); autosave.scheduleSave(k, v); };
   const setAndSaveNow = (k: string, v: string) => { set(k, v); autosave.saveNow(k, v); };
+  const setBoolAndSaveNow = (k: "comm_email" | "comm_whatsapp", v: boolean) => {
+    setForm(prev => ({ ...prev, [k]: v }));
+    autosave.saveNow(k, v);
+  };
 
   const toggleEjecutivo = (userId: string) => {
     setForm(prev => {
@@ -101,6 +115,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
         company_id: editData.company_id || "",
         notes: editData.notes || "",
         ejecutivo_ids: [] as string[],
+        comm_email: !!editData.comm_email,
+        comm_whatsapp: !!editData.comm_whatsapp,
       };
       setForm(seeded);
       autosave.seed(seeded);
@@ -143,9 +159,19 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
 
   const reset = () => setForm(emptyForm);
 
+  // Returns error message string or null if valid.
+  function validateComm(f: { comm_email: boolean; comm_whatsapp: boolean; email: string; mobile: string }): string | null {
+    if (!f.comm_email && !f.comm_whatsapp) return "Selecciona al menos un canal de comunicación (Email o WhatsApp).";
+    if (f.comm_email && !f.email.trim()) return "El correo es obligatorio cuando Email está marcado.";
+    if (f.comm_whatsapp && !f.mobile.trim()) return "El celular/WhatsApp es obligatorio cuando WhatsApp está marcado.";
+    return null;
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.first_name.trim() || !form.last_name.trim()) return;
+    const commError = validateComm(form);
+    if (commError) { toast.error(commError); return; }
     setSaving(true);
 
     const payload = {
@@ -153,6 +179,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
       phone: form.phone || null, mobile: form.mobile || null, job_title: form.job_title || null,
       department: form.department || null, company_id: form.company_id || null,
       notes: form.notes || null,
+      comm_email: form.comm_email, comm_whatsapp: form.comm_whatsapp,
     };
 
     let contactId: string;
@@ -201,9 +228,6 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Nombre *</Label><Input value={form.first_name} onChange={e => setAndSchedule("first_name", e.target.value)} onBlur={e => autosave.saveNow("first_name", e.target.value)} required /></div>
             <div className="space-y-2"><Label>Apellido *</Label><Input value={form.last_name} onChange={e => setAndSchedule("last_name", e.target.value)} onBlur={e => autosave.saveNow("last_name", e.target.value)} required /></div>
-            <div className="space-y-2"><Label>Correo</Label><Input type="email" value={form.email} onChange={e => setAndSchedule("email", e.target.value)} onBlur={e => autosave.saveNow("email", e.target.value)} /></div>
-            <div className="space-y-2"><Label>Teléfono</Label><Input value={form.phone} onChange={e => setAndSchedule("phone", e.target.value)} onBlur={e => autosave.saveNow("phone", e.target.value)} /></div>
-            <div className="space-y-2"><Label>Celular / WhatsApp</Label><Input value={form.mobile} onChange={e => setAndSchedule("mobile", e.target.value)} onBlur={e => autosave.saveNow("mobile", e.target.value)} /></div>
             <div className="space-y-2"><Label>Puesto</Label><Input value={form.job_title} onChange={e => setAndSchedule("job_title", e.target.value)} onBlur={e => autosave.saveNow("job_title", e.target.value)} /></div>
             <div className="space-y-2"><Label>Departamento</Label><Input value={form.department} onChange={e => setAndSchedule("department", e.target.value)} onBlur={e => autosave.saveNow("department", e.target.value)} /></div>
             <div className="space-y-2">
@@ -240,6 +264,58 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
 
             <div className="col-span-2 space-y-2"><Label>Notas</Label><Textarea value={form.notes} onChange={e => setAndSchedule("notes", e.target.value)} onBlur={e => autosave.saveNow("notes", e.target.value)} /></div>
           </div>
+
+          {/* Communication section */}
+          <div className="space-y-3 rounded-md border p-3">
+            <div>
+              <h4 className="text-sm font-semibold">Comunicación</h4>
+              <p className="text-xs text-muted-foreground">Selecciona al menos un canal. Marcado = obligatorio.</p>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={form.comm_email}
+                  onCheckedChange={(v) => setBoolAndSaveNow("comm_email", !!v)}
+                />
+                Email
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={form.comm_whatsapp}
+                  onCheckedChange={(v) => setBoolAndSaveNow("comm_whatsapp", !!v)}
+                />
+                WhatsApp
+              </label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Correo {form.comm_email && <span className="text-destructive">*</span>}</Label>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={e => setAndSchedule("email", e.target.value)}
+                  onBlur={e => autosave.saveNow("email", e.target.value)}
+                  required={form.comm_email}
+                  aria-invalid={form.comm_email && !form.email.trim()}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Celular / WhatsApp {form.comm_whatsapp && <span className="text-destructive">*</span>}</Label>
+                <Input
+                  value={form.mobile}
+                  onChange={e => setAndSchedule("mobile", e.target.value)}
+                  onBlur={e => autosave.saveNow("mobile", e.target.value)}
+                  required={form.comm_whatsapp}
+                  aria-invalid={form.comm_whatsapp && !form.mobile.trim()}
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label>Teléfono fijo (opcional)</Label>
+                <Input value={form.phone} onChange={e => setAndSchedule("phone", e.target.value)} onBlur={e => autosave.saveNow("phone", e.target.value)} />
+              </div>
+            </div>
+          </div>
+
           <Button type="submit" className="w-full" disabled={saving}>{saving ? "Guardando..." : isEdit ? "Guardar Cambios" : "Crear Contacto"}</Button>
         </form>
       </DialogContent>
