@@ -274,6 +274,20 @@ export default function DocumentForm() {
     }
   }, [form.fecha_documento, isEdit]);
 
+  // Auto-fill commercial defaults from selected company on new documents
+  useEffect(() => {
+    if (isEdit || !form.empresa_id || companies.length === 0) return;
+    const c: any = companies.find((x: any) => x.id === form.empresa_id);
+    if (!c) return;
+    setForm((prev) => ({
+      ...prev,
+      uso_cfdi: prev.uso_cfdi || c.uso_cfdi || "",
+      metodo_pago: prev.metodo_pago || c.metodo_pago || "",
+      tipo_pago: prev.tipo_pago || c.tipo_pago || "",
+      forma_pago: prev.forma_pago || c.forma_pago || "",
+    }));
+  }, [form.empresa_id, companies, isEdit]);
+
   // Auto-calculate fecha_vencimiento for Facturas based on tipo_pago
   // Contado => same day; Crédito / Crédito Cescemex => +30 days
   useEffect(() => {
