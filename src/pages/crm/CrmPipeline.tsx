@@ -6,7 +6,7 @@ import { useCrmDeals, CrmDeal } from "@/hooks/useCrmDeals";
 import { CrmKanbanBoard } from "@/components/crm/CrmKanbanBoard";
 import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
 import { CrmDealDetailSheet } from "@/components/crm/CrmDealDetailSheet";
-import { CrmPipelineFilters, type ExecutivoOption } from "@/components/crm/CrmPipelineFilters";
+import { CrmPipelineFilters, type ExecutivoOption, type PlazaOption, type SortOption } from "@/components/crm/CrmPipelineFilters";
 import { PageBanner } from "@/components/PageBanner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,7 +35,7 @@ export default function CrmPipeline() {
   const marca = brand || "chevron";
   const brandLabel = marca === "chevron" ? "Chevron" : "Phillips 66";
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -50,27 +50,44 @@ export default function CrmPipeline() {
 
   const [search, setSearch] = useState("");
   const [filterEjecutivo, setFilterEjecutivo] = useState<string>("all");
+  const [filterPlaza, setFilterPlaza] = useState<string>("all");
+  const [sort, setSort] = useState<SortOption>("default");
   const [filterMes, setFilterMes] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [createStageId, setCreateStageId] = useState<string | undefined>();
   const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
 
-  // Cargar ejecutivos (profiles) y meses disponibles para los filtros de Recompra
+  // Cargar ejecutivos (profiles) y plazas para los filtros
   const [ejecutivos, setEjecutivos] = useState<ExecutivoOption[]>([]);
+  const [plazas, setPlazas] = useState<PlazaOption[]>([]);
   useEffect(() => {
-    if (pipelineType !== "recompra") return;
     supabase.from("profiles").select("user_id, full_name, is_active").eq("is_active", true)
       .then(({ data }) => {
         setEjecutivos(((data ?? []) as any[])
           .filter((p) => p.full_name)
           .map((p) => ({ user_id: p.user_id, full_name: p.full_name })));
       });
-  }, [pipelineType]);
+    supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre")
+      .then(({ data }) => {
+        setPlazas(((data ?? []) as any[]).map((p) => ({ id: p.id, nombre: p.nombre })));
+      });
+  }, []);
+
+  // Plaza por default = plaza del usuario (solo en montaje inicial / cambio de marca)
+  useEffect(() => {
+    if (profile?.plaza_id) {
+      setFilterPlaza(profile.plaza_id);
+    } else {
+      setFilterPlaza("all");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.plaza_id, marca]);
 
   // Reset filtros al cambiar tipo de pipeline
   useEffect(() => {
     setFilterEjecutivo("all");
     setFilterMes("all");
+    setSort("default");
   }, [pipelineType, marca]);
 
   // New pipeline dialog
@@ -108,20 +125,44 @@ export default function CrmPipeline() {
           d.contacts?.last_name?.toLowerCase().includes(s)
       );
     }
+    if (filterEjecutivo === "none") {
+      out = out.filter((d) => !d.owner_id);
+    } else if (filterEjecutivo !== "all") {
+      out = out.filter((d) => d.owner_id === filterEjecutivo);
+    }
+    if (filterPlaza === "none") {
+      out = out.filter((d) => !d.companies?.plaza_id);
+    } else if (filterPlaza !== "all") {
+      out = out.filter((d) => d.companies?.plaza_id === filterPlaza);
+    }
     if (pipelineType === "recompra") {
-      if (filterEjecutivo === "none") {
-        out = out.filter((d) => !d.owner_id);
-      } else if (filterEjecutivo !== "all") {
-        out = out.filter((d) => d.owner_id === filterEjecutivo);
-      }
       if (filterMes !== "all") {
         out = out.filter((d) => d.mes_negocio === filterMes);
       }
       // Ordenar por mes DESC por default
       out = [...out].sort((a, b) => (b.mes_negocio ?? "").localeCompare(a.mes_negocio ?? ""));
     }
+    if (sort !== "default") {
+      const cmpStr = (a?: string | null, b?: string | null) => (a ?? "").localeCompare(b ?? "", "es", { sensitivity: "base" });
+      const cmpNum = (a?: number | null, b?: number | null) => (Number(a ?? 0)) - (Number(b ?? 0));
+      const companyName = (d: any) => d.companies?.name ?? "";
+      const contactName = (d: any) => `${d.contacts?.first_name ?? ""} ${d.contacts?.last_name ?? ""}`.trim();
+      out = [...out].sort((a, b) => {
+        switch (sort) {
+          case "company_asc": return cmpStr(companyName(a), companyName(b));
+          case "company_desc": return cmpStr(companyName(b), companyName(a));
+          case "contact_asc": return cmpStr(contactName(a), contactName(b));
+          case "contact_desc": return cmpStr(contactName(b), contactName(a));
+          case "potencial_desc": return cmpNum(b.potencial_unidades, a.potencial_unidades);
+          case "potencial_asc": return cmpNum(a.potencial_unidades, b.potencial_unidades);
+          case "value_desc": return cmpNum(b.value, a.value);
+          case "value_asc": return cmpNum(a.value, b.value);
+          default: return 0;
+        }
+      });
+    }
     return out as CrmDeal[];
-  }, [deals, search, pipelineType, filterEjecutivo, filterMes]);
+  }, [deals, search, pipelineType, filterEjecutivo, filterPlaza, filterMes, sort]);
 
   const addStageRow = () => {
     setNewStages((prev) => [...prev, { name: "", color: DEFAULT_COLORS[prev.length % DEFAULT_COLORS.length] }]);
@@ -305,13 +346,18 @@ export default function CrmPipeline() {
           <CrmPipelineFilters
             search={search}
             onSearchChange={setSearch}
-            showRecompraFilters={pipelineType === "recompra"}
             ejecutivos={ejecutivos}
             ejecutivoId={filterEjecutivo}
             onEjecutivoChange={setFilterEjecutivo}
+            plazas={plazas}
+            plazaId={filterPlaza}
+            onPlazaChange={setFilterPlaza}
+            showRecompraFilters={pipelineType === "recompra"}
             meses={mesesDisponibles}
             mes={filterMes}
             onMesChange={setFilterMes}
+            sort={sort}
+            onSortChange={setSort}
           />
         </div>
       </div>
