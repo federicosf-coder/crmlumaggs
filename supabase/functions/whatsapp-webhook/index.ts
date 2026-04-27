@@ -169,13 +169,18 @@ Deno.serve(async (req) => {
               .maybeSingle();
             const contactId = contactMatch?.id ?? null;
 
-            // Upsert conversation
+            // Upsert conversation — scoped to (wa_phone, business_phone_number_id)
+            // so that the same person chatting with two different lines (Maggs vs
+            // Chevron) keeps two independent threads.
             const nowIso = new Date().toISOString();
-            const { data: existingConv } = await admin
+            let convQuery = admin
               .from("whatsapp_conversations")
               .select("id, unread_count, contact_id")
-              .eq("wa_phone", fromPhone)
-              .maybeSingle();
+              .eq("wa_phone", fromPhone);
+            convQuery = businessPhoneId
+              ? convQuery.eq("business_phone_number_id", businessPhoneId)
+              : convQuery.is("business_phone_number_id", null);
+            const { data: existingConv } = await convQuery.maybeSingle();
 
             let conversationId: string;
             if (existingConv) {
