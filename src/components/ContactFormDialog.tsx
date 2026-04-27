@@ -49,7 +49,7 @@ interface Props {
 // Field map: form key → { label, valueKey, flagKey }
 const COMM_FIELDS = [
   { flag: "comm_whatsapp",value: "whatsapp_phone", label: "Whatsapp", phone: true },
-  { flag: "comm_email",   value: "email",          label: "Email" },
+  { flag: "comm_email",   value: "email",          label: "Email Principal" },
   { flag: "comm_email2",  value: "email2",         label: "Email 2" },
   { flag: "comm_cel",     value: "mobile",         label: "Cel", phone: true },
   { flag: "comm_tel",     value: "phone",          label: "Tel", phone: true },
@@ -121,14 +121,20 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
 
   // Returns error message string or null if valid.
   function validateComm(f: any): string | null {
-    const anyChecked = COMM_FIELDS.some(c => !!f[c.flag]);
-    if (!anyChecked) return "Selecciona al menos un canal de comunicación.";
+    // Regla principal: debe haber Whatsapp con dígitos válidos O Email Principal con valor.
+    const wa = (f.whatsapp_phone ?? "").toString();
+    const waOk = phoneDigitCount(wa) >= 8;
+    const emailOk = !!(f.email ?? "").toString().trim();
+    if (!waOk && !emailOk) {
+      return "Es obligatorio capturar Whatsapp o Email Principal.";
+    }
+    // Validaciones suaves para campos opcionales que el usuario haya capturado parcialmente:
     for (const c of COMM_FIELDS) {
-      if (f[c.flag] && !((f[c.value] ?? "") as string).trim()) {
-        return `${c.label} es obligatorio cuando está marcado.`;
-      }
-      if (f[c.flag] && (c as any).phone === true) {
-        if (phoneDigitCount(f[c.value]) < 8) {
+      if ((c as any).phone === true) {
+        const v = (f[c.value] ?? "").toString();
+        const d = phoneDigitCount(v);
+        // Si escribió algo más que el prefijo +52, exigir mínimo 8 dígitos
+        if (d > 0 && d < 8 && v.replace(/^\+?52$/, "").trim() !== "") {
           return `${c.label} debe tener al menos 8 dígitos.`;
         }
       }
