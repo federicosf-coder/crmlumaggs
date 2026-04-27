@@ -173,7 +173,7 @@ export default function DocumentForm() {
     queryKey: ["contacts", form.empresa_id],
     queryFn: async () => {
       if (!form.empresa_id) return [];
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name, company_id, phone, mobile, whatsapp_phone").eq("is_active", true).eq("company_id", form.empresa_id).order("first_name");
+      const { data } = await supabase.from("contacts").select("id, first_name, last_name, company_id, phone, mobile, whatsapp_phone, email").eq("is_active", true).eq("company_id", form.empresa_id).order("first_name");
       return data || [];
     },
   });
@@ -482,6 +482,17 @@ export default function DocumentForm() {
     if (!form.empresa_vendedora) { toast.error("Selecciona la empresa vendedora"); return; }
     if (!form.tipo_documento) { toast.error("Selecciona el tipo de documento"); return; }
     if (!form.plaza_id) { toast.error("La plaza es obligatoria"); return; }
+    if (!form.empresa_id) { toast.error("La empresa (cliente) es obligatoria"); return; }
+    if (!form.contacto_id) { toast.error("El contacto es obligatorio"); return; }
+    {
+      const c: any = contacts.find((x: any) => x.id === form.contacto_id);
+      const hasWa = !!(c?.whatsapp_phone || "").toString().replace(/\D/g, "").length && (c?.whatsapp_phone || "").toString().replace(/\D/g, "").length >= 8;
+      const hasEmail = !!(c?.email || "").toString().trim();
+      if (!hasWa && !hasEmail) {
+        toast.error("El contacto debe tener Whatsapp o Email Principal. Edítalo antes de continuar.");
+        return;
+      }
+    }
     if (form.tipo_documento === "pedido" && !form.direccion_envio) { toast.error("La dirección de envío es obligatoria para pedidos"); return; }
     if (form.tipo_documento === "entrega_corporativa") {
       if (!form.empresa_id) { toast.error("El cliente es obligatorio"); return; }
@@ -819,7 +830,7 @@ export default function DocumentForm() {
           {/* Empresa (Cliente) with + button */}
           <div>
             <Label className="flex items-center gap-1">
-              Empresa (Cliente)
+              Empresa (Cliente) <span className="text-destructive">*</span>
               {form.empresa_id && (
                 <Link
                   to={`/directory?tab=companies&select=${form.empresa_id}`}
@@ -855,7 +866,7 @@ export default function DocumentForm() {
           {/* Contacto with + button, filtered by empresa */}
           <div>
             <Label className="flex items-center gap-1">
-              Contacto
+              Contacto <span className="text-destructive">*</span>
               {form.contacto_id && (
                 <Link
                   to={`/directory?tab=contacts&select=${form.contacto_id}`}
@@ -880,6 +891,24 @@ export default function DocumentForm() {
               />
               <Button variant="outline" size="icon" onClick={() => setShowNewContact(true)} disabled={!form.empresa_id}><Plus className="h-4 w-4" /></Button>
             </div>
+            {form.contacto_id && (() => {
+              const c: any = contacts.find((x: any) => x.id === form.contacto_id);
+              if (!c) return null;
+              const wa = (c.whatsapp_phone || "").toString().trim();
+              const em = (c.email || "").toString().trim();
+              const waDigits = wa.replace(/\D/g, "");
+              const hasWa = waDigits.length >= 8;
+              const hasEm = !!em;
+              return (
+                <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                  <div>Whatsapp: {hasWa ? wa : <span className="text-destructive">No registrado</span>}</div>
+                  <div>Email Principal: {hasEm ? em : <span className="text-destructive">No registrado</span>}</div>
+                  {!hasWa && !hasEm && (
+                    <div className="text-destructive">Este contacto requiere Whatsapp o Email Principal antes de guardar.</div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </CardContent>
       </Card>
