@@ -120,15 +120,16 @@ export default function TemplatesManagement() {
                 <TableHead>Tipo</TableHead>
                 <TableHead>Categoría</TableHead>
                 <TableHead>Activa</TableHead>
+                <TableHead>Adjuntos</TableHead>
                 <TableHead>Última actualización</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Cargando…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Cargando…</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin plantillas. Crea la primera con el botón "Nueva plantilla".</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin plantillas. Crea la primera con el botón "Nueva plantilla".</TableCell></TableRow>
               ) : filtered.map(t => (
                 <TableRow key={t.id}>
                   <TableCell>
