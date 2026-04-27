@@ -38,8 +38,8 @@ type Message = {
 };
 
 type Template = { id: string; name: string; language: string; status: string; body: string | null };
-type Account = { id: string; business_phone_number_id: string; label: string; color: string };
-type TemplateWithAccount = Template & { business_phone_number_id: string | null };
+type Account = { id: string; business_phone_number_id: string; label: string; color: string; waba_id: string | null };
+type TemplateWithAccount = Template & { business_phone_number_id: string | null; waba_id: string | null };
 type QuickReply = { id: string; shortcut: string; content: string };
 
 export default function WhatsAppInbox() {
@@ -82,7 +82,7 @@ export default function WhatsAppInbox() {
   useEffect(() => {
     supabase
       .from("whatsapp_templates")
-      .select("id,name,language,status,body,business_phone_number_id")
+      .select("id,name,language,status,body,business_phone_number_id,waba_id")
       .eq("status", "APPROVED")
       .then(({ data }) => setTemplates((data ?? []) as TemplateWithAccount[]));
     supabase
@@ -92,7 +92,7 @@ export default function WhatsAppInbox() {
       .then(({ data }) => setQuickReplies((data ?? []) as QuickReply[]));
     supabase
       .from("whatsapp_accounts")
-      .select("id,business_phone_number_id,label,color")
+      .select("id,business_phone_number_id,label,color,waba_id")
       .eq("is_active", true)
       .then(({ data }) => {
         const list = (data ?? []) as Account[];
@@ -161,16 +161,16 @@ export default function WhatsAppInbox() {
   const activeAccount = active?.business_phone_number_id
     ? accountByPhoneId.get(active.business_phone_number_id) ?? null
     : null;
-  // Filter templates: only show those authorized for the active conversation's line.
-  // If template has no business_phone_number_id (legacy), show it for all.
+  // Filter templates: las plantillas pertenecen al WABA, no al número.
+  // Mostramos las que coincidan por waba_id de la cuenta activa.
+  // Si una plantilla no tiene waba_id (legacy), se muestra siempre.
   const filteredTemplates = useMemo(() => {
     if (!active) return templates;
-    const convPhoneId = active.business_phone_number_id;
-    if (!convPhoneId) return templates;
-    return templates.filter(
-      (t) => !t.business_phone_number_id || t.business_phone_number_id === convPhoneId,
-    );
-  }, [templates, active]);
+    const acct = activeAccount;
+    const wabaId = acct?.waba_id ?? null;
+    if (!wabaId) return templates;
+    return templates.filter((t) => !t.waba_id || t.waba_id === wabaId);
+  }, [templates, active, activeAccount]);
 
   // Load messages for active + realtime
   useEffect(() => {
@@ -302,7 +302,7 @@ export default function WhatsAppInbox() {
     toast.success(`${data?.upserted ?? 0} plantillas sincronizadas`);
     const { data: t } = await supabase
       .from("whatsapp_templates")
-        .select("id,name,language,status,body,business_phone_number_id")
+        .select("id,name,language,status,body,business_phone_number_id,waba_id")
       .eq("status", "APPROVED");
     setTemplates((t ?? []) as TemplateWithAccount[]);
   };
