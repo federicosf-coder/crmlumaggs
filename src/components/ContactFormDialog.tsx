@@ -392,12 +392,17 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {COMM_FIELDS.map(c => {
+                    const checked = !!form[c.flag];
                     const value = form[c.value] ?? "";
                     const isPhone = (c as any).phone === true;
                     const isRequired = c.value === "whatsapp_phone" || c.value === "email";
                     return (
                       <div key={c.flag} className="space-y-1">
-                        <label className="flex items-center gap-1 text-sm">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => setBoolAndSaveNow(c.flag, !!v)}
+                          />
                           <span className="font-medium">{c.label}</span>
                           {isRequired && <span className="text-destructive">*</span>}
                         </label>
