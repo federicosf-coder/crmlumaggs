@@ -822,6 +822,22 @@ export default function DeliverySchedule() {
     refetchRutas();
   };
 
+  const handleFinishRoute = async (ruta: any) => {
+    if (!ruta.ruta_started_at) { toast.error("Primero inicia la ruta"); return; }
+    if (ruta.ruta_finished_at) return;
+    if (!confirm("¿Confirmas la finalización de esta ruta? Se registrará la hora de cierre.")) return;
+    const { error } = await (supabase.from("rutas_entrega") as any)
+      .update({
+        ruta_finished_at: new Date().toISOString(),
+        ruta_finished_by: user?.id ?? null,
+        estatus: "finalizada",
+      })
+      .eq("id", ruta.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Ruta finalizada");
+    refetchRutas();
+  };
+
   const handleDeliver = (item: PoolItem) => {
     setDeliverItem(item);
     setDeliverNotes("");
