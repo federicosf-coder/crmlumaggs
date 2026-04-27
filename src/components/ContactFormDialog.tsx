@@ -298,7 +298,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
               </Button>
             </div>
           )}
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="px-6 py-4 space-y-4">
               {/* Identidad */}
               <div className="grid grid-cols-2 gap-4">
@@ -352,6 +352,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
                     const checked = !!form[c.flag];
                     const value = form[c.value] ?? "";
                     const invalid = checked && !value.trim();
+                    const isPhone = (c as any).phone === true;
                     return (
                       <div key={c.flag} className="space-y-1">
                         <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -363,13 +364,20 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
                           {checked && <span className="text-destructive">*</span>}
                         </label>
                         <Input
-                          type={c.value.startsWith("email") ? "email" : "text"}
-                          value={value}
-                          onChange={e => setAndSchedule(c.value, e.target.value)}
-                          onBlur={e => autosave.saveNow(c.value, e.target.value)}
+                          type={c.value.startsWith("email") ? "email" : isPhone ? "tel" : "text"}
+                          inputMode={isPhone ? "tel" : undefined}
+                          value={isPhone ? formatMxPhone(value) : value}
+                          onChange={e => {
+                            const next = isPhone ? formatMxPhone(e.target.value) : e.target.value;
+                            setAndSchedule(c.value, next);
+                          }}
+                          onBlur={e => {
+                            const next = isPhone ? formatMxPhone(e.target.value) : e.target.value;
+                            autosave.saveNow(c.value, next);
+                          }}
                           required={checked}
                           aria-invalid={invalid}
-                          placeholder={c.label}
+                          placeholder={isPhone ? "+52 664 123 4567" : c.label}
                         />
                       </div>
                     );
@@ -388,7 +396,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
                 />
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <div className="px-6 py-3 border-t bg-background shrink-0">
             <Button type="submit" className="w-full" disabled={saving}>
