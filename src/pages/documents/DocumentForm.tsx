@@ -617,7 +617,7 @@ export default function DocumentForm() {
                 pipeline_id: pipeline.id,
                 stage_id: stage?.id || null,
                 pipeline_type: targetType,
-                tipo_negocio: targetType === "primera_compra" ? "prospecto" : "cliente",
+                tipo_negocio: targetType === "primera_compra" ? "prospecto" : "recompra",
                 company_id: docData.empresa_id,
                 contact_id: docData.contacto_id || null,
                 owner_id: docData.ejecutivo_venta_id || user?.id || null,
