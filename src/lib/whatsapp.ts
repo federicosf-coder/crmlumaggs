@@ -73,15 +73,42 @@ export async function logWhatsAppActivity(params: {
   deal_id?: string | null;
   result?: "enviado" | "respondido" | "sin_respuesta" | "pendiente";
   title?: string;
+  /** id del documento (cotización/pedido/factura) si aplica */
+  documento_id?: string | null;
+  /** teléfono destinatario en formato internacional sin '+' */
+  destinatario_phone?: string | null;
+  /** texto | plantilla | media | otro */
+  message_type?: string | null;
+  /** "api" cuando se envía por whatsapp-send-message; "wa_me" cuando se abre wa.me */
+  channel?: "api" | "wa_me" | null;
+  /** id del mensaje devuelto por Meta */
+  wa_message_id?: string | null;
+  /** id de la conversación de WhatsApp si existe */
+  wa_conversation_id?: string | null;
 }) {
-  const { error } = await supabase.from("crm_activities").insert({
+  // Para envíos por wa.me solo guardamos metadata mínima (sin el texto completo).
+  const isWaMe = params.channel === "wa_me";
+  const description = isWaMe
+    ? `Mensaje ${params.message_type ?? "texto"} enviado por WhatsApp (wa.me) a ${params.destinatario_phone ?? "—"}`
+    : params.message;
+  const payload: Record<string, unknown> = {
     user_id: params.user_id,
     type: "whatsapp",
     title: params.title || `WhatsApp · ${params.result || "enviado"}`,
-    description: params.message,
+    description,
     company_id: params.company_id ?? null,
     contact_id: params.contact_id ?? null,
     deal_id: params.deal_id ?? null,
-  });
-  if (error) console.error("[whatsapp] log activity failed", error);
+    documento_id: params.documento_id ?? null,
+    destinatario_phone: params.destinatario_phone ?? null,
+    message_type: params.message_type ?? "texto",
+    channel: params.channel ?? null,
+    wa_message_id: params.wa_message_id ?? null,
+    wa_conversation_id: params.wa_conversation_id ?? null,
+  };
+  const { error } = await supabase.from("crm_activities").insert(payload as any);
+  // No bloquear el envío si falla el registro: solo log + warning.
+  if (error) {
+    console.warn("[whatsapp] log activity failed (no se bloquea el envío)", error);
+  }
 }

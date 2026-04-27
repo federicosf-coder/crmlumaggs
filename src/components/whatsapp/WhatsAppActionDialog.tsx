@@ -84,19 +84,34 @@ export function WhatsAppActionDialog({
     if (tpl) setMessage(renderTemplate(tpl.mensaje, variables));
   };
 
-  const finishLog = async (result: "enviado" | "pendiente") => {
+  const finishLog = async (
+    result: "enviado" | "pendiente",
+    extras?: { channel?: "api" | "wa_me"; wa_message_id?: string | null },
+  ) => {
     if (!user) return;
-    await logWhatsAppActivity({
-      user_id: user.id, message, ...context, result,
-      title: `WhatsApp · ${variables.empresa_nombre || ""}`.trim(),
-    });
+    try {
+      await logWhatsAppActivity({
+        user_id: user.id,
+        message: messageWithLinks,
+        ...context,
+        result,
+        title: `WhatsApp · ${variables.empresa_nombre || ""}`.trim(),
+        destinatario_phone: normalized ?? null,
+        message_type: selectedTplId !== "custom" ? "plantilla" : "texto",
+        channel: extras?.channel ?? null,
+        wa_message_id: extras?.wa_message_id ?? null,
+      });
+    } catch (e) {
+      console.warn("[whatsapp] log activity failed", e);
+      toast.warning("No se pudo registrar la actividad, pero el envío continúa.");
+    }
     onSent?.();
   };
 
   const handleSend = async () => {
     if (!normalized) { toast.error("Sin teléfono válido"); return; }
     openWhatsApp(normalized, messageWithLinks);
-    await finishLog("enviado");
+    await finishLog("enviado", { channel: "wa_me" });
     toast.success("WhatsApp abierto. Recuerda enviar el mensaje.");
     onOpenChange(false);
   };
@@ -109,11 +124,15 @@ export function WhatsAppActionDialog({
 
   const handleSendApi = async () => {
     if (!normalized) { toast.error("Sin teléfono válido"); return; }
-    const { error } = await supabase.functions.invoke("whatsapp-send-message", {
+    const { data, error } = await supabase.functions.invoke("whatsapp-send-message", {
       body: { to: normalized, message: messageWithLinks },
     });
     if (error) { toast.error(error.message); return; }
-    await finishLog("enviado");
+    const waMessageId =
+      (data as any)?.wa_message_id ??
+      (data as any)?.messages?.[0]?.id ??
+      null;
+    await finishLog("enviado", { channel: "api", wa_message_id: waMessageId });
     toast.success("Mensaje enviado por API");
     onOpenChange(false);
   };
