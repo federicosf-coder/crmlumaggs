@@ -3135,53 +3135,6 @@ export type Database = {
         }
         Relationships: []
       }
-      whatsapp_message_templates: {
-        Row: {
-          activo: boolean
-          created_at: string
-          created_by: string | null
-          id: string
-          mensaje: string
-          meta_template_id: string | null
-          nombre: string
-          orden: number
-          tipo: string
-          updated_at: string
-        }
-        Insert: {
-          activo?: boolean
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          mensaje: string
-          meta_template_id?: string | null
-          nombre: string
-          orden?: number
-          tipo: string
-          updated_at?: string
-        }
-        Update: {
-          activo?: boolean
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          mensaje?: string
-          meta_template_id?: string | null
-          nombre?: string
-          orden?: number
-          tipo?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_message_templates_meta_template_id_fkey"
-            columns: ["meta_template_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       whatsapp_messages: {
         Row: {
           business_phone_number_id: string | null
