@@ -22,6 +22,7 @@ type Conversation = {
   last_message_preview: string | null;
   unread_count: number;
   status: string;
+  business_phone_number_id: string | null;
 };
 
 type Message = {
@@ -36,6 +37,8 @@ type Message = {
 };
 
 type Template = { id: string; name: string; language: string; status: string; body: string | null };
+type Account = { id: string; business_phone_number_id: string; label: string; color: string };
+type TemplateWithAccount = Template & { business_phone_number_id: string | null };
 type QuickReply = { id: string; shortcut: string; content: string };
 
 export default function WhatsAppInbox() {
@@ -43,7 +46,8 @@ export default function WhatsAppInbox() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [contactName, setContactName] = useState<string | null>(null);
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templates, setTemplates] = useState<TemplateWithAccount[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [qrOpen, setQrOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -74,17 +78,40 @@ export default function WhatsAppInbox() {
   useEffect(() => {
     supabase
       .from("whatsapp_templates")
-      .select("id,name,language,status,body")
+      .select("id,name,language,status,body,business_phone_number_id")
       .eq("status", "APPROVED")
-      .then(({ data }) => setTemplates((data ?? []) as Template[]));
+      .then(({ data }) => setTemplates((data ?? []) as TemplateWithAccount[]));
     supabase
       .from("whatsapp_quick_replies")
       .select("id,shortcut,content")
       .order("shortcut")
       .then(({ data }) => setQuickReplies((data ?? []) as QuickReply[]));
+    supabase
+      .from("whatsapp_accounts")
+      .select("id,business_phone_number_id,label,color")
+      .eq("is_active", true)
+      .then(({ data }) => setAccounts((data ?? []) as Account[]));
   }, []);
 
   const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [activeId, conversations]);
+  const accountByPhoneId = useMemo(() => {
+    const map = new Map<string, Account>();
+    accounts.forEach((a) => map.set(a.business_phone_number_id, a));
+    return map;
+  }, [accounts]);
+  const activeAccount = active?.business_phone_number_id
+    ? accountByPhoneId.get(active.business_phone_number_id) ?? null
+    : null;
+  // Filter templates: only show those authorized for the active conversation's line.
+  // If template has no business_phone_number_id (legacy), show it for all.
+  const filteredTemplates = useMemo(() => {
+    if (!active) return templates;
+    const convPhoneId = active.business_phone_number_id;
+    if (!convPhoneId) return templates;
+    return templates.filter(
+      (t) => !t.business_phone_number_id || t.business_phone_number_id === convPhoneId,
+    );
+  }, [templates, active]);
 
   // Load messages for active + realtime
   useEffect(() => {
@@ -201,9 +228,9 @@ export default function WhatsAppInbox() {
     toast.success(`${data?.upserted ?? 0} plantillas sincronizadas`);
     const { data: t } = await supabase
       .from("whatsapp_templates")
-      .select("id,name,language,status,body")
+        .select("id,name,language,status,body,business_phone_number_id")
       .eq("status", "APPROVED");
-    setTemplates((t ?? []) as Template[]);
+    setTemplates((t ?? []) as TemplateWithAccount[]);
   };
 
   return (
@@ -234,6 +261,19 @@ export default function WhatsAppInbox() {
                   </span>
                   {c.unread_count > 0 && <Badge variant="default">{c.unread_count}</Badge>}
                 </div>
+                {(() => {
+                  const acct = c.business_phone_number_id
+                    ? accountByPhoneId.get(c.business_phone_number_id)
+                    : null;
+                  return acct ? (
+                    <span
+                      className="inline-block mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded"
+                      style={{ backgroundColor: `${acct.color}22`, color: acct.color }}
+                    >
+                      {acct.label}
+                    </span>
+                  ) : null;
+                })()}
                 <div className="text-xs text-muted-foreground truncate">{c.last_message_preview || "—"}</div>
               </button>
             ))
@@ -250,7 +290,17 @@ export default function WhatsAppInbox() {
         ) : (
           <>
             <div className="p-3 border-b">
-              <div className="font-medium">{contactName || active.wa_profile_name || active.wa_phone}</div>
+              <div className="flex items-center gap-2">
+                <div className="font-medium">{contactName || active.wa_profile_name || active.wa_phone}</div>
+                {activeAccount && (
+                  <span
+                    className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                    style={{ backgroundColor: `${activeAccount.color}22`, color: activeAccount.color }}
+                  >
+                    {activeAccount.label}
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">+{active.wa_phone}</div>
             </div>
             <ScrollArea className="flex-1 p-3">
@@ -335,8 +385,10 @@ export default function WhatsAppInbox() {
                   value={tplName}
                   onChange={(e) => setTplName(e.target.value)}
                 >
-                  <option value="">— Enviar plantilla —</option>
-                  {templates.map((t) => (
+                  <option value="">
+                    — Enviar plantilla {activeAccount ? `(${activeAccount.label})` : ""} —
+                  </option>
+                  {filteredTemplates.map((t) => (
                     <option key={t.id} value={t.name}>
                       {t.name} ({t.language})
                     </option>
