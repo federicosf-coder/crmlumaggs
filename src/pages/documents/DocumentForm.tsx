@@ -120,6 +120,7 @@ export default function DocumentForm() {
     estatus_factura: "pendiente",
     estatus_entrega_corporativa: "solicitada",
     negocio_crm: "",
+    negocio_id: "",
     notas: "",
     numero_oc_cliente: "",
     fecha_oc_cliente: "",
@@ -183,6 +184,19 @@ export default function DocumentForm() {
       const { data } = await supabase.from("direcciones_empresa").select("*").eq("empresa_id", form.empresa_id).eq("is_active", true).order("tipo");
       return data || [];
     },
+  });
+  const { data: dealsForCompany = [] } = useQuery({
+    queryKey: ["crm_deals_for_company", form.empresa_id],
+    queryFn: async () => {
+      if (!form.empresa_id) return [];
+      const { data } = await supabase
+        .from("crm_deals")
+        .select("id, title, pipeline_id, created_at, crm_pipelines!inner(nombre, marca, pipeline_type)")
+        .eq("company_id", form.empresa_id)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!form.empresa_id,
   });
   const { data: users = [] } = useQuery({ queryKey: ["profiles_list"], queryFn: async () => { const { data } = await supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name"); return data || []; } });
   const { data: productos = [], refetch: refetchProductos } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, descripcion, marca_id, precio_base_uf1, precio_uf2, precio_uf3, precio_uf4, precio_r1, precio_r2, precio_r3, precio_r4, presentaciones(nombre, unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
