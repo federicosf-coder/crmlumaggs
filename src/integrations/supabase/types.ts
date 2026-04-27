@@ -797,14 +797,18 @@ export type Database = {
           company_id: string | null
           contact_id: string | null
           convertido_a_cliente: boolean
+          cotizado_unidades: number
           created_at: string
           created_by: string | null
+          facturado_unidades: number
           fecha_conversion: string | null
           id: string
+          mes_negocio: string | null
           motivo_perdida_id: string | null
           notes: string | null
           origen_prospecto_id: string | null
           owner_id: string | null
+          pedido_unidades: number
           pipeline_id: string
           pipeline_type: Database["public"]["Enums"]["pipeline_type"]
           potencial_unidades: number | null
@@ -823,14 +827,18 @@ export type Database = {
           company_id?: string | null
           contact_id?: string | null
           convertido_a_cliente?: boolean
+          cotizado_unidades?: number
           created_at?: string
           created_by?: string | null
+          facturado_unidades?: number
           fecha_conversion?: string | null
           id?: string
+          mes_negocio?: string | null
           motivo_perdida_id?: string | null
           notes?: string | null
           origen_prospecto_id?: string | null
           owner_id?: string | null
+          pedido_unidades?: number
           pipeline_id: string
           pipeline_type?: Database["public"]["Enums"]["pipeline_type"]
           potencial_unidades?: number | null
@@ -849,14 +857,18 @@ export type Database = {
           company_id?: string | null
           contact_id?: string | null
           convertido_a_cliente?: boolean
+          cotizado_unidades?: number
           created_at?: string
           created_by?: string | null
+          facturado_unidades?: number
           fecha_conversion?: string | null
           id?: string
+          mes_negocio?: string | null
           motivo_perdida_id?: string | null
           notes?: string | null
           origen_prospecto_id?: string | null
           owner_id?: string | null
+          pedido_unidades?: number
           pipeline_id?: string
           pipeline_type?: Database["public"]["Enums"]["pipeline_type"]
           potencial_unidades?: number | null
@@ -3352,6 +3364,10 @@ export type Database = {
           full_name: string
         }[]
       }
+      get_or_create_deal_recompra_mes: {
+        Args: { p_company_id: string; p_marca: string; p_mes?: string }
+        Returns: string
+      }
       get_user_module_access: {
         Args: {
           _module: Database["public"]["Enums"]["app_module"]
@@ -3403,6 +3419,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recalc_deal_units: { Args: { p_deal_id: string }; Returns: undefined }
       recalc_repurchase_for_company: {
         Args: {
           _empresa_id: string

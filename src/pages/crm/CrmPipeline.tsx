@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCrmPipelines, useCrmPipelineStages, type PipelineType } from "@/hooks/useCrmPipelines";
@@ -6,7 +6,7 @@ import { useCrmDeals, CrmDeal } from "@/hooks/useCrmDeals";
 import { CrmKanbanBoard } from "@/components/crm/CrmKanbanBoard";
 import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
 import { CrmDealDetailSheet } from "@/components/crm/CrmDealDetailSheet";
-import { CrmPipelineFilters } from "@/components/crm/CrmPipelineFilters";
+import { CrmPipelineFilters, type ExecutivoOption } from "@/components/crm/CrmPipelineFilters";
 import { PageBanner } from "@/components/PageBanner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,9 +49,29 @@ export default function CrmPipeline() {
   const { data: deals, isLoading: dealsLoading } = useCrmDeals(pipeline?.id, marca);
 
   const [search, setSearch] = useState("");
+  const [filterEjecutivo, setFilterEjecutivo] = useState<string>("all");
+  const [filterMes, setFilterMes] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [createStageId, setCreateStageId] = useState<string | undefined>();
   const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
+
+  // Cargar ejecutivos (profiles) y meses disponibles para los filtros de Recompra
+  const [ejecutivos, setEjecutivos] = useState<ExecutivoOption[]>([]);
+  useEffect(() => {
+    if (pipelineType !== "recompra") return;
+    supabase.from("profiles").select("user_id, full_name, is_active").eq("is_active", true)
+      .then(({ data }) => {
+        setEjecutivos(((data ?? []) as any[])
+          .filter((p) => p.full_name)
+          .map((p) => ({ user_id: p.user_id, full_name: p.full_name })));
+      });
+  }, [pipelineType]);
+
+  // Reset filtros al cambiar tipo de pipeline
+  useEffect(() => {
+    setFilterEjecutivo("all");
+    setFilterMes("all");
+  }, [pipelineType, marca]);
 
   // New pipeline dialog
   const [newPipelineOpen, setNewPipelineOpen] = useState(false);
@@ -66,18 +86,42 @@ export default function CrmPipeline() {
   ]);
   const [creating, setCreating] = useState(false);
 
+  const mesesDisponibles = useMemo(() => {
+    if (pipelineType !== "recompra" || !deals) return [];
+    const set = new Set<string>();
+    for (const d of deals as any[]) {
+      if (d.mes_negocio && /^\d{4}-\d{2}$/.test(d.mes_negocio)) set.add(d.mes_negocio);
+    }
+    return Array.from(set).sort().reverse();
+  }, [deals, pipelineType]);
+
   const filteredDeals = useMemo(() => {
     if (!deals) return [];
-    if (!search) return deals;
-    const s = search.toLowerCase();
-    return deals.filter(
-      (d) =>
-        d.title.toLowerCase().includes(s) ||
-        d.companies?.name?.toLowerCase().includes(s) ||
-        d.contacts?.first_name?.toLowerCase().includes(s) ||
-        d.contacts?.last_name?.toLowerCase().includes(s)
-    );
-  }, [deals, search]);
+    let out = deals as any[];
+    if (search) {
+      const s = search.toLowerCase();
+      out = out.filter(
+        (d) =>
+          d.title.toLowerCase().includes(s) ||
+          d.companies?.name?.toLowerCase().includes(s) ||
+          d.contacts?.first_name?.toLowerCase().includes(s) ||
+          d.contacts?.last_name?.toLowerCase().includes(s)
+      );
+    }
+    if (pipelineType === "recompra") {
+      if (filterEjecutivo === "none") {
+        out = out.filter((d) => !d.owner_id);
+      } else if (filterEjecutivo !== "all") {
+        out = out.filter((d) => d.owner_id === filterEjecutivo);
+      }
+      if (filterMes !== "all") {
+        out = out.filter((d) => d.mes_negocio === filterMes);
+      }
+      // Ordenar por mes DESC por default
+      out = [...out].sort((a, b) => (b.mes_negocio ?? "").localeCompare(a.mes_negocio ?? ""));
+    }
+    return out as CrmDeal[];
+  }, [deals, search, pipelineType, filterEjecutivo, filterMes]);
 
   const addStageRow = () => {
     setNewStages((prev) => [...prev, { name: "", color: DEFAULT_COLORS[prev.length % DEFAULT_COLORS.length] }]);
@@ -258,7 +302,17 @@ export default function CrmPipeline() {
           </SelectContent>
         </Select>
         <div className="sm:ml-auto">
-          <CrmPipelineFilters search={search} onSearchChange={setSearch} />
+          <CrmPipelineFilters
+            search={search}
+            onSearchChange={setSearch}
+            showRecompraFilters={pipelineType === "recompra"}
+            ejecutivos={ejecutivos}
+            ejecutivoId={filterEjecutivo}
+            onEjecutivoChange={setFilterEjecutivo}
+            meses={mesesDisponibles}
+            mes={filterMes}
+            onMesChange={setFilterMes}
+          />
         </div>
       </div>
 

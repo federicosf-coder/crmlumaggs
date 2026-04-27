@@ -559,13 +559,6 @@ export default function DocumentForm() {
       // La falta de negocio_id NUNCA debe impedir guardar el documento.
       if (!docData.negocio_id && docData.empresa_id && !isEdit) {
         try {
-          // 1) Si empresa ya tiene negocios, usar el más reciente
-          const { data: existingDeals } = await supabase
-            .from("crm_deals")
-            .select("id, pipeline_id, crm_pipelines!inner(marca, pipeline_type)")
-            .eq("company_id", docData.empresa_id)
-            .order("created_at", { ascending: false });
-
           const marcaTarget = docData.empresa_vendedora === "galsa_phillips66" ? "phillips66" : "chevron";
 
           // ¿Tiene facturas/pedidos con unidades? -> determina si es Recompra
@@ -580,20 +573,40 @@ export default function DocumentForm() {
           const tieneVentas = (ventasPrevias || []).length > 0;
           const targetType: "primera_compra" | "recompra" = tieneVentas ? "recompra" : "primera_compra";
 
-          // Buscar deal existente del tipo apropiado y marca
-          const matching = (existingDeals || []).find((d: any) =>
-            d.crm_pipelines?.marca === marcaTarget && d.crm_pipelines?.pipeline_type === targetType
-          );
-
-          if (matching) {
-            docData.negocio_id = matching.id;
+          if (targetType === "recompra") {
+            // RECOMPRA: vincular siempre al deal del MES (1 negocio por empresa por mes)
+            const fechaDoc = (docData.fecha_documento as string) || new Date().toISOString().slice(0, 10);
+            const mes = fechaDoc.slice(0, 7); // YYYY-MM
+            const { data: dealMesId, error: dealMesErr } = await supabase.rpc(
+              "get_or_create_deal_recompra_mes",
+              { p_company_id: docData.empresa_id, p_marca: marcaTarget, p_mes: mes }
+            );
+            if (dealMesErr) {
+              console.warn("[DocumentForm] get_or_create_deal_recompra_mes:", dealMesErr);
+            } else if (dealMesId) {
+              docData.negocio_id = dealMesId as string;
+            }
           } else {
+            // PRIMERA COMPRA: comportamiento previo (1 deal por empresa+marca, reutilizar el más reciente)
+            const { data: existingDeals } = await supabase
+              .from("crm_deals")
+              .select("id, pipeline_id, crm_pipelines!inner(marca, pipeline_type)")
+              .eq("company_id", docData.empresa_id)
+              .order("created_at", { ascending: false });
+
+            const matching = (existingDeals || []).find((d: any) =>
+              d.crm_pipelines?.marca === marcaTarget && d.crm_pipelines?.pipeline_type === "primera_compra"
+            );
+
+            if (matching) {
+              docData.negocio_id = matching.id;
+            } else {
             // 2/3) Crear deal nuevo en pipeline correspondiente
             const { data: pipeline } = await supabase
               .from("crm_pipelines")
               .select("id")
               .eq("marca", marcaTarget)
-              .eq("pipeline_type", targetType)
+              .eq("pipeline_type", "primera_compra")
               .maybeSingle();
 
             if (pipeline?.id) {
@@ -606,9 +619,7 @@ export default function DocumentForm() {
                 .maybeSingle();
 
               const empresaName = (companies as any[]).find((c) => c.id === docData.empresa_id)?.name || "Cliente";
-              const titulo = targetType === "primera_compra"
-                ? `${empresaName} - Primera Compra`
-                : `${empresaName} - Recompra`;
+              const titulo = `${empresaName} - Primera Compra`;
               const closeDate = new Date();
               closeDate.setDate(closeDate.getDate() + 14);
 
@@ -616,8 +627,8 @@ export default function DocumentForm() {
                 title: titulo,
                 pipeline_id: pipeline.id,
                 stage_id: stage?.id || null,
-                pipeline_type: targetType,
-                tipo_negocio: targetType === "primera_compra" ? "prospecto" : "recompra",
+                pipeline_type: "primera_compra",
+                tipo_negocio: "prospecto",
                 company_id: docData.empresa_id,
                 contact_id: docData.contacto_id || null,
                 owner_id: docData.ejecutivo_venta_id || user?.id || null,
@@ -640,8 +651,9 @@ export default function DocumentForm() {
                 docData.negocio_id = createdDeal.id;
               }
             } else {
-              console.warn("[DocumentForm] No se encontró pipeline para", marcaTarget, targetType);
-              toast.warning(`No se encontró pipeline ${targetType} para ${marcaTarget}. El documento se guardará sin negocio.`);
+              console.warn("[DocumentForm] No se encontró pipeline primera_compra para", marcaTarget);
+              toast.warning(`No se encontró pipeline primera_compra para ${marcaTarget}. El documento se guardará sin negocio.`);
+            }
             }
           }
         } catch (e: any) {
