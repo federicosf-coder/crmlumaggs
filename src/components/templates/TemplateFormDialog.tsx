@@ -199,6 +199,10 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
                 <Switch checked={!!form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
                 <Label>Activa</Label>
               </div>
+
+              <div className="pt-3 border-t">
+                <TemplateAttachmentsManager templateId={editing?.id || createdId} />
+              </div>
             </div>
 
             <div className="md:col-span-1 space-y-2">
