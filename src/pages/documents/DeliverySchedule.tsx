@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
-  ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon, FileText, Play,
+  ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon, FileText, Play, Flag,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -136,7 +136,7 @@ function OverlayCard({ item }: { item: PoolItem }) {
 }
 
 // ─── Route Drop Column ───────────────────────────────────────
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -148,6 +148,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onReorder: (rutaId: string, items: PoolItem[]) => void;
   onToggleCerrada: (ruta: any) => void;
   onStartRoute: (ruta: any) => void;
+  onFinishRoute: (ruta: any) => void;
 }) {
   const navigate = useNavigate();
   const cerrada = !!ruta.cerrada;
@@ -193,20 +194,37 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
       </div>
       <Separator className="mb-2" />
 
-      {/* Iniciar ruta */}
-      <Button
-        size="sm"
-        variant={ruta.ruta_started_at ? "secondary" : "default"}
-        className="w-full mb-2 h-8 text-xs gap-1.5"
-        disabled={!!ruta.ruta_started_at || cerrada}
-        onClick={() => onStartRoute(ruta)}
-        title={ruta.ruta_started_at ? `Iniciada ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}` : "Marcar inicio de ruta al salir de planta"}
-      >
-        <Play className="h-3.5 w-3.5" />
-        {ruta.ruta_started_at
-          ? `Ruta iniciada · ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}`
-          : "Iniciar ruta"}
-      </Button>
+      {/* Iniciar / Finalizar ruta */}
+      <div className="grid grid-cols-2 gap-2 mb-2">
+        <Button
+          size="sm"
+          className="w-full h-8 text-xs gap-1.5 px-2 bg-green-800 hover:bg-green-900 text-white disabled:opacity-60"
+          disabled={!!ruta.ruta_started_at || cerrada}
+          onClick={() => onStartRoute(ruta)}
+          title={ruta.ruta_started_at ? `Iniciada ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}` : "Marcar inicio de ruta al salir de planta"}
+        >
+          <Play className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">
+            {ruta.ruta_started_at
+              ? `Iniciada ${format(new Date(ruta.ruta_started_at), "HH:mm", { locale: es })}`
+              : "Iniciar ruta"}
+          </span>
+        </Button>
+        <Button
+          size="sm"
+          className="w-full h-8 text-xs gap-1.5 px-2 bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
+          disabled={!ruta.ruta_started_at || !!ruta.ruta_finished_at || cerrada}
+          onClick={() => onFinishRoute(ruta)}
+          title={ruta.ruta_finished_at ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "dd MMM HH:mm", { locale: es })}` : "Marcar fin de ruta"}
+        >
+          <Flag className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">
+            {ruta.ruta_finished_at
+              ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "HH:mm", { locale: es })}`
+              : "Ruta Finalizada"}
+          </span>
+        </Button>
+      </div>
 
       {/* Items */}
       <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
@@ -804,6 +822,22 @@ export default function DeliverySchedule() {
     refetchRutas();
   };
 
+  const handleFinishRoute = async (ruta: any) => {
+    if (!ruta.ruta_started_at) { toast.error("Primero inicia la ruta"); return; }
+    if (ruta.ruta_finished_at) return;
+    if (!confirm("¿Confirmas la finalización de esta ruta? Se registrará la hora de cierre.")) return;
+    const { error } = await (supabase.from("rutas_entrega") as any)
+      .update({
+        ruta_finished_at: new Date().toISOString(),
+        ruta_finished_by: user?.id ?? null,
+        estatus: "finalizada",
+      })
+      .eq("id", ruta.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Ruta finalizada");
+    refetchRutas();
+  };
+
   const handleDeliver = (item: PoolItem) => {
     setDeliverItem(item);
     setDeliverNotes("");
@@ -1083,6 +1117,7 @@ export default function DeliverySchedule() {
                                   onReorder={() => {}}
                                   onToggleCerrada={toggleRutaCerrada}
                                   onStartRoute={handleStartRoute}
+                                  onFinishRoute={handleFinishRoute}
                                 />
                               ))}
                             </div>

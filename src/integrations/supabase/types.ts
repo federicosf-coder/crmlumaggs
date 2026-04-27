@@ -2438,6 +2438,8 @@ export type Database = {
           id: string
           plaza_id: string
           repartidor_id: string
+          ruta_finished_at: string | null
+          ruta_finished_by: string | null
           ruta_started_at: string | null
           ruta_started_by: string | null
           updated_at: string
@@ -2454,6 +2456,8 @@ export type Database = {
           id?: string
           plaza_id: string
           repartidor_id: string
+          ruta_finished_at?: string | null
+          ruta_finished_by?: string | null
           ruta_started_at?: string | null
           ruta_started_by?: string | null
           updated_at?: string
@@ -2470,6 +2474,8 @@ export type Database = {
           id?: string
           plaza_id?: string
           repartidor_id?: string
+          ruta_finished_at?: string | null
+          ruta_finished_by?: string | null
           ruta_started_at?: string | null
           ruta_started_by?: string | null
           updated_at?: string
