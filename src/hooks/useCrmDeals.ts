@@ -18,7 +18,7 @@ export interface CrmDeal {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  companies?: { id: string; name: string } | null;
+  companies?: { id: string; name: string; plaza_id: string | null } | null;
   contacts?: { id: string; first_name: string; last_name: string } | null;
 }
 
@@ -33,7 +33,7 @@ export function useCrmDeals(pipelineId: string | undefined, brand?: string) {
       if (!pipelineId || !access.canView) return [];
       let q = supabase
         .from("crm_deals")
-        .select("*, companies(id, name), contacts(id, first_name, last_name)")
+        .select("*, companies(id, name, plaza_id), contacts(id, first_name, last_name)")
         .eq("pipeline_id", pipelineId);
 
       if (access.accessLevel === "propio" && access.userId) {
