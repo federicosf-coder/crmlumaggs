@@ -48,13 +48,43 @@ interface Props {
 
 // Field map: form key → { label, valueKey, flagKey }
 const COMM_FIELDS = [
+  { flag: "comm_whatsapp",value: "whatsapp_phone", label: "Whatsapp", phone: true },
   { flag: "comm_email",   value: "email",          label: "Email" },
   { flag: "comm_email2",  value: "email2",         label: "Email 2" },
-  { flag: "comm_whatsapp",value: "whatsapp_phone", label: "Whatsapp" },
-  { flag: "comm_cel",     value: "mobile",         label: "Cel" },
+  { flag: "comm_cel",     value: "mobile",         label: "Cel", phone: true },
   { flag: "comm_tel",     value: "phone",          label: "Tel" },
   { flag: "comm_tel_emp", value: "tel_emp",        label: "Tel Emp" },
 ] as const;
+
+// Lada de 2 dígitos (CDMX y áreas metropolitanas grandes): formato +52 55 1234 5678
+const TWO_DIGIT_LADAS = new Set(["33", "55", "56", "81"]);
+
+/**
+ * Formatea un teléfono mexicano a +52 LLL DDD DDDD (lada 3 díg) o +52 LL DDDD DDDD (lada 2 díg).
+ * Acepta cualquier entrada; conserva sólo dígitos. Si comienza con 52 lo respeta, si no asume +52.
+ */
+function formatMxPhone(raw: string): string {
+  if (!raw) return "";
+  let digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  // Quita el 52 inicial si ya viene incluido
+  if (digits.startsWith("52") && digits.length > 10) digits = digits.slice(2);
+  digits = digits.slice(0, 10);
+  if (digits.length < 2) return `+52 ${digits}`;
+  const lada2 = digits.slice(0, 2);
+  if (TWO_DIGIT_LADAS.has(lada2)) {
+    const rest = digits.slice(2);
+    const a = rest.slice(0, 4);
+    const b = rest.slice(4, 8);
+    return `+52 ${lada2}${a ? " " + a : ""}${b ? " " + b : ""}`.trimEnd();
+  }
+  // Lada de 3 dígitos
+  const lada3 = digits.slice(0, 3);
+  if (digits.length <= 3) return `+52 ${lada3}`;
+  const a = digits.slice(3, 6);
+  const b = digits.slice(6, 10);
+  return `+52 ${lada3}${a ? " " + a : ""}${b ? " " + b : ""}`.trimEnd();
+}
 
 export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editData, onCreated }: Props) {
   const { user } = useAuth();
