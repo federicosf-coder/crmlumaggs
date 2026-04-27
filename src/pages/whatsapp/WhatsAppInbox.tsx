@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { MessageCircle, Send, UserPlus, Lock, Zap } from "lucide-react";
+import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
@@ -53,6 +53,8 @@ export default function WhatsAppInbox() {
   const [draft, setDraft] = useState("");
   const [tplName, setTplName] = useState("");
   const [sending, setSending] = useState(false);
+  // Inbox seleccionado por línea (business_phone_number_id). null = aún no inicializado
+  const [selectedPhoneId, setSelectedPhoneId] = useState<string | null>(null);
 
   // Load conversations + realtime
   useEffect(() => {
@@ -90,10 +92,29 @@ export default function WhatsAppInbox() {
       .from("whatsapp_accounts")
       .select("id,business_phone_number_id,label,color")
       .eq("is_active", true)
-      .then(({ data }) => setAccounts((data ?? []) as Account[]));
+      .then(({ data }) => {
+        const list = (data ?? []) as Account[];
+        setAccounts(list);
+        // Inicializa el inbox por defecto a la primera línea activa
+        setSelectedPhoneId((prev) => prev ?? list[0]?.business_phone_number_id ?? null);
+      });
   }, []);
 
   const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [activeId, conversations]);
+  // Conversaciones filtradas por línea seleccionada
+  const filteredConversations = useMemo(() => {
+    if (!selectedPhoneId) return conversations;
+    return conversations.filter((c) => c.business_phone_number_id === selectedPhoneId);
+  }, [conversations, selectedPhoneId]);
+
+  // Si la conversación activa ya no pertenece al inbox seleccionado, se deselecciona
+  useEffect(() => {
+    if (!active || !selectedPhoneId) return;
+    if (active.business_phone_number_id !== selectedPhoneId) {
+      setActiveId(null);
+    }
+  }, [selectedPhoneId, active]);
+
   const accountByPhoneId = useMemo(() => {
     const map = new Map<string, Account>();
     accounts.forEach((a) => map.set(a.business_phone_number_id, a));
@@ -163,6 +184,10 @@ export default function WhatsAppInbox() {
 
   const sendText = async () => {
     if (!active || !draft.trim()) return;
+    if (!active.business_phone_number_id) {
+      toast.error("Esta conversación no tiene línea asociada");
+      return;
+    }
     setSending(true);
     const { error } = await supabase.functions.invoke("whatsapp-send-message", {
       body: {
@@ -170,7 +195,7 @@ export default function WhatsAppInbox() {
         conversation_id: active.id,
         kind: "text",
         text: draft.trim(),
-        business_phone_number_id: active.business_phone_number_id ?? undefined,
+        business_phone_number_id: active.business_phone_number_id,
       },
     });
     setSending(false);
@@ -183,6 +208,10 @@ export default function WhatsAppInbox() {
 
   const sendTemplate = async () => {
     if (!active || !tplName) return;
+    if (!active.business_phone_number_id) {
+      toast.error("Esta conversación no tiene línea asociada");
+      return;
+    }
     const tpl = templates.find((t) => t.name === tplName);
     setSending(true);
     const { error } = await supabase.functions.invoke("whatsapp-send-message", {
@@ -192,7 +221,7 @@ export default function WhatsAppInbox() {
         kind: "template",
         template_name: tpl?.name,
         template_language: tpl?.language ?? "es_MX",
-        business_phone_number_id: active.business_phone_number_id ?? undefined,
+        business_phone_number_id: active.business_phone_number_id,
       },
     });
     setSending(false);
@@ -202,23 +231,6 @@ export default function WhatsAppInbox() {
     }
     setTplName("");
     toast.success("Plantilla enviada");
-  };
-
-  const changeAccount = async (newPhoneId: string) => {
-    if (!active) return;
-    const { error } = await supabase
-      .from("whatsapp_conversations")
-      .update({ business_phone_number_id: newPhoneId })
-      .eq("id", active.id);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    setConversations((prev) =>
-      prev.map((c) => (c.id === active.id ? { ...c, business_phone_number_id: newPhoneId } : c)),
-    );
-    const acct = accountByPhoneId.get(newPhoneId);
-    toast.success(`Línea cambiada a ${acct?.label ?? newPhoneId}`);
   };
 
   const createContact = async () => {
