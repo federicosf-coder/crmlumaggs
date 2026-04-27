@@ -788,6 +788,22 @@ export default function DeliverySchedule() {
     refetchRutas();
   };
 
+  const handleStartRoute = async (ruta: any) => {
+    if (ruta.ruta_started_at) return;
+    if (!confirm("¿Confirmas el inicio de esta ruta? Se registrará la hora de salida de planta.")) return;
+    const { error } = await supabase
+      .from("rutas_entrega")
+      .update({
+        ruta_started_at: new Date().toISOString(),
+        ruta_started_by: user?.id ?? null,
+        estatus: "en_ruta",
+      })
+      .eq("id", ruta.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Ruta iniciada");
+    refetchRutas();
+  };
+
   const handleDeliver = (item: PoolItem) => {
     setDeliverItem(item);
     setDeliverNotes("");
