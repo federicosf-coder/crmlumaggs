@@ -9,11 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Copy, Send, MessageCircle, AlertTriangle } from "lucide-react";
+import { Copy, Send, MessageCircle, AlertTriangle, Paperclip, Eye, Download, Link2 } from "lucide-react";
 import {
   WhatsAppMessageTemplate, WhatsAppTemplateType, WhatsAppVariables,
   copyMessage, logWhatsAppActivity, normalizePhoneForWhatsApp, openWhatsApp, renderTemplate,
 } from "@/lib/whatsapp";
+import { getAttachmentPublicUrl, isImageMime, listTemplateAttachments } from "@/lib/templates";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   open: boolean;
@@ -24,10 +26,12 @@ interface Props {
   defaultMessage?: string;
   context: { company_id?: string | null; contact_id?: string | null; deal_id?: string | null };
   onSent?: () => void;
+  /** Optional: id from public.templates to load saved attachments. */
+  templateId?: string | null;
 }
 
 export function WhatsAppActionDialog({
-  open, onOpenChange, phone, variables, templateType, defaultMessage, context, onSent,
+  open, onOpenChange, phone, variables, templateType, defaultMessage, context, onSent, templateId,
 }: Props) {
   const { user } = useAuth();
   const [selectedTplId, setSelectedTplId] = useState<string>("custom");
@@ -46,6 +50,20 @@ export function WhatsAppActionDialog({
     },
     enabled: open,
   });
+
+  const { data: attachments = [] } = useQuery({
+    queryKey: ["template-attachments", templateId],
+    queryFn: () => (templateId ? listTemplateAttachments(templateId) : Promise.resolve([])),
+    enabled: open && !!templateId,
+  });
+
+  const [includeLinks, setIncludeLinks] = useState(true);
+
+  const messageWithLinks = useMemo(() => {
+    if (!includeLinks || attachments.length === 0) return message;
+    const links = attachments.map(a => `• ${a.file_name}: ${getAttachmentPublicUrl(a.file_path)}`).join("\n");
+    return `${message}\n\n📎 Archivos adjuntos:\n${links}`;
+  }, [message, attachments, includeLinks]);
 
   useEffect(() => {
     if (!open) return;
@@ -77,14 +95,14 @@ export function WhatsAppActionDialog({
 
   const handleSend = async () => {
     if (!normalized) { toast.error("Sin teléfono válido"); return; }
-    openWhatsApp(normalized, message);
+    openWhatsApp(normalized, messageWithLinks);
     await finishLog("enviado");
     toast.success("WhatsApp abierto. Recuerda enviar el mensaje.");
     onOpenChange(false);
   };
 
   const handleCopy = async () => {
-    const ok = await copyMessage(message);
+    const ok = await copyMessage(messageWithLinks);
     if (ok) { await finishLog("pendiente"); toast.success("Mensaje copiado"); }
     else toast.error("No se pudo copiar");
   };
@@ -92,12 +110,17 @@ export function WhatsAppActionDialog({
   const handleSendApi = async () => {
     if (!normalized) { toast.error("Sin teléfono válido"); return; }
     const { error } = await supabase.functions.invoke("whatsapp-send-message", {
-      body: { to: normalized, message },
+      body: { to: normalized, message: messageWithLinks },
     });
     if (error) { toast.error(error.message); return; }
     await finishLog("enviado");
     toast.success("Mensaje enviado por API");
     onOpenChange(false);
+  };
+
+  const copyAttachmentLink = async (url: string) => {
+    const ok = await copyMessage(url);
+    if (ok) toast.success("Link copiado"); else toast.error("No se pudo copiar");
   };
 
   return (
@@ -134,6 +157,51 @@ export function WhatsAppActionDialog({
             Para: {variables.contacto_nombre || "—"} {normalized ? `· +${normalized}` : ""}
           </p>
         </div>
+
+        {attachments.length > 0 && (
+          <div className="space-y-2 border-t pt-3">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-1.5"><Paperclip className="h-4 w-4" /> Adjuntos de la plantilla ({attachments.length})</Label>
+              <label className="text-xs flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" checked={includeLinks} onChange={(e) => setIncludeLinks(e.target.checked)} />
+                Agregar links al mensaje
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              WhatsApp no permite enviar varios archivos por enlace. Comparte los links junto al mensaje o ábrelos para adjuntarlos manualmente.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {attachments.map(a => {
+                const url = getAttachmentPublicUrl(a.file_path);
+                return (
+                  <div key={a.id} className="flex items-center gap-2 rounded border p-2 bg-card">
+                    {isImageMime(a.mime_type) ? (
+                      <img src={url} alt="" className="h-10 w-10 object-cover rounded" />
+                    ) : (
+                      <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                        <Paperclip className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium truncate" title={a.file_name}>{a.file_name}</div>
+                      <Badge variant="outline" className="text-[10px]">{a.mime_type.split("/").pop()?.toUpperCase()}</Badge>
+                    </div>
+                    <Button asChild type="button" variant="ghost" size="icon" className="h-7 w-7" title="Ver">
+                      <a href={url} target="_blank" rel="noopener noreferrer"><Eye className="h-3.5 w-3.5" /></a>
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Copiar link"
+                      onClick={() => copyAttachmentLink(url)}>
+                      <Link2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button asChild type="button" variant="ghost" size="icon" className="h-7 w-7" title="Descargar">
+                      <a href={url} download={a.file_name}><Download className="h-3.5 w-3.5" /></a>
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <DialogFooter className="flex-wrap gap-2">
           <Button variant="outline" onClick={handleCopy}><Copy className="h-4 w-4 mr-1" /> Copiar</Button>

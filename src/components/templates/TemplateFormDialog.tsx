@@ -19,6 +19,7 @@ import {
   CATEGORY_LABELS, Template, TemplateCategory, TemplatePlaceholder, TemplateType,
   unknownPlaceholders,
 } from "@/lib/templates";
+import { TemplateAttachmentsManager } from "@/components/templates/TemplateAttachmentsManager";
 
 interface Props {
   open: boolean;
@@ -48,10 +49,12 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
   const { user } = useAuth();
   const [form, setForm] = useState<Partial<Template>>(empty());
   const [saving, setSaving] = useState(false);
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setForm(editing ? { ...editing } : empty());
+    setCreatedId(editing?.id || null);
   }, [open, editing]);
 
   const { data: placeholders } = useQuery({
@@ -99,17 +102,26 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
       updated_by: user.id,
     };
     let error;
+    let savedId = editing?.id || createdId;
     if (editing) {
       ({ error } = await (supabase as any).from("templates").update(payload).eq("id", editing.id));
+    } else if (createdId) {
+      ({ error } = await (supabase as any).from("templates").update(payload).eq("id", createdId));
     } else {
       payload.created_by = user.id;
-      ({ error } = await (supabase as any).from("templates").insert(payload));
+      const ins = await (supabase as any).from("templates").insert(payload).select("id").single();
+      error = ins.error;
+      if (!error) {
+        savedId = ins.data?.id || null;
+        setCreatedId(savedId);
+      }
     }
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success(editing ? "Plantilla actualizada" : "Plantilla creada");
+    toast.success(editing || createdId ? "Plantilla actualizada" : "Plantilla creada. Ya puedes agregar adjuntos.");
     onSaved();
-    onOpenChange(false);
+    // Keep dialog open if it's a new template so the user can add attachments
+    if (editing || createdId) onOpenChange(false);
   };
 
   return (
@@ -186,6 +198,10 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
               <div className="flex items-center gap-2">
                 <Switch checked={!!form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
                 <Label>Activa</Label>
+              </div>
+
+              <div className="pt-3 border-t">
+                <TemplateAttachmentsManager templateId={editing?.id || createdId} />
               </div>
             </div>
 
