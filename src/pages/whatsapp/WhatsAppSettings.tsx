@@ -37,6 +37,14 @@ type QuickReply = {
 };
 
 type Template = { name: string; language: string; status: string };
+type WhatsAppAccount = {
+  id: string;
+  business_phone_number_id: string;
+  label: string;
+  color: string;
+  display_phone: string | null;
+  is_active: boolean;
+};
 
 const dayLabels: Record<string, string> = {
   monday: "Lunes", tuesday: "Martes", wednesday: "Miércoles", thursday: "Jueves",
@@ -48,6 +56,14 @@ export default function WhatsAppSettings() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [saving, setSaving] = useState(false);
+  const [accounts, setAccounts] = useState<WhatsAppAccount[]>([]);
+  const [acctDraft, setAcctDraft] = useState<Partial<WhatsAppAccount>>({
+    label: "",
+    business_phone_number_id: "",
+    color: "#10b981",
+    display_phone: "",
+    is_active: true,
+  });
   const [qrOpen, setQrOpen] = useState(false);
   const [qrDraft, setQrDraft] = useState<Partial<QuickReply>>({ shortcut: "", content: "", is_global: false });
 
