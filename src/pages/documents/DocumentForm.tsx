@@ -555,6 +555,101 @@ export default function DocumentForm() {
       if (!docData.plaza_id) console.warn("[DocumentForm] plaza_id vacío al guardar", docData);
       if (!docData.empresa_vendedora) console.warn("[DocumentForm] empresa_vendedora vacío al guardar", docData);
 
+      // Auto-asignar negocio (crm_deal) si no se seleccionó uno y la empresa está definida.
+      // La falta de negocio_id NUNCA debe impedir guardar el documento.
+      if (!docData.negocio_id && docData.empresa_id && !isEdit) {
+        try {
+          // 1) Si empresa ya tiene negocios, usar el más reciente
+          const { data: existingDeals } = await supabase
+            .from("crm_deals")
+            .select("id, pipeline_id, crm_pipelines!inner(marca, pipeline_type)")
+            .eq("company_id", docData.empresa_id)
+            .order("created_at", { ascending: false });
+
+          const marcaTarget = docData.empresa_vendedora === "galsa_phillips66" ? "phillips66" : "chevron";
+
+          // ¿Tiene facturas/pedidos con unidades? -> determina si es Recompra
+          const { data: ventasPrevias } = await supabase
+            .from("documentos")
+            .select("id, unidades_equivalentes_total, tipo_documento")
+            .eq("empresa_id", docData.empresa_id)
+            .in("tipo_documento", ["pedido", "factura"])
+            .gt("unidades_equivalentes_total", 0)
+            .limit(1);
+
+          const tieneVentas = (ventasPrevias || []).length > 0;
+          const targetType: "primera_compra" | "recompra" = tieneVentas ? "recompra" : "primera_compra";
+
+          // Buscar deal existente del tipo apropiado y marca
+          const matching = (existingDeals || []).find((d: any) =>
+            d.crm_pipelines?.marca === marcaTarget && d.crm_pipelines?.pipeline_type === targetType
+          );
+
+          if (matching) {
+            docData.negocio_id = matching.id;
+          } else {
+            // 2/3) Crear deal nuevo en pipeline correspondiente
+            const { data: pipeline } = await supabase
+              .from("crm_pipelines")
+              .select("id")
+              .eq("marca", marcaTarget)
+              .eq("pipeline_type", targetType)
+              .maybeSingle();
+
+            if (pipeline?.id) {
+              const { data: stage } = await supabase
+                .from("crm_pipeline_stages")
+                .select("id")
+                .eq("pipeline_id", pipeline.id)
+                .order("position", { ascending: true })
+                .limit(1)
+                .maybeSingle();
+
+              const empresaName = (companies as any[]).find((c) => c.id === docData.empresa_id)?.name || "Cliente";
+              const titulo = targetType === "primera_compra"
+                ? `${empresaName} - Primera Compra`
+                : `${empresaName} - Recompra`;
+              const closeDate = new Date();
+              closeDate.setDate(closeDate.getDate() + 14);
+
+              const newDeal: any = {
+                title: titulo,
+                pipeline_id: pipeline.id,
+                stage_id: stage?.id || null,
+                pipeline_type: targetType,
+                tipo_negocio: targetType === "primera_compra" ? "prospecto" : "cliente",
+                company_id: docData.empresa_id,
+                contact_id: docData.contacto_id || null,
+                owner_id: docData.ejecutivo_venta_id || user?.id || null,
+                created_by: user?.id || null,
+                value: docData.total || 0,
+                probability: 10,
+                close_date: closeDate.toISOString().slice(0, 10),
+              };
+
+              const { data: createdDeal, error: dealErr } = await supabase
+                .from("crm_deals")
+                .insert(newDeal)
+                .select("id")
+                .single();
+
+              if (dealErr) {
+                console.warn("[DocumentForm] No se pudo crear negocio automático:", dealErr);
+                toast.warning("No se pudo crear el negocio automático en CRM. El documento se guardará sin negocio.");
+              } else {
+                docData.negocio_id = createdDeal.id;
+              }
+            } else {
+              console.warn("[DocumentForm] No se encontró pipeline para", marcaTarget, targetType);
+              toast.warning(`No se encontró pipeline ${targetType} para ${marcaTarget}. El documento se guardará sin negocio.`);
+            }
+          }
+        } catch (e: any) {
+          console.warn("[DocumentForm] Error auto-asignando negocio:", e);
+          toast.warning("No se pudo asignar negocio automáticamente. El documento se guardará igual.");
+        }
+      }
+
       let docId = id;
       if (isEdit) {
         const { error } = await supabase.from("documentos").update(docData).eq("id", id!);
