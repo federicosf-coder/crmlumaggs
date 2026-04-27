@@ -833,24 +833,55 @@ export default function Directory() {
                   <Pencil className="h-4 w-4 mr-1" /> Editar
                 </Button>
               </SheetHeader>
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <DetailRow label="Nombre" value={selectedContact.first_name} />
-                <DetailRow label="Apellido" value={selectedContact.last_name} />
-                <DetailRow label="Correo" value={selectedContact.email} />
-                <DetailRow label="Teléfono" value={selectedContact.phone} />
-                <DetailRow label="Celular / WhatsApp" value={selectedContact.mobile} />
-                <DetailRow label="Puesto" value={selectedContact.job_title} />
-                <DetailRow label="Departamento" value={selectedContact.department} />
-                <DetailRow label="Empresa" value={selectedContact.companies?.name} />
-                <DetailRow label="Plaza" value={(selectedContact.companies?.plazas as any)?.nombre} />
-                <DetailRow label="Ejecutivo(s) de Venta" value={getEjecutivoNames(selectedContactEjecutivos).join(", ") || "—"} />
+              <div className="space-y-4 mt-4">
+                {/* Identidad */}
+                <div className="grid grid-cols-2 gap-3">
+                  <DetailRow label="Nombre" value={selectedContact.first_name} />
+                  <DetailRow label="Apellido" value={selectedContact.last_name} />
+                  <DetailRow label="Puesto" value={selectedContact.job_title} />
+                  <DetailRow label="Departamento" value={selectedContact.department} />
+                </div>
+
+                {/* Empresa + Ejecutivo */}
+                <div className="grid grid-cols-2 gap-3">
+                  <DetailRow label="Empresa" value={selectedContact.companies?.name} />
+                  <DetailRow label="Ejecutivo(s) de Venta" value={getEjecutivoNames(selectedContactEjecutivos).join(", ") || "—"} />
+                </div>
+
+                {/* Comunicación */}
+                <div className="rounded-md border p-3 space-y-2">
+                  <h4 className="text-sm font-semibold">Comunicación</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Whatsapp", value: (selectedContact as any).whatsapp_phone, active: !!(selectedContact as any).comm_whatsapp },
+                      { label: "Email", value: selectedContact.email, active: !!(selectedContact as any).comm_email },
+                      { label: "Email 2", value: (selectedContact as any).email2, active: !!(selectedContact as any).comm_email2 },
+                      { label: "Cel", value: selectedContact.mobile, active: !!(selectedContact as any).comm_cel },
+                      { label: "Tel", value: selectedContact.phone, active: !!(selectedContact as any).comm_tel },
+                      { label: "Tel Emp", value: (selectedContact as any).tel_emp, active: !!(selectedContact as any).comm_tel_emp },
+                    ].map((c) => (
+                      <DetailRow
+                        key={c.label}
+                        label={c.active ? `${c.label} ✓` : c.label}
+                        value={c.value}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Plaza */}
+                <div className="grid grid-cols-2 gap-3">
+                  <DetailRow label="Plaza" value={(selectedContact.companies?.plazas as any)?.nombre} />
+                </div>
+
+                {/* Notas */}
+                {selectedContact.notes && (
+                  <>
+                    <Separator className="my-1" />
+                    <DetailRow label="Notas" value={selectedContact.notes} />
+                  </>
+                )}
               </div>
-              {selectedContact.notes && (
-                <>
-                  <Separator className="my-3" />
-                  <DetailRow label="Notas" value={selectedContact.notes} />
-                </>
-              )}
             </>
           )}
         </SheetContent>
