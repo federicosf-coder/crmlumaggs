@@ -133,7 +133,7 @@ interface Props {
 }
 
 const emptyForm = {
-  name: "", razon_social: "", industry: "", website: "", phone: "", email: "",
+  name: "", razon_social: "", industry: "", website: "", phone: "+52", email: "",
   notes: "",
   lista_precios: "",
   industrias: [] as string[],
@@ -525,7 +525,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
               {/* Contacto: Correo, Teléfono, Sitio Web */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5"><Label className="text-xs">Correo</Label><Input type="email" value={form.email} onChange={e => setAndSchedule("email", e.target.value)} onBlur={e => autosave.saveNow("email", e.target.value)} className="h-9" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Teléfono</Label><Input value={form.phone} onChange={e => setAndSchedule("phone", e.target.value)} onBlur={e => autosave.saveNow("phone", e.target.value)} className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Teléfono</Label><Input type="tel" inputMode="tel" placeholder="+52..." value={form.phone} onChange={e => setAndSchedule("phone", formatMxPhoneInput(e.target.value))} onBlur={e => autosave.saveNow("phone", formatMxPhoneInput(e.target.value))} className="h-9" /></div>
                 <div className="space-y-1.5"><Label className="text-xs">Sitio Web</Label><Input value={form.website} onChange={e => setAndSchedule("website", e.target.value)} onBlur={e => autosave.saveNow("website", e.target.value)} className="h-9" /></div>
               </div>
 
