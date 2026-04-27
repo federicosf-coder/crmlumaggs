@@ -21,7 +21,7 @@ export function CrmKanbanColumn({ stage, deals, onDrop, onDealClick, onAddDeal }
   );
 
   return (
-    <div className="min-w-[260px] flex-shrink-0">
+    <div className="min-w-[156px] w-[156px] flex-shrink-0">
       <div className="mb-3 flex items-center gap-2">
         <div className="h-3 w-3 rounded-full" style={{ backgroundColor: stage.color }} />
         <h3 className="text-sm font-semibold">{stage.name}</h3>
