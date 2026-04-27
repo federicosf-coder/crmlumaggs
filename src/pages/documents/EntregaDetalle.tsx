@@ -141,6 +141,28 @@ export default function EntregaDetalle() {
     if (documento?.estatus_pedido) setEstatusPedido(documento.estatus_pedido);
   }, [documento?.estatus_pedido]);
 
+  // Auto-seleccionar dirección registrada que coincida con la del documento,
+  // para que el selector muestre el nombre en lugar del placeholder.
+  useEffect(() => {
+    if (selectedDireccionId) return;
+    if (!direccionesEmpresa || (direccionesEmpresa as any[]).length === 0) return;
+    if (!documento) return;
+    const list = direccionesEmpresa as any[];
+    const docNombre = ((documento as any).direccion_envio_nombre || "").trim().toLowerCase();
+    const docAddr = (documento.direccion_envio || "").trim().toLowerCase();
+    let match: any = null;
+    if (docNombre) {
+      match = list.find((d) => (d.nombre || "").trim().toLowerCase() === docNombre);
+    }
+    if (!match && docAddr) {
+      match = list.find((d) => {
+        const full = (d.direccion_completa || [d.calle, d.ciudad, d.estado, d.codigo_postal].filter(Boolean).join(", ")).trim().toLowerCase();
+        return full && full === docAddr;
+      });
+    }
+    if (match) setSelectedDireccionId(match.id);
+  }, [direccionesEmpresa, documento, selectedDireccionId]);
+
   const ESTATUS_OPCIONES: { value: string; label: string }[] = [
     { value: "confirmado_cliente", label: "Confirmado cliente" },
     { value: "espera_autorizacion_precio", label: "Espera autorización precio" },
