@@ -152,6 +152,50 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const [form, setForm] = useState({ ...emptyForm });
   const isEdit = !!editData?.id;
 
+  // Autosave (only meaningful in edit mode)
+  const autosave = useAutosaveStatus(async (changes) => {
+    if (!isEdit || !editData?.id) return;
+    // Map form keys to db payload (skip junction-table keys)
+    const dbPayload: Record<string, any> = {};
+    for (const k of Object.keys(changes)) {
+      if (k === "plaza_ids" || k === "ejecutivo_ids") continue;
+      if (k === "industrias") {
+        dbPayload.industrias = changes.industrias || [];
+        continue;
+      }
+      const v = changes[k];
+      // empty string -> null for nullable text/select fields, except name/razon_social
+      if (k === "name" || k === "razon_social") {
+        dbPayload[k] = (v ?? "").toString();
+      } else if (k === "id_contpaq") {
+        dbPayload[k] = (v ?? "").toString().trim() || null;
+      } else {
+        dbPayload[k] = v === "" || v == null ? null : v;
+      }
+    }
+    if (Object.keys(dbPayload).length > 0) {
+      const { error } = await supabase.from("companies").update(dbPayload).eq("id", editData!.id!);
+      if (error) throw error;
+    }
+    // Junction syncs
+    if ("plaza_ids" in changes) {
+      await supabase.from("company_plazas").delete().eq("company_id", editData!.id!);
+      if ((changes.plaza_ids || []).length > 0) {
+        await supabase.from("company_plazas").insert(
+          (changes.plaza_ids as string[]).map((pid) => ({ company_id: editData!.id!, plaza_id: pid }))
+        );
+      }
+    }
+    if ("ejecutivo_ids" in changes) {
+      await supabase.from("company_ejecutivos").delete().eq("company_id", editData!.id!);
+      if ((changes.ejecutivo_ids || []).length > 0) {
+        await supabase.from("company_ejecutivos").insert(
+          (changes.ejecutivo_ids as string[]).map((uid) => ({ company_id: editData!.id!, user_id: uid }))
+        );
+      }
+    }
+  });
+
   const { data: plazas = [] } = useQuery({
     queryKey: ["plazas_active"],
     queryFn: async () => {
@@ -192,37 +236,51 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
   const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
 
+  // Debounced autosave for text inputs; immediate for selects/blur
+  const setAndSchedule = (k: string, v: string) => {
+    set(k, v);
+    autosave.scheduleSave(k, v);
+  };
+  const setAndSaveNow = (k: string, v: string) => {
+    set(k, v);
+    autosave.saveNow(k, v);
+  };
+
   const toggleIndustria = (val: string) => {
-    setForm(prev => ({
-      ...prev,
-      industrias: prev.industrias.includes(val)
+    setForm(prev => {
+      const next = prev.industrias.includes(val)
         ? prev.industrias.filter(i => i !== val)
-        : [...prev.industrias, val],
-    }));
+        : [...prev.industrias, val];
+      autosave.saveNow("industrias", next);
+      return { ...prev, industrias: next };
+    });
   };
 
   const togglePlaza = (plazaId: string) => {
-    setForm(prev => ({
-      ...prev,
-      plaza_ids: prev.plaza_ids.includes(plazaId)
+    setForm(prev => {
+      const next = prev.plaza_ids.includes(plazaId)
         ? prev.plaza_ids.filter(id => id !== plazaId)
-        : [...prev.plaza_ids, plazaId],
-    }));
+        : [...prev.plaza_ids, plazaId];
+      autosave.saveNow("plaza_ids", next);
+      return { ...prev, plaza_ids: next };
+    });
   };
 
   const toggleEjecutivo = (userId: string) => {
-    setForm(prev => ({
-      ...prev,
-      ejecutivo_ids: prev.ejecutivo_ids.includes(userId)
+    setForm(prev => {
+      const next = prev.ejecutivo_ids.includes(userId)
         ? prev.ejecutivo_ids.filter(id => id !== userId)
-        : [...prev.ejecutivo_ids, userId],
-    }));
+        : [...prev.ejecutivo_ids, userId];
+      autosave.saveNow("ejecutivo_ids", next);
+      return { ...prev, ejecutivo_ids: next };
+    });
   };
 
   const reset = () => setForm({ ...emptyForm });
 
   useEffect(() => {
     if (open && editData) {
+      autosave.setEnabled(false);
       setForm({
         name: editData.name || "",
         razon_social: (editData as any).razon_social || "",
@@ -249,10 +307,40 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         plaza_ids: [],
         ejecutivo_ids: [],
       });
+      // Seed last-saved snapshot to avoid duplicate saves
+      autosave.seed({
+        name: editData.name || "",
+        razon_social: (editData as any).razon_social || "",
+        industry: editData.industry || "",
+        website: editData.website || "",
+        phone: editData.phone || "",
+        email: editData.email || "",
+        notes: editData.notes || "",
+        lista_precios: editData.lista_precios || "",
+        industrias: editData.industrias || [],
+        tipo_destino_lubricante: editData.tipo_destino_lubricante || "",
+        potencial_unidades: editData.potencial_unidades || "",
+        tomador_decision: editData.tomador_decision || "",
+        riesgo_cambio_marca: editData.riesgo_cambio_marca || "",
+        origen_contacto: editData.origen_contacto || "",
+        evaluacion_lubricante: editData.evaluacion_lubricante || "",
+        rol_lubricante: editData.rol_lubricante || "",
+        tipo_cliente_comercial: editData.tipo_cliente_comercial || "",
+        uso_cfdi: (editData as any).uso_cfdi || "",
+        metodo_pago: (editData as any).metodo_pago || "",
+        tipo_pago: (editData as any).tipo_pago || "",
+        forma_pago: (editData as any).forma_pago || "",
+        id_contpaq: (editData as any).id_contpaq || "",
+        plaza_ids: [],
+        ejecutivo_ids: [],
+      });
+      // Enable after mount tick so initial state changes don't trigger saves
+      setTimeout(() => autosave.setEnabled(isEdit), 0);
     } else if (open && !editData) {
+      autosave.setEnabled(false);
       reset();
     }
-  }, [open, editData]);
+  }, [open, editData, isEdit]);
 
   // Set plaza_ids and ejecutivo_ids from loaded data
   useEffect(() => {
@@ -262,6 +350,10 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         ...(companyPlazas.length > 0 ? { plaza_ids: companyPlazas } : {}),
         ...(companyEjecutivos.length > 0 ? { ejecutivo_ids: companyEjecutivos } : {}),
       }));
+      autosave.seed({
+        plaza_ids: companyPlazas,
+        ejecutivo_ids: companyEjecutivos,
+      });
     }
   }, [companyPlazas, companyEjecutivos, open, editData?.id]);
 
