@@ -120,6 +120,7 @@ export default function DocumentForm() {
     estatus_factura: "pendiente",
     estatus_entrega_corporativa: "solicitada",
     negocio_crm: "",
+    negocio_id: "",
     notas: "",
     numero_oc_cliente: "",
     fecha_oc_cliente: "",
@@ -183,6 +184,19 @@ export default function DocumentForm() {
       const { data } = await supabase.from("direcciones_empresa").select("*").eq("empresa_id", form.empresa_id).eq("is_active", true).order("tipo");
       return data || [];
     },
+  });
+  const { data: dealsForCompany = [] } = useQuery({
+    queryKey: ["crm_deals_for_company", form.empresa_id],
+    queryFn: async () => {
+      if (!form.empresa_id) return [];
+      const { data } = await supabase
+        .from("crm_deals")
+        .select("id, title, pipeline_id, created_at, crm_pipelines!inner(nombre, marca, pipeline_type)")
+        .eq("company_id", form.empresa_id)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!form.empresa_id,
   });
   const { data: users = [] } = useQuery({ queryKey: ["profiles_list"], queryFn: async () => { const { data } = await supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name"); return data || []; } });
   const { data: productos = [], refetch: refetchProductos } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, descripcion, marca_id, precio_base_uf1, precio_uf2, precio_uf3, precio_uf4, precio_r1, precio_r2, precio_r3, precio_r4, presentaciones(nombre, unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
@@ -285,6 +299,7 @@ export default function DocumentForm() {
         estatus_factura: existingDoc.estatus_factura || "pendiente",
         estatus_entrega_corporativa: (existingDoc as any).estatus_entrega_corporativa || "solicitada",
         negocio_crm: existingDoc.negocio_crm || "",
+        negocio_id: (existingDoc as any).negocio_id || "",
         notas: existingDoc.notas || "",
         numero_oc_cliente: existingDoc.numero_oc_cliente || "",
         fecha_oc_cliente: (existingDoc as any).fecha_oc_cliente || "",
@@ -509,6 +524,7 @@ export default function DocumentForm() {
         estatus_entrega_corporativa: form.tipo_documento === "entrega_corporativa" ? form.estatus_entrega_corporativa : null,
         subtotal, iva_importe: ivaImporte, total, unidades_equivalentes_total: ueTotal,
         negocio_crm: form.negocio_crm || null,
+        negocio_id: form.negocio_id || null,
         notas: form.notas || null,
         numero_oc_cliente: form.numero_oc_cliente || null,
         fecha_oc_cliente: form.tipo_documento === "entrega_corporativa" ? (form.fecha_oc_cliente || null) : null,
@@ -1123,8 +1139,29 @@ export default function DocumentForm() {
             )}
           </div>
           <div>
-            <Label>Negocio CRM</Label>
-            <Input value={form.negocio_crm} onChange={e => set("negocio_crm", e.target.value)} />
+            <Label>Negocio relacionado {form.empresa_id && <span className="text-destructive">*</span>}</Label>
+            <div className="flex gap-1">
+              <SearchableSelect
+                value={form.negocio_id}
+                onValueChange={v => set("negocio_id", v)}
+                placeholder={form.empresa_id ? "Se asignará automáticamente al guardar" : "Selecciona empresa primero"}
+                disabled={!form.empresa_id}
+                options={(dealsForCompany as any[]).map((d) => ({
+                  value: d.id,
+                  label: `${d.title}${d.crm_pipelines?.nombre ? ` · ${d.crm_pipelines.nombre}` : ""}`,
+                }))}
+              />
+              {form.negocio_id && (
+                <Button type="button" variant="outline" size="icon" asChild title="Abrir negocio">
+                  <Link to={`/crm/${(dealsForCompany as any[]).find(d => d.id === form.negocio_id)?.crm_pipelines?.marca || "chevron"}/pipeline?deal=${form.negocio_id}`}>
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Si lo dejas vacío, el sistema lo asignará automáticamente según el historial del cliente.
+            </p>
           </div>
         </CardContent>
       </Card>
