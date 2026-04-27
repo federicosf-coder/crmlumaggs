@@ -388,23 +388,18 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
               <div className="space-y-3 rounded-md border p-3">
                 <div>
                   <h4 className="text-sm font-semibold">Comunicación</h4>
-                  <p className="text-xs text-muted-foreground">Selecciona al menos uno. Marcado = obligatorio.</p>
+                  <p className="text-xs text-muted-foreground">Obligatorio capturar Whatsapp o Email Principal.</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {COMM_FIELDS.map(c => {
-                    const checked = !!form[c.flag];
                     const value = form[c.value] ?? "";
-                    const invalid = checked && !value.trim();
                     const isPhone = (c as any).phone === true;
+                    const isRequired = c.value === "whatsapp_phone" || c.value === "email";
                     return (
                       <div key={c.flag} className="space-y-1">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(v) => setBoolAndSaveNow(c.flag, !!v)}
-                          />
+                        <label className="flex items-center gap-1 text-sm">
                           <span className="font-medium">{c.label}</span>
-                          {checked && <span className="text-destructive">*</span>}
+                          {isRequired && <span className="text-destructive">*</span>}
                         </label>
                         <Input
                           type={c.value.startsWith("email") ? "email" : isPhone ? "tel" : "text"}
@@ -418,8 +413,6 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
                             const next = isPhone ? formatPhoneProgressive(e.target.value) : e.target.value;
                             autosave.saveNow(c.value, next);
                           }}
-                          required={checked}
-                          aria-invalid={invalid}
                           placeholder={isPhone ? "+52..." : c.label}
                         />
                       </div>
