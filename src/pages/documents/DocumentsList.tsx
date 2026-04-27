@@ -221,12 +221,9 @@ export default function DocumentsList() {
     },
   });
 
-  // Set default plaza to user's plaza on first load
-  useEffect(() => {
-    if (!searchParams.get("plaza") && profile?.plaza_id) {
-      setFilter("plaza", profile.plaza_id);
-    }
-  }, [profile?.plaza_id]);
+  // No aplicamos plaza por defecto: el filtro inicia en "Todas" para no ocultar
+  // documentos del usuario que pertenezcan a otra plaza. El usuario puede
+  // seleccionar manualmente una plaza si lo desea.
 
   const { data: docs = [], isLoading, refetch } = useQuery({
     queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, access.accessLevel, access.teamMemberIds],
