@@ -36,6 +36,8 @@ import WhatsAppCampaigns from "@/pages/whatsapp/WhatsAppCampaigns";
 import WhatsAppTemplates from "@/pages/whatsapp/WhatsAppTemplates";
 import WhatsAppRules from "@/pages/whatsapp/WhatsAppRules";
 import WhatsAppSettings from "@/pages/whatsapp/WhatsAppSettings";
+import ReportsLanding from "@/pages/reports/ReportsLanding";
+import DailyDeliveryReport from "@/pages/reports/DailyDeliveryReport";
 
 const queryClient = new QueryClient();
 
@@ -102,7 +104,8 @@ const App = () => (
             <Route path="/transfers" element={<ProtectedRoute><ModulePlaceholder title="Transferencias de Inventario" description="Gestión de transferencias entre almacenes. Próximamente en Fase 3." /></ProtectedRoute>} />
             
             <Route path="/training" element={<ProtectedRoute><ModulePlaceholder title="Capacitación" description="Materiales de capacitación y cursos para tu equipo." /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><ModulePlaceholder title="Reportes" description="Análisis, reportes e inteligencia de negocio." /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><ReportsLanding /></ProtectedRoute>} />
+            <Route path="/reports/daily-delivery" element={<ProtectedRoute><DailyDeliveryReport /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
