@@ -586,13 +586,18 @@ export type Database = {
       }
       contacts: {
         Row: {
+          comm_cel: boolean
           comm_email: boolean
+          comm_email2: boolean
+          comm_tel: boolean
+          comm_tel_emp: boolean
           comm_whatsapp: boolean
           company_id: string | null
           created_at: string
           created_by: string | null
           department: string | null
           email: string | null
+          email2: string | null
           first_name: string
           id: string
           influencia_id: string | null
@@ -603,17 +608,23 @@ export type Database = {
           notes: string | null
           phone: string | null
           rol_id: string | null
+          tel_emp: string | null
           updated_at: string
           whatsapp_phone: string | null
         }
         Insert: {
+          comm_cel?: boolean
           comm_email?: boolean
+          comm_email2?: boolean
+          comm_tel?: boolean
+          comm_tel_emp?: boolean
           comm_whatsapp?: boolean
           company_id?: string | null
           created_at?: string
           created_by?: string | null
           department?: string | null
           email?: string | null
+          email2?: string | null
           first_name: string
           id?: string
           influencia_id?: string | null
@@ -624,17 +635,23 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           rol_id?: string | null
+          tel_emp?: string | null
           updated_at?: string
           whatsapp_phone?: string | null
         }
         Update: {
+          comm_cel?: boolean
           comm_email?: boolean
+          comm_email2?: boolean
+          comm_tel?: boolean
+          comm_tel_emp?: boolean
           comm_whatsapp?: boolean
           company_id?: string | null
           created_at?: string
           created_by?: string | null
           department?: string | null
           email?: string | null
+          email2?: string | null
           first_name?: string
           id?: string
           influencia_id?: string | null
@@ -645,6 +662,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           rol_id?: string | null
+          tel_emp?: string | null
           updated_at?: string
           whatsapp_phone?: string | null
         }
