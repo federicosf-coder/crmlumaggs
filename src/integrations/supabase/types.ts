@@ -693,42 +693,60 @@ export type Database = {
       crm_activities: {
         Row: {
           activity_date: string
+          channel: string | null
           company_id: string | null
           contact_id: string | null
           created_at: string
           deal_id: string | null
           description: string | null
+          destinatario_phone: string | null
+          documento_id: string | null
           id: string
+          message_type: string | null
           template_id: string | null
           title: string
           type: string
           user_id: string
+          wa_conversation_id: string | null
+          wa_message_id: string | null
         }
         Insert: {
           activity_date?: string
+          channel?: string | null
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
           deal_id?: string | null
           description?: string | null
+          destinatario_phone?: string | null
+          documento_id?: string | null
           id?: string
+          message_type?: string | null
           template_id?: string | null
           title: string
           type: string
           user_id: string
+          wa_conversation_id?: string | null
+          wa_message_id?: string | null
         }
         Update: {
           activity_date?: string
+          channel?: string | null
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
           deal_id?: string | null
           description?: string | null
+          destinatario_phone?: string | null
+          documento_id?: string | null
           id?: string
+          message_type?: string | null
           template_id?: string | null
           title?: string
           type?: string
           user_id?: string
+          wa_conversation_id?: string | null
+          wa_message_id?: string | null
         }
         Relationships: [
           {
