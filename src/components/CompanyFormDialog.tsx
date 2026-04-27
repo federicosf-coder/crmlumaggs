@@ -174,7 +174,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       }
     }
     if (Object.keys(dbPayload).length > 0) {
-      const { error } = await supabase.from("companies").update(dbPayload).eq("id", editData!.id!);
+      const { error } = await supabase.from("companies").update(dbPayload as any).eq("id", editData!.id!);
       if (error) throw error;
     }
     // Junction syncs
