@@ -1,5 +1,5 @@
 import { CrmDeal } from "@/hooks/useCrmDeals";
-import { formatDate } from "@/lib/formatters";
+import { formatDate, formatMonthYear } from "@/lib/formatters";
 import { Calendar, GripVertical, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +43,8 @@ export function CrmDealCard({ deal, stageColor, onClick, monthlyAvg, showHistori
   const facturado = Number(d.facturado_unidades ?? 0);
   const showProgress = potencial > 0 || cotizado > 0 || pedido > 0 || facturado > 0;
   const base = Math.max(potencial, cotizado, pedido, facturado, 1);
+  const isRecompra = d.pipeline_type === "recompra";
+  const periodoLabel = isRecompra ? formatMonthYear(d.mes_negocio) : "";
 
   return (
     <div
@@ -96,7 +98,12 @@ export function CrmDealCard({ deal, stageColor, onClick, monthlyAvg, showHistori
               {fmtUnits(potencial)} u
             </span>
           )}
-          {deal.close_date && (
+          {isRecompra && periodoLabel ? (
+            <span className="flex items-center gap-1 font-medium text-foreground">
+              <Calendar className="h-3 w-3" />
+              {periodoLabel}
+            </span>
+          ) : deal.close_date && (
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               {formatDate(deal.close_date)}
