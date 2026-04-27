@@ -137,6 +137,25 @@ Deno.serve(async (req) => {
           const value = change?.value ?? {};
           // Capture which business phone line this webhook event is for
           const businessPhoneId = value?.metadata?.phone_number_id ?? null;
+          // Resolve the WhatsApp account row by phone_number_id so we can
+          // link conversations and messages to the correct inbox (Maggs / Chevron).
+          let whatsappAccountId: string | null = null;
+          if (businessPhoneId) {
+            const { data: acct, error: acctErr } = await admin
+              .from("whatsapp_accounts")
+              .select("id, label")
+              .eq("business_phone_number_id", businessPhoneId)
+              .maybeSingle();
+            if (acctErr) console.error("Account lookup error:", acctErr);
+            if (!acct) {
+              console.warn(
+                `No whatsapp_accounts row found for phone_number_id=${businessPhoneId}; messages will be unlinked.`,
+              );
+            } else {
+              whatsappAccountId = acct.id;
+              console.log(`Routing webhook to account ${acct.label} (${acct.id})`);
+            }
+          }
           const contactsArr = Array.isArray(value?.contacts) ? value.contacts : [];
           const profileNameByWa: Record<string, string> = {};
           for (const c of contactsArr) {
@@ -195,6 +214,7 @@ Deno.serve(async (req) => {
                   unread_count: (existingConv.unread_count ?? 0) + 1,
                   status: "open",
                   business_phone_number_id: businessPhoneId ?? undefined,
+                  whatsapp_account_id: whatsappAccountId ?? undefined,
                 })
                 .eq("id", conversationId);
             } else {
@@ -208,6 +228,7 @@ Deno.serve(async (req) => {
                   last_message_preview: (text ?? "").slice(0, 120),
                   unread_count: 1,
                   business_phone_number_id: businessPhoneId,
+                  whatsapp_account_id: whatsappAccountId,
                 })
                 .select("id")
                 .single();
@@ -225,6 +246,7 @@ Deno.serve(async (req) => {
               wa_profile_name: profileName,
               media_type: msg?.type ?? null,
               business_phone_number_id: businessPhoneId,
+              whatsapp_account_id: whatsappAccountId,
             });
             if (insErr) console.error("Insert message error:", insErr);
             else inserted++;
@@ -261,6 +283,7 @@ Deno.serve(async (req) => {
                   contact_id: contactId,
                   template_name: r.reply_template_name ?? null,
                   business_phone_number_id: businessPhoneId,
+                  whatsapp_account_id: whatsappAccountId,
                 });
                 await admin
                   .from("whatsapp_conversations")
@@ -306,6 +329,7 @@ Deno.serve(async (req) => {
                   contact_id: contactId,
                   template_name: settings.away_template_name,
                   business_phone_number_id: businessPhoneId,
+                  whatsapp_account_id: whatsappAccountId,
                 });
                 await admin
                   .from("whatsapp_conversations")
@@ -325,6 +349,7 @@ Deno.serve(async (req) => {
               direction: "outbound",
               status: s?.status ?? null,
               business_phone_number_id: businessPhoneId,
+              whatsapp_account_id: whatsappAccountId,
             });
           }
         }
