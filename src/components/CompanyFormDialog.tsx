@@ -18,6 +18,36 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 
+// LADAs MX de 2 dígitos: formato +52 LL DDDD DDDD; resto: +52 LLL DDD DDDD.
+const TWO_DIGIT_LADAS = new Set(["33", "55", "56", "81"]);
+function formatMxPhoneInput(raw: string): string {
+  if (!raw) return "";
+  const hasPlus = raw.trim().startsWith("+");
+  const digits = raw.replace(/\D/g, "");
+  if (!hasPlus) return digits;
+  if (!digits) return "+";
+  if (digits.startsWith("52")) {
+    const local = digits.slice(2, 12);
+    if (local.length === 0) return "+52";
+    if (local.length < 2) return `+52 ${local}`;
+    const lada2 = local.slice(0, 2);
+    if (TWO_DIGIT_LADAS.has(lada2)) {
+      const rest = local.slice(2);
+      const a = rest.slice(0, 4); const b = rest.slice(4, 8);
+      return `+52 ${lada2}${a ? " " + a : ""}${b ? " " + b : ""}`;
+    }
+    if (local.length <= 3) return `+52 ${local}`;
+    const lada3 = local.slice(0, 3);
+    const a = local.slice(3, 6); const b = local.slice(6, 10);
+    return `+52 ${lada3}${a ? " " + a : ""}${b ? " " + b : ""}`;
+  }
+  const cc = digits.slice(0, Math.min(3, digits.length));
+  const rest = digits.slice(cc.length);
+  if (!rest) return `+${cc}`;
+  const groups = rest.match(/.{1,4}/g) || [];
+  return `+${cc} ${groups.join(" ")}`;
+}
+
 export const INDUSTRIAS_OPTIONS = [
   "Agroindustria (campos, empacadoras, maquinaria)",
   "Construcción (obra civil, maquinaria, movimiento de tierra)",
@@ -133,7 +163,7 @@ interface Props {
 }
 
 const emptyForm = {
-  name: "", razon_social: "", industry: "", website: "", phone: "", email: "",
+  name: "", razon_social: "", industry: "", website: "", phone: "+52", email: "",
   notes: "",
   lista_precios: "",
   industrias: [] as string[],
@@ -525,7 +555,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
               {/* Contacto: Correo, Teléfono, Sitio Web */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5"><Label className="text-xs">Correo</Label><Input type="email" value={form.email} onChange={e => setAndSchedule("email", e.target.value)} onBlur={e => autosave.saveNow("email", e.target.value)} className="h-9" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Teléfono</Label><Input value={form.phone} onChange={e => setAndSchedule("phone", e.target.value)} onBlur={e => autosave.saveNow("phone", e.target.value)} className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Teléfono</Label><Input type="tel" inputMode="tel" placeholder="+52..." value={form.phone} onChange={e => setAndSchedule("phone", formatMxPhoneInput(e.target.value))} onBlur={e => autosave.saveNow("phone", formatMxPhoneInput(e.target.value))} className="h-9" /></div>
                 <div className="space-y-1.5"><Label className="text-xs">Sitio Web</Label><Input value={form.website} onChange={e => setAndSchedule("website", e.target.value)} onBlur={e => autosave.saveNow("website", e.target.value)} className="h-9" /></div>
               </div>
 
