@@ -474,16 +474,17 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                     onChange={e => {
                       const v = e.target.value;
                       setForm(prev => {
-                        // Auto-copy to razon_social only if it was empty or matched previous name (untouched)
                         const shouldSync = !prev.razon_social || prev.razon_social === prev.name;
                         return { ...prev, name: v, razon_social: shouldSync ? v : prev.razon_social };
                       });
+                      autosave.scheduleSave("name", v);
                     }}
+                    onBlur={e => autosave.saveNow("name", e.target.value)}
                     required
                     className="h-9"
                   />
                 </div>
-                <div className="space-y-1.5"><Label className="text-xs">ID Contpaq</Label><Input value={form.id_contpaq} onChange={e => set("id_contpaq", e.target.value)} className="h-9" placeholder="—" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">ID Contpaq</Label><Input value={form.id_contpaq} onChange={e => setAndSchedule("id_contpaq", e.target.value)} onBlur={e => autosave.saveNow("id_contpaq", e.target.value)} className="h-9" placeholder="—" /></div>
               </div>
               {/* Razón Social + Plaza */}
               <div className="grid grid-cols-2 gap-3">
@@ -491,7 +492,8 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                   <Label className="text-xs">Razón Social</Label>
                   <Input
                     value={form.razon_social}
-                    onChange={e => set("razon_social", e.target.value)}
+                    onChange={e => setAndSchedule("razon_social", e.target.value)}
+                    onBlur={e => autosave.saveNow("razon_social", e.target.value)}
                     className="h-9"
                     placeholder="Nombre legal/fiscal"
                   />
@@ -522,9 +524,9 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
               {/* Contacto: Correo, Teléfono, Sitio Web */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5"><Label className="text-xs">Correo</Label><Input type="email" value={form.email} onChange={e => set("email", e.target.value)} className="h-9" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Teléfono</Label><Input value={form.phone} onChange={e => set("phone", e.target.value)} className="h-9" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Sitio Web</Label><Input value={form.website} onChange={e => set("website", e.target.value)} className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Correo</Label><Input type="email" value={form.email} onChange={e => setAndSchedule("email", e.target.value)} onBlur={e => autosave.saveNow("email", e.target.value)} className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Teléfono</Label><Input value={form.phone} onChange={e => setAndSchedule("phone", e.target.value)} onBlur={e => autosave.saveNow("phone", e.target.value)} className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Sitio Web</Label><Input value={form.website} onChange={e => setAndSchedule("website", e.target.value)} onBlur={e => autosave.saveNow("website", e.target.value)} className="h-9" /></div>
               </div>
 
               {/* Ejecutivo de Venta (multi-select) */}
@@ -581,7 +583,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
               {/* Notas — al final del formulario */}
               <div className="space-y-1.5 pt-2 border-t">
                 <Label className="text-xs">Notas</Label>
-                <Textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={3} placeholder="Notas internas sobre la empresa..." />
+                <Textarea value={form.notes} onChange={e => setAndSchedule("notes", e.target.value)} onBlur={e => autosave.saveNow("notes", e.target.value)} rows={3} placeholder="Notas internas sobre la empresa..." />
               </div>
             </TabsContent>
 
