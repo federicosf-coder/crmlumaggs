@@ -92,7 +92,7 @@ export default function TemplatesManagement() {
             <TabsList>
               <TabsTrigger value="all">Todas</TabsTrigger>
               <TabsTrigger value="email"><FileText className="h-3.5 w-3.5 mr-1" /> Email</TabsTrigger>
-              <TabsTrigger value="whatsapp"><MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp</TabsTrigger>
+              <TabsTrigger value="whatsapp"><MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp (locales)</TabsTrigger>
             </TabsList>
           </Tabs>
           <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nueva plantilla</Button>
@@ -139,7 +139,7 @@ export default function TemplatesManagement() {
                   <TableCell>
                     {t.type === "email"
                       ? <Badge variant="outline"><FileText className="h-3 w-3 mr-1" /> Email</Badge>
-                      : <Badge variant="outline"><MessageCircle className="h-3 w-3 mr-1" /> WhatsApp</Badge>}
+                      : <Badge variant="outline"><MessageCircle className="h-3 w-3 mr-1" /> WhatsApp (locales)</Badge>}
                   </TableCell>
                   <TableCell><Badge variant="secondary">{CATEGORY_LABELS[t.category]}</Badge></TableCell>
                   <TableCell>{t.is_active ? <Badge>Activa</Badge> : <Badge variant="secondary">Inactiva</Badge>}</TableCell>
