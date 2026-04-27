@@ -830,7 +830,7 @@ export default function DocumentForm() {
           {/* Empresa (Cliente) with + button */}
           <div>
             <Label className="flex items-center gap-1">
-              Empresa (Cliente)
+              Empresa (Cliente) <span className="text-destructive">*</span>
               {form.empresa_id && (
                 <Link
                   to={`/directory?tab=companies&select=${form.empresa_id}`}
@@ -866,7 +866,7 @@ export default function DocumentForm() {
           {/* Contacto with + button, filtered by empresa */}
           <div>
             <Label className="flex items-center gap-1">
-              Contacto
+              Contacto <span className="text-destructive">*</span>
               {form.contacto_id && (
                 <Link
                   to={`/directory?tab=contacts&select=${form.contacto_id}`}
@@ -891,6 +891,24 @@ export default function DocumentForm() {
               />
               <Button variant="outline" size="icon" onClick={() => setShowNewContact(true)} disabled={!form.empresa_id}><Plus className="h-4 w-4" /></Button>
             </div>
+            {form.contacto_id && (() => {
+              const c: any = contacts.find((x: any) => x.id === form.contacto_id);
+              if (!c) return null;
+              const wa = (c.whatsapp_phone || "").toString().trim();
+              const em = (c.email || "").toString().trim();
+              const waDigits = wa.replace(/\D/g, "");
+              const hasWa = waDigits.length >= 8;
+              const hasEm = !!em;
+              return (
+                <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                  <div>Whatsapp: {hasWa ? wa : <span className="text-destructive">No registrado</span>}</div>
+                  <div>Email Principal: {hasEm ? em : <span className="text-destructive">No registrado</span>}</div>
+                  {!hasWa && !hasEm && (
+                    <div className="text-destructive">Este contacto requiere Whatsapp o Email Principal antes de guardar.</div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </CardContent>
       </Card>
