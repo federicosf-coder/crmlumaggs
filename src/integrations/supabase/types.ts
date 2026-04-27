@@ -586,6 +586,8 @@ export type Database = {
       }
       contacts: {
         Row: {
+          comm_email: boolean
+          comm_whatsapp: boolean
           company_id: string | null
           created_at: string
           created_by: string | null
@@ -605,6 +607,8 @@ export type Database = {
           whatsapp_phone: string | null
         }
         Insert: {
+          comm_email?: boolean
+          comm_whatsapp?: boolean
           company_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -624,6 +628,8 @@ export type Database = {
           whatsapp_phone?: string | null
         }
         Update: {
+          comm_email?: boolean
+          comm_whatsapp?: boolean
           company_id?: string | null
           created_at?: string
           created_by?: string | null
