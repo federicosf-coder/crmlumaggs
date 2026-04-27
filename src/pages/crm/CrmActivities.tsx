@@ -7,7 +7,8 @@ import { PageBanner } from "@/components/PageBanner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Activity as ActivityIcon, ArrowLeft } from "lucide-react";
+import { Plus, Activity as ActivityIcon } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 export default function CrmActivities() {
   const { brand } = useParams<{ brand: string }>();
@@ -20,16 +21,13 @@ export default function CrmActivities() {
 
   return (
     <div className="space-y-6">
-      <PageBanner title={`Actividades — ${brandLabel}`} description="Registra y da seguimiento a interacciones.">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/crm")}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Volver
-          </Button>
-          <Button onClick={() => setLogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Registrar Actividad
-          </Button>
-        </div>
-      </PageBanner>
+      <div className="flex items-center gap-2 flex-wrap">
+        <BackButton fallback="/crm" />
+        <Button onClick={() => setLogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" /> Registrar Actividad
+        </Button>
+      </div>
+      <PageBanner title={`Actividades — ${brandLabel}`} description="Registra y da seguimiento a interacciones." />
 
       <div className="flex gap-3">
         <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v === "all" ? "" : v)}>
