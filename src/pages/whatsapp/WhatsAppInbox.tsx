@@ -207,7 +207,19 @@ export default function WhatsAppInbox() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "whatsapp_messages", filter: `conversation_id=eq.${activeId}` },
-        loadMsgs,
+        (payload) => {
+          const m = payload.new as Message;
+          setMessages((prev) => {
+            if (prev.some((x) => x.id === m.id)) return prev;
+            return [...prev, m];
+          });
+          // marca como leído inmediato
+          supabase
+            .from("whatsapp_conversations")
+            .update({ unread_count: 0 })
+            .eq("id", activeId)
+            .then(() => {});
+        },
       )
       .subscribe();
     return () => {
