@@ -2860,7 +2860,9 @@ export type Database = {
           id: string
           is_active: boolean
           label: string
+          status: string
           updated_at: string
+          waba_id: string | null
         }
         Insert: {
           business_phone_number_id: string
@@ -2870,7 +2872,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           label: string
+          status?: string
           updated_at?: string
+          waba_id?: string | null
         }
         Update: {
           business_phone_number_id?: string
@@ -2880,7 +2884,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           label?: string
+          status?: string
           updated_at?: string
+          waba_id?: string | null
         }
         Relationships: []
       }
