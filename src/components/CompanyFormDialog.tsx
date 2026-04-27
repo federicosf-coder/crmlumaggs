@@ -21,11 +21,15 @@ import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 // LADAs MX de 2 dígitos: formato +52 LL DDDD DDDD; resto: +52 LLL DDD DDDD.
 const TWO_DIGIT_LADAS = new Set(["33", "55", "56", "81"]);
 function formatMxPhoneInput(raw: string): string {
-  if (!raw) return "";
+  if (!raw) return "+52";
   const hasPlus = raw.trim().startsWith("+");
-  const digits = raw.replace(/\D/g, "");
-  if (!hasPlus) return digits;
-  if (!digits) return "+";
+  let digits = raw.replace(/\D/g, "");
+  if (!hasPlus) {
+    if (!digits) return "+52";
+    if (!digits.startsWith("52")) digits = "52" + digits;
+  } else if (!digits) {
+    return "+";
+  }
   if (digits.startsWith("52")) {
     const local = digits.slice(2, 12);
     if (local.length === 0) return "+52";
