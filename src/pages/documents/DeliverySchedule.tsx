@@ -194,20 +194,37 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
       </div>
       <Separator className="mb-2" />
 
-      {/* Iniciar ruta */}
-      <Button
-        size="sm"
-        variant={ruta.ruta_started_at ? "secondary" : "default"}
-        className="w-full mb-2 h-8 text-xs gap-1.5"
-        disabled={!!ruta.ruta_started_at || cerrada}
-        onClick={() => onStartRoute(ruta)}
-        title={ruta.ruta_started_at ? `Iniciada ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}` : "Marcar inicio de ruta al salir de planta"}
-      >
-        <Play className="h-3.5 w-3.5" />
-        {ruta.ruta_started_at
-          ? `Ruta iniciada · ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}`
-          : "Iniciar ruta"}
-      </Button>
+      {/* Iniciar / Finalizar ruta */}
+      <div className="grid grid-cols-2 gap-2 mb-2">
+        <Button
+          size="sm"
+          className="w-full h-8 text-xs gap-1.5 px-2 bg-green-800 hover:bg-green-900 text-white disabled:opacity-60"
+          disabled={!!ruta.ruta_started_at || cerrada}
+          onClick={() => onStartRoute(ruta)}
+          title={ruta.ruta_started_at ? `Iniciada ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}` : "Marcar inicio de ruta al salir de planta"}
+        >
+          <Play className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">
+            {ruta.ruta_started_at
+              ? `Iniciada ${format(new Date(ruta.ruta_started_at), "HH:mm", { locale: es })}`
+              : "Iniciar ruta"}
+          </span>
+        </Button>
+        <Button
+          size="sm"
+          className="w-full h-8 text-xs gap-1.5 px-2 bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
+          disabled={!ruta.ruta_started_at || !!ruta.ruta_finished_at || cerrada}
+          onClick={() => onFinishRoute(ruta)}
+          title={ruta.ruta_finished_at ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "dd MMM HH:mm", { locale: es })}` : "Marcar fin de ruta"}
+        >
+          <Flag className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">
+            {ruta.ruta_finished_at
+              ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "HH:mm", { locale: es })}`
+              : "Ruta Finalizada"}
+          </span>
+        </Button>
+      </div>
 
       {/* Items */}
       <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
