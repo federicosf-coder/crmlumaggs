@@ -20,11 +20,7 @@ Deno.serve(async (req) => {
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    const WABA_ID_1 = Deno.env.get("WHATSAPP_WABA_ID");
-    const PHONE_ID_1 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-    const WABA_ID_2 = Deno.env.get("WHATSAPP_WABA_ID_2");
-    const PHONE_ID_2 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_2");
-    if (!TOKEN || (!WABA_ID_1 && !WABA_ID_2)) return json({ error: "Missing WhatsApp WABA credentials" }, 500);
+    if (!TOKEN) return json({ error: "Missing WHATSAPP_ACCESS_TOKEN" }, 500);
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const userClient = createClient(SUPABASE_URL, ANON_KEY, {
@@ -41,22 +37,31 @@ Deno.serve(async (req) => {
     const allowed = (roles ?? []).some((r) => r.role === "admin" || r.role === "manager");
     if (!allowed) return json({ error: "Solo admin/manager" }, 403);
 
-    const accounts: Array<{ waba: string; phoneId: string | null }> = [];
-    if (WABA_ID_1) accounts.push({ waba: WABA_ID_1, phoneId: PHONE_ID_1 ?? null });
-    if (WABA_ID_2) accounts.push({ waba: WABA_ID_2, phoneId: PHONE_ID_2 ?? null });
+    // Read accounts from DB. Group by waba_id so we only fetch each WABA once,
+    // even if multiple phone numbers share the same WABA. Templates belong to
+    // the WABA, so all phones under the same WABA can use them.
+    const { data: dbAccounts } = await admin
+      .from("whatsapp_accounts")
+      .select("waba_id, business_phone_number_id, label, is_active")
+      .eq("is_active", true);
+    const wabaSet = new Set<string>();
+    (dbAccounts ?? []).forEach((a: any) => {
+      if (a.waba_id) wabaSet.add(String(a.waba_id));
+    });
+    if (wabaSet.size === 0) return json({ error: "No hay cuentas con waba_id configurado" }, 400);
 
     let totalCount = 0;
     let upserted = 0;
     const errors: unknown[] = [];
 
-    for (const acct of accounts) {
+    for (const waba of wabaSet) {
       const r = await fetch(
-        `https://graph.facebook.com/v21.0/${acct.waba}/message_templates?limit=200`,
+        `https://graph.facebook.com/v21.0/${waba}/message_templates?limit=200`,
         { headers: { Authorization: `Bearer ${TOKEN}` } },
       );
       const data = await r.json();
       if (!r.ok) {
-        errors.push({ waba: acct.waba, error: data?.error });
+        errors.push({ waba, error: data?.error });
         continue;
       }
       const templates = Array.isArray(data?.data) ? data.data : [];
@@ -73,8 +78,10 @@ Deno.serve(async (req) => {
             body,
             components: t.components ?? null,
             last_synced_at: new Date().toISOString(),
-            waba_id: acct.waba,
-            business_phone_number_id: acct.phoneId,
+            waba_id: waba,
+            // Templates pertenecen al WABA, no a un número específico.
+            // Dejamos null para que apliquen a todos los números bajo ese WABA.
+            business_phone_number_id: null,
           },
           { onConflict: "name,language" },
         );
