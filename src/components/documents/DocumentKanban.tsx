@@ -32,7 +32,7 @@ const PEDIDO_COLUMNS = [
 ];
 
 const FACTURA_COLUMNS = [
-  { key: "pendiente", label: "Pendiente", color: "bg-muted" },
+  { key: "pendiente", label: "Vigente", color: "bg-muted" },
   { key: "parcial", label: "Parcial", color: "bg-amber-100 dark:bg-amber-900/30" },
   { key: "pagada", label: "Pagada", color: "bg-green-100 dark:bg-green-900/30" },
   { key: "vencida", label: "Vencida", color: "bg-orange-100 dark:bg-orange-900/30" },
