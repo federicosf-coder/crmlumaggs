@@ -273,19 +273,56 @@ export default function WhatsAppInbox() {
     <div className="grid grid-cols-12 gap-4 h-[calc(100vh-8rem)]">
       {/* Conversaciones */}
       <Card className="col-span-3 flex flex-col">
-        <div className="p-3 border-b flex items-center justify-between">
-          <div className="flex items-center gap-2 font-medium">
-            <MessageCircle className="h-4 w-4 text-primary" /> WhatsApp
+        <div className="p-3 border-b space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 font-medium">
+              <MessageCircle className="h-4 w-4 text-primary" /> WhatsApp
+            </div>
+            <Button size="sm" variant="outline" onClick={syncTemplates}>
+              Sync templates
+            </Button>
           </div>
-          <Button size="sm" variant="outline" onClick={syncTemplates}>
-            Sync templates
-          </Button>
+          {/* Inbox tabs por línea */}
+          {accounts.length > 0 && (
+            <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1">
+              {accounts.map((a) => {
+                const isSelected = selectedPhoneId === a.business_phone_number_id;
+                const count = conversations.filter(
+                  (c) => c.business_phone_number_id === a.business_phone_number_id,
+                ).length;
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => setSelectedPhoneId(a.business_phone_number_id)}
+                    className={`flex items-center justify-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold transition ${
+                      isSelected
+                        ? "shadow-sm text-white"
+                        : "text-muted-foreground hover:bg-background"
+                    }`}
+                    style={isSelected ? { backgroundColor: a.color } : undefined}
+                  >
+                    <Inbox className="h-3 w-3" />
+                    <span className="uppercase tracking-wide">{a.label}</span>
+                    <span
+                      className={`rounded-full px-1.5 text-[10px] ${
+                        isSelected ? "bg-white/25" : "bg-muted-foreground/15"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
         <ScrollArea className="flex-1">
-          {conversations.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground">Sin conversaciones aún.</div>
+          {filteredConversations.length === 0 ? (
+            <div className="p-4 text-sm text-muted-foreground">
+              Sin conversaciones en esta línea.
+            </div>
           ) : (
-            conversations.map((c) => (
+            filteredConversations.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setActiveId(c.id)}
