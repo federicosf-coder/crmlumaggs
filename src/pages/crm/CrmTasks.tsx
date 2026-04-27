@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, CheckSquare, Search, ArrowLeft } from "lucide-react";
+import { Plus, CheckSquare, Search } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 export default function CrmTasks() {
   const { brand } = useParams<{ brand: string }>();
@@ -30,16 +31,13 @@ export default function CrmTasks() {
 
   return (
     <div className="space-y-6">
-      <PageBanner title={`Tareas — ${brandLabel}`} description="Gestiona tus pendientes y recordatorios.">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/crm")}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Volver
-          </Button>
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Nueva Tarea
-          </Button>
-        </div>
-      </PageBanner>
+      <div className="flex items-center gap-2 flex-wrap">
+        <BackButton fallback="/crm" />
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" /> Nueva Tarea
+        </Button>
+      </div>
+      <PageBanner title={`Tareas — ${brandLabel}`} description="Gestiona tus pendientes y recordatorios." />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Tabs value={tab} onValueChange={setTab}>
