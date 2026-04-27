@@ -368,7 +368,7 @@ export default function DocumentsList() {
       if (access.accessLevel === "propio" && access.userId) {
         q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
-        q = q.in("created_by", access.teamMemberIds);
+        q = q.or(`created_by.in.(${access.teamMemberIds.join(",")}),ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`);
       }
       const data = await fetchAllRows<any>((from, to) => q.range(from, to));
       if (!data || data.length === 0) { toast.error("No hay datos para exportar"); return; }
