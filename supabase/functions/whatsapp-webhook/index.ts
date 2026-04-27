@@ -41,14 +41,10 @@ function isWithinBusinessHours(settings: any, now: Date): boolean {
 }
 
 function resolveCredentials(phoneNumberId: string | null | undefined) {
+  // The phone_number_id from Meta IS the canonical key. We send messages
+  // through that exact phone_number_id — no env var fallbacks required.
   const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-  const PHONE_1 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-  const PHONE_2 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_2");
-  // Default to account 1 if no phone_number_id given
-  let phoneId = PHONE_1 ?? null;
-  if (phoneNumberId && PHONE_2 && phoneNumberId === PHONE_2) phoneId = PHONE_2;
-  else if (phoneNumberId && PHONE_1 && phoneNumberId === PHONE_1) phoneId = PHONE_1;
-  return { TOKEN, phoneId };
+  return { TOKEN, phoneId: phoneNumberId ?? null };
 }
 
 async function sendWhatsAppText(toPhone: string, text: string, businessPhoneId?: string | null) {

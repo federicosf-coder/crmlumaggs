@@ -3484,6 +3484,7 @@ export type Database = {
         Returns: undefined
       }
       recompute_pago_balance: { Args: { _pago_id: string }; Returns: undefined }
+      repair_whatsapp_account_links: { Args: never; Returns: Json }
       resolve_documento_negocio: {
         Args: {
           _contacto_id: string
