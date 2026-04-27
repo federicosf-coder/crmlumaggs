@@ -90,6 +90,13 @@ export default function DocumentForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialTipo = searchParams.get("tipo");
+  const initialEmpresaId = searchParams.get("empresa_id") || "";
+  const initialContactoId = searchParams.get("contacto_id") || "";
+  const initialNegocioId = searchParams.get("negocio_id") || "";
+  const initialNegocioCrm = searchParams.get("negocio_crm") || "";
+  const initialEmpresaVendedora = searchParams.get("empresa_vendedora") || "";
+  const initialEjecutivoId = searchParams.get("ejecutivo_venta_id") || "";
+  const initialNotas = searchParams.get("notas") || "";
   const qc = useQueryClient();
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const { user, profile, hasRole } = useAuth();
@@ -103,12 +110,13 @@ export default function DocumentForm() {
   const defaultVencimiento = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
   const [form, setForm] = useState({
-    empresa_vendedora: (initialTipo === "entrega_corporativa" ? "lumaggs_chevron" : "") as string,
+    empresa_vendedora: (initialEmpresaVendedora ||
+      (initialTipo === "entrega_corporativa" ? "lumaggs_chevron" : "")) as string,
     plaza_id: "",
     tipo_documento: (initialTipo === "entrega_corporativa" ? "entrega_corporativa" : "cotizacion") as string,
-    ejecutivo_venta_id: "",
-    empresa_id: "",
-    contacto_id: "",
+    ejecutivo_venta_id: initialEjecutivoId,
+    empresa_id: initialEmpresaId,
+    contacto_id: initialContactoId,
     fecha_documento: today,
     fecha_vencimiento: defaultVencimiento,
     iva_porcentaje: "8",
@@ -119,9 +127,9 @@ export default function DocumentForm() {
     estatus_pedido: "confirmado_cliente",
     estatus_factura: "pendiente",
     estatus_entrega_corporativa: "solicitada",
-    negocio_crm: "",
-    negocio_id: "",
-    notas: "",
+    negocio_crm: initialNegocioCrm,
+    negocio_id: initialNegocioId,
+    notas: initialNotas,
     numero_oc_cliente: "",
     fecha_oc_cliente: "",
     direccion_envio: "",
@@ -265,6 +273,20 @@ export default function DocumentForm() {
       set("fecha_vencimiento", venc);
     }
   }, [form.fecha_documento, isEdit]);
+
+  // Auto-fill commercial defaults from selected company on new documents
+  useEffect(() => {
+    if (isEdit || !form.empresa_id || companies.length === 0) return;
+    const c: any = companies.find((x: any) => x.id === form.empresa_id);
+    if (!c) return;
+    setForm((prev) => ({
+      ...prev,
+      uso_cfdi: prev.uso_cfdi || c.uso_cfdi || "",
+      metodo_pago: prev.metodo_pago || c.metodo_pago || "",
+      tipo_pago: prev.tipo_pago || c.tipo_pago || "",
+      forma_pago: prev.forma_pago || c.forma_pago || "",
+    }));
+  }, [form.empresa_id, companies, isEdit]);
 
   // Auto-calculate fecha_vencimiento for Facturas based on tipo_pago
   // Contado => same day; Crédito / Crédito Cescemex => +30 days

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, ShoppingCart, Receipt, ExternalLink } from "lucide-react";
+import { FileText, ShoppingCart, Receipt, ExternalLink, Plus } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 
 type TipoDoc = "cotizacion" | "pedido" | "factura";
@@ -51,9 +51,40 @@ function getEstatus(d: DocRow): string {
   return d.estatus_cotizacion || "—";
 }
 
-export function DealDocumentsTab({ dealId }: { dealId: string }) {
+interface DealDocumentsTabProps {
+  dealId: string;
+  empresaId?: string | null;
+  contactoId?: string | null;
+  empresaVendedora?: string;
+  negocioCrm?: string | null;
+  ownerId?: string | null;
+  notas?: string | null;
+}
+
+export function DealDocumentsTab({
+  dealId,
+  empresaId,
+  contactoId,
+  empresaVendedora,
+  negocioCrm,
+  ownerId,
+  notas,
+}: DealDocumentsTabProps) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<TipoDoc | "all">("all");
+
+  const handleNuevoDocumento = (tipo: TipoDoc) => {
+    const params = new URLSearchParams();
+    params.set("tipo", tipo);
+    params.set("negocio_id", dealId);
+    if (empresaId) params.set("empresa_id", empresaId);
+    if (contactoId) params.set("contacto_id", contactoId);
+    if (empresaVendedora) params.set("empresa_vendedora", empresaVendedora);
+    if (negocioCrm) params.set("negocio_crm", negocioCrm);
+    if (ownerId) params.set("ejecutivo_venta_id", ownerId);
+    if (notas) params.set("notas", notas);
+    navigate(`/documents/new?${params.toString()}`);
+  };
 
   const { data: documents, isLoading } = useQuery({
     queryKey: ["crm_deal_documents", dealId],
@@ -106,6 +137,19 @@ export function DealDocumentsTab({ dealId }: { dealId: string }) {
 
   return (
     <div className="space-y-4">
+      {/* Acciones: nuevo documento */}
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="default" className="gap-1" onClick={() => handleNuevoDocumento("cotizacion")}>
+          <Plus className="h-3 w-3" /> Nueva Cotización
+        </Button>
+        <Button size="sm" variant="outline" className="gap-1" onClick={() => handleNuevoDocumento("pedido")}>
+          <Plus className="h-3 w-3" /> Nuevo Pedido
+        </Button>
+        <Button size="sm" variant="outline" className="gap-1" onClick={() => handleNuevoDocumento("factura")}>
+          <Plus className="h-3 w-3" /> Nueva Factura
+        </Button>
+      </div>
+
       {/* Filtros tipo Documentos */}
       <div className="flex flex-wrap gap-1 rounded-full bg-secondary p-1 w-fit">
         <Button
