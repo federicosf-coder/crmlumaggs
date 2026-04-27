@@ -450,6 +450,14 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{isEdit ? "Editar Empresa" : "Nueva Empresa"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isEdit && (
+            <div className="sticky top-0 z-10 -mx-6 -mt-2 px-6 py-2 bg-background/95 backdrop-blur border-b flex items-center justify-between gap-3">
+              <AutosaveIndicator status={autosave.status} />
+              <Button type="submit" size="sm" disabled={saving}>
+                {saving ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            </div>
+          )}
           {isEdit && editData?.id && <CompanyUnitsHeader companyId={editData.id} />}
           <Tabs defaultValue="general">
             <TabsList className="w-full">
