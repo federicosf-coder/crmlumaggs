@@ -25,6 +25,7 @@ interface DocRow {
   estado_cobranza: string | null;
   empresa_id: string | null;
   ejecutivo_venta_id: string | null;
+  unidades_equivalentes_total: number | null;
   companies?: { id: string; name: string } | null;
   ejecutivo?: { user_id: string; full_name: string | null } | null;
 }
@@ -60,7 +61,7 @@ export function DealDocumentsTab({ dealId }: { dealId: string }) {
       const { data, error } = await supabase
         .from("documentos")
         .select(
-          "id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, fecha_documento, total, saldo_pendiente_cobranza, estatus_cotizacion, estatus_pedido, estatus_factura, estado_cobranza, empresa_id, ejecutivo_venta_id, companies:empresa_id (id, name)"
+          "id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, fecha_documento, total, saldo_pendiente_cobranza, estatus_cotizacion, estatus_pedido, estatus_factura, estado_cobranza, empresa_id, ejecutivo_venta_id, unidades_equivalentes_total, companies:empresa_id (id, name)"
         )
         .eq("negocio_id", dealId)
         .order("fecha_documento", { ascending: false });
@@ -167,6 +168,9 @@ export function DealDocumentsTab({ dealId }: { dealId: string }) {
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5 truncate">
                         {d.companies?.name || "—"} · {formatDate(d.fecha_documento)}
+                      </div>
+                      <div className="text-xs font-bold text-blue-600 mt-0.5">
+                        {(Number(d.unidades_equivalentes_total) || 0).toLocaleString("es-MX", { maximumFractionDigits: 2 })} unidades
                       </div>
                       {d.ejecutivo?.full_name && (
                         <div className="text-[11px] text-muted-foreground/80 mt-0.5">
