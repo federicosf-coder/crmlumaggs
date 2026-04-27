@@ -165,7 +165,13 @@ export default function WhatsAppInbox() {
     if (!active || !draft.trim()) return;
     setSending(true);
     const { error } = await supabase.functions.invoke("whatsapp-send-message", {
-      body: { to_phone: active.wa_phone, conversation_id: active.id, kind: "text", text: draft.trim() },
+      body: {
+        to_phone: active.wa_phone,
+        conversation_id: active.id,
+        kind: "text",
+        text: draft.trim(),
+        business_phone_number_id: active.business_phone_number_id ?? undefined,
+      },
     });
     setSending(false);
     if (error) {
@@ -186,6 +192,7 @@ export default function WhatsAppInbox() {
         kind: "template",
         template_name: tpl?.name,
         template_language: tpl?.language ?? "es_MX",
+        business_phone_number_id: active.business_phone_number_id ?? undefined,
       },
     });
     setSending(false);
@@ -195,6 +202,23 @@ export default function WhatsAppInbox() {
     }
     setTplName("");
     toast.success("Plantilla enviada");
+  };
+
+  const changeAccount = async (newPhoneId: string) => {
+    if (!active) return;
+    const { error } = await supabase
+      .from("whatsapp_conversations")
+      .update({ business_phone_number_id: newPhoneId })
+      .eq("id", active.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setConversations((prev) =>
+      prev.map((c) => (c.id === active.id ? { ...c, business_phone_number_id: newPhoneId } : c)),
+    );
+    const acct = accountByPhoneId.get(newPhoneId);
+    toast.success(`Línea cambiada a ${acct?.label ?? newPhoneId}`);
   };
 
   const createContact = async () => {
@@ -302,6 +326,27 @@ export default function WhatsAppInbox() {
                 )}
               </div>
               <div className="text-xs text-muted-foreground">+{active.wa_phone}</div>
+              {accounts.length > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-[10px] uppercase text-muted-foreground tracking-wide">
+                    Enviar desde
+                  </span>
+                  <select
+                    className="h-7 rounded-md border border-input bg-background px-2 text-xs"
+                    value={active.business_phone_number_id ?? ""}
+                    onChange={(e) => changeAccount(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      — Selecciona línea —
+                    </option>
+                    {accounts.map((a) => (
+                      <option key={a.id} value={a.business_phone_number_id}>
+                        {a.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <ScrollArea className="flex-1 p-3">
               <div className="space-y-2">

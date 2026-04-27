@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
     const templateName = body?.template_name as string | undefined;
     const templateLanguage = (body?.template_language as string | undefined) || "es_MX";
     const templateComponents = body?.template_components as unknown[] | undefined;
+    const explicitPhoneId = (body?.business_phone_number_id as string | undefined)?.trim() || null;
 
     if (!toPhone) return json({ error: "to_phone requerido" }, 400);
     if (kind !== "text" && kind !== "template") return json({ error: "kind inválido" }, 400);
@@ -75,8 +76,8 @@ Deno.serve(async (req) => {
       convRow = data;
     }
     if (!convRow) {
-      // For new conversations, default to account 1 (or whichever is set)
-      const defaultPhoneId = PHONE_ID_1 ?? PHONE_ID_2 ?? null;
+      // For new conversations, prefer the explicitly chosen line, then fall back.
+      const defaultPhoneId = explicitPhoneId ?? PHONE_ID_1 ?? PHONE_ID_2 ?? null;
       const { data: created } = await admin
         .from("whatsapp_conversations")
         .insert({ wa_phone: toPhone, business_phone_number_id: defaultPhoneId })
@@ -86,13 +87,40 @@ Deno.serve(async (req) => {
     }
     convId = convRow.id;
 
-    // Resolve which business line (phone_number_id) to use for this conversation
+    // Resolve which business line (phone_number_id) to use for this send.
+    // Priority: explicit override from request > conversation's stored line > registered active account > env default.
     const convPhoneId: string | null = convRow.business_phone_number_id ?? null;
-    let activePhoneId: string | null = null;
-    if (convPhoneId && PHONE_ID_2 && convPhoneId === PHONE_ID_2) activePhoneId = PHONE_ID_2;
-    else if (convPhoneId && PHONE_ID_1 && convPhoneId === PHONE_ID_1) activePhoneId = PHONE_ID_1;
-    else activePhoneId = PHONE_ID_1 ?? PHONE_ID_2;
+    let activePhoneId: string | null = explicitPhoneId ?? convPhoneId ?? null;
+    if (!activePhoneId) {
+      const { data: defaultAcct } = await admin
+        .from("whatsapp_accounts")
+        .select("business_phone_number_id")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      activePhoneId = defaultAcct?.business_phone_number_id ?? PHONE_ID_1 ?? PHONE_ID_2 ?? null;
+    }
     if (!activePhoneId) return json({ error: "No hay phone_number_id configurado para esta conversación" }, 500);
+
+    // Validate the chosen line is registered & active.
+    const { data: acctCheck } = await admin
+      .from("whatsapp_accounts")
+      .select("business_phone_number_id,is_active,label")
+      .eq("business_phone_number_id", activePhoneId)
+      .maybeSingle();
+    if (!acctCheck || acctCheck.is_active === false) {
+      return json({ error: `La línea ${activePhoneId} no está registrada o está inactiva` }, 400);
+    }
+
+    // Persist override on the conversation so future sends keep using this line.
+    if (explicitPhoneId && explicitPhoneId !== convPhoneId) {
+      await admin
+        .from("whatsapp_conversations")
+        .update({ business_phone_number_id: explicitPhoneId })
+        .eq("id", convId);
+      convRow.business_phone_number_id = explicitPhoneId;
+    }
 
     // 24h window enforcement for free-form text
     if (kind === "text") {
