@@ -136,7 +136,7 @@ function OverlayCard({ item }: { item: PoolItem }) {
 }
 
 // ─── Route Drop Column ───────────────────────────────────────
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -147,6 +147,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onDeliver: (item: PoolItem) => void;
   onReorder: (rutaId: string, items: PoolItem[]) => void;
   onToggleCerrada: (ruta: any) => void;
+  onStartRoute: (ruta: any) => void;
 }) {
   const navigate = useNavigate();
   const cerrada = !!ruta.cerrada;
@@ -191,6 +192,21 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
         </div>
       </div>
       <Separator className="mb-2" />
+
+      {/* Iniciar ruta */}
+      <Button
+        size="sm"
+        variant={ruta.ruta_started_at ? "secondary" : "default"}
+        className="w-full mb-2 h-8 text-xs gap-1.5"
+        disabled={!!ruta.ruta_started_at || cerrada}
+        onClick={() => onStartRoute(ruta)}
+        title={ruta.ruta_started_at ? `Iniciada ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}` : "Marcar inicio de ruta al salir de planta"}
+      >
+        <Play className="h-3.5 w-3.5" />
+        {ruta.ruta_started_at
+          ? `Ruta iniciada · ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}`
+          : "Iniciar ruta"}
+      </Button>
 
       {/* Items */}
       <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
