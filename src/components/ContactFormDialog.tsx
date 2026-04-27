@@ -11,6 +11,8 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
+import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 
 export interface ContactEditData {
   id: string;
@@ -38,6 +40,32 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
   const [saving, setSaving] = useState(false);
   const isEdit = !!editData;
 
+  const autosave = useAutosaveStatus(async (changes) => {
+    if (!isEdit || !editData?.id) return;
+    const dbPayload: Record<string, any> = {};
+    for (const k of Object.keys(changes)) {
+      if (k === "ejecutivo_ids") continue;
+      const v = changes[k];
+      if (k === "first_name" || k === "last_name") {
+        dbPayload[k] = (v ?? "").toString();
+      } else {
+        dbPayload[k] = v === "" || v == null ? null : v;
+      }
+    }
+    if (Object.keys(dbPayload).length > 0) {
+      const { error } = await supabase.from("contacts").update(dbPayload as any).eq("id", editData!.id);
+      if (error) throw error;
+    }
+    if ("ejecutivo_ids" in changes) {
+      await supabase.from("contact_ejecutivos").delete().eq("contact_id", editData!.id);
+      if ((changes.ejecutivo_ids || []).length > 0) {
+        await supabase.from("contact_ejecutivos").insert(
+          (changes.ejecutivo_ids as string[]).map((uid) => ({ contact_id: editData!.id, user_id: uid }))
+        );
+      }
+    }
+  });
+
   const emptyForm = {
     first_name: "", last_name: "", email: "", phone: "", mobile: "",
     job_title: "", department: "", company_id: defaultCompanyId || "", notes: "",
@@ -46,19 +74,23 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
 
   const [form, setForm] = useState(emptyForm);
   const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
+  const setAndSchedule = (k: string, v: string) => { set(k, v); autosave.scheduleSave(k, v); };
+  const setAndSaveNow = (k: string, v: string) => { set(k, v); autosave.saveNow(k, v); };
 
   const toggleEjecutivo = (userId: string) => {
-    setForm(prev => ({
-      ...prev,
-      ejecutivo_ids: prev.ejecutivo_ids.includes(userId)
+    setForm(prev => {
+      const next = prev.ejecutivo_ids.includes(userId)
         ? prev.ejecutivo_ids.filter(id => id !== userId)
-        : [...prev.ejecutivo_ids, userId],
-    }));
+        : [...prev.ejecutivo_ids, userId];
+      autosave.saveNow("ejecutivo_ids", next);
+      return { ...prev, ejecutivo_ids: next };
+    });
   };
 
   useEffect(() => {
     if (editData) {
-      setForm({
+      autosave.setEnabled(false);
+      const seeded = {
         first_name: editData.first_name || "",
         last_name: editData.last_name || "",
         email: editData.email || "",
@@ -68,8 +100,11 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
         department: editData.department || "",
         company_id: editData.company_id || "",
         notes: editData.notes || "",
-        ejecutivo_ids: [],
-      });
+        ejecutivo_ids: [] as string[],
+      };
+      setForm(seeded);
+      autosave.seed(seeded);
+      setTimeout(() => autosave.setEnabled(true), 0);
     } else if (defaultCompanyId) {
       setForm(prev => ({ ...prev, company_id: defaultCompanyId }));
     }
@@ -102,6 +137,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
   useEffect(() => {
     if (contactEjecutivos.length > 0 && open && editData?.id) {
       setForm(prev => ({ ...prev, ejecutivo_ids: contactEjecutivos }));
+      autosave.seed({ ejecutivo_ids: contactEjecutivos });
     }
   }, [contactEjecutivos, open, editData?.id]);
 
@@ -154,19 +190,27 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>{isEdit ? "Editar Contacto" : "Nuevo Contacto"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isEdit && (
+            <div className="sticky top-0 z-10 -mx-6 -mt-2 px-6 py-2 bg-background/95 backdrop-blur border-b flex items-center justify-between gap-3">
+              <AutosaveIndicator status={autosave.status} />
+              <Button type="submit" size="sm" disabled={saving}>
+                {saving ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Nombre *</Label><Input value={form.first_name} onChange={e => set("first_name", e.target.value)} required /></div>
-            <div className="space-y-2"><Label>Apellido *</Label><Input value={form.last_name} onChange={e => set("last_name", e.target.value)} required /></div>
-            <div className="space-y-2"><Label>Correo</Label><Input type="email" value={form.email} onChange={e => set("email", e.target.value)} /></div>
-            <div className="space-y-2"><Label>Teléfono</Label><Input value={form.phone} onChange={e => set("phone", e.target.value)} /></div>
-            <div className="space-y-2"><Label>Celular / WhatsApp</Label><Input value={form.mobile} onChange={e => set("mobile", e.target.value)} /></div>
-            <div className="space-y-2"><Label>Puesto</Label><Input value={form.job_title} onChange={e => set("job_title", e.target.value)} /></div>
-            <div className="space-y-2"><Label>Departamento</Label><Input value={form.department} onChange={e => set("department", e.target.value)} /></div>
+            <div className="space-y-2"><Label>Nombre *</Label><Input value={form.first_name} onChange={e => setAndSchedule("first_name", e.target.value)} onBlur={e => autosave.saveNow("first_name", e.target.value)} required /></div>
+            <div className="space-y-2"><Label>Apellido *</Label><Input value={form.last_name} onChange={e => setAndSchedule("last_name", e.target.value)} onBlur={e => autosave.saveNow("last_name", e.target.value)} required /></div>
+            <div className="space-y-2"><Label>Correo</Label><Input type="email" value={form.email} onChange={e => setAndSchedule("email", e.target.value)} onBlur={e => autosave.saveNow("email", e.target.value)} /></div>
+            <div className="space-y-2"><Label>Teléfono</Label><Input value={form.phone} onChange={e => setAndSchedule("phone", e.target.value)} onBlur={e => autosave.saveNow("phone", e.target.value)} /></div>
+            <div className="space-y-2"><Label>Celular / WhatsApp</Label><Input value={form.mobile} onChange={e => setAndSchedule("mobile", e.target.value)} onBlur={e => autosave.saveNow("mobile", e.target.value)} /></div>
+            <div className="space-y-2"><Label>Puesto</Label><Input value={form.job_title} onChange={e => setAndSchedule("job_title", e.target.value)} onBlur={e => autosave.saveNow("job_title", e.target.value)} /></div>
+            <div className="space-y-2"><Label>Departamento</Label><Input value={form.department} onChange={e => setAndSchedule("department", e.target.value)} onBlur={e => autosave.saveNow("department", e.target.value)} /></div>
             <div className="space-y-2">
               <Label>Empresa</Label>
               <SearchableSelect
                 value={form.company_id}
-                onValueChange={v => set("company_id", v)}
+                onValueChange={v => setAndSaveNow("company_id", v)}
                 options={companies.map(c => ({ value: c.id, label: c.name }))}
                 placeholder="Seleccionar empresa"
               />
@@ -194,7 +238,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
               />
             </div>
 
-            <div className="col-span-2 space-y-2"><Label>Notas</Label><Textarea value={form.notes} onChange={e => set("notes", e.target.value)} /></div>
+            <div className="col-span-2 space-y-2"><Label>Notas</Label><Textarea value={form.notes} onChange={e => setAndSchedule("notes", e.target.value)} onBlur={e => autosave.saveNow("notes", e.target.value)} /></div>
           </div>
           <Button type="submit" className="w-full" disabled={saving}>{saving ? "Guardando..." : isEdit ? "Guardar Cambios" : "Crear Contacto"}</Button>
         </form>

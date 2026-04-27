@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +15,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
+import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 
 export const INDUSTRIAS_OPTIONS = [
   "Agroindustria (campos, empacadoras, maquinaria)",
@@ -150,6 +152,50 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const [form, setForm] = useState({ ...emptyForm });
   const isEdit = !!editData?.id;
 
+  // Autosave (only meaningful in edit mode)
+  const autosave = useAutosaveStatus(async (changes) => {
+    if (!isEdit || !editData?.id) return;
+    // Map form keys to db payload (skip junction-table keys)
+    const dbPayload: Record<string, any> = {};
+    for (const k of Object.keys(changes)) {
+      if (k === "plaza_ids" || k === "ejecutivo_ids") continue;
+      if (k === "industrias") {
+        dbPayload.industrias = changes.industrias || [];
+        continue;
+      }
+      const v = changes[k];
+      // empty string -> null for nullable text/select fields, except name/razon_social
+      if (k === "name" || k === "razon_social") {
+        dbPayload[k] = (v ?? "").toString();
+      } else if (k === "id_contpaq") {
+        dbPayload[k] = (v ?? "").toString().trim() || null;
+      } else {
+        dbPayload[k] = v === "" || v == null ? null : v;
+      }
+    }
+    if (Object.keys(dbPayload).length > 0) {
+      const { error } = await supabase.from("companies").update(dbPayload as any).eq("id", editData!.id!);
+      if (error) throw error;
+    }
+    // Junction syncs
+    if ("plaza_ids" in changes) {
+      await supabase.from("company_plazas").delete().eq("company_id", editData!.id!);
+      if ((changes.plaza_ids || []).length > 0) {
+        await supabase.from("company_plazas").insert(
+          (changes.plaza_ids as string[]).map((pid) => ({ company_id: editData!.id!, plaza_id: pid }))
+        );
+      }
+    }
+    if ("ejecutivo_ids" in changes) {
+      await supabase.from("company_ejecutivos").delete().eq("company_id", editData!.id!);
+      if ((changes.ejecutivo_ids || []).length > 0) {
+        await supabase.from("company_ejecutivos").insert(
+          (changes.ejecutivo_ids as string[]).map((uid) => ({ company_id: editData!.id!, user_id: uid }))
+        );
+      }
+    }
+  });
+
   const { data: plazas = [] } = useQuery({
     queryKey: ["plazas_active"],
     queryFn: async () => {
@@ -190,37 +236,51 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
   const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
 
+  // Debounced autosave for text inputs; immediate for selects/blur
+  const setAndSchedule = (k: string, v: string) => {
+    set(k, v);
+    autosave.scheduleSave(k, v);
+  };
+  const setAndSaveNow = (k: string, v: string) => {
+    set(k, v);
+    autosave.saveNow(k, v);
+  };
+
   const toggleIndustria = (val: string) => {
-    setForm(prev => ({
-      ...prev,
-      industrias: prev.industrias.includes(val)
+    setForm(prev => {
+      const next = prev.industrias.includes(val)
         ? prev.industrias.filter(i => i !== val)
-        : [...prev.industrias, val],
-    }));
+        : [...prev.industrias, val];
+      autosave.saveNow("industrias", next);
+      return { ...prev, industrias: next };
+    });
   };
 
   const togglePlaza = (plazaId: string) => {
-    setForm(prev => ({
-      ...prev,
-      plaza_ids: prev.plaza_ids.includes(plazaId)
+    setForm(prev => {
+      const next = prev.plaza_ids.includes(plazaId)
         ? prev.plaza_ids.filter(id => id !== plazaId)
-        : [...prev.plaza_ids, plazaId],
-    }));
+        : [...prev.plaza_ids, plazaId];
+      autosave.saveNow("plaza_ids", next);
+      return { ...prev, plaza_ids: next };
+    });
   };
 
   const toggleEjecutivo = (userId: string) => {
-    setForm(prev => ({
-      ...prev,
-      ejecutivo_ids: prev.ejecutivo_ids.includes(userId)
+    setForm(prev => {
+      const next = prev.ejecutivo_ids.includes(userId)
         ? prev.ejecutivo_ids.filter(id => id !== userId)
-        : [...prev.ejecutivo_ids, userId],
-    }));
+        : [...prev.ejecutivo_ids, userId];
+      autosave.saveNow("ejecutivo_ids", next);
+      return { ...prev, ejecutivo_ids: next };
+    });
   };
 
   const reset = () => setForm({ ...emptyForm });
 
   useEffect(() => {
     if (open && editData) {
+      autosave.setEnabled(false);
       setForm({
         name: editData.name || "",
         razon_social: (editData as any).razon_social || "",
@@ -247,10 +307,40 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         plaza_ids: [],
         ejecutivo_ids: [],
       });
+      // Seed last-saved snapshot to avoid duplicate saves
+      autosave.seed({
+        name: editData.name || "",
+        razon_social: (editData as any).razon_social || "",
+        industry: editData.industry || "",
+        website: editData.website || "",
+        phone: editData.phone || "",
+        email: editData.email || "",
+        notes: editData.notes || "",
+        lista_precios: editData.lista_precios || "",
+        industrias: editData.industrias || [],
+        tipo_destino_lubricante: editData.tipo_destino_lubricante || "",
+        potencial_unidades: editData.potencial_unidades || "",
+        tomador_decision: editData.tomador_decision || "",
+        riesgo_cambio_marca: editData.riesgo_cambio_marca || "",
+        origen_contacto: editData.origen_contacto || "",
+        evaluacion_lubricante: editData.evaluacion_lubricante || "",
+        rol_lubricante: editData.rol_lubricante || "",
+        tipo_cliente_comercial: editData.tipo_cliente_comercial || "",
+        uso_cfdi: (editData as any).uso_cfdi || "",
+        metodo_pago: (editData as any).metodo_pago || "",
+        tipo_pago: (editData as any).tipo_pago || "",
+        forma_pago: (editData as any).forma_pago || "",
+        id_contpaq: (editData as any).id_contpaq || "",
+        plaza_ids: [],
+        ejecutivo_ids: [],
+      });
+      // Enable after mount tick so initial state changes don't trigger saves
+      setTimeout(() => autosave.setEnabled(isEdit), 0);
     } else if (open && !editData) {
+      autosave.setEnabled(false);
       reset();
     }
-  }, [open, editData]);
+  }, [open, editData, isEdit]);
 
   // Set plaza_ids and ejecutivo_ids from loaded data
   useEffect(() => {
@@ -260,6 +350,10 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         ...(companyPlazas.length > 0 ? { plaza_ids: companyPlazas } : {}),
         ...(companyEjecutivos.length > 0 ? { ejecutivo_ids: companyEjecutivos } : {}),
       }));
+      autosave.seed({
+        plaza_ids: companyPlazas,
+        ejecutivo_ids: companyEjecutivos,
+      });
     }
   }, [companyPlazas, companyEjecutivos, open, editData?.id]);
 
@@ -329,7 +423,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const renderSelect = (label: string, value: string, key: string, options: string[]) => (
     <div className="space-y-1.5">
       <Label className="text-xs">{label}</Label>
-      <Select value={value} onValueChange={v => set(key, v)}>
+      <Select value={value} onValueChange={v => setAndSaveNow(key, v)}>
         <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
         <SelectContent>
           {options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
@@ -341,7 +435,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const renderEnumSelect = (label: string, value: string, key: string, options: { v: string; l: string }[]) => (
     <div className="space-y-1.5">
       <Label className="text-xs">{label}</Label>
-      <Select value={value} onValueChange={v => set(key, v === "none" ? "" : v)}>
+      <Select value={value} onValueChange={v => setAndSaveNow(key, v === "none" ? "" : v)}>
         <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
         <SelectContent>
           <SelectItem value="none">Sin asignar</SelectItem>
@@ -356,6 +450,14 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{isEdit ? "Editar Empresa" : "Nueva Empresa"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isEdit && (
+            <div className="sticky top-0 z-10 -mx-6 -mt-2 px-6 py-2 bg-background/95 backdrop-blur border-b flex items-center justify-between gap-3">
+              <AutosaveIndicator status={autosave.status} />
+              <Button type="submit" size="sm" disabled={saving}>
+                {saving ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            </div>
+          )}
           {isEdit && editData?.id && <CompanyUnitsHeader companyId={editData.id} />}
           <Tabs defaultValue="general">
             <TabsList className="w-full">
@@ -372,16 +474,17 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                     onChange={e => {
                       const v = e.target.value;
                       setForm(prev => {
-                        // Auto-copy to razon_social only if it was empty or matched previous name (untouched)
                         const shouldSync = !prev.razon_social || prev.razon_social === prev.name;
                         return { ...prev, name: v, razon_social: shouldSync ? v : prev.razon_social };
                       });
+                      autosave.scheduleSave("name", v);
                     }}
+                    onBlur={e => autosave.saveNow("name", e.target.value)}
                     required
                     className="h-9"
                   />
                 </div>
-                <div className="space-y-1.5"><Label className="text-xs">ID Contpaq</Label><Input value={form.id_contpaq} onChange={e => set("id_contpaq", e.target.value)} className="h-9" placeholder="—" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">ID Contpaq</Label><Input value={form.id_contpaq} onChange={e => setAndSchedule("id_contpaq", e.target.value)} onBlur={e => autosave.saveNow("id_contpaq", e.target.value)} className="h-9" placeholder="—" /></div>
               </div>
               {/* Razón Social + Plaza */}
               <div className="grid grid-cols-2 gap-3">
@@ -389,7 +492,8 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                   <Label className="text-xs">Razón Social</Label>
                   <Input
                     value={form.razon_social}
-                    onChange={e => set("razon_social", e.target.value)}
+                    onChange={e => setAndSchedule("razon_social", e.target.value)}
+                    onBlur={e => autosave.saveNow("razon_social", e.target.value)}
                     className="h-9"
                     placeholder="Nombre legal/fiscal"
                   />
@@ -420,9 +524,9 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
               {/* Contacto: Correo, Teléfono, Sitio Web */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5"><Label className="text-xs">Correo</Label><Input type="email" value={form.email} onChange={e => set("email", e.target.value)} className="h-9" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Teléfono</Label><Input value={form.phone} onChange={e => set("phone", e.target.value)} className="h-9" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Sitio Web</Label><Input value={form.website} onChange={e => set("website", e.target.value)} className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Correo</Label><Input type="email" value={form.email} onChange={e => setAndSchedule("email", e.target.value)} onBlur={e => autosave.saveNow("email", e.target.value)} className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Teléfono</Label><Input value={form.phone} onChange={e => setAndSchedule("phone", e.target.value)} onBlur={e => autosave.saveNow("phone", e.target.value)} className="h-9" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Sitio Web</Label><Input value={form.website} onChange={e => setAndSchedule("website", e.target.value)} onBlur={e => autosave.saveNow("website", e.target.value)} className="h-9" /></div>
               </div>
 
               {/* Ejecutivo de Venta (multi-select) */}
@@ -452,7 +556,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 {/* Lista de Precios */}
                 <div className="space-y-1.5">
                   <Label className="text-xs">Lista de Precios</Label>
-                  <Select value={form.lista_precios} onValueChange={v => set("lista_precios", v === "none" ? "" : v)}>
+                  <Select value={form.lista_precios} onValueChange={v => setAndSaveNow("lista_precios", v === "none" ? "" : v)}>
                     <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Sin asignar</SelectItem>
@@ -479,7 +583,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
               {/* Notas — al final del formulario */}
               <div className="space-y-1.5 pt-2 border-t">
                 <Label className="text-xs">Notas</Label>
-                <Textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={3} placeholder="Notas internas sobre la empresa..." />
+                <Textarea value={form.notes} onChange={e => setAndSchedule("notes", e.target.value)} onBlur={e => autosave.saveNow("notes", e.target.value)} rows={3} placeholder="Notas internas sobre la empresa..." />
               </div>
             </TabsContent>
 
