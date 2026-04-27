@@ -375,25 +375,9 @@ export default function WhatsAppInbox() {
                 )}
               </div>
               <div className="text-xs text-muted-foreground">+{active.wa_phone}</div>
-              {accounts.length > 0 && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-[10px] uppercase text-muted-foreground tracking-wide">
-                    Enviar desde
-                  </span>
-                  <select
-                    className="h-7 rounded-md border border-input bg-background px-2 text-xs"
-                    value={active.business_phone_number_id ?? ""}
-                    onChange={(e) => changeAccount(e.target.value)}
-                  >
-                    <option value="" disabled>
-                      — Selecciona línea —
-                    </option>
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.business_phone_number_id}>
-                        {a.label}
-                      </option>
-                    ))}
-                  </select>
+              {activeAccount && (
+                <div className="mt-1 text-[10px] text-muted-foreground">
+                  Respondiendo desde <strong className="text-foreground">{activeAccount.label}</strong>
                 </div>
               )}
             </div>
