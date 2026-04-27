@@ -509,7 +509,7 @@ export default function DocumentForm() {
         plaza_id: form.plaza_id || null,
         tipo_documento: form.tipo_documento,
         created_by: user?.id,
-        ejecutivo_venta_id: form.ejecutivo_venta_id || null,
+        ejecutivo_venta_id: form.ejecutivo_venta_id || user?.id || null,
         empresa_id: form.empresa_id || null,
         contacto_id: form.contacto_id || null,
         fecha_documento: form.fecha_documento,
@@ -536,6 +536,13 @@ export default function DocumentForm() {
         forma_pago: form.forma_pago || null,
         fecha_entrega_programada: (form.tipo_documento === "pedido" || form.tipo_documento === "entrega_corporativa") ? (form.fecha_entrega_programada || null) : null,
       };
+
+      // Validación de visibilidad: avisar si falta algún campo crítico que
+      // hace que el documento no aparezca en la lista del usuario.
+      if (!docData.created_by) console.warn("[DocumentForm] created_by vacío al guardar", docData);
+      if (!docData.ejecutivo_venta_id) console.warn("[DocumentForm] ejecutivo_venta_id vacío al guardar", docData);
+      if (!docData.plaza_id) console.warn("[DocumentForm] plaza_id vacío al guardar", docData);
+      if (!docData.empresa_vendedora) console.warn("[DocumentForm] empresa_vendedora vacío al guardar", docData);
 
       let docId = id;
       if (isEdit) {

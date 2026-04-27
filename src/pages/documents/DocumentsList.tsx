@@ -221,12 +221,9 @@ export default function DocumentsList() {
     },
   });
 
-  // Set default plaza to user's plaza on first load
-  useEffect(() => {
-    if (!searchParams.get("plaza") && profile?.plaza_id) {
-      setFilter("plaza", profile.plaza_id);
-    }
-  }, [profile?.plaza_id]);
+  // No aplicamos plaza por defecto: el filtro inicia en "Todas" para no ocultar
+  // documentos del usuario que pertenezcan a otra plaza. El usuario puede
+  // seleccionar manualmente una plaza si lo desea.
 
   const { data: docs = [], isLoading, refetch } = useQuery({
     queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, access.accessLevel, access.teamMemberIds],
@@ -371,7 +368,7 @@ export default function DocumentsList() {
       if (access.accessLevel === "propio" && access.userId) {
         q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
-        q = q.in("created_by", access.teamMemberIds);
+        q = q.or(`created_by.in.(${access.teamMemberIds.join(",")}),ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`);
       }
       const data = await fetchAllRows<any>((from, to) => q.range(from, to));
       if (!data || data.length === 0) { toast.error("No hay datos para exportar"); return; }
