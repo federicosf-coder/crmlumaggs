@@ -9,11 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Copy, Send, MessageCircle, AlertTriangle } from "lucide-react";
+import { Copy, Send, MessageCircle, AlertTriangle, Paperclip, Eye, Download, Link2 } from "lucide-react";
 import {
   WhatsAppMessageTemplate, WhatsAppTemplateType, WhatsAppVariables,
   copyMessage, logWhatsAppActivity, normalizePhoneForWhatsApp, openWhatsApp, renderTemplate,
 } from "@/lib/whatsapp";
+import { getAttachmentPublicUrl, isImageMime, listTemplateAttachments } from "@/lib/templates";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   open: boolean;
@@ -24,10 +26,12 @@ interface Props {
   defaultMessage?: string;
   context: { company_id?: string | null; contact_id?: string | null; deal_id?: string | null };
   onSent?: () => void;
+  /** Optional: id from public.templates to load saved attachments. */
+  templateId?: string | null;
 }
 
 export function WhatsAppActionDialog({
-  open, onOpenChange, phone, variables, templateType, defaultMessage, context, onSent,
+  open, onOpenChange, phone, variables, templateType, defaultMessage, context, onSent, templateId,
 }: Props) {
   const { user } = useAuth();
   const [selectedTplId, setSelectedTplId] = useState<string>("custom");
@@ -46,6 +50,20 @@ export function WhatsAppActionDialog({
     },
     enabled: open,
   });
+
+  const { data: attachments = [] } = useQuery({
+    queryKey: ["template-attachments", templateId],
+    queryFn: () => (templateId ? listTemplateAttachments(templateId) : Promise.resolve([])),
+    enabled: open && !!templateId,
+  });
+
+  const [includeLinks, setIncludeLinks] = useState(true);
+
+  const messageWithLinks = useMemo(() => {
+    if (!includeLinks || attachments.length === 0) return message;
+    const links = attachments.map(a => `• ${a.file_name}: ${getAttachmentPublicUrl(a.file_path)}`).join("\n");
+    return `${message}\n\n📎 Archivos adjuntos:\n${links}`;
+  }, [message, attachments, includeLinks]);
 
   useEffect(() => {
     if (!open) return;
@@ -77,14 +95,14 @@ export function WhatsAppActionDialog({
 
   const handleSend = async () => {
     if (!normalized) { toast.error("Sin teléfono válido"); return; }
-    openWhatsApp(normalized, message);
+    openWhatsApp(normalized, messageWithLinks);
     await finishLog("enviado");
     toast.success("WhatsApp abierto. Recuerda enviar el mensaje.");
     onOpenChange(false);
   };
 
   const handleCopy = async () => {
-    const ok = await copyMessage(message);
+    const ok = await copyMessage(messageWithLinks);
     if (ok) { await finishLog("pendiente"); toast.success("Mensaje copiado"); }
     else toast.error("No se pudo copiar");
   };
@@ -92,12 +110,17 @@ export function WhatsAppActionDialog({
   const handleSendApi = async () => {
     if (!normalized) { toast.error("Sin teléfono válido"); return; }
     const { error } = await supabase.functions.invoke("whatsapp-send-message", {
-      body: { to: normalized, message },
+      body: { to: normalized, message: messageWithLinks },
     });
     if (error) { toast.error(error.message); return; }
     await finishLog("enviado");
     toast.success("Mensaje enviado por API");
     onOpenChange(false);
+  };
+
+  const copyAttachmentLink = async (url: string) => {
+    const ok = await copyMessage(url);
+    if (ok) toast.success("Link copiado"); else toast.error("No se pudo copiar");
   };
 
   return (
