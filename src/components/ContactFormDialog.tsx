@@ -48,13 +48,43 @@ interface Props {
 
 // Field map: form key → { label, valueKey, flagKey }
 const COMM_FIELDS = [
+  { flag: "comm_whatsapp",value: "whatsapp_phone", label: "Whatsapp", phone: true },
   { flag: "comm_email",   value: "email",          label: "Email" },
   { flag: "comm_email2",  value: "email2",         label: "Email 2" },
-  { flag: "comm_whatsapp",value: "whatsapp_phone", label: "Whatsapp" },
-  { flag: "comm_cel",     value: "mobile",         label: "Cel" },
+  { flag: "comm_cel",     value: "mobile",         label: "Cel", phone: true },
   { flag: "comm_tel",     value: "phone",          label: "Tel" },
   { flag: "comm_tel_emp", value: "tel_emp",        label: "Tel Emp" },
 ] as const;
+
+// Lada de 2 dígitos (CDMX y áreas metropolitanas grandes): formato +52 55 1234 5678
+const TWO_DIGIT_LADAS = new Set(["33", "55", "56", "81"]);
+
+/**
+ * Formatea un teléfono mexicano a +52 LLL DDD DDDD (lada 3 díg) o +52 LL DDDD DDDD (lada 2 díg).
+ * Acepta cualquier entrada; conserva sólo dígitos. Si comienza con 52 lo respeta, si no asume +52.
+ */
+function formatMxPhone(raw: string): string {
+  if (!raw) return "";
+  let digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  // Quita el 52 inicial si ya viene incluido
+  if (digits.startsWith("52") && digits.length > 10) digits = digits.slice(2);
+  digits = digits.slice(0, 10);
+  if (digits.length < 2) return `+52 ${digits}`;
+  const lada2 = digits.slice(0, 2);
+  if (TWO_DIGIT_LADAS.has(lada2)) {
+    const rest = digits.slice(2);
+    const a = rest.slice(0, 4);
+    const b = rest.slice(4, 8);
+    return `+52 ${lada2}${a ? " " + a : ""}${b ? " " + b : ""}`.trimEnd();
+  }
+  // Lada de 3 dígitos
+  const lada3 = digits.slice(0, 3);
+  if (digits.length <= 3) return `+52 ${lada3}`;
+  const a = digits.slice(3, 6);
+  const b = digits.slice(6, 10);
+  return `+52 ${lada3}${a ? " " + a : ""}${b ? " " + b : ""}`.trimEnd();
+}
 
 export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editData, onCreated }: Props) {
   const { user } = useAuth();
@@ -268,7 +298,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
               </Button>
             </div>
           )}
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="px-6 py-4 space-y-4">
               {/* Identidad */}
               <div className="grid grid-cols-2 gap-4">
@@ -322,6 +352,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
                     const checked = !!form[c.flag];
                     const value = form[c.value] ?? "";
                     const invalid = checked && !value.trim();
+                    const isPhone = (c as any).phone === true;
                     return (
                       <div key={c.flag} className="space-y-1">
                         <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -333,13 +364,20 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
                           {checked && <span className="text-destructive">*</span>}
                         </label>
                         <Input
-                          type={c.value.startsWith("email") ? "email" : "text"}
-                          value={value}
-                          onChange={e => setAndSchedule(c.value, e.target.value)}
-                          onBlur={e => autosave.saveNow(c.value, e.target.value)}
+                          type={c.value.startsWith("email") ? "email" : isPhone ? "tel" : "text"}
+                          inputMode={isPhone ? "tel" : undefined}
+                          value={isPhone ? formatMxPhone(value) : value}
+                          onChange={e => {
+                            const next = isPhone ? formatMxPhone(e.target.value) : e.target.value;
+                            setAndSchedule(c.value, next);
+                          }}
+                          onBlur={e => {
+                            const next = isPhone ? formatMxPhone(e.target.value) : e.target.value;
+                            autosave.saveNow(c.value, next);
+                          }}
                           required={checked}
                           aria-invalid={invalid}
-                          placeholder={c.label}
+                          placeholder={isPhone ? "+52 664 123 4567" : c.label}
                         />
                       </div>
                     );
@@ -358,7 +396,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
                 />
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <div className="px-6 py-3 border-t bg-background shrink-0">
             <Button type="submit" className="w-full" disabled={saving}>
