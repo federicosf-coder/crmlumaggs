@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
-  ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon, FileText,
+  ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon, FileText, Play,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -136,7 +136,7 @@ function OverlayCard({ item }: { item: PoolItem }) {
 }
 
 // ─── Route Drop Column ───────────────────────────────────────
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -147,6 +147,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onDeliver: (item: PoolItem) => void;
   onReorder: (rutaId: string, items: PoolItem[]) => void;
   onToggleCerrada: (ruta: any) => void;
+  onStartRoute: (ruta: any) => void;
 }) {
   const navigate = useNavigate();
   const cerrada = !!ruta.cerrada;
@@ -191,6 +192,21 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
         </div>
       </div>
       <Separator className="mb-2" />
+
+      {/* Iniciar ruta */}
+      <Button
+        size="sm"
+        variant={ruta.ruta_started_at ? "secondary" : "default"}
+        className="w-full mb-2 h-8 text-xs gap-1.5"
+        disabled={!!ruta.ruta_started_at || cerrada}
+        onClick={() => onStartRoute(ruta)}
+        title={ruta.ruta_started_at ? `Iniciada ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}` : "Marcar inicio de ruta al salir de planta"}
+      >
+        <Play className="h-3.5 w-3.5" />
+        {ruta.ruta_started_at
+          ? `Ruta iniciada · ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}`
+          : "Iniciar ruta"}
+      </Button>
 
       {/* Items */}
       <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
@@ -772,6 +788,22 @@ export default function DeliverySchedule() {
     refetchRutas();
   };
 
+  const handleStartRoute = async (ruta: any) => {
+    if (ruta.ruta_started_at) return;
+    if (!confirm("¿Confirmas el inicio de esta ruta? Se registrará la hora de salida de planta.")) return;
+    const { error } = await supabase
+      .from("rutas_entrega")
+      .update({
+        ruta_started_at: new Date().toISOString(),
+        ruta_started_by: user?.id ?? null,
+        estatus: "en_ruta",
+      })
+      .eq("id", ruta.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Ruta iniciada");
+    refetchRutas();
+  };
+
   const handleDeliver = (item: PoolItem) => {
     setDeliverItem(item);
     setDeliverNotes("");
@@ -824,18 +856,18 @@ export default function DeliverySchedule() {
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Header */}
       <div className="px-4 py-3 border-b shrink-0 space-y-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Planeación de Entregas</h1>
-            <p className="text-muted-foreground text-xs">Arrastra pedidos del pool a las rutas para programarlos</p>
-          </div>
-          <div className="flex gap-2">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
             <Button onClick={() => setNewRouteOpen(true)}>
               <Plus className="h-4 w-4 mr-1" /> Nueva Ruta
             </Button>
             <Button variant="outline" onClick={() => navigate("/documents")}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Documentos
             </Button>
+          </div>
+          <div className="text-right">
+            <h1 className="text-xl font-bold text-foreground">Planeación de Entregas</h1>
+            <p className="text-muted-foreground text-xs">Arrastra pedidos del pool a las rutas para programarlos</p>
           </div>
         </div>
         {/* Plaza filter chips + pool toggle + view toggle */}
@@ -1050,6 +1082,7 @@ export default function DeliverySchedule() {
                                   onDeliver={handleDeliver}
                                   onReorder={() => {}}
                                   onToggleCerrada={toggleRutaCerrada}
+                                  onStartRoute={handleStartRoute}
                                 />
                               ))}
                             </div>

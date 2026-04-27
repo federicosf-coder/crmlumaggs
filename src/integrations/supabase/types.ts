@@ -2385,10 +2385,13 @@ export type Database = {
           cerrada: boolean
           created_at: string
           created_by: string | null
+          estatus: string | null
           fecha_entrega: string
           id: string
           plaza_id: string
           repartidor_id: string
+          ruta_started_at: string | null
+          ruta_started_by: string | null
           updated_at: string
           vehiculo_id: string
         }
@@ -2398,10 +2401,13 @@ export type Database = {
           cerrada?: boolean
           created_at?: string
           created_by?: string | null
+          estatus?: string | null
           fecha_entrega: string
           id?: string
           plaza_id: string
           repartidor_id: string
+          ruta_started_at?: string | null
+          ruta_started_by?: string | null
           updated_at?: string
           vehiculo_id: string
         }
@@ -2411,10 +2417,13 @@ export type Database = {
           cerrada?: boolean
           created_at?: string
           created_by?: string | null
+          estatus?: string | null
           fecha_entrega?: string
           id?: string
           plaza_id?: string
           repartidor_id?: string
+          ruta_started_at?: string | null
+          ruta_started_by?: string | null
           updated_at?: string
           vehiculo_id?: string
         }
