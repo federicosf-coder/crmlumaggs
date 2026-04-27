@@ -38,6 +38,48 @@ export interface TemplatePlaceholder {
   example_value: string | null;
 }
 
+export interface TemplateAttachment {
+  id: string;
+  template_id: string;
+  file_name: string;
+  file_path: string;
+  mime_type: string;
+  file_size: number;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
+export const ALLOWED_ATTACHMENT_MIME = [
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
+
+export const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+
+export const TEMPLATE_ATTACHMENTS_BUCKET = "template-attachments";
+
+export function getAttachmentPublicUrl(path: string): string {
+  const { data } = supabase.storage.from(TEMPLATE_ATTACHMENTS_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export function isImageMime(mime: string): boolean {
+  return mime.startsWith("image/");
+}
+
+export async function listTemplateAttachments(templateId: string): Promise<TemplateAttachment[]> {
+  const { data, error } = await (supabase as any)
+    .from("template_attachments")
+    .select("*")
+    .eq("template_id", templateId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data || []) as TemplateAttachment[];
+}
+
 export const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   seguimiento_cotizacion: "Seguimiento de cotización",
   recompra: "Recompra",
