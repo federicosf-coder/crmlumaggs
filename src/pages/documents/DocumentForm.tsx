@@ -679,6 +679,17 @@ export default function DocumentForm() {
 
   return (
     <div className="space-y-6">
+      {/* Sticky top save bar — only when editing */}
+      {!viewMode && (
+        <div className="sticky top-0 z-30 -mx-4 md:-mx-6 px-4 md:px-6 py-2 bg-background/95 backdrop-blur border-b flex items-center justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={() => isEdit ? setViewMode(true) : navigate("/documents")}>
+            Cancelar
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={saving}>
+            <Save className="mr-2 h-4 w-4" /> {saving ? "Guardando..." : "Guardar cambios"}
+          </Button>
+        </div>
+      )}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
         <h1 className="text-2xl font-bold text-foreground">
