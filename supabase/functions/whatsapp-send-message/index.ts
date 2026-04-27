@@ -28,8 +28,9 @@ Deno.serve(async (req) => {
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-    if (!TOKEN || !PHONE_ID) return json({ error: "Missing WhatsApp credentials" }, 500);
+    const PHONE_ID_1 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+    const PHONE_ID_2 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_2");
+    if (!TOKEN || (!PHONE_ID_1 && !PHONE_ID_2)) return json({ error: "Missing WhatsApp credentials" }, 500);
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const userClient = createClient(SUPABASE_URL, ANON_KEY, {
@@ -74,14 +75,24 @@ Deno.serve(async (req) => {
       convRow = data;
     }
     if (!convRow) {
+      // For new conversations, default to account 1 (or whichever is set)
+      const defaultPhoneId = PHONE_ID_1 ?? PHONE_ID_2 ?? null;
       const { data: created } = await admin
         .from("whatsapp_conversations")
-        .insert({ wa_phone: toPhone })
+        .insert({ wa_phone: toPhone, business_phone_number_id: defaultPhoneId })
         .select("*")
         .single();
       convRow = created;
     }
     convId = convRow.id;
+
+    // Resolve which business line (phone_number_id) to use for this conversation
+    const convPhoneId: string | null = convRow.business_phone_number_id ?? null;
+    let activePhoneId: string | null = null;
+    if (convPhoneId && PHONE_ID_2 && convPhoneId === PHONE_ID_2) activePhoneId = PHONE_ID_2;
+    else if (convPhoneId && PHONE_ID_1 && convPhoneId === PHONE_ID_1) activePhoneId = PHONE_ID_1;
+    else activePhoneId = PHONE_ID_1 ?? PHONE_ID_2;
+    if (!activePhoneId) return json({ error: "No hay phone_number_id configurado para esta conversación" }, 500);
 
     // 24h window enforcement for free-form text
     if (kind === "text") {
@@ -118,7 +129,7 @@ Deno.serve(async (req) => {
             },
           };
 
-    const r = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+    const r = await fetch(`https://graph.facebook.com/v21.0/${activePhoneId}/messages`, {
       method: "POST",
       headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -139,6 +150,7 @@ Deno.serve(async (req) => {
       template_name: kind === "template" ? templateName : null,
       created_by: userId,
       error_message: ok ? null : JSON.stringify(data?.error ?? data).slice(0, 500),
+      business_phone_number_id: activePhoneId,
     });
 
     if (ok) {
