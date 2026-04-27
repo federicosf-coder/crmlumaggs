@@ -1,0 +1,38 @@
+import { Link } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageBanner } from "@/components/PageBanner";
+import { Truck } from "lucide-react";
+
+const REPORTS = [
+  {
+    title: "Reporte Diario Entregas Básico",
+    description: "Desempeño diario por repartidor: entregas, horas, km y score.",
+    url: "/reports/daily-delivery",
+    icon: Truck,
+  },
+];
+
+export default function ReportsLanding() {
+  return (
+    <>
+      <PageBanner title="Reportes" />
+      <div className="container mx-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {REPORTS.map((r) => (
+          <Link key={r.url} to={r.url}>
+            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <r.icon className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-base">{r.title}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>{r.description}</CardDescription>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </>
+  );
+}
