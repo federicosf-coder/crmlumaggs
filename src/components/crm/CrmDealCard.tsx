@@ -17,8 +17,29 @@ function fmtUnits(n: number) {
   return new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(n);
 }
 
-function ProgressBar({ label, value, base, color }: { label: string; value: number; base: number; color: string }) {
-  const pct = base > 0 ? Math.min(100, (value / base) * 100) : 0;
+function progressColor(pct: number) {
+  if (pct >= 80) return "bg-emerald-500";
+  if (pct >= 40) return "bg-amber-500";
+  return "bg-red-500";
+}
+
+function ProgressBar({
+  label,
+  value,
+  base,
+  color,
+  dynamicColor,
+}: {
+  label: string;
+  value: number;
+  base: number;
+  color?: string;
+  /** Si true, el color se calcula según % de avance vs base (rojo/amarillo/verde). */
+  dynamicColor?: boolean;
+}) {
+  const pctRaw = base > 0 ? (value / base) * 100 : 0;
+  const pct = Math.min(100, pctRaw);
+  const fillColor = dynamicColor ? progressColor(pctRaw) : (color ?? "bg-primary");
   return (
     <div className="space-y-0.5">
       <div className="flex items-center justify-between text-[10px] leading-none">
@@ -26,7 +47,7 @@ function ProgressBar({ label, value, base, color }: { label: string; value: numb
         <span className="font-mono">{fmtUnits(value)}u</span>
       </div>
       <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-        <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${pct}%` }} />
+        <div className={cn("h-full rounded-full transition-all", fillColor)} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -42,8 +63,17 @@ export function CrmDealCard({ deal, stageColor, onClick, monthlyAvg, showHistori
   const pedido = Number(d.pedido_unidades ?? 0);
   const facturado = Number(d.facturado_unidades ?? 0);
   const showProgress = potencial > 0 || cotizado > 0 || pedido > 0 || facturado > 0;
-  const base = Math.max(potencial, cotizado, pedido, facturado, 1);
   const isRecompra = d.pipeline_type === "recompra";
+  // En Recompra usamos el histórico (o potencial manual) como meta para colorear el progreso.
+  const recompraMeta =
+    potencialManual > 0
+      ? potencialManual
+      : monthlyAvg != null && monthlyAvg > 0
+        ? monthlyAvg
+        : 0;
+  const base = isRecompra && recompraMeta > 0
+    ? recompraMeta
+    : Math.max(potencial, cotizado, pedido, facturado, 1);
   const periodoLabel = isRecompra ? formatMonthYear(d.mes_negocio) : "";
 
   return (
@@ -70,9 +100,27 @@ export function CrmDealCard({ deal, stageColor, onClick, monthlyAvg, showHistori
             {potencial > 0 && (
               <ProgressBar label="Potencial" value={potencial} base={base} color="bg-primary/40" />
             )}
-            <ProgressBar label="Cotizado" value={cotizado} base={base} color="bg-violet-500" />
-            <ProgressBar label="Pedido" value={pedido} base={base} color="bg-cyan-500" />
-            <ProgressBar label="Facturado" value={facturado} base={base} color="bg-emerald-500" />
+            <ProgressBar
+              label="Cotizado"
+              value={cotizado}
+              base={base}
+              color="bg-violet-500"
+              dynamicColor={isRecompra && recompraMeta > 0}
+            />
+            <ProgressBar
+              label="Pedido"
+              value={pedido}
+              base={base}
+              color="bg-cyan-500"
+              dynamicColor={isRecompra && recompraMeta > 0}
+            />
+            <ProgressBar
+              label="Facturado"
+              value={facturado}
+              base={base}
+              color="bg-emerald-500"
+              dynamicColor={isRecompra && recompraMeta > 0}
+            />
           </div>
         )}
         {showHistorico && (
