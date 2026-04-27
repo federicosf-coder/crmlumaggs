@@ -57,7 +57,7 @@ const ESTATUS_PED_LABELS: Record<string, string> = {
   programado_entrega: "Prog. Entrega", entregado: "Entregado", cancelado: "Cancelado",
 };
 const ESTATUS_FAC_LABELS: Record<string, string> = {
-  pendiente: "Pendiente", pagada: "Pagada", parcial: "Parcial",
+  pendiente: "Vigente", pagada: "Pagada", parcial: "Parcial",
   vencida: "Vencida", cancelada: "Cancelada",
 };
 const ESTATUS_ENT_CORP_LABELS: Record<string, string> = {
