@@ -1,6 +1,7 @@
 import { CrmDeal } from "@/hooks/useCrmDeals";
 import { formatDate } from "@/lib/formatters";
 import { Calendar, GripVertical, Package } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CrmDealCardProps {
   deal: CrmDeal;
@@ -8,7 +9,34 @@ interface CrmDealCardProps {
   onClick: () => void;
 }
 
+function fmtUnits(n: number) {
+  return new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(n);
+}
+
+function ProgressBar({ label, value, base, color }: { label: string; value: number; base: number; color: string }) {
+  const pct = base > 0 ? Math.min(100, (value / base) * 100) : 0;
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center justify-between text-[10px] leading-none">
+        <span className="text-muted-foreground uppercase tracking-wide">{label}</span>
+        <span className="font-mono">{fmtUnits(value)}u</span>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+        <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export function CrmDealCard({ deal, stageColor, onClick }: CrmDealCardProps) {
+  const d = deal as any;
+  const potencial = Number(d.potencial_unidades ?? d.volumen_mensual_estimado ?? 0);
+  const cotizado = Number(d.cotizado_unidades ?? 0);
+  const pedido = Number(d.pedido_unidades ?? 0);
+  const facturado = Number(d.facturado_unidades ?? 0);
+  const showProgress = potencial > 0 || cotizado > 0 || pedido > 0 || facturado > 0;
+  const base = Math.max(potencial, cotizado, pedido, facturado, 1);
+
   return (
     <div
       draggable
@@ -28,11 +56,21 @@ export function CrmDealCard({ deal, stageColor, onClick }: CrmDealCardProps) {
         {deal.companies && (
           <p className="text-xs text-muted-foreground">{deal.companies.name}</p>
         )}
+        {showProgress && (
+          <div className="space-y-1.5 pt-1">
+            {potencial > 0 && (
+              <ProgressBar label="Potencial" value={potencial} base={base} color="bg-primary/40" />
+            )}
+            <ProgressBar label="Cotizado" value={cotizado} base={base} color="bg-violet-500" />
+            <ProgressBar label="Pedido" value={pedido} base={base} color="bg-cyan-500" />
+            <ProgressBar label="Facturado" value={facturado} base={base} color="bg-emerald-500" />
+          </div>
+        )}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {Number((deal as any).volumen_mensual_estimado) > 0 && (
+          {!showProgress && potencial > 0 && (
             <span className="flex items-center gap-1 font-medium text-foreground">
               <Package className="h-3 w-3" />
-              {new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(Number((deal as any).volumen_mensual_estimado))} u
+              {fmtUnits(potencial)} u
             </span>
           )}
           {deal.close_date && (
