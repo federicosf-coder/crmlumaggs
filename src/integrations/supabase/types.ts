@@ -2778,6 +2778,39 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_accounts: {
+        Row: {
+          business_phone_number_id: string
+          color: string
+          created_at: string
+          display_phone: string | null
+          id: string
+          is_active: boolean
+          label: string
+          updated_at: string
+        }
+        Insert: {
+          business_phone_number_id: string
+          color?: string
+          created_at?: string
+          display_phone?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          updated_at?: string
+        }
+        Update: {
+          business_phone_number_id?: string
+          color?: string
+          created_at?: string
+          display_phone?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_auto_replies_log: {
         Row: {
           id: string
@@ -2921,6 +2954,7 @@ export type Database = {
       whatsapp_conversations: {
         Row: {
           assigned_to: string | null
+          business_phone_number_id: string | null
           contact_id: string | null
           created_at: string
           id: string
@@ -2935,6 +2969,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          business_phone_number_id?: string | null
           contact_id?: string | null
           created_at?: string
           id?: string
@@ -2949,6 +2984,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          business_phone_number_id?: string | null
           contact_id?: string | null
           created_at?: string
           id?: string
@@ -3059,6 +3095,7 @@ export type Database = {
       }
       whatsapp_messages: {
         Row: {
+          business_phone_number_id: string | null
           contact_id: string | null
           conversation_id: string | null
           created_at: string | null
@@ -3076,6 +3113,7 @@ export type Database = {
           wa_profile_name: string | null
         }
         Insert: {
+          business_phone_number_id?: string | null
           contact_id?: string | null
           conversation_id?: string | null
           created_at?: string | null
@@ -3093,6 +3131,7 @@ export type Database = {
           wa_profile_name?: string | null
         }
         Update: {
+          business_phone_number_id?: string | null
           contact_id?: string | null
           conversation_id?: string | null
           created_at?: string | null
@@ -3192,6 +3231,7 @@ export type Database = {
       whatsapp_templates: {
         Row: {
           body: string | null
+          business_phone_number_id: string | null
           category: string | null
           components: Json | null
           created_at: string
@@ -3202,9 +3242,11 @@ export type Database = {
           name: string
           status: string
           updated_at: string
+          waba_id: string | null
         }
         Insert: {
           body?: string | null
+          business_phone_number_id?: string | null
           category?: string | null
           components?: Json | null
           created_at?: string
@@ -3215,9 +3257,11 @@ export type Database = {
           name: string
           status?: string
           updated_at?: string
+          waba_id?: string | null
         }
         Update: {
           body?: string | null
+          business_phone_number_id?: string | null
           category?: string | null
           components?: Json | null
           created_at?: string
@@ -3228,6 +3272,7 @@ export type Database = {
           name?: string
           status?: string
           updated_at?: string
+          waba_id?: string | null
         }
         Relationships: []
       }

@@ -37,6 +37,14 @@ type QuickReply = {
 };
 
 type Template = { name: string; language: string; status: string };
+type WhatsAppAccount = {
+  id: string;
+  business_phone_number_id: string;
+  label: string;
+  color: string;
+  display_phone: string | null;
+  is_active: boolean;
+};
 
 const dayLabels: Record<string, string> = {
   monday: "Lunes", tuesday: "Martes", wednesday: "Miércoles", thursday: "Jueves",
@@ -48,6 +56,14 @@ export default function WhatsAppSettings() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [saving, setSaving] = useState(false);
+  const [accounts, setAccounts] = useState<WhatsAppAccount[]>([]);
+  const [acctDraft, setAcctDraft] = useState<Partial<WhatsAppAccount>>({
+    label: "",
+    business_phone_number_id: "",
+    color: "#10b981",
+    display_phone: "",
+    is_active: true,
+  });
   const [qrOpen, setQrOpen] = useState(false);
   const [qrDraft, setQrDraft] = useState<Partial<QuickReply>>({ shortcut: "", content: "", is_global: false });
 
@@ -64,6 +80,7 @@ export default function WhatsAppSettings() {
       .eq("status", "APPROVED")
       .then(({ data }) => setTemplates((data ?? []) as Template[]));
     loadQR();
+    loadAccounts();
   }, []);
 
   const loadQR = async () => {
@@ -72,6 +89,41 @@ export default function WhatsAppSettings() {
       .select("*")
       .order("shortcut", { ascending: true });
     setQuickReplies((data ?? []) as QuickReply[]);
+  };
+
+  const loadAccounts = async () => {
+    const { data } = await supabase
+      .from("whatsapp_accounts")
+      .select("*")
+      .order("label", { ascending: true });
+    setAccounts((data ?? []) as WhatsAppAccount[]);
+  };
+
+  const saveAccount = async () => {
+    if (!acctDraft.label?.trim() || !acctDraft.business_phone_number_id?.trim()) {
+      toast.error("Etiqueta y phone_number_id son obligatorios");
+      return;
+    }
+    const payload = {
+      label: acctDraft.label!.trim(),
+      business_phone_number_id: acctDraft.business_phone_number_id!.trim(),
+      color: acctDraft.color || "#10b981",
+      display_phone: acctDraft.display_phone?.trim() || null,
+      is_active: acctDraft.is_active ?? true,
+    };
+    const { error } = acctDraft.id
+      ? await supabase.from("whatsapp_accounts").update(payload).eq("id", acctDraft.id)
+      : await supabase.from("whatsapp_accounts").insert(payload);
+    if (error) return toast.error(error.message);
+    toast.success("Cuenta guardada");
+    setAcctDraft({ label: "", business_phone_number_id: "", color: "#10b981", display_phone: "", is_active: true });
+    loadAccounts();
+  };
+
+  const delAccount = async (id: string) => {
+    const { error } = await supabase.from("whatsapp_accounts").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    loadAccounts();
   };
 
   const updateDay = (day: keyof BusinessHours, patch: Partial<DaySetting>) => {
@@ -292,6 +344,85 @@ export default function WhatsAppSettings() {
               </Button>
             </div>
           ))}
+        </div>
+      </Card>
+
+      {/* Cuentas de WhatsApp (multi-número) */}
+      <Card className="p-4 space-y-4">
+        <div>
+          <div className="flex items-center gap-2 font-medium">
+            <SettingsIcon className="h-4 w-4 text-primary" /> Cuentas de WhatsApp (multi-número)
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Registra cada línea de Meta con su <code>phone_number_id</code> y una etiqueta visible (ej. "Maggs", "Chevron").
+            Esto permite mostrar a qué cuenta pertenece cada chat y filtrar plantillas por cuenta.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
+          <div className="md:col-span-1">
+            <Label className="text-xs">Etiqueta</Label>
+            <Input
+              placeholder="Maggs"
+              value={acctDraft.label ?? ""}
+              onChange={(e) => setAcctDraft({ ...acctDraft, label: e.target.value })}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label className="text-xs">phone_number_id (Meta)</Label>
+            <Input
+              placeholder="123456789012345"
+              value={acctDraft.business_phone_number_id ?? ""}
+              onChange={(e) => setAcctDraft({ ...acctDraft, business_phone_number_id: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Teléfono visible</Label>
+            <Input
+              placeholder="+52 ..."
+              value={acctDraft.display_phone ?? ""}
+              onChange={(e) => setAcctDraft({ ...acctDraft, display_phone: e.target.value })}
+            />
+          </div>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Label className="text-xs">Color</Label>
+              <Input
+                type="color"
+                value={acctDraft.color ?? "#10b981"}
+                onChange={(e) => setAcctDraft({ ...acctDraft, color: e.target.value })}
+                className="h-9 p-1"
+              />
+            </div>
+            <Button onClick={saveAccount}>{acctDraft.id ? "Actualizar" : "Agregar"}</Button>
+          </div>
+        </div>
+
+        <div className="divide-y">
+          {accounts.length === 0 ? (
+            <div className="text-center text-sm text-muted-foreground py-6">Sin cuentas registradas.</div>
+          ) : (
+            accounts.map((a) => (
+              <div key={a.id} className="py-2 flex items-center gap-3">
+                <span
+                  className="text-xs font-medium px-2 py-0.5 rounded"
+                  style={{ backgroundColor: `${a.color}22`, color: a.color }}
+                >
+                  {a.label}
+                </span>
+                <code className="text-xs text-muted-foreground">{a.business_phone_number_id}</code>
+                {a.display_phone && <span className="text-xs">{a.display_phone}</span>}
+                {!a.is_active && <span className="text-[10px] text-destructive">inactiva</span>}
+                <div className="flex-1" />
+                <Button size="sm" variant="ghost" onClick={() => setAcctDraft(a)}>
+                  Editar
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => delAccount(a.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))
+          )}
         </div>
       </Card>
     </div>

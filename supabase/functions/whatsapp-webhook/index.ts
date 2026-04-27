@@ -40,11 +40,21 @@ function isWithinBusinessHours(settings: any, now: Date): boolean {
   }
 }
 
-async function sendWhatsAppText(toPhone: string, text: string) {
+function resolveCredentials(phoneNumberId: string | null | undefined) {
   const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-  const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-  if (!TOKEN || !PHONE_ID) return { ok: false, error: "Missing WhatsApp credentials" };
-  const r = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+  const PHONE_1 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+  const PHONE_2 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_2");
+  // Default to account 1 if no phone_number_id given
+  let phoneId = PHONE_1 ?? null;
+  if (phoneNumberId && PHONE_2 && phoneNumberId === PHONE_2) phoneId = PHONE_2;
+  else if (phoneNumberId && PHONE_1 && phoneNumberId === PHONE_1) phoneId = PHONE_1;
+  return { TOKEN, phoneId };
+}
+
+async function sendWhatsAppText(toPhone: string, text: string, businessPhoneId?: string | null) {
+  const { TOKEN, phoneId } = resolveCredentials(businessPhoneId);
+  if (!TOKEN || !phoneId) return { ok: false, error: "Missing WhatsApp credentials" };
+  const r = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -58,11 +68,10 @@ async function sendWhatsAppText(toPhone: string, text: string) {
   return { ok: r.ok, data };
 }
 
-async function sendWhatsAppTemplate(toPhone: string, name: string, language: string) {
-  const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-  const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-  if (!TOKEN || !PHONE_ID) return { ok: false, error: "Missing WhatsApp credentials" };
-  const r = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+async function sendWhatsAppTemplate(toPhone: string, name: string, language: string, businessPhoneId?: string | null) {
+  const { TOKEN, phoneId } = resolveCredentials(businessPhoneId);
+  if (!TOKEN || !phoneId) return { ok: false, error: "Missing WhatsApp credentials" };
+  const r = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -126,6 +135,8 @@ Deno.serve(async (req) => {
         const changes = Array.isArray(entry?.changes) ? entry.changes : [];
         for (const change of changes) {
           const value = change?.value ?? {};
+          // Capture which business phone line this webhook event is for
+          const businessPhoneId = value?.metadata?.phone_number_id ?? null;
           const contactsArr = Array.isArray(value?.contacts) ? value.contacts : [];
           const profileNameByWa: Record<string, string> = {};
           for (const c of contactsArr) {
@@ -178,6 +189,7 @@ Deno.serve(async (req) => {
                   last_message_preview: (text ?? "").slice(0, 120),
                   unread_count: (existingConv.unread_count ?? 0) + 1,
                   status: "open",
+                  business_phone_number_id: businessPhoneId ?? undefined,
                 })
                 .eq("id", conversationId);
             } else {
@@ -190,6 +202,7 @@ Deno.serve(async (req) => {
                   last_inbound_at: nowIso,
                   last_message_preview: (text ?? "").slice(0, 120),
                   unread_count: 1,
+                  business_phone_number_id: businessPhoneId,
                 })
                 .select("id")
                 .single();
@@ -206,6 +219,7 @@ Deno.serve(async (req) => {
               conversation_id: conversationId,
               wa_profile_name: profileName,
               media_type: msg?.type ?? null,
+              business_phone_number_id: businessPhoneId,
             });
             if (insErr) console.error("Insert message error:", insErr);
             else inserted++;
@@ -228,9 +242,10 @@ Deno.serve(async (req) => {
                     fromPhone,
                     r.reply_template_name,
                     r.reply_template_language || "es_MX",
+                    businessPhoneId,
                   );
                 } else if (r.reply_text) {
-                  await sendWhatsAppText(fromPhone, r.reply_text);
+                  await sendWhatsAppText(fromPhone, r.reply_text, businessPhoneId);
                 }
                 await admin.from("whatsapp_messages").insert({
                   sender_phone: fromPhone,
@@ -240,6 +255,7 @@ Deno.serve(async (req) => {
                   conversation_id: conversationId,
                   contact_id: contactId,
                   template_name: r.reply_template_name ?? null,
+                  business_phone_number_id: businessPhoneId,
                 });
                 await admin
                   .from("whatsapp_conversations")
@@ -269,6 +285,7 @@ Deno.serve(async (req) => {
                   fromPhone,
                   settings.away_template_name,
                   settings.away_template_language || "es_MX",
+                  businessPhoneId,
                 );
                 await admin.from("whatsapp_auto_replies_log").insert({
                   wa_phone: fromPhone,
@@ -283,6 +300,7 @@ Deno.serve(async (req) => {
                   conversation_id: conversationId,
                   contact_id: contactId,
                   template_name: settings.away_template_name,
+                  business_phone_number_id: businessPhoneId,
                 });
                 await admin
                   .from("whatsapp_conversations")
@@ -301,6 +319,7 @@ Deno.serve(async (req) => {
               message_body: null,
               direction: "outbound",
               status: s?.status ?? null,
+              business_phone_number_id: businessPhoneId,
             });
           }
         }
