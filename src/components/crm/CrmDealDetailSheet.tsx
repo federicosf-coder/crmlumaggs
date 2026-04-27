@@ -165,82 +165,100 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               </div>
             </div>
           ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Potencial (u)</span><p className="font-semibold text-lg">{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(Number((deal as any).potencial_unidades) || Number((deal as any).volumen_mensual_estimado) || 0)}</p></div>
-                <div><span className="text-muted-foreground">Probabilidad</span><p className="font-semibold">{deal.probability}%</p></div>
-                <div><span className="text-muted-foreground">Etapa</span><Badge style={{ backgroundColor: currentStage?.color, color: "white" }}>{currentStage?.name}</Badge></div>
-                <div><span className="text-muted-foreground">Fecha de Cierre</span><p>{deal.close_date ? formatDate(deal.close_date) : "No definida"}</p></div>
-              </div>
-              {deal.companies && <div className="text-sm"><span className="text-muted-foreground">Empresa</span><p className="font-medium">{deal.companies.name}</p></div>}
-              {deal.contacts && <div className="text-sm"><span className="text-muted-foreground">Contacto</span><p className="font-medium">{deal.contacts.first_name} {deal.contacts.last_name}</p></div>}
-              {deal.notes && <div className="text-sm"><span className="text-muted-foreground">Notas</span><p className="mt-1 whitespace-pre-wrap">{deal.notes}</p></div>}
-            </>
-          )}
+            <Tabs defaultValue="resumen" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="resumen" className="text-xs">Resumen</TabsTrigger>
+                <TabsTrigger value="documentos" className="text-xs">Documentos Venta</TabsTrigger>
+                <TabsTrigger value="seguimiento" className="text-xs">Seguimiento</TabsTrigger>
+              </TabsList>
 
-          <Separator />
+              {/* === Resumen === */}
+              <TabsContent value="resumen" className="space-y-6 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div><span className="text-muted-foreground">Potencial (u)</span><p className="font-semibold text-lg">{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(Number((deal as any).potencial_unidades) || Number((deal as any).volumen_mensual_estimado) || 0)}</p></div>
+                  <div><span className="text-muted-foreground">Probabilidad</span><p className="font-semibold">{deal.probability}%</p></div>
+                  <div><span className="text-muted-foreground">Etapa</span><Badge style={{ backgroundColor: currentStage?.color, color: "white" }}>{currentStage?.name}</Badge></div>
+                  <div><span className="text-muted-foreground">Fecha de Cierre</span><p>{deal.close_date ? formatDate(deal.close_date) : "No definida"}</p></div>
+                </div>
+                {deal.companies && <div className="text-sm"><span className="text-muted-foreground">Empresa</span><p className="font-medium">{deal.companies.name}</p></div>}
+                {deal.contacts && <div className="text-sm"><span className="text-muted-foreground">Contacto</span><p className="font-medium">{deal.contacts.first_name} {deal.contacts.last_name}</p></div>}
+                {deal.notes && <div className="text-sm"><span className="text-muted-foreground">Notas</span><p className="mt-1 whitespace-pre-wrap">{deal.notes}</p></div>}
 
-          <div>
-            <h4 className="text-sm font-semibold mb-3">Avance del negocio (en unidades)</h4>
-            <DealUnitsProgress deal={deal} />
-          </div>
+                <Separator />
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">Avance del negocio (en unidades)</h4>
+                  <DealUnitsProgress deal={deal} />
+                </div>
+              </TabsContent>
 
-          <Separator />
+              {/* === Documentos Venta === */}
+              <TabsContent value="documentos" className="mt-4">
+                <DealDocumentsTab dealId={deal.id} />
+              </TabsContent>
 
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold">Tareas</h4>
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setTaskDialogOpen(true)}>
-                <Plus className="h-3 w-3 mr-1" /> Agregar Tarea
-              </Button>
-            </div>
-            {!tasks?.length ? (
-              <p className="text-sm text-muted-foreground">Sin tareas vinculadas.</p>
-            ) : (
-              <div className="space-y-2">{tasks.map((t) => <CrmTaskItem key={t.id} task={t} />)}</div>
-            )}
-          </div>
-
-          <Separator />
-
-          <div>
-            <h4 className="text-sm font-semibold mb-3">Registrar Actividad</h4>
-            <div className="flex gap-2 mb-2">
-              <Input placeholder="Título de la actividad..." value={activityTitle} onChange={(e) => setActivityTitle(e.target.value)} className="flex-1" />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => handleQuickActivity("call")}><Phone className="h-3 w-3 mr-1" /> Llamada</Button>
-              <Button size="sm" variant="outline" onClick={() => handleQuickActivity("email")}><Mail className="h-3 w-3 mr-1" /> Email</Button>
-              <Button size="sm" variant="outline" onClick={() => handleQuickActivity("meeting")}><Calendar className="h-3 w-3 mr-1" /> Reunión</Button>
-              <Button size="sm" variant="outline" onClick={() => handleQuickActivity("note")}><FileText className="h-3 w-3 mr-1" /> Nota</Button>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div>
-            <h4 className="text-sm font-semibold mb-3">Línea de Tiempo</h4>
-            {dealActivities.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin actividades registradas.</p>
-            ) : (
-              <div className="space-y-3">
-                {dealActivities.map((a) => (
-                  <div key={a.id} className="flex gap-3 text-sm">
-                    <div className="mt-1">
-                      {a.type === "call" && <Phone className="h-4 w-4 text-blue-500" />}
-                      {a.type === "email" && <Mail className="h-4 w-4 text-purple-500" />}
-                      {a.type === "meeting" && <Calendar className="h-4 w-4 text-orange-500" />}
-                      {a.type === "note" && <FileText className="h-4 w-4 text-green-500" />}
-                    </div>
-                    <div>
-                      <p className="font-medium">{a.title}</p>
-                      <p className="text-xs text-muted-foreground">{formatRelativeDate(a.created_at)}</p>
-                    </div>
+              {/* === Seguimiento === */}
+              <TabsContent value="seguimiento" className="space-y-6 mt-4">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold">Tareas</h4>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setTaskDialogOpen(true)}>
+                      <Plus className="h-3 w-3 mr-1" /> Agregar Tarea
+                    </Button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  {!tasks?.length ? (
+                    <p className="text-sm text-muted-foreground">Sin tareas vinculadas.</p>
+                  ) : (
+                    <div className="space-y-2">{tasks.map((t) => <CrmTaskItem key={t.id} task={t} />)}</div>
+                  )}
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">Registrar Actividad</h4>
+                  <div className="flex gap-2 mb-2">
+                    <Input placeholder="Título de la actividad..." value={activityTitle} onChange={(e) => setActivityTitle(e.target.value)} className="flex-1" />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => handleQuickActivity("call")}><Phone className="h-3 w-3 mr-1" /> Llamada</Button>
+                    <Button size="sm" variant="outline" onClick={() => handleQuickActivity("email")}><Mail className="h-3 w-3 mr-1" /> Email</Button>
+                    <Button size="sm" variant="outline" onClick={() => handleQuickActivity("meeting")}><Calendar className="h-3 w-3 mr-1" /> Reunión</Button>
+                    <Button size="sm" variant="outline" onClick={() => handleQuickActivity("note")}><FileText className="h-3 w-3 mr-1" /> Nota</Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">Línea de Tiempo</h4>
+                  {dealActivities.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Sin actividades registradas.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {dealActivities.map((a) => (
+                        <div key={a.id} className="flex gap-3 text-sm">
+                          <div className="mt-1">
+                            {a.type === "call" && <Phone className="h-4 w-4 text-blue-500" />}
+                            {a.type === "email" && <Mail className="h-4 w-4 text-purple-500" />}
+                            {a.type === "meeting" && <Calendar className="h-4 w-4 text-orange-500" />}
+                            {a.type === "note" && <FileText className="h-4 w-4 text-green-500" />}
+                            {a.type === "whatsapp" && <MessageCircle className="h-4 w-4 text-emerald-500" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium">{a.title}</p>
+                            {a.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-2">{a.description}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">{formatRelativeDate(a.created_at)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
 
           <Separator />
 
