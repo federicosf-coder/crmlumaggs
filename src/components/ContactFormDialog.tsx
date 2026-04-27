@@ -11,6 +11,8 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
+import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 
 export interface ContactEditData {
   id: string;
@@ -38,6 +40,32 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
   const [saving, setSaving] = useState(false);
   const isEdit = !!editData;
 
+  const autosave = useAutosaveStatus(async (changes) => {
+    if (!isEdit || !editData?.id) return;
+    const dbPayload: Record<string, any> = {};
+    for (const k of Object.keys(changes)) {
+      if (k === "ejecutivo_ids") continue;
+      const v = changes[k];
+      if (k === "first_name" || k === "last_name") {
+        dbPayload[k] = (v ?? "").toString();
+      } else {
+        dbPayload[k] = v === "" || v == null ? null : v;
+      }
+    }
+    if (Object.keys(dbPayload).length > 0) {
+      const { error } = await supabase.from("contacts").update(dbPayload as any).eq("id", editData!.id);
+      if (error) throw error;
+    }
+    if ("ejecutivo_ids" in changes) {
+      await supabase.from("contact_ejecutivos").delete().eq("contact_id", editData!.id);
+      if ((changes.ejecutivo_ids || []).length > 0) {
+        await supabase.from("contact_ejecutivos").insert(
+          (changes.ejecutivo_ids as string[]).map((uid) => ({ contact_id: editData!.id, user_id: uid }))
+        );
+      }
+    }
+  });
+
   const emptyForm = {
     first_name: "", last_name: "", email: "", phone: "", mobile: "",
     job_title: "", department: "", company_id: defaultCompanyId || "", notes: "",
@@ -46,19 +74,23 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
 
   const [form, setForm] = useState(emptyForm);
   const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
+  const setAndSchedule = (k: string, v: string) => { set(k, v); autosave.scheduleSave(k, v); };
+  const setAndSaveNow = (k: string, v: string) => { set(k, v); autosave.saveNow(k, v); };
 
   const toggleEjecutivo = (userId: string) => {
-    setForm(prev => ({
-      ...prev,
-      ejecutivo_ids: prev.ejecutivo_ids.includes(userId)
+    setForm(prev => {
+      const next = prev.ejecutivo_ids.includes(userId)
         ? prev.ejecutivo_ids.filter(id => id !== userId)
-        : [...prev.ejecutivo_ids, userId],
-    }));
+        : [...prev.ejecutivo_ids, userId];
+      autosave.saveNow("ejecutivo_ids", next);
+      return { ...prev, ejecutivo_ids: next };
+    });
   };
 
   useEffect(() => {
     if (editData) {
-      setForm({
+      autosave.setEnabled(false);
+      const seeded = {
         first_name: editData.first_name || "",
         last_name: editData.last_name || "",
         email: editData.email || "",
@@ -68,8 +100,11 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
         department: editData.department || "",
         company_id: editData.company_id || "",
         notes: editData.notes || "",
-        ejecutivo_ids: [],
-      });
+        ejecutivo_ids: [] as string[],
+      };
+      setForm(seeded);
+      autosave.seed(seeded);
+      setTimeout(() => autosave.setEnabled(true), 0);
     } else if (defaultCompanyId) {
       setForm(prev => ({ ...prev, company_id: defaultCompanyId }));
     }
@@ -102,6 +137,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
   useEffect(() => {
     if (contactEjecutivos.length > 0 && open && editData?.id) {
       setForm(prev => ({ ...prev, ejecutivo_ids: contactEjecutivos }));
+      autosave.seed({ ejecutivo_ids: contactEjecutivos });
     }
   }, [contactEjecutivos, open, editData?.id]);
 
