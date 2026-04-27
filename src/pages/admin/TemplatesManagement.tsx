@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { AppLayout } from "@/components/AppLayout";
 import { PageBanner } from "@/components/PageBanner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,7 +82,7 @@ export default function TemplatesManagement() {
   };
 
   return (
-    <AppLayout>
+    <>
       <PageBanner title="Plantillas" description="Centraliza plantillas de email y WhatsApp para reutilizar en cotizaciones, cobranza, recompra y más." />
 
       <div className="space-y-4 px-4 md:px-6 py-4">
@@ -165,6 +164,6 @@ export default function TemplatesManagement() {
       </div>
 
       <TemplateFormDialog open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} onSaved={refetch} />
-    </AppLayout>
+    </>
   );
 }
