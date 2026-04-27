@@ -36,6 +36,8 @@ export function useDealUnitsProgress(deal: any | null) {
       deal?.id,
       deal?.company_id,
       deal?.pipeline_type,
+      deal?.mes_negocio,
+      deal?.pipeline_id,
       deal?.potencial_unidades,
       deal?.volumen_mensual_estimado,
     ],
@@ -44,28 +46,54 @@ export function useDealUnitsProgress(deal: any | null) {
       if (!deal || !deal.company_id) return null;
       const isRecompra = deal.pipeline_type === "recompra";
 
-      const { data: docs } = await supabase
+      // Determinar marca/empresa_vendedora del pipeline (para Recompra filtrar por marca)
+      let empresaVendedora: string | null = null;
+      if (isRecompra && deal.pipeline_id) {
+        const { data: pipe } = await supabase
+          .from("crm_pipelines")
+          .select("marca")
+          .eq("id", deal.pipeline_id)
+          .maybeSingle();
+        empresaVendedora =
+          pipe?.marca === "phillips66" ? "galsa_phillips66" : "lumaggs_chevron";
+      }
+
+      let q = supabase
         .from("documentos")
         .select(
-          "id, tipo_documento, estatus_cotizacion, estatus_pedido, estatus_factura, unidades_equivalentes_total, fecha_documento, is_active"
+          "id, tipo_documento, estatus_cotizacion, estatus_pedido, estatus_factura, unidades_equivalentes_total, fecha_documento, is_active, empresa_vendedora"
         )
         .eq("empresa_id", deal.company_id)
         .eq("is_active", true);
+      if (isRecompra && empresaVendedora) {
+        q = q.eq("empresa_vendedora", empresaVendedora as any);
+      }
+      const { data: docs } = await q;
 
       let cotizado = 0;
       let pedido = 0;
       let facturado = 0;
       const facturasParaHistorico: { fecha: string; unidades: number }[] = [];
 
+      // En Recompra sólo contamos documentos del mes del negocio para los
+      // indicadores de Cotizado/Pedido/Facturado (real). El histórico promedio
+      // mensual sí usa todas las facturas (para tener referencia de comportamiento).
+      const mes: string | null = isRecompra ? (deal.mes_negocio ?? null) : null;
+      const inMonth = (fecha?: string | null) => {
+        if (!mes || !fecha) return false;
+        return fecha.slice(0, 7) === mes;
+      };
+
       (docs || []).forEach((d: any) => {
         const u = Number(d.unidades_equivalentes_total) || 0;
+        const includeForPeriod = isRecompra ? inMonth(d.fecha_documento) : true;
         if (d.tipo_documento === "cotizacion") {
-          if (!CANCELLED_COTIZACION.includes(d.estatus_cotizacion || "")) cotizado += u;
+          if (includeForPeriod && !CANCELLED_COTIZACION.includes(d.estatus_cotizacion || "")) cotizado += u;
         } else if (d.tipo_documento === "pedido") {
-          if (!CANCELLED_PEDIDO.includes(d.estatus_pedido || "")) pedido += u;
+          if (includeForPeriod && !CANCELLED_PEDIDO.includes(d.estatus_pedido || "")) pedido += u;
         } else if (d.tipo_documento === "factura") {
           if (!CANCELLED_FACTURA.includes(d.estatus_factura || "")) {
-            facturado += u;
+            if (includeForPeriod) facturado += u;
             if (d.fecha_documento) facturasParaHistorico.push({ fecha: d.fecha_documento, unidades: u });
           }
         }

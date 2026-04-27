@@ -3458,6 +3458,14 @@ export type Database = {
         }[]
       }
       recalc_deal_units: { Args: { p_deal_id: string }; Returns: undefined }
+      recalc_recompra_deals_for_doc: {
+        Args: {
+          p_empresa_id: string
+          p_empresa_vendedora: string
+          p_fecha: string
+        }
+        Returns: undefined
+      }
       recalc_repurchase_for_company: {
         Args: {
           _empresa_id: string
