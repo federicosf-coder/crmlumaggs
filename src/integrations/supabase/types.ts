@@ -3419,6 +3419,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recalc_deal_units: { Args: { p_deal_id: string }; Returns: undefined }
       recalc_repurchase_for_company: {
         Args: {
           _empresa_id: string
