@@ -11,9 +11,11 @@ interface CrmKanbanColumnProps {
   onDrop: (dealId: string, stageId: string) => void;
   onDealClick: (deal: CrmDeal) => void;
   onAddDeal: (stageId: string) => void;
+  monthlyAvg?: Map<string, number>;
+  showHistorico?: boolean;
 }
 
-export function CrmKanbanColumn({ stage, deals, onDrop, onDealClick, onAddDeal }: CrmKanbanColumnProps) {
+export function CrmKanbanColumn({ stage, deals, onDrop, onDealClick, onAddDeal, monthlyAvg, showHistorico }: CrmKanbanColumnProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const totalUnidades = deals.reduce(
     (sum, d: any) => sum + (Number(d.potencial_unidades) || Number(d.volumen_mensual_estimado) || 0),
@@ -52,7 +54,14 @@ export function CrmKanbanColumn({ stage, deals, onDrop, onDealClick, onAddDeal }
           </div>
         ) : (
           deals.map((deal) => (
-            <CrmDealCard key={deal.id} deal={deal} stageColor={stage.color} onClick={() => onDealClick(deal)} />
+            <CrmDealCard
+              key={deal.id}
+              deal={deal}
+              stageColor={stage.color}
+              onClick={() => onDealClick(deal)}
+              monthlyAvg={monthlyAvg?.get((deal as any).company_id ?? "") ?? null}
+              showHistorico={showHistorico}
+            />
           ))
         )}
         <Button

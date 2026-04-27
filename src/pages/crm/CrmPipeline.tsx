@@ -328,6 +328,8 @@ export default function CrmPipeline() {
           deals={filteredDeals}
           onDealClick={setSelectedDeal}
           onAddDeal={(stageId) => { setCreateStageId(stageId); setCreateOpen(true); }}
+          brand={marca}
+          pipelineType={pipelineType}
         />
       ) : null}
 
