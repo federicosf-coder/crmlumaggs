@@ -396,11 +396,11 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
                           inputMode={isPhone ? "tel" : undefined}
                           value={value}
                           onChange={e => {
-                            const next = isPhone ? sanitizePhoneInput(e.target.value) : e.target.value;
+                            const next = isPhone ? formatPhoneProgressive(e.target.value) : e.target.value;
                             setAndSchedule(c.value, next);
                           }}
                           onBlur={e => {
-                            const next = isPhone ? sanitizePhoneInput(e.target.value) : e.target.value;
+                            const next = isPhone ? formatPhoneProgressive(e.target.value) : e.target.value;
                             autosave.saveNow(c.value, next);
                           }}
                           required={checked}
