@@ -388,7 +388,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
               <div className="space-y-3 rounded-md border p-3">
                 <div>
                   <h4 className="text-sm font-semibold">Comunicación</h4>
-                  <p className="text-xs text-muted-foreground">Obligatorio capturar Whatsapp o Email Principal.</p>
+                  <p className="text-xs text-muted-foreground">Selecciona los medios preferidos por el cliente (obligatorio Whatsapp y/o Email Principal)</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {COMM_FIELDS.map(c => {
