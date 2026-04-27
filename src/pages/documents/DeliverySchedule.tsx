@@ -1117,6 +1117,7 @@ export default function DeliverySchedule() {
                                   onReorder={() => {}}
                                   onToggleCerrada={toggleRutaCerrada}
                                   onStartRoute={handleStartRoute}
+                                  onFinishRoute={handleFinishRoute}
                                 />
                               ))}
                             </div>
