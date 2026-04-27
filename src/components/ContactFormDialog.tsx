@@ -84,6 +84,11 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
       if (f[c.flag] && !((f[c.value] ?? "") as string).trim()) {
         return `${c.label} es obligatorio cuando está marcado.`;
       }
+      if (f[c.flag] && (c as any).phone === true) {
+        if (phoneDigitCount(f[c.value]) < 8) {
+          return `${c.label} debe tener al menos 8 dígitos.`;
+        }
+      }
     }
     return null;
   }
@@ -121,7 +126,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
 
   const emptyForm = {
     first_name: "", last_name: "",
-    email: "", email2: "", whatsapp_phone: "", mobile: "", phone: "", tel_emp: "",
+    email: "", email2: "", whatsapp_phone: "+52", mobile: "+52", phone: "", tel_emp: "",
     job_title: "", department: "", company_id: defaultCompanyId || "", notes: "",
     ejecutivo_ids: [] as string[],
     comm_email: false, comm_email2: false, comm_whatsapp: false,
@@ -351,18 +356,18 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
                         <Input
                           type={c.value.startsWith("email") ? "email" : isPhone ? "tel" : "text"}
                           inputMode={isPhone ? "tel" : undefined}
-                          value={isPhone ? formatMxPhone(value) : value}
+                          value={value}
                           onChange={e => {
-                            const next = isPhone ? formatMxPhone(e.target.value) : e.target.value;
+                            const next = isPhone ? sanitizePhoneInput(e.target.value) : e.target.value;
                             setAndSchedule(c.value, next);
                           }}
                           onBlur={e => {
-                            const next = isPhone ? formatMxPhone(e.target.value) : e.target.value;
+                            const next = isPhone ? sanitizePhoneInput(e.target.value) : e.target.value;
                             autosave.saveNow(c.value, next);
                           }}
                           required={checked}
                           aria-invalid={invalid}
-                          placeholder={isPhone ? "+52 664 123 4567" : c.label}
+                          placeholder={isPhone ? "+52..." : c.label}
                         />
                       </div>
                     );
