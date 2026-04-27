@@ -52,18 +52,55 @@ const COMM_FIELDS = [
   { flag: "comm_email",   value: "email",          label: "Email" },
   { flag: "comm_email2",  value: "email2",         label: "Email 2" },
   { flag: "comm_cel",     value: "mobile",         label: "Cel", phone: true },
-  { flag: "comm_tel",     value: "phone",          label: "Tel" },
-  { flag: "comm_tel_emp", value: "tel_emp",        label: "Tel Emp" },
+  { flag: "comm_tel",     value: "phone",          label: "Tel", phone: true },
+  { flag: "comm_tel_emp", value: "tel_emp",        label: "Tel Emp", phone: true },
 ] as const;
 
-// Sanitiza la entrada de un teléfono: sólo permite '+' (al inicio) y dígitos.
-// No fuerza ningún país ni formato.
-function sanitizePhoneInput(raw: string): string {
+// LADAs mexicanas de 2 dígitos (CDMX, GDL, MTY) → formato +52 LL DDDD DDDD
+const TWO_DIGIT_LADAS = new Set(["33", "55", "56", "81"]);
+
+/**
+ * Formatea progresivamente un teléfono.
+ * - Si el código de país es +52 (México), aplica formato:
+ *     LADA 3 dígitos → +52 LLL DDD DDDD
+ *     LADA 2 dígitos (33/55/56/81) → +52 LL DDDD DDDD
+ * - Para cualquier otro código de país (+1, +34, etc.), sólo respeta el '+' y agrupa dígitos sin formato MX.
+ * - Si no hay '+', devuelve sólo dígitos (permite editar libremente).
+ * - Sólo conserva '+' inicial y dígitos.
+ */
+function formatPhoneProgressive(raw: string): string {
   if (!raw) return "";
-  // Conserva un único '+' inicial si el usuario lo escribió, y dígitos
   const hasPlus = raw.trim().startsWith("+");
-  const digits = raw.replace(/[^\d]/g, "");
-  return (hasPlus ? "+" : "") + digits;
+  const digits = raw.replace(/\D/g, "");
+  if (!hasPlus) return digits;
+  if (!digits) return "+";
+
+  // México: si los primeros 2 dígitos son "52"
+  if (digits.startsWith("52")) {
+    const local = digits.slice(2, 12); // máximo 10 dígitos locales
+    if (local.length === 0) return "+52";
+    if (local.length < 2) return `+52 ${local}`;
+    const lada2 = local.slice(0, 2);
+    if (TWO_DIGIT_LADAS.has(lada2)) {
+      const rest = local.slice(2);
+      const a = rest.slice(0, 4);
+      const b = rest.slice(4, 8);
+      return `+52 ${lada2}${a ? " " + a : ""}${b ? " " + b : ""}`;
+    }
+    if (local.length <= 3) return `+52 ${local}`;
+    const lada3 = local.slice(0, 3);
+    const a = local.slice(3, 6);
+    const b = local.slice(6, 10);
+    return `+52 ${lada3}${a ? " " + a : ""}${b ? " " + b : ""}`;
+  }
+
+  // Otro país: sólo "+CC resto" sin agrupar agresivamente.
+  // Tomamos 1-3 dígitos como código de país y mostramos el resto en bloques de 4.
+  const cc = digits.slice(0, Math.min(3, digits.length));
+  const rest = digits.slice(cc.length);
+  if (!rest) return `+${cc}`;
+  const groups = rest.match(/.{1,4}/g) || [];
+  return `+${cc} ${groups.join(" ")}`;
 }
 
 // Devuelve el número de dígitos (sin contar '+').
@@ -126,7 +163,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
 
   const emptyForm = {
     first_name: "", last_name: "",
-    email: "", email2: "", whatsapp_phone: "+52", mobile: "+52", phone: "", tel_emp: "",
+    email: "", email2: "",
+    whatsapp_phone: "+52", mobile: "+52", phone: "+52", tel_emp: "+52",
     job_title: "", department: "", company_id: defaultCompanyId || "", notes: "",
     ejecutivo_ids: [] as string[],
     comm_email: false, comm_email2: false, comm_whatsapp: false,
