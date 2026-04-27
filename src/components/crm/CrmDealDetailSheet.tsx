@@ -75,7 +75,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
       setEditProbability(String(deal.probability || 50));
       setEditCloseDate(
         deal.close_date ||
-          (deal.pipeline_type === "recompra"
+          ((deal as any).pipeline_type === "recompra"
             ? lastDayOfMonth((deal as any).mes_negocio) || ""
             : "")
       );
