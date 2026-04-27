@@ -346,6 +346,85 @@ export default function WhatsAppSettings() {
           ))}
         </div>
       </Card>
+
+      {/* Cuentas de WhatsApp (multi-número) */}
+      <Card className="p-4 space-y-4">
+        <div>
+          <div className="flex items-center gap-2 font-medium">
+            <SettingsIcon className="h-4 w-4 text-primary" /> Cuentas de WhatsApp (multi-número)
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Registra cada línea de Meta con su <code>phone_number_id</code> y una etiqueta visible (ej. "Maggs", "Chevron").
+            Esto permite mostrar a qué cuenta pertenece cada chat y filtrar plantillas por cuenta.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
+          <div className="md:col-span-1">
+            <Label className="text-xs">Etiqueta</Label>
+            <Input
+              placeholder="Maggs"
+              value={acctDraft.label ?? ""}
+              onChange={(e) => setAcctDraft({ ...acctDraft, label: e.target.value })}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label className="text-xs">phone_number_id (Meta)</Label>
+            <Input
+              placeholder="123456789012345"
+              value={acctDraft.business_phone_number_id ?? ""}
+              onChange={(e) => setAcctDraft({ ...acctDraft, business_phone_number_id: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Teléfono visible</Label>
+            <Input
+              placeholder="+52 ..."
+              value={acctDraft.display_phone ?? ""}
+              onChange={(e) => setAcctDraft({ ...acctDraft, display_phone: e.target.value })}
+            />
+          </div>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Label className="text-xs">Color</Label>
+              <Input
+                type="color"
+                value={acctDraft.color ?? "#10b981"}
+                onChange={(e) => setAcctDraft({ ...acctDraft, color: e.target.value })}
+                className="h-9 p-1"
+              />
+            </div>
+            <Button onClick={saveAccount}>{acctDraft.id ? "Actualizar" : "Agregar"}</Button>
+          </div>
+        </div>
+
+        <div className="divide-y">
+          {accounts.length === 0 ? (
+            <div className="text-center text-sm text-muted-foreground py-6">Sin cuentas registradas.</div>
+          ) : (
+            accounts.map((a) => (
+              <div key={a.id} className="py-2 flex items-center gap-3">
+                <span
+                  className="text-xs font-medium px-2 py-0.5 rounded"
+                  style={{ backgroundColor: `${a.color}22`, color: a.color }}
+                >
+                  {a.label}
+                </span>
+                <code className="text-xs text-muted-foreground">{a.business_phone_number_id}</code>
+                {a.display_phone && <span className="text-xs">{a.display_phone}</span>}
+                {!a.is_active && <span className="text-[10px] text-destructive">inactiva</span>}
+                <div className="flex-1" />
+                <Button size="sm" variant="ghost" onClick={() => setAcctDraft(a)}>
+                  Editar
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => delAccount(a.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
     </div>
   );
 }
