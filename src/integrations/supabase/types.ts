@@ -1412,6 +1412,7 @@ export type Database = {
           iva_porcentaje: number
           metodo_pago: Database["public"]["Enums"]["metodo_pago_sat"] | null
           negocio_crm: string | null
+          negocio_id: string | null
           notas: string | null
           numero_cotizacion: string | null
           numero_factura: string | null
@@ -1466,6 +1467,7 @@ export type Database = {
           iva_porcentaje?: number
           metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
           negocio_crm?: string | null
+          negocio_id?: string | null
           notas?: string | null
           numero_cotizacion?: string | null
           numero_factura?: string | null
@@ -1520,6 +1522,7 @@ export type Database = {
           iva_porcentaje?: number
           metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
           negocio_crm?: string | null
+          negocio_id?: string | null
           notas?: string | null
           numero_cotizacion?: string | null
           numero_factura?: string | null
@@ -1557,6 +1560,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_negocio_id_fkey"
+            columns: ["negocio_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
             referencedColumns: ["id"]
           },
           {
@@ -3281,6 +3291,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      backfill_documentos_negocio_id: { Args: never; Returns: Json }
+      brand_from_empresa_vendedora: {
+        Args: { _ev: Database["public"]["Enums"]["empresa_vendedora"] }
+        Returns: string
+      }
+      company_has_sold_units: {
+        Args: {
+          _empresa_id: string
+          _ev: Database["public"]["Enums"]["empresa_vendedora"]
+        }
+        Returns: boolean
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -3360,6 +3382,15 @@ export type Database = {
         Returns: undefined
       }
       recompute_pago_balance: { Args: { _pago_id: string }; Returns: undefined }
+      resolve_documento_negocio: {
+        Args: {
+          _contacto_id: string
+          _created_by: string
+          _empresa_id: string
+          _empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+        }
+        Returns: string
+      }
       seed_crm_pipeline:
         | { Args: { p_marca: string; p_user_id: string }; Returns: string }
         | {
