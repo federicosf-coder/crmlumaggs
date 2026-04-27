@@ -423,7 +423,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const renderSelect = (label: string, value: string, key: string, options: string[]) => (
     <div className="space-y-1.5">
       <Label className="text-xs">{label}</Label>
-      <Select value={value} onValueChange={v => set(key, v)}>
+      <Select value={value} onValueChange={v => setAndSaveNow(key, v)}>
         <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
         <SelectContent>
           {options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
@@ -435,7 +435,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const renderEnumSelect = (label: string, value: string, key: string, options: { v: string; l: string }[]) => (
     <div className="space-y-1.5">
       <Label className="text-xs">{label}</Label>
-      <Select value={value} onValueChange={v => set(key, v === "none" ? "" : v)}>
+      <Select value={value} onValueChange={v => setAndSaveNow(key, v === "none" ? "" : v)}>
         <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
         <SelectContent>
           <SelectItem value="none">Sin asignar</SelectItem>
@@ -556,7 +556,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 {/* Lista de Precios */}
                 <div className="space-y-1.5">
                   <Label className="text-xs">Lista de Precios</Label>
-                  <Select value={form.lista_precios} onValueChange={v => set("lista_precios", v === "none" ? "" : v)}>
+                  <Select value={form.lista_precios} onValueChange={v => setAndSaveNow("lista_precios", v === "none" ? "" : v)}>
                     <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Sin asignar</SelectItem>
