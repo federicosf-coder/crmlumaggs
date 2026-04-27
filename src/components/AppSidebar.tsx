@@ -4,6 +4,7 @@ import {
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
   Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet, Upload,
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
+  Briefcase,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -29,6 +30,7 @@ interface NavItem {
 
 const mainItems: NavItem[] = [
   { title: "Inicio", url: "/", icon: LayoutDashboard, roles: "all" },
+  { title: "Portal del Vendedor", url: "/seller-portal", icon: Briefcase, roles: ["admin", "manager", "sales"] },
   { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
   { title: "Direcciones", url: "/directory/addresses", icon: MapPin, roles: "all" },
   { title: "CRM", url: "/crm", icon: ShoppingCart, roles: ["admin", "manager", "sales", "customer_service"] },
