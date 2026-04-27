@@ -61,15 +61,18 @@ export default function CrmPipeline() {
   const [ejecutivos, setEjecutivos] = useState<ExecutivoOption[]>([]);
   const [plazas, setPlazas] = useState<PlazaOption[]>([]);
   useEffect(() => {
-    supabase.from("profiles").select("user_id, full_name, is_active").eq("is_active", true)
+    supabase.from("profiles").select("user_id, full_name, is_active").eq("is_active", true).order("full_name", { ascending: true })
       .then(({ data }) => {
         setEjecutivos(((data ?? []) as any[])
           .filter((p) => p.full_name)
-          .map((p) => ({ user_id: p.user_id, full_name: p.full_name })));
+          .map((p) => ({ user_id: p.user_id, full_name: p.full_name }))
+          .sort((a, b) => a.full_name.localeCompare(b.full_name, "es", { sensitivity: "base" })));
       });
-    supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre")
+    supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre", { ascending: true })
       .then(({ data }) => {
-        setPlazas(((data ?? []) as any[]).map((p) => ({ id: p.id, nombre: p.nombre })));
+        setPlazas(((data ?? []) as any[])
+          .map((p) => ({ id: p.id, nombre: p.nombre }))
+          .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })));
       });
   }, []);
 
@@ -342,7 +345,7 @@ export default function CrmPipeline() {
             ))}
           </SelectContent>
         </Select>
-        <div className="sm:ml-auto">
+        <div>
           <CrmPipelineFilters
             search={search}
             onSearchChange={setSearch}
