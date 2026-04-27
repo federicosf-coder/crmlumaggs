@@ -17,7 +17,7 @@ import { CrmTaskItem } from "@/components/crm/CrmTaskItem";
 import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
 import { DealUnitsProgress } from "@/components/crm/DealUnitsProgress";
 import { DealDocumentsTab } from "@/components/crm/DealDocumentsTab";
-import { formatCurrency, formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate, formatMonthYear, lastDayOfMonth } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Phone, Mail, Calendar, FileText, Trash2, Save, Pencil, X, Plus, MessageCircle } from "lucide-react";
@@ -73,7 +73,12 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
       setEditTitle(deal.title);
       setEditValue(String(deal.value || 0));
       setEditProbability(String(deal.probability || 50));
-      setEditCloseDate(deal.close_date || "");
+      setEditCloseDate(
+        deal.close_date ||
+          (deal.pipeline_type === "recompra"
+            ? lastDayOfMonth((deal as any).mes_negocio) || ""
+            : "")
+      );
       setEditNotes(deal.notes || "");
       setEditStageId(deal.stage_id);
       setEditContactId(deal.contact_id || "");
@@ -85,6 +90,10 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
 
   const dealActivities = activities?.filter((a) => a.deal_id === deal.id) || [];
   const currentStage = stages.find((s) => s.id === deal.stage_id);
+  const isRecompra = (deal as any).pipeline_type === "recompra";
+  const periodoLabel = isRecompra ? formatMonthYear((deal as any).mes_negocio) : "";
+  const cierreDefault =
+    (deal as any).close_date || (isRecompra ? lastDayOfMonth((deal as any).mes_negocio) : null);
 
   const handleQuickActivity = (type: "call" | "email" | "meeting" | "note") => {
     if (!session?.user || !activityTitle.trim()) {
@@ -178,7 +187,24 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                   <div><span className="text-muted-foreground">Potencial (u)</span><p className="font-semibold text-lg">{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(Number((deal as any).potencial_unidades) || Number((deal as any).volumen_mensual_estimado) || 0)}</p></div>
                   <div><span className="text-muted-foreground">Probabilidad</span><p className="font-semibold">{deal.probability}%</p></div>
                   <div><span className="text-muted-foreground">Etapa</span><Badge style={{ backgroundColor: currentStage?.color, color: "white" }}>{currentStage?.name}</Badge></div>
-                  <div><span className="text-muted-foreground">Fecha de Cierre</span><p>{deal.close_date ? formatDate(deal.close_date) : "No definida"}</p></div>
+                  {isRecompra && (
+                    <div>
+                      <span className="text-muted-foreground">Periodo</span>
+                      <p className="font-semibold">{periodoLabel || "—"}</p>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-muted-foreground">Fecha de Cierre</span>
+                    <p>
+                      {isRecompra
+                        ? cierreDefault
+                          ? formatMonthYear(cierreDefault)
+                          : periodoLabel || "No definida"
+                        : deal.close_date
+                          ? formatDate(deal.close_date)
+                          : "No definida"}
+                    </p>
+                  </div>
                 </div>
                 {deal.companies && <div className="text-sm"><span className="text-muted-foreground">Empresa</span><p className="font-medium">{deal.companies.name}</p></div>}
                 {deal.contacts && <div className="text-sm"><span className="text-muted-foreground">Contacto</span><p className="font-medium">{deal.contacts.first_name} {deal.contacts.last_name}</p></div>}
