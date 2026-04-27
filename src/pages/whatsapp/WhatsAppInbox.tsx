@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { MessageCircle, Send, UserPlus, Lock, Zap } from "lucide-react";
+import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
@@ -53,6 +53,8 @@ export default function WhatsAppInbox() {
   const [draft, setDraft] = useState("");
   const [tplName, setTplName] = useState("");
   const [sending, setSending] = useState(false);
+  // Inbox seleccionado por línea (business_phone_number_id). null = aún no inicializado
+  const [selectedPhoneId, setSelectedPhoneId] = useState<string | null>(null);
 
   // Load conversations + realtime
   useEffect(() => {
@@ -90,10 +92,29 @@ export default function WhatsAppInbox() {
       .from("whatsapp_accounts")
       .select("id,business_phone_number_id,label,color")
       .eq("is_active", true)
-      .then(({ data }) => setAccounts((data ?? []) as Account[]));
+      .then(({ data }) => {
+        const list = (data ?? []) as Account[];
+        setAccounts(list);
+        // Inicializa el inbox por defecto a la primera línea activa
+        setSelectedPhoneId((prev) => prev ?? list[0]?.business_phone_number_id ?? null);
+      });
   }, []);
 
   const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [activeId, conversations]);
+  // Conversaciones filtradas por línea seleccionada
+  const filteredConversations = useMemo(() => {
+    if (!selectedPhoneId) return conversations;
+    return conversations.filter((c) => c.business_phone_number_id === selectedPhoneId);
+  }, [conversations, selectedPhoneId]);
+
+  // Si la conversación activa ya no pertenece al inbox seleccionado, se deselecciona
+  useEffect(() => {
+    if (!active || !selectedPhoneId) return;
+    if (active.business_phone_number_id !== selectedPhoneId) {
+      setActiveId(null);
+    }
+  }, [selectedPhoneId, active]);
+
   const accountByPhoneId = useMemo(() => {
     const map = new Map<string, Account>();
     accounts.forEach((a) => map.set(a.business_phone_number_id, a));
@@ -163,6 +184,10 @@ export default function WhatsAppInbox() {
 
   const sendText = async () => {
     if (!active || !draft.trim()) return;
+    if (!active.business_phone_number_id) {
+      toast.error("Esta conversación no tiene línea asociada");
+      return;
+    }
     setSending(true);
     const { error } = await supabase.functions.invoke("whatsapp-send-message", {
       body: {
@@ -170,7 +195,7 @@ export default function WhatsAppInbox() {
         conversation_id: active.id,
         kind: "text",
         text: draft.trim(),
-        business_phone_number_id: active.business_phone_number_id ?? undefined,
+        business_phone_number_id: active.business_phone_number_id,
       },
     });
     setSending(false);
@@ -183,6 +208,10 @@ export default function WhatsAppInbox() {
 
   const sendTemplate = async () => {
     if (!active || !tplName) return;
+    if (!active.business_phone_number_id) {
+      toast.error("Esta conversación no tiene línea asociada");
+      return;
+    }
     const tpl = templates.find((t) => t.name === tplName);
     setSending(true);
     const { error } = await supabase.functions.invoke("whatsapp-send-message", {
@@ -192,7 +221,7 @@ export default function WhatsAppInbox() {
         kind: "template",
         template_name: tpl?.name,
         template_language: tpl?.language ?? "es_MX",
-        business_phone_number_id: active.business_phone_number_id ?? undefined,
+        business_phone_number_id: active.business_phone_number_id,
       },
     });
     setSending(false);
@@ -202,23 +231,6 @@ export default function WhatsAppInbox() {
     }
     setTplName("");
     toast.success("Plantilla enviada");
-  };
-
-  const changeAccount = async (newPhoneId: string) => {
-    if (!active) return;
-    const { error } = await supabase
-      .from("whatsapp_conversations")
-      .update({ business_phone_number_id: newPhoneId })
-      .eq("id", active.id);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    setConversations((prev) =>
-      prev.map((c) => (c.id === active.id ? { ...c, business_phone_number_id: newPhoneId } : c)),
-    );
-    const acct = accountByPhoneId.get(newPhoneId);
-    toast.success(`Línea cambiada a ${acct?.label ?? newPhoneId}`);
   };
 
   const createContact = async () => {
@@ -261,19 +273,56 @@ export default function WhatsAppInbox() {
     <div className="grid grid-cols-12 gap-4 h-[calc(100vh-8rem)]">
       {/* Conversaciones */}
       <Card className="col-span-3 flex flex-col">
-        <div className="p-3 border-b flex items-center justify-between">
-          <div className="flex items-center gap-2 font-medium">
-            <MessageCircle className="h-4 w-4 text-primary" /> WhatsApp
+        <div className="p-3 border-b space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 font-medium">
+              <MessageCircle className="h-4 w-4 text-primary" /> WhatsApp
+            </div>
+            <Button size="sm" variant="outline" onClick={syncTemplates}>
+              Sync templates
+            </Button>
           </div>
-          <Button size="sm" variant="outline" onClick={syncTemplates}>
-            Sync templates
-          </Button>
+          {/* Inbox tabs por línea */}
+          {accounts.length > 0 && (
+            <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1">
+              {accounts.map((a) => {
+                const isSelected = selectedPhoneId === a.business_phone_number_id;
+                const count = conversations.filter(
+                  (c) => c.business_phone_number_id === a.business_phone_number_id,
+                ).length;
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => setSelectedPhoneId(a.business_phone_number_id)}
+                    className={`flex items-center justify-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold transition ${
+                      isSelected
+                        ? "shadow-sm text-white"
+                        : "text-muted-foreground hover:bg-background"
+                    }`}
+                    style={isSelected ? { backgroundColor: a.color } : undefined}
+                  >
+                    <Inbox className="h-3 w-3" />
+                    <span className="uppercase tracking-wide">{a.label}</span>
+                    <span
+                      className={`rounded-full px-1.5 text-[10px] ${
+                        isSelected ? "bg-white/25" : "bg-muted-foreground/15"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
         <ScrollArea className="flex-1">
-          {conversations.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground">Sin conversaciones aún.</div>
+          {filteredConversations.length === 0 ? (
+            <div className="p-4 text-sm text-muted-foreground">
+              Sin conversaciones en esta línea.
+            </div>
           ) : (
-            conversations.map((c) => (
+            filteredConversations.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setActiveId(c.id)}
@@ -326,25 +375,9 @@ export default function WhatsAppInbox() {
                 )}
               </div>
               <div className="text-xs text-muted-foreground">+{active.wa_phone}</div>
-              {accounts.length > 0 && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-[10px] uppercase text-muted-foreground tracking-wide">
-                    Enviar desde
-                  </span>
-                  <select
-                    className="h-7 rounded-md border border-input bg-background px-2 text-xs"
-                    value={active.business_phone_number_id ?? ""}
-                    onChange={(e) => changeAccount(e.target.value)}
-                  >
-                    <option value="" disabled>
-                      — Selecciona línea —
-                    </option>
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.business_phone_number_id}>
-                        {a.label}
-                      </option>
-                    ))}
-                  </select>
+              {activeAccount && (
+                <div className="mt-1 text-[10px] text-muted-foreground">
+                  Respondiendo desde <strong className="text-foreground">{activeAccount.label}</strong>
                 </div>
               )}
             </div>
