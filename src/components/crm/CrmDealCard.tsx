@@ -7,6 +7,10 @@ interface CrmDealCardProps {
   deal: CrmDeal;
   stageColor: string;
   onClick: () => void;
+  /** Promedio mensual histórico de unidades facturadas (por marca). null si no hay historial. */
+  monthlyAvg?: number | null;
+  /** Mostrar líneas de Potencial Manual + Histórico Promedio Mensual (Recompra). */
+  showHistorico?: boolean;
 }
 
 function fmtUnits(n: number) {
@@ -28,9 +32,12 @@ function ProgressBar({ label, value, base, color }: { label: string; value: numb
   );
 }
 
-export function CrmDealCard({ deal, stageColor, onClick }: CrmDealCardProps) {
+export function CrmDealCard({ deal, stageColor, onClick, monthlyAvg, showHistorico }: CrmDealCardProps) {
   const d = deal as any;
-  const potencial = Number(d.potencial_unidades ?? d.volumen_mensual_estimado ?? 0);
+  const potencialManual = Number(d.potencial_unidades ?? 0);
+  const potencial = potencialManual > 0
+    ? potencialManual
+    : Number(d.volumen_mensual_estimado ?? 0);
   const cotizado = Number(d.cotizado_unidades ?? 0);
   const pedido = Number(d.pedido_unidades ?? 0);
   const facturado = Number(d.facturado_unidades ?? 0);
@@ -64,6 +71,22 @@ export function CrmDealCard({ deal, stageColor, onClick }: CrmDealCardProps) {
             <ProgressBar label="Cotizado" value={cotizado} base={base} color="bg-violet-500" />
             <ProgressBar label="Pedido" value={pedido} base={base} color="bg-cyan-500" />
             <ProgressBar label="Facturado" value={facturado} base={base} color="bg-emerald-500" />
+          </div>
+        )}
+        {showHistorico && (
+          <div className="space-y-0.5 pt-1 border-t pt-2">
+            {potencialManual > 0 && (
+              <div className="flex items-center justify-between text-[10px] leading-none">
+                <span className="text-muted-foreground uppercase tracking-wide">Potencial Manual</span>
+                <span className="font-mono font-medium text-foreground">{fmtUnits(potencialManual)}u</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-[10px] leading-none">
+              <span className="text-muted-foreground uppercase tracking-wide">Histórico Prom. Mensual</span>
+              <span className="font-mono font-medium text-foreground">
+                {monthlyAvg != null && monthlyAvg > 0 ? `${fmtUnits(monthlyAvg)}u` : "—"}
+              </span>
+            </div>
           </div>
         )}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
