@@ -2778,6 +2778,39 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_accounts: {
+        Row: {
+          business_phone_number_id: string
+          color: string
+          created_at: string
+          display_phone: string | null
+          id: string
+          is_active: boolean
+          label: string
+          updated_at: string
+        }
+        Insert: {
+          business_phone_number_id: string
+          color?: string
+          created_at?: string
+          display_phone?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          updated_at?: string
+        }
+        Update: {
+          business_phone_number_id?: string
+          color?: string
+          created_at?: string
+          display_phone?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_auto_replies_log: {
         Row: {
           id: string
