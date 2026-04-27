@@ -10,7 +10,6 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
-import { WhatsAppTemplatesTab } from "@/components/admin/WhatsAppTemplatesTab";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1560,7 +1559,6 @@ export default function CatalogsManagement() {
           <TabsTrigger value="repartidores">Repartidores</TabsTrigger>
           <TabsTrigger value="tipos_direccion">Tipos de Dirección</TabsTrigger>
           <TabsTrigger value="email_groups">Grupos de Correo</TabsTrigger>
-          <TabsTrigger value="whatsapp_templates">Plantillas WhatsApp</TabsTrigger>
           <TabsTrigger value="system_settings">Parámetros</TabsTrigger>
         </TabsList>
         <TabsContent value="plazas"><PlazasTab /></TabsContent>
@@ -1574,7 +1572,6 @@ export default function CatalogsManagement() {
         <TabsContent value="repartidores"><RepartidoresTab /></TabsContent>
         <TabsContent value="tipos_direccion"><TiposDireccionTab /></TabsContent>
         <TabsContent value="email_groups"><EmailGroupsTab /></TabsContent>
-        <TabsContent value="whatsapp_templates"><WhatsAppTemplatesTab /></TabsContent>
         <TabsContent value="system_settings"><SystemSettingsTab /></TabsContent>
       </Tabs>
     </div>
