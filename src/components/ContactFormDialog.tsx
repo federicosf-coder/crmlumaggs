@@ -319,11 +319,14 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {isEdit && (
-            <div className="px-6 py-2 bg-background/95 backdrop-blur border-b flex items-center justify-between gap-3 shrink-0">
-              <AutosaveIndicator status={autosave.status} />
+            <div className="px-6 py-2 bg-background/95 backdrop-blur border-b flex items-center gap-2 shrink-0">
               <Button type="submit" size="sm" disabled={saving}>
                 {saving ? "Guardando..." : "Guardar cambios"}
               </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => { reset(); onOpenChange(false); }}>
+                Cancelar
+              </Button>
+              <div className="ml-auto"><AutosaveIndicator status={autosave.status} /></div>
             </div>
           )}
           <div className="flex-1 min-h-0 overflow-y-auto">
@@ -426,9 +429,12 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
             </div>
           </div>
 
-          <div className="px-6 py-3 border-t bg-background shrink-0">
-            <Button type="submit" className="w-full" disabled={saving}>
+          <div className="px-6 py-3 border-t bg-background shrink-0 flex items-center gap-2">
+            <Button type="submit" disabled={saving}>
               {saving ? "Guardando..." : isEdit ? "Guardar Cambios" : "Crear Contacto"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => { reset(); onOpenChange(false); }}>
+              Cancelar
             </Button>
           </div>
         </form>
