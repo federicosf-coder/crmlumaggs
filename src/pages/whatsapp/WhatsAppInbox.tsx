@@ -23,6 +23,7 @@ type Conversation = {
   unread_count: number;
   status: string;
   business_phone_number_id: string | null;
+  whatsapp_account_id: string | null;
 };
 
 type Message = {
@@ -70,6 +71,7 @@ export default function WhatsAppInbox() {
     const ch = supabase
       .channel("wa-conv")
       .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_conversations" }, load)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "whatsapp_messages" }, load)
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
@@ -101,11 +103,47 @@ export default function WhatsAppInbox() {
   }, []);
 
   const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [activeId, conversations]);
+
+  // Cuenta seleccionada (id de whatsapp_accounts)
+  const selectedAccount = useMemo(
+    () => accounts.find((a) => a.business_phone_number_id === selectedPhoneId) ?? null,
+    [accounts, selectedPhoneId],
+  );
   // Conversaciones filtradas por línea seleccionada
   const filteredConversations = useMemo(() => {
     if (!selectedPhoneId) return conversations;
     return conversations.filter((c) => c.business_phone_number_id === selectedPhoneId);
   }, [conversations, selectedPhoneId]);
+
+  // Realtime global por cuenta seleccionada — refresca el chat activo si llega un
+  // mensaje nuevo para esta línea (Maggs o Chevron) aunque no sea la conversación abierta.
+  useEffect(() => {
+    if (!selectedAccount) return;
+    const ch = supabase
+      .channel(`wa-msg-account-${selectedAccount.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "whatsapp_messages",
+          filter: `whatsapp_account_id=eq.${selectedAccount.id}`,
+        },
+        () => {
+          // refresca lista de conversaciones para reflejar preview/unread
+          supabase
+            .from("whatsapp_conversations")
+            .select("*")
+            .order("last_inbound_at", { ascending: false, nullsFirst: false })
+            .limit(200)
+            .then(({ data }) => setConversations((data ?? []) as Conversation[]));
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [selectedAccount]);
 
   // Si la conversación activa ya no pertenece al inbox seleccionado, se deselecciona
   useEffect(() => {
