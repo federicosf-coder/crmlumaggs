@@ -68,6 +68,21 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
     },
   });
 
+  const { data: dealPipeline } = useQuery({
+    queryKey: ["crm-pipeline-marca", deal?.pipeline_id],
+    enabled: !!deal?.pipeline_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("crm_pipelines")
+        .select("marca")
+        .eq("id", deal!.pipeline_id)
+        .maybeSingle();
+      return data;
+    },
+  });
+  const empresaVendedora =
+    dealPipeline?.marca === "phillips66" ? "galsa_phillips66" : "lumaggs_chevron";
+
   useEffect(() => {
     if (deal && editing) {
       setEditTitle(deal.title);
@@ -219,7 +234,15 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
 
               {/* === Documentos Venta === */}
               <TabsContent value="documentos" className="mt-4">
-                <DealDocumentsTab dealId={deal.id} />
+                <DealDocumentsTab
+                  dealId={deal.id}
+                  empresaId={deal.company_id ?? null}
+                  contactoId={deal.contact_id ?? null}
+                  empresaVendedora={empresaVendedora}
+                  negocioCrm={deal.title}
+                  ownerId={deal.owner_id ?? deal.created_by ?? null}
+                  notas={deal.notes ?? null}
+                />
               </TabsContent>
 
               {/* === Seguimiento === */}
