@@ -69,11 +69,17 @@ const TWO_DIGIT_LADAS = new Set(["33", "55", "56", "81"]);
  * - Sólo conserva '+' inicial y dígitos.
  */
 function formatPhoneProgressive(raw: string): string {
-  if (!raw) return "";
-  const hasPlus = raw.trim().startsWith("+");
-  const digits = raw.replace(/\D/g, "");
-  if (!hasPlus) return digits;
-  if (!digits) return "+";
+  if (!raw) return "+52";
+  const trimmed = raw.trim();
+  const hasPlus = trimmed.startsWith("+");
+  let digits = raw.replace(/\D/g, "");
+  // Si el usuario no escribió '+', asumimos México y prefijamos 52
+  if (!hasPlus) {
+    if (!digits) return "+52";
+    if (!digits.startsWith("52")) digits = "52" + digits;
+  } else if (!digits) {
+    return "+";
+  }
 
   // México: si los primeros 2 dígitos son "52"
   if (digits.startsWith("52")) {
