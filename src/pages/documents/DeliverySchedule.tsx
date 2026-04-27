@@ -856,18 +856,18 @@ export default function DeliverySchedule() {
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Header */}
       <div className="px-4 py-3 border-b shrink-0 space-y-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Planeación de Entregas</h1>
-            <p className="text-muted-foreground text-xs">Arrastra pedidos del pool a las rutas para programarlos</p>
-          </div>
-          <div className="flex gap-2">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
             <Button onClick={() => setNewRouteOpen(true)}>
               <Plus className="h-4 w-4 mr-1" /> Nueva Ruta
             </Button>
             <Button variant="outline" onClick={() => navigate("/documents")}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Documentos
             </Button>
+          </div>
+          <div className="text-right">
+            <h1 className="text-xl font-bold text-foreground">Planeación de Entregas</h1>
+            <p className="text-muted-foreground text-xs">Arrastra pedidos del pool a las rutas para programarlos</p>
           </div>
         </div>
         {/* Plaza filter chips + pool toggle + view toggle */}
