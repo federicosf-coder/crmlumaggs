@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Kanban, ArrowLeft, Trash2, GripVertical } from "lucide-react";
+import { Plus, Kanban, Trash2, GripVertical } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 const DEFAULT_COLORS = ["#3b82f6", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#6366f1", "#ec4899", "#14b8a6"];
 
@@ -151,11 +152,10 @@ export default function CrmPipeline() {
   if (!pipelinesLoading && (!pipelines || pipelines.length === 0)) {
     return (
       <div className="space-y-6">
-        <PageBanner title={`${typeLabel} — ${brandLabel}`} description="Gestiona tus embudos de ventas.">
-          <Button variant="outline" onClick={() => navigate(`/crm/${marca}`)}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Volver
-          </Button>
-        </PageBanner>
+        <div className="flex items-center gap-2">
+          <BackButton fallback="/crm" />
+        </div>
+        <PageBanner title={`${typeLabel} — ${brandLabel}`} description="Gestiona tus embudos de ventas." />
         <div className="flex flex-col items-center justify-center py-24">
           <Kanban className="h-16 w-16 text-muted-foreground/40 mb-4" />
           <h2 className="text-2xl font-bold mb-2">Sin Pipeline</h2>
@@ -228,16 +228,13 @@ export default function CrmPipeline() {
 
   return (
     <div className="space-y-6">
-      <PageBanner title={`${typeLabel} — ${brandLabel}`} description="Arrastra negocios entre etapas para actualizar su progreso.">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate(`/crm/${marca}`)}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Volver
-          </Button>
-          <Button onClick={() => { setCreateStageId(stages?.[0]?.id); setCreateOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" /> Nuevo Negocio
-          </Button>
-        </div>
-      </PageBanner>
+      <div className="flex items-center gap-2 flex-wrap">
+        <BackButton fallback="/crm" />
+        <Button onClick={() => { setCreateStageId(stages?.[0]?.id); setCreateOpen(true); }}>
+          <Plus className="h-4 w-4 mr-2" /> Nuevo Negocio
+        </Button>
+      </div>
+      <PageBanner title={`${typeLabel} — ${brandLabel}`} description="Arrastra negocios entre etapas para actualizar su progreso." />
 
       {/* Switch primera vs recompra dentro del propio pipeline */}
       <div className="flex flex-wrap gap-1 rounded-full bg-secondary p-1 w-fit">
