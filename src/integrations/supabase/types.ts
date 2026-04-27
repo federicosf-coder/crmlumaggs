@@ -3039,6 +3039,7 @@ export type Database = {
           updated_at: string
           wa_phone: string
           wa_profile_name: string | null
+          whatsapp_account_id: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -3054,6 +3055,7 @@ export type Database = {
           updated_at?: string
           wa_phone: string
           wa_profile_name?: string | null
+          whatsapp_account_id?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -3069,6 +3071,7 @@ export type Database = {
           updated_at?: string
           wa_phone?: string
           wa_profile_name?: string | null
+          whatsapp_account_id?: string | null
         }
         Relationships: [
           {
@@ -3076,6 +3079,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversations_whatsapp_account_id_fkey"
+            columns: ["whatsapp_account_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -3184,6 +3194,7 @@ export type Database = {
           template_name: string | null
           wa_id: string | null
           wa_profile_name: string | null
+          whatsapp_account_id: string | null
         }
         Insert: {
           business_phone_number_id?: string | null
@@ -3202,6 +3213,7 @@ export type Database = {
           template_name?: string | null
           wa_id?: string | null
           wa_profile_name?: string | null
+          whatsapp_account_id?: string | null
         }
         Update: {
           business_phone_number_id?: string | null
@@ -3220,6 +3232,7 @@ export type Database = {
           template_name?: string | null
           wa_id?: string | null
           wa_profile_name?: string | null
+          whatsapp_account_id?: string | null
         }
         Relationships: [
           {
@@ -3234,6 +3247,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_whatsapp_account_id_fkey"
+            columns: ["whatsapp_account_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_accounts"
             referencedColumns: ["id"]
           },
         ]
