@@ -80,6 +80,7 @@ export default function WhatsAppSettings() {
       .eq("status", "APPROVED")
       .then(({ data }) => setTemplates((data ?? []) as Template[]));
     loadQR();
+    loadAccounts();
   }, []);
 
   const loadQR = async () => {
@@ -88,6 +89,41 @@ export default function WhatsAppSettings() {
       .select("*")
       .order("shortcut", { ascending: true });
     setQuickReplies((data ?? []) as QuickReply[]);
+  };
+
+  const loadAccounts = async () => {
+    const { data } = await supabase
+      .from("whatsapp_accounts")
+      .select("*")
+      .order("label", { ascending: true });
+    setAccounts((data ?? []) as WhatsAppAccount[]);
+  };
+
+  const saveAccount = async () => {
+    if (!acctDraft.label?.trim() || !acctDraft.business_phone_number_id?.trim()) {
+      toast.error("Etiqueta y phone_number_id son obligatorios");
+      return;
+    }
+    const payload = {
+      label: acctDraft.label!.trim(),
+      business_phone_number_id: acctDraft.business_phone_number_id!.trim(),
+      color: acctDraft.color || "#10b981",
+      display_phone: acctDraft.display_phone?.trim() || null,
+      is_active: acctDraft.is_active ?? true,
+    };
+    const { error } = acctDraft.id
+      ? await supabase.from("whatsapp_accounts").update(payload).eq("id", acctDraft.id)
+      : await supabase.from("whatsapp_accounts").insert(payload);
+    if (error) return toast.error(error.message);
+    toast.success("Cuenta guardada");
+    setAcctDraft({ label: "", business_phone_number_id: "", color: "#10b981", display_phone: "", is_active: true });
+    loadAccounts();
+  };
+
+  const delAccount = async (id: string) => {
+    const { error } = await supabase.from("whatsapp_accounts").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    loadAccounts();
   };
 
   const updateDay = (day: keyof BusinessHours, patch: Partial<DaySetting>) => {
