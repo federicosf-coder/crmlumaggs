@@ -319,7 +319,7 @@ export default function CrmPipeline() {
       {isLoading ? (
         <div className="flex gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-[500px] w-[280px] flex-shrink-0" />
+            <Skeleton key={i} className="h-[500px] w-[168px] flex-shrink-0" />
           ))}
         </div>
       ) : stages && stages.length > 0 ? (
