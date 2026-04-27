@@ -2436,6 +2436,7 @@ export type Database = {
           estatus: string | null
           fecha_entrega: string
           id: string
+          km_recorridos: number | null
           plaza_id: string
           repartidor_id: string
           ruta_finished_at: string | null
@@ -2454,6 +2455,7 @@ export type Database = {
           estatus?: string | null
           fecha_entrega: string
           id?: string
+          km_recorridos?: number | null
           plaza_id: string
           repartidor_id: string
           ruta_finished_at?: string | null
@@ -2472,6 +2474,7 @@ export type Database = {
           estatus?: string | null
           fecha_entrega?: string
           id?: string
+          km_recorridos?: number | null
           plaza_id?: string
           repartidor_id?: string
           ruta_finished_at?: string | null
