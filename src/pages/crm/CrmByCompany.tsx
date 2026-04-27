@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Building2, Search, Briefcase, Activity as ActivityIcon } from "lucide-react";
+import { Building2, Search, Briefcase, Activity as ActivityIcon } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { fetchAllRows } from "@/lib/supabasePagination";
 
 export default function CrmByCompany() {
@@ -84,16 +85,14 @@ export default function CrmByCompany() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Building2 className="h-7 w-7" /> CRM por Empresa
-          </h1>
-          <p className="text-muted-foreground mt-1">Resumen de negocios y actividad por cliente</p>
-        </div>
-        <Button variant="outline" onClick={() => navigate("/crm")}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Volver al CRM
-        </Button>
+      <div className="flex items-center gap-2">
+        <BackButton fallback="/crm" label="Volver al CRM" />
+      </div>
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Building2 className="h-7 w-7" /> CRM por Empresa
+        </h1>
+        <p className="text-muted-foreground mt-1">Resumen de negocios y actividad por cliente</p>
       </div>
 
       <div className="relative max-w-md">
