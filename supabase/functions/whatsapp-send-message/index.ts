@@ -48,7 +48,9 @@ Deno.serve(async (req) => {
     const text = body?.text as string | undefined;
     const templateName = body?.template_name as string | undefined;
     const templateLanguage = (body?.template_language as string | undefined) || "es_MX";
-    const templateComponents = body?.template_components as unknown[] | undefined;
+    let templateComponents = body?.template_components as unknown[] | undefined;
+    // Nuevo: variables nombradas { nombre_cliente: "...", folio_cotizacion: "..." }
+    const templateVariables = body?.template_variables as Record<string, string | number> | undefined;
     const explicitPhoneId = (body?.business_phone_number_id as string | undefined)?.trim() || null;
 
     if (!toPhone) return json({ error: "to_phone requerido" }, 400);
@@ -56,15 +58,46 @@ Deno.serve(async (req) => {
     if (kind === "text" && !text) return json({ error: "text requerido" }, 400);
     if (kind === "template" && !templateName) return json({ error: "template_name requerido" }, 400);
 
-    // Validar que las variables del template estén completas antes de llamar a Meta
+    // Si vienen variables nombradas, construir `template_components` desde variable_map.
+    // Esto evita el error #132000 (number of parameters doesn't match).
     if (kind === "template") {
       const { data: tplRow } = await admin
         .from("whatsapp_templates")
-        .select("body")
+        .select("body, variable_map")
         .eq("name", templateName)
+        .eq("language", templateLanguage)
         .maybeSingle();
-      const body = (tplRow?.body as string | null) ?? "";
-      const matches = body.match(/\{\{\s*(\d+)\s*\}\}/g) || [];
+
+      const tplBody = (tplRow?.body as string | null) ?? "";
+      const variableMap: string[] = Array.isArray(tplRow?.variable_map)
+        ? (tplRow!.variable_map as string[])
+        : [];
+
+      // Si se enviaron variables nombradas, armamos componentes en el orden del map.
+      if (templateVariables && variableMap.length > 0 && !templateComponents) {
+        const missing = variableMap.filter((k) => {
+          const v = templateVariables[k];
+          return v === undefined || v === null || v === "";
+        });
+        if (missing.length > 0) {
+          return json(
+            {
+              error: `Faltan variables para la plantilla "${templateName}": ${missing.join(", ")}`,
+              missing,
+            },
+            400,
+          );
+        }
+        templateComponents = [
+          {
+            type: "body",
+            parameters: variableMap.map((k) => ({ type: "text", text: String(templateVariables[k]) })),
+          },
+        ];
+      }
+
+      // Validación final: número de parámetros debe coincidir con {{n}} máximo del body.
+      const matches = tplBody.match(/\{\{\s*(\d+)\s*\}\}/g) || [];
       const expected = matches.reduce((max, m) => {
         const n = parseInt(m.replace(/[^\d]/g, ""), 10);
         return !Number.isNaN(n) && n > max ? n : max;
@@ -74,10 +107,12 @@ Deno.serve(async (req) => {
           (c: any) => String(c?.type ?? "").toLowerCase() === "body",
         ) as any;
         const params: any[] = bodyComp?.parameters ?? [];
-        if (params.length < expected) {
+        if (params.length !== expected) {
           return json(
             {
               error: `La plantilla "${templateName}" requiere ${expected} variable(s) y se recibieron ${params.length}.`,
+              expected,
+              received: params.length,
             },
             400,
           );

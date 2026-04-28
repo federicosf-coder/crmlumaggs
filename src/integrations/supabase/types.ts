@@ -3458,8 +3458,10 @@ export type Database = {
           last_synced_at: string | null
           meta_template_id: string | null
           name: string
+          source_body: string | null
           status: string
           updated_at: string
+          variable_map: Json
           waba_id: string | null
         }
         Insert: {
@@ -3473,8 +3475,10 @@ export type Database = {
           last_synced_at?: string | null
           meta_template_id?: string | null
           name: string
+          source_body?: string | null
           status?: string
           updated_at?: string
+          variable_map?: Json
           waba_id?: string | null
         }
         Update: {
@@ -3488,8 +3492,10 @@ export type Database = {
           last_synced_at?: string | null
           meta_template_id?: string | null
           name?: string
+          source_body?: string | null
           status?: string
           updated_at?: string
+          variable_map?: Json
           waba_id?: string | null
         }
         Relationships: []
