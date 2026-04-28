@@ -255,7 +255,17 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
           {editing ? (
             <div className="space-y-4">
               <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Valor</Label><Input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>Potencial Unidades</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  placeholder="Unidades manuales"
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Plaza <span className="text-destructive">*</span></Label>
                 <Select value={editPlazaId} onValueChange={setEditPlazaId}>
@@ -299,11 +309,15 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                 <Select value={editPipelineId} onValueChange={setEditPipelineId}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar pipeline" /></SelectTrigger>
                   <SelectContent>
-                    {(availablePipelines || []).map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.marca === "phillips66" ? "Phillips 66" : "Chevron"} · {p.nombre}
-                      </SelectItem>
-                    ))}
+                    {(availablePipelines || []).map((p: any) => {
+                      const tipoLabel = p.pipeline_type === "recompra" ? "Recompra" : "1ra Compra";
+                      const marcaLabel = p.marca === "phillips66" ? "Phillips 66" : "Chevron";
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
+                          {tipoLabel} · {marcaLabel} · {p.nombre}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 {editPipelineId && editPipelineId !== deal.pipeline_id && (
