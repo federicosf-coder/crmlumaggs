@@ -2,11 +2,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ShoppingCart, FileText, Package, Truck, BookOpen,
-  ArrowLeftRight, FolderKanban, Search, GraduationCap, Receipt, BarChart3,
+  ArrowLeftRight, FolderKanban, Search, GraduationCap, Receipt, BarChart3, LayoutDashboard,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const modules = [
+  { title: "Portal del Vendedor", description: "Centro de control diario", icon: LayoutDashboard, url: "/seller-portal", color: "bg-primary" },
   { title: "Directorio", description: "Empresas y contactos", icon: BookOpen, url: "/directory", color: "bg-primary" },
   { title: "CRM", description: "Ventas Chevron y Phillips 66", icon: ShoppingCart, url: "/crm", color: "bg-primary" },
   { title: "Documentos", description: "Cotizaciones, pedidos y facturas", icon: FileText, url: "/documents", color: "bg-primary" },
