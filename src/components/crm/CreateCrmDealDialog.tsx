@@ -248,7 +248,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
         potencial_unidades: parseFloat(value) || null,
         volumen_mensual_estimado: parseFloat(value) || null,
         close_date: closeDate || null,
-        notes: notes || null,
+        notes: notes.trim() ? notes.trim() : null,
       } as any,
       {
         onSuccess: async () => {
