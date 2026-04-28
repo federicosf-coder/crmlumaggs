@@ -462,12 +462,27 @@ export default function SellerPortal() {
       </div>
 
       {/* Fila 2: Documentos y facturación */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard title="Cotizaciones" value={cotizaciones.length} sub={`${fmtMoney(sum(cotizaciones, "total"))} · ${fmtNum(sum(cotizaciones, "unidades_equivalentes_total"))} u`} icon={FileText} color="bg-blue-500" />
         <KpiCard title="Pedidos" value={pedidos.length} sub={`${fmtMoney(sum(pedidos, "total"))} · ${fmtNum(sum(pedidos, "unidades_equivalentes_total"))} u`} icon={ShoppingCart} color="bg-blue-700" />
         <KpiCard title="Facturas" value={facturas.length} sub={`${fmtMoney(sum(facturas, "total"))}`} icon={Receipt} color="bg-indigo-600" />
-        <KpiCard title="Total facturado (unid.)" value={fmtNum(unidadesFacturadas)} sub="unidades equivalentes" icon={Target} color="bg-indigo-500" />
-        <KpiCard title="Total facturado $" value={fmtMoney(totalFacturado)} sub={`${facturas.length} facturas`} icon={Receipt} color="bg-indigo-700" />
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Total facturado</p>
+                <div className="mt-1 space-y-0.5">
+                  <p className="text-lg font-bold leading-tight">{fmtNum(unidadesFacturadas)} <span className="text-xs font-normal text-muted-foreground">u eq.</span></p>
+                  <p className="text-lg font-bold leading-tight">{fmtMoney(totalFacturado)}</p>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{facturas.length} facturas</p>
+              </div>
+              <div className="p-2 rounded-md shrink-0 bg-indigo-700">
+                <Receipt className="h-4 w-4 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Fila 3: Cobranza */}
@@ -502,9 +517,9 @@ export default function SellerPortal() {
         </Card>
       </div>
 
-      {/* Mi día */}
+      {/* Mi día - Terminadas en periodo */}
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Mi día · Tareas y Actividades</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Mi día - Terminadas en periodo ({tasksCompletadasPeriodo.length})</CardTitle></CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -512,14 +527,48 @@ export default function SellerPortal() {
                 <TableRow>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Tarea</TableHead>
-                  <TableHead>Vence</TableHead>
+                  <TableHead>Completada</TableHead>
                   <TableHead>Estatus</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {misTareasHoy.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin tareas para hoy</TableCell></TableRow>}
-                {misTareasHoy.map(t => {
+                {tasksCompletadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin terminadas en el periodo</TableCell></TableRow>}
+                {tasksCompletadasPeriodo.map(t => (
+                  <TableRow key={t.id}>
+                    <TableCell className="font-medium text-sm">{companyMap[t.company_id] || "—"}</TableCell>
+                    <TableCell className="text-sm">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
+                    <TableCell className="text-xs">{t.updated_at ? format(new Date(t.updated_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
+                    <TableCell><Badge variant="outline" className="bg-green-100 text-green-800">Completada</Badge></TableCell>
+                    <TableCell className="text-right space-x-1">
+                      {t.deal_id && <Button size="sm" variant="ghost" asChild><Link to="/crm"><ExternalLink className="h-3.5 w-3.5" /></Link></Button>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Creadas en periodo */}
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Tarea</TableHead>
+                  <TableHead>Creada</TableHead>
+                  <TableHead>Estatus</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin creadas en el periodo</TableCell></TableRow>}
+                {tasksCreadasPeriodo.map(t => {
                   const venc = t.due_date ? new Date(t.due_date) : null;
                   const isVenc = venc && !t.completed && venc < todayStart;
                   const statusColor = t.completed ? "bg-green-100 text-green-800" : isVenc ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800";
@@ -528,7 +577,7 @@ export default function SellerPortal() {
                     <TableRow key={t.id}>
                       <TableCell className="font-medium text-sm">{companyMap[t.company_id] || "—"}</TableCell>
                       <TableCell className="text-sm">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
-                      <TableCell className="text-xs">{venc ? format(venc, "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
+                      <TableCell className="text-xs">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
                       <TableCell><Badge variant="outline" className={statusColor}>{statusText}</Badge></TableCell>
                       <TableCell className="text-right space-x-1">
                         {!t.completed && <Button size="sm" variant="ghost" onClick={() => completarTarea(t.id)}><CheckCircle2 className="h-3.5 w-3.5" /></Button>}
@@ -543,46 +592,6 @@ export default function SellerPortal() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Tareas/Actividades: Terminadas vs Creadas en periodo */}
-      <div className="grid md:grid-cols-2 gap-3">
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Terminadas en periodo ({tasksCompletadasPeriodo.length})</CardTitle></CardHeader>
-          <CardContent className="p-0 max-h-[280px] overflow-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tarea</TableHead><TableHead>Completada</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {tasksCompletadasPeriodo.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Sin completadas</TableCell></TableRow>}
-                {tasksCompletadasPeriodo.map(t => (
-                  <TableRow key={t.id}>
-                    <TableCell className="text-sm">{companyMap[t.company_id] || "—"}</TableCell>
-                    <TableCell className="text-sm">{t.title}</TableCell>
-                    <TableCell className="text-xs">{t.updated_at ? format(new Date(t.updated_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle></CardHeader>
-          <CardContent className="p-0 max-h-[280px] overflow-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tarea</TableHead><TableHead>Creada</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Sin nuevas</TableCell></TableRow>}
-                {tasksCreadasPeriodo.map(t => (
-                  <TableRow key={t.id}>
-                    <TableCell className="text-sm">{companyMap[t.company_id] || "—"}</TableCell>
-                    <TableCell className="text-sm">{t.title}</TableCell>
-                    <TableCell className="text-xs">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Tabs detalle */}
       <Tabs defaultValue="prospectos">
