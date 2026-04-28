@@ -51,6 +51,18 @@ export default function SellerPortal() {
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
   const [bucketActivo, setBucketActivo] = useState<"1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
+  // Límites de visualización por lista (10 / 25 / "all")
+  type PageLimit = "10" | "25" | "all";
+  const [limTerminadas, setLimTerminadas] = useState<PageLimit>("10");
+  const [limCreadas, setLimCreadas] = useState<PageLimit>("10");
+  const [limProspectos, setLimProspectos] = useState<PageLimit>("10");
+  const [limCotizaciones, setLimCotizaciones] = useState<PageLimit>("10");
+  const [limPedidos, setLimPedidos] = useState<PageLimit>("10");
+  const [limFacturas, setLimFacturas] = useState<PageLimit>("10");
+  const [limCobranza, setLimCobranza] = useState<PageLimit>("10");
+
+  const applyLimit = <T,>(arr: T[], lim: PageLimit): T[] => (lim === "all" ? arr : arr.slice(0, parseInt(lim, 10)));
+
   // Helpers de marca
   const marcasSeleccionadas = useMemo(() => {
     const arr: ("lumaggs_chevron" | "galsa_phillips66")[] = [];
