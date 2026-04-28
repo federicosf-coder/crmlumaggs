@@ -370,32 +370,42 @@ export default function SellerPortal() {
     return unique.sort((a: any, b: any) => b.dias_vencidos - a.dias_vencidos);
   }, [facturasVencidasAll, facturasPorVencer]);
 
-  // Conversiones por tipo de pipeline
+  // Conversiones por tipo de pipeline.
+  // Regla: contar CLIENTES ÚNICOS (company_id) — no deals duplicados ni documentos.
   const dealsNuevos = deals.filter(d => d.pipeline_type === "primera_compra");
   const dealsRecompra = deals.filter(d => d.pipeline_type === "recompra");
 
   const sumDealsField = (arr: any[], key: string) => arr.reduce((a, b) => a + Number(b[key] || 0), 0);
-  const convNuevos = {
-    activos: dealsNuevos.length,
-    cotizados: dealsNuevos.filter(d => Number(d.cotizado_unidades) > 0).length,
-    pedidos: dealsNuevos.filter(d => Number(d.pedido_unidades) > 0).length,
-    facturados: dealsNuevos.filter(d => Number(d.facturado_unidades) > 0).length,
-    uCot: sumDealsField(dealsNuevos, "cotizado_unidades"),
-    uPed: sumDealsField(dealsNuevos, "pedido_unidades"),
-    uFac: sumDealsField(dealsNuevos, "facturado_unidades"),
-  };
-  const convRecompra = {
-    activos: dealsRecompra.length,
-    cotizados: dealsRecompra.filter(d => Number(d.cotizado_unidades) > 0).length,
-    pedidos: dealsRecompra.filter(d => Number(d.pedido_unidades) > 0).length,
-    facturados: dealsRecompra.filter(d => Number(d.facturado_unidades) > 0).length,
-    uCot: sumDealsField(dealsRecompra, "cotizado_unidades"),
-    uPed: sumDealsField(dealsRecompra, "pedido_unidades"),
-    uFac: sumDealsField(dealsRecompra, "facturado_unidades"),
+
+  // Helper único: métricas de conversión por clientes únicos
+  const buildConv = (dealsArr: any[]) => {
+    const companyIds = new Set(dealsArr.map(d => d.company_id).filter(Boolean));
+    const docsDeClientes = (tipo: string) =>
+      docs.filter(d =>
+        d.tipo_documento === tipo &&
+        (tipo !== "factura" || d.estatus_factura !== "cancelada") &&
+        companyIds.has(d.empresa_id)
+      );
+    const distinctEmpresas = (rows: any[]) =>
+      new Set(rows.map(r => r.empresa_id).filter(Boolean)).size;
+
+    return {
+      activos: companyIds.size, // clientes únicos activos en el pipeline
+      cotizados: distinctEmpresas(docsDeClientes("cotizacion")),
+      pedidos: distinctEmpresas(docsDeClientes("pedido")),
+      facturados: distinctEmpresas(docsDeClientes("factura")),
+      uCot: sumDealsField(dealsArr, "cotizado_unidades"),
+      uPed: sumDealsField(dealsArr, "pedido_unidades"),
+      uFac: sumDealsField(dealsArr, "facturado_unidades"),
+    };
   };
 
-  const clientesNuevosCompraron = new Set(facturas.filter(f => dealsNuevos.some(d => d.company_id === f.empresa_id)).map(f => f.empresa_id)).size;
-  const clientesRecompraCompraron = new Set(facturas.filter(f => dealsRecompra.some(d => d.company_id === f.empresa_id)).map(f => f.empresa_id)).size;
+  const convNuevos = buildConv(dealsNuevos);
+  const convRecompra = buildConv(dealsRecompra);
+
+  // KPIs derivados de la misma base que las barras "Facturados"
+  const clientesNuevosCompraron = convNuevos.facturados;
+  const clientesRecompraCompraron = convRecompra.facturados;
 
   // KPIs adicionales
   const clientesConCompra = new Set(facturas.map(f => f.empresa_id).filter(Boolean)).size;
