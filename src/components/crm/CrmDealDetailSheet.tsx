@@ -78,10 +78,18 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   const { data: allContacts } = useQuery({
-    queryKey: ["contacts-picker"],
+    queryKey: ["contacts-picker-with-company"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name").eq("is_active", true).order("first_name");
-      return data || [];
+      const rows = await fetchAllRows<{ id: string; first_name: string; last_name: string; company_id: string | null }>(
+        (from, to) =>
+          supabase
+            .from("contacts")
+            .select("id, first_name, last_name, company_id")
+            .eq("is_active", true)
+            .order("first_name")
+            .range(from, to)
+      );
+      return rows;
     },
   });
   const { data: allCompanies } = useQuery({
