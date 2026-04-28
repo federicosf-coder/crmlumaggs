@@ -55,6 +55,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const [editCompanyId, setEditCompanyId] = useState("");
   const [editOwnerId, setEditOwnerId] = useState("");
   const [editPipelineId, setEditPipelineId] = useState("");
+  const [editPlazaId, setEditPlazaId] = useState("");
   const [activityTitle, setActivityTitle] = useState("");
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
@@ -93,6 +94,18 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
     },
     staleTime: 60_000,
   });
+
+  const { data: plazas } = useQuery({
+    queryKey: ["plazas-picker"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre");
+      return data || [];
+    },
+    staleTime: 5 * 60_000,
+  });
+  const plazaName = (deal as any)?.plaza_id
+    ? plazas?.find((p: any) => p.id === (deal as any).plaza_id)?.nombre || null
+    : null;
   const ownerName = deal?.owner_id
     ? ejecutivos?.find((e: any) => e.user_id === deal.owner_id)?.full_name || null
     : null;
@@ -154,6 +167,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
       setEditCompanyId(deal.company_id || "");
       setEditOwnerId(deal.owner_id || "");
       setEditPipelineId(deal.pipeline_id || "");
+      setEditPlazaId((deal as any).plaza_id || "");
     }
   }, [deal, editing]);
 
@@ -199,6 +213,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
         stage_id: nextStageId,
         contact_id: editContactId || null, company_id: editCompanyId || null,
         owner_id: editOwnerId || null,
+        plaza_id: editPlazaId || null,
       },
       { onSuccess: () => { toast({ title: "Negocio actualizado" }); setEditing(false); } }
     );
@@ -230,6 +245,17 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
             <div className="space-y-4">
               <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></div>
               <div className="space-y-2"><Label>Valor</Label><Input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>Plaza <span className="text-destructive">*</span></Label>
+                <Select value={editPlazaId} onValueChange={setEditPlazaId}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar plaza" /></SelectTrigger>
+                  <SelectContent>
+                    {(plazas || []).map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label>Ejecutivo</Label>
                 <Select value={editOwnerId} onValueChange={setEditOwnerId}>
@@ -355,6 +381,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                 {deal.companies && <div className="text-sm"><span className="text-muted-foreground">Empresa</span><p className="font-medium">{deal.companies.name}</p></div>}
                 {deal.contacts && <div className="text-sm"><span className="text-muted-foreground">Contacto</span><p className="font-medium">{deal.contacts.first_name} {deal.contacts.last_name}</p></div>}
                 {ownerName && <div className="text-sm"><span className="text-muted-foreground">Ejecutivo</span><p className="font-medium">{ownerName}</p></div>}
+                {plazaName && <div className="text-sm"><span className="text-muted-foreground">Plaza</span><p className="font-medium">{plazaName}</p></div>}
                 {deal.notes && <div className="text-sm"><span className="text-muted-foreground">Notas</span><p className="mt-1 whitespace-pre-wrap">{deal.notes}</p></div>}
 
                 <Separator />
