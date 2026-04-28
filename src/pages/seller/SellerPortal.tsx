@@ -185,10 +185,44 @@ export default function SellerPortal() {
         .filter((f: any) => Number(f.saldo_pendiente_cobranza) > 0);
       console.log("[FacturasPorVencer]", { recibidas: fpvRaw?.length || 0, conSaldo: fpvData.length });
 
-      // Facturas vencidas (<= hoy) con saldo > 0 — para KPIs de cobranza
-      let venQ = supabase.from("documentos").select("id, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).lte("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
+      // Facturas vencidas (fecha_vencimiento <= max(hoy, fin del periodo))
+      // Excluye canceladas y pagadas. Recalcula saldo real con cobranza_aplicaciones.
+      const fechaCorte = todayIso > toDate ? todayIso : toDate;
+      let venQ = supabase.from("documentos")
+        .select("id, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza, estatus_factura, ejecutivo_venta_id, created_by")
+        .eq("tipo_documento", "factura")
+        .eq("is_active", true)
+        .neq("estatus_factura", "cancelada")
+        .neq("estatus_factura", "pagada")
+        .lte("fecha_vencimiento", fechaCorte)
+        .in("empresa_vendedora", marcasSeleccionadas as any)
+        .or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`)
+        .limit(2000);
       if (plazaId !== "all") venQ = venQ.eq("plaza_id", plazaId);
-      const { data: venData } = await venQ;
+      const { data: venRaw } = await venQ;
+
+      const venIds = (venRaw || []).map((f: any) => f.id);
+      const venAplicMap: Record<string, number> = {};
+      if (venIds.length) {
+        const { data: aplics } = await supabase
+          .from("cobranza_aplicaciones")
+          .select("documento_id, monto_aplicado, estatus_aplicacion")
+          .in("documento_id", venIds)
+          .eq("estatus_aplicacion", "activa");
+        (aplics || []).forEach((a: any) => {
+          venAplicMap[a.documento_id] = (venAplicMap[a.documento_id] || 0) + Number(a.monto_aplicado || 0);
+        });
+      }
+      const venData = (venRaw || [])
+        .map((f: any) => {
+          const aplicado = venAplicMap[f.id] || 0;
+          const saldoCalc = Number(f.total || 0) - aplicado;
+          const saldoFinal = Number(f.saldo_pendiente_cobranza || 0) > 0
+            ? Math.min(Number(f.saldo_pendiente_cobranza), saldoCalc > 0 ? saldoCalc : Number(f.saldo_pendiente_cobranza))
+            : saldoCalc;
+          return { ...f, saldo_pendiente_cobranza: saldoFinal };
+        })
+        .filter((f: any) => Number(f.saldo_pendiente_cobranza) > 0);
 
       // Actividades CRM creadas/realizadas en el periodo (por ejecutivo)
       let actQ = supabase
@@ -299,6 +333,26 @@ export default function SellerPortal() {
   const fxv2 = bucket(6, 10);
   const fxv3 = bucket(11, 20);
   const fxv4 = bucket(21, 30);
+
+  // Lista unificada de cobranza: vencidas + por vencer
+  // diasVencidos = hoy - fecha_vencimiento (positivo = vencida hace X días)
+  const calcDiasVencidos = (fechaVenc: string | null) => {
+    if (!fechaVenc) return 0;
+    return Math.floor((ahora - new Date(fechaVenc).getTime()) / (1000 * 60 * 60 * 24));
+  };
+  const facturasCobranza = useMemo(() => {
+    const combined = [...facturasVencidasAll, ...facturasPorVencer]
+      .map((f: any) => ({ ...f, dias_vencidos: calcDiasVencidos(f.fecha_vencimiento) }));
+    // Eliminar duplicados por id (por si una entra en ambas listas)
+    const seen = new Set<string>();
+    const unique = combined.filter((f: any) => {
+      if (seen.has(f.id)) return false;
+      seen.add(f.id);
+      return true;
+    });
+    // Orden: más vencidas primero (días desc), luego vence hoy, luego por vencer
+    return unique.sort((a: any, b: any) => b.dias_vencidos - a.dias_vencidos);
+  }, [facturasVencidasAll, facturasPorVencer]);
 
   // Conversiones por tipo de pipeline
   const dealsNuevos = deals.filter(d => d.pipeline_type === "primera_compra");
@@ -755,7 +809,92 @@ export default function SellerPortal() {
         </TabsContent>
       </Tabs>
 
-      {/* Facturas por vencer (debajo de los tabs detalle) */}
+      {/* Cobranza: Facturas vencidas y por vencer (listado unificado) */}
+      <Card>
+        <CardHeader className="pb-2 flex-row items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            Facturas vencidas y por vencer
+            <Badge variant="outline" className="ml-2">{facturasCobranza.length}</Badge>
+          </CardTitle>
+          <PageSizeSelect value={limCobranza} onChange={setLimCobranza} total={facturasCobranza.length} onPageReset={() => setPageCobranza(1)} />
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Núm. factura</TableHead>
+                <TableHead>Fecha factura</TableHead>
+                <TableHead>Fecha venc.</TableHead>
+                <TableHead className="text-right">Días vencidos</TableHead>
+                <TableHead className="text-right">Total factura</TableHead>
+                <TableHead className="text-right">Saldo pendiente</TableHead>
+                <TableHead>Ejecutivo</TableHead>
+                <TableHead>Estatus</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {facturasCobranza.length === 0 && (
+                <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">Sin facturas con saldo pendiente</TableCell></TableRow>
+              )}
+              {paginate(facturasCobranza, limCobranza, pageCobranza).map((f: any) => {
+                const dias = f.dias_vencidos as number;
+                const phone = (companyPhoneMap[f.empresa_id]?.phone || "").replace(/[^0-9]/g, "");
+                const ejId = f.ejecutivo_venta_id || f.created_by;
+                const ejNombre = ejId ? (ejecutivoMap[ejId] || "—") : "—";
+                const num = f.numero_factura || f.id.slice(0, 8);
+                const saldoFmt = fmtMoney(Number(f.saldo_pendiente_cobranza || 0));
+                const diasLabel = dias > 0 ? `Vencida hace ${dias} día${dias === 1 ? "" : "s"}`
+                  : dias === 0 ? "Vence hoy"
+                  : `Vence en ${Math.abs(dias)} día${Math.abs(dias) === 1 ? "" : "s"}`;
+                const msg = dias > 0
+                  ? `Hola, buen día. Le compartimos un recordatorio: la factura ${num} por ${saldoFmt} se encuentra vencida desde hace ${dias} día(s). Agradecemos su apoyo para regularizar el pago a la brevedad. Quedamos atentos.`
+                  : dias === 0
+                  ? `Hola, buen día. Le recordamos que la factura ${num} por ${saldoFmt} vence hoy. Agradecemos su apoyo para programar el pago. Quedamos atentos.`
+                  : `Hola, buen día. Le recordamos que la factura ${num} por ${saldoFmt} vence en ${Math.abs(dias)} día(s). Agradecemos su apoyo para programar el pago. Quedamos atentos.`;
+                const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : null;
+                const estatus = dias > 0 ? "Vencida" : dias === 0 ? "Vence hoy" : "Por vencer";
+                const estatusColor = dias > 0
+                  ? "bg-red-100 text-red-800 border-red-300"
+                  : dias === 0
+                  ? "bg-orange-100 text-orange-800 border-orange-300"
+                  : "bg-amber-50 text-amber-800 border-amber-200";
+                const diasColor = dias > 0 ? "text-red-700 font-bold" : dias === 0 ? "text-orange-700 font-bold" : "text-muted-foreground";
+                return (
+                  <TableRow key={f.id} title={diasLabel}>
+                    <TableCell className="text-sm font-medium">{companyMap[f.empresa_id] || "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">{num}</TableCell>
+                    <TableCell className="text-xs">{f.fecha_documento || "—"}</TableCell>
+                    <TableCell className="text-xs">{f.fecha_vencimiento || "—"}</TableCell>
+                    <TableCell className={cn("text-right text-sm", diasColor)}>{dias}</TableCell>
+                    <TableCell className="text-right text-sm">{fmtMoney(Number(f.total))}</TableCell>
+                    <TableCell className="text-right text-sm font-semibold">{saldoFmt}</TableCell>
+                    <TableCell className="text-xs">{ejNombre}</TableCell>
+                    <TableCell><Badge variant="outline" className={cn("text-xs", estatusColor)}>{estatus}</Badge></TableCell>
+                    <TableCell className="text-right space-x-1 whitespace-nowrap">
+                      <Button size="sm" variant="ghost" asChild title="Abrir factura">
+                        <Link to={`/documents/${f.id}`}><ExternalLink className="h-3.5 w-3.5" /></Link>
+                      </Button>
+                      {waUrl ? (
+                        <Button size="sm" variant="ghost" asChild title="Enviar WhatsApp">
+                          <a href={waUrl} target="_blank" rel="noopener noreferrer"><MessageCircle className="h-3.5 w-3.5 text-green-600" /></a>
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="ghost" disabled title="Sin WhatsApp"><MessageCircle className="h-3.5 w-3.5 text-muted-foreground" /></Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <Paginator page={pageCobranza} setPage={setPageCobranza} total={facturasCobranza.length} lim={limCobranza} />
+        </CardContent>
+      </Card>
+
+      {/* Buckets visuales de "por vencer" (mantenidos como vista resumen) */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" /> Facturas por vencer</CardTitle>
