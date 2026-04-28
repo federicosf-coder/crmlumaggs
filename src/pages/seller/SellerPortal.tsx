@@ -637,11 +637,13 @@ export default function SellerPortal() {
         </TabsList>
 
         <TabsContent value="prospectos">
-          <Card><CardContent className="p-0 overflow-x-auto"><Table>
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limProspectos} onChange={setLimProspectos} total={dealsEnRango.length} /></CardHeader>
+            <CardContent className="p-0 overflow-x-auto"><Table>
             <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tipo</TableHead><TableHead>Fecha</TableHead><TableHead className="text-right">Importe</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {dealsEnRango.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Sin prospectos en el rango</TableCell></TableRow>}
-              {dealsEnRango.map(d => (
+              {applyLimit(dealsEnRango, limProspectos).map(d => (
                 <TableRow key={d.id}>
                   <TableCell className="font-medium text-sm">{companyMap[d.company_id] || d.title}</TableCell>
                   <TableCell><Badge variant="outline">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
@@ -656,16 +658,18 @@ export default function SellerPortal() {
         </TabsContent>
 
         {[
-          { key: "cotizaciones", data: cotizaciones, color: "blue" },
-          { key: "pedidos", data: pedidos, color: "indigo" },
-          { key: "facturas", data: facturas, color: "green" },
-        ].map(({ key, data }) => (
+          { key: "cotizaciones", data: cotizaciones, lim: limCotizaciones, setLim: setLimCotizaciones },
+          { key: "pedidos", data: pedidos, lim: limPedidos, setLim: setLimPedidos },
+          { key: "facturas", data: facturas, lim: limFacturas, setLim: setLimFacturas },
+        ].map(({ key, data, lim, setLim }) => (
           <TabsContent value={key} key={key}>
-            <Card><CardContent className="p-0 overflow-x-auto"><Table>
+            <Card>
+              <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={lim} onChange={setLim} total={data.length} /></CardHeader>
+              <CardContent className="p-0 overflow-x-auto"><Table>
               <TableHeader><TableRow><TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estatus</TableHead><TableHead className="text-right">Importe</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
                 {data.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Sin registros</TableCell></TableRow>}
-                {data.map((d: any) => (
+                {applyLimit(data, lim).map((d: any) => (
                   <TableRow key={d.id}>
                     <TableCell className="font-mono text-xs">{docFolio(d)}</TableCell>
                     <TableCell className="text-sm">{companyMap[d.empresa_id] || "—"}</TableCell>
@@ -682,11 +686,13 @@ export default function SellerPortal() {
         ))}
 
         <TabsContent value="cobranza">
-          <Card><CardContent className="p-0 overflow-x-auto"><Table>
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limCobranza} onChange={setLimCobranza} total={pagos.length} /></CardHeader>
+            <CardContent className="p-0 overflow-x-auto"><Table>
             <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estatus</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="text-right">Aplicado</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {pagos.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Sin pagos en el rango</TableCell></TableRow>}
-              {pagos.map(p => (
+              {applyLimit(pagos, limCobranza).map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="text-sm font-medium">{companyMap[p.empresa_id] || "—"}</TableCell>
                   <TableCell className="text-xs">{p.fecha_pago}</TableCell>
