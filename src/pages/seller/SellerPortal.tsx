@@ -533,30 +533,30 @@ export default function SellerPortal() {
       </Card>
 
       {/* KPIs */}
-      {/* Fila 1 — Generación de demanda */}
+      {/* Fila 1 — Demanda y volumen */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <KpiCard title="Prospectos nuevos" value={prospectosNuevosPeriodo} sub="Pipeline 1ª compra" icon={UserPlus} color="bg-blue-600" />
         <KpiCard title="Clientes nuevos que compraron" value={clientesNuevosCompraron} sub="Primera compra" icon={Users} color="bg-emerald-600" />
-        <KpiCard title="Recompras" value={clientesRecompraCompraron} sub="Clientes existentes" icon={RefreshCw} color="bg-purple-600" />
-        <KpiCard title="Facturado (Unidades)" value={fmtNum(unidadesFacturadas)} sub="u. equivalentes" icon={Package} color="bg-indigo-600" />
-        <KpiCard title="Facturado ($)" value={fmtMoney(totalFacturado)} sub={`${facturas.length} facturas`} icon={Receipt} color="bg-indigo-700" />
-      </div>
-
-      {/* Fila 2 — Operación comercial */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <KpiCard title="Pedidos generados" value={pedidos.length} sub={`${fmtMoney(sum(pedidos, "total"))}`} icon={ShoppingCart} color="bg-blue-700" />
-        <KpiCard title="Cotizaciones generadas" value={cotizaciones.length} sub={`${fmtMoney(sum(cotizaciones, "total"))}`} icon={FileText} color="bg-blue-500" />
-        <KpiCard title="Total cobrado" value={fmtMoney(totalCobrado)} sub={`${pagos.length} pagos`} icon={Wallet} color="bg-purple-700" />
-        <KpiCard title="Tareas creadas" value={tasksCreadasPeriodo.length} sub="en el periodo" icon={ListChecks} color="bg-cyan-600" />
-        <KpiCard title="Actividades realizadas" value={actividades.length} sub={`${tasksCompletadasPeriodo.length} tareas terminadas`} icon={Activity} color="bg-green-600" />
-      </div>
-
-      {/* Fila 3 — Calidad y conversión */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <KpiCard title="Clientes con compra" value={clientesConCompra} sub="únicos en periodo" icon={Users} color="bg-emerald-700" />
-        <KpiCard title="Ticket promedio" value={fmtMoney(ticketPromedio)} sub="por factura" icon={TrendingUp} color="bg-amber-600" />
         <KpiCard title="Unidades / cliente" value={fmtNum(unidadesPromedioCliente)} sub="promedio" icon={Package} color="bg-amber-700" />
-        <KpiCard title="% conversión prospectos" value={`${pctConversionProspectos.toFixed(1)}%`} sub={`${clientesNuevosCompraron}/${prospectosNuevosPeriodo}`} icon={Percent} color="bg-teal-600" />
+        <KpiCard title="Facturado (Unidades)" value={fmtNum(unidadesFacturadas)} sub="u. equivalentes" icon={Package} color="bg-indigo-600" />
+      </div>
+
+      {/* Fila 2 — Operación y cobranza */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <KpiCard title="Cotizaciones generadas" value={cotizaciones.length} sub={`${fmtMoney(sum(cotizaciones, "total"))}`} icon={FileText} color="bg-blue-500" />
+        <KpiCard title="Pedidos generados" value={pedidos.length} sub={`${fmtMoney(sum(pedidos, "total"))}`} icon={ShoppingCart} color="bg-blue-700" />
+        <KpiCard title="Facturado ($)" value={fmtMoney(totalFacturado)} sub={`${facturas.length} facturas`} icon={Receipt} color="bg-indigo-700" />
+        <KpiCard title="Total cobrado" value={fmtMoney(totalCobrado)} sub={`${pagos.length} pagos`} icon={Wallet} color="bg-purple-700" />
+        <KpiCard title="Clientes con saldo vencido" value={clientesConSaldoVencido} sub={`${facturasVencidasAll.length} facturas`} icon={AlertTriangle} color="bg-orange-600" />
+      </div>
+
+      {/* Fila 3 — Calidad y tareas */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <KpiCard title="Saldo vencido" value={fmtMoney(saldoVencidoTotal)} sub="importe pendiente" icon={AlertCircle} color="bg-red-700" />
+        <KpiCard title="Ticket promedio" value={fmtMoney(ticketPromedio)} sub="por factura" icon={TrendingUp} color="bg-amber-600" />
+        <KpiCard title="Tareas creadas" value={tasksCreadasPeriodo.length} sub="en el periodo" icon={ListChecks} color="bg-cyan-600" />
+        <KpiCard title="Tareas completadas" value={tasksCompletadasPeriodo.length} sub="en el periodo" icon={CheckCircle2} color="bg-green-600" />
         <KpiCard title="Tareas vencidas" value={tasksVencidas.length} sub={`${tasksHoyPendientes.length} pendientes hoy`} icon={AlertCircle} color="bg-red-600" />
       </div>
 
