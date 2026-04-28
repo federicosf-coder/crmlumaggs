@@ -125,14 +125,17 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const empresaVendedora =
     dealPipeline?.marca === "phillips66" ? "galsa_phillips66" : "lumaggs_chevron";
 
-  // Pipelines disponibles para cambiar (mismo pipeline_type del negocio)
+  // Pipelines disponibles para cambiar — TODOS (primera_compra y recompra)
   const { data: availablePipelines } = useQuery({
-    queryKey: ["crm-pipelines-all", (deal as any)?.pipeline_type],
+    queryKey: ["crm-pipelines-all"],
     enabled: !!deal,
     queryFn: async () => {
-      let q = supabase.from("crm_pipelines").select("id, nombre, marca, pipeline_type").order("marca").order("nombre");
-      if ((deal as any)?.pipeline_type) q = q.eq("pipeline_type", (deal as any).pipeline_type);
-      const { data } = await q;
+      const { data } = await supabase
+        .from("crm_pipelines")
+        .select("id, nombre, marca, pipeline_type")
+        .order("pipeline_type")
+        .order("marca")
+        .order("nombre");
       return data || [];
     },
   });
@@ -154,7 +157,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   useEffect(() => {
     if (deal && editing) {
       setEditTitle(deal.title);
-      setEditValue(String(deal.value || 0));
+      setEditValue(String((deal as any).potencial_unidades ?? 0));
       setEditCloseDate(
         deal.close_date ||
           ((deal as any).pipeline_type === "recompra"
@@ -204,19 +207,27 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
       toast({ title: "Selecciona una etapa válida", variant: "destructive" });
       return;
     }
-    updateDeal.mutate(
-      {
-        id: deal.id, title: editTitle, value: parseFloat(editValue) || 0,
-        close_date: editCloseDate || null,
-        notes: editNotes || null,
-        pipeline_id: editPipelineId || deal.pipeline_id,
-        stage_id: nextStageId,
-        contact_id: editContactId || null, company_id: editCompanyId || null,
-        owner_id: editOwnerId || null,
-        plaza_id: editPlazaId || null,
-      },
-      { onSuccess: () => { toast({ title: "Negocio actualizado" }); setEditing(false); } }
-    );
+    // Si cambia el pipeline, también puede cambiar el pipeline_type (primera_compra <-> recompra)
+    const targetPipeline = (availablePipelines || []).find((p: any) => p.id === (editPipelineId || deal.pipeline_id));
+    const updates: any = {
+      id: deal.id,
+      title: editTitle,
+      potencial_unidades: parseFloat(editValue) || 0,
+      close_date: editCloseDate || null,
+      notes: editNotes || null,
+      pipeline_id: editPipelineId || deal.pipeline_id,
+      stage_id: nextStageId,
+      contact_id: editContactId || null,
+      company_id: editCompanyId || null,
+      owner_id: editOwnerId || null,
+      plaza_id: editPlazaId || null,
+    };
+    if (targetPipeline?.pipeline_type) {
+      updates.pipeline_type = targetPipeline.pipeline_type;
+    }
+    updateDeal.mutate(updates, {
+      onSuccess: () => { toast({ title: "Negocio actualizado" }); setEditing(false); },
+    });
   };
 
   const handleDelete = () => {
@@ -244,7 +255,17 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
           {editing ? (
             <div className="space-y-4">
               <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Valor</Label><Input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>Potencial Unidades</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  placeholder="Unidades manuales"
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Plaza <span className="text-destructive">*</span></Label>
                 <Select value={editPlazaId} onValueChange={setEditPlazaId}>
@@ -288,11 +309,15 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                 <Select value={editPipelineId} onValueChange={setEditPipelineId}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar pipeline" /></SelectTrigger>
                   <SelectContent>
-                    {(availablePipelines || []).map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.marca === "phillips66" ? "Phillips 66" : "Chevron"} · {p.nombre}
-                      </SelectItem>
-                    ))}
+                    {(availablePipelines || []).map((p: any) => {
+                      const tipoLabel = p.pipeline_type === "recompra" ? "Recompra" : "1ra Compra";
+                      const marcaLabel = p.marca === "phillips66" ? "Phillips 66" : "Chevron";
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
+                          {tipoLabel} · {marcaLabel} · {p.nombre}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 {editPipelineId && editPipelineId !== deal.pipeline_id && (
