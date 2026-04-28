@@ -100,7 +100,7 @@ export default function SellerPortal() {
       const { data: dealsData } = await dq;
 
       // Documentos en rango (cot/ped/fact). Periodo inclusivo [from, to+1).
-      let docQ = supabase.from("documentos").select("id, tipo_documento, fecha_documento, fecha_vencimiento, total, unidades_equivalentes_total, estatus_cotizacion, estatus_pedido, estatus_factura, empresa_id, plaza_id, ejecutivo_venta_id, created_by, numero_cotizacion, numero_pedido, numero_factura, saldo_pendiente_cobranza, estado_cobranza, empresa_vendedora, created_at").gte("fecha_documento", fromDate).lt("fecha_documento", toExclusive).eq("is_active", true).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).in("empresa_vendedora", marcasSeleccionadas).limit(2000);
+      let docQ = supabase.from("documentos").select("id, tipo_documento, fecha_documento, fecha_vencimiento, total, unidades_equivalentes_total, estatus_cotizacion, estatus_pedido, estatus_factura, empresa_id, plaza_id, ejecutivo_venta_id, created_by, numero_cotizacion, numero_pedido, numero_factura, saldo_pendiente_cobranza, estado_cobranza, empresa_vendedora, created_at").gte("fecha_documento", fromDate).lt("fecha_documento", toExclusive).eq("is_active", true).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).in("empresa_vendedora", marcasSeleccionadas as any).limit(2000);
       if (plazaId !== "all") docQ = docQ.eq("plaza_id", plazaId);
       const { data: docsData } = await docQ;
 
@@ -110,12 +110,12 @@ export default function SellerPortal() {
       const { data: pagosData } = await pq;
 
       // Facturas por vencer (>= hoy) con saldo > 0 — para el bloque inferior
-      let fpvQ = supabase.from("documentos").select("id, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).gt("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
+      let fpvQ = supabase.from("documentos").select("id, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).gt("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
       if (plazaId !== "all") fpvQ = fpvQ.eq("plaza_id", plazaId);
       const { data: fpvData } = await fpvQ;
 
       // Facturas vencidas (<= hoy) con saldo > 0 — para KPIs de cobranza
-      let venQ = supabase.from("documentos").select("id, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).lte("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
+      let venQ = supabase.from("documentos").select("id, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).lte("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
       if (plazaId !== "all") venQ = venQ.eq("plaza_id", plazaId);
       const { data: venData } = await venQ;
 
