@@ -47,6 +47,9 @@ export default function SellerPortal() {
   const [facturasPorVencer, setFacturasPorVencer] = useState<any[]>([]);
   const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
+  const [companyPhoneMap, setCompanyPhoneMap] = useState<Record<string, { phone: string | null; name: string }>>({});
+  const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
+  const [bucketActivo, setBucketActivo] = useState<"1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
   // Helpers de marca
   const marcasSeleccionadas = useMemo(() => {
@@ -128,9 +131,25 @@ export default function SellerPortal() {
       (fpvData || []).forEach((d: any) => d.empresa_id && ids.add(d.empresa_id));
       (venData || []).forEach((d: any) => d.empresa_id && ids.add(d.empresa_id));
       const cmap: Record<string, string> = {};
+      const cphone: Record<string, { phone: string | null; name: string }> = {};
       if (ids.size) {
-        const { data: cs } = await supabase.from("companies").select("id, name").in("id", Array.from(ids));
-        (cs || []).forEach((c: any) => { cmap[c.id] = c.name; });
+        const { data: cs } = await supabase.from("companies").select("id, name, phone").in("id", Array.from(ids));
+        (cs || []).forEach((c: any) => { cmap[c.id] = c.name; cphone[c.id] = { phone: c.phone, name: c.name }; });
+        // Intentar obtener WhatsApp del contacto principal (primer contacto activo)
+        const { data: cts } = await supabase.from("contacts").select("company_id, whatsapp_phone, mobile, phone").in("company_id", Array.from(ids)).eq("is_active", true);
+        (cts || []).forEach((ct: any) => {
+          const cur = cphone[ct.company_id];
+          if (!cur) return;
+          if (!cur.phone) cur.phone = ct.whatsapp_phone || ct.mobile || ct.phone || null;
+        });
+      }
+      // Ejecutivos para mostrar nombre en desglose
+      const ejIds = new Set<string>();
+      (fpvData || []).forEach((d: any) => { if (d.ejecutivo_venta_id) ejIds.add(d.ejecutivo_venta_id); else if (d.created_by) ejIds.add(d.created_by); });
+      const emap: Record<string, string> = {};
+      if (ejIds.size) {
+        const { data: ps } = await supabase.from("profiles").select("user_id, full_name").in("user_id", Array.from(ejIds));
+        (ps || []).forEach((p: any) => { emap[p.user_id] = p.full_name || ""; });
       }
 
       setTasks(tasksData || []);
@@ -140,6 +159,8 @@ export default function SellerPortal() {
       setFacturasPorVencer(fpvData || []);
       setFacturasVencidasAll(venData || []);
       setCompanyMap(cmap);
+      setCompanyPhoneMap(cphone);
+      setEjecutivoMap(emap);
     } catch (e: any) {
       toast.error("Error cargando datos: " + e.message);
     } finally {
