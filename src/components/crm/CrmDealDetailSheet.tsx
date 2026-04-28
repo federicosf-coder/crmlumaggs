@@ -30,6 +30,22 @@ import { useCrmActivities } from "@/hooks/useCrmActivities";
 import { formatRelativeDate } from "@/lib/formatters";
 import { fetchAllRows } from "@/lib/supabasePagination";
 
+// Helper: limpia el nombre del pipeline para evitar duplicar "Chevron", "Phillips 66",
+// "Primera Compra", "1ra Compra" o "Recompra" cuando ya vienen incluidos en p.nombre.
+function cleanPipelineName(nombre: string): string {
+  if (!nombre) return "";
+  let out = nombre;
+  const patterns = [
+    /\bphillips\s*66\b/gi,
+    /\bchevron\b/gi,
+    /\bprimera\s*compra\b/gi,
+    /\b1ra\.?\s*compra\b/gi,
+    /\brecompra\b/gi,
+  ];
+  for (const p of patterns) out = out.replace(p, "");
+  return out.replace(/[·\-–|]+/g, " ").replace(/\s+/g, " ").trim() || nombre.trim();
+}
+
 interface CrmDealDetailSheetProps {
   deal: CrmDeal | null;
   open: boolean;
@@ -310,11 +326,12 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                   <SelectTrigger><SelectValue placeholder="Seleccionar pipeline" /></SelectTrigger>
                   <SelectContent>
                     {(availablePipelines || []).map((p: any) => {
-                      const tipoLabel = p.pipeline_type === "recompra" ? "Recompra" : "1ra Compra";
+                      const tipoLabel = p.pipeline_type === "recompra" ? "Recompra" : "Primera Compra";
                       const marcaLabel = p.marca === "phillips66" ? "Phillips 66" : "Chevron";
+                      const clean = cleanPipelineName(p.nombre);
                       return (
                         <SelectItem key={p.id} value={p.id}>
-                          {tipoLabel} · {marcaLabel} · {p.nombre}
+                          {marcaLabel} · {tipoLabel}{clean ? ` · ${clean}` : ""}
                         </SelectItem>
                       );
                     })}

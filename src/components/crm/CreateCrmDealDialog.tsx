@@ -15,6 +15,28 @@ import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, ExternalLink } from "lucide-react";
+import { fetchAllRows } from "@/lib/supabasePagination";
+
+function cleanPipelineName(nombre: string): string {
+  if (!nombre) return "";
+  let out = nombre;
+  const patterns = [
+    /\bphillips\s*66\b/gi,
+    /\bchevron\b/gi,
+    /\bprimera\s*compra\b/gi,
+    /\b1ra\.?\s*compra\b/gi,
+    /\brecompra\b/gi,
+  ];
+  for (const p of patterns) out = out.replace(p, "");
+  return out.replace(/[·\-–|]+/g, " ").replace(/\s+/g, " ").trim() || nombre.trim();
+}
+
+function formatPipelineLabel(p: { nombre: string; marca: string | null; pipeline_type: string | null }): string {
+  const marcaLabel = p.marca === "phillips66" ? "Phillips 66" : "Chevron";
+  const tipoLabel = p.pipeline_type === "recompra" ? "Recompra" : "Primera Compra";
+  const clean = cleanPipelineName(p.nombre);
+  return clean ? `${marcaLabel} · ${tipoLabel} · ${clean}` : `${marcaLabel} · ${tipoLabel}`;
+}
 
 interface CreateCrmDealDialogProps {
   open: boolean;
@@ -36,8 +58,16 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
   const { data: companies, refetch: refetchCompanies } = useQuery({
     queryKey: ["companies-picker"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name, is_active").eq("is_active", true).order("name");
-      return data || [];
+      const rows = await fetchAllRows<{ id: string; name: string; is_active: boolean; plaza_id: string | null }>(
+        (from, to) =>
+          supabase
+            .from("companies")
+            .select("id, name, is_active, plaza_id")
+            .eq("is_active", true)
+            .order("name")
+            .range(from, to)
+      );
+      return rows;
     },
     staleTime: 0,
     refetchOnMount: "always",
@@ -218,7 +248,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
         potencial_unidades: parseFloat(value) || null,
         volumen_mensual_estimado: parseFloat(value) || null,
         close_date: closeDate || null,
-        notes: notes || null,
+        notes: notes.trim() ? notes.trim() : null,
       } as any,
       {
         onSuccess: async () => {
@@ -266,7 +296,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
 
   const pipelineOptions = (allPipelines || []).map((p: any) => ({
     value: p.id,
-    label: `${p.nombre} · ${pipelineTypeLabel(p.pipeline_type)}`,
+    label: formatPipelineLabel(p),
   }));
 
   return (
@@ -418,7 +448,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
           // Fetch the new company and merge into the picker cache so it appears inmediatamente
           const { data: nueva } = await supabase
             .from("companies")
-            .select("id, name, is_active")
+            .select("id, name, is_active, plaza_id")
             .eq("id", id)
             .maybeSingle();
           if (nueva) {
