@@ -394,6 +394,10 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
+    if (form.plaza_ids.length === 0) {
+      toast.error("La plaza es obligatoria");
+      return;
+    }
     setSaving(true);
 
     const payload = {
@@ -533,7 +537,9 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Plaza(s)</Label>
+                  <Label className="text-xs">
+                    Plaza(s) <span className="text-destructive">*</span>
+                  </Label>
                   <div className="flex flex-wrap gap-1.5 mb-1.5 min-h-[0]">
                     {form.plaza_ids.map(pid => {
                       const p = plazas.find((pl: any) => pl.id === pid);
@@ -553,6 +559,9 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                       ))}
                     </SelectContent>
                   </Select>
+                  {form.plaza_ids.length === 0 && (
+                    <p className="text-xs text-destructive">La plaza es obligatoria</p>
+                  )}
                 </div>
               </div>
 
