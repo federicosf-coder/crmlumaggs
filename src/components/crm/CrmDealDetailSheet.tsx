@@ -52,6 +52,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const [editStageId, setEditStageId] = useState("");
   const [editContactId, setEditContactId] = useState("");
   const [editCompanyId, setEditCompanyId] = useState("");
+  const [editOwnerId, setEditOwnerId] = useState("");
   const [activityTitle, setActivityTitle] = useState("");
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
@@ -71,6 +72,21 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
       return data || [];
     },
   });
+  const { data: ejecutivos } = useQuery({
+    queryKey: ["ejecutivos-picker"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, is_active")
+        .eq("is_active", true)
+        .order("full_name");
+      return data || [];
+    },
+    staleTime: 60_000,
+  });
+  const ownerName = deal?.owner_id
+    ? ejecutivos?.find((e: any) => e.user_id === deal.owner_id)?.full_name || null
+    : null;
 
   const { data: dealPipeline } = useQuery({
     queryKey: ["crm-pipeline-marca", deal?.pipeline_id],
@@ -101,6 +117,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
       setEditStageId(deal.stage_id);
       setEditContactId(deal.contact_id || "");
       setEditCompanyId(deal.company_id || "");
+      setEditOwnerId(deal.owner_id || "");
     }
   }, [deal, editing]);
 
@@ -131,6 +148,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
         close_date: editCloseDate || null,
         notes: editNotes || null, stage_id: editStageId,
         contact_id: editContactId || null, company_id: editCompanyId || null,
+        owner_id: editOwnerId || null,
       },
       { onSuccess: () => { toast({ title: "Negocio actualizado" }); setEditing(false); } }
     );
