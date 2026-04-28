@@ -1001,6 +1001,18 @@ export default function SellerPortal() {
         </CardContent>
       </Card>
 
+      <CrmTaskDetailDialog
+        task={selectedTask}
+        open={taskDialogOpen}
+        onOpenChange={(o) => {
+          setTaskDialogOpen(o);
+          if (!o) {
+            setSelectedTask(null);
+            fetchData();
+          }
+        }}
+      />
+
     </div>
   );
 }
