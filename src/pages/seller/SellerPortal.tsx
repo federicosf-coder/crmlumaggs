@@ -741,7 +741,9 @@ export default function SellerPortal() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table></CardContent></Card>
+          </Table>
+          <Paginator page={pageCobranza} setPage={setPageCobranza} total={pagos.length} lim={limCobranza} />
+          </CardContent></Card>
         </TabsContent>
       </Tabs>
 
