@@ -101,8 +101,13 @@ export default function DocumentForm() {
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const { user, profile, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
+  const isManager = hasRole("manager");
+  const isAccounting = hasRole("accounting");
   const isSales = hasRole("sales");
   const isDelivery = hasRole("delivery");
+  // Quien puede convertir Cotización/Pedido → Factura.
+  // Admin, Manager y Accounting siempre pueden, aunque también tengan rol Sales/Delivery.
+  const canConvertToFactura = isAdmin || isManager || isAccounting || (!isSales && !isDelivery);
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
 
