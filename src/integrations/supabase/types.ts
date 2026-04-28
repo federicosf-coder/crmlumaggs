@@ -829,6 +829,7 @@ export type Database = {
           pedido_unidades: number
           pipeline_id: string
           pipeline_type: Database["public"]["Enums"]["pipeline_type"]
+          plaza_id: string | null
           potencial_unidades: number | null
           probability: number
           proxima_fecha_seguimiento: string | null
@@ -859,6 +860,7 @@ export type Database = {
           pedido_unidades?: number
           pipeline_id: string
           pipeline_type?: Database["public"]["Enums"]["pipeline_type"]
+          plaza_id?: string | null
           potencial_unidades?: number | null
           probability?: number
           proxima_fecha_seguimiento?: string | null
@@ -889,6 +891,7 @@ export type Database = {
           pedido_unidades?: number
           pipeline_id?: string
           pipeline_type?: Database["public"]["Enums"]["pipeline_type"]
+          plaza_id?: string | null
           potencial_unidades?: number | null
           probability?: number
           proxima_fecha_seguimiento?: string | null
