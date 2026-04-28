@@ -10,8 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, ExternalLink } from "lucide-react";
 
 interface CreateCrmDealDialogProps {
   open: boolean;
@@ -47,9 +50,10 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
   const [contactId, setContactId] = useState("");
   const [stageId, setStageId] = useState(defaultStageId || stages[0]?.id || "");
   const [value, setValue] = useState("");
-  const [probability, setProbability] = useState("50");
   const [closeDate, setCloseDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +69,6 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
         company_id: companyId || null,
         contact_id: contactId || null,
         value: parseFloat(value) || 0,
-        probability: parseInt(probability) || 50,
         close_date: closeDate || null,
         notes: notes || null,
       },
@@ -73,7 +76,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
         onSuccess: () => {
           toast({ title: "Negocio creado", description: `"${title}" agregado al pipeline` });
           onOpenChange(false);
-          setTitle(""); setCompanyId(""); setContactId(""); setValue(""); setProbability("50"); setCloseDate(""); setNotes("");
+          setTitle(""); setCompanyId(""); setContactId(""); setValue(""); setCloseDate(""); setNotes("");
         },
         onError: () => {
           toast({ title: "Error", description: "No se pudo crear el negocio", variant: "destructive" });
@@ -81,6 +84,8 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
       }
     );
   };
+
+  const openInNewTab = (path: string) => window.open(path, "_blank", "noopener,noreferrer");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,40 +122,49 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Empresa</Label>
-              <Select value={companyId} onValueChange={setCompanyId}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                <SelectContent>
-                  {companies?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Contacto</Label>
-              <Select value={contactId} onValueChange={setContactId}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                <SelectContent>
-                  {contacts?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-2">
+            <Label>Empresa</Label>
+            <div className="flex gap-2">
+              <div className="flex-1 min-w-0">
+                <SearchableSelect
+                  value={companyId}
+                  onValueChange={setCompanyId}
+                  options={(companies || []).map((c) => ({ value: c.id, label: c.name }))}
+                  placeholder="Buscar empresa..."
+                />
+              </div>
+              <Button type="button" variant="outline" size="icon" title="Nueva empresa" onClick={() => setCompanyDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button type="button" variant="outline" size="icon" title="Abrir empresa" disabled={!companyId} onClick={() => companyId && openInNewTab(`/directory?tab=companies&select=${companyId}`)}>
+                <ExternalLink className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="deal-probability">Probabilidad (%)</Label>
-              <Input id="deal-probability" type="number" min="0" max="100" value={probability} onChange={(e) => setProbability(e.target.value)} />
+          <div className="space-y-2">
+            <Label>Contacto</Label>
+            <div className="flex gap-2">
+              <div className="flex-1 min-w-0">
+                <SearchableSelect
+                  value={contactId}
+                  onValueChange={setContactId}
+                  options={(contacts || []).map((c) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
+                  placeholder="Buscar contacto..."
+                />
+              </div>
+              <Button type="button" variant="outline" size="icon" title="Nuevo contacto" onClick={() => setContactDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button type="button" variant="outline" size="icon" title="Abrir contacto" disabled={!contactId} onClick={() => contactId && openInNewTab(`/directory?tab=contacts&select=${contactId}`)}>
+                <ExternalLink className="h-4 w-4" />
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="deal-close-date">Fecha de Cierre</Label>
-              <Input id="deal-close-date" type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} />
-            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="deal-close-date">Fecha de Cierre</Label>
+            <Input id="deal-close-date" type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} />
           </div>
 
           <div className="space-y-2">
@@ -166,6 +180,18 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
           </div>
         </form>
       </DialogContent>
+
+      <CompanyFormDialog
+        open={companyDialogOpen}
+        onOpenChange={setCompanyDialogOpen}
+        onCreated={(id) => setCompanyId(id)}
+      />
+      <ContactFormDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        defaultCompanyId={companyId || undefined}
+        onCreated={(id) => setContactId(id)}
+      />
     </Dialog>
   );
 }
