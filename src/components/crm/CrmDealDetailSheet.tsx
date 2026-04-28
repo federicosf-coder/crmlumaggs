@@ -11,6 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { CrmTaskItem } from "@/components/crm/CrmTaskItem";
@@ -20,7 +23,7 @@ import { DealDocumentsTab } from "@/components/crm/DealDocumentsTab";
 import { formatCurrency, formatDate, formatMonthYear, lastDayOfMonth } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Phone, Mail, Calendar, FileText, Trash2, Save, Pencil, X, Plus, MessageCircle } from "lucide-react";
+import { Phone, Mail, Calendar, FileText, Trash2, Save, Pencil, X, Plus, MessageCircle, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCrmActivities } from "@/hooks/useCrmActivities";
@@ -44,7 +47,6 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editValue, setEditValue] = useState("");
-  const [editProbability, setEditProbability] = useState("");
   const [editCloseDate, setEditCloseDate] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [editStageId, setEditStageId] = useState("");
@@ -52,6 +54,8 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const [editCompanyId, setEditCompanyId] = useState("");
   const [activityTitle, setActivityTitle] = useState("");
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   const { data: allContacts } = useQuery({
     queryKey: ["contacts-picker"],
@@ -87,7 +91,6 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
     if (deal && editing) {
       setEditTitle(deal.title);
       setEditValue(String(deal.value || 0));
-      setEditProbability(String(deal.probability || 50));
       setEditCloseDate(
         deal.close_date ||
           ((deal as any).pipeline_type === "recompra"
@@ -125,7 +128,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
     updateDeal.mutate(
       {
         id: deal.id, title: editTitle, value: parseFloat(editValue) || 0,
-        probability: parseInt(editProbability) || 50, close_date: editCloseDate || null,
+        close_date: editCloseDate || null,
         notes: editNotes || null, stage_id: editStageId,
         contact_id: editContactId || null, company_id: editCompanyId || null,
       },
@@ -136,6 +139,8 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const handleDelete = () => {
     deleteDeal.mutate(deal.id, { onSuccess: () => { toast({ title: "Negocio eliminado" }); onOpenChange(false); } });
   };
+
+  const openInNewTab = (path: string) => window.open(path, "_blank", "noopener,noreferrer");
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) setEditing(false); onOpenChange(o); }}>
@@ -156,10 +161,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
           {editing ? (
             <div className="space-y-4">
               <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Valor</Label><Input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} /></div>
-                <div className="space-y-2"><Label>Probabilidad (%)</Label><Input type="number" min="0" max="100" value={editProbability} onChange={(e) => setEditProbability(e.target.value)} /></div>
-              </div>
+              <div className="space-y-2"><Label>Valor</Label><Input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} /></div>
               <div className="space-y-2">
                 <Label>Etapa</Label>
                 <Select value={editStageId} onValueChange={setEditStageId}>
@@ -168,18 +170,42 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Contacto</Label>
-                <Select value={editContactId} onValueChange={setEditContactId}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>{allContacts?.map((c) => <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>)}</SelectContent>
-                </Select>
+                <Label>Empresa</Label>
+                <div className="flex gap-2">
+                  <div className="flex-1 min-w-0">
+                    <SearchableSelect
+                      value={editCompanyId}
+                      onValueChange={setEditCompanyId}
+                      options={(allCompanies || []).map((c) => ({ value: c.id, label: c.name }))}
+                      placeholder="Buscar empresa..."
+                    />
+                  </div>
+                  <Button type="button" variant="outline" size="icon" title="Nueva empresa" onClick={() => setCompanyDialogOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" variant="outline" size="icon" title="Abrir empresa" disabled={!editCompanyId} onClick={() => editCompanyId && openInNewTab(`/directory?tab=companies&select=${editCompanyId}`)}>
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label>Empresa</Label>
-                <Select value={editCompanyId} onValueChange={setEditCompanyId}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>{allCompanies?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <Label>Contacto</Label>
+                <div className="flex gap-2">
+                  <div className="flex-1 min-w-0">
+                    <SearchableSelect
+                      value={editContactId}
+                      onValueChange={setEditContactId}
+                      options={(allContacts || []).map((c) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
+                      placeholder="Buscar contacto..."
+                    />
+                  </div>
+                  <Button type="button" variant="outline" size="icon" title="Nuevo contacto" onClick={() => setContactDialogOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" variant="outline" size="icon" title="Abrir contacto" disabled={!editContactId} onClick={() => editContactId && openInNewTab(`/directory?tab=contacts&select=${editContactId}`)}>
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2"><Label>Fecha de Cierre</Label><Input type="date" value={editCloseDate} onChange={(e) => setEditCloseDate(e.target.value)} /></div>
               <div className="space-y-2"><Label>Notas</Label><Textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={3} /></div>
@@ -200,7 +226,6 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               <TabsContent value="resumen" className="space-y-6 mt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div><span className="text-muted-foreground">Potencial (u)</span><p className="font-semibold text-lg">{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(Number((deal as any).potencial_unidades) || Number((deal as any).volumen_mensual_estimado) || 0)}</p></div>
-                  <div><span className="text-muted-foreground">Probabilidad</span><p className="font-semibold">{deal.probability}%</p></div>
                   <div><span className="text-muted-foreground">Etapa</span><Badge style={{ backgroundColor: currentStage?.color, color: "white" }}>{currentStage?.name}</Badge></div>
                   {isRecompra && (
                     <div>
@@ -329,6 +354,17 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
         </div>
       </SheetContent>
       <CreateCrmTaskDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} defaultDealId={deal.id} />
+      <CompanyFormDialog
+        open={companyDialogOpen}
+        onOpenChange={setCompanyDialogOpen}
+        onCreated={(id) => setEditCompanyId(id)}
+      />
+      <ContactFormDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        defaultCompanyId={editCompanyId || undefined}
+        onCreated={(id) => setEditContactId(id)}
+      />
     </Sheet>
   );
 }
