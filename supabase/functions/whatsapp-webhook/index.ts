@@ -131,25 +131,37 @@ Deno.serve(async (req) => {
         const changes = Array.isArray(entry?.changes) ? entry.changes : [];
         for (const change of changes) {
           const value = change?.value ?? {};
-          // Capture which business phone line this webhook event is for
+          // Capture which business phone line this webhook event is for.
+          // Do not reject unknown phone_number_id values; Meta's Verify Token is
+          // the only gate. Unknown accounts are stored with a null account link.
           const businessPhoneId = value?.metadata?.phone_number_id ?? null;
-          // Resolve the WhatsApp account row by phone_number_id so we can
-          // link conversations and messages to the correct inbox (Maggs / Chevron).
           let whatsappAccountId: string | null = null;
           if (businessPhoneId) {
-            const { data: acct, error: acctErr } = await admin
-              .from("whatsapp_accounts")
-              .select("id, label")
-              .eq("business_phone_number_id", businessPhoneId)
-              .maybeSingle();
-            if (acctErr) console.error("Account lookup error:", acctErr);
-            if (!acct) {
+            try {
+              const { data: acct, error: acctErr } = await admin
+                .from("whatsapp_accounts")
+                .select("id, label")
+                .eq("business_phone_number_id", businessPhoneId)
+                .maybeSingle();
+
+              if (acctErr) {
+                console.warn(
+                  `Account lookup failed for phone_number_id=${businessPhoneId}; continuing unlinked:`,
+                  acctErr,
+                );
+              } else if (!acct) {
+                console.warn(
+                  `No whatsapp_accounts row found for phone_number_id=${businessPhoneId}; continuing unlinked.`,
+                );
+              } else {
+                whatsappAccountId = acct.id;
+                console.log(`Routing webhook to account ${acct.label} (${acct.id})`);
+              }
+            } catch (acctException) {
               console.warn(
-                `No whatsapp_accounts row found for phone_number_id=${businessPhoneId}; messages will be unlinked.`,
+                `Account lookup exception for phone_number_id=${businessPhoneId}; continuing unlinked:`,
+                acctException,
               );
-            } else {
-              whatsappAccountId = acct.id;
-              console.log(`Routing webhook to account ${acct.label} (${acct.id})`);
             }
           }
           const contactsArr = Array.isArray(value?.contacts) ? value.contacts : [];
