@@ -42,6 +42,16 @@ type Account = { id: string; business_phone_number_id: string; label: string; co
 type TemplateWithAccount = Template & { business_phone_number_id: string | null; waba_id: string | null };
 type QuickReply = { id: string; shortcut: string; content: string };
 
+function extractTemplateVars(body: string): number {
+  const matches = body.match(/\{\{\s*(\d+)\s*\}\}/g) || [];
+  let max = 0;
+  for (const m of matches) {
+    const n = parseInt(m.replace(/[^\d]/g, ""), 10);
+    if (!Number.isNaN(n) && n > max) max = n;
+  }
+  return max;
+}
+
 export default function WhatsAppInbox() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -53,6 +63,7 @@ export default function WhatsAppInbox() {
   const [qrOpen, setQrOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [tplName, setTplName] = useState("");
+  const [tplVars, setTplVars] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
   // Inbox seleccionado por línea (business_phone_number_id). null = aún no inicializado
   const [selectedPhoneId, setSelectedPhoneId] = useState<string | null>(null);
@@ -263,6 +274,20 @@ export default function WhatsAppInbox() {
       return;
     }
     const tpl = templates.find((t) => t.name === tplName);
+    const expected = tpl?.body ? extractTemplateVars(tpl.body) : 0;
+    if (expected > 0 && tplVars.slice(0, expected).some((v) => !v?.trim())) {
+      toast.error(`Esta plantilla requiere ${expected} variable(s). Completa todos los campos.`);
+      return;
+    }
+    const components =
+      expected > 0
+        ? [
+            {
+              type: "body",
+              parameters: tplVars.slice(0, expected).map((v) => ({ type: "text", text: v.trim() })),
+            },
+          ]
+        : undefined;
     setSending(true);
     const { error } = await supabase.functions.invoke("whatsapp-send-message", {
       body: {
@@ -272,6 +297,7 @@ export default function WhatsAppInbox() {
         template_name: tpl?.name,
         template_language: tpl?.language ?? "es_MX",
         business_phone_number_id: active.business_phone_number_id,
+        ...(components ? { template_components: components } : {}),
       },
     });
     setSending(false);
@@ -280,6 +306,7 @@ export default function WhatsAppInbox() {
       return;
     }
     setTplName("");
+    setTplVars([]);
     toast.success("Plantilla enviada");
   };
 
@@ -511,7 +538,13 @@ export default function WhatsAppInbox() {
                 <select
                   className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm"
                   value={tplName}
-                  onChange={(e) => setTplName(e.target.value)}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setTplName(name);
+                    const tpl = templates.find((t) => t.name === name);
+                    const n = tpl?.body ? extractTemplateVars(tpl.body) : 0;
+                    setTplVars(Array(n).fill(""));
+                  }}
                 >
                   <option value="">
                     — Enviar plantilla {activeAccount ? `(${activeAccount.label})` : ""} —
@@ -526,6 +559,26 @@ export default function WhatsAppInbox() {
                   Enviar plantilla
                 </Button>
               </div>
+              {tplVars.length > 0 && (
+                <div className="flex flex-col gap-2 rounded-md border border-dashed p-2">
+                  <div className="text-xs text-muted-foreground">
+                    Esta plantilla tiene {tplVars.length} variable(s). Completa los valores:
+                  </div>
+                  {tplVars.map((v, i) => (
+                    <Input
+                      key={i}
+                      value={v}
+                      onChange={(e) => {
+                        const next = [...tplVars];
+                        next[i] = e.target.value;
+                        setTplVars(next);
+                      }}
+                      placeholder={`Variable {{${i + 1}}}`}
+                      className="h-8 text-sm"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}
