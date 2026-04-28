@@ -207,19 +207,27 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
       toast({ title: "Selecciona una etapa válida", variant: "destructive" });
       return;
     }
-    updateDeal.mutate(
-      {
-        id: deal.id, title: editTitle, value: parseFloat(editValue) || 0,
-        close_date: editCloseDate || null,
-        notes: editNotes || null,
-        pipeline_id: editPipelineId || deal.pipeline_id,
-        stage_id: nextStageId,
-        contact_id: editContactId || null, company_id: editCompanyId || null,
-        owner_id: editOwnerId || null,
-        plaza_id: editPlazaId || null,
-      },
-      { onSuccess: () => { toast({ title: "Negocio actualizado" }); setEditing(false); } }
-    );
+    // Si cambia el pipeline, también puede cambiar el pipeline_type (primera_compra <-> recompra)
+    const targetPipeline = (availablePipelines || []).find((p: any) => p.id === (editPipelineId || deal.pipeline_id));
+    const updates: any = {
+      id: deal.id,
+      title: editTitle,
+      potencial_unidades: parseFloat(editValue) || 0,
+      close_date: editCloseDate || null,
+      notes: editNotes || null,
+      pipeline_id: editPipelineId || deal.pipeline_id,
+      stage_id: nextStageId,
+      contact_id: editContactId || null,
+      company_id: editCompanyId || null,
+      owner_id: editOwnerId || null,
+      plaza_id: editPlazaId || null,
+    };
+    if (targetPipeline?.pipeline_type) {
+      updates.pipeline_type = targetPipeline.pipeline_type;
+    }
+    updateDeal.mutate(updates, {
+      onSuccess: () => { toast({ title: "Negocio actualizado" }); setEditing(false); },
+    });
   };
 
   const handleDelete = () => {
