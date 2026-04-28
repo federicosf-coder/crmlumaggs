@@ -410,11 +410,14 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
                 <SearchableSelect
                   value={contactId}
                   onValueChange={setContactId}
-                  options={(contacts || []).map((c) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
-                  placeholder="Buscar contacto..."
+                  options={(contacts || [])
+                    .filter((c: any) => c.company_id === companyId)
+                    .map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
+                  placeholder={companyId ? "Buscar contacto..." : "Selecciona primero una empresa"}
+                  disabled={!companyId}
                 />
               </div>
-              <Button type="button" variant="outline" size="icon" title="Nuevo contacto" onClick={() => setContactDialogOpen(true)}>
+              <Button type="button" variant="outline" size="icon" title="Nuevo contacto" disabled={!companyId} onClick={() => setContactDialogOpen(true)}>
                 <Plus className="h-4 w-4" />
               </Button>
               <Button type="button" variant="outline" size="icon" title="Abrir contacto" disabled={!contactId} onClick={() => contactId && openInNewTab(`/directory?tab=contacts&select=${contactId}`)}>
@@ -483,20 +486,23 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
         onOpenChange={setContactDialogOpen}
         defaultCompanyId={companyId || undefined}
         onCreated={async (id) => {
-          setContactId(id);
           const { data: nuevo } = await supabase
             .from("contacts")
-            .select("id, first_name, last_name, is_active")
+            .select("id, first_name, last_name, company_id, is_active")
             .eq("id", id)
             .maybeSingle();
           if (nuevo) {
-            queryClient.setQueryData<any[]>(["contacts-picker"], (old) => {
+            queryClient.setQueryData<any[]>(["contacts-picker-with-company"], (old) => {
               const list = old || [];
               if (list.some((c) => c.id === nuevo.id)) return list;
               return [...list, nuevo].sort((a, b) => (a.first_name || "").localeCompare(b.first_name || ""));
             });
+            // Solo seleccionar si pertenece a la empresa actual
+            if (nuevo.company_id === companyId) {
+              setContactId(id);
+            }
           }
-          await queryClient.invalidateQueries({ queryKey: ["contacts-picker"] });
+          await queryClient.invalidateQueries({ queryKey: ["contacts-picker-with-company"] });
           refetchContacts();
         }}
       />
