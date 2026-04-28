@@ -809,7 +809,92 @@ export default function SellerPortal() {
         </TabsContent>
       </Tabs>
 
-      {/* Facturas por vencer (debajo de los tabs detalle) */}
+      {/* Cobranza: Facturas vencidas y por vencer (listado unificado) */}
+      <Card>
+        <CardHeader className="pb-2 flex-row items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            Facturas vencidas y por vencer
+            <Badge variant="outline" className="ml-2">{facturasCobranza.length}</Badge>
+          </CardTitle>
+          <PageSizeSelect value={limCobranza} onChange={setLimCobranza} total={facturasCobranza.length} onPageReset={() => setPageCobranza(1)} />
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Núm. factura</TableHead>
+                <TableHead>Fecha factura</TableHead>
+                <TableHead>Fecha venc.</TableHead>
+                <TableHead className="text-right">Días vencidos</TableHead>
+                <TableHead className="text-right">Total factura</TableHead>
+                <TableHead className="text-right">Saldo pendiente</TableHead>
+                <TableHead>Ejecutivo</TableHead>
+                <TableHead>Estatus</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {facturasCobranza.length === 0 && (
+                <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">Sin facturas con saldo pendiente</TableCell></TableRow>
+              )}
+              {paginate(facturasCobranza, limCobranza, pageCobranza).map((f: any) => {
+                const dias = f.dias_vencidos as number;
+                const phone = (companyPhoneMap[f.empresa_id]?.phone || "").replace(/[^0-9]/g, "");
+                const ejId = f.ejecutivo_venta_id || f.created_by;
+                const ejNombre = ejId ? (ejecutivoMap[ejId] || "—") : "—";
+                const num = f.numero_factura || f.id.slice(0, 8);
+                const saldoFmt = fmtMoney(Number(f.saldo_pendiente_cobranza || 0));
+                const diasLabel = dias > 0 ? `Vencida hace ${dias} día${dias === 1 ? "" : "s"}`
+                  : dias === 0 ? "Vence hoy"
+                  : `Vence en ${Math.abs(dias)} día${Math.abs(dias) === 1 ? "" : "s"}`;
+                const msg = dias > 0
+                  ? `Hola, buen día. Le compartimos un recordatorio: la factura ${num} por ${saldoFmt} se encuentra vencida desde hace ${dias} día(s). Agradecemos su apoyo para regularizar el pago a la brevedad. Quedamos atentos.`
+                  : dias === 0
+                  ? `Hola, buen día. Le recordamos que la factura ${num} por ${saldoFmt} vence hoy. Agradecemos su apoyo para programar el pago. Quedamos atentos.`
+                  : `Hola, buen día. Le recordamos que la factura ${num} por ${saldoFmt} vence en ${Math.abs(dias)} día(s). Agradecemos su apoyo para programar el pago. Quedamos atentos.`;
+                const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : null;
+                const estatus = dias > 0 ? "Vencida" : dias === 0 ? "Vence hoy" : "Por vencer";
+                const estatusColor = dias > 0
+                  ? "bg-red-100 text-red-800 border-red-300"
+                  : dias === 0
+                  ? "bg-orange-100 text-orange-800 border-orange-300"
+                  : "bg-amber-50 text-amber-800 border-amber-200";
+                const diasColor = dias > 0 ? "text-red-700 font-bold" : dias === 0 ? "text-orange-700 font-bold" : "text-muted-foreground";
+                return (
+                  <TableRow key={f.id} title={diasLabel}>
+                    <TableCell className="text-sm font-medium">{companyMap[f.empresa_id] || "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">{num}</TableCell>
+                    <TableCell className="text-xs">{f.fecha_documento || "—"}</TableCell>
+                    <TableCell className="text-xs">{f.fecha_vencimiento || "—"}</TableCell>
+                    <TableCell className={cn("text-right text-sm", diasColor)}>{dias}</TableCell>
+                    <TableCell className="text-right text-sm">{fmtMoney(Number(f.total))}</TableCell>
+                    <TableCell className="text-right text-sm font-semibold">{saldoFmt}</TableCell>
+                    <TableCell className="text-xs">{ejNombre}</TableCell>
+                    <TableCell><Badge variant="outline" className={cn("text-xs", estatusColor)}>{estatus}</Badge></TableCell>
+                    <TableCell className="text-right space-x-1 whitespace-nowrap">
+                      <Button size="sm" variant="ghost" asChild title="Abrir factura">
+                        <Link to={`/documents/${f.id}`}><ExternalLink className="h-3.5 w-3.5" /></Link>
+                      </Button>
+                      {waUrl ? (
+                        <Button size="sm" variant="ghost" asChild title="Enviar WhatsApp">
+                          <a href={waUrl} target="_blank" rel="noopener noreferrer"><MessageCircle className="h-3.5 w-3.5 text-green-600" /></a>
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="ghost" disabled title="Sin WhatsApp"><MessageCircle className="h-3.5 w-3.5 text-muted-foreground" /></Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <Paginator page={pageCobranza} setPage={setPageCobranza} total={facturasCobranza.length} lim={limCobranza} />
+        </CardContent>
+      </Card>
+
+      {/* Buckets visuales de "por vencer" (mantenidos como vista resumen) */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" /> Facturas por vencer</CardTitle>
