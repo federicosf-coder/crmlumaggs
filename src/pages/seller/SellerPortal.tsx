@@ -366,8 +366,8 @@ export default function SellerPortal() {
             </Select>
             {/* Toggles independientes por marca */}
             <div className="flex items-center gap-1 border rounded-md p-0.5">
-              <Toggle size="sm" pressed={marcaChevron} onPressedChange={setMarcaChevron} className="data-[state=on]:bg-red-600 data-[state=on]:text-white">Chevron</Toggle>
-              <Toggle size="sm" pressed={marcaPhillips} onPressedChange={setMarcaPhillips} className="data-[state=on]:bg-orange-600 data-[state=on]:text-white">Phillips 66</Toggle>
+              <Toggle size="sm" pressed={marcaChevron} onPressedChange={setMarcaChevron} className="data-[state=on]:bg-blue-600 data-[state=on]:text-white">Chevron</Toggle>
+              <Toggle size="sm" pressed={marcaPhillips} onPressedChange={setMarcaPhillips} className="data-[state=on]:bg-red-600 data-[state=on]:text-white">Phillips 66</Toggle>
             </div>
             <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading}><RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} /></Button>
           </CardContent>
