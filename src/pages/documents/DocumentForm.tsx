@@ -101,8 +101,13 @@ export default function DocumentForm() {
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const { user, profile, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
+  const isManager = hasRole("manager");
+  const isAccounting = hasRole("accounting");
   const isSales = hasRole("sales");
   const isDelivery = hasRole("delivery");
+  // Quien puede convertir Cotización/Pedido → Factura.
+  // Admin, Manager y Accounting siempre pueden, aunque también tengan rol Sales/Delivery.
+  const canConvertToFactura = isAdmin || isManager || isAccounting || (!isSales && !isDelivery);
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
 
@@ -883,14 +888,14 @@ export default function DocumentForm() {
                 <Button variant="secondary" onClick={() => setWhatsappOpen(true)}>
                   <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp seguimiento
                 </Button>
-                {!isSales && !isDelivery && (
+                {canConvertToFactura && (
                   <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
                     <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
                   </Button>
                 )}
               </>
             )}
-            {form.tipo_documento === "pedido" && !isSales && !isDelivery && (
+            {form.tipo_documento === "pedido" && canConvertToFactura && (
               <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
                 <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
               </Button>
