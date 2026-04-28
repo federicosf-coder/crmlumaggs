@@ -888,14 +888,14 @@ export default function DocumentForm() {
                 <Button variant="secondary" onClick={() => setWhatsappOpen(true)}>
                   <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp seguimiento
                 </Button>
-                {!isSales && !isDelivery && (
+                {canConvertToFactura && (
                   <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
                     <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
                   </Button>
                 )}
               </>
             )}
-            {form.tipo_documento === "pedido" && !isSales && !isDelivery && (
+            {form.tipo_documento === "pedido" && canConvertToFactura && (
               <Button variant="secondary" onClick={() => handleConvertTo("factura")}>
                 <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
               </Button>
