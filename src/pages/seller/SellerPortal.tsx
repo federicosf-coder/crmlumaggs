@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle } from "lucide-react";
+import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +46,7 @@ export default function SellerPortal() {
   const [pagos, setPagos] = useState<any[]>([]);
   const [facturasPorVencer, setFacturasPorVencer] = useState<any[]>([]);
   const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
+  const [actividades, setActividades] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
   const [companyPhoneMap, setCompanyPhoneMap] = useState<Record<string, { phone: string | null; name: string }>>({});
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
@@ -189,6 +190,16 @@ export default function SellerPortal() {
       if (plazaId !== "all") venQ = venQ.eq("plaza_id", plazaId);
       const { data: venData } = await venQ;
 
+      // Actividades CRM creadas/realizadas en el periodo (por ejecutivo)
+      let actQ = supabase
+        .from("crm_activities")
+        .select("id, type, activity_date, created_at, user_id, company_id, deal_id")
+        .eq("user_id", ejecutivoId)
+        .gte("activity_date", fromIso)
+        .lte("activity_date", toIso)
+        .limit(2000);
+      const { data: actData } = await actQ;
+
       // Company names
       const ids = new Set<string>();
       (tasksData || []).forEach((t: any) => t.company_id && ids.add(t.company_id));
@@ -225,6 +236,7 @@ export default function SellerPortal() {
       setPagos(pagosData || []);
       setFacturasPorVencer(fpvData || []);
       setFacturasVencidasAll(venData || []);
+      setActividades(actData || []);
       setCompanyMap(cmap);
       setCompanyPhoneMap(cphone);
       setEjecutivoMap(emap);
