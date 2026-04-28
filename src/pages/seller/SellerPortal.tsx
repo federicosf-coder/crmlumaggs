@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package } from "lucide-react";
@@ -27,14 +27,17 @@ type Plaza = { id: string; nombre: string };
 export default function SellerPortal() {
   const { user, profile, hasAnyRole } = useAuth();
   const isManager = hasAnyRole(["admin", "manager"]);
-
-  const [from, setFrom] = useState<Date>(startOfDay(new Date()));
-  const [to, setTo] = useState<Date>(endOfDay(new Date()));
-  const [ejecutivoId, setEjecutivoId] = useState<string>(user?.id || "");
-  const [plazaId, setPlazaId] = useState<string>("all");
+  const [searchParams] = useSearchParams();
+  const sp = (k: string) => searchParams.get(k);
+  const initFrom = sp("from") ? startOfDay(parseISO(sp("from")!)) : startOfDay(new Date());
+  const initTo = sp("to") ? endOfDay(parseISO(sp("to")!)) : endOfDay(new Date());
+  const [from, setFrom] = useState<Date>(initFrom);
+  const [to, setTo] = useState<Date>(initTo);
+  const [ejecutivoId, setEjecutivoId] = useState<string>(sp("ejecutivo") || user?.id || "");
+  const [plazaId, setPlazaId] = useState<string>(sp("plaza") || "all");
   // Marcas independientes (toggles). Si ninguna está activa, se asume ambas.
-  const [marcaChevron, setMarcaChevron] = useState<boolean>(true);
-  const [marcaPhillips, setMarcaPhillips] = useState<boolean>(true);
+  const [marcaChevron, setMarcaChevron] = useState<boolean>(sp("chevron") ? sp("chevron") === "1" : true);
+  const [marcaPhillips, setMarcaPhillips] = useState<boolean>(sp("phillips") ? sp("phillips") === "1" : true);
 
   const [ejecutivos, setEjecutivos] = useState<Profile[]>([]);
   const [plazas, setPlazas] = useState<Plaza[]>([]);
