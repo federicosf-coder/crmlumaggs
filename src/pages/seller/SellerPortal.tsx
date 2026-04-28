@@ -334,6 +334,26 @@ export default function SellerPortal() {
   const fxv3 = bucket(11, 20);
   const fxv4 = bucket(21, 30);
 
+  // Lista unificada de cobranza: vencidas + por vencer
+  // diasVencidos = hoy - fecha_vencimiento (positivo = vencida hace X días)
+  const calcDiasVencidos = (fechaVenc: string | null) => {
+    if (!fechaVenc) return 0;
+    return Math.floor((ahora - new Date(fechaVenc).getTime()) / (1000 * 60 * 60 * 24));
+  };
+  const facturasCobranza = useMemo(() => {
+    const combined = [...facturasVencidasAll, ...facturasPorVencer]
+      .map((f: any) => ({ ...f, dias_vencidos: calcDiasVencidos(f.fecha_vencimiento) }));
+    // Eliminar duplicados por id (por si una entra en ambas listas)
+    const seen = new Set<string>();
+    const unique = combined.filter((f: any) => {
+      if (seen.has(f.id)) return false;
+      seen.add(f.id);
+      return true;
+    });
+    // Orden: más vencidas primero (días desc), luego vence hoy, luego por vencer
+    return unique.sort((a: any, b: any) => b.dias_vencidos - a.dias_vencidos);
+  }, [facturasVencidasAll, facturasPorVencer]);
+
   // Conversiones por tipo de pipeline
   const dealsNuevos = deals.filter(d => d.pipeline_type === "primera_compra");
   const dealsRecompra = deals.filter(d => d.pipeline_type === "recompra");
