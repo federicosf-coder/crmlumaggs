@@ -951,6 +951,163 @@ export type Database = {
           },
         ]
       }
+      crm_item_collaborators: {
+        Row: {
+          added_at: string
+          id: string
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_item_collaborators_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "crm_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_items: {
+        Row: {
+          assigned_to: string | null
+          canal: string | null
+          company_id: string | null
+          completed_by: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          deal_id: string | null
+          description: string | null
+          fecha_actividad: string | null
+          fecha_creacion: string
+          fecha_programada: string | null
+          fecha_terminacion: string | null
+          fecha_vencimiento: string | null
+          id: string
+          kind: Database["public"]["Enums"]["crm_item_kind"]
+          marca: string | null
+          mensaje_sugerido: string | null
+          metadata: Json
+          notas_internas: string | null
+          origen: string | null
+          pipeline_id: string | null
+          priority: Database["public"]["Enums"]["crm_item_priority"]
+          resultado: string | null
+          status: Database["public"]["Enums"]["crm_item_status"]
+          title: string
+          type: Database["public"]["Enums"]["crm_item_type"]
+          updated_at: string
+          whatsapp_last_sent_at: string | null
+          whatsapp_status: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          canal?: string | null
+          company_id?: string | null
+          completed_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by: string
+          deal_id?: string | null
+          description?: string | null
+          fecha_actividad?: string | null
+          fecha_creacion?: string
+          fecha_programada?: string | null
+          fecha_terminacion?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["crm_item_kind"]
+          marca?: string | null
+          mensaje_sugerido?: string | null
+          metadata?: Json
+          notas_internas?: string | null
+          origen?: string | null
+          pipeline_id?: string | null
+          priority?: Database["public"]["Enums"]["crm_item_priority"]
+          resultado?: string | null
+          status?: Database["public"]["Enums"]["crm_item_status"]
+          title: string
+          type?: Database["public"]["Enums"]["crm_item_type"]
+          updated_at?: string
+          whatsapp_last_sent_at?: string | null
+          whatsapp_status?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          canal?: string | null
+          company_id?: string | null
+          completed_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          deal_id?: string | null
+          description?: string | null
+          fecha_actividad?: string | null
+          fecha_creacion?: string
+          fecha_programada?: string | null
+          fecha_terminacion?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["crm_item_kind"]
+          marca?: string | null
+          mensaje_sugerido?: string | null
+          metadata?: Json
+          notas_internas?: string | null
+          origen?: string | null
+          pipeline_id?: string | null
+          priority?: Database["public"]["Enums"]["crm_item_priority"]
+          resultado?: string | null
+          status?: Database["public"]["Enums"]["crm_item_status"]
+          title?: string
+          type?: Database["public"]["Enums"]["crm_item_type"]
+          updated_at?: string
+          whatsapp_last_sent_at?: string | null
+          whatsapp_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_items_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_items_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_items_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_pipeline_stages: {
         Row: {
           color: string
@@ -3339,7 +3496,35 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      crm_items_unified: {
+        Row: {
+          assigned_to: string | null
+          canal: string | null
+          company_id: string | null
+          completed_by: string | null
+          contact_id: string | null
+          created_by: string | null
+          deal_id: string | null
+          description: string | null
+          fecha_actividad: string | null
+          fecha_creacion: string | null
+          fecha_programada: string | null
+          fecha_terminacion: string | null
+          fecha_vencimiento: string | null
+          id: string | null
+          kind: Database["public"]["Enums"]["crm_item_kind"] | null
+          marca: string | null
+          origen: string | null
+          pipeline_id: string | null
+          priority: string | null
+          resultado: string | null
+          source_table: string | null
+          status: string | null
+          title: string | null
+          type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       backfill_documentos_negocio_id: { Args: never; Returns: Json }
@@ -3462,6 +3647,10 @@ export type Database = {
             Args: { p_marca: string; p_nombre?: string; p_user_id: string }
             Returns: string
           }
+      user_can_access_crm_item: {
+        Args: { _item_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_related_counts: { Args: { _user_id: string }; Returns: Json }
     }
     Enums: {
@@ -3499,6 +3688,25 @@ export type Database = {
         | "seguimiento_3"
         | "vencida"
         | "sin_actividad"
+      crm_item_kind: "tarea" | "actividad"
+      crm_item_priority: "baja" | "media" | "alta" | "urgente"
+      crm_item_status:
+        | "pendiente"
+        | "en_progreso"
+        | "completada"
+        | "cancelada"
+        | "vencida"
+      crm_item_type:
+        | "call"
+        | "email"
+        | "meeting"
+        | "note"
+        | "field_visit"
+        | "whatsapp"
+        | "follow_up"
+        | "task"
+        | "visita"
+        | "otro"
       empresa_vendedora: "lumaggs_chevron" | "galsa_phillips66"
       estado_cobranza_doc:
         | "pendiente"
@@ -3790,6 +3998,27 @@ export const Constants = {
         "seguimiento_3",
         "vencida",
         "sin_actividad",
+      ],
+      crm_item_kind: ["tarea", "actividad"],
+      crm_item_priority: ["baja", "media", "alta", "urgente"],
+      crm_item_status: [
+        "pendiente",
+        "en_progreso",
+        "completada",
+        "cancelada",
+        "vencida",
+      ],
+      crm_item_type: [
+        "call",
+        "email",
+        "meeting",
+        "note",
+        "field_visit",
+        "whatsapp",
+        "follow_up",
+        "task",
+        "visita",
+        "otro",
       ],
       empresa_vendedora: ["lumaggs_chevron", "galsa_phillips66"],
       estado_cobranza_doc: [
