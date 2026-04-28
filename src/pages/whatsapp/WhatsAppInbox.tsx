@@ -538,7 +538,13 @@ export default function WhatsAppInbox() {
                 <select
                   className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm"
                   value={tplName}
-                  onChange={(e) => setTplName(e.target.value)}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setTplName(name);
+                    const tpl = templates.find((t) => t.name === name);
+                    const n = tpl?.body ? extractTemplateVars(tpl.body) : 0;
+                    setTplVars(Array(n).fill(""));
+                  }}
                 >
                   <option value="">
                     — Enviar plantilla {activeAccount ? `(${activeAccount.label})` : ""} —
@@ -553,6 +559,26 @@ export default function WhatsAppInbox() {
                   Enviar plantilla
                 </Button>
               </div>
+              {tplVars.length > 0 && (
+                <div className="flex flex-col gap-2 rounded-md border border-dashed p-2">
+                  <div className="text-xs text-muted-foreground">
+                    Esta plantilla tiene {tplVars.length} variable(s). Completa los valores:
+                  </div>
+                  {tplVars.map((v, i) => (
+                    <Input
+                      key={i}
+                      value={v}
+                      onChange={(e) => {
+                        const next = [...tplVars];
+                        next[i] = e.target.value;
+                        setTplVars(next);
+                      }}
+                      placeholder={`Variable {{${i + 1}}}`}
+                      className="h-8 text-sm"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}
