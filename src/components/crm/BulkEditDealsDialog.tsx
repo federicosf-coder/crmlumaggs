@@ -129,7 +129,7 @@ export function BulkEditDealsDialog({ open, onOpenChange, selectedDeals, marca, 
       }
       if (Object.keys(updates).length === 0) { okCount++; continue; }
 
-      const { error } = await supabase.from("crm_deals").update(updates).eq("id", deal.id);
+      const { error } = await (supabase.from("crm_deals") as any).update(updates).eq("id", deal.id);
       if (error) {
         errors.push(`${deal.title}: ${error.message}`);
       } else {
