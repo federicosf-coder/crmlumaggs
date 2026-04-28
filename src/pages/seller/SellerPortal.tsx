@@ -51,17 +51,33 @@ export default function SellerPortal() {
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
   const [bucketActivo, setBucketActivo] = useState<"1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
-  // Límites de visualización por lista (10 / 25 / "all")
-  type PageLimit = "10" | "25" | "all";
+  // Límites de visualización + paginación por lista (10 / 25 / 50 / "all")
+  type PageLimit = "10" | "25" | "50" | "all";
   const [limTerminadas, setLimTerminadas] = useState<PageLimit>("10");
+  const [pageTerminadas, setPageTerminadas] = useState(1);
   const [limCreadas, setLimCreadas] = useState<PageLimit>("10");
+  const [pageCreadas, setPageCreadas] = useState(1);
   const [limProspectos, setLimProspectos] = useState<PageLimit>("10");
+  const [pageProspectos, setPageProspectos] = useState(1);
   const [limCotizaciones, setLimCotizaciones] = useState<PageLimit>("10");
+  const [pageCotizaciones, setPageCotizaciones] = useState(1);
   const [limPedidos, setLimPedidos] = useState<PageLimit>("10");
+  const [pagePedidos, setPagePedidos] = useState(1);
   const [limFacturas, setLimFacturas] = useState<PageLimit>("10");
+  const [pageFacturas, setPageFacturas] = useState(1);
   const [limCobranza, setLimCobranza] = useState<PageLimit>("10");
+  const [pageCobranza, setPageCobranza] = useState(1);
 
-  const applyLimit = <T,>(arr: T[], lim: PageLimit): T[] => (lim === "all" ? arr : arr.slice(0, parseInt(lim, 10)));
+  const paginate = <T,>(arr: T[], lim: PageLimit, page: number): T[] => {
+    if (lim === "all") return arr;
+    const size = parseInt(lim, 10);
+    const start = (page - 1) * size;
+    return arr.slice(start, start + size);
+  };
+  const totalPages = (total: number, lim: PageLimit) => {
+    if (lim === "all" || total === 0) return 1;
+    return Math.max(1, Math.ceil(total / parseInt(lim, 10)));
+  };
 
   // Helpers de marca
   const marcasSeleccionadas = useMemo(() => {
@@ -370,20 +386,36 @@ export default function SellerPortal() {
   const docFolio = (d: any) => d.numero_factura || d.numero_pedido || d.numero_cotizacion || d.id.slice(0, 8);
   const docStatus = (d: any) => d.estatus_factura || d.estatus_pedido || d.estatus_cotizacion || "—";
 
-  const PageSizeSelect = ({ value, onChange, total }: { value: PageLimit; onChange: (v: PageLimit) => void; total: number }) => (
+  const PageSizeSelect = ({ value, onChange, total, onPageReset }: { value: PageLimit; onChange: (v: PageLimit) => void; total: number; onPageReset?: () => void }) => (
     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
       <span>Mostrar</span>
-      <Select value={value} onValueChange={(v) => onChange(v as PageLimit)}>
-        <SelectTrigger className="h-7 w-[80px] text-xs"><SelectValue /></SelectTrigger>
+      <Select value={value} onValueChange={(v) => { onChange(v as PageLimit); onPageReset?.(); }}>
+        <SelectTrigger className="h-7 w-[88px] text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="10">10</SelectItem>
           <SelectItem value="25">25</SelectItem>
+          <SelectItem value="50">50</SelectItem>
           <SelectItem value="all">Todas</SelectItem>
         </SelectContent>
       </Select>
       <span>de {total}</span>
     </div>
   );
+
+  const Paginator = ({ page, setPage, total, lim }: { page: number; setPage: (n: number) => void; total: number; lim: PageLimit }) => {
+    if (lim === "all" || total === 0) return null;
+    const pages = totalPages(total, lim);
+    if (pages <= 1) return null;
+    return (
+      <div className="flex items-center justify-between px-3 py-2 border-t text-xs text-muted-foreground">
+        <span>Página {page} de {pages}</span>
+        <div className="flex gap-1">
+          <Button size="sm" variant="outline" className="h-7" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button>
+          <Button size="sm" variant="outline" className="h-7" disabled={page >= pages} onClick={() => setPage(page + 1)}>Siguiente</Button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="p-4 space-y-4 max-w-[1600px] mx-auto">
@@ -548,7 +580,7 @@ export default function SellerPortal() {
       <Card>
         <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
           <CardTitle className="text-base">Mi día - Terminadas en periodo ({tasksCompletadasPeriodo.length})</CardTitle>
-          <PageSizeSelect value={limTerminadas} onChange={setLimTerminadas} total={tasksCompletadasPeriodo.length} />
+          <PageSizeSelect value={limTerminadas} onChange={setLimTerminadas} total={tasksCompletadasPeriodo.length} onPageReset={() => setPageTerminadas(1)} />
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -564,7 +596,7 @@ export default function SellerPortal() {
               </TableHeader>
               <TableBody>
                 {tasksCompletadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin terminadas en el periodo</TableCell></TableRow>}
-                {applyLimit(tasksCompletadasPeriodo, limTerminadas).map(t => (
+                {paginate(tasksCompletadasPeriodo, limTerminadas, pageTerminadas).map(t => (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium text-sm">{companyMap[t.company_id] || "—"}</TableCell>
                     <TableCell className="text-sm">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
@@ -578,6 +610,7 @@ export default function SellerPortal() {
               </TableBody>
             </Table>
           </div>
+          <Paginator page={pageTerminadas} setPage={setPageTerminadas} total={tasksCompletadasPeriodo.length} lim={limTerminadas} />
         </CardContent>
       </Card>
 
@@ -585,7 +618,7 @@ export default function SellerPortal() {
       <Card>
         <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
           <CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle>
-          <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={tasksCreadasPeriodo.length} />
+          <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={tasksCreadasPeriodo.length} onPageReset={() => setPageCreadas(1)} />
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -601,7 +634,7 @@ export default function SellerPortal() {
               </TableHeader>
               <TableBody>
                 {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin creadas en el periodo</TableCell></TableRow>}
-                {applyLimit(tasksCreadasPeriodo, limCreadas).map(t => {
+                {paginate(tasksCreadasPeriodo, limCreadas, pageCreadas).map(t => {
                   const venc = t.due_date ? new Date(t.due_date) : null;
                   const isVenc = venc && !t.completed && venc < todayStart;
                   const statusColor = t.completed ? "bg-green-100 text-green-800" : isVenc ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800";
@@ -623,6 +656,7 @@ export default function SellerPortal() {
               </TableBody>
             </Table>
           </div>
+          <Paginator page={pageCreadas} setPage={setPageCreadas} total={tasksCreadasPeriodo.length} lim={limCreadas} />
         </CardContent>
       </Card>
 
@@ -638,12 +672,12 @@ export default function SellerPortal() {
 
         <TabsContent value="prospectos">
           <Card>
-            <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limProspectos} onChange={setLimProspectos} total={dealsEnRango.length} /></CardHeader>
+            <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limProspectos} onChange={setLimProspectos} total={dealsEnRango.length} onPageReset={() => setPageProspectos(1)} /></CardHeader>
             <CardContent className="p-0 overflow-x-auto"><Table>
             <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tipo</TableHead><TableHead>Fecha</TableHead><TableHead className="text-right">Importe</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {dealsEnRango.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Sin prospectos en el rango</TableCell></TableRow>}
-              {applyLimit(dealsEnRango, limProspectos).map(d => (
+              {paginate(dealsEnRango, limProspectos, pageProspectos).map(d => (
                 <TableRow key={d.id}>
                   <TableCell className="font-medium text-sm">{companyMap[d.company_id] || d.title}</TableCell>
                   <TableCell><Badge variant="outline">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
@@ -654,22 +688,24 @@ export default function SellerPortal() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table></CardContent></Card>
+          </Table>
+          <Paginator page={pageProspectos} setPage={setPageProspectos} total={dealsEnRango.length} lim={limProspectos} />
+          </CardContent></Card>
         </TabsContent>
 
         {[
-          { key: "cotizaciones", data: cotizaciones, lim: limCotizaciones, setLim: setLimCotizaciones },
-          { key: "pedidos", data: pedidos, lim: limPedidos, setLim: setLimPedidos },
-          { key: "facturas", data: facturas, lim: limFacturas, setLim: setLimFacturas },
-        ].map(({ key, data, lim, setLim }) => (
+          { key: "cotizaciones", data: cotizaciones, lim: limCotizaciones, setLim: setLimCotizaciones, page: pageCotizaciones, setPage: setPageCotizaciones },
+          { key: "pedidos", data: pedidos, lim: limPedidos, setLim: setLimPedidos, page: pagePedidos, setPage: setPagePedidos },
+          { key: "facturas", data: facturas, lim: limFacturas, setLim: setLimFacturas, page: pageFacturas, setPage: setPageFacturas },
+        ].map(({ key, data, lim, setLim, page, setPage }) => (
           <TabsContent value={key} key={key}>
             <Card>
-              <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={lim} onChange={setLim} total={data.length} /></CardHeader>
+              <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={lim} onChange={setLim} total={data.length} onPageReset={() => setPage(1)} /></CardHeader>
               <CardContent className="p-0 overflow-x-auto"><Table>
               <TableHeader><TableRow><TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estatus</TableHead><TableHead className="text-right">Importe</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
                 {data.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Sin registros</TableCell></TableRow>}
-                {applyLimit(data, lim).map((d: any) => (
+                {paginate(data, lim, page).map((d: any) => (
                   <TableRow key={d.id}>
                     <TableCell className="font-mono text-xs">{docFolio(d)}</TableCell>
                     <TableCell className="text-sm">{companyMap[d.empresa_id] || "—"}</TableCell>
@@ -681,18 +717,20 @@ export default function SellerPortal() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table></CardContent></Card>
+            </Table>
+            <Paginator page={page} setPage={setPage} total={data.length} lim={lim} />
+            </CardContent></Card>
           </TabsContent>
         ))}
 
         <TabsContent value="cobranza">
           <Card>
-            <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limCobranza} onChange={setLimCobranza} total={pagos.length} /></CardHeader>
+            <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limCobranza} onChange={setLimCobranza} total={pagos.length} onPageReset={() => setPageCobranza(1)} /></CardHeader>
             <CardContent className="p-0 overflow-x-auto"><Table>
             <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estatus</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="text-right">Aplicado</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {pagos.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Sin pagos en el rango</TableCell></TableRow>}
-              {applyLimit(pagos, limCobranza).map(p => (
+              {paginate(pagos, limCobranza, pageCobranza).map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="text-sm font-medium">{companyMap[p.empresa_id] || "—"}</TableCell>
                   <TableCell className="text-xs">{p.fecha_pago}</TableCell>
@@ -703,7 +741,9 @@ export default function SellerPortal() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table></CardContent></Card>
+          </Table>
+          <Paginator page={pageCobranza} setPage={setPageCobranza} total={pagos.length} lim={limCobranza} />
+          </CardContent></Card>
         </TabsContent>
       </Tabs>
 
