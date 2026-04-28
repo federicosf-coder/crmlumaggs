@@ -71,13 +71,16 @@ export function useCreateCrmDeal() {
       stage_id: string;
       owner_id?: string;
       created_by?: string;
-      company_id?: string | null;
+      company_id: string;
       contact_id?: string | null;
       value?: number;
       probability?: number;
       close_date?: string | null;
       notes?: string | null;
     }) => {
+      if (!deal.company_id) {
+        throw new Error("La empresa es requerida para crear un negocio.");
+      }
       const { data, error } = await supabase.from("crm_deals").insert(deal).select().single();
       if (error) throw error;
       return data;

@@ -812,7 +812,7 @@ export type Database = {
         Row: {
           categoria_interes_id: string | null
           close_date: string | null
-          company_id: string | null
+          company_id: string
           contact_id: string | null
           convertido_a_cliente: boolean
           cotizado_unidades: number
@@ -842,7 +842,7 @@ export type Database = {
         Insert: {
           categoria_interes_id?: string | null
           close_date?: string | null
-          company_id?: string | null
+          company_id: string
           contact_id?: string | null
           convertido_a_cliente?: boolean
           cotizado_unidades?: number
@@ -872,7 +872,7 @@ export type Database = {
         Update: {
           categoria_interes_id?: string | null
           close_date?: string | null
-          company_id?: string | null
+          company_id?: string
           contact_id?: string | null
           convertido_a_cliente?: boolean
           cotizado_unidades?: number
