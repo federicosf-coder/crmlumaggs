@@ -75,10 +75,18 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
   });
 
   const { data: contacts, refetch: refetchContacts } = useQuery({
-    queryKey: ["contacts-picker"],
+    queryKey: ["contacts-picker-with-company"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name, is_active").eq("is_active", true).order("first_name");
-      return data || [];
+      const rows = await fetchAllRows<{ id: string; first_name: string; last_name: string; company_id: string | null; is_active: boolean }>(
+        (from, to) =>
+          supabase
+            .from("contacts")
+            .select("id, first_name, last_name, company_id, is_active")
+            .eq("is_active", true)
+            .order("first_name")
+            .range(from, to)
+      );
+      return rows;
     },
     staleTime: 0,
     refetchOnMount: "always",
@@ -222,6 +230,14 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
     const tipo = pipelineTypeLabel(selectedPipeline?.pipeline_type);
     setTitle(`${selectedCompany.name} - ${tipo}`);
   }, [selectedCompany, selectedPipeline, titleManuallyEdited]);
+
+  // Limpiar contacto si no pertenece a la empresa seleccionada
+  useEffect(() => {
+    if (!contactId) return;
+    if (!companyId) { setContactId(""); return; }
+    const c = (contacts || []).find((x: any) => x.id === contactId);
+    if (c && c.company_id !== companyId) setContactId("");
+  }, [companyId, contacts, contactId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -394,11 +410,14 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
                 <SearchableSelect
                   value={contactId}
                   onValueChange={setContactId}
-                  options={(contacts || []).map((c) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
-                  placeholder="Buscar contacto..."
+                  options={(contacts || [])
+                    .filter((c: any) => c.company_id === companyId)
+                    .map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
+                  placeholder={companyId ? "Buscar contacto..." : "Selecciona primero una empresa"}
+                  disabled={!companyId}
                 />
               </div>
-              <Button type="button" variant="outline" size="icon" title="Nuevo contacto" onClick={() => setContactDialogOpen(true)}>
+              <Button type="button" variant="outline" size="icon" title="Nuevo contacto" disabled={!companyId} onClick={() => setContactDialogOpen(true)}>
                 <Plus className="h-4 w-4" />
               </Button>
               <Button type="button" variant="outline" size="icon" title="Abrir contacto" disabled={!contactId} onClick={() => contactId && openInNewTab(`/directory?tab=contacts&select=${contactId}`)}>
@@ -467,20 +486,23 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
         onOpenChange={setContactDialogOpen}
         defaultCompanyId={companyId || undefined}
         onCreated={async (id) => {
-          setContactId(id);
           const { data: nuevo } = await supabase
             .from("contacts")
-            .select("id, first_name, last_name, is_active")
+            .select("id, first_name, last_name, company_id, is_active")
             .eq("id", id)
             .maybeSingle();
           if (nuevo) {
-            queryClient.setQueryData<any[]>(["contacts-picker"], (old) => {
+            queryClient.setQueryData<any[]>(["contacts-picker-with-company"], (old) => {
               const list = old || [];
               if (list.some((c) => c.id === nuevo.id)) return list;
               return [...list, nuevo].sort((a, b) => (a.first_name || "").localeCompare(b.first_name || ""));
             });
+            // Solo seleccionar si pertenece a la empresa actual
+            if (nuevo.company_id === companyId) {
+              setContactId(id);
+            }
           }
-          await queryClient.invalidateQueries({ queryKey: ["contacts-picker"] });
+          await queryClient.invalidateQueries({ queryKey: ["contacts-picker-with-company"] });
           refetchContacts();
         }}
       />

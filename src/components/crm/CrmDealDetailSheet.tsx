@@ -78,10 +78,18 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   const { data: allContacts } = useQuery({
-    queryKey: ["contacts-picker"],
+    queryKey: ["contacts-picker-with-company"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name").eq("is_active", true).order("first_name");
-      return data || [];
+      const rows = await fetchAllRows<{ id: string; first_name: string; last_name: string; company_id: string | null }>(
+        (from, to) =>
+          supabase
+            .from("contacts")
+            .select("id, first_name, last_name, company_id")
+            .eq("is_active", true)
+            .order("first_name")
+            .range(from, to)
+      );
+      return rows;
     },
   });
   const { data: allCompanies } = useQuery({
@@ -189,6 +197,15 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
       setEditPlazaId((deal as any).plaza_id || "");
     }
   }, [deal, editing]);
+
+  // Limpiar contacto si no pertenece a la empresa seleccionada en edición
+  useEffect(() => {
+    if (!editing) return;
+    if (!editContactId) return;
+    if (!editCompanyId) { setEditContactId(""); return; }
+    const c = (allContacts || []).find((x: any) => x.id === editContactId);
+    if (c && c.company_id !== editCompanyId) setEditContactId("");
+  }, [editing, editCompanyId, allContacts, editContactId]);
 
   if (!deal) return null;
 
@@ -369,11 +386,14 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                     <SearchableSelect
                       value={editContactId}
                       onValueChange={setEditContactId}
-                      options={(allContacts || []).map((c) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
-                      placeholder="Buscar contacto..."
+                      options={(allContacts || [])
+                        .filter((c: any) => c.company_id === editCompanyId)
+                        .map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
+                      placeholder={editCompanyId ? "Buscar contacto..." : "Selecciona primero una empresa"}
+                      disabled={!editCompanyId}
                     />
                   </div>
-                  <Button type="button" variant="outline" size="icon" title="Nuevo contacto" onClick={() => setContactDialogOpen(true)}>
+                  <Button type="button" variant="outline" size="icon" title="Nuevo contacto" disabled={!editCompanyId} onClick={() => setContactDialogOpen(true)}>
                     <Plus className="h-4 w-4" />
                   </Button>
                   <Button type="button" variant="outline" size="icon" title="Abrir contacto" disabled={!editContactId} onClick={() => editContactId && openInNewTab(`/directory?tab=contacts&select=${editContactId}`)}>
@@ -539,7 +559,16 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
         open={contactDialogOpen}
         onOpenChange={setContactDialogOpen}
         defaultCompanyId={editCompanyId || undefined}
-        onCreated={(id) => setEditContactId(id)}
+        onCreated={async (id) => {
+          const { data: nuevo } = await supabase
+            .from("contacts")
+            .select("id, company_id")
+            .eq("id", id)
+            .maybeSingle();
+          if (nuevo && nuevo.company_id === editCompanyId) {
+            setEditContactId(id);
+          }
+        }}
       />
     </Sheet>
   );
