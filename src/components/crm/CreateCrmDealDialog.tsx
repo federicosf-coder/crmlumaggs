@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmDeal } from "@/hooks/useCrmDeals";
 import { CrmPipelineStage } from "@/hooks/useCrmPipelines";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -28,19 +28,20 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
   const { session } = useAuth();
   const createDeal = useCreateCrmDeal();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data: companies } = useQuery({
+  const { data: companies, refetch: refetchCompanies } = useQuery({
     queryKey: ["companies-picker"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
+      const { data } = await supabase.from("companies").select("id, name, is_active").eq("is_active", true).order("name");
       return data || [];
     },
   });
 
-  const { data: contacts } = useQuery({
+  const { data: contacts, refetch: refetchContacts } = useQuery({
     queryKey: ["contacts-picker"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name").eq("is_active", true).order("first_name");
+      const { data } = await supabase.from("contacts").select("id, first_name, last_name, is_active").eq("is_active", true).order("first_name");
       return data || [];
     },
   });
@@ -184,13 +185,46 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
       <CompanyFormDialog
         open={companyDialogOpen}
         onOpenChange={setCompanyDialogOpen}
-        onCreated={(id) => setCompanyId(id)}
+        onCreated={async (id) => {
+          setCompanyId(id);
+          // Fetch the new company and merge into the picker cache so it appears inmediatamente
+          const { data: nueva } = await supabase
+            .from("companies")
+            .select("id, name, is_active")
+            .eq("id", id)
+            .maybeSingle();
+          if (nueva) {
+            queryClient.setQueryData<any[]>(["companies-picker"], (old) => {
+              const list = old || [];
+              if (list.some((c) => c.id === nueva.id)) return list;
+              return [...list, nueva].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+            });
+          }
+          await queryClient.invalidateQueries({ queryKey: ["companies-picker"] });
+          refetchCompanies();
+        }}
       />
       <ContactFormDialog
         open={contactDialogOpen}
         onOpenChange={setContactDialogOpen}
         defaultCompanyId={companyId || undefined}
-        onCreated={(id) => setContactId(id)}
+        onCreated={async (id) => {
+          setContactId(id);
+          const { data: nuevo } = await supabase
+            .from("contacts")
+            .select("id, first_name, last_name, is_active")
+            .eq("id", id)
+            .maybeSingle();
+          if (nuevo) {
+            queryClient.setQueryData<any[]>(["contacts-picker"], (old) => {
+              const list = old || [];
+              if (list.some((c) => c.id === nuevo.id)) return list;
+              return [...list, nuevo].sort((a, b) => (a.first_name || "").localeCompare(b.first_name || ""));
+            });
+          }
+          await queryClient.invalidateQueries({ queryKey: ["contacts-picker"] });
+          refetchContacts();
+        }}
       />
     </Dialog>
   );
