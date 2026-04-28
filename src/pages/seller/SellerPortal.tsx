@@ -98,6 +98,19 @@ export default function SellerPortal() {
     return arr.length === 0 ? ["chevron", "phillips66"] : arr;
   }, [marcaChevron, marcaPhillips]);
 
+  // Querystring para preservar filtros al navegar a /crm y volver
+  const sellerFiltersQs = useMemo(() => {
+    const p = new URLSearchParams();
+    p.set("from-page", "seller-portal");
+    p.set("from", format(from, "yyyy-MM-dd"));
+    p.set("to", format(to, "yyyy-MM-dd"));
+    if (ejecutivoId) p.set("ejecutivo", ejecutivoId);
+    if (plazaId) p.set("plaza", plazaId);
+    p.set("chevron", marcaChevron ? "1" : "0");
+    p.set("phillips", marcaPhillips ? "1" : "0");
+    return p.toString();
+  }, [from, to, ejecutivoId, plazaId, marcaChevron, marcaPhillips]);
+
   // Load filter options
   useEffect(() => {
     if (!user) return;
