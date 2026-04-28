@@ -370,6 +370,21 @@ export default function SellerPortal() {
   const docFolio = (d: any) => d.numero_factura || d.numero_pedido || d.numero_cotizacion || d.id.slice(0, 8);
   const docStatus = (d: any) => d.estatus_factura || d.estatus_pedido || d.estatus_cotizacion || "—";
 
+  const PageSizeSelect = ({ value, onChange, total }: { value: PageLimit; onChange: (v: PageLimit) => void; total: number }) => (
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <span>Mostrar</span>
+      <Select value={value} onValueChange={(v) => onChange(v as PageLimit)}>
+        <SelectTrigger className="h-7 w-[80px] text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="10">10</SelectItem>
+          <SelectItem value="25">25</SelectItem>
+          <SelectItem value="all">Todas</SelectItem>
+        </SelectContent>
+      </Select>
+      <span>de {total}</span>
+    </div>
+  );
+
   return (
     <div className="p-4 space-y-4 max-w-[1600px] mx-auto">
       {/* Header */}
