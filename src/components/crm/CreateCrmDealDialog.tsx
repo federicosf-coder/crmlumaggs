@@ -171,6 +171,10 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user || !title || !stageId || !selectedPipelineId) return;
+    if (!companyId) {
+      toast({ title: "Empresa requerida", description: "Selecciona una empresa para el negocio", variant: "destructive" });
+      return;
+    }
 
     createDeal.mutate(
       {
@@ -179,12 +183,14 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
         stage_id: stageId,
         owner_id: ownerId || session.user.id,
         created_by: session.user.id,
-        company_id: companyId || null,
+        company_id: companyId,
         contact_id: contactId || null,
-        value: parseFloat(value) || 0,
+        value: 0,
+        potencial_unidades: parseFloat(value) || null,
+        volumen_mensual_estimado: parseFloat(value) || null,
         close_date: closeDate || null,
         notes: notes || null,
-      },
+      } as any,
       {
         onSuccess: () => {
           toast({ title: "Negocio creado", description: `"${title}" agregado al pipeline` });
