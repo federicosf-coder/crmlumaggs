@@ -50,7 +50,7 @@ export default function SellerPortal() {
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
   const [companyPhoneMap, setCompanyPhoneMap] = useState<Record<string, { phone: string | null; name: string }>>({});
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
-  const [bucketActivo, setBucketActivo] = useState<"1-5" | "6-10" | "11-20" | "21-30" | null>(null);
+  const [bucketActivo, setBucketActivo] = useState<"vencidas" | "1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
   // Límites de visualización + paginación por lista (10 / 25 / 50 / "all")
   type PageLimit = "10" | "25" | "50" | "all";
