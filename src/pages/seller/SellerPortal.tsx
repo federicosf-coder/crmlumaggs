@@ -185,10 +185,44 @@ export default function SellerPortal() {
         .filter((f: any) => Number(f.saldo_pendiente_cobranza) > 0);
       console.log("[FacturasPorVencer]", { recibidas: fpvRaw?.length || 0, conSaldo: fpvData.length });
 
-      // Facturas vencidas (<= hoy) con saldo > 0 — para KPIs de cobranza
-      let venQ = supabase.from("documentos").select("id, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).lte("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
+      // Facturas vencidas (fecha_vencimiento <= max(hoy, fin del periodo))
+      // Excluye canceladas y pagadas. Recalcula saldo real con cobranza_aplicaciones.
+      const fechaCorte = todayIso > toDate ? todayIso : toDate;
+      let venQ = supabase.from("documentos")
+        .select("id, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza, estatus_factura, ejecutivo_venta_id, created_by")
+        .eq("tipo_documento", "factura")
+        .eq("is_active", true)
+        .neq("estatus_factura", "cancelada")
+        .neq("estatus_factura", "pagada")
+        .lte("fecha_vencimiento", fechaCorte)
+        .in("empresa_vendedora", marcasSeleccionadas as any)
+        .or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`)
+        .limit(2000);
       if (plazaId !== "all") venQ = venQ.eq("plaza_id", plazaId);
-      const { data: venData } = await venQ;
+      const { data: venRaw } = await venQ;
+
+      const venIds = (venRaw || []).map((f: any) => f.id);
+      const venAplicMap: Record<string, number> = {};
+      if (venIds.length) {
+        const { data: aplics } = await supabase
+          .from("cobranza_aplicaciones")
+          .select("documento_id, monto_aplicado, estatus_aplicacion")
+          .in("documento_id", venIds)
+          .eq("estatus_aplicacion", "activa");
+        (aplics || []).forEach((a: any) => {
+          venAplicMap[a.documento_id] = (venAplicMap[a.documento_id] || 0) + Number(a.monto_aplicado || 0);
+        });
+      }
+      const venData = (venRaw || [])
+        .map((f: any) => {
+          const aplicado = venAplicMap[f.id] || 0;
+          const saldoCalc = Number(f.total || 0) - aplicado;
+          const saldoFinal = Number(f.saldo_pendiente_cobranza || 0) > 0
+            ? Math.min(Number(f.saldo_pendiente_cobranza), saldoCalc > 0 ? saldoCalc : Number(f.saldo_pendiente_cobranza))
+            : saldoCalc;
+          return { ...f, saldo_pendiente_cobranza: saldoFinal };
+        })
+        .filter((f: any) => Number(f.saldo_pendiente_cobranza) > 0);
 
       // Actividades CRM creadas/realizadas en el periodo (por ejecutivo)
       let actQ = supabase
