@@ -173,6 +173,7 @@ Deno.serve(async (req) => {
 
           const messages = Array.isArray(value?.messages) ? value.messages : [];
           for (const msg of messages) {
+            try {
             const fromPhone = normalizePhone(msg?.from);
             if (!fromPhone) continue;
 
@@ -344,6 +345,16 @@ Deno.serve(async (req) => {
                   .update({ last_outbound_at: new Date().toISOString() })
                   .eq("id", conversationId);
               }
+            }
+            } catch (messageError) {
+              console.error(
+                "Message processing error; continuing with remaining webhook events:",
+                {
+                  phone_number_id: businessPhoneId,
+                  wa_id: msg?.id ?? null,
+                  error: messageError instanceof Error ? messageError.message : messageError,
+                },
+              );
             }
           }
 
