@@ -414,7 +414,16 @@ export default function CrmPipeline({ brandProp, pipelineTypeProp, embedded }: C
       <CrmDealDetailSheet
         deal={selectedDeal}
         open={!!selectedDeal}
-        onOpenChange={(o) => !o && setSelectedDeal(null)}
+        onOpenChange={(o) => {
+          if (!o) {
+            setSelectedDeal(null);
+            if (params.get("deal")) {
+              const next = new URLSearchParams(params);
+              next.delete("deal");
+              setParams(next, { replace: true });
+            }
+          }
+        }}
         stages={stages || []}
       />
     </div>
