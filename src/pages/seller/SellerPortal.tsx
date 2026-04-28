@@ -397,6 +397,12 @@ export default function SellerPortal() {
       uCot: sumDealsField(dealsArr, "cotizado_unidades"),
       uPed: sumDealsField(dealsArr, "pedido_unidades"),
       uFac: sumDealsField(dealsArr, "facturado_unidades"),
+      facturadosSet: new Set(
+        docs
+          .filter(d => d.tipo_documento === "factura" && d.estatus_factura !== "cancelada" && companyIds.has(d.empresa_id))
+          .map(d => d.empresa_id)
+          .filter(Boolean)
+      ),
     };
   };
 
@@ -408,7 +414,11 @@ export default function SellerPortal() {
   const clientesRecompraCompraron = convRecompra.facturados;
 
   // KPIs adicionales
-  const clientesConCompra = new Set(facturas.map(f => f.empresa_id).filter(Boolean)).size;
+  // Unión de clientes únicos que facturaron en pipelines de Primera compra + Recompra
+  const clientesConCompra = new Set([
+    ...convNuevos.facturadosSet,
+    ...convRecompra.facturadosSet,
+  ]).size;
   const ticketPromedio = facturas.length > 0 ? totalFacturado / facturas.length : 0;
   const unidadesPromedioCliente = clientesConCompra > 0 ? unidadesFacturadas / clientesConCompra : 0;
   const prospectosNuevosPeriodo = dealsNuevos.filter(d => new Date(d.created_at).getTime() >= fromTs && new Date(d.created_at).getTime() <= toTs).length;
