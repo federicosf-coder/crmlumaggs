@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock } from "lucide-react";
+import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +47,9 @@ export default function SellerPortal() {
   const [facturasPorVencer, setFacturasPorVencer] = useState<any[]>([]);
   const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
+  const [companyPhoneMap, setCompanyPhoneMap] = useState<Record<string, { phone: string | null; name: string }>>({});
+  const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
+  const [bucketActivo, setBucketActivo] = useState<"1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
   // Helpers de marca
   const marcasSeleccionadas = useMemo(() => {
@@ -110,7 +113,7 @@ export default function SellerPortal() {
       const { data: pagosData } = await pq;
 
       // Facturas por vencer (>= hoy) con saldo > 0 — para el bloque inferior
-      let fpvQ = supabase.from("documentos").select("id, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).gt("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
+      let fpvQ = supabase.from("documentos").select("id, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza, estatus_factura, ejecutivo_venta_id, created_by").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).gt("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
       if (plazaId !== "all") fpvQ = fpvQ.eq("plaza_id", plazaId);
       const { data: fpvData } = await fpvQ;
 
@@ -128,9 +131,25 @@ export default function SellerPortal() {
       (fpvData || []).forEach((d: any) => d.empresa_id && ids.add(d.empresa_id));
       (venData || []).forEach((d: any) => d.empresa_id && ids.add(d.empresa_id));
       const cmap: Record<string, string> = {};
+      const cphone: Record<string, { phone: string | null; name: string }> = {};
       if (ids.size) {
-        const { data: cs } = await supabase.from("companies").select("id, name").in("id", Array.from(ids));
-        (cs || []).forEach((c: any) => { cmap[c.id] = c.name; });
+        const { data: cs } = await supabase.from("companies").select("id, name, phone").in("id", Array.from(ids));
+        (cs || []).forEach((c: any) => { cmap[c.id] = c.name; cphone[c.id] = { phone: c.phone, name: c.name }; });
+        // Intentar obtener WhatsApp del contacto principal (primer contacto activo)
+        const { data: cts } = await supabase.from("contacts").select("company_id, whatsapp_phone, mobile, phone").in("company_id", Array.from(ids)).eq("is_active", true);
+        (cts || []).forEach((ct: any) => {
+          const cur = cphone[ct.company_id];
+          if (!cur) return;
+          if (!cur.phone) cur.phone = ct.whatsapp_phone || ct.mobile || ct.phone || null;
+        });
+      }
+      // Ejecutivos para mostrar nombre en desglose
+      const ejIds = new Set<string>();
+      (fpvData || []).forEach((d: any) => { if (d.ejecutivo_venta_id) ejIds.add(d.ejecutivo_venta_id); else if (d.created_by) ejIds.add(d.created_by); });
+      const emap: Record<string, string> = {};
+      if (ejIds.size) {
+        const { data: ps } = await supabase.from("profiles").select("user_id, full_name").in("user_id", Array.from(ejIds));
+        (ps || []).forEach((p: any) => { emap[p.user_id] = p.full_name || ""; });
       }
 
       setTasks(tasksData || []);
@@ -140,6 +159,8 @@ export default function SellerPortal() {
       setFacturasPorVencer(fpvData || []);
       setFacturasVencidasAll(venData || []);
       setCompanyMap(cmap);
+      setCompanyPhoneMap(cphone);
+      setEjecutivoMap(emap);
     } catch (e: any) {
       toast.error("Error cargando datos: " + e.message);
     } finally {
@@ -539,25 +560,119 @@ export default function SellerPortal() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" /> Facturas por vencer</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: "1–5 días", data: fxv1, color: "bg-red-600" },
-              { label: "6–10 días", data: fxv2, color: "bg-orange-500" },
-              { label: "11–20 días", data: fxv3, color: "bg-yellow-500" },
-              { label: "21–30 días", data: fxv4, color: "bg-green-600" },
-            ].map(b => (
-              <Card key={b.label} className="border">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">{b.label}</p>
-                      <p className="text-2xl font-bold">{b.data.length}</p>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {([
+                { key: "1-5" as const, label: "1–5 días", data: fxv1, color: "bg-red-600", border: "border-red-600" },
+                { key: "6-10" as const, label: "6–10 días", data: fxv2, color: "bg-orange-500", border: "border-orange-500" },
+                { key: "11-20" as const, label: "11–20 días", data: fxv3, color: "bg-yellow-500", border: "border-yellow-500" },
+                { key: "21-30" as const, label: "21–30 días", data: fxv4, color: "bg-green-600", border: "border-green-600" },
+              ]).map(b => {
+                const total = b.data.reduce((a, c) => a + Number(c.saldo_pendiente_cobranza || 0), 0);
+                const activo = bucketActivo === b.key;
+                return (
+                  <button
+                    key={b.key}
+                    type="button"
+                    onClick={() => setBucketActivo(activo ? null : b.key)}
+                    className={cn(
+                      "text-left rounded-lg border-2 p-3 transition-all hover:shadow-md",
+                      activo ? `${b.border} bg-muted/40` : "border-border hover:border-muted-foreground/40"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">{b.label}</p>
+                        <p className="text-2xl font-bold">{b.data.length}</p>
+                        <p className="text-xs font-semibold mt-0.5">{fmtMoney(total)}</p>
+                      </div>
+                      <div className={cn("h-12 w-2 rounded-full shrink-0", b.color)} />
                     </div>
-                    <div className={cn("h-10 w-2 rounded-full", b.color)} />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </button>
+                );
+              })}
+            </div>
+
+            {bucketActivo && (() => {
+              const bucketData =
+                bucketActivo === "1-5" ? fxv1 :
+                bucketActivo === "6-10" ? fxv2 :
+                bucketActivo === "11-20" ? fxv3 : fxv4;
+              const buildMessage = (f: any, dias: number) => {
+                const num = f.numero_factura || f.id.slice(0, 8);
+                const saldo = fmtMoney(Number(f.saldo_pendiente_cobranza || 0));
+                if (bucketActivo === "1-5") {
+                  return `Hola, buen día. Le recordamos que la factura ${num} por ${saldo} vence en ${dias} día(s). Agradecemos su apoyo para programar el pago y evitar vencimiento. Quedamos atentos.`;
+                }
+                return `Hola, buen día. Le compartimos recordatorio de pago: la factura ${num} por ${saldo} vence en ${dias} día(s). Favor de considerarla en su programación de pagos. Gracias.`;
+              };
+              const cleanPhone = (p: string | null | undefined) => (p || "").replace(/[^0-9]/g, "");
+              return (
+                <Card className="border">
+                  <CardHeader className="pb-2 flex-row items-center justify-between">
+                    <CardTitle className="text-sm">Desglose · {bucketActivo.replace("-", "–")} días ({bucketData.length})</CardTitle>
+                    <Button size="sm" variant="ghost" onClick={() => setBucketActivo(null)}>Cerrar</Button>
+                  </CardHeader>
+                  <CardContent className="p-0 overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Factura</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Fecha fact.</TableHead>
+                          <TableHead>Vence</TableHead>
+                          <TableHead className="text-right">Días</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                          <TableHead className="text-right">Saldo</TableHead>
+                          <TableHead>Ejecutivo</TableHead>
+                          <TableHead>Marca</TableHead>
+                          <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {bucketData.length === 0 && (
+                          <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">Sin facturas en este bucket</TableCell></TableRow>
+                        )}
+                        {bucketData.map((f: any) => {
+                          const dias = Math.ceil((new Date(f.fecha_vencimiento).getTime() - ahora) / (1000 * 60 * 60 * 24));
+                          const phone = cleanPhone(companyPhoneMap[f.empresa_id]?.phone);
+                          const ejId = f.ejecutivo_venta_id || f.created_by;
+                          const ejNombre = ejId ? (ejecutivoMap[ejId] || "—") : "—";
+                          const marcaLabel = f.empresa_vendedora === "lumaggs_chevron" ? "Chevron" : "Phillips 66";
+                          const marcaColor = f.empresa_vendedora === "lumaggs_chevron" ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-800";
+                          const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(buildMessage(f, dias))}` : null;
+                          return (
+                            <TableRow key={f.id}>
+                              <TableCell className="font-mono text-xs">{f.numero_factura || f.id.slice(0, 8)}</TableCell>
+                              <TableCell className="text-sm">{companyMap[f.empresa_id] || "—"}</TableCell>
+                              <TableCell className="text-xs">{f.fecha_documento || "—"}</TableCell>
+                              <TableCell className="text-xs">{f.fecha_vencimiento}</TableCell>
+                              <TableCell className="text-right text-sm font-semibold">{dias}</TableCell>
+                              <TableCell className="text-right text-sm">{fmtMoney(Number(f.total))}</TableCell>
+                              <TableCell className="text-right text-sm font-semibold">{fmtMoney(Number(f.saldo_pendiente_cobranza))}</TableCell>
+                              <TableCell className="text-xs">{ejNombre}</TableCell>
+                              <TableCell><Badge variant="outline" className={cn("text-xs", marcaColor)}>{marcaLabel}</Badge></TableCell>
+                              <TableCell className="text-right space-x-1 whitespace-nowrap">
+                                <Button size="sm" variant="ghost" asChild title="Abrir factura">
+                                  <Link to={`/documents/${f.id}`}><ExternalLink className="h-3.5 w-3.5" /></Link>
+                                </Button>
+                                {waUrl ? (
+                                  <Button size="sm" variant="ghost" asChild title="Enviar WhatsApp">
+                                    <a href={waUrl} target="_blank" rel="noopener noreferrer"><MessageCircle className="h-3.5 w-3.5 text-green-600" /></a>
+                                  </Button>
+                                ) : (
+                                  <Button size="sm" variant="ghost" disabled title="Sin WhatsApp"><MessageCircle className="h-3.5 w-3.5 text-muted-foreground" /></Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </CardContent>
         </Card>
 
