@@ -10,12 +10,24 @@ export default function CrmLanding() {
   const [tab, setTab] = useState("chevron");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const fromSellerPortal = searchParams.get("from") === "seller-portal";
+  const fromSellerPortal =
+    searchParams.get("from-page") === "seller-portal" ||
+    searchParams.get("from") === "seller-portal";
+
+  const handleBack = () => {
+    const params = new URLSearchParams();
+    ["from", "to", "ejecutivo", "plaza", "chevron", "phillips"].forEach((k) => {
+      const v = searchParams.get(k);
+      if (v && v !== "seller-portal") params.set(k, v);
+    });
+    const qs = params.toString();
+    navigate(qs ? `/seller-portal?${qs}` : "/seller-portal");
+  };
 
   return (
     <div className="space-y-6">
       {fromSellerPortal && (
-        <Button variant="ghost" size="sm" onClick={() => navigate("/seller-portal")}>
+        <Button variant="ghost" size="sm" onClick={handleBack}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Volver al Portal del Vendedor
         </Button>
       )}

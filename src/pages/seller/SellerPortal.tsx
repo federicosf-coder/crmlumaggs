@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package } from "lucide-react";
@@ -27,14 +27,17 @@ type Plaza = { id: string; nombre: string };
 export default function SellerPortal() {
   const { user, profile, hasAnyRole } = useAuth();
   const isManager = hasAnyRole(["admin", "manager"]);
-
-  const [from, setFrom] = useState<Date>(startOfDay(new Date()));
-  const [to, setTo] = useState<Date>(endOfDay(new Date()));
-  const [ejecutivoId, setEjecutivoId] = useState<string>(user?.id || "");
-  const [plazaId, setPlazaId] = useState<string>("all");
+  const [searchParams] = useSearchParams();
+  const sp = (k: string) => searchParams.get(k);
+  const initFrom = sp("from") ? startOfDay(parseISO(sp("from")!)) : startOfDay(new Date());
+  const initTo = sp("to") ? endOfDay(parseISO(sp("to")!)) : endOfDay(new Date());
+  const [from, setFrom] = useState<Date>(initFrom);
+  const [to, setTo] = useState<Date>(initTo);
+  const [ejecutivoId, setEjecutivoId] = useState<string>(sp("ejecutivo") || user?.id || "");
+  const [plazaId, setPlazaId] = useState<string>(sp("plaza") || "all");
   // Marcas independientes (toggles). Si ninguna está activa, se asume ambas.
-  const [marcaChevron, setMarcaChevron] = useState<boolean>(true);
-  const [marcaPhillips, setMarcaPhillips] = useState<boolean>(true);
+  const [marcaChevron, setMarcaChevron] = useState<boolean>(sp("chevron") ? sp("chevron") === "1" : true);
+  const [marcaPhillips, setMarcaPhillips] = useState<boolean>(sp("phillips") ? sp("phillips") === "1" : true);
 
   const [ejecutivos, setEjecutivos] = useState<Profile[]>([]);
   const [plazas, setPlazas] = useState<Plaza[]>([]);
@@ -94,6 +97,19 @@ export default function SellerPortal() {
     if (marcaPhillips) arr.push("phillips66");
     return arr.length === 0 ? ["chevron", "phillips66"] : arr;
   }, [marcaChevron, marcaPhillips]);
+
+  // Querystring para preservar filtros al navegar a /crm y volver
+  const sellerFiltersQs = useMemo(() => {
+    const p = new URLSearchParams();
+    p.set("from-page", "seller-portal");
+    p.set("from", format(from, "yyyy-MM-dd"));
+    p.set("to", format(to, "yyyy-MM-dd"));
+    if (ejecutivoId) p.set("ejecutivo", ejecutivoId);
+    if (plazaId) p.set("plaza", plazaId);
+    p.set("chevron", marcaChevron ? "1" : "0");
+    p.set("phillips", marcaPhillips ? "1" : "0");
+    return p.toString();
+  }, [from, to, ejecutivoId, plazaId, marcaChevron, marcaPhillips]);
 
   // Load filter options
   useEffect(() => {
@@ -736,17 +752,16 @@ export default function SellerPortal() {
           <Card>
             <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limProspectos} onChange={setLimProspectos} total={dealsEnRango.length} onPageReset={() => setPageProspectos(1)} /></CardHeader>
             <CardContent className="p-0 overflow-x-auto"><Table>
-            <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tipo</TableHead><TableHead>Fecha</TableHead><TableHead className="text-right">Importe</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tipo</TableHead><TableHead>Fecha</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
-              {dealsEnRango.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Sin prospectos en el rango</TableCell></TableRow>}
+              {dealsEnRango.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Sin prospectos en el rango</TableCell></TableRow>}
               {paginate(dealsEnRango, limProspectos, pageProspectos).map(d => (
                 <TableRow key={d.id}>
                   <TableCell className="font-medium text-sm">{companyMap[d.company_id] || d.title}</TableCell>
                   <TableCell><Badge variant="outline">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
                   <TableCell className="text-xs">{format(new Date(d.created_at), "dd MMM yyyy", { locale: es })}</TableCell>
-                  <TableCell className="text-right text-sm">{fmtMoney(Number(d.value))}</TableCell>
                   <TableCell className="text-right text-sm">{fmtNum(Number(d.potencial_unidades || 0))}</TableCell>
-                  <TableCell><Button size="sm" variant="ghost" asChild><Link to="/crm"><ExternalLink className="h-3.5 w-3.5" /></Link></Button></TableCell>
+                  <TableCell><Button size="sm" variant="ghost" asChild><Link to={`/crm?${sellerFiltersQs}`}><ExternalLink className="h-3.5 w-3.5" /></Link></Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>
