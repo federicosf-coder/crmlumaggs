@@ -112,10 +112,49 @@ export default function SellerPortal() {
       if (plazaId !== "all") pq = pq.eq("plaza_id", plazaId);
       const { data: pagosData } = await pq;
 
-      // Facturas por vencer (>= hoy) con saldo > 0 — para el bloque inferior
-      let fpvQ = supabase.from("documentos").select("id, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza, estatus_factura, ejecutivo_venta_id, created_by").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).gt("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
+      // Facturas por vencer (> hoy, próximos 30 días) — saldo se calcula con cobranza_aplicaciones
+      // No filtramos por saldo_pendiente_cobranza porque el campo está desactualizado en muchos registros.
+      const in30 = new Date(); in30.setDate(in30.getDate() + 30);
+      const in30Iso = in30.toISOString().slice(0, 10);
+      let fpvQ = supabase
+        .from("documentos")
+        .select("id, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza, estatus_factura, ejecutivo_venta_id, created_by")
+        .eq("tipo_documento", "factura")
+        .eq("is_active", true)
+        .neq("estatus_factura", "cancelada")
+        .gt("fecha_vencimiento", todayIso)
+        .lte("fecha_vencimiento", in30Iso)
+        .in("empresa_vendedora", marcasSeleccionadas as any)
+        .or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`)
+        .limit(2000);
       if (plazaId !== "all") fpvQ = fpvQ.eq("plaza_id", plazaId);
-      const { data: fpvData } = await fpvQ;
+      const { data: fpvRaw } = await fpvQ;
+
+      // Calcular saldo real por factura: total - SUM(monto_aplicado activo)
+      const fpvIds = (fpvRaw || []).map((f: any) => f.id);
+      const aplicMap: Record<string, number> = {};
+      if (fpvIds.length) {
+        const { data: aplics } = await supabase
+          .from("cobranza_aplicaciones")
+          .select("documento_id, monto_aplicado, estatus_aplicacion")
+          .in("documento_id", fpvIds)
+          .eq("estatus_aplicacion", "activa");
+        (aplics || []).forEach((a: any) => {
+          aplicMap[a.documento_id] = (aplicMap[a.documento_id] || 0) + Number(a.monto_aplicado || 0);
+        });
+      }
+      const fpvData = (fpvRaw || [])
+        .map((f: any) => {
+          const aplicado = aplicMap[f.id] || 0;
+          const saldoCalc = Number(f.total || 0) - aplicado;
+          // Preferir saldo_pendiente_cobranza solo si es > 0; si no, usar saldo calculado
+          const saldoFinal = Number(f.saldo_pendiente_cobranza || 0) > 0
+            ? Number(f.saldo_pendiente_cobranza)
+            : saldoCalc;
+          return { ...f, saldo_pendiente_cobranza: saldoFinal };
+        })
+        .filter((f: any) => Number(f.saldo_pendiente_cobranza) > 0);
+      console.log("[FacturasPorVencer]", { recibidas: fpvRaw?.length || 0, conSaldo: fpvData.length });
 
       // Facturas vencidas (<= hoy) con saldo > 0 — para KPIs de cobranza
       let venQ = supabase.from("documentos").select("id, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).lte("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
