@@ -53,6 +53,7 @@ export default function WhatsAppInbox() {
   const [qrOpen, setQrOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [tplName, setTplName] = useState("");
+  const [tplVars, setTplVars] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
   // Inbox seleccionado por línea (business_phone_number_id). null = aún no inicializado
   const [selectedPhoneId, setSelectedPhoneId] = useState<string | null>(null);
@@ -263,6 +264,20 @@ export default function WhatsAppInbox() {
       return;
     }
     const tpl = templates.find((t) => t.name === tplName);
+    const expected = tpl?.body ? extractTemplateVars(tpl.body) : 0;
+    if (expected > 0 && tplVars.slice(0, expected).some((v) => !v?.trim())) {
+      toast.error(`Esta plantilla requiere ${expected} variable(s). Completa todos los campos.`);
+      return;
+    }
+    const components =
+      expected > 0
+        ? [
+            {
+              type: "body",
+              parameters: tplVars.slice(0, expected).map((v) => ({ type: "text", text: v.trim() })),
+            },
+          ]
+        : undefined;
     setSending(true);
     const { error } = await supabase.functions.invoke("whatsapp-send-message", {
       body: {
@@ -272,6 +287,7 @@ export default function WhatsAppInbox() {
         template_name: tpl?.name,
         template_language: tpl?.language ?? "es_MX",
         business_phone_number_id: active.business_phone_number_id,
+        ...(components ? { template_components: components } : {}),
       },
     });
     setSending(false);
@@ -280,6 +296,7 @@ export default function WhatsAppInbox() {
       return;
     }
     setTplName("");
+    setTplVars([]);
     toast.success("Plantilla enviada");
   };
 
