@@ -65,6 +65,15 @@ export default function CrmPipeline({ brandProp, pipelineTypeProp, embedded }: C
   const [createStageId, setCreateStageId] = useState<string | undefined>();
   const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
 
+  // Abrir negocio automáticamente si viene ?deal=<id> en la URL
+  useEffect(() => {
+    const dealId = params.get("deal");
+    if (!dealId || !deals?.length) return;
+    if (selectedDeal?.id === dealId) return;
+    const found = deals.find((d) => d.id === dealId);
+    if (found) setSelectedDeal(found);
+  }, [params, deals, selectedDeal?.id]);
+
   // Cargar ejecutivos (profiles) y plazas para los filtros
   const [ejecutivos, setEjecutivos] = useState<ExecutivoOption[]>([]);
   const [plazas, setPlazas] = useState<PlazaOption[]>([]);

@@ -755,15 +755,20 @@ export default function SellerPortal() {
             <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tipo</TableHead><TableHead>Fecha</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {dealsEnRango.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Sin prospectos en el rango</TableCell></TableRow>}
-              {paginate(dealsEnRango, limProspectos, pageProspectos).map(d => (
-                <TableRow key={d.id}>
-                  <TableCell className="font-medium text-sm">{companyMap[d.company_id] || d.title}</TableCell>
-                  <TableCell><Badge variant="outline">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
-                  <TableCell className="text-xs">{format(new Date(d.created_at), "dd MMM yyyy", { locale: es })}</TableCell>
-                  <TableCell className="text-right text-sm">{fmtNum(Number(d.potencial_unidades || 0))}</TableCell>
-                  <TableCell><Button size="sm" variant="ghost" asChild><Link to={`/crm?${sellerFiltersQs}`}><ExternalLink className="h-3.5 w-3.5" /></Link></Button></TableCell>
-                </TableRow>
-              ))}
+              {paginate(dealsEnRango, limProspectos, pageProspectos).map(d => {
+                const dealMarca = (d as any).crm_pipelines?.marca === "phillips66" ? "phillips66" : "chevron";
+                const dealType = d.pipeline_type === "recompra" ? "recompra" : "primera_compra";
+                const dealUrl = `/crm/${dealMarca}/pipeline?type=${dealType}&deal=${d.id}`;
+                return (
+                  <TableRow key={d.id}>
+                    <TableCell className="font-medium text-sm">{companyMap[d.company_id] || d.title}</TableCell>
+                    <TableCell><Badge variant="outline">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
+                    <TableCell className="text-xs">{format(new Date(d.created_at), "dd MMM yyyy", { locale: es })}</TableCell>
+                    <TableCell className="text-right text-sm">{fmtNum(Number(d.potencial_unidades || 0))}</TableCell>
+                    <TableCell><Button size="sm" variant="ghost" asChild><Link to={dealUrl}><ExternalLink className="h-3.5 w-3.5" /></Link></Button></TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
           <Paginator page={pageProspectos} setPage={setPageProspectos} total={dealsEnRango.length} lim={limProspectos} />
