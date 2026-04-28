@@ -125,14 +125,17 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const empresaVendedora =
     dealPipeline?.marca === "phillips66" ? "galsa_phillips66" : "lumaggs_chevron";
 
-  // Pipelines disponibles para cambiar (mismo pipeline_type del negocio)
+  // Pipelines disponibles para cambiar — TODOS (primera_compra y recompra)
   const { data: availablePipelines } = useQuery({
-    queryKey: ["crm-pipelines-all", (deal as any)?.pipeline_type],
+    queryKey: ["crm-pipelines-all"],
     enabled: !!deal,
     queryFn: async () => {
-      let q = supabase.from("crm_pipelines").select("id, nombre, marca, pipeline_type").order("marca").order("nombre");
-      if ((deal as any)?.pipeline_type) q = q.eq("pipeline_type", (deal as any).pipeline_type);
-      const { data } = await q;
+      const { data } = await supabase
+        .from("crm_pipelines")
+        .select("id, nombre, marca, pipeline_type")
+        .order("pipeline_type")
+        .order("marca")
+        .order("nombre");
       return data || [];
     },
   });
@@ -154,7 +157,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   useEffect(() => {
     if (deal && editing) {
       setEditTitle(deal.title);
-      setEditValue(String(deal.value || 0));
+      setEditValue(String((deal as any).potencial_unidades ?? 0));
       setEditCloseDate(
         deal.close_date ||
           ((deal as any).pipeline_type === "recompra"
