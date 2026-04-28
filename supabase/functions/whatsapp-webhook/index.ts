@@ -131,25 +131,37 @@ Deno.serve(async (req) => {
         const changes = Array.isArray(entry?.changes) ? entry.changes : [];
         for (const change of changes) {
           const value = change?.value ?? {};
-          // Capture which business phone line this webhook event is for
+          // Capture which business phone line this webhook event is for.
+          // Do not reject unknown phone_number_id values; Meta's Verify Token is
+          // the only gate. Unknown accounts are stored with a null account link.
           const businessPhoneId = value?.metadata?.phone_number_id ?? null;
-          // Resolve the WhatsApp account row by phone_number_id so we can
-          // link conversations and messages to the correct inbox (Maggs / Chevron).
           let whatsappAccountId: string | null = null;
           if (businessPhoneId) {
-            const { data: acct, error: acctErr } = await admin
-              .from("whatsapp_accounts")
-              .select("id, label")
-              .eq("business_phone_number_id", businessPhoneId)
-              .maybeSingle();
-            if (acctErr) console.error("Account lookup error:", acctErr);
-            if (!acct) {
+            try {
+              const { data: acct, error: acctErr } = await admin
+                .from("whatsapp_accounts")
+                .select("id, label")
+                .eq("business_phone_number_id", businessPhoneId)
+                .maybeSingle();
+
+              if (acctErr) {
+                console.warn(
+                  `Account lookup failed for phone_number_id=${businessPhoneId}; continuing unlinked:`,
+                  acctErr,
+                );
+              } else if (!acct) {
+                console.warn(
+                  `No whatsapp_accounts row found for phone_number_id=${businessPhoneId}; continuing unlinked.`,
+                );
+              } else {
+                whatsappAccountId = acct.id;
+                console.log(`Routing webhook to account ${acct.label} (${acct.id})`);
+              }
+            } catch (acctException) {
               console.warn(
-                `No whatsapp_accounts row found for phone_number_id=${businessPhoneId}; messages will be unlinked.`,
+                `Account lookup exception for phone_number_id=${businessPhoneId}; continuing unlinked:`,
+                acctException,
               );
-            } else {
-              whatsappAccountId = acct.id;
-              console.log(`Routing webhook to account ${acct.label} (${acct.id})`);
             }
           }
           const contactsArr = Array.isArray(value?.contacts) ? value.contacts : [];
@@ -161,6 +173,7 @@ Deno.serve(async (req) => {
 
           const messages = Array.isArray(value?.messages) ? value.messages : [];
           for (const msg of messages) {
+            try {
             const fromPhone = normalizePhone(msg?.from);
             if (!fromPhone) continue;
 
@@ -173,16 +186,25 @@ Deno.serve(async (req) => {
 
             const profileName = profileNameByWa[fromPhone] ?? null;
 
-            // Try to match contact by whatsapp_phone, then phone, then mobile
-            const { data: contactMatch } = await admin
-              .from("contacts")
-              .select("id")
-              .or(
-                `whatsapp_phone.eq.${fromPhone},phone.eq.${fromPhone},mobile.eq.${fromPhone}`,
-              )
-              .limit(1)
-              .maybeSingle();
-            const contactId = contactMatch?.id ?? null;
+            // Try to match contact by whatsapp_phone, then phone, then mobile.
+            // Contact/account lookups must never block persistence of the inbound message.
+            let contactId: string | null = null;
+            try {
+              const { data: contactMatch, error: contactErr } = await admin
+                .from("contacts")
+                .select("id")
+                .or(
+                  `whatsapp_phone.eq.${fromPhone},phone.eq.${fromPhone},mobile.eq.${fromPhone}`,
+                )
+                .limit(1)
+                .maybeSingle();
+              if (contactErr) {
+                console.warn(`Contact lookup failed for wa_phone=${fromPhone}; continuing unlinked:`, contactErr);
+              }
+              contactId = contactMatch?.id ?? null;
+            } catch (contactException) {
+              console.warn(`Contact lookup exception for wa_phone=${fromPhone}; continuing unlinked:`, contactException);
+            }
 
             // Upsert conversation — scoped to (wa_phone, business_phone_number_id)
             // so that the same person chatting with two different lines (Maggs vs
@@ -197,38 +219,44 @@ Deno.serve(async (req) => {
               : convQuery.is("business_phone_number_id", null);
             const { data: existingConv } = await convQuery.maybeSingle();
 
-            let conversationId: string;
-            if (existingConv) {
-              conversationId = existingConv.id;
-              await admin
-                .from("whatsapp_conversations")
-                .update({
-                  contact_id: existingConv.contact_id ?? contactId,
-                  wa_profile_name: profileName ?? undefined,
-                  last_inbound_at: nowIso,
-                  last_message_preview: (text ?? "").slice(0, 120),
-                  unread_count: (existingConv.unread_count ?? 0) + 1,
-                  status: "open",
-                  business_phone_number_id: businessPhoneId ?? undefined,
-                  whatsapp_account_id: whatsappAccountId ?? undefined,
-                })
-                .eq("id", conversationId);
-            } else {
-              const { data: newConv } = await admin
-                .from("whatsapp_conversations")
-                .insert({
-                  wa_phone: fromPhone,
-                  contact_id: contactId,
-                  wa_profile_name: profileName,
-                  last_inbound_at: nowIso,
-                  last_message_preview: (text ?? "").slice(0, 120),
-                  unread_count: 1,
-                  business_phone_number_id: businessPhoneId,
-                  whatsapp_account_id: whatsappAccountId,
-                })
-                .select("id")
-                .single();
-              conversationId = newConv!.id;
+            let conversationId: string | null = null;
+            try {
+              if (existingConv) {
+                conversationId = existingConv.id;
+                const { error: updateConvErr } = await admin
+                  .from("whatsapp_conversations")
+                  .update({
+                    contact_id: existingConv.contact_id ?? contactId,
+                    wa_profile_name: profileName ?? undefined,
+                    last_inbound_at: nowIso,
+                    last_message_preview: (text ?? "").slice(0, 120),
+                    unread_count: (existingConv.unread_count ?? 0) + 1,
+                    status: "open",
+                    business_phone_number_id: businessPhoneId ?? undefined,
+                    whatsapp_account_id: whatsappAccountId ?? undefined,
+                  })
+                  .eq("id", conversationId);
+                if (updateConvErr) console.warn("Conversation update failed; message will still be saved:", updateConvErr);
+              } else {
+                const { data: newConv, error: newConvErr } = await admin
+                  .from("whatsapp_conversations")
+                  .insert({
+                    wa_phone: fromPhone,
+                    contact_id: contactId,
+                    wa_profile_name: profileName,
+                    last_inbound_at: nowIso,
+                    last_message_preview: (text ?? "").slice(0, 120),
+                    unread_count: 1,
+                    business_phone_number_id: businessPhoneId,
+                    whatsapp_account_id: whatsappAccountId,
+                  })
+                  .select("id")
+                  .maybeSingle();
+                if (newConvErr) console.warn("Conversation insert failed; message will still be saved:", newConvErr);
+                conversationId = newConv?.id ?? null;
+              }
+            } catch (conversationException) {
+              console.warn("Conversation persistence exception; message will still be saved:", conversationException);
             }
 
             const { error: insErr } = await admin.from("whatsapp_messages").insert({
@@ -332,6 +360,16 @@ Deno.serve(async (req) => {
                   .update({ last_outbound_at: new Date().toISOString() })
                   .eq("id", conversationId);
               }
+            }
+            } catch (messageError) {
+              console.error(
+                "Message processing error; continuing with remaining webhook events:",
+                {
+                  phone_number_id: businessPhoneId,
+                  wa_id: msg?.id ?? null,
+                  error: messageError instanceof Error ? messageError.message : messageError,
+                },
+              );
             }
           }
 
