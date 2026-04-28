@@ -233,7 +233,7 @@ export default function SellerPortal() {
   const scoreCotPed = Math.min(20, (cotizaciones.length + pedidos.length) * 2);
   const scoreFact = Math.min(20, facturas.length * 4);
   const scoreCob = pagos.length > 0 ? 10 : 0;
-  const scoreSeg = tasksHoyCompletadas.length >= 3 ? 10 : tasksHoyCompletadas.length * 3;
+  const scoreSeg = tasksCompletadasPeriodo.length >= 3 ? 10 : tasksCompletadasPeriodo.length * 3;
   const scoreTotal = scoreTareas + scoreProspectos + scoreCotPed + scoreFact + scoreCob + scoreSeg;
 
   const scoreColor = scoreTotal >= 80 ? "bg-green-600" : scoreTotal >= 60 ? "bg-yellow-500" : scoreTotal >= 40 ? "bg-orange-500" : "bg-red-600";
