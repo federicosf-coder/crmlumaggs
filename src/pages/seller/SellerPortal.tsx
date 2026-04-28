@@ -51,6 +51,18 @@ export default function SellerPortal() {
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
   const [bucketActivo, setBucketActivo] = useState<"1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
+  // Límites de visualización por lista (10 / 25 / "all")
+  type PageLimit = "10" | "25" | "all";
+  const [limTerminadas, setLimTerminadas] = useState<PageLimit>("10");
+  const [limCreadas, setLimCreadas] = useState<PageLimit>("10");
+  const [limProspectos, setLimProspectos] = useState<PageLimit>("10");
+  const [limCotizaciones, setLimCotizaciones] = useState<PageLimit>("10");
+  const [limPedidos, setLimPedidos] = useState<PageLimit>("10");
+  const [limFacturas, setLimFacturas] = useState<PageLimit>("10");
+  const [limCobranza, setLimCobranza] = useState<PageLimit>("10");
+
+  const applyLimit = <T,>(arr: T[], lim: PageLimit): T[] => (lim === "all" ? arr : arr.slice(0, parseInt(lim, 10)));
+
   // Helpers de marca
   const marcasSeleccionadas = useMemo(() => {
     const arr: ("lumaggs_chevron" | "galsa_phillips66")[] = [];
@@ -358,6 +370,21 @@ export default function SellerPortal() {
   const docFolio = (d: any) => d.numero_factura || d.numero_pedido || d.numero_cotizacion || d.id.slice(0, 8);
   const docStatus = (d: any) => d.estatus_factura || d.estatus_pedido || d.estatus_cotizacion || "—";
 
+  const PageSizeSelect = ({ value, onChange, total }: { value: PageLimit; onChange: (v: PageLimit) => void; total: number }) => (
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <span>Mostrar</span>
+      <Select value={value} onValueChange={(v) => onChange(v as PageLimit)}>
+        <SelectTrigger className="h-7 w-[80px] text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="10">10</SelectItem>
+          <SelectItem value="25">25</SelectItem>
+          <SelectItem value="all">Todas</SelectItem>
+        </SelectContent>
+      </Select>
+      <span>de {total}</span>
+    </div>
+  );
+
   return (
     <div className="p-4 space-y-4 max-w-[1600px] mx-auto">
       {/* Header */}
@@ -519,7 +546,10 @@ export default function SellerPortal() {
 
       {/* Mi día - Terminadas en periodo */}
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Mi día - Terminadas en periodo ({tasksCompletadasPeriodo.length})</CardTitle></CardHeader>
+        <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
+          <CardTitle className="text-base">Mi día - Terminadas en periodo ({tasksCompletadasPeriodo.length})</CardTitle>
+          <PageSizeSelect value={limTerminadas} onChange={setLimTerminadas} total={tasksCompletadasPeriodo.length} />
+        </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -534,7 +564,7 @@ export default function SellerPortal() {
               </TableHeader>
               <TableBody>
                 {tasksCompletadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin terminadas en el periodo</TableCell></TableRow>}
-                {tasksCompletadasPeriodo.map(t => (
+                {applyLimit(tasksCompletadasPeriodo, limTerminadas).map(t => (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium text-sm">{companyMap[t.company_id] || "—"}</TableCell>
                     <TableCell className="text-sm">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
@@ -553,7 +583,10 @@ export default function SellerPortal() {
 
       {/* Creadas en periodo */}
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle></CardHeader>
+        <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
+          <CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle>
+          <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={tasksCreadasPeriodo.length} />
+        </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -568,7 +601,7 @@ export default function SellerPortal() {
               </TableHeader>
               <TableBody>
                 {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin creadas en el periodo</TableCell></TableRow>}
-                {tasksCreadasPeriodo.map(t => {
+                {applyLimit(tasksCreadasPeriodo, limCreadas).map(t => {
                   const venc = t.due_date ? new Date(t.due_date) : null;
                   const isVenc = venc && !t.completed && venc < todayStart;
                   const statusColor = t.completed ? "bg-green-100 text-green-800" : isVenc ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800";
@@ -604,11 +637,13 @@ export default function SellerPortal() {
         </TabsList>
 
         <TabsContent value="prospectos">
-          <Card><CardContent className="p-0 overflow-x-auto"><Table>
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limProspectos} onChange={setLimProspectos} total={dealsEnRango.length} /></CardHeader>
+            <CardContent className="p-0 overflow-x-auto"><Table>
             <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tipo</TableHead><TableHead>Fecha</TableHead><TableHead className="text-right">Importe</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {dealsEnRango.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Sin prospectos en el rango</TableCell></TableRow>}
-              {dealsEnRango.map(d => (
+              {applyLimit(dealsEnRango, limProspectos).map(d => (
                 <TableRow key={d.id}>
                   <TableCell className="font-medium text-sm">{companyMap[d.company_id] || d.title}</TableCell>
                   <TableCell><Badge variant="outline">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
@@ -623,16 +658,18 @@ export default function SellerPortal() {
         </TabsContent>
 
         {[
-          { key: "cotizaciones", data: cotizaciones, color: "blue" },
-          { key: "pedidos", data: pedidos, color: "indigo" },
-          { key: "facturas", data: facturas, color: "green" },
-        ].map(({ key, data }) => (
+          { key: "cotizaciones", data: cotizaciones, lim: limCotizaciones, setLim: setLimCotizaciones },
+          { key: "pedidos", data: pedidos, lim: limPedidos, setLim: setLimPedidos },
+          { key: "facturas", data: facturas, lim: limFacturas, setLim: setLimFacturas },
+        ].map(({ key, data, lim, setLim }) => (
           <TabsContent value={key} key={key}>
-            <Card><CardContent className="p-0 overflow-x-auto"><Table>
+            <Card>
+              <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={lim} onChange={setLim} total={data.length} /></CardHeader>
+              <CardContent className="p-0 overflow-x-auto"><Table>
               <TableHeader><TableRow><TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estatus</TableHead><TableHead className="text-right">Importe</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
                 {data.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Sin registros</TableCell></TableRow>}
-                {data.map((d: any) => (
+                {applyLimit(data, lim).map((d: any) => (
                   <TableRow key={d.id}>
                     <TableCell className="font-mono text-xs">{docFolio(d)}</TableCell>
                     <TableCell className="text-sm">{companyMap[d.empresa_id] || "—"}</TableCell>
@@ -649,11 +686,13 @@ export default function SellerPortal() {
         ))}
 
         <TabsContent value="cobranza">
-          <Card><CardContent className="p-0 overflow-x-auto"><Table>
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limCobranza} onChange={setLimCobranza} total={pagos.length} /></CardHeader>
+            <CardContent className="p-0 overflow-x-auto"><Table>
             <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estatus</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="text-right">Aplicado</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {pagos.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Sin pagos en el rango</TableCell></TableRow>}
-              {pagos.map(p => (
+              {applyLimit(pagos, limCobranza).map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="text-sm font-medium">{companyMap[p.empresa_id] || "—"}</TableCell>
                   <TableCell className="text-xs">{p.fecha_pago}</TableCell>
