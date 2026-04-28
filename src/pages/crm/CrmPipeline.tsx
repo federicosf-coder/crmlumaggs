@@ -17,8 +17,10 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Kanban, Trash2, GripVertical } from "lucide-react";
+import { Plus, Kanban, Trash2, GripVertical, List as ListIcon, Pencil } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
+import { CrmDealsListView } from "@/components/crm/CrmDealsListView";
+import { BulkEditDealsDialog } from "@/components/crm/BulkEditDealsDialog";
 
 const DEFAULT_COLORS = ["#3b82f6", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#6366f1", "#ec4899", "#14b8a6"];
 
@@ -64,6 +66,24 @@ export default function CrmPipeline({ brandProp, pipelineTypeProp, embedded }: C
   const [createOpen, setCreateOpen] = useState(false);
   const [createStageId, setCreateStageId] = useState<string | undefined>();
   const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
+
+  // View mode (kanban | list) persisted in localStorage
+  const [viewMode, setViewMode] = useState<"kanban" | "list">(() => {
+    if (typeof window === "undefined") return "kanban";
+    return (localStorage.getItem("crm_view_mode") as "kanban" | "list") || "kanban";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("crm_view_mode", viewMode); } catch {}
+  }, [viewMode]);
+
+  // Bulk selection (list mode)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+
+  // Clear selection when filters / pipeline change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activePipelineId, search, filterEjecutivo, filterPlaza, filterMes, sort, pipelineType, marca]);
 
   // Abrir negocio automáticamente si viene ?deal=<id> en la URL
   useEffect(() => {
@@ -382,6 +402,21 @@ export default function CrmPipeline({ brandProp, pipelineTypeProp, embedded }: C
             onSortChange={setSort}
           />
         </div>
+        <div className="flex items-center gap-2 sm:ml-auto">
+          <div className="flex rounded-md border p-0.5">
+            <Button size="sm" variant={viewMode === "kanban" ? "default" : "ghost"} className="h-8" onClick={() => setViewMode("kanban")}>
+              <Kanban className="h-4 w-4 mr-1" /> Kanban
+            </Button>
+            <Button size="sm" variant={viewMode === "list" ? "default" : "ghost"} className="h-8" onClick={() => setViewMode("list")}>
+              <ListIcon className="h-4 w-4 mr-1" /> Lista
+            </Button>
+          </div>
+          {viewMode === "list" && (
+            <Button size="sm" variant="outline" disabled={selectedIds.size === 0} onClick={() => setBulkOpen(true)}>
+              <Pencil className="h-4 w-4 mr-1" /> Edición masiva ({selectedIds.size})
+            </Button>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -391,6 +426,7 @@ export default function CrmPipeline({ brandProp, pipelineTypeProp, embedded }: C
           ))}
         </div>
       ) : stages && stages.length > 0 ? (
+        viewMode === "kanban" ? (
         <CrmKanbanBoard
           stages={stages}
           deals={filteredDeals}
@@ -399,6 +435,30 @@ export default function CrmPipeline({ brandProp, pipelineTypeProp, embedded }: C
           brand={marca}
           pipelineType={pipelineType}
         />
+        ) : (
+          <CrmDealsListView
+            stages={stages}
+            deals={filteredDeals}
+            ejecutivos={ejecutivos}
+            selectedIds={selectedIds}
+            onToggleSelect={(id) => {
+              setSelectedIds((prev) => {
+                const n = new Set(prev);
+                n.has(id) ? n.delete(id) : n.add(id);
+                return n;
+              });
+            }}
+            onToggleSelectMany={(ids, checked) => {
+              setSelectedIds((prev) => {
+                const n = new Set(prev);
+                if (checked) ids.forEach((i) => n.add(i));
+                else ids.forEach((i) => n.delete(i));
+                return n;
+              });
+            }}
+            onOpenDeal={setSelectedDeal}
+          />
+        )
       ) : null}
 
       {pipeline && stages && (
@@ -425,6 +485,14 @@ export default function CrmPipeline({ brandProp, pipelineTypeProp, embedded }: C
           }
         }}
         stages={stages || []}
+      />
+
+      <BulkEditDealsDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        selectedDeals={(deals || []).filter((d) => selectedIds.has(d.id))}
+        marca={marca}
+        onSuccess={() => setSelectedIds(new Set())}
       />
     </div>
   );

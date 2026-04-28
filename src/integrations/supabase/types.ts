@@ -808,6 +808,39 @@ export type Database = {
           },
         ]
       }
+      crm_deal_change_logs: {
+        Row: {
+          action: string
+          created_at: string
+          deal_id: string
+          field_name: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string
+          created_at?: string
+          deal_id: string
+          field_name: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          deal_id?: string
+          field_name?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       crm_deals: {
         Row: {
           categoria_interes_id: string | null
