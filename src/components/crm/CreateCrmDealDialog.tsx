@@ -75,9 +75,9 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, email, is_active")
+        .select("user_id, full_name, email, is_active")
         .eq("is_active", true)
-        .order("first_name");
+        .order("full_name");
       return data || [];
     },
     staleTime: 60_000,
@@ -201,8 +201,8 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
   const openInNewTab = (path: string) => window.open(path, "_blank", "noopener,noreferrer");
 
   const ejecutivoOptions = (ejecutivos || []).map((u: any) => ({
-    value: u.id,
-    label: [u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || u.id.slice(0, 8),
+    value: u.user_id,
+    label: u.full_name || u.email || (u.user_id ? u.user_id.slice(0, 8) : ""),
   }));
 
   const pipelineOptions = (allPipelines || []).map((p: any) => ({
