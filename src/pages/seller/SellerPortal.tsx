@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle } from "lucide-react";
+import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +46,7 @@ export default function SellerPortal() {
   const [pagos, setPagos] = useState<any[]>([]);
   const [facturasPorVencer, setFacturasPorVencer] = useState<any[]>([]);
   const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
+  const [actividades, setActividades] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
   const [companyPhoneMap, setCompanyPhoneMap] = useState<Record<string, { phone: string | null; name: string }>>({});
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
@@ -189,6 +190,16 @@ export default function SellerPortal() {
       if (plazaId !== "all") venQ = venQ.eq("plaza_id", plazaId);
       const { data: venData } = await venQ;
 
+      // Actividades CRM creadas/realizadas en el periodo (por ejecutivo)
+      let actQ = supabase
+        .from("crm_activities")
+        .select("id, type, activity_date, created_at, user_id, company_id, deal_id")
+        .eq("user_id", ejecutivoId)
+        .gte("activity_date", fromIso)
+        .lte("activity_date", toIso)
+        .limit(2000);
+      const { data: actData } = await actQ;
+
       // Company names
       const ids = new Set<string>();
       (tasksData || []).forEach((t: any) => t.company_id && ids.add(t.company_id));
@@ -225,6 +236,7 @@ export default function SellerPortal() {
       setPagos(pagosData || []);
       setFacturasPorVencer(fpvData || []);
       setFacturasVencidasAll(venData || []);
+      setActividades(actData || []);
       setCompanyMap(cmap);
       setCompanyPhoneMap(cphone);
       setEjecutivoMap(emap);
@@ -314,6 +326,15 @@ export default function SellerPortal() {
 
   const clientesNuevosCompraron = new Set(facturas.filter(f => dealsNuevos.some(d => d.company_id === f.empresa_id)).map(f => f.empresa_id)).size;
   const clientesRecompraCompraron = new Set(facturas.filter(f => dealsRecompra.some(d => d.company_id === f.empresa_id)).map(f => f.empresa_id)).size;
+
+  // KPIs adicionales
+  const clientesConCompra = new Set(facturas.map(f => f.empresa_id).filter(Boolean)).size;
+  const ticketPromedio = facturas.length > 0 ? totalFacturado / facturas.length : 0;
+  const unidadesPromedioCliente = clientesConCompra > 0 ? unidadesFacturadas / clientesConCompra : 0;
+  const prospectosNuevosPeriodo = dealsNuevos.filter(d => new Date(d.created_at).getTime() >= fromTs && new Date(d.created_at).getTime() <= toTs).length;
+  const pctConversionProspectos = prospectosNuevosPeriodo > 0
+    ? (clientesNuevosCompraron / prospectosNuevosPeriodo) * 100
+    : 0;
 
   // Score
   const scoreTareas = tasksVencidas.length === 0 ? 20 : Math.max(0, 20 - tasksVencidas.length * 2);
@@ -512,44 +533,31 @@ export default function SellerPortal() {
       </Card>
 
       {/* KPIs */}
-      {/* Fila 1: Tareas y prospectos */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Fila 1 — Generación de demanda */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <KpiCard title="Prospectos nuevos" value={prospectosNuevosPeriodo} sub="Pipeline 1ª compra" icon={UserPlus} color="bg-blue-600" />
+        <KpiCard title="Clientes nuevos que compraron" value={clientesNuevosCompraron} sub="Primera compra" icon={Users} color="bg-emerald-600" />
+        <KpiCard title="Recompras" value={clientesRecompraCompraron} sub="Clientes existentes" icon={RefreshCw} color="bg-purple-600" />
+        <KpiCard title="Facturado (Unidades)" value={fmtNum(unidadesFacturadas)} sub="u. equivalentes" icon={Package} color="bg-indigo-600" />
+        <KpiCard title="Facturado ($)" value={fmtMoney(totalFacturado)} sub={`${facturas.length} facturas`} icon={Receipt} color="bg-indigo-700" />
+      </div>
+
+      {/* Fila 2 — Operación comercial */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <KpiCard title="Pedidos generados" value={pedidos.length} sub={`${fmtMoney(sum(pedidos, "total"))}`} icon={ShoppingCart} color="bg-blue-700" />
+        <KpiCard title="Cotizaciones generadas" value={cotizaciones.length} sub={`${fmtMoney(sum(cotizaciones, "total"))}`} icon={FileText} color="bg-blue-500" />
+        <KpiCard title="Total cobrado" value={fmtMoney(totalCobrado)} sub={`${pagos.length} pagos`} icon={Wallet} color="bg-purple-700" />
+        <KpiCard title="Tareas creadas" value={tasksCreadasPeriodo.length} sub="en el periodo" icon={ListChecks} color="bg-cyan-600" />
+        <KpiCard title="Actividades realizadas" value={actividades.length} sub={`${tasksCompletadasPeriodo.length} tareas terminadas`} icon={Activity} color="bg-green-600" />
+      </div>
+
+      {/* Fila 3 — Calidad y conversión */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <KpiCard title="Clientes con compra" value={clientesConCompra} sub="únicos en periodo" icon={Users} color="bg-emerald-700" />
+        <KpiCard title="Ticket promedio" value={fmtMoney(ticketPromedio)} sub="por factura" icon={TrendingUp} color="bg-amber-600" />
+        <KpiCard title="Unidades / cliente" value={fmtNum(unidadesPromedioCliente)} sub="promedio" icon={Package} color="bg-amber-700" />
+        <KpiCard title="% conversión prospectos" value={`${pctConversionProspectos.toFixed(1)}%`} sub={`${clientesNuevosCompraron}/${prospectosNuevosPeriodo}`} icon={Percent} color="bg-teal-600" />
         <KpiCard title="Tareas vencidas" value={tasksVencidas.length} sub={`${tasksHoyPendientes.length} pendientes hoy`} icon={AlertCircle} color="bg-red-600" />
-        <KpiCard title="Tareas completadas" value={tasksCompletadasPeriodo.length} sub="en el periodo" icon={CheckCircle2} color="bg-green-600" />
-        <KpiCard title="Prospectos nuevos" value={dealsNuevos.filter(d => new Date(d.created_at).getTime() >= fromTs && new Date(d.created_at).getTime() <= toTs).length} sub="Pipeline 1ª compra" icon={UserPlus} color="bg-blue-600" />
-        <KpiCard title="Negocios recompra" value={dealsRecompra.filter(d => new Date(d.created_at).getTime() >= fromTs && new Date(d.created_at).getTime() <= toTs).length} sub="Pipeline recompra" icon={RefreshCw} color="bg-purple-600" />
-      </div>
-
-      {/* Fila 2: Documentos y facturación */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard title="Cotizaciones" value={cotizaciones.length} sub={`${fmtMoney(sum(cotizaciones, "total"))} · ${fmtNum(sum(cotizaciones, "unidades_equivalentes_total"))} u`} icon={FileText} color="bg-blue-500" />
-        <KpiCard title="Pedidos" value={pedidos.length} sub={`${fmtMoney(sum(pedidos, "total"))} · ${fmtNum(sum(pedidos, "unidades_equivalentes_total"))} u`} icon={ShoppingCart} color="bg-blue-700" />
-        <KpiCard title="Facturas" value={facturas.length} sub={`${fmtMoney(sum(facturas, "total"))}`} icon={Receipt} color="bg-indigo-600" />
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Total facturado</p>
-                <div className="mt-1 space-y-0.5">
-                  <p className="text-lg font-bold leading-tight">{fmtNum(unidadesFacturadas)} <span className="text-xs font-normal text-muted-foreground">u eq.</span></p>
-                  <p className="text-lg font-bold leading-tight">{fmtMoney(totalFacturado)}</p>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{facturas.length} facturas</p>
-              </div>
-              <div className="p-2 rounded-md shrink-0 bg-indigo-700">
-                <Receipt className="h-4 w-4 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Fila 3: Cobranza */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard title="Total cobrado" value={fmtMoney(totalCobrado)} sub={`${pagos.length} pagos`} icon={Wallet} color="bg-purple-600" />
-        <KpiCard title="Clientes con saldo vencido" value={clientesConSaldoVencido} sub={`${facturasVencidasAll.length} facturas`} icon={AlertTriangle} color="bg-orange-600" />
-        <KpiCard title="Saldo vencido" value={fmtMoney(saldoVencidoTotal)} sub="facturas vencidas" icon={AlertCircle} color="bg-red-700" />
-        <KpiCard title="Cobrado de saldo vencido" value={fmtMoney(cobradoDeVencido)} sub="aplicado en periodo" icon={CheckCircle2} color="bg-green-700" />
       </div>
 
       {/* Conversiones */}
