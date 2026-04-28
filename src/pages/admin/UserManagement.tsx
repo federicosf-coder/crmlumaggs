@@ -426,7 +426,9 @@ export default function UserManagement() {
       if (!hay.includes(q)) return false;
     }
     return true;
-  });
+  }).sort((a, b) =>
+    (a.full_name ?? a.email ?? "").localeCompare(b.full_name ?? b.email ?? "", "es", { sensitivity: "base" })
+  );
 
   return (
     <div className="space-y-4">
