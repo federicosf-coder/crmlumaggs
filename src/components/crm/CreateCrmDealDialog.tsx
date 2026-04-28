@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmDeal } from "@/hooks/useCrmDeals";
 import { CrmPipelineStage } from "@/hooks/useCrmPipelines";
@@ -36,6 +36,9 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
       const { data } = await supabase.from("companies").select("id, name, is_active").eq("is_active", true).order("name");
       return data || [];
     },
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const { data: contacts, refetch: refetchContacts } = useQuery({
@@ -44,7 +47,18 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
       const { data } = await supabase.from("contacts").select("id, first_name, last_name, is_active").eq("is_active", true).order("first_name");
       return data || [];
     },
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
+
+  // Refrescar listas cada vez que se abre el diálogo (puede haber empresas/contactos creados desde otra parte de la app)
+  useEffect(() => {
+    if (open) {
+      refetchCompanies();
+      refetchContacts();
+    }
+  }, [open, refetchCompanies, refetchContacts]);
 
   const [title, setTitle] = useState("");
   const [companyId, setCompanyId] = useState("");
