@@ -75,9 +75,23 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("user_id, full_name, email, is_active")
+        .select("user_id, full_name, email, is_active, plaza_id")
         .eq("is_active", true)
         .order("full_name");
+      return data || [];
+    },
+    staleTime: 60_000,
+  });
+
+  // Plazas activas
+  const { data: plazas } = useQuery({
+    queryKey: ["plazas-picker"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("plazas")
+        .select("id, nombre")
+        .eq("is_active", true)
+        .order("nombre");
       return data || [];
     },
     staleTime: 60_000,
@@ -98,6 +112,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
   const [selectedPipelineId, setSelectedPipelineId] = useState(pipelineId);
   const [stageId, setStageId] = useState(defaultStageId || stages[0]?.id || "");
   const [ownerId, setOwnerId] = useState<string>("");
+  const [plazaId, setPlazaId] = useState<string>("");
   const [value, setValue] = useState("");
   const [closeDate, setCloseDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -138,9 +153,19 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
       setValue("");
       setCloseDate("");
       setNotes("");
+      setPlazaId("");
     }
     wasOpen.current = open;
   }, [open, pipelineId, defaultStageId, stages, session?.user?.id]);
+
+  // Default plaza = plaza principal del ejecutivo seleccionado (si el usuario aún no la cambió manualmente)
+  const plazaManuallyEdited = useRef(false);
+  useEffect(() => {
+    if (!open) { plazaManuallyEdited.current = false; return; }
+    if (plazaManuallyEdited.current) return;
+    const eje = (ejecutivos || []).find((u: any) => u.user_id === ownerId);
+    if (eje?.plaza_id) setPlazaId(eje.plaza_id);
+  }, [open, ownerId, ejecutivos]);
 
   // Si cambia el pipeline seleccionado, asegurar que stageId pertenezca al nuevo pipeline
   useEffect(() => {
@@ -175,6 +200,10 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
       toast({ title: "Empresa requerida", description: "Selecciona una empresa para el negocio", variant: "destructive" });
       return;
     }
+    if (!plazaId) {
+      toast({ title: "Plaza requerida", description: "Selecciona una plaza para el negocio", variant: "destructive" });
+      return;
+    }
 
     createDeal.mutate(
       {
@@ -192,10 +221,32 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
         notes: notes || null,
       } as any,
       {
-        onSuccess: () => {
+        onSuccess: async () => {
+          // Vincular la plaza a la empresa si no la tiene; setear como principal si está vacía
+          try {
+            const { data: cp } = await supabase
+              .from("company_plazas")
+              .select("plaza_id")
+              .eq("company_id", companyId)
+              .eq("plaza_id", plazaId)
+              .maybeSingle();
+            if (!cp) {
+              await supabase.from("company_plazas").insert({ company_id: companyId, plaza_id: plazaId });
+            }
+            const { data: comp } = await supabase
+              .from("companies")
+              .select("plaza_id")
+              .eq("id", companyId)
+              .maybeSingle();
+            if (comp && !comp.plaza_id) {
+              await supabase.from("companies").update({ plaza_id: plazaId }).eq("id", companyId);
+            }
+          } catch (err) {
+            console.error("Error sincronizando plaza de la empresa", err);
+          }
           toast({ title: "Negocio creado", description: `"${title}" agregado al pipeline` });
           onOpenChange(false);
-          setTitle(""); setTitleManuallyEdited(false); setCompanyId(""); setContactId(""); setValue(""); setCloseDate(""); setNotes("");
+          setTitle(""); setTitleManuallyEdited(false); setCompanyId(""); setContactId(""); setValue(""); setCloseDate(""); setNotes(""); setPlazaId(""); plazaManuallyEdited.current = false;
         },
         onError: () => {
           toast({ title: "Error", description: "No se pudo crear el negocio", variant: "destructive" });
@@ -211,6 +262,8 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
     label: u.full_name || u.email || (u.user_id ? u.user_id.slice(0, 8) : ""),
   }));
 
+  const plazaOptions = (plazas || []).map((p: any) => ({ value: p.id, label: p.nombre }));
+
   const pipelineOptions = (allPipelines || []).map((p: any) => ({
     value: p.id,
     label: `${p.nombre} · ${pipelineTypeLabel(p.pipeline_type)}`,
@@ -218,7 +271,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nuevo Negocio</DialogTitle>
         </DialogHeader>
@@ -266,6 +319,19 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
               <Label htmlFor="deal-value">Unidades Eq. Mensuales</Label>
               <Input id="deal-value" type="number" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Plaza <span className="text-destructive">*</span></Label>
+            <SearchableSelect
+              value={plazaId}
+              onValueChange={(v) => { plazaManuallyEdited.current = true; setPlazaId(v); }}
+              options={plazaOptions}
+              placeholder="Seleccionar plaza..."
+            />
+            {!plazaId && (
+              <p className="text-xs text-muted-foreground">La plaza es obligatoria.</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -337,7 +403,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
 
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={createDeal.isPending || !companyId}>
+            <Button type="submit" disabled={createDeal.isPending || !companyId || !plazaId}>
               {createDeal.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Negocio"}
             </Button>
           </div>
