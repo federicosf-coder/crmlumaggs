@@ -50,6 +50,8 @@ export default function SellerPortal() {
   const [docs, setDocs] = useState<any[]>([]);
   const [pagos, setPagos] = useState<any[]>([]);
   const [facturasPorVencer, setFacturasPorVencer] = useState<any[]>([]);
+  const [selectedTask, setSelectedTask] = useState<CrmTask | null>(null);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
