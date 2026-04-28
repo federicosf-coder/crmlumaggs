@@ -51,17 +51,33 @@ export default function SellerPortal() {
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
   const [bucketActivo, setBucketActivo] = useState<"1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
-  // Límites de visualización por lista (10 / 25 / "all")
-  type PageLimit = "10" | "25" | "all";
+  // Límites de visualización + paginación por lista (10 / 25 / 50 / "all")
+  type PageLimit = "10" | "25" | "50" | "all";
   const [limTerminadas, setLimTerminadas] = useState<PageLimit>("10");
+  const [pageTerminadas, setPageTerminadas] = useState(1);
   const [limCreadas, setLimCreadas] = useState<PageLimit>("10");
+  const [pageCreadas, setPageCreadas] = useState(1);
   const [limProspectos, setLimProspectos] = useState<PageLimit>("10");
+  const [pageProspectos, setPageProspectos] = useState(1);
   const [limCotizaciones, setLimCotizaciones] = useState<PageLimit>("10");
+  const [pageCotizaciones, setPageCotizaciones] = useState(1);
   const [limPedidos, setLimPedidos] = useState<PageLimit>("10");
+  const [pagePedidos, setPagePedidos] = useState(1);
   const [limFacturas, setLimFacturas] = useState<PageLimit>("10");
+  const [pageFacturas, setPageFacturas] = useState(1);
   const [limCobranza, setLimCobranza] = useState<PageLimit>("10");
+  const [pageCobranza, setPageCobranza] = useState(1);
 
-  const applyLimit = <T,>(arr: T[], lim: PageLimit): T[] => (lim === "all" ? arr : arr.slice(0, parseInt(lim, 10)));
+  const paginate = <T,>(arr: T[], lim: PageLimit, page: number): T[] => {
+    if (lim === "all") return arr;
+    const size = parseInt(lim, 10);
+    const start = (page - 1) * size;
+    return arr.slice(start, start + size);
+  };
+  const totalPages = (total: number, lim: PageLimit) => {
+    if (lim === "all" || total === 0) return 1;
+    return Math.max(1, Math.ceil(total / parseInt(lim, 10)));
+  };
 
   // Helpers de marca
   const marcasSeleccionadas = useMemo(() => {
