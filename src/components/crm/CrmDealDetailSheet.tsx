@@ -246,6 +246,17 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></div>
               <div className="space-y-2"><Label>Valor</Label><Input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} /></div>
               <div className="space-y-2">
+                <Label>Plaza <span className="text-destructive">*</span></Label>
+                <Select value={editPlazaId} onValueChange={setEditPlazaId}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar plaza" /></SelectTrigger>
+                  <SelectContent>
+                    {(plazas || []).map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Ejecutivo</Label>
                 <Select value={editOwnerId} onValueChange={setEditOwnerId}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar ejecutivo" /></SelectTrigger>
