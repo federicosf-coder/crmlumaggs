@@ -280,7 +280,7 @@ export type Database = {
           notes: string | null
           origen_contacto: string | null
           phone: string | null
-          plaza_id: string | null
+          plaza_id: string
           potencial_unidades: string | null
           prioridad_cliente_id: string | null
           proxima_recompra_chevron: string | null
@@ -341,7 +341,7 @@ export type Database = {
           notes?: string | null
           origen_contacto?: string | null
           phone?: string | null
-          plaza_id?: string | null
+          plaza_id: string
           potencial_unidades?: string | null
           prioridad_cliente_id?: string | null
           proxima_recompra_chevron?: string | null
@@ -402,7 +402,7 @@ export type Database = {
           notes?: string | null
           origen_contacto?: string | null
           phone?: string | null
-          plaza_id?: string | null
+          plaza_id?: string
           potencial_unidades?: string | null
           prioridad_cliente_id?: string | null
           proxima_recompra_chevron?: string | null
