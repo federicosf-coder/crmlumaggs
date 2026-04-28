@@ -546,7 +546,10 @@ export default function SellerPortal() {
 
       {/* Mi día - Terminadas en periodo */}
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Mi día - Terminadas en periodo ({tasksCompletadasPeriodo.length})</CardTitle></CardHeader>
+        <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
+          <CardTitle className="text-base">Mi día - Terminadas en periodo ({tasksCompletadasPeriodo.length})</CardTitle>
+          <PageSizeSelect value={limTerminadas} onChange={setLimTerminadas} total={tasksCompletadasPeriodo.length} />
+        </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -561,7 +564,7 @@ export default function SellerPortal() {
               </TableHeader>
               <TableBody>
                 {tasksCompletadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin terminadas en el periodo</TableCell></TableRow>}
-                {tasksCompletadasPeriodo.map(t => (
+                {applyLimit(tasksCompletadasPeriodo, limTerminadas).map(t => (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium text-sm">{companyMap[t.company_id] || "—"}</TableCell>
                     <TableCell className="text-sm">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
@@ -580,7 +583,10 @@ export default function SellerPortal() {
 
       {/* Creadas en periodo */}
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle></CardHeader>
+        <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
+          <CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle>
+          <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={tasksCreadasPeriodo.length} />
+        </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -595,7 +601,7 @@ export default function SellerPortal() {
               </TableHeader>
               <TableBody>
                 {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin creadas en el periodo</TableCell></TableRow>}
-                {tasksCreadasPeriodo.map(t => {
+                {applyLimit(tasksCreadasPeriodo, limCreadas).map(t => {
                   const venc = t.due_date ? new Date(t.due_date) : null;
                   const isVenc = venc && !t.completed && venc < todayStart;
                   const statusColor = t.completed ? "bg-green-100 text-green-800" : isVenc ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800";
