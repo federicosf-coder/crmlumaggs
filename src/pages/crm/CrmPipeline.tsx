@@ -27,10 +27,18 @@ interface NewStage {
   color: string;
 }
 
-export default function CrmPipeline() {
-  const { brand } = useParams<{ brand: string }>();
+interface CrmPipelineProps {
+  brandProp?: string;
+  pipelineTypeProp?: PipelineType;
+  embedded?: boolean;
+}
+
+export default function CrmPipeline({ brandProp, pipelineTypeProp, embedded }: CrmPipelineProps = {}) {
+  const routeParams = useParams<{ brand: string }>();
   const [params, setParams] = useSearchParams();
-  const pipelineType = (params.get("type") as PipelineType) || "primera_compra";
+  const brand = brandProp ?? routeParams.brand;
+  const [innerType, setInnerType] = useState<PipelineType>(pipelineTypeProp ?? ((params.get("type") as PipelineType) || "primera_compra"));
+  const pipelineType: PipelineType = pipelineTypeProp ?? innerType;
   const typeLabel = pipelineType === "primera_compra" ? "Primera Compra" : "Recompra";
   const marca = brand || "chevron";
   const brandLabel = marca === "chevron" ? "Chevron" : "Phillips 66";
@@ -240,9 +248,11 @@ export default function CrmPipeline() {
   if (!pipelinesLoading && (!pipelines || pipelines.length === 0)) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <BackButton fallback="/crm" />
-        </div>
+        {!embedded && (
+          <div className="flex items-center gap-2">
+            <BackButton fallback="/crm" />
+          </div>
+        )}
         <PageBanner title={`${typeLabel} — ${brandLabel}`} description="Gestiona tus embudos de ventas." />
         <div className="flex flex-col items-center justify-center py-24">
           <Kanban className="h-16 w-16 text-muted-foreground/40 mb-4" />
@@ -317,19 +327,19 @@ export default function CrmPipeline() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 flex-wrap">
-        <BackButton fallback="/crm" />
+        {!embedded && <BackButton fallback="/crm" />}
         <Button onClick={() => { setCreateStageId(stages?.[0]?.id); setCreateOpen(true); }}>
           <Plus className="h-4 w-4 mr-2" /> Nuevo Negocio
         </Button>
       </div>
-      <PageBanner title={`${typeLabel} — ${brandLabel}`} description="Arrastra negocios entre etapas para actualizar su progreso." />
+      {!embedded && <PageBanner title={`${typeLabel} — ${brandLabel}`} description="Arrastra negocios entre etapas para actualizar su progreso." />}
 
       {/* Switch primera vs recompra dentro del propio pipeline */}
       <div className="flex flex-wrap gap-1 rounded-full bg-secondary p-1 w-fit">
-        <Button size="sm" variant={pipelineType === "primera_compra" ? "default" : "ghost"} className="rounded-full" onClick={() => setParams({ type: "primera_compra" })}>
+        <Button size="sm" variant={pipelineType === "primera_compra" ? "default" : "ghost"} className="rounded-full" onClick={() => embedded ? setInnerType("primera_compra") : setParams({ type: "primera_compra" })}>
           Primera Compra
         </Button>
-        <Button size="sm" variant={pipelineType === "recompra" ? "default" : "ghost"} className="rounded-full" onClick={() => setParams({ type: "recompra" })}>
+        <Button size="sm" variant={pipelineType === "recompra" ? "default" : "ghost"} className="rounded-full" onClick={() => embedded ? setInnerType("recompra") : setParams({ type: "recompra" })}>
           Recompra
         </Button>
       </div>
