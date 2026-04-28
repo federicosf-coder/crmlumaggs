@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { format, startOfDay, endOfDay, parseISO } from "date-fns";
+import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target } from "lucide-react";
+import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Toggle } from "@/components/ui/toggle";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -31,7 +32,9 @@ export default function SellerPortal() {
   const [to, setTo] = useState<Date>(endOfDay(new Date()));
   const [ejecutivoId, setEjecutivoId] = useState<string>(user?.id || "");
   const [plazaId, setPlazaId] = useState<string>("all");
-  const [pipelineMarca, setPipelineMarca] = useState<string>("all");
+  // Marcas independientes (toggles). Si ninguna está activa, se asume ambas.
+  const [marcaChevron, setMarcaChevron] = useState<boolean>(true);
+  const [marcaPhillips, setMarcaPhillips] = useState<boolean>(true);
 
   const [ejecutivos, setEjecutivos] = useState<Profile[]>([]);
   const [plazas, setPlazas] = useState<Plaza[]>([]);
@@ -41,7 +44,24 @@ export default function SellerPortal() {
   const [deals, setDeals] = useState<any[]>([]);
   const [docs, setDocs] = useState<any[]>([]);
   const [pagos, setPagos] = useState<any[]>([]);
+  const [facturasPorVencer, setFacturasPorVencer] = useState<any[]>([]);
+  const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
+
+  // Helpers de marca
+  const marcasSeleccionadas = useMemo(() => {
+    const arr: ("lumaggs_chevron" | "galsa_phillips66")[] = [];
+    if (marcaChevron) arr.push("lumaggs_chevron");
+    if (marcaPhillips) arr.push("galsa_phillips66");
+    // Si ninguno seleccionado, no filtramos (= ambas)
+    return arr.length === 0 ? ["lumaggs_chevron", "galsa_phillips66"] : arr;
+  }, [marcaChevron, marcaPhillips]);
+  const marcaPipelineList = useMemo(() => {
+    const arr: string[] = [];
+    if (marcaChevron) arr.push("chevron");
+    if (marcaPhillips) arr.push("phillips66");
+    return arr.length === 0 ? ["chevron", "phillips66"] : arr;
+  }, [marcaChevron, marcaPhillips]);
 
   // Load filter options
   useEffect(() => {
@@ -63,29 +83,41 @@ export default function SellerPortal() {
     if (!ejecutivoId) return;
     setLoading(true);
     try {
-      const fromIso = from.toISOString();
-      const toIso = to.toISOString();
-      const fromDate = format(from, "yyyy-MM-dd");
-      const toDate = format(to, "yyyy-MM-dd");
+      // Periodo inclusivo: [fromDate, toDateExclusive)
+      const fromDate = format(startOfDay(from), "yyyy-MM-dd");
+      const toDate = format(startOfDay(from > to ? from : to), "yyyy-MM-dd"); // safety
+      const toExclusive = format(addDays(startOfDay(to), 1), "yyyy-MM-dd");
+      const fromIso = startOfDay(from).toISOString();
+      const toIso = endOfDay(to).toISOString();
+      const todayIso = format(new Date(), "yyyy-MM-dd");
 
-      // Tasks (mías o vencidas)
-      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, priority, company_id, deal_id, contact_id, description, user_id").eq("user_id", ejecutivoId).order("due_date", { ascending: true, nullsFirst: false }).limit(200);
+      // Tasks: traemos del ejecutivo (sin filtro de fecha porque necesitamos vencidas + creadas + completadas en periodo)
+      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at").eq("user_id", ejecutivoId).order("due_date", { ascending: true, nullsFirst: false }).limit(500);
       const { data: tasksData } = await tq;
 
-      // Deals - prospectos creados en rango
-      let dq = supabase.from("crm_deals").select("id, title, created_at, company_id, value, stage_id, pipeline_id, pipeline_type, owner_id, tipo_negocio, potencial_unidades, cotizado_unidades, pedido_unidades, facturado_unidades, convertido_a_cliente").eq("owner_id", ejecutivoId).order("created_at", { ascending: false }).limit(500);
+      // Deals con marca via pipeline join (filtrado por marca y owner)
+      let dq = supabase.from("crm_deals").select("id, title, created_at, company_id, value, stage_id, pipeline_id, pipeline_type, owner_id, tipo_negocio, potencial_unidades, cotizado_unidades, pedido_unidades, facturado_unidades, convertido_a_cliente, crm_pipelines!inner(marca)").eq("owner_id", ejecutivoId).in("crm_pipelines.marca", marcaPipelineList).order("created_at", { ascending: false }).limit(1000);
       const { data: dealsData } = await dq;
 
-      // Documentos en rango (cot/ped/fact) por ejecutivo o creator
-      let docQ = supabase.from("documentos").select("id, tipo_documento, fecha_documento, total, unidades_equivalentes_total, estatus_cotizacion, estatus_pedido, estatus_factura, empresa_id, plaza_id, ejecutivo_venta_id, created_by, numero_cotizacion, numero_pedido, numero_factura, saldo_pendiente_cobranza, estado_cobranza, empresa_vendedora").gte("fecha_documento", fromDate).lte("fecha_documento", toDate).eq("is_active", true).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(1000);
+      // Documentos en rango (cot/ped/fact). Periodo inclusivo [from, to+1).
+      let docQ = supabase.from("documentos").select("id, tipo_documento, fecha_documento, fecha_vencimiento, total, unidades_equivalentes_total, estatus_cotizacion, estatus_pedido, estatus_factura, empresa_id, plaza_id, ejecutivo_venta_id, created_by, numero_cotizacion, numero_pedido, numero_factura, saldo_pendiente_cobranza, estado_cobranza, empresa_vendedora, created_at").gte("fecha_documento", fromDate).lt("fecha_documento", toExclusive).eq("is_active", true).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).in("empresa_vendedora", marcasSeleccionadas as any).limit(2000);
       if (plazaId !== "all") docQ = docQ.eq("plaza_id", plazaId);
-      if (pipelineMarca !== "all") docQ = docQ.eq("empresa_vendedora", pipelineMarca === "chevron" ? "lumaggs_chevron" : "galsa_phillips66");
       const { data: docsData } = await docQ;
 
-      // Pagos cobrados en rango
-      let pq = supabase.from("cobranza_pagos").select("id, fecha_pago, monto_total, monto_aplicado, empresa_id, plaza_id, creado_por, estatus_pago").gte("fecha_pago", fromDate).lte("fecha_pago", toDate).eq("creado_por", ejecutivoId).limit(500);
+      // Pagos cobrados en rango (periodo inclusivo [from, to+1))
+      let pq = supabase.from("cobranza_pagos").select("id, fecha_pago, monto_total, monto_aplicado, empresa_id, plaza_id, creado_por, estatus_pago, created_at").gte("fecha_pago", fromDate).lt("fecha_pago", toExclusive).eq("creado_por", ejecutivoId).limit(1000);
       if (plazaId !== "all") pq = pq.eq("plaza_id", plazaId);
       const { data: pagosData } = await pq;
+
+      // Facturas por vencer (>= hoy) con saldo > 0 — para el bloque inferior
+      let fpvQ = supabase.from("documentos").select("id, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).gt("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
+      if (plazaId !== "all") fpvQ = fpvQ.eq("plaza_id", plazaId);
+      const { data: fpvData } = await fpvQ;
+
+      // Facturas vencidas (<= hoy) con saldo > 0 — para KPIs de cobranza
+      let venQ = supabase.from("documentos").select("id, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).lte("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
+      if (plazaId !== "all") venQ = venQ.eq("plaza_id", plazaId);
+      const { data: venData } = await venQ;
 
       // Company names
       const ids = new Set<string>();
@@ -93,6 +125,8 @@ export default function SellerPortal() {
       (dealsData || []).forEach((d: any) => d.company_id && ids.add(d.company_id));
       (docsData || []).forEach((d: any) => d.empresa_id && ids.add(d.empresa_id));
       (pagosData || []).forEach((p: any) => p.empresa_id && ids.add(p.empresa_id));
+      (fpvData || []).forEach((d: any) => d.empresa_id && ids.add(d.empresa_id));
+      (venData || []).forEach((d: any) => d.empresa_id && ids.add(d.empresa_id));
       const cmap: Record<string, string> = {};
       if (ids.size) {
         const { data: cs } = await supabase.from("companies").select("id, name").in("id", Array.from(ids));
@@ -103,6 +137,8 @@ export default function SellerPortal() {
       setDeals(dealsData || []);
       setDocs(docsData || []);
       setPagos(pagosData || []);
+      setFacturasPorVencer(fpvData || []);
+      setFacturasVencidasAll(venData || []);
       setCompanyMap(cmap);
     } catch (e: any) {
       toast.error("Error cargando datos: " + e.message);
@@ -111,20 +147,24 @@ export default function SellerPortal() {
     }
   };
 
-  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, [ejecutivoId, from, to, plazaId, pipelineMarca]);
+  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, [ejecutivoId, from, to, plazaId, marcaChevron, marcaPhillips]);
 
   // Métricas
   const now = new Date();
   const todayStart = startOfDay(now);
   const todayEnd = endOfDay(now);
+  const fromTs = startOfDay(from).getTime();
+  const toTs = endOfDay(to).getTime();
 
-  const tasksVencidas = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date) < todayStart);
-  const tasksHoyCompletadas = tasks.filter(t => t.completed && t.updated_at && new Date(t.updated_at) >= todayStart && new Date(t.updated_at) <= todayEnd);
+  // Tareas vencidas: fecha_vencimiento <= fecha_fin (to) y no completadas
+  const tasksVencidas = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date).getTime() <= toTs && new Date(t.due_date) < todayStart);
+  // Tareas completadas en periodo (proxy: updated_at en periodo y completed=true)
+  const tasksCompletadasPeriodo = tasks.filter(t => t.completed && t.updated_at && new Date(t.updated_at).getTime() >= fromTs && new Date(t.updated_at).getTime() <= toTs);
+  // Tareas creadas en periodo
+  const tasksCreadasPeriodo = tasks.filter(t => t.created_at && new Date(t.created_at).getTime() >= fromTs && new Date(t.created_at).getTime() <= toTs);
   const tasksHoyPendientes = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date) >= todayStart && new Date(t.due_date) <= todayEnd);
-  const misTareasHoy = [...tasksVencidas, ...tasksHoyPendientes, ...tasksHoyCompletadas].slice(0, 50);
+  const misTareasHoy = [...tasksVencidas, ...tasksHoyPendientes, ...tasksCompletadasPeriodo].slice(0, 50);
 
-  const fromTs = from.getTime();
-  const toTs = to.getTime();
   const dealsEnRango = deals.filter(d => {
     const t = new Date(d.created_at).getTime();
     return t >= fromTs && t <= toTs;
@@ -140,6 +180,25 @@ export default function SellerPortal() {
   const unidadesFacturadas = sum(facturas, "unidades_equivalentes_total");
   const totalCobrado = sum(pagos, "monto_total");
   const saldoPendiente = sum(facturas, "saldo_pendiente_cobranza");
+
+  // Cobranza vencida
+  const clientesConSaldoVencido = new Set(facturasVencidasAll.map(f => f.empresa_id)).size;
+  const saldoVencidoTotal = sum(facturasVencidasAll, "saldo_pendiente_cobranza");
+  // Total cobrado de saldo vencido en periodo: pagos cuyas empresas tenían facturas vencidas
+  const empresasVencidasIds = new Set(facturasVencidasAll.map(f => f.empresa_id));
+  const cobradoDeVencido = pagos.filter(p => empresasVencidasIds.has(p.empresa_id)).reduce((a, b) => a + Number(b.monto_aplicado || 0), 0);
+
+  // Facturas por vencer agrupadas
+  const ahora = startOfDay(new Date()).getTime();
+  const bucket = (min: number, max: number) => facturasPorVencer.filter(f => {
+    if (!f.fecha_vencimiento) return false;
+    const dias = Math.ceil((new Date(f.fecha_vencimiento).getTime() - ahora) / (1000 * 60 * 60 * 24));
+    return dias >= min && dias <= max;
+  });
+  const fxv1 = bucket(1, 5);
+  const fxv2 = bucket(6, 10);
+  const fxv3 = bucket(11, 20);
+  const fxv4 = bucket(21, 30);
 
   // Conversiones por tipo de pipeline
   const dealsNuevos = deals.filter(d => d.pipeline_type === "primera_compra");
@@ -174,7 +233,7 @@ export default function SellerPortal() {
   const scoreCotPed = Math.min(20, (cotizaciones.length + pedidos.length) * 2);
   const scoreFact = Math.min(20, facturas.length * 4);
   const scoreCob = pagos.length > 0 ? 10 : 0;
-  const scoreSeg = tasksHoyCompletadas.length >= 3 ? 10 : tasksHoyCompletadas.length * 3;
+  const scoreSeg = tasksCompletadasPeriodo.length >= 3 ? 10 : tasksCompletadasPeriodo.length * 3;
   const scoreTotal = scoreTareas + scoreProspectos + scoreCotPed + scoreFact + scoreCob + scoreSeg;
 
   const scoreColor = scoreTotal >= 80 ? "bg-green-600" : scoreTotal >= 60 ? "bg-yellow-500" : scoreTotal >= 40 ? "bg-orange-500" : "bg-red-600";
@@ -261,17 +320,31 @@ export default function SellerPortal() {
         {/* Filtros */}
         <Card>
           <CardContent className="p-3 flex flex-wrap gap-2 items-center">
+            {/* Rango fecha: Desde */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5">
                   <CalendarIcon className="h-3.5 w-3.5" />
-                  {format(from, "dd MMM", { locale: es })} – {format(to, "dd MMM", { locale: es })}
+                  Desde: {format(from, "dd MMM yyyy", { locale: es })}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="range" selected={{ from, to }} onSelect={(r: any) => { if (r?.from) setFrom(startOfDay(r.from)); if (r?.to) setTo(endOfDay(r.to)); }} className="p-3 pointer-events-auto" />
+                <Calendar mode="single" selected={from} onSelect={(d) => { if (d) setFrom(startOfDay(d)); }} className="p-3 pointer-events-auto" />
               </PopoverContent>
             </Popover>
+            {/* Rango fecha: Hasta */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  Hasta: {format(to, "dd MMM yyyy", { locale: es })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={to} onSelect={(d) => { if (d) setTo(endOfDay(d)); }} className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <Button variant="ghost" size="sm" onClick={() => { const d = subDays(new Date(), 1); setFrom(startOfDay(d)); setTo(endOfDay(d)); }}>Ayer</Button>
             <Button variant="ghost" size="sm" onClick={() => { setFrom(startOfDay(new Date())); setTo(endOfDay(new Date())); }}>Hoy</Button>
             <Button variant="ghost" size="sm" onClick={() => { const d = new Date(); d.setDate(d.getDate() - 7); setFrom(startOfDay(d)); setTo(endOfDay(new Date())); }}>7 días</Button>
             <Button variant="ghost" size="sm" onClick={() => { const d = new Date(); d.setDate(1); setFrom(startOfDay(d)); setTo(endOfDay(new Date())); }}>Mes</Button>
@@ -291,14 +364,11 @@ export default function SellerPortal() {
                 {plazas.map(p => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={pipelineMarca} onValueChange={setPipelineMarca}>
-              <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Marca" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Ambas marcas</SelectItem>
-                <SelectItem value="chevron">Chevron</SelectItem>
-                <SelectItem value="phillips66">Phillips 66</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Toggles independientes por marca */}
+            <div className="flex items-center gap-1 border rounded-md p-0.5">
+              <Toggle size="sm" pressed={marcaChevron} onPressedChange={setMarcaChevron} className="data-[state=on]:bg-red-600 data-[state=on]:text-white">Chevron</Toggle>
+              <Toggle size="sm" pressed={marcaPhillips} onPressedChange={setMarcaPhillips} className="data-[state=on]:bg-orange-600 data-[state=on]:text-white">Phillips 66</Toggle>
+            </div>
             <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading}><RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} /></Button>
           </CardContent>
         </Card>
@@ -323,17 +393,29 @@ export default function SellerPortal() {
       </Card>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* Fila 1: Tareas y prospectos */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard title="Tareas vencidas" value={tasksVencidas.length} sub={`${tasksHoyPendientes.length} pendientes hoy`} icon={AlertCircle} color="bg-red-600" />
-        <KpiCard title="Tareas completadas hoy" value={tasksHoyCompletadas.length} icon={CheckCircle2} color="bg-green-600" />
-        <KpiCard title="Prospectos nuevos" value={dealsEnRango.length} sub={`${dealsNuevos.length} 1ª compra · ${dealsRecompra.length} recompra`} icon={UserPlus} color="bg-blue-600" />
+        <KpiCard title="Tareas completadas" value={tasksCompletadasPeriodo.length} sub="en el periodo" icon={CheckCircle2} color="bg-green-600" />
+        <KpiCard title="Prospectos nuevos" value={dealsNuevos.filter(d => new Date(d.created_at).getTime() >= fromTs && new Date(d.created_at).getTime() <= toTs).length} sub="Pipeline 1ª compra" icon={UserPlus} color="bg-blue-600" />
+        <KpiCard title="Negocios recompra" value={dealsRecompra.filter(d => new Date(d.created_at).getTime() >= fromTs && new Date(d.created_at).getTime() <= toTs).length} sub="Pipeline recompra" icon={RefreshCw} color="bg-purple-600" />
+      </div>
+
+      {/* Fila 2: Documentos y facturación */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <KpiCard title="Cotizaciones" value={cotizaciones.length} sub={`${fmtMoney(sum(cotizaciones, "total"))} · ${fmtNum(sum(cotizaciones, "unidades_equivalentes_total"))} u`} icon={FileText} color="bg-blue-500" />
         <KpiCard title="Pedidos" value={pedidos.length} sub={`${fmtMoney(sum(pedidos, "total"))} · ${fmtNum(sum(pedidos, "unidades_equivalentes_total"))} u`} icon={ShoppingCart} color="bg-blue-700" />
-        <KpiCard title="Facturas" value={facturas.length} sub={`${fmtNum(unidadesFacturadas)} unid. equiv.`} icon={Receipt} color="bg-indigo-600" />
-        <KpiCard title="Total facturado" value={fmtMoney(totalFacturado)} sub={`${fmtNum(unidadesFacturadas)} u equiv.`} icon={Receipt} color="bg-indigo-700" />
+        <KpiCard title="Facturas" value={facturas.length} sub={`${fmtMoney(sum(facturas, "total"))}`} icon={Receipt} color="bg-indigo-600" />
+        <KpiCard title="Total facturado (unid.)" value={fmtNum(unidadesFacturadas)} sub="unidades equivalentes" icon={Target} color="bg-indigo-500" />
+        <KpiCard title="Total facturado $" value={fmtMoney(totalFacturado)} sub={`${facturas.length} facturas`} icon={Receipt} color="bg-indigo-700" />
+      </div>
+
+      {/* Fila 3: Cobranza */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard title="Total cobrado" value={fmtMoney(totalCobrado)} sub={`${pagos.length} pagos`} icon={Wallet} color="bg-purple-600" />
-        <KpiCard title="Saldo pendiente" value={fmtMoney(saldoPendiente)} sub={`${facturas.filter(f => Number(f.saldo_pendiente_cobranza) > 0).length} facturas con saldo`} icon={Clock} color="bg-yellow-500" />
-        <KpiCard title="Clientes que compraron" value={clientesNuevosCompraron + clientesRecompraCompraron} sub={`${clientesNuevosCompraron} nuevos · ${clientesRecompraCompraron} recompra`} icon={Target} color="bg-green-700" />
+        <KpiCard title="Clientes con saldo vencido" value={clientesConSaldoVencido} sub={`${facturasVencidasAll.length} facturas`} icon={AlertTriangle} color="bg-orange-600" />
+        <KpiCard title="Saldo vencido" value={fmtMoney(saldoVencidoTotal)} sub="facturas vencidas" icon={AlertCircle} color="bg-red-700" />
+        <KpiCard title="Cobrado de saldo vencido" value={fmtMoney(cobradoDeVencido)} sub="aplicado en periodo" icon={CheckCircle2} color="bg-green-700" />
       </div>
 
       {/* Conversiones */}
@@ -401,6 +483,46 @@ export default function SellerPortal() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Tareas/Actividades: Terminadas vs Creadas en periodo */}
+      <div className="grid md:grid-cols-2 gap-3">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Terminadas en periodo ({tasksCompletadasPeriodo.length})</CardTitle></CardHeader>
+          <CardContent className="p-0 max-h-[280px] overflow-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tarea</TableHead><TableHead>Completada</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {tasksCompletadasPeriodo.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Sin completadas</TableCell></TableRow>}
+                {tasksCompletadasPeriodo.map(t => (
+                  <TableRow key={t.id}>
+                    <TableCell className="text-sm">{companyMap[t.company_id] || "—"}</TableCell>
+                    <TableCell className="text-sm">{t.title}</TableCell>
+                    <TableCell className="text-xs">{t.updated_at ? format(new Date(t.updated_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle></CardHeader>
+          <CardContent className="p-0 max-h-[280px] overflow-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tarea</TableHead><TableHead>Creada</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Sin nuevas</TableCell></TableRow>}
+                {tasksCreadasPeriodo.map(t => (
+                  <TableRow key={t.id}>
+                    <TableCell className="text-sm">{companyMap[t.company_id] || "—"}</TableCell>
+                    <TableCell className="text-sm">{t.title}</TableCell>
+                    <TableCell className="text-xs">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Tabs detalle */}
       <Tabs defaultValue="prospectos">
@@ -476,6 +598,44 @@ export default function SellerPortal() {
           </Table></CardContent></Card>
         </TabsContent>
       </Tabs>
+
+      {/* Facturas por vencer */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" /> Facturas por vencer</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "1–5 días", data: fxv1, color: "bg-red-600" },
+            { label: "6–10 días", data: fxv2, color: "bg-orange-500" },
+            { label: "11–20 días", data: fxv3, color: "bg-yellow-500" },
+            { label: "21–30 días", data: fxv4, color: "bg-green-600" },
+          ].map(b => (
+            <Card key={b.label} className="border">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{b.label}</p>
+                    <p className="text-2xl font-bold">{b.data.length}</p>
+                    <p className="text-xs text-muted-foreground">{fmtMoney(b.data.reduce((a, c) => a + Number(c.saldo_pendiente_cobranza || 0), 0))}</p>
+                  </div>
+                  <div className={cn("h-10 w-2 rounded-full", b.color)} />
+                </div>
+                {b.data.length > 0 && (
+                  <div className="mt-2 max-h-[140px] overflow-auto space-y-1">
+                    {b.data.slice(0, 10).map(f => (
+                      <div key={f.id} className="flex justify-between text-xs border-b py-1">
+                        <span className="truncate flex-1">{companyMap[f.empresa_id] || "—"}</span>
+                        <span className="text-muted-foreground ml-2">{f.fecha_vencimiento}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
