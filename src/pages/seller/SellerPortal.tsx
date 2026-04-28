@@ -705,6 +705,9 @@ export default function SellerPortal() {
                     <TableCell className="text-xs">{t.updated_at ? format(new Date(t.updated_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
                     <TableCell><Badge variant="outline" className="bg-green-100 text-green-800">Completada</Badge></TableCell>
                     <TableCell className="text-right space-x-1">
+                      <Button size="sm" variant="ghost" title="Abrir / Editar" onClick={() => { setSelectedTask(t as CrmTask); setTaskDialogOpen(true); }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                       {t.deal_id && <Button size="sm" variant="ghost" asChild><Link to="/crm"><ExternalLink className="h-3.5 w-3.5" /></Link></Button>}
                     </TableCell>
                   </TableRow>
@@ -748,6 +751,9 @@ export default function SellerPortal() {
                       <TableCell className="text-xs">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
                       <TableCell><Badge variant="outline" className={statusColor}>{statusText}</Badge></TableCell>
                       <TableCell className="text-right space-x-1">
+                        <Button size="sm" variant="ghost" title="Abrir / Editar" onClick={() => { setSelectedTask(t as CrmTask); setTaskDialogOpen(true); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
                         {!t.completed && <Button size="sm" variant="ghost" onClick={() => completarTarea(t.id)}><CheckCircle2 className="h-3.5 w-3.5" /></Button>}
                         {!t.completed && <Button size="sm" variant="ghost" onClick={() => reprogramarTarea(t.id)}><Clock className="h-3.5 w-3.5" /></Button>}
                         {t.deal_id && <Button size="sm" variant="ghost" asChild><Link to="/crm"><ExternalLink className="h-3.5 w-3.5" /></Link></Button>}
