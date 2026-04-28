@@ -56,6 +56,35 @@ Deno.serve(async (req) => {
     if (kind === "text" && !text) return json({ error: "text requerido" }, 400);
     if (kind === "template" && !templateName) return json({ error: "template_name requerido" }, 400);
 
+    // Validar que las variables del template estén completas antes de llamar a Meta
+    if (kind === "template") {
+      const { data: tplRow } = await admin
+        .from("whatsapp_templates")
+        .select("body")
+        .eq("name", templateName)
+        .maybeSingle();
+      const body = (tplRow?.body as string | null) ?? "";
+      const matches = body.match(/\{\{\s*(\d+)\s*\}\}/g) || [];
+      const expected = matches.reduce((max, m) => {
+        const n = parseInt(m.replace(/[^\d]/g, ""), 10);
+        return !Number.isNaN(n) && n > max ? n : max;
+      }, 0);
+      if (expected > 0) {
+        const bodyComp = (templateComponents || []).find(
+          (c: any) => String(c?.type ?? "").toLowerCase() === "body",
+        ) as any;
+        const params: any[] = bodyComp?.parameters ?? [];
+        if (params.length < expected) {
+          return json(
+            {
+              error: `La plantilla "${templateName}" requiere ${expected} variable(s) y se recibieron ${params.length}.`,
+            },
+            400,
+          );
+        }
+      }
+    }
+
     // Resolve / create conversation
     let convId = conversationId;
     let convRow: any = null;
