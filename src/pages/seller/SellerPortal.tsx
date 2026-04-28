@@ -327,6 +327,15 @@ export default function SellerPortal() {
   const clientesNuevosCompraron = new Set(facturas.filter(f => dealsNuevos.some(d => d.company_id === f.empresa_id)).map(f => f.empresa_id)).size;
   const clientesRecompraCompraron = new Set(facturas.filter(f => dealsRecompra.some(d => d.company_id === f.empresa_id)).map(f => f.empresa_id)).size;
 
+  // KPIs adicionales
+  const clientesConCompra = new Set(facturas.map(f => f.empresa_id).filter(Boolean)).size;
+  const ticketPromedio = facturas.length > 0 ? totalFacturado / facturas.length : 0;
+  const unidadesPromedioCliente = clientesConCompra > 0 ? unidadesFacturadas / clientesConCompra : 0;
+  const prospectosNuevosPeriodo = dealsNuevos.filter(d => new Date(d.created_at).getTime() >= fromTs && new Date(d.created_at).getTime() <= toTs).length;
+  const pctConversionProspectos = prospectosNuevosPeriodo > 0
+    ? (clientesNuevosCompraron / prospectosNuevosPeriodo) * 100
+    : 0;
+
   // Score
   const scoreTareas = tasksVencidas.length === 0 ? 20 : Math.max(0, 20 - tasksVencidas.length * 2);
   const scoreProspectos = Math.min(20, dealsEnRango.length * 5);
