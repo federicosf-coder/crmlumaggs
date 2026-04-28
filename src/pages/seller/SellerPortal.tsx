@@ -50,7 +50,7 @@ export default function SellerPortal() {
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
   const [companyPhoneMap, setCompanyPhoneMap] = useState<Record<string, { phone: string | null; name: string }>>({});
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
-  const [bucketActivo, setBucketActivo] = useState<"1-5" | "6-10" | "11-20" | "21-30" | null>(null);
+  const [bucketActivo, setBucketActivo] = useState<"vencidas" | "1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
   // Límites de visualización + paginación por lista (10 / 25 / 50 / "all")
   type PageLimit = "10" | "25" | "50" | "all";
@@ -809,99 +809,18 @@ export default function SellerPortal() {
         </TabsContent>
       </Tabs>
 
-      {/* Cobranza: Facturas vencidas y por vencer (listado unificado) */}
-      <Card>
-        <CardHeader className="pb-2 flex-row items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            Facturas vencidas y por vencer
-            <Badge variant="outline" className="ml-2">{facturasCobranza.length}</Badge>
-          </CardTitle>
-          <PageSizeSelect value={limCobranza} onChange={setLimCobranza} total={facturasCobranza.length} onPageReset={() => setPageCobranza(1)} />
-        </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Núm. factura</TableHead>
-                <TableHead>Fecha factura</TableHead>
-                <TableHead>Fecha venc.</TableHead>
-                <TableHead className="text-right">Días vencidos</TableHead>
-                <TableHead className="text-right">Total factura</TableHead>
-                <TableHead className="text-right">Saldo pendiente</TableHead>
-                <TableHead>Ejecutivo</TableHead>
-                <TableHead>Estatus</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {facturasCobranza.length === 0 && (
-                <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">Sin facturas con saldo pendiente</TableCell></TableRow>
-              )}
-              {paginate(facturasCobranza, limCobranza, pageCobranza).map((f: any) => {
-                const dias = f.dias_vencidos as number;
-                const phone = (companyPhoneMap[f.empresa_id]?.phone || "").replace(/[^0-9]/g, "");
-                const ejId = f.ejecutivo_venta_id || f.created_by;
-                const ejNombre = ejId ? (ejecutivoMap[ejId] || "—") : "—";
-                const num = f.numero_factura || f.id.slice(0, 8);
-                const saldoFmt = fmtMoney(Number(f.saldo_pendiente_cobranza || 0));
-                const diasLabel = dias > 0 ? `Vencida hace ${dias} día${dias === 1 ? "" : "s"}`
-                  : dias === 0 ? "Vence hoy"
-                  : `Vence en ${Math.abs(dias)} día${Math.abs(dias) === 1 ? "" : "s"}`;
-                const msg = dias > 0
-                  ? `Hola, buen día. Le compartimos un recordatorio: la factura ${num} por ${saldoFmt} se encuentra vencida desde hace ${dias} día(s). Agradecemos su apoyo para regularizar el pago a la brevedad. Quedamos atentos.`
-                  : dias === 0
-                  ? `Hola, buen día. Le recordamos que la factura ${num} por ${saldoFmt} vence hoy. Agradecemos su apoyo para programar el pago. Quedamos atentos.`
-                  : `Hola, buen día. Le recordamos que la factura ${num} por ${saldoFmt} vence en ${Math.abs(dias)} día(s). Agradecemos su apoyo para programar el pago. Quedamos atentos.`;
-                const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : null;
-                const estatus = dias > 0 ? "Vencida" : dias === 0 ? "Vence hoy" : "Por vencer";
-                const estatusColor = dias > 0
-                  ? "bg-red-100 text-red-800 border-red-300"
-                  : dias === 0
-                  ? "bg-orange-100 text-orange-800 border-orange-300"
-                  : "bg-amber-50 text-amber-800 border-amber-200";
-                const diasColor = dias > 0 ? "text-red-700 font-bold" : dias === 0 ? "text-orange-700 font-bold" : "text-muted-foreground";
-                return (
-                  <TableRow key={f.id} title={diasLabel}>
-                    <TableCell className="text-sm font-medium">{companyMap[f.empresa_id] || "—"}</TableCell>
-                    <TableCell className="font-mono text-xs">{num}</TableCell>
-                    <TableCell className="text-xs">{f.fecha_documento || "—"}</TableCell>
-                    <TableCell className="text-xs">{f.fecha_vencimiento || "—"}</TableCell>
-                    <TableCell className={cn("text-right text-sm", diasColor)}>{dias}</TableCell>
-                    <TableCell className="text-right text-sm">{fmtMoney(Number(f.total))}</TableCell>
-                    <TableCell className="text-right text-sm font-semibold">{saldoFmt}</TableCell>
-                    <TableCell className="text-xs">{ejNombre}</TableCell>
-                    <TableCell><Badge variant="outline" className={cn("text-xs", estatusColor)}>{estatus}</Badge></TableCell>
-                    <TableCell className="text-right space-x-1 whitespace-nowrap">
-                      <Button size="sm" variant="ghost" asChild title="Abrir factura">
-                        <Link to={`/documents/${f.id}`}><ExternalLink className="h-3.5 w-3.5" /></Link>
-                      </Button>
-                      {waUrl ? (
-                        <Button size="sm" variant="ghost" asChild title="Enviar WhatsApp">
-                          <a href={waUrl} target="_blank" rel="noopener noreferrer"><MessageCircle className="h-3.5 w-3.5 text-green-600" /></a>
-                        </Button>
-                      ) : (
-                        <Button size="sm" variant="ghost" disabled title="Sin WhatsApp"><MessageCircle className="h-3.5 w-3.5 text-muted-foreground" /></Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          <Paginator page={pageCobranza} setPage={setPageCobranza} total={facturasCobranza.length} lim={limCobranza} />
-        </CardContent>
-      </Card>
-
-      {/* Buckets visuales de "por vencer" (mantenidos como vista resumen) */}
+      {/* Facturas vencidas y por vencer — buckets como filtros */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" /> Facturas por vencer</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <CalendarClock className="h-4 w-4" /> Facturas vencidas y por vencer
+            <Badge variant="outline" className="ml-2">{facturasCobranza.length}</Badge>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {([
+              { key: "vencidas" as const, label: "Vencidas", data: facturasVencidasAll, color: "bg-red-700", border: "border-red-700" },
               { key: "1-5" as const, label: "1–5 días", data: fxv1, color: "bg-red-600", border: "border-red-600" },
               { key: "6-10" as const, label: "6–10 días", data: fxv2, color: "bg-orange-500", border: "border-orange-500" },
               { key: "11-20" as const, label: "11–20 días", data: fxv3, color: "bg-yellow-500", border: "border-yellow-500" },
@@ -913,7 +832,7 @@ export default function SellerPortal() {
                 <button
                   key={b.key}
                   type="button"
-                  onClick={() => setBucketActivo(activo ? null : b.key)}
+                  onClick={() => { setBucketActivo(activo ? null : b.key); setPageCobranza(1); }}
                   className={cn(
                     "text-left rounded-lg border-2 p-3 transition-all hover:shadow-md",
                     activo ? `${b.border} bg-muted/40` : "border-border hover:border-muted-foreground/40"
@@ -932,65 +851,81 @@ export default function SellerPortal() {
             })}
           </div>
 
-          {bucketActivo && (() => {
-            const bucketData =
-              bucketActivo === "1-5" ? fxv1 :
-              bucketActivo === "6-10" ? fxv2 :
-              bucketActivo === "11-20" ? fxv3 : fxv4;
-            const buildMessage = (f: any, dias: number) => {
-              const num = f.numero_factura || f.id.slice(0, 8);
-              const saldo = fmtMoney(Number(f.saldo_pendiente_cobranza || 0));
-              if (bucketActivo === "1-5") {
-                return `Hola, buen día. Le recordamos que la factura ${num} por ${saldo} vence en ${dias} día(s). Agradecemos su apoyo para programar el pago y evitar vencimiento. Quedamos atentos.`;
-              }
-              return `Hola, buen día. Le compartimos recordatorio de pago: la factura ${num} por ${saldo} vence en ${dias} día(s). Favor de considerarla en su programación de pagos. Gracias.`;
-            };
-            const cleanPhone = (p: string | null | undefined) => (p || "").replace(/[^0-9]/g, "");
+          {/* Tabla unificada (filtrada por bucket activo si lo hay) */}
+          {(() => {
+            const filtradas = !bucketActivo ? facturasCobranza
+              : bucketActivo === "vencidas" ? facturasCobranza.filter((f: any) => f.dias_vencidos > 0)
+              : bucketActivo === "1-5" ? facturasCobranza.filter((f: any) => f.dias_vencidos <= -1 && f.dias_vencidos >= -5)
+              : bucketActivo === "6-10" ? facturasCobranza.filter((f: any) => f.dias_vencidos <= -6 && f.dias_vencidos >= -10)
+              : bucketActivo === "11-20" ? facturasCobranza.filter((f: any) => f.dias_vencidos <= -11 && f.dias_vencidos >= -20)
+              : facturasCobranza.filter((f: any) => f.dias_vencidos <= -21 && f.dias_vencidos >= -30);
+            const tituloFiltro = bucketActivo === "vencidas" ? "Vencidas"
+              : bucketActivo ? `${bucketActivo.replace("-", "–")} días` : null;
             return (
-              <Card className="border">
-                <CardHeader className="pb-2 flex-row items-center justify-between">
-                  <CardTitle className="text-sm">Desglose · {bucketActivo.replace("-", "–")} días ({bucketData.length})</CardTitle>
-                  <Button size="sm" variant="ghost" onClick={() => setBucketActivo(null)}>Cerrar</Button>
-                </CardHeader>
-                <CardContent className="p-0 overflow-x-auto">
+              <div>
+                <div className="flex items-center justify-between px-1 pb-2">
+                  <div className="text-sm text-muted-foreground">
+                    {tituloFiltro ? <>Filtro: <span className="font-semibold text-foreground">{tituloFiltro}</span> · {filtradas.length} factura(s)</> : <>Mostrando todas · {filtradas.length} factura(s)</>}
+                    {bucketActivo && (
+                      <Button size="sm" variant="ghost" className="ml-2 h-6 px-2 text-xs" onClick={() => { setBucketActivo(null); setPageCobranza(1); }}>Limpiar filtro</Button>
+                    )}
+                  </div>
+                  <PageSizeSelect value={limCobranza} onChange={setLimCobranza} total={filtradas.length} onPageReset={() => setPageCobranza(1)} />
+                </div>
+                <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Factura</TableHead>
                         <TableHead>Cliente</TableHead>
-                        <TableHead>Fecha fact.</TableHead>
-                        <TableHead>Vence</TableHead>
-                        <TableHead className="text-right">Días</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead className="text-right">Saldo</TableHead>
+                        <TableHead>Núm. factura</TableHead>
+                        <TableHead>Fecha factura</TableHead>
+                        <TableHead>Fecha venc.</TableHead>
+                        <TableHead className="text-right">Días vencidos</TableHead>
+                        <TableHead className="text-right">Total factura</TableHead>
+                        <TableHead className="text-right">Saldo pendiente</TableHead>
                         <TableHead>Ejecutivo</TableHead>
-                        <TableHead>Marca</TableHead>
+                        <TableHead>Estatus</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {bucketData.length === 0 && (
-                        <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">Sin facturas en este bucket</TableCell></TableRow>
+                      {filtradas.length === 0 && (
+                        <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">Sin facturas en este filtro</TableCell></TableRow>
                       )}
-                      {bucketData.map((f: any) => {
-                        const dias = Math.ceil((new Date(f.fecha_vencimiento).getTime() - ahora) / (1000 * 60 * 60 * 24));
-                        const phone = cleanPhone(companyPhoneMap[f.empresa_id]?.phone);
+                      {paginate(filtradas, limCobranza, pageCobranza).map((f: any) => {
+                        const dias = f.dias_vencidos as number;
+                        const phone = (companyPhoneMap[f.empresa_id]?.phone || "").replace(/[^0-9]/g, "");
                         const ejId = f.ejecutivo_venta_id || f.created_by;
                         const ejNombre = ejId ? (ejecutivoMap[ejId] || "—") : "—";
-                        const marcaLabel = f.empresa_vendedora === "lumaggs_chevron" ? "Chevron" : "Phillips 66";
-                        const marcaColor = f.empresa_vendedora === "lumaggs_chevron" ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-800";
-                        const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(buildMessage(f, dias))}` : null;
+                        const num = f.numero_factura || f.id.slice(0, 8);
+                        const saldoFmt = fmtMoney(Number(f.saldo_pendiente_cobranza || 0));
+                        const diasLabel = dias > 0 ? `Vencida hace ${dias} día${dias === 1 ? "" : "s"}`
+                          : dias === 0 ? "Vence hoy"
+                          : `Vence en ${Math.abs(dias)} día${Math.abs(dias) === 1 ? "" : "s"}`;
+                        const msg = dias > 0
+                          ? `Hola, buen día. Le compartimos un recordatorio: la factura ${num} por ${saldoFmt} se encuentra vencida desde hace ${dias} día(s). Agradecemos su apoyo para regularizar el pago a la brevedad. Quedamos atentos.`
+                          : dias === 0
+                          ? `Hola, buen día. Le recordamos que la factura ${num} por ${saldoFmt} vence hoy. Agradecemos su apoyo para programar el pago. Quedamos atentos.`
+                          : `Hola, buen día. Le recordamos que la factura ${num} por ${saldoFmt} vence en ${Math.abs(dias)} día(s). Agradecemos su apoyo para programar el pago. Quedamos atentos.`;
+                        const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : null;
+                        const estatus = dias > 0 ? "Vencida" : dias === 0 ? "Vence hoy" : "Por vencer";
+                        const estatusColor = dias > 0
+                          ? "bg-red-100 text-red-800 border-red-300"
+                          : dias === 0
+                          ? "bg-orange-100 text-orange-800 border-orange-300"
+                          : "bg-amber-50 text-amber-800 border-amber-200";
+                        const diasColor = dias > 0 ? "text-red-700 font-bold" : dias === 0 ? "text-orange-700 font-bold" : "text-muted-foreground";
                         return (
-                          <TableRow key={f.id}>
-                            <TableCell className="font-mono text-xs">{f.numero_factura || f.id.slice(0, 8)}</TableCell>
-                            <TableCell className="text-sm">{companyMap[f.empresa_id] || "—"}</TableCell>
+                          <TableRow key={f.id} title={diasLabel}>
+                            <TableCell className="text-sm font-medium">{companyMap[f.empresa_id] || "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{num}</TableCell>
                             <TableCell className="text-xs">{f.fecha_documento || "—"}</TableCell>
-                            <TableCell className="text-xs">{f.fecha_vencimiento}</TableCell>
-                            <TableCell className="text-right text-sm font-semibold">{dias}</TableCell>
+                            <TableCell className="text-xs">{f.fecha_vencimiento || "—"}</TableCell>
+                            <TableCell className={cn("text-right text-sm", diasColor)}>{dias}</TableCell>
                             <TableCell className="text-right text-sm">{fmtMoney(Number(f.total))}</TableCell>
-                            <TableCell className="text-right text-sm font-semibold">{fmtMoney(Number(f.saldo_pendiente_cobranza))}</TableCell>
+                            <TableCell className="text-right text-sm font-semibold">{saldoFmt}</TableCell>
                             <TableCell className="text-xs">{ejNombre}</TableCell>
-                            <TableCell><Badge variant="outline" className={cn("text-xs", marcaColor)}>{marcaLabel}</Badge></TableCell>
+                            <TableCell><Badge variant="outline" className={cn("text-xs", estatusColor)}>{estatus}</Badge></TableCell>
                             <TableCell className="text-right space-x-1 whitespace-nowrap">
                               <Button size="sm" variant="ghost" asChild title="Abrir factura">
                                 <Link to={`/documents/${f.id}`}><ExternalLink className="h-3.5 w-3.5" /></Link>
@@ -1008,8 +943,9 @@ export default function SellerPortal() {
                       })}
                     </TableBody>
                   </Table>
-                </CardContent>
-              </Card>
+                </div>
+                <Paginator page={pageCobranza} setPage={setPageCobranza} total={filtradas.length} lim={limCobranza} />
+              </div>
             );
           })()}
         </CardContent>
