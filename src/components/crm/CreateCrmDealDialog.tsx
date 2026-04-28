@@ -448,7 +448,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
           // Fetch the new company and merge into the picker cache so it appears inmediatamente
           const { data: nueva } = await supabase
             .from("companies")
-            .select("id, name, is_active")
+            .select("id, name, is_active, plaza_id")
             .eq("id", id)
             .maybeSingle();
           if (nueva) {
