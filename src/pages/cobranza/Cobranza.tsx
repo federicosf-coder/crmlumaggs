@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -124,6 +124,7 @@ function bucketLabel(dias: number | null): string {
 
 export default function Cobranza() {
   const { hasAnyRole } = useAuth();
+  const navigate = useNavigate();
   const canDelete = hasAnyRole(["admin", "manager"]);
   const canEditEstatus = hasAnyRole(["admin", "manager", "accounting"]);
   const { pagos, breakdowns, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos();
@@ -136,6 +137,7 @@ export default function Cobranza() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [pendingDetalleId, setPendingDetalleId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const fromSellerPortal = searchParams.get("from") === "seller-portal";
 
   // Deep link: open pago detail when ?pagoId=... is present
   useEffect(() => {
@@ -360,6 +362,11 @@ export default function Cobranza() {
 
   return (
     <div className="space-y-6">
+      {fromSellerPortal && (
+        <Button variant="ghost" size="sm" onClick={() => navigate("/seller-portal")}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Volver al Portal del Vendedor
+        </Button>
+      )}
       <PageBanner
         title="Cobranza"
         description="Gestión de pagos, aplicaciones y cartera por cobrar"

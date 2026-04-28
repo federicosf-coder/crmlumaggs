@@ -1,17 +1,24 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { Building2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Building2, ArrowLeft } from "lucide-react";
 import CommercialDashboard from "./CommercialDashboard";
 import CrmPipeline from "./CrmPipeline";
 
 export default function CrmLanding() {
   const [tab, setTab] = useState("chevron");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromSellerPortal = searchParams.get("from") === "seller-portal";
 
   return (
     <div className="space-y-6">
+      {fromSellerPortal && (
+        <Button variant="ghost" size="sm" onClick={() => navigate("/seller-portal")}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Volver al Portal del Vendedor
+        </Button>
+      )}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold">CRM</h1>
