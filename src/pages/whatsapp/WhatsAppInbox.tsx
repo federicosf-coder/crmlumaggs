@@ -42,6 +42,16 @@ type Account = { id: string; business_phone_number_id: string; label: string; co
 type TemplateWithAccount = Template & { business_phone_number_id: string | null; waba_id: string | null };
 type QuickReply = { id: string; shortcut: string; content: string };
 
+function extractTemplateVars(body: string): number {
+  const matches = body.match(/\{\{\s*(\d+)\s*\}\}/g) || [];
+  let max = 0;
+  for (const m of matches) {
+    const n = parseInt(m.replace(/[^\d]/g, ""), 10);
+    if (!Number.isNaN(n) && n > max) max = n;
+  }
+  return max;
+}
+
 export default function WhatsAppInbox() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
