@@ -1,0 +1,1 @@
+ALTER TABLE public.crm_deals ALTER COLUMN company_id SET NOT NULL;
