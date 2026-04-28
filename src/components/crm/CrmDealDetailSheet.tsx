@@ -354,6 +354,17 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
         </div>
       </SheetContent>
       <CreateCrmTaskDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} defaultDealId={deal.id} />
+      <CompanyFormDialog
+        open={companyDialogOpen}
+        onOpenChange={setCompanyDialogOpen}
+        onCreated={(id) => setEditCompanyId(id)}
+      />
+      <ContactFormDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        defaultCompanyId={editCompanyId || undefined}
+        onCreated={(id) => setEditContactId(id)}
+      />
     </Sheet>
   );
 }
