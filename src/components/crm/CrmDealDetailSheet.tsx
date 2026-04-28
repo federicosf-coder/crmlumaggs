@@ -381,6 +381,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                 {deal.companies && <div className="text-sm"><span className="text-muted-foreground">Empresa</span><p className="font-medium">{deal.companies.name}</p></div>}
                 {deal.contacts && <div className="text-sm"><span className="text-muted-foreground">Contacto</span><p className="font-medium">{deal.contacts.first_name} {deal.contacts.last_name}</p></div>}
                 {ownerName && <div className="text-sm"><span className="text-muted-foreground">Ejecutivo</span><p className="font-medium">{ownerName}</p></div>}
+                {plazaName && <div className="text-sm"><span className="text-muted-foreground">Plaza</span><p className="font-medium">{plazaName}</p></div>}
                 {deal.notes && <div className="text-sm"><span className="text-muted-foreground">Notas</span><p className="mt-1 whitespace-pre-wrap">{deal.notes}</p></div>}
 
                 <Separator />
