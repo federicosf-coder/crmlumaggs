@@ -534,6 +534,33 @@ export default function SellerPortal() {
           <TabsTrigger value="cobranza">Cobranza ({pagos.length})</TabsTrigger>
         </TabsList>
 
+        {/* Facturas por vencer (debajo del menú principal) */}
+        <Card className="mt-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" /> Facturas por vencer</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: "1–5 días", data: fxv1, color: "bg-red-600" },
+              { label: "6–10 días", data: fxv2, color: "bg-orange-500" },
+              { label: "11–20 días", data: fxv3, color: "bg-yellow-500" },
+              { label: "21–30 días", data: fxv4, color: "bg-green-600" },
+            ].map(b => (
+              <Card key={b.label} className="border">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{b.label}</p>
+                      <p className="text-2xl font-bold">{b.data.length}</p>
+                    </div>
+                    <div className={cn("h-10 w-2 rounded-full", b.color)} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
+
         <TabsContent value="prospectos">
           <Card><CardContent className="p-0 overflow-x-auto"><Table>
             <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tipo</TableHead><TableHead>Fecha</TableHead><TableHead className="text-right">Importe</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
@@ -599,43 +626,6 @@ export default function SellerPortal() {
         </TabsContent>
       </Tabs>
 
-      {/* Facturas por vencer */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" /> Facturas por vencer</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: "1–5 días", data: fxv1, color: "bg-red-600" },
-            { label: "6–10 días", data: fxv2, color: "bg-orange-500" },
-            { label: "11–20 días", data: fxv3, color: "bg-yellow-500" },
-            { label: "21–30 días", data: fxv4, color: "bg-green-600" },
-          ].map(b => (
-            <Card key={b.label} className="border">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{b.label}</p>
-                    <p className="text-2xl font-bold">{b.data.length}</p>
-                    <p className="text-xs text-muted-foreground">{fmtMoney(b.data.reduce((a, c) => a + Number(c.saldo_pendiente_cobranza || 0), 0))}</p>
-                  </div>
-                  <div className={cn("h-10 w-2 rounded-full", b.color)} />
-                </div>
-                {b.data.length > 0 && (
-                  <div className="mt-2 max-h-[140px] overflow-auto space-y-1">
-                    {b.data.slice(0, 10).map(f => (
-                      <div key={f.id} className="flex justify-between text-xs border-b py-1">
-                        <span className="truncate flex-1">{companyMap[f.empresa_id] || "—"}</span>
-                        <span className="text-muted-foreground ml-2">{f.fecha_vencimiento}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </CardContent>
-      </Card>
     </div>
   );
 }
