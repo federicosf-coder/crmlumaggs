@@ -52,6 +52,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const [editStageId, setEditStageId] = useState("");
   const [editContactId, setEditContactId] = useState("");
   const [editCompanyId, setEditCompanyId] = useState("");
+  const [editOwnerId, setEditOwnerId] = useState("");
   const [activityTitle, setActivityTitle] = useState("");
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
@@ -71,6 +72,21 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
       return data || [];
     },
   });
+  const { data: ejecutivos } = useQuery({
+    queryKey: ["ejecutivos-picker"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, is_active")
+        .eq("is_active", true)
+        .order("full_name");
+      return data || [];
+    },
+    staleTime: 60_000,
+  });
+  const ownerName = deal?.owner_id
+    ? ejecutivos?.find((e: any) => e.user_id === deal.owner_id)?.full_name || null
+    : null;
 
   const { data: dealPipeline } = useQuery({
     queryKey: ["crm-pipeline-marca", deal?.pipeline_id],
@@ -101,6 +117,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
       setEditStageId(deal.stage_id);
       setEditContactId(deal.contact_id || "");
       setEditCompanyId(deal.company_id || "");
+      setEditOwnerId(deal.owner_id || "");
     }
   }, [deal, editing]);
 
@@ -131,6 +148,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
         close_date: editCloseDate || null,
         notes: editNotes || null, stage_id: editStageId,
         contact_id: editContactId || null, company_id: editCompanyId || null,
+        owner_id: editOwnerId || null,
       },
       { onSuccess: () => { toast({ title: "Negocio actualizado" }); setEditing(false); } }
     );
@@ -162,6 +180,17 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
             <div className="space-y-4">
               <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></div>
               <div className="space-y-2"><Label>Valor</Label><Input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>Ejecutivo</Label>
+                <Select value={editOwnerId} onValueChange={setEditOwnerId}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar ejecutivo" /></SelectTrigger>
+                  <SelectContent>
+                    {(ejecutivos || []).map((e: any) => (
+                      <SelectItem key={e.user_id} value={e.user_id}>{e.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label>Etapa</Label>
                 <Select value={editStageId} onValueChange={setEditStageId}>
@@ -248,6 +277,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                 </div>
                 {deal.companies && <div className="text-sm"><span className="text-muted-foreground">Empresa</span><p className="font-medium">{deal.companies.name}</p></div>}
                 {deal.contacts && <div className="text-sm"><span className="text-muted-foreground">Contacto</span><p className="font-medium">{deal.contacts.first_name} {deal.contacts.last_name}</p></div>}
+                {ownerName && <div className="text-sm"><span className="text-muted-foreground">Ejecutivo</span><p className="font-medium">{ownerName}</p></div>}
                 {deal.notes && <div className="text-sm"><span className="text-muted-foreground">Notas</span><p className="mt-1 whitespace-pre-wrap">{deal.notes}</p></div>}
 
                 <Separator />

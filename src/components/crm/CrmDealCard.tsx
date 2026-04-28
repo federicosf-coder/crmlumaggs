@@ -1,7 +1,9 @@
 import { CrmDeal } from "@/hooks/useCrmDeals";
 import { formatDate, formatMonthYear } from "@/lib/formatters";
-import { Calendar, GripVertical, Package } from "lucide-react";
+import { Calendar, GripVertical, Package, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CrmDealCardProps {
   deal: CrmDeal;
@@ -55,6 +57,17 @@ function ProgressBar({
 
 export function CrmDealCard({ deal, stageColor, onClick, monthlyAvg, showHistorico }: CrmDealCardProps) {
   const d = deal as any;
+  const { data: profilesMap } = useQuery({
+    queryKey: ["profiles-name-map"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name");
+      const map = new Map<string, string>();
+      (data || []).forEach((p: any) => map.set(p.user_id, p.full_name || ""));
+      return map;
+    },
+    staleTime: 5 * 60_000,
+  });
+  const ownerName = d.owner_id ? profilesMap?.get(d.owner_id) : null;
   const potencialManual = Number(d.potencial_unidades ?? 0);
   const potencial = potencialManual > 0
     ? potencialManual
@@ -161,6 +174,12 @@ export function CrmDealCard({ deal, stageColor, onClick, monthlyAvg, showHistori
         {deal.contacts && (
           <p className="text-xs text-muted-foreground">
             {deal.contacts.first_name} {deal.contacts.last_name}
+          </p>
+        )}
+        {ownerName && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <User className="h-3 w-3" />
+            {ownerName}
           </p>
         )}
       </div>
