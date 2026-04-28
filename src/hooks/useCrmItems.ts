@@ -144,7 +144,7 @@ export function useCrmItems(filters: CrmItemsFilters = {}) {
 
       const { data, error, count } = await q;
       if (error) throw error;
-      return { rows: (data || []) as CrmItemUnified[], count: count ?? null };
+      return { rows: (data as unknown as CrmItemUnified[]) || [], count: count ?? null };
     },
   });
 }
