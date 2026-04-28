@@ -269,7 +269,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
           </div>
 
           <div className="space-y-2">
-            <Label>Empresa</Label>
+            <Label>Empresa <span className="text-destructive">*</span></Label>
             <div className="flex gap-2">
               <div className="flex-1 min-w-0">
                 <SearchableSelect
@@ -286,6 +286,9 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
                 <ExternalLink className="h-4 w-4" />
               </Button>
             </div>
+            {!companyId && (
+              <p className="text-xs text-muted-foreground">La empresa es obligatoria.</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -334,7 +337,7 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
 
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={createDeal.isPending}>
+            <Button type="submit" disabled={createDeal.isPending || !companyId}>
               {createDeal.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Negocio"}
             </Button>
           </div>
