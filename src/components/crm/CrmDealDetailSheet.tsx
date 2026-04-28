@@ -28,6 +28,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCrmActivities } from "@/hooks/useCrmActivities";
 import { formatRelativeDate } from "@/lib/formatters";
+import { fetchAllRows } from "@/lib/supabasePagination";
 
 interface CrmDealDetailSheetProps {
   deal: CrmDeal | null;
@@ -53,6 +54,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const [editContactId, setEditContactId] = useState("");
   const [editCompanyId, setEditCompanyId] = useState("");
   const [editOwnerId, setEditOwnerId] = useState("");
+  const [editPipelineId, setEditPipelineId] = useState("");
   const [activityTitle, setActivityTitle] = useState("");
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
@@ -68,8 +70,15 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const { data: allCompanies } = useQuery({
     queryKey: ["companies-picker"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
-      return data || [];
+      const rows = await fetchAllRows<{ id: string; name: string }>((from, to) =>
+        supabase
+          .from("companies")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("name")
+          .range(from, to)
+      );
+      return rows;
     },
   });
   const { data: ejecutivos } = useQuery({
@@ -103,6 +112,32 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const empresaVendedora =
     dealPipeline?.marca === "phillips66" ? "galsa_phillips66" : "lumaggs_chevron";
 
+  // Pipelines disponibles para cambiar (mismo pipeline_type del negocio)
+  const { data: availablePipelines } = useQuery({
+    queryKey: ["crm-pipelines-all", (deal as any)?.pipeline_type],
+    enabled: !!deal,
+    queryFn: async () => {
+      let q = supabase.from("crm_pipelines").select("id, nombre, marca, pipeline_type").order("marca").order("nombre");
+      if ((deal as any)?.pipeline_type) q = q.eq("pipeline_type", (deal as any).pipeline_type);
+      const { data } = await q;
+      return data || [];
+    },
+  });
+
+  // Etapas del pipeline seleccionado al editar (puede diferir del pipeline actual)
+  const { data: editStages } = useQuery({
+    queryKey: ["crm-pipeline-stages-edit", editPipelineId],
+    enabled: editing && !!editPipelineId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("crm_pipeline_stages")
+        .select("id, name, color, position")
+        .eq("pipeline_id", editPipelineId)
+        .order("position");
+      return data || [];
+    },
+  });
+
   useEffect(() => {
     if (deal && editing) {
       setEditTitle(deal.title);
@@ -118,6 +153,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
       setEditContactId(deal.contact_id || "");
       setEditCompanyId(deal.company_id || "");
       setEditOwnerId(deal.owner_id || "");
+      setEditPipelineId(deal.pipeline_id || "");
     }
   }, [deal, editing]);
 
@@ -142,11 +178,25 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   };
 
   const handleSave = () => {
+    // Si se cambió el pipeline, la etapa actual puede no pertenecer al nuevo pipeline.
+    let nextStageId = editStageId;
+    if (editPipelineId && editPipelineId !== deal.pipeline_id) {
+      const stillValid = (editStages || []).some((s: any) => s.id === editStageId);
+      if (!stillValid) {
+        nextStageId = (editStages || [])[0]?.id || "";
+      }
+    }
+    if (!nextStageId) {
+      toast({ title: "Selecciona una etapa válida", variant: "destructive" });
+      return;
+    }
     updateDeal.mutate(
       {
         id: deal.id, title: editTitle, value: parseFloat(editValue) || 0,
         close_date: editCloseDate || null,
-        notes: editNotes || null, stage_id: editStageId,
+        notes: editNotes || null,
+        pipeline_id: editPipelineId || deal.pipeline_id,
+        stage_id: nextStageId,
         contact_id: editContactId || null, company_id: editCompanyId || null,
         owner_id: editOwnerId || null,
       },
@@ -195,8 +245,35 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                 <Label>Etapa</Label>
                 <Select value={editStageId} onValueChange={setEditStageId}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{stages.map((s) => <SelectItem key={s.id} value={s.id}><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />{s.name}</div></SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {(editPipelineId && editPipelineId !== deal.pipeline_id ? (editStages || []) : stages).map((s: any) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+                          {s.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Pipeline</Label>
+                <Select value={editPipelineId} onValueChange={setEditPipelineId}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar pipeline" /></SelectTrigger>
+                  <SelectContent>
+                    {(availablePipelines || []).map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.marca === "phillips66" ? "Phillips 66" : "Chevron"} · {p.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editPipelineId && editPipelineId !== deal.pipeline_id && (
+                  <p className="text-xs text-muted-foreground">
+                    Al cambiar de pipeline, la etapa se reasignará a la primera del pipeline destino si no coincide.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Empresa</Label>
