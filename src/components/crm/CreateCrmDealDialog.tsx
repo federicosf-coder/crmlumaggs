@@ -75,10 +75,18 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
   });
 
   const { data: contacts, refetch: refetchContacts } = useQuery({
-    queryKey: ["contacts-picker"],
+    queryKey: ["contacts-picker-with-company"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name, is_active").eq("is_active", true).order("first_name");
-      return data || [];
+      const rows = await fetchAllRows<{ id: string; first_name: string; last_name: string; company_id: string | null; is_active: boolean }>(
+        (from, to) =>
+          supabase
+            .from("contacts")
+            .select("id, first_name, last_name, company_id, is_active")
+            .eq("is_active", true)
+            .order("first_name")
+            .range(from, to)
+      );
+      return rows;
     },
     staleTime: 0,
     refetchOnMount: "always",
@@ -222,6 +230,14 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
     const tipo = pipelineTypeLabel(selectedPipeline?.pipeline_type);
     setTitle(`${selectedCompany.name} - ${tipo}`);
   }, [selectedCompany, selectedPipeline, titleManuallyEdited]);
+
+  // Limpiar contacto si no pertenece a la empresa seleccionada
+  useEffect(() => {
+    if (!contactId) return;
+    if (!companyId) { setContactId(""); return; }
+    const c = (contacts || []).find((x: any) => x.id === contactId);
+    if (c && c.company_id !== companyId) setContactId("");
+  }, [companyId, contacts, contactId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
