@@ -110,7 +110,7 @@ export default function SellerPortal() {
       const { data: pagosData } = await pq;
 
       // Facturas por vencer (>= hoy) con saldo > 0 — para el bloque inferior
-      let fpvQ = supabase.from("documentos").select("id, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).gt("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
+      let fpvQ = supabase.from("documentos").select("id, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza, estatus_factura, ejecutivo_venta_id, created_by").eq("tipo_documento", "factura").eq("is_active", true).gt("saldo_pendiente_cobranza", 0).gt("fecha_vencimiento", todayIso).in("empresa_vendedora", marcasSeleccionadas as any).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).limit(2000);
       if (plazaId !== "all") fpvQ = fpvQ.eq("plaza_id", plazaId);
       const { data: fpvData } = await fpvQ;
 
