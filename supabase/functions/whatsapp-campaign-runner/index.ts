@@ -18,8 +18,9 @@ Deno.serve(async (req) => {
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-    if (!TOKEN || !PHONE_ID) return json({ error: "Missing WhatsApp credentials" }, 500);
+    const FALLBACK_PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")
+      ?? Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_2");
+    if (!TOKEN) return json({ error: "Missing WHATSAPP_ACCESS_TOKEN" }, 500);
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const userClient = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader } } });
@@ -37,6 +38,45 @@ Deno.serve(async (req) => {
     if (!campaign) return json({ error: "Campaña no encontrada" }, 404);
     if (campaign.status === "completed") return json({ ok: true, message: "Ya completada" }, 200);
 
+    // Resolver línea (phone_number_id) a usar para esta campaña.
+    let activePhoneId: string | null = campaign.business_phone_number_id ?? null;
+    if (!activePhoneId) {
+      const { data: defaultAcct } = await admin
+        .from("whatsapp_accounts")
+        .select("business_phone_number_id")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      activePhoneId = defaultAcct?.business_phone_number_id ?? FALLBACK_PHONE_ID ?? null;
+    }
+    if (!activePhoneId) {
+      return json({ error: "No hay business_phone_number_id configurado para la campaña" }, 500);
+    }
+
+    // Validar que la plantilla esté APPROVED antes de enviar.
+    const { data: tplRow } = await admin
+      .from("whatsapp_templates")
+      .select("status, header_type, variable_map")
+      .eq("name", campaign.template_name)
+      .eq("language", campaign.template_language || "es_MX")
+      .maybeSingle();
+    if (!tplRow) return json({ error: "Plantilla no encontrada" }, 404);
+    if (tplRow.status !== "APPROVED") {
+      await admin.from("whatsapp_campaigns")
+        .update({ status: "failed", finished_at: new Date().toISOString() })
+        .eq("id", campaign_id);
+      return json({ error: `La plantilla no está aprobada (estatus actual: ${tplRow.status}). No se enviará la campaña.` }, 400);
+    }
+    const variableMap: string[] = Array.isArray(tplRow.variable_map) ? (tplRow.variable_map as string[]) : [];
+    const headerType: string = tplRow.header_type ?? "NONE";
+    const headerImageUrl: string | null = campaign.header_image_url ?? null;
+    if (headerType === "IMAGE" && !headerImageUrl) {
+      return json({ error: "La plantilla requiere una imagen de encabezado y la campaña no la tiene." }, 400);
+    }
+    const tplVariables: Record<string, string> =
+      (campaign.template_variables as Record<string, string> | null) ?? {};
+
     await admin
       .from("whatsapp_campaigns")
       .update({ status: "running", started_at: campaign.started_at ?? new Date().toISOString() })
@@ -53,14 +93,37 @@ Deno.serve(async (req) => {
       failed = 0;
     for (const r of pending ?? []) {
       try {
-        const res = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+        // Construir components: header IMAGE + body con variables (si hay)
+        const components: Record<string, unknown>[] = [];
+        if (headerType === "IMAGE" && headerImageUrl) {
+          components.push({
+            type: "header",
+            parameters: [{ type: "image", image: { link: headerImageUrl } }],
+          });
+        }
+        if (variableMap.length > 0) {
+          components.push({
+            type: "body",
+            parameters: variableMap.map((k) => ({
+              type: "text",
+              text: String(tplVariables[k] ?? ""),
+            })),
+          });
+        }
+        const tplPayload: Record<string, unknown> = {
+          name: campaign.template_name,
+          language: { code: campaign.template_language || "es_MX" },
+        };
+        if (components.length > 0) tplPayload.components = components;
+
+        const res = await fetch(`https://graph.facebook.com/v21.0/${activePhoneId}/messages`, {
           method: "POST",
           headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             messaging_product: "whatsapp",
             to: r.wa_phone,
             type: "template",
-            template: { name: campaign.template_name, language: { code: campaign.template_language || "es_MX" } },
+            template: tplPayload,
           }),
         });
         const d = await res.json().catch(() => ({}));
