@@ -13,7 +13,7 @@ import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, M
 import { Merge } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
-import { CompanyFormDialog, type CompanyData, FORMA_PAGO_OPTS } from "@/components/CompanyFormDialog";
+import { CompanyFormDialog, type CompanyData, FORMA_PAGO_OPTS, LISTA_PRECIOS_OPTIONS } from "@/components/CompanyFormDialog";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -72,6 +72,10 @@ const METODO_PAGO_LABEL: Record<string, string> = {
 const formaPagoLabel = (v?: string | null) => {
   if (!v) return null;
   return FORMA_PAGO_OPTS.find(o => o.v === v)?.l || v;
+};
+const listaPreciosLabel = (v?: string | null) => {
+  if (!v) return null;
+  return LISTA_PRECIOS_OPTIONS.find(o => o.v === v)?.l || v;
 };
 
 const TAB_COLORS: Record<string, { active: string; border: string }> = {
