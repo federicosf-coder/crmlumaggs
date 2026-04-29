@@ -13,10 +13,11 @@ import { CompanyUnitsHeader } from "@/components/crm/CompanyUnitsHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { X, Plus, ExternalLink } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
+import { ContactFormDialog } from "@/components/ContactFormDialog";
 
 // LADAs MX de 2 dígitos: formato +52 LL DDDD DDDD; resto: +52 LLL DDD DDDD.
 const TWO_DIGIT_LADAS = new Set(["33", "55", "56", "81"]);
@@ -97,7 +98,14 @@ export const ROL_LUBRICANTE_OPTIONS = ["Crítico para la operación", "Important
 export const TIPO_CLIENTE_OPTIONS = ["Contado", "Crédito directo", "Crédito Cescemex"];
 
 export const LISTA_PRECIOS_OPTIONS = [
-  "UF1", "UF2", "UF3", "UF4", "R1", "R2", "R3", "R4",
+  "UF1 1–10 unidades",
+  "UF2 11–45 unidades",
+  "UF3 46–90 unidades",
+  "UF4 90 o más unidades",
+  "R1 Menos de 45 unidades",
+  "R2 46–90 unidades",
+  "R3 91–135 unidades",
+  "R4 135 o más unidades",
 ];
 
 const TIPO_PAGO_OPTS = [
