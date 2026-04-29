@@ -3169,10 +3169,12 @@ export type Database = {
       }
       whatsapp_campaigns: {
         Row: {
+          business_phone_number_id: string | null
           created_at: string
           created_by: string | null
           failed_count: number
           finished_at: string | null
+          header_image_url: string | null
           id: string
           nombre: string
           sent_count: number
@@ -3187,10 +3189,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_phone_number_id?: string | null
           created_at?: string
           created_by?: string | null
           failed_count?: number
           finished_at?: string | null
+          header_image_url?: string | null
           id?: string
           nombre: string
           sent_count?: number
@@ -3205,10 +3209,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_phone_number_id?: string | null
           created_at?: string
           created_by?: string | null
           failed_count?: number
           finished_at?: string | null
+          header_image_url?: string | null
           id?: string
           nombre?: string
           sent_count?: number
@@ -3489,11 +3495,16 @@ export type Database = {
           category: string | null
           components: Json | null
           created_at: string
+          header_image_url: string | null
+          header_text: string | null
+          header_type: string
           id: string
           language: string
           last_synced_at: string | null
           meta_template_id: string | null
           name: string
+          quality_score: string | null
+          rejection_reason: string | null
           source_body: string | null
           status: string
           updated_at: string
@@ -3506,11 +3517,16 @@ export type Database = {
           category?: string | null
           components?: Json | null
           created_at?: string
+          header_image_url?: string | null
+          header_text?: string | null
+          header_type?: string
           id?: string
           language?: string
           last_synced_at?: string | null
           meta_template_id?: string | null
           name: string
+          quality_score?: string | null
+          rejection_reason?: string | null
           source_body?: string | null
           status?: string
           updated_at?: string
@@ -3523,11 +3539,16 @@ export type Database = {
           category?: string | null
           components?: Json | null
           created_at?: string
+          header_image_url?: string | null
+          header_text?: string | null
+          header_type?: string
           id?: string
           language?: string
           last_synced_at?: string | null
           meta_template_id?: string | null
           name?: string
+          quality_score?: string | null
+          rejection_reason?: string | null
           source_body?: string | null
           status?: string
           updated_at?: string
