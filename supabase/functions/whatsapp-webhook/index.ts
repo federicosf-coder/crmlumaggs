@@ -131,6 +131,56 @@ Deno.serve(async (req) => {
         const changes = Array.isArray(entry?.changes) ? entry.changes : [];
         for (const change of changes) {
           const value = change?.value ?? {};
+          // ── Meta template status updates (APPROVED / REJECTED / DISABLED / etc.)
+          // Suscripción: "message_template_status_update" en la app de Meta.
+          if (change?.field === "message_template_status_update") {
+            try {
+              const tplName: string | null = value?.message_template_name ?? null;
+              const tplLang: string | null = value?.message_template_language ?? "es_MX";
+              const newStatus: string | null = value?.event ?? null;
+              const reason: string | null =
+                value?.reason ?? value?.rejected_reason ?? null;
+              const metaTplId: string | null =
+                value?.message_template_id ?? null;
+              if (tplName && newStatus) {
+                const update: Record<string, unknown> = {
+                  status: newStatus,
+                  rejection_reason: newStatus === "REJECTED" ? reason : null,
+                  last_synced_at: new Date().toISOString(),
+                };
+                if (metaTplId) update.meta_template_id = String(metaTplId);
+                await admin
+                  .from("whatsapp_templates")
+                  .update(update)
+                  .eq("name", tplName)
+                  .eq("language", tplLang);
+                console.log(
+                  `[wa-webhook] template ${tplName}/${tplLang} -> ${newStatus}`,
+                );
+              }
+            } catch (e) {
+              console.warn("[wa-webhook] template status update failed", e);
+            }
+            continue;
+          }
+          // Quality update (opcional pero útil)
+          if (change?.field === "message_template_quality_update") {
+            try {
+              const tplName: string | null = value?.message_template_name ?? null;
+              const tplLang: string | null = value?.message_template_language ?? "es_MX";
+              const newQuality: string | null = value?.new_quality_score ?? null;
+              if (tplName && newQuality) {
+                await admin
+                  .from("whatsapp_templates")
+                  .update({ quality_score: newQuality })
+                  .eq("name", tplName)
+                  .eq("language", tplLang);
+              }
+            } catch (e) {
+              console.warn("[wa-webhook] template quality update failed", e);
+            }
+            continue;
+          }
           // Capture which business phone line this webhook event is for.
           // Do not reject unknown phone_number_id values; Meta's Verify Token is
           // the only gate. Unknown accounts are stored with a null account link.
