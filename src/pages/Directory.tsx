@@ -13,7 +13,7 @@ import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, M
 import { Merge } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
-import { CompanyFormDialog, type CompanyData, FORMA_PAGO_OPTS } from "@/components/CompanyFormDialog";
+import { CompanyFormDialog, type CompanyData, FORMA_PAGO_OPTS, LISTA_PRECIOS_OPTIONS } from "@/components/CompanyFormDialog";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -72,6 +72,10 @@ const METODO_PAGO_LABEL: Record<string, string> = {
 const formaPagoLabel = (v?: string | null) => {
   if (!v) return null;
   return FORMA_PAGO_OPTS.find(o => o.v === v)?.l || v;
+};
+const listaPreciosLabel = (v?: string | null) => {
+  if (!v) return null;
+  return LISTA_PRECIOS_OPTIONS.find(o => o.v === v)?.l || v;
 };
 
 const TAB_COLORS: Record<string, { active: string; border: string }> = {
@@ -139,6 +143,22 @@ export default function Directory() {
       if (!selectedCompany?.id) return [];
       const { data } = await supabase.from("company_ejecutivos").select("user_id").eq("company_id", selectedCompany.id);
       return (data || []).map((ce: any) => ce.user_id);
+    },
+    enabled: !!selectedCompany?.id,
+  });
+
+  // Contactos vinculados a la empresa seleccionada (para vista detalle)
+  const { data: selectedCompanyContacts = [] } = useQuery({
+    queryKey: ["company_contacts_detail", selectedCompany?.id],
+    queryFn: async () => {
+      if (!selectedCompany?.id) return [];
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name, email, phone, mobile, job_title")
+        .eq("company_id", selectedCompany.id)
+        .eq("is_active", true)
+        .order("first_name");
+      return data || [];
     },
     enabled: !!selectedCompany?.id,
   });
@@ -705,6 +725,8 @@ export default function Directory() {
                 <TabsList className="w-full">
                   <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
                   <TabsTrigger value="clasificacion" className="flex-1">Clasificación</TabsTrigger>
+                  <TabsTrigger value="facturacion" className="flex-1">Detalles Facturación</TabsTrigger>
+                  <TabsTrigger value="decision" className="flex-1">Proceso Decisión</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="general" className="space-y-3 mt-4">
@@ -714,7 +736,7 @@ export default function Directory() {
                       <DetailRow label="Razón Social" value={selectedCompany.razon_social} />
                       <DetailRow label="Industria" value={selectedCompany.industry} />
                       <DetailRow label="Plaza" value={(selectedCompany.plazas as any)?.nombre} />
-                      <DetailRow label="Lista de Precios" value={selectedCompany.lista_precios} />
+                      <DetailRow label="Lista de Precios" value={listaPreciosLabel(selectedCompany.lista_precios)} />
                     </div>
                   </div>
 
@@ -758,6 +780,32 @@ export default function Directory() {
                     </div>
                   </div>
 
+                  {/* Contactos de la empresa (antes de Notas) */}
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <User className="h-3.5 w-3.5" /> Contactos de la empresa
+                    </div>
+                    {selectedCompanyContacts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Sin contactos vinculados.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {selectedCompanyContacts.map((c: any) => (
+                          <div key={c.id} className="flex items-center justify-between rounded border bg-muted/30 px-3 py-1.5 text-sm">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium truncate">
+                                {c.first_name} {c.last_name}
+                                {c.job_title && <span className="text-muted-foreground font-normal"> — {c.job_title}</span>}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {c.email || "—"} · {c.phone || c.mobile || "—"}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Notas */}
                   {selectedCompany.notes && (
                     <div className="rounded-lg border bg-accent/30 p-3 space-y-2">
@@ -770,16 +818,14 @@ export default function Directory() {
                 </TabsContent>
 
                 <TabsContent value="clasificacion" className="space-y-3 mt-4">
-                  {/* Datos fiscales y pago */}
+                  {/* Lista de precios + Tipo destino */}
                   <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                      <Tag className="h-3.5 w-3.5" /> Datos fiscales y pago
+                      <Tag className="h-3.5 w-3.5" /> Clasificación comercial
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <DetailRow label="Tipo de Pago" value={selectedCompany.tipo_pago ? TIPO_PAGO_LABEL[selectedCompany.tipo_pago] || selectedCompany.tipo_pago : null} />
-                      <DetailRow label="Forma de Pago (SAT)" value={formaPagoLabel(selectedCompany.forma_pago)} />
-                      <DetailRow label="Método de Pago" value={selectedCompany.metodo_pago ? METODO_PAGO_LABEL[selectedCompany.metodo_pago] || selectedCompany.metodo_pago : null} />
-                      <DetailRow label="Uso de CFDI" value={selectedCompany.uso_cfdi} />
+                      <DetailRow label="Lista de Precios" value={listaPreciosLabel(selectedCompany.lista_precios)} />
+                      <DetailRow label="Tipo según destino" value={selectedCompany.tipo_destino_lubricante} />
                     </div>
                   </div>
 
@@ -798,21 +844,33 @@ export default function Directory() {
                       <p className="text-sm text-muted-foreground">—</p>
                     )}
                   </div>
+                </TabsContent>
 
-                  {/* Perfil comercial */}
-                  <div className="rounded-lg border p-3 space-y-2">
+                <TabsContent value="facturacion" className="space-y-3 mt-4">
+                  <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                      <Users className="h-3.5 w-3.5" /> Perfil comercial
+                      <Tag className="h-3.5 w-3.5" /> Datos fiscales y pago
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <DetailRow label="Tipo según destino" value={selectedCompany.tipo_destino_lubricante} />
-                      <DetailRow label="Potencial de unidades" value={selectedCompany.potencial_unidades} />
+                      <DetailRow label="Tipo de Pago" value={selectedCompany.tipo_pago ? TIPO_PAGO_LABEL[selectedCompany.tipo_pago] || selectedCompany.tipo_pago : null} />
+                      <DetailRow label="Forma de Pago (SAT)" value={formaPagoLabel(selectedCompany.forma_pago)} />
+                      <DetailRow label="Método de Pago" value={selectedCompany.metodo_pago ? METODO_PAGO_LABEL[selectedCompany.metodo_pago] || selectedCompany.metodo_pago : null} />
+                      <DetailRow label="Uso de CFDI" value={selectedCompany.uso_cfdi} />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="decision" className="space-y-3 mt-4">
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <Users className="h-3.5 w-3.5" /> Proceso de Decisión
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
                       <DetailRow label="Tomador de decisión" value={selectedCompany.tomador_decision} />
                       <DetailRow label="Riesgo cambio de marca" value={selectedCompany.riesgo_cambio_marca} />
                       <DetailRow label="Origen contacto" value={selectedCompany.origen_contacto} />
                       <DetailRow label="Evaluación lubricante" value={selectedCompany.evaluacion_lubricante} />
                       <DetailRow label="Rol del lubricante" value={selectedCompany.rol_lubricante} />
-                      <DetailRow label="Tipo cliente (clasificación)" value={selectedCompany.tipo_cliente_comercial} />
                     </div>
                   </div>
                 </TabsContent>
