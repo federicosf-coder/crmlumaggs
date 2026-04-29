@@ -10,12 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { RefreshCw, FileBadge, Plus, Send } from "lucide-react";
+import { RefreshCw, FileBadge, Plus, Send, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import {
   compileTemplateBody,
   buildExampleValues,
   extractNamedPlaceholders,
 } from "@/lib/whatsappTemplateVars";
+import { MarketingPromoUpload, PromoPlaceholderHint } from "@/components/whatsapp/MarketingPromoUpload";
+import { WhatsAppChatPreview } from "@/components/whatsapp/WhatsAppChatPreview";
 
 type Template = {
   id: string;
@@ -27,6 +29,9 @@ type Template = {
   source_body: string | null;
   variable_map: string[] | null;
   last_synced_at: string | null;
+  header_type?: string | null;
+  header_image_url?: string | null;
+  rejection_reason?: string | null;
 };
 
 const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -47,6 +52,9 @@ export default function WhatsAppTemplates() {
   const [category, setCategory] = useState("UTILITY");
   const [language, setLanguage] = useState("es_MX");
   const [bodyText, setBodyText] = useState("");
+  const [headerType, setHeaderType] = useState<"NONE" | "IMAGE" | "TEXT">("NONE");
+  const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
+  const [headerText, setHeaderText] = useState("");
 
   const placeholders = useMemo(() => extractNamedPlaceholders(bodyText), [bodyText]);
   const compiled = useMemo(() => compileTemplateBody(bodyText), [bodyText]);
@@ -56,7 +64,7 @@ export default function WhatsAppTemplates() {
     setLoading(true);
     const { data, error } = await supabase
       .from("whatsapp_templates")
-      .select("id,name,language,category,status,body,source_body,variable_map,last_synced_at")
+      .select("id,name,language,category,status,body,source_body,variable_map,last_synced_at,header_type,header_image_url,rejection_reason")
       .order("name", { ascending: true });
     setLoading(false);
     if (error) {
@@ -68,6 +76,11 @@ export default function WhatsAppTemplates() {
 
   useEffect(() => {
     load();
+    const ch = supabase
+      .channel("wa-templates-list")
+      .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_templates" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
   const sync = async () => {
@@ -87,6 +100,9 @@ export default function WhatsAppTemplates() {
     setCategory("UTILITY");
     setLanguage("es_MX");
     setBodyText("");
+    setHeaderType("NONE");
+    setHeaderImageUrl(null);
+    setHeaderText("");
   };
 
   const submit = async () => {
@@ -94,9 +110,22 @@ export default function WhatsAppTemplates() {
       toast.error("Completa nombre y cuerpo");
       return;
     }
+    if (headerType === "IMAGE" && !headerImageUrl) {
+      toast.error("Sube una imagen para el encabezado");
+      return;
+    }
+    if (headerType === "TEXT" && !headerText.trim()) {
+      toast.error("Escribe el texto del encabezado");
+      return;
+    }
     setCreating(true);
     const { data, error } = await supabase.functions.invoke("whatsapp-create-template", {
-      body: { name, body: bodyText, category, language },
+      body: {
+        name, body: bodyText, category, language,
+        header_type: headerType,
+        header_image_url: headerType === "IMAGE" ? headerImageUrl : null,
+        header_text: headerType === "TEXT" ? headerText : null,
+      },
     });
     setCreating(false);
     if (error) {
@@ -111,6 +140,13 @@ export default function WhatsAppTemplates() {
     setOpen(false);
     resetForm();
     load();
+  };
+
+  const statusBadge = (s: string) => {
+    if (s === "APPROVED") return <Badge className="bg-emerald-600 hover:bg-emerald-600"><CheckCircle2 className="h-3 w-3 mr-1" />APPROVED</Badge>;
+    if (s === "REJECTED") return <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />REJECTED</Badge>;
+    if (s === "PENDING") return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />PENDING</Badge>;
+    return <Badge variant={statusVariant(s)}>{s}</Badge>;
   };
 
   return (
@@ -167,7 +203,10 @@ export default function WhatsAppTemplates() {
                   <TableCell>{t.language}</TableCell>
                   <TableCell>{t.category || "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={statusVariant(t.status)}>{t.status}</Badge>
+                    {statusBadge(t.status)}
+                    {t.status === "REJECTED" && t.rejection_reason && (
+                      <div className="text-[11px] text-destructive mt-1 max-w-[220px]">{t.rejection_reason}</div>
+                    )}
                   </TableCell>
                   <TableCell className="text-xs">
                     {Array.isArray(t.variable_map) && t.variable_map.length > 0
@@ -178,7 +217,12 @@ export default function WhatsAppTemplates() {
                         ))
                       : "—"}
                   </TableCell>
-                  <TableCell className="max-w-md truncate text-sm text-muted-foreground">{t.body || "—"}</TableCell>
+                  <TableCell className="max-w-md text-sm text-muted-foreground">
+                    {t.header_image_url && (
+                      <img src={t.header_image_url} alt="" className="h-10 w-16 object-cover rounded mb-1" />
+                    )}
+                    <div className="truncate">{t.body || "—"}</div>
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {t.last_synced_at ? new Date(t.last_synced_at).toLocaleString() : "—"}
                   </TableCell>
@@ -190,10 +234,11 @@ export default function WhatsAppTemplates() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nueva plantilla WhatsApp</DialogTitle>
           </DialogHeader>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
           <div className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2 space-y-1">
@@ -228,6 +273,30 @@ export default function WhatsAppTemplates() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Encabezado</Label>
+              <Select value={headerType} onValueChange={(v) => setHeaderType(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">Sin encabezado</SelectItem>
+                  <SelectItem value="IMAGE">Imagen</SelectItem>
+                  <SelectItem value="TEXT">Texto</SelectItem>
+                </SelectContent>
+              </Select>
+              {headerType === "IMAGE" && (
+                <>
+                  <MarketingPromoUpload value={headerImageUrl} onChange={setHeaderImageUrl} />
+                  <PromoPlaceholderHint />
+                </>
+              )}
+              {headerType === "TEXT" && (
+                <Input
+                  placeholder="Encabezado de la plantilla"
+                  value={headerText}
+                  onChange={(e) => setHeaderText(e.target.value)}
+                />
+              )}
+            </div>
             <div className="space-y-1">
               <Label>Cuerpo</Label>
               <Textarea
@@ -258,6 +327,15 @@ export default function WhatsAppTemplates() {
                 </div>
               </div>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs uppercase text-muted-foreground">Vista previa</Label>
+            <WhatsAppChatPreview
+              imageUrl={headerType === "IMAGE" ? headerImageUrl : null}
+              bodyText={bodyText || "Escribe el cuerpo del mensaje…"}
+              contactName="Cliente"
+            />
+          </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)} disabled={creating}>Cancelar</Button>

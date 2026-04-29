@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Megaphone, Play, Plus } from "lucide-react";
+import { Megaphone, Play, Plus, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { MarketingPromoUpload, PromoPlaceholderHint } from "@/components/whatsapp/MarketingPromoUpload";
+import { WhatsAppChatPreview } from "@/components/whatsapp/WhatsAppChatPreview";
 
 type Campaign = {
   id: string;
@@ -30,7 +32,26 @@ type Campaign = {
   finished_at: string | null;
 };
 
-type Template = { id: string; name: string; language: string; status: string };
+type Template = {
+  id: string;
+  name: string;
+  language: string;
+  status: string;
+  body: string | null;
+  source_body: string | null;
+  variable_map: string[] | null;
+  header_type: string | null;
+  header_image_url: string | null;
+  rejection_reason: string | null;
+};
+
+type Account = {
+  id: string;
+  business_phone_number_id: string;
+  label: string;
+  display_phone: string | null;
+  is_active: boolean;
+};
 
 type Contact = {
   id: string;
@@ -52,12 +73,16 @@ export default function WhatsAppCampaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [tplName, setTplName] = useState("");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
+  const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
+  const [linePhoneId, setLinePhoneId] = useState<string>("");
+  const [variables, setVariables] = useState<Record<string, string>>({});
 
   const load = async () => {
     const { data } = await supabase
@@ -70,11 +95,23 @@ export default function WhatsAppCampaigns() {
 
   useEffect(() => {
     load();
+    const loadTpls = () =>
+      supabase
+        .from("whatsapp_templates")
+        .select("id,name,language,status,body,source_body,variable_map,header_type,header_image_url,rejection_reason")
+        .order("name")
+        .then(({ data }) => setTemplates(((data ?? []) as unknown) as Template[]));
+    loadTpls();
     supabase
-      .from("whatsapp_templates")
-      .select("id,name,language,status")
-      .eq("status", "APPROVED")
-      .then(({ data }) => setTemplates((data ?? []) as Template[]));
+      .from("whatsapp_accounts")
+      .select("id,business_phone_number_id,label,display_phone,is_active")
+      .eq("is_active", true)
+      .order("label")
+      .then(({ data }) => {
+        const accs = ((data ?? []) as unknown) as Account[];
+        setAccounts(accs);
+        if (!linePhoneId && accs[0]) setLinePhoneId(accs[0].business_phone_number_id);
+      });
     supabase
       .from("contacts")
       .select("id,first_name,last_name,whatsapp_phone,mobile,company_id")
@@ -86,10 +123,12 @@ export default function WhatsAppCampaigns() {
     const ch = supabase
       .channel("wa-campaigns")
       .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_campaigns" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_templates" }, loadTpls)
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const eligible = useMemo(() => {
@@ -122,18 +161,48 @@ export default function WhatsAppCampaigns() {
     setTplName("");
     setSearch("");
     setSelected(new Set());
+    setHeaderImageUrl(null);
+    setVariables({});
   };
+
+  const selectedTpl = useMemo(
+    () => templates.find((t) => t.name === tplName) || null,
+    [templates, tplName],
+  );
+  const requiresImage = selectedTpl?.header_type === "IMAGE";
+  const isApproved = selectedTpl?.status === "APPROVED";
+  const variableKeys: string[] = Array.isArray(selectedTpl?.variable_map)
+    ? (selectedTpl!.variable_map as string[])
+    : [];
+  const missingVars = variableKeys.filter((k) => !(variables[k] ?? "").trim());
+  const selectedLine = accounts.find((a) => a.business_phone_number_id === linePhoneId);
 
   const createAndLaunch = async () => {
     if (!name.trim() || !tplName) {
       toast.error("Nombre y plantilla son obligatorios");
       return;
     }
+    if (!isApproved) {
+      toast.error("Solo puedes lanzar plantillas APROBADAS por Meta");
+      return;
+    }
+    if (requiresImage && !headerImageUrl) {
+      toast.error("Esta plantilla requiere una imagen de encabezado");
+      return;
+    }
+    if (missingVars.length > 0) {
+      toast.error(`Faltan variables: ${missingVars.join(", ")}`);
+      return;
+    }
+    if (!linePhoneId) {
+      toast.error("Selecciona la línea de salida (Tijuana o Mexicali)");
+      return;
+    }
     if (selected.size === 0) {
       toast.error("Selecciona al menos un destinatario");
       return;
     }
-    const tpl = templates.find((t) => t.name === tplName);
+    const tpl = selectedTpl;
     if (!tpl) {
       toast.error("Plantilla no encontrada");
       return;
@@ -150,6 +219,9 @@ export default function WhatsAppCampaigns() {
         status: "draft",
         total_recipients: selected.size,
         created_by: ures.user?.id,
+        header_image_url: headerImageUrl,
+        business_phone_number_id: linePhoneId,
+        template_variables: Object.keys(variables).length > 0 ? variables : null,
       })
       .select("id")
       .single();
@@ -187,6 +259,12 @@ export default function WhatsAppCampaigns() {
     load();
   };
 
+  const tplStatusBadge = (s: string) => {
+    if (s === "APPROVED") return <Badge className="bg-emerald-600 hover:bg-emerald-600"><CheckCircle2 className="h-3 w-3 mr-1" />Aprobada</Badge>;
+    if (s === "REJECTED") return <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />Rechazada</Badge>;
+    return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Pendiente</Badge>;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -202,28 +280,85 @@ export default function WhatsAppCampaigns() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Nueva campaña</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nueva campaña</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label>Nombre</Label>
                   <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Promo abril 2026" />
                 </div>
                 <div>
-                  <Label>Plantilla aprobada</Label>
-                  <Select value={tplName} onValueChange={setTplName}>
+                  <Label>Plantilla</Label>
+                  <Select value={tplName} onValueChange={(v) => { setTplName(v); setVariables({}); setHeaderImageUrl(null); }}>
                     <SelectTrigger><SelectValue placeholder="Selecciona…" /></SelectTrigger>
                     <SelectContent>
                       {templates.length === 0 ? (
-                        <div className="px-2 py-1 text-xs text-muted-foreground">Sin plantillas aprobadas</div>
+                        <div className="px-2 py-1 text-xs text-muted-foreground">Sin plantillas</div>
                       ) : templates.map((t) => (
-                        <SelectItem key={t.id} value={t.name}>{t.name} ({t.language})</SelectItem>
+                          <SelectItem key={t.id} value={t.name}>
+                            {t.name} ({t.language}) — {t.status}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedTpl && (
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      {tplStatusBadge(selectedTpl.status)}
+                      {selectedTpl.status === "REJECTED" && selectedTpl.rejection_reason && (
+                        <span className="text-xs text-destructive">{selectedTpl.rejection_reason}</span>
+                      )}
+                      {selectedTpl.status === "PENDING" && (
+                        <span className="text-xs text-muted-foreground">Meta está revisando esta plantilla. El envío se habilitará al aprobarse.</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <Label>Línea de salida</Label>
+                {accounts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No hay líneas configuradas en Ajustes &gt; WhatsApp.</p>
+                ) : (
+                  <Select value={linePhoneId} onValueChange={setLinePhoneId}>
+                    <SelectTrigger><SelectValue placeholder="Selecciona línea…" /></SelectTrigger>
+                    <SelectContent>
+                      {accounts.map((a) => (
+                        <SelectItem key={a.id} value={a.business_phone_number_id}>
+                          {a.label}{a.display_phone ? ` · ${a.display_phone}` : ""}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                )}
               </div>
+
+              {requiresImage && (
+                <div className="space-y-2">
+                  <Label>Imagen del encabezado</Label>
+                  <MarketingPromoUpload value={headerImageUrl} onChange={setHeaderImageUrl} />
+                  <PromoPlaceholderHint />
+                </div>
+              )}
+
+              {variableKeys.length > 0 && (
+                <div className="space-y-2 rounded-md border p-3 bg-muted/20">
+                  <Label className="text-xs uppercase text-muted-foreground">Variables del mensaje</Label>
+                  {variableKeys.map((k) => (
+                    <div key={k} className="grid grid-cols-[140px_1fr] items-center gap-2">
+                      <span className="text-xs text-muted-foreground truncate">{k}</span>
+                      <Input
+                        placeholder={`Valor para ${k}`}
+                        value={variables[k] ?? ""}
+                        onChange={(e) => setVariables({ ...variables, [k]: e.target.value })}
+                      />
+                    </div>
+                  ))}
+                  <p className="text-[11px] text-muted-foreground">El sistema convierte estos campos a {`{{1}}, {{2}}…`} automáticamente al enviar a Meta.</p>
+                </div>
+              )}
+
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label>Destinatarios ({selected.size} de {filtered.length})</Label>
@@ -253,11 +388,39 @@ export default function WhatsAppCampaigns() {
                   ))}
                 </ScrollArea>
               </div>
+              </div>
+
+              {/* Preview lateral */}
+              <div className="space-y-2">
+                <Label className="text-xs uppercase text-muted-foreground">Vista previa</Label>
+                <WhatsAppChatPreview
+                  imageUrl={headerImageUrl}
+                  bodyText={selectedTpl?.source_body || selectedTpl?.body || "Selecciona una plantilla para ver la vista previa…"}
+                  variables={variables}
+                  contactName="Cliente"
+                  linePhone={selectedLine?.label}
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button onClick={createAndLaunch} disabled={creating}>
-                <Play className="h-4 w-4 mr-2" /> {creating ? "Lanzando…" : "Lanzar campaña"}
+              <Button
+                onClick={createAndLaunch}
+                disabled={
+                  creating ||
+                  !isApproved ||
+                  (requiresImage && !headerImageUrl) ||
+                  missingVars.length > 0 ||
+                  !linePhoneId ||
+                  selected.size === 0
+                }
+              >
+                <Play className="h-4 w-4 mr-2" />
+                {creating
+                  ? "Lanzando…"
+                  : !isApproved
+                  ? "Plantilla no aprobada"
+                  : `Lanzar a ${selected.size} destinatarios`}
               </Button>
             </DialogFooter>
           </DialogContent>

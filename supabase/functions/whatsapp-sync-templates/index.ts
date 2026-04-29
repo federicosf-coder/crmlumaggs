@@ -68,6 +68,15 @@ Deno.serve(async (req) => {
       totalCount += templates.length;
       for (const t of templates) {
         const body = (t.components ?? []).find((c: any) => c.type === "BODY")?.text ?? null;
+        const headerComp = (t.components ?? []).find((c: any) => c.type === "HEADER");
+        const headerType: string = headerComp?.format ?? "NONE";
+        const headerText: string | null = headerType === "TEXT" ? (headerComp?.text ?? null) : null;
+        const headerImageUrl: string | null = headerType === "IMAGE"
+          ? (headerComp?.example?.header_handle?.[0] ?? null)
+          : null;
+        const rejection = t.status === "REJECTED"
+          ? (t.rejected_reason ?? t.reason ?? null)
+          : null;
         const { error } = await admin.from("whatsapp_templates").upsert(
           {
             meta_template_id: t.id ?? null,
@@ -77,6 +86,11 @@ Deno.serve(async (req) => {
             status: t.status ?? "PENDING",
             body,
             components: t.components ?? null,
+            header_type: headerType,
+            header_text: headerText,
+            header_image_url: headerImageUrl,
+            rejection_reason: rejection,
+            quality_score: t.quality_score?.score ?? null,
             last_synced_at: new Date().toISOString(),
             waba_id: waba,
             // Templates pertenecen al WABA, no a un número específico.
