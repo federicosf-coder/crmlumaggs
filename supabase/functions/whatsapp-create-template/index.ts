@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+    const APP_ID = Deno.env.get("WHATSAPP_APP_ID");
     if (!TOKEN) return json({ error: "Falta WHATSAPP_ACCESS_TOKEN" }, 500);
 
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -131,11 +132,56 @@ Deno.serve(async (req) => {
       if (!headerImageUrl) {
         return json({ error: "header_image_url requerido para header IMAGE" }, 400);
       }
-      components.push({
-        type: "HEADER",
-        format: "IMAGE",
-        example: { header_handle: [headerImageUrl] },
-      });
+      if (!APP_ID) {
+        return json({ error: "Falta WHATSAPP_APP_ID (necesario para subir el ejemplo de imagen del header a Meta)" }, 500);
+      }
+      // Meta requiere un header_handle obtenido vía Resumable Upload API, no una URL pública.
+      try {
+        // 1) Descargar la imagen pública
+        const imgRes = await fetch(headerImageUrl);
+        if (!imgRes.ok) {
+          return json({ error: `No se pudo descargar la imagen del header (${imgRes.status})` }, 400);
+        }
+        const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+        const imgBuf = new Uint8Array(await imgRes.arrayBuffer());
+        const fileLength = imgBuf.byteLength;
+        const fileName = headerImageUrl.split("/").pop()?.split("?")[0] || "header.jpg";
+
+        // 2) Crear sesión de upload
+        const sessRes = await fetch(
+          `https://graph.facebook.com/v21.0/${APP_ID}/uploads?file_name=${encodeURIComponent(fileName)}&file_length=${fileLength}&file_type=${encodeURIComponent(contentType)}`,
+          { method: "POST", headers: { Authorization: `Bearer ${TOKEN}` } },
+        );
+        const sessData = await sessRes.json().catch(() => ({}));
+        if (!sessRes.ok || !sessData?.id) {
+          return json({ error: "No se pudo iniciar la sesión de upload con Meta", details: sessData }, 400);
+        }
+        const sessionId = sessData.id as string; // formato: upload:XYZ
+
+        // 3) Subir bytes y obtener handle
+        const upRes = await fetch(`https://graph.facebook.com/v21.0/${sessionId}`, {
+          method: "POST",
+          headers: {
+            Authorization: `OAuth ${TOKEN}`,
+            file_offset: "0",
+            "Content-Type": contentType,
+          },
+          body: imgBuf,
+        });
+        const upData = await upRes.json().catch(() => ({}));
+        if (!upRes.ok || !upData?.h) {
+          return json({ error: "No se pudo subir la imagen del header a Meta", details: upData }, 400);
+        }
+        const headerHandle = upData.h as string;
+
+        components.push({
+          type: "HEADER",
+          format: "IMAGE",
+          example: { header_handle: [headerHandle] },
+        });
+      } catch (e) {
+        return json({ error: "Error subiendo la imagen del header: " + (e instanceof Error ? e.message : String(e)) }, 500);
+      }
     } else if (headerType === "TEXT" && headerText) {
       components.push({ type: "HEADER", format: "TEXT", text: headerText });
     }
