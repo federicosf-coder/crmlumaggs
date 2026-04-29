@@ -203,7 +203,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       if (!editData?.id) return [];
       const { data } = await supabase
         .from("contacts")
-        .select("id, first_name, last_name, email, phone, job_title, is_active, company_id")
+        .select("id, first_name, last_name, email, email2, phone, mobile, whatsapp_phone, tel_emp, job_title, department, company_id, notes, comm_email, comm_email2, comm_whatsapp, comm_cel, comm_tel, comm_tel_emp, is_active")
         .eq("company_id", editData.id)
         .eq("is_active", true)
         .order("first_name");
