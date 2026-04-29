@@ -30,6 +30,7 @@ type Campaign = {
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
+  business_phone_number_id: string | null;
 };
 
 type Template = {
@@ -87,7 +88,7 @@ export default function WhatsAppCampaigns() {
   const load = async () => {
     const { data } = await supabase
       .from("whatsapp_campaigns")
-      .select("id,nombre,template_name,template_language,status,total_recipients,sent_count,failed_count,skipped_count,created_at,started_at,finished_at")
+      .select("id,nombre,template_name,template_language,status,total_recipients,sent_count,failed_count,skipped_count,created_at,started_at,finished_at,business_phone_number_id")
       .order("created_at", { ascending: false })
       .limit(100);
     setCampaigns((data ?? []) as Campaign[]);
@@ -433,6 +434,7 @@ export default function WhatsAppCampaigns() {
             <TableRow>
               <TableHead>Nombre</TableHead>
               <TableHead>Plantilla</TableHead>
+              <TableHead>Línea</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Enviados</TableHead>
@@ -444,14 +446,25 @@ export default function WhatsAppCampaigns() {
           <TableBody>
             {campaigns.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   Aún no hay campañas.
                 </TableCell>
               </TableRow>
-            ) : campaigns.map((c) => (
+            ) : campaigns.map((c) => {
+              const acc = accounts.find((a) => a.business_phone_number_id === c.business_phone_number_id);
+              return (
               <TableRow key={c.id}>
                 <TableCell className="font-medium">{c.nombre}</TableCell>
                 <TableCell className="text-sm">{c.template_name} ({c.template_language})</TableCell>
+                <TableCell className="text-xs">
+                  {acc ? (
+                    <span className="font-medium">{acc.label}</span>
+                  ) : c.business_phone_number_id ? (
+                    <code className="text-muted-foreground">{c.business_phone_number_id}</code>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell><Badge variant={statusVariant(c.status)}>{c.status}</Badge></TableCell>
                 <TableCell className="text-right">{c.total_recipients}</TableCell>
                 <TableCell className="text-right text-primary">{c.sent_count}</TableCell>
@@ -461,7 +474,8 @@ export default function WhatsAppCampaigns() {
                   {new Date(c.created_at).toLocaleString()}
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </Card>
