@@ -325,6 +325,41 @@ Deno.serve(async (req) => {
             if (insErr) console.error("Insert message error:", insErr);
             else inserted++;
 
+            // ===== Opt-out por botón de plantilla =====
+            // Si el contacto presionó un botón cuyo texto es de baja/opt-out,
+            // marcamos el contacto como "no contactar" para futuras campañas.
+            try {
+              const btnText: string | null =
+                msg?.button?.text ??
+                msg?.interactive?.button_reply?.title ??
+                null;
+              if (btnText && contactId) {
+                const norm = btnText.toLowerCase().trim();
+                const isOptOut =
+                  norm.includes("no me interesa") ||
+                  norm.includes("darse de baja") ||
+                  norm.includes("dar de baja") ||
+                  norm === "baja" ||
+                  norm === "stop" ||
+                  norm === "cancelar suscripcion" ||
+                  norm === "cancelar suscripción";
+                if (isOptOut) {
+                  const { error: optErr } = await admin
+                    .from("contacts")
+                    .update({
+                      no_contactar: true,
+                      no_contactar_fecha: new Date().toISOString(),
+                      no_contactar_motivo: `Opt-out vía WhatsApp: "${btnText}"`,
+                    })
+                    .eq("id", contactId);
+                  if (optErr) console.warn("[wa-webhook] opt-out update failed:", optErr);
+                  else console.log(`[wa-webhook] contact ${contactId} marcado como no_contactar`);
+                }
+              }
+            } catch (optEx) {
+              console.warn("[wa-webhook] opt-out handler exception:", optEx);
+            }
+
             // ===== Bot keyword matching =====
             const lower = (text ?? "").toLowerCase();
             if (settings?.bot_enabled && lower) {
