@@ -117,6 +117,7 @@ export default function WhatsAppCampaigns() {
       .from("contacts")
       .select("id,first_name,last_name,whatsapp_phone,mobile,company_id")
       .eq("is_active", true)
+      .eq("no_contactar", false)
       .order("first_name")
       .limit(2000)
       .then(({ data }) => setContacts((data ?? []) as Contact[]));
