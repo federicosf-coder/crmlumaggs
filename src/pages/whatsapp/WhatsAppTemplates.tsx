@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { RefreshCw, FileBadge, Plus, Send, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { RefreshCw, FileBadge, Plus, Send, AlertTriangle, CheckCircle2, Clock, Trash2, Phone, Link2, MessageSquare, Ban } from "lucide-react";
 import {
   compileTemplateBody,
   buildExampleValues,
@@ -18,6 +18,21 @@ import {
 } from "@/lib/whatsappTemplateVars";
 import { MarketingPromoUpload, PromoPlaceholderHint } from "@/components/whatsapp/MarketingPromoUpload";
 import { WhatsAppChatPreview } from "@/components/whatsapp/WhatsAppChatPreview";
+
+type ButtonKind = "quick_reply" | "opt_out" | "phone" | "url";
+type TemplateButton = {
+  kind: ButtonKind;
+  text: string;
+  phone?: string;
+  url?: string;
+};
+
+const BUTTON_KIND_OPTIONS: { value: ButtonKind; label: string; icon: typeof MessageSquare }[] = [
+  { value: "quick_reply", label: "Respuesta rápida", icon: MessageSquare },
+  { value: "opt_out", label: "Darse de baja (Opt-out)", icon: Ban },
+  { value: "phone", label: "Llamar al número", icon: Phone },
+  { value: "url", label: "Visitar sitio web", icon: Link2 },
+];
 
 type Template = {
   id: string;
@@ -32,6 +47,7 @@ type Template = {
   header_type?: string | null;
   header_image_url?: string | null;
   rejection_reason?: string | null;
+  buttons?: TemplateButton[] | null;
 };
 
 const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -55,6 +71,7 @@ export default function WhatsAppTemplates() {
   const [headerType, setHeaderType] = useState<"NONE" | "IMAGE" | "TEXT">("NONE");
   const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
   const [headerText, setHeaderText] = useState("");
+  const [buttons, setButtons] = useState<TemplateButton[]>([]);
 
   const placeholders = useMemo(() => extractNamedPlaceholders(bodyText), [bodyText]);
   const compiled = useMemo(() => compileTemplateBody(bodyText), [bodyText]);
@@ -64,7 +81,7 @@ export default function WhatsAppTemplates() {
     setLoading(true);
     const { data, error } = await supabase
       .from("whatsapp_templates")
-      .select("id,name,language,category,status,body,source_body,variable_map,last_synced_at,header_type,header_image_url,rejection_reason")
+      .select("id,name,language,category,status,body,source_body,variable_map,last_synced_at,header_type,header_image_url,rejection_reason,buttons")
       .order("name", { ascending: true });
     setLoading(false);
     if (error) {
@@ -103,6 +120,7 @@ export default function WhatsAppTemplates() {
     setHeaderType("NONE");
     setHeaderImageUrl(null);
     setHeaderText("");
+    setButtons([]);
   };
 
   const submit = async () => {
@@ -118,6 +136,13 @@ export default function WhatsAppTemplates() {
       toast.error("Escribe el texto del encabezado");
       return;
     }
+    // Validar botones
+    for (const b of buttons) {
+      if (!b.text.trim()) { toast.error("Cada botón requiere texto"); return; }
+      if (b.text.length > 25) { toast.error("Cada botón admite máx. 25 caracteres"); return; }
+      if (b.kind === "phone" && !b.phone?.trim()) { toast.error("Botón de llamada requiere teléfono"); return; }
+      if (b.kind === "url" && !b.url?.trim()) { toast.error("Botón de URL requiere sitio web"); return; }
+    }
     setCreating(true);
     const { data, error } = await supabase.functions.invoke("whatsapp-create-template", {
       body: {
@@ -125,6 +150,7 @@ export default function WhatsAppTemplates() {
         header_type: headerType,
         header_image_url: headerType === "IMAGE" ? headerImageUrl : null,
         header_text: headerType === "TEXT" ? headerText : null,
+        buttons,
       },
     });
     setCreating(false);
@@ -140,6 +166,28 @@ export default function WhatsAppTemplates() {
     setOpen(false);
     resetForm();
     load();
+  };
+
+  const addButton = (kind: ButtonKind) => {
+    if (buttons.length >= 3) {
+      toast.error("Máximo 3 botones por plantilla (límite de Meta)");
+      return;
+    }
+    const defaults: Record<ButtonKind, TemplateButton> = {
+      quick_reply: { kind: "quick_reply", text: "Quiero más info" },
+      opt_out: { kind: "opt_out", text: "No me interesa" },
+      phone: { kind: "phone", text: "Llamar", phone: "+52" },
+      url: { kind: "url", text: "Ver sitio", url: "https://" },
+    };
+    setButtons((bs) => [...bs, defaults[kind]]);
+  };
+
+  const updateButton = (i: number, patch: Partial<TemplateButton>) => {
+    setButtons((bs) => bs.map((b, idx) => (idx === i ? { ...b, ...patch } : b)));
+  };
+
+  const removeButton = (i: number) => {
+    setButtons((bs) => bs.filter((_, idx) => idx !== i));
   };
 
   const statusBadge = (s: string) => {
