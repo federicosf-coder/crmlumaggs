@@ -147,6 +147,22 @@ export default function Directory() {
     enabled: !!selectedCompany?.id,
   });
 
+  // Contactos vinculados a la empresa seleccionada (para vista detalle)
+  const { data: selectedCompanyContacts = [] } = useQuery({
+    queryKey: ["company_contacts_detail", selectedCompany?.id],
+    queryFn: async () => {
+      if (!selectedCompany?.id) return [];
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name, email, phone, mobile, job_title")
+        .eq("company_id", selectedCompany.id)
+        .eq("is_active", true)
+        .order("first_name");
+      return data || [];
+    },
+    enabled: !!selectedCompany?.id,
+  });
+
   // Contact ejecutivos for selected contact
   const { data: selectedContactEjecutivos = [] } = useQuery({
     queryKey: ["contact_ejecutivos_detail", selectedContact?.id],
