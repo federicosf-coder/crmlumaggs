@@ -368,7 +368,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
     });
   };
 
-  const reset = () => setForm({ ...emptyForm });
+  const reset = () => { setForm({ ...emptyForm }); setPendingContactIds([]); };
 
   useEffect(() => {
     if (open && editData) {
