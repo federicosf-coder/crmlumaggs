@@ -375,6 +375,105 @@ export default function WhatsAppTemplates() {
                 </div>
               </div>
             )}
+
+            {/* Botones interactivos */}
+            <div className="space-y-2 rounded-md border p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-semibold">Botones interactivos</Label>
+                  <p className="text-xs text-muted-foreground">Hasta 3 botones. Si la plantilla es de campañas marketing, agrega un botón de Opt-out.</p>
+                </div>
+                <Select value="" onValueChange={(v) => addButton(v as ButtonKind)}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder={buttons.length >= 3 ? "Máximo 3 botones" : "+ Añadir botón"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BUTTON_KIND_OPTIONS.map((opt) => {
+                      const Icon = opt.icon;
+                      return (
+                        <SelectItem
+                          key={opt.value}
+                          value={opt.value}
+                          disabled={opt.value === "opt_out" && buttons.some((b) => b.kind === "opt_out")}
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <Icon className="h-3.5 w-3.5" /> {opt.label}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {buttons.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic">Sin botones configurados.</p>
+              ) : (
+                <div className="space-y-2">
+                  {buttons.map((b, i) => {
+                    const meta = BUTTON_KIND_OPTIONS.find((x) => x.value === b.kind);
+                    const Icon = meta?.icon ?? MessageSquare;
+                    return (
+                      <div key={i} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-start rounded-md border bg-muted/20 p-2">
+                        <Badge variant="outline" className="mt-1.5 inline-flex items-center gap-1">
+                          <Icon className="h-3 w-3" /> {meta?.label}
+                        </Badge>
+                        <div className="space-y-1">
+                          <Label className="text-[11px]">Texto del botón (máx. 25)</Label>
+                          <Input
+                            value={b.text}
+                            maxLength={25}
+                            onChange={(e) => updateButton(i, { text: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          {b.kind === "phone" && (
+                            <>
+                              <Label className="text-[11px]">Teléfono (con +código país)</Label>
+                              <Input
+                                placeholder="+526641234567"
+                                value={b.phone || ""}
+                                onChange={(e) => updateButton(i, { phone: e.target.value })}
+                              />
+                            </>
+                          )}
+                          {b.kind === "url" && (
+                            <>
+                              <Label className="text-[11px]">URL del sitio</Label>
+                              <Input
+                                placeholder="https://www.lumaggs.com.mx"
+                                value={b.url || ""}
+                                onChange={(e) => updateButton(i, { url: e.target.value })}
+                              />
+                            </>
+                          )}
+                          {b.kind === "opt_out" && (
+                            <p className="text-[11px] text-muted-foreground pt-5">
+                              Al presionarlo, el contacto se marcará como “No contactar”.
+                            </p>
+                          )}
+                          {b.kind === "quick_reply" && (
+                            <p className="text-[11px] text-muted-foreground pt-5">
+                              Respuesta rápida que el cliente envía al pulsarlo.
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeButton(i)}
+                          className="text-destructive"
+                          aria-label="Eliminar botón"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
           <div className="space-y-2">
             <Label className="text-xs uppercase text-muted-foreground">Vista previa</Label>
