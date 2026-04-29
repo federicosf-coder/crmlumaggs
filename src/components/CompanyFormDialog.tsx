@@ -664,11 +664,28 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
               {/* Datos comerciales y fiscales — compactos */}
 
-              {/* Contactos de la empresa */}
-              {isEdit && editData?.id && (
-                <div className="space-y-2 pt-2 border-t">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Contactos de la empresa</Label>
+              {/* Contactos de la empresa (visible en alta y edición) */}
+              <div className="space-y-2 pt-2 border-t">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Contactos de la empresa</Label>
+                  <div className="flex gap-2">
+                    {!isEdit && (
+                      <SearchableSelect
+                        value=""
+                        onValueChange={(v) => {
+                          if (v && !pendingContactIds.includes(v)) {
+                            setPendingContactIds(prev => [...prev, v]);
+                          }
+                        }}
+                        options={unlinkedContacts
+                          .filter((c: any) => !pendingContactIds.includes(c.id))
+                          .map((c: any) => ({
+                            value: c.id,
+                            label: `${c.first_name} ${c.last_name}${c.job_title ? ` — ${c.job_title}` : ""}`,
+                          }))}
+                        placeholder="Seleccionar contacto existente..."
+                      />
+                    )}
                     <Button
                       type="button"
                       size="sm"
@@ -678,7 +695,9 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                       <Plus className="h-3 w-3 mr-1" /> Agregar contacto
                     </Button>
                   </div>
-                  {companyContacts.length === 0 ? (
+                </div>
+                {isEdit ? (
+                  companyContacts.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Sin contactos vinculados.</p>
                   ) : (
                     <div className="space-y-1.5">
@@ -704,9 +723,38 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              )}
+                  )
+                ) : (
+                  pendingContactsData.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Aún no hay contactos. Crea uno nuevo o selecciona uno existente; se vincularán al guardar.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {pendingContactsData.map((c: any) => (
+                        <div key={c.id} className="flex items-center justify-between rounded border bg-muted/30 px-3 py-1.5 text-sm">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">
+                              {c.first_name} {c.last_name}
+                              {c.job_title && <span className="text-muted-foreground font-normal"> — {c.job_title}</span>}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {c.email || "—"} · {c.phone || "—"}
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setPendingContactIds(prev => prev.filter(id => id !== c.id))}
+                            title="Quitar"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
 
               {/* Notas — al final del formulario */}
               <div className="space-y-1.5 pt-2 border-t">
@@ -777,21 +825,28 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
             {saving ? "Guardando..." : isEdit ? "Guardar Cambios" : "Crear Empresa"}
           </Button>
         </form>
-        {isEdit && editData?.id && (
-          <ContactFormDialog
-            open={contactDialogOpen}
-            onOpenChange={(o) => {
-              setContactDialogOpen(o);
-              if (!o) {
-                setEditingContact(null);
-                refetchContacts();
-              }
-            }}
-            defaultCompanyId={editData.id}
-            editData={editingContact}
-            onCreated={() => refetchContacts()}
-          />
-        )}
+        <ContactFormDialog
+          open={contactDialogOpen}
+          onOpenChange={(o) => {
+            setContactDialogOpen(o);
+            if (!o) {
+              setEditingContact(null);
+              if (isEdit) refetchContacts();
+              else refetchUnlinkedContacts();
+            }
+          }}
+          defaultCompanyId={isEdit ? editData?.id : undefined}
+          editData={editingContact}
+          onCreated={(newId) => {
+            if (isEdit) {
+              refetchContacts();
+            } else {
+              // En modo nuevo: agregar a pendientes y refrescar catálogo
+              setPendingContactIds(prev => prev.includes(newId) ? prev : [...prev, newId]);
+              refetchUnlinkedContacts();
+            }
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
