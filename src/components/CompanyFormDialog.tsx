@@ -98,14 +98,14 @@ export const ROL_LUBRICANTE_OPTIONS = ["Crítico para la operación", "Important
 export const TIPO_CLIENTE_OPTIONS = ["Contado", "Crédito directo", "Crédito Cescemex"];
 
 export const LISTA_PRECIOS_OPTIONS = [
-  "UF1 1–10 unidades",
-  "UF2 11–45 unidades",
-  "UF3 46–90 unidades",
-  "UF4 90 o más unidades",
-  "R1 Menos de 45 unidades",
-  "R2 46–90 unidades",
-  "R3 91–135 unidades",
-  "R4 135 o más unidades",
+  { v: "UF1", l: "UF1 1–10 unidades" },
+  { v: "UF2", l: "UF2 11–45 unidades" },
+  { v: "UF3", l: "UF3 46–90 unidades" },
+  { v: "UF4", l: "UF4 90 o más unidades" },
+  { v: "R1", l: "R1 Menos de 45 unidades" },
+  { v: "R2", l: "R2 46–90 unidades" },
+  { v: "R3", l: "R3 91–135 unidades" },
+  { v: "R4", l: "R4 135 o más unidades" },
 ];
 
 const TIPO_PAGO_OPTS = [
