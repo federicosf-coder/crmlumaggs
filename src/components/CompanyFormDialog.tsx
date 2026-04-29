@@ -509,6 +509,14 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       );
     }
 
+    // Vincular contactos pendientes (sólo en modo creación)
+    if (!isEdit && pendingContactIds.length > 0) {
+      await supabase
+        .from("contacts")
+        .update({ company_id: companyId })
+        .in("id", pendingContactIds);
+    }
+
     setSaving(false);
     toast.success(isEdit ? "Empresa actualizada" : "Empresa creada");
     reset();
