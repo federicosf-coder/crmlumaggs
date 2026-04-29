@@ -86,6 +86,10 @@ Deno.serve(async (req) => {
     const language = String(body?.language ?? "es_MX");
     const wabaIdInput = body?.waba_id ? String(body.waba_id) : null;
     const examplesOverride: string[] | undefined = Array.isArray(body?.examples) ? body.examples : undefined;
+    // Header opcional: NONE | TEXT | IMAGE
+    const headerType = String(body?.header_type ?? "NONE").toUpperCase();
+    const headerText: string | null = body?.header_text ? String(body.header_text) : null;
+    const headerImageUrl: string | null = body?.header_image_url ? String(body.header_image_url) : null;
 
     if (!rawName) return json({ error: "name requerido" }, 400);
     if (!sourceBody) return json({ error: "body requerido" }, 400);
@@ -122,7 +126,20 @@ Deno.serve(async (req) => {
       bodyComponent.example = { body_text: [examples] };
     }
 
-    const components = [bodyComponent];
+    const components: Record<string, unknown>[] = [];
+    if (headerType === "IMAGE") {
+      if (!headerImageUrl) {
+        return json({ error: "header_image_url requerido para header IMAGE" }, 400);
+      }
+      components.push({
+        type: "HEADER",
+        format: "IMAGE",
+        example: { header_handle: [headerImageUrl] },
+      });
+    } else if (headerType === "TEXT" && headerText) {
+      components.push({ type: "HEADER", format: "TEXT", text: headerText });
+    }
+    components.push(bodyComponent);
 
     // POST a Meta
     const r = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/message_templates`, {
@@ -156,6 +173,10 @@ Deno.serve(async (req) => {
         source_body: sourceBody,
         variable_map,
         components,
+        header_type: headerType,
+        header_image_url: headerType === "IMAGE" ? headerImageUrl : null,
+        header_text: headerType === "TEXT" ? headerText : null,
+        rejection_reason: null,
         last_synced_at: new Date().toISOString(),
         waba_id: wabaId,
         business_phone_number_id: null,
