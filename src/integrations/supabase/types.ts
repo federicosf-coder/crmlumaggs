@@ -605,6 +605,9 @@ export type Database = {
           job_title: string | null
           last_name: string
           mobile: string | null
+          no_contactar: boolean
+          no_contactar_fecha: string | null
+          no_contactar_motivo: string | null
           notes: string | null
           phone: string | null
           rol_id: string | null
@@ -632,6 +635,9 @@ export type Database = {
           job_title?: string | null
           last_name: string
           mobile?: string | null
+          no_contactar?: boolean
+          no_contactar_fecha?: string | null
+          no_contactar_motivo?: string | null
           notes?: string | null
           phone?: string | null
           rol_id?: string | null
@@ -659,6 +665,9 @@ export type Database = {
           job_title?: string | null
           last_name?: string
           mobile?: string | null
+          no_contactar?: boolean
+          no_contactar_fecha?: string | null
+          no_contactar_motivo?: string | null
           notes?: string | null
           phone?: string | null
           rol_id?: string | null
@@ -3492,6 +3501,7 @@ export type Database = {
         Row: {
           body: string | null
           business_phone_number_id: string | null
+          buttons: Json | null
           category: string | null
           components: Json | null
           created_at: string
@@ -3514,6 +3524,7 @@ export type Database = {
         Insert: {
           body?: string | null
           business_phone_number_id?: string | null
+          buttons?: Json | null
           category?: string | null
           components?: Json | null
           created_at?: string
@@ -3536,6 +3547,7 @@ export type Database = {
         Update: {
           body?: string | null
           business_phone_number_id?: string | null
+          buttons?: Json | null
           category?: string | null
           components?: Json | null
           created_at?: string

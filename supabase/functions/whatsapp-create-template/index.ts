@@ -91,6 +91,9 @@ Deno.serve(async (req) => {
     const headerType = String(body?.header_type ?? "NONE").toUpperCase();
     const headerText: string | null = body?.header_text ? String(body.header_text) : null;
     const headerImageUrl: string | null = body?.header_image_url ? String(body.header_image_url) : null;
+    // Botones interactivos opcionales (máx 3 según Meta)
+    // Estructura esperada: [{ kind: 'quick_reply'|'opt_out'|'phone'|'url', text: string, phone?: string, url?: string }]
+    const rawButtons: any[] = Array.isArray(body?.buttons) ? body.buttons : [];
 
     if (!rawName) return json({ error: "name requerido" }, 400);
     if (!sourceBody) return json({ error: "body requerido" }, 400);
@@ -187,6 +190,32 @@ Deno.serve(async (req) => {
     }
     components.push(bodyComponent);
 
+    // Botones (componente BUTTONS) — Meta acepta máximo 3
+    if (rawButtons.length > 0) {
+      const metaButtons: Record<string, unknown>[] = [];
+      for (const b of rawButtons.slice(0, 3)) {
+        const kind = String(b?.kind ?? "quick_reply").toLowerCase();
+        const text = String(b?.text ?? "").trim().slice(0, 25);
+        if (!text) continue;
+        if (kind === "phone") {
+          const phone = String(b?.phone ?? "").trim();
+          if (!phone) continue;
+          metaButtons.push({ type: "PHONE_NUMBER", text, phone_number: phone });
+        } else if (kind === "url") {
+          const url = String(b?.url ?? "").trim();
+          if (!url) continue;
+          metaButtons.push({ type: "URL", text, url });
+        } else {
+          // quick_reply y opt_out se envían como QUICK_REPLY a Meta.
+          // El opt-out se distingue por el texto/payload al recibirlo en el webhook.
+          metaButtons.push({ type: "QUICK_REPLY", text });
+        }
+      }
+      if (metaButtons.length > 0) {
+        components.push({ type: "BUTTONS", buttons: metaButtons });
+      }
+    }
+
     // POST a Meta
     const r = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/message_templates`, {
       method: "POST",
@@ -222,6 +251,7 @@ Deno.serve(async (req) => {
         header_type: headerType,
         header_image_url: headerType === "IMAGE" ? headerImageUrl : null,
         header_text: headerType === "TEXT" ? headerText : null,
+        buttons: rawButtons,
         rejection_reason: null,
         last_synced_at: new Date().toISOString(),
         waba_id: wabaId,
