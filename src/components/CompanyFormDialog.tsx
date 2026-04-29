@@ -195,6 +195,9 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const isEdit = !!editData?.id;
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<any | null>(null);
+  // Contactos seleccionados/creados en modo nuevo (se vinculan al crear la empresa)
+  const [pendingContactIds, setPendingContactIds] = useState<string[]>([]);
+  const [contactPickerOpen, setContactPickerOpen] = useState(false);
 
   // Load contacts linked to this company
   const { data: companyContacts = [], refetch: refetchContacts } = useQuery({
@@ -210,6 +213,35 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       return data || [];
     },
     enabled: !!editData?.id && open,
+  });
+
+  // Contactos disponibles para vincular al crear empresa (sin company_id o seleccionados)
+  const { data: pendingContactsData = [], refetch: refetchPendingContacts } = useQuery({
+    queryKey: ["pending_contacts_for_new_company", pendingContactIds.join(",")],
+    queryFn: async () => {
+      if (pendingContactIds.length === 0) return [];
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name, email, phone, job_title")
+        .in("id", pendingContactIds);
+      return data || [];
+    },
+    enabled: !isEdit && open && pendingContactIds.length > 0,
+  });
+
+  // Catálogo de contactos sin empresa para seleccionar al crear empresa
+  const { data: unlinkedContacts = [], refetch: refetchUnlinkedContacts } = useQuery({
+    queryKey: ["unlinked_contacts_for_new_company"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name, email, job_title")
+        .is("company_id", null)
+        .eq("is_active", true)
+        .order("first_name");
+      return data || [];
+    },
+    enabled: !isEdit && open,
   });
 
   // Autosave (only meaningful in edit mode)
