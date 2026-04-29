@@ -193,6 +193,24 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
   const isEdit = !!editData?.id;
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<any | null>(null);
+
+  // Load contacts linked to this company
+  const { data: companyContacts = [], refetch: refetchContacts } = useQuery({
+    queryKey: ["company_contacts_form", editData?.id],
+    queryFn: async () => {
+      if (!editData?.id) return [];
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name, email, phone, job_title, is_active, company_id")
+        .eq("company_id", editData.id)
+        .eq("is_active", true)
+        .order("first_name");
+      return data || [];
+    },
+    enabled: !!editData?.id && open,
+  });
 
   // Autosave (only meaningful in edit mode)
   const autosave = useAutosaveStatus(async (changes) => {
@@ -509,6 +527,8 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
             <TabsList className="w-full">
               <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
               <TabsTrigger value="clasificacion" className="flex-1">Clasificación</TabsTrigger>
+              <TabsTrigger value="facturacion" className="flex-1">Detalles Facturación</TabsTrigger>
+              <TabsTrigger value="decision" className="flex-1">Proceso Decisión</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="space-y-4 mt-4">
@@ -603,33 +623,50 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
               </div>
 
               {/* Datos comerciales y fiscales — compactos */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t">
-                {/* Lista de Precios */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Lista de Precios</Label>
-                  <Select value={form.lista_precios} onValueChange={v => setAndSaveNow("lista_precios", v === "none" ? "" : v)}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin asignar</SelectItem>
-                      {LISTA_PRECIOS_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+
+              {/* Contactos de la empresa */}
+              {isEdit && editData?.id && (
+                <div className="space-y-2 pt-2 border-t">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Contactos de la empresa</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Agregar contacto
+                    </Button>
+                  </div>
+                  {companyContacts.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sin contactos vinculados.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {companyContacts.map((c: any) => (
+                        <div key={c.id} className="flex items-center justify-between rounded border bg-muted/30 px-3 py-1.5 text-sm">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">
+                              {c.first_name} {c.last_name}
+                              {c.job_title && <span className="text-muted-foreground font-normal"> — {c.job_title}</span>}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {c.email || "—"} · {c.phone || "—"}
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => { setEditingContact(c); setContactDialogOpen(true); }}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                {/* Tipo de Pago (condición comercial) */}
-                {renderEnumSelect("Tipo de Pago", form.tipo_pago, "tipo_pago", TIPO_PAGO_OPTS)}
-
-                {/* Forma de Pago (SAT) */}
-                {renderEnumSelect("Forma de Pago (SAT)", form.forma_pago, "forma_pago", FORMA_PAGO_OPTS)}
-
-                {/* Método de pago */}
-                {renderEnumSelect("Método de Pago", form.metodo_pago, "metodo_pago", METODO_PAGO_OPTS)}
-
-                {/* Uso de CFDI */}
-                <div className="col-span-2 md:col-span-2">
-                  {renderEnumSelect("Uso de CFDI", form.uso_cfdi, "uso_cfdi", USO_CFDI_OPTS)}
-                </div>
-              </div>
+              )}
 
               {/* Notas — al final del formulario */}
               <div className="space-y-1.5 pt-2 border-t">
@@ -662,8 +699,31 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
               <div className="grid grid-cols-2 gap-3">
                 {renderSelect("Tipo según destino del lubricante", form.tipo_destino_lubricante, "tipo_destino_lubricante", TIPO_DESTINO_OPTIONS)}
-                {renderSelect("Potencial de unidades", form.potencial_unidades, "potencial_unidades", POTENCIAL_UNIDADES_OPTIONS)}
-                {renderSelect("Tipo de cliente (clasificación)", form.tipo_cliente_comercial, "tipo_cliente_comercial", TIPO_CLIENTE_OPTIONS)}
+                {/* Lista de precios (sustituye visualmente a "Potencial de Unidades") */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Lista de precios</Label>
+                  <Select value={form.lista_precios} onValueChange={v => setAndSaveNow("lista_precios", v === "none" ? "" : v)}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin asignar</SelectItem>
+                      {LISTA_PRECIOS_OPTIONS.map(o => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="facturacion" className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-3">
+                {renderEnumSelect("Tipo de Pago", form.tipo_pago, "tipo_pago", TIPO_PAGO_OPTS)}
+                {renderEnumSelect("Forma de Pago (SAT)", form.forma_pago, "forma_pago", FORMA_PAGO_OPTS)}
+                {renderEnumSelect("Método de Pago", form.metodo_pago, "metodo_pago", METODO_PAGO_OPTS)}
+                {renderEnumSelect("Uso de CFDI", form.uso_cfdi, "uso_cfdi", USO_CFDI_OPTS)}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="decision" className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-3">
                 {renderSelect("Tomador de decisión principal", form.tomador_decision, "tomador_decision", TOMADOR_DECISION_OPTIONS)}
                 {renderSelect("Riesgo percibido al cambio de marca", form.riesgo_cambio_marca, "riesgo_cambio_marca", RIESGO_OPTIONS)}
                 {renderSelect("Origen de la decisión / contacto", form.origen_contacto, "origen_contacto", ORIGEN_CONTACTO_OPTIONS)}
@@ -677,6 +737,21 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
             {saving ? "Guardando..." : isEdit ? "Guardar Cambios" : "Crear Empresa"}
           </Button>
         </form>
+        {isEdit && editData?.id && (
+          <ContactFormDialog
+            open={contactDialogOpen}
+            onOpenChange={(o) => {
+              setContactDialogOpen(o);
+              if (!o) {
+                setEditingContact(null);
+                refetchContacts();
+              }
+            }}
+            defaultCompanyId={editData.id}
+            editData={editingContact}
+            onCreated={() => refetchContacts()}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
