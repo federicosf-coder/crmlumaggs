@@ -681,51 +681,129 @@ export default function SellerPortal() {
       </div>
 
       {/* Mi día - Terminadas en periodo */}
-      <ReporteDiarioGerencia
-        tasksCompletadas={tasksCompletadasPeriodo}
-        actividades={actividades}
-        companyMap={companyMap}
-      />
-
-      <Card>
-        <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
-          <CardTitle className="text-base">Mi día - Terminadas en periodo ({tasksCompletadasPeriodo.length})</CardTitle>
-          <PageSizeSelect value={limTerminadas} onChange={setLimTerminadas} total={tasksCompletadasPeriodo.length} onPageReset={() => setPageTerminadas(1)} />
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Tarea</TableHead>
-                  <TableHead>Completada</TableHead>
-                  <TableHead>Estatus</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tasksCompletadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin terminadas en el periodo</TableCell></TableRow>}
-                {paginate(tasksCompletadasPeriodo, limTerminadas, pageTerminadas).map(t => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium text-sm">{companyMap[t.company_id] || "—"}</TableCell>
-                    <TableCell className="text-sm">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
-                    <TableCell className="text-xs">{t.updated_at ? format(new Date(t.updated_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
-                    <TableCell><Badge variant="outline" className="bg-green-100 text-green-800">Completada</Badge></TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Button size="sm" variant="ghost" title="Abrir / Editar" onClick={() => { setSelectedTask(t as CrmTask); setTaskDialogOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      {t.deal_id && <Button size="sm" variant="ghost" asChild><Link to="/crm"><ExternalLink className="h-3.5 w-3.5" /></Link></Button>}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <Paginator page={pageTerminadas} setPage={setPageTerminadas} total={tasksCompletadasPeriodo.length} lim={limTerminadas} />
-        </CardContent>
-      </Card>
+      {(() => {
+        type TermRow = { id: string; kind: "task" | "activity"; fecha: Date | null; empresa: string; actividad: string; raw: any };
+        const empresaOf = (id?: string | null) => (id && companyMap[id]) || "Sin empresa";
+        const termRows: TermRow[] = [
+          ...tasksCompletadasPeriodo.map((t: any) => ({
+            id: `t-${t.id}`,
+            kind: "task" as const,
+            fecha: t.updated_at ? new Date(t.updated_at) : t.due_date ? new Date(t.due_date) : null,
+            empresa: empresaOf(t.company_id),
+            actividad: t.title || "Tarea",
+            raw: t,
+          })),
+          ...actividades.map((a: any) => {
+            const cfg = (ACTIVITY_TYPE_CONFIG as any)[a.type];
+            return {
+              id: `a-${a.id}`,
+              kind: "activity" as const,
+              fecha: a.activity_date ? new Date(a.activity_date) : a.created_at ? new Date(a.created_at) : null,
+              empresa: empresaOf(a.company_id),
+              actividad: cfg?.label || a.type || "Actividad",
+              raw: a,
+            };
+          }),
+        ].sort((p, q) => (q.fecha?.getTime() || 0) - (p.fecha?.getTime() || 0));
+        const pageRows = paginate(termRows, limTerminadas, pageTerminadas);
+        const allChecked = termRows.length > 0 && termSelected.size === termRows.length;
+        const someChecked = termSelected.size > 0 && !allChecked;
+        const toggleAllTerm = () => {
+          if (allChecked) setTermSelected(new Set());
+          else setTermSelected(new Set(termRows.map((r) => r.id)));
+        };
+        const toggleOneTerm = (id: string) => {
+          const ns = new Set(termSelected);
+          ns.has(id) ? ns.delete(id) : ns.add(id);
+          setTermSelected(ns);
+        };
+        const fmtCorta = (d: Date | null) => (d ? format(d, "dd/MM/yy") : "—");
+        const selectedRows = termRows.filter((r) => termSelected.has(r.id));
+        const handleCopiar = async () => {
+          if (selectedRows.length === 0) { toast.warning("Selecciona al menos una fila para copiar"); return; }
+          const text = selectedRows.map((r) => `${fmtCorta(r.fecha)} | ${r.empresa} | ${r.actividad}`).join("\n");
+          try { await navigator.clipboard.writeText(text); toast.success(`Copiadas ${selectedRows.length} líneas`); }
+          catch { toast.error("No se pudo copiar al portapapeles"); }
+        };
+        const handleExportar = () => {
+          if (selectedRows.length === 0) { toast.warning("Selecciona al menos una fila para exportar"); return; }
+          const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
+          const csv = [
+            ["Fecha", "Empresa", "Actividad/Tarea"].map(esc).join(","),
+            ...selectedRows.map((r) => [fmtCorta(r.fecha), r.empresa, r.actividad].map(esc).join(",")),
+          ].join("\n");
+          const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `terminadas-${format(new Date(), "yyyy-MM-dd")}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+          toast.success(`Exportadas ${selectedRows.length} líneas`);
+        };
+        return (
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-between gap-2 flex-wrap">
+              <CardTitle className="text-base">Mi día - Terminadas en periodo ({termRows.length})</CardTitle>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">{termSelected.size} seleccionadas</span>
+                <Button size="sm" variant="outline" onClick={handleCopiar}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar seleccionadas</Button>
+                <Button size="sm" variant="outline" onClick={handleExportar}><Download className="h-3.5 w-3.5 mr-1" /> Exportar seleccionadas</Button>
+                <PageSizeSelect value={limTerminadas} onChange={setLimTerminadas} total={termRows.length} onPageReset={() => setPageTerminadas(1)} />
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={allChecked ? true : someChecked ? "indeterminate" : false}
+                          onCheckedChange={toggleAllTerm}
+                          aria-label="Seleccionar todas"
+                        />
+                      </TableHead>
+                      <TableHead className="w-24">Fecha</TableHead>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Actividad / Tarea</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {termRows.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Sin terminadas en el periodo</TableCell></TableRow>}
+                    {pageRows.map((r) => (
+                      <TableRow key={r.id} data-state={termSelected.has(r.id) ? "selected" : undefined}>
+                        <TableCell>
+                          <Checkbox
+                            checked={termSelected.has(r.id)}
+                            onCheckedChange={() => toggleOneTerm(r.id)}
+                            aria-label="Seleccionar fila"
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{fmtCorta(r.fecha)}</TableCell>
+                        <TableCell className="font-medium text-sm">{r.empresa}</TableCell>
+                        <TableCell className="text-sm">{r.actividad}</TableCell>
+                        <TableCell><Badge variant="outline" className="bg-green-100 text-green-800">{r.kind === "task" ? "Tarea" : "Actividad"}</Badge></TableCell>
+                        <TableCell className="text-right space-x-1">
+                          {r.kind === "task" && (
+                            <Button size="sm" variant="ghost" title="Abrir / Editar" onClick={() => { setSelectedTask(r.raw as CrmTask); setTaskDialogOpen(true); }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {r.raw?.deal_id && <Button size="sm" variant="ghost" asChild><Link to="/crm"><ExternalLink className="h-3.5 w-3.5" /></Link></Button>}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <Paginator page={pageTerminadas} setPage={setPageTerminadas} total={termRows.length} lim={limTerminadas} />
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Creadas en periodo */}
       <Card>
