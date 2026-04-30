@@ -60,6 +60,7 @@ export default function SellerPortal() {
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
   const [companyPhoneMap, setCompanyPhoneMap] = useState<Record<string, { phone: string | null; name: string }>>({});
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
+  const [cobradoDeVencido, setCobradoDeVencido] = useState<number>(0);
   const [bucketActivo, setBucketActivo] = useState<"vencidas" | "1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
   // Límites de visualización + paginación por lista (10 / 25 / 50 / "all")
@@ -148,7 +149,7 @@ export default function SellerPortal() {
       const todayIso = format(new Date(), "yyyy-MM-dd");
 
       // Tasks: traemos del ejecutivo (sin filtro de fecha porque necesitamos vencidas + creadas + completadas en periodo)
-      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at").eq("user_id", ejecutivoId).order("due_date", { ascending: true, nullsFirst: false }).limit(500);
+      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at").eq("user_id", ejecutivoId).order("due_date", { ascending: true, nullsFirst: false }).limit(500);
       const { data: tasksData } = await tq;
 
       // Deals con marca via pipeline join (filtrado por marca y owner)
@@ -248,6 +249,46 @@ export default function SellerPortal() {
         })
         .filter((f: any) => Number(f.saldo_pendiente_cobranza) > 0);
 
+      // Cobrado de vencido (en periodo): aplicaciones activas ligadas a facturas vencidas (fecha_vencimiento < hoy,
+      // factura no cancelada) cuyo pago cayó dentro del periodo y fue creado por el ejecutivo.
+      let cobradoVenc = 0;
+      try {
+        // Universo de facturas vencidas (a hoy) del ejecutivo + filtros — reutilizamos la query base.
+        let venTodayQ = supabase.from("documentos")
+          .select("id")
+          .eq("tipo_documento", "factura")
+          .eq("is_active", true)
+          .neq("estatus_factura", "cancelada")
+          .lt("fecha_vencimiento", todayIso)
+          .in("empresa_vendedora", marcasSeleccionadas as any)
+          .or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`)
+          .limit(5000);
+        if (plazaId !== "all") venTodayQ = venTodayQ.eq("plaza_id", plazaId);
+        const { data: venTodayDocs } = await venTodayQ;
+        const venTodayIds = (venTodayDocs || []).map((d: any) => d.id);
+        const pagosPeriodoIds = (pagosData || []).map((p: any) => p.id);
+        if (venTodayIds.length && pagosPeriodoIds.length) {
+          // Chunk in case lists are large
+          const chunk = <T,>(arr: T[], size: number) => {
+            const out: T[][] = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out;
+          };
+          for (const docChunk of chunk(venTodayIds, 200)) {
+            for (const pagChunk of chunk(pagosPeriodoIds, 200)) {
+              const { data: aplics } = await supabase
+                .from("cobranza_aplicaciones")
+                .select("monto_aplicado, estatus_aplicacion, documento_id, pago_id")
+                .in("documento_id", docChunk)
+                .in("pago_id", pagChunk)
+                .eq("estatus_aplicacion", "activa");
+              (aplics || []).forEach((a: any) => { cobradoVenc += Number(a.monto_aplicado || 0); });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[CobradoDeVencido] error", err);
+      }
+      setCobradoDeVencido(cobradoVenc);
+
       // Actividades CRM creadas/realizadas en el periodo (por ejecutivo)
       let actQ = supabase
         .from("crm_activities")
@@ -316,8 +357,12 @@ export default function SellerPortal() {
 
   // Tareas vencidas: fecha_vencimiento <= fecha_fin (to) y no completadas
   const tasksVencidas = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date).getTime() <= toTs && new Date(t.due_date) < todayStart);
-  // Tareas completadas en periodo (proxy: updated_at en periodo y completed=true)
-  const tasksCompletadasPeriodo = tasks.filter(t => t.completed && t.updated_at && new Date(t.updated_at).getTime() >= fromTs && new Date(t.updated_at).getTime() <= toTs);
+  // Tareas completadas en periodo: usar completed_at; fallback a updated_at solo si completed_at no existe (datos viejos previos al backfill).
+  const tasksCompletadasPeriodo = tasks.filter(t => {
+    if (!t.completed) return false;
+    const ts = t.completed_at ? new Date(t.completed_at).getTime() : (t.updated_at ? new Date(t.updated_at).getTime() : null);
+    return ts !== null && ts >= fromTs && ts <= toTs;
+  });
   // Tareas creadas en periodo
   const tasksCreadasPeriodo = tasks.filter(t => t.created_at && new Date(t.created_at).getTime() >= fromTs && new Date(t.created_at).getTime() <= toTs);
   const tasksHoyPendientes = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date) >= todayStart && new Date(t.due_date) <= todayEnd);
@@ -336,15 +381,25 @@ export default function SellerPortal() {
 
   const totalFacturado = sum(facturas, "total");
   const unidadesFacturadas = sum(facturas, "unidades_equivalentes_total");
-  const totalCobrado = sum(pagos, "monto_total");
-  const saldoPendiente = sum(facturas, "saldo_pendiente_cobranza");
+  // Total cobrado: usar monto_aplicado si existe (>0), sino monto_total. Evita sobreconteo cuando un pago se aplica parcialmente.
+  const totalCobrado = pagos.reduce((acc, p: any) => {
+    const aplicado = Number(p.monto_aplicado || 0);
+    return acc + (aplicado > 0 ? aplicado : Number(p.monto_total || 0));
+  }, 0);
+  // Saldo pendiente: calcular real desde aplicaciones activas. No depender de documentos.saldo_pendiente_cobranza.
+  // facturasPorVencer y facturasVencidasAll ya traen saldo recalculado; los saldos del periodo (facturas en filtro) los recalculamos abajo en cobradoVencidoState.
+  const saldoPendiente = facturas.reduce((acc, f: any) => {
+    // Para facturas dentro del periodo filtrado: usar saldo del documento, pero si la lista de cobranza recalculó algo distinto, preferir el cálculo.
+    // Como los pagos del periodo ya están en `pagos`, si el doc figura en facturasVencidasAll/facturasPorVencer usamos esa lectura saneada.
+    const recal = [...facturasVencidasAll, ...facturasPorVencer].find((x: any) => x.id === f.id);
+    if (recal) return acc + Number(recal.saldo_pendiente_cobranza || 0);
+    return acc + Number(f.saldo_pendiente_cobranza || 0);
+  }, 0);
 
   // Cobranza vencida
   const clientesConSaldoVencido = new Set(facturasVencidasAll.map(f => f.empresa_id)).size;
   const saldoVencidoTotal = sum(facturasVencidasAll, "saldo_pendiente_cobranza");
-  // Total cobrado de saldo vencido en periodo: pagos cuyas empresas tenían facturas vencidas
-  const empresasVencidasIds = new Set(facturasVencidasAll.map(f => f.empresa_id));
-  const cobradoDeVencido = pagos.filter(p => empresasVencidasIds.has(p.empresa_id)).reduce((a, b) => a + Number(b.monto_aplicado || 0), 0);
+  // Cobrado de vencido (en periodo): se calcula por separado vía aplicaciones ligadas a facturas vencidas. Ver cobradoDeVencido state.
 
   // Facturas por vencer agrupadas
   const ahora = startOfDay(new Date()).getTime();
@@ -428,9 +483,22 @@ export default function SellerPortal() {
   ).size;
   const ticketPromedio = facturas.length > 0 ? totalFacturado / facturas.length : 0;
   const unidadesPromedioCliente = clientesConCompra > 0 ? unidadesFacturadas / clientesConCompra : 0;
-  const prospectosNuevosPeriodo = dealsNuevos.filter(d => new Date(d.created_at).getTime() >= fromTs && new Date(d.created_at).getTime() <= toTs).length;
+  // Prospectos nuevos en periodo = deals primera_compra cuyo created_at cae en el periodo. Contamos por empresa única.
+  const dealsNuevosEnPeriodo = dealsNuevos.filter(d => {
+    const t = new Date(d.created_at).getTime();
+    return t >= fromTs && t <= toTs;
+  });
+  const empresasProspectoPeriodo = new Set(dealsNuevosEnPeriodo.map((d: any) => d.company_id).filter(Boolean));
+  const prospectosNuevosPeriodo = empresasProspectoPeriodo.size;
+  // Empresas únicas que facturaron en el periodo (no cancelada)
+  const empresasFacturaronPeriodo = new Set(
+    facturas.map((f: any) => f.empresa_id).filter(Boolean)
+  );
+  // Numerador: empresas únicas de prospectos primera_compra creados en el periodo que ADEMÁS facturaron en el periodo.
+  const prospectosConvertidosEnPeriodo = Array.from(empresasProspectoPeriodo)
+    .filter((cid) => empresasFacturaronPeriodo.has(cid)).length;
   const pctConversionProspectos = prospectosNuevosPeriodo > 0
-    ? (clientesNuevosCompraron / prospectosNuevosPeriodo) * 100
+    ? (prospectosConvertidosEnPeriodo / prospectosNuevosPeriodo) * 100
     : 0;
 
   // Score
