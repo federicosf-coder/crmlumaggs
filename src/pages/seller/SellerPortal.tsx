@@ -681,6 +681,12 @@ export default function SellerPortal() {
       </div>
 
       {/* Mi día - Terminadas en periodo */}
+      <ReporteDiarioGerencia
+        tasksCompletadas={tasksCompletadasPeriodo}
+        actividades={actividades}
+        companyMap={companyMap}
+      />
+
       <Card>
         <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
           <CardTitle className="text-base">Mi día - Terminadas en periodo ({tasksCompletadasPeriodo.length})</CardTitle>
