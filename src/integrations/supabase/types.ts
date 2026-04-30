@@ -3437,6 +3437,54 @@ export type Database = {
           },
         ]
       }
+      whatsapp_notification_queue: {
+        Row: {
+          cancelled_at: string | null
+          contact_phone: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          notification_type: string
+          payload: Json
+          recipient_phone: string | null
+          recipient_user_id: string | null
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          contact_phone?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          notification_type?: string
+          payload?: Json
+          recipient_phone?: string | null
+          recipient_user_id?: string | null
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          contact_phone?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          notification_type?: string
+          payload?: Json
+          recipient_phone?: string | null
+          recipient_user_id?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_quick_replies: {
         Row: {
           content: string
@@ -3469,32 +3517,56 @@ export type Database = {
       }
       whatsapp_settings: {
         Row: {
+          admin_phone: string | null
+          alert_template_language: string | null
+          alert_template_name: string | null
           away_enabled: boolean
           away_template_language: string | null
           away_template_name: string | null
           bot_enabled: boolean
           business_hours: Json
+          critical_escalation_enabled: boolean
+          critical_escalation_hours: number
           id: number
+          notification_delay_minutes: number
+          supervisor_phone: string | null
+          unassigned_strategy: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          admin_phone?: string | null
+          alert_template_language?: string | null
+          alert_template_name?: string | null
           away_enabled?: boolean
           away_template_language?: string | null
           away_template_name?: string | null
           bot_enabled?: boolean
           business_hours?: Json
+          critical_escalation_enabled?: boolean
+          critical_escalation_hours?: number
           id?: number
+          notification_delay_minutes?: number
+          supervisor_phone?: string | null
+          unassigned_strategy?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          admin_phone?: string | null
+          alert_template_language?: string | null
+          alert_template_name?: string | null
           away_enabled?: boolean
           away_template_language?: string | null
           away_template_name?: string | null
           bot_enabled?: boolean
           business_hours?: Json
+          critical_escalation_enabled?: boolean
+          critical_escalation_hours?: number
           id?: number
+          notification_delay_minutes?: number
+          supervisor_phone?: string | null
+          unassigned_strategy?: string
           updated_at?: string
           updated_by?: string | null
         }
