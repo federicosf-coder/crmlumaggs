@@ -66,6 +66,7 @@ export default function SellerPortal() {
   type PageLimit = "10" | "25" | "50" | "all";
   const [limTerminadas, setLimTerminadas] = useState<PageLimit>("10");
   const [pageTerminadas, setPageTerminadas] = useState(1);
+  const [termSelected, setTermSelected] = useState<Set<string>>(new Set());
   const [limCreadas, setLimCreadas] = useState<PageLimit>("10");
   const [pageCreadas, setPageCreadas] = useState(1);
   const [limProspectos, setLimProspectos] = useState<PageLimit>("10");
