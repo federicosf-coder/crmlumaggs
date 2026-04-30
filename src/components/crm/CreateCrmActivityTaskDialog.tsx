@@ -104,12 +104,23 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
     const table = entityType === "activity" ? "crm_activity_collaborators" : "crm_task_collaborators";
     const fkField = entityType === "activity" ? "activity_id" : "task_id";
     const rows = collaboratorIds.map((uid) => ({ [fkField]: entityId, user_id: uid }));
-    await supabase.from(table).insert(rows as any);
+    try {
+      const { error } = await supabase.from(table).insert(rows as any);
+      if (error) throw error;
+    } catch (err: any) {
+      // No bloquear el éxito del registro principal
+      toast({
+        title: "Advertencia",
+        description: `No se pudieron guardar los colaboradores: ${err?.message || "error desconocido"}`,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user) return;
+    if (createTask.isPending || createActivity.isPending) return;
 
     const typeLabel = ACTIVITY_TYPE_CONFIG[type].label;
     const normalizedDealId = dealId && dealId !== "none" ? dealId : null;
@@ -158,11 +169,12 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
         },
         {
           onSuccess: async (data) => {
-            await saveCollaborators("task", data.id);
             verifyCompany(data);
             invalidateAll();
             toast({ title: "Tarea creada" });
             resetAndClose();
+            // Guardar colaboradores en segundo plano (no bloquea cierre)
+            saveCollaborators("task", data.id);
           },
           onError: (err: any) => {
             toast({
@@ -187,11 +199,11 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
         },
         {
           onSuccess: async (data) => {
-            await saveCollaborators("activity", data.id);
             verifyCompany(data);
             invalidateAll();
             toast({ title: "Actividad registrada" });
             resetAndClose();
+            saveCollaborators("activity", data.id);
           },
           onError: (err: any) => {
             toast({
@@ -222,7 +234,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const isPending = createActivity.isPending || createTask.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) resetAndClose(); else onOpenChange(true); }}>
       <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>Nueva Actividad / Tarea</DialogTitle>
@@ -350,7 +362,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
             )}
 
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button type="button" variant="outline" onClick={resetAndClose}>Cancelar</Button>
               <Button type="submit" disabled={isPending}>
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Registrar"}
               </Button>
