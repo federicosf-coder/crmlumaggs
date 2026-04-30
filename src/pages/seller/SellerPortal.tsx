@@ -15,10 +15,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Toggle } from "@/components/ui/toggle";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
 import type { CrmTask } from "@/hooks/useCrmTasks";
+import { ACTIVITY_TYPE_CONFIG } from "@/hooks/useCrmActivities";
+import { Copy } from "lucide-react";
 
 const fmtMoney = (n: number) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(n || 0);
 const fmtNum = (n: number) => new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(n || 0);
