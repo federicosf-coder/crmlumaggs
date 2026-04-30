@@ -21,6 +21,7 @@ export interface CrmTask {
   whatsapp_last_sent_at?: string | null;
   crm_deals?: { id: string; title: string } | null;
   contacts?: { id: string; first_name: string; last_name: string } | null;
+  companies?: { id: string; name: string } | null;
 }
 
 export function useCrmTasks(filters?: { completed?: boolean; deal_id?: string; brand?: string }) {
@@ -35,7 +36,7 @@ export function useCrmTasks(filters?: { completed?: boolean; deal_id?: string; b
 
       let q = supabase
         .from("crm_tasks")
-        .select("*, crm_deals(id, title), contacts(id, first_name, last_name)")
+        .select("*, crm_deals(id, title), contacts(id, first_name, last_name), companies(id, name)")
         .order("due_date", { ascending: true, nullsFirst: false });
       if (filters?.completed !== undefined) q = q.eq("completed", filters.completed);
       if (filters?.deal_id) q = q.eq("deal_id", filters.deal_id);
