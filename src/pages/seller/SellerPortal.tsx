@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
 import type { CrmTask } from "@/hooks/useCrmTasks";
+import { ReporteDiarioGerencia } from "./ReporteDiarioGerencia";
 
 const fmtMoney = (n: number) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(n || 0);
 const fmtNum = (n: number) => new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(n || 0);
@@ -678,6 +679,12 @@ export default function SellerPortal() {
       </div>
 
       {/* Mi día - Terminadas en periodo */}
+      <ReporteDiarioGerencia
+        tasksCompletadas={tasksCompletadasPeriodo}
+        actividades={actividades}
+        companyMap={companyMap}
+      />
+
       <Card>
         <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
           <CardTitle className="text-base">Mi día - Terminadas en periodo ({tasksCompletadasPeriodo.length})</CardTitle>
