@@ -418,11 +418,10 @@ export default function SellerPortal() {
   const clientesRecompraCompraron = convRecompra.facturados;
 
   // KPIs adicionales
-  // Unión de clientes únicos que facturaron en pipelines de Primera compra + Recompra
-  const clientesConCompra = new Set([
-    ...convNuevos.facturadosSet,
-    ...convRecompra.facturadosSet,
-  ]).size;
+  // Clientes únicos con factura (no cancelada) en el periodo filtrado
+  const clientesConCompra = new Set(
+    facturas.map((f: any) => f.empresa_id).filter(Boolean)
+  ).size;
   const ticketPromedio = facturas.length > 0 ? totalFacturado / facturas.length : 0;
   const unidadesPromedioCliente = clientesConCompra > 0 ? unidadesFacturadas / clientesConCompra : 0;
   const prospectosNuevosPeriodo = dealsNuevos.filter(d => new Date(d.created_at).getTime() >= fromTs && new Date(d.created_at).getTime() <= toTs).length;
