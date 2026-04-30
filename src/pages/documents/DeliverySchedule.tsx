@@ -631,6 +631,18 @@ export default function DeliverySchedule() {
       if (!ruta) return;
 
       if (item.type === "pedido") {
+        // Doble verificación: si ya está programado en cualquier ruta, no duplicar
+        const { data: existing } = await supabase
+          .from("entregas_programadas")
+          .select("id")
+          .eq("documento_id", item.id)
+          .maybeSingle();
+        if (existing) {
+          toast.warning("Este pedido ya está programado");
+          refetchPool();
+          refetchEntregas();
+          return;
+        }
         const { error } = await supabase.from("entregas_programadas").insert({
           documento_id: item.id,
           ruta_id: ruta.id,
@@ -639,7 +651,16 @@ export default function DeliverySchedule() {
           fecha_entrega: ruta.fecha_entrega,
           orden_ruta: (routeItems[ruta.id]?.length || 0),
         });
-        if (error) { toast.error(error.message); return; }
+        if (error) {
+          if ((error as any).code === "23505") {
+            toast.warning("Este pedido ya está programado");
+          } else {
+            toast.error(error.message);
+          }
+          refetchPool();
+          refetchEntregas();
+          return;
+        }
         await supabase.from("documentos").update({
           estatus_pedido: "programado_entrega",
           plaza_id: ruta.plaza_id,
@@ -647,7 +668,6 @@ export default function DeliverySchedule() {
         }).eq("id", item.id);
         toast.success("Pedido programado en ruta");
       }
-      // TODO: handle task drop
 
       refetchPool();
       refetchEntregas();
