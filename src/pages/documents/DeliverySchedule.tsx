@@ -449,7 +449,7 @@ export default function DeliverySchedule() {
       .filter((p: any) =>
         p.tipo_documento === "pedido" &&
         p.is_active === true &&
-        POOL_STATUSES.includes(p.estatus_pedido) &&
+        (POOL_STATUSES as readonly string[]).includes(p.estatus_pedido) &&
         !scheduledDocIds.has(p.id)
       )
       .map((p: any) => {
