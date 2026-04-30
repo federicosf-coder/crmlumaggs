@@ -26,6 +26,14 @@ type Settings = {
   away_template_language: string | null;
   bot_enabled: boolean;
   away_enabled: boolean;
+  notification_delay_minutes: number;
+  unassigned_strategy: "notify_admin" | "round_robin" | "notify_team";
+  admin_phone: string | null;
+  critical_escalation_enabled: boolean;
+  critical_escalation_hours: number;
+  supervisor_phone: string | null;
+  alert_template_name: string | null;
+  alert_template_language: string | null;
 };
 
 type QuickReply = {
@@ -149,6 +157,14 @@ export default function WhatsAppSettings() {
         away_template_language: settings.away_template_language,
         bot_enabled: settings.bot_enabled,
         away_enabled: settings.away_enabled,
+        notification_delay_minutes: settings.notification_delay_minutes,
+        unassigned_strategy: settings.unassigned_strategy,
+        admin_phone: settings.admin_phone,
+        critical_escalation_enabled: settings.critical_escalation_enabled,
+        critical_escalation_hours: settings.critical_escalation_hours,
+        supervisor_phone: settings.supervisor_phone,
+        alert_template_name: settings.alert_template_name,
+        alert_template_language: settings.alert_template_language,
         updated_by: ures.user?.id,
       })
       .eq("id", 1);
@@ -238,6 +254,119 @@ export default function WhatsAppSettings() {
               </div>
             );
           })}
+        </div>
+      </Card>
+
+      <Card className="p-4 space-y-4">
+        <div>
+          <h2 className="font-semibold">Reglas de Respuesta y Alertas</h2>
+          <p className="text-xs text-muted-foreground">
+            Define cómo y cuándo se notifica por WhatsApp cuando un mensaje no es atendido a tiempo.
+          </p>
+        </div>
+
+        <div>
+          <Label>Tiempo de espera para notificación</Label>
+          <Select
+            value={String(settings.notification_delay_minutes)}
+            onValueChange={(v) => setSettings({ ...settings, notification_delay_minutes: Number(v) })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">5 minutos</SelectItem>
+              <SelectItem value="15">15 minutos</SelectItem>
+              <SelectItem value="30">30 minutos</SelectItem>
+              <SelectItem value="60">60 minutos</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Si el chat no se abre en este tiempo, se envía la alerta encolada.
+          </p>
+        </div>
+
+        <div>
+          <Label>Gestión de contactos sin asignar</Label>
+          <Select
+            value={settings.unassigned_strategy}
+            onValueChange={(v) => setSettings({ ...settings, unassigned_strategy: v as Settings["unassigned_strategy"] })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="notify_admin">Notificar al Administrador</SelectItem>
+              <SelectItem value="round_robin">Reparto Equitativo (Round Robin)</SelectItem>
+              <SelectItem value="notify_team">Notificar a todo el equipo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {settings.unassigned_strategy === "notify_admin" && (
+          <div>
+            <Label>Teléfono del Administrador</Label>
+            <Input
+              placeholder="+52 ..."
+              value={settings.admin_phone ?? ""}
+              onChange={(e) => setSettings({ ...settings, admin_phone: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Número al que se enviará la alerta cuando llegue un mensaje sin asignar.
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-2 border-t">
+          <div>
+            <Label>Escalación Crítica</Label>
+            <p className="text-xs text-muted-foreground">
+              Avisar a un supervisor si pasa demasiado tiempo sin respuesta.
+            </p>
+          </div>
+          <Switch
+            checked={settings.critical_escalation_enabled}
+            onCheckedChange={(v) => setSettings({ ...settings, critical_escalation_enabled: v })}
+          />
+        </div>
+
+        {settings.critical_escalation_enabled && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label>Horas sin respuesta antes de escalar</Label>
+              <Input
+                type="number"
+                min={1}
+                value={settings.critical_escalation_hours}
+                onChange={(e) => setSettings({ ...settings, critical_escalation_hours: Math.max(1, Number(e.target.value) || 1) })}
+              />
+            </div>
+            <div>
+              <Label>Teléfono del Supervisor</Label>
+              <Input
+                placeholder="+52 ..."
+                value={settings.supervisor_phone ?? ""}
+                onChange={(e) => setSettings({ ...settings, supervisor_phone: e.target.value })}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="pt-2 border-t">
+          <Label>Plantilla de alerta</Label>
+          <Select
+            value={settings.alert_template_name ?? ""}
+            onValueChange={(v) => {
+              const t = templates.find((x) => x.name === v);
+              setSettings({ ...settings, alert_template_name: v, alert_template_language: t?.language ?? "es_MX" });
+            }}
+          >
+            <SelectTrigger><SelectValue placeholder="Selecciona plantilla aprobada…" /></SelectTrigger>
+            <SelectContent>
+              {templates.map((t) => (
+                <SelectItem key={t.name} value={t.name}>{t.name} ({t.language})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Plantilla aprobada de Meta que se usará al enviar la alerta al usuario / administrador.
+          </p>
         </div>
       </Card>
 
