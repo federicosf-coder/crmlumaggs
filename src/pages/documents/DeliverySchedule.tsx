@@ -407,20 +407,6 @@ export default function DeliverySchedule() {
     },
   });
 
-  // Pool: tasks with programable_entrega
-  const { data: poolTasks = [], refetch: refetchPoolTasks } = useQuery({
-    queryKey: ["pool-tasks-entrega"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("crm_tasks")
-        .select("*, companies(name), contacts(first_name, last_name)")
-        .eq("programable_entrega", true)
-        .eq("completed", false)
-        .order("created_at", { ascending: false });
-      return data || [];
-    },
-  });
-
   // All routes (no filter by date/plaza - show all active)
   const { data: allRutas = [], refetch: refetchRutas } = useQuery({
     queryKey: ["all-rutas-entrega"],
