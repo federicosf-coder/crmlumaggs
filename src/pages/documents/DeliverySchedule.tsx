@@ -66,7 +66,7 @@ type PoolItem = {
 };
 
 // ─── Draggable Card ──────────────────────────────────────────
-function DraggablePoolCard({ item, footerActions }: { item: PoolItem; footerActions?: React.ReactNode }) {
+function DraggablePoolCard({ item, footerActions, onView }: { item: PoolItem; footerActions?: React.ReactNode; onView?: (item: PoolItem) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   const cfg = STATUS_CONFIG[item.estatus] || STATUS_CONFIG.confirmado_cliente;
@@ -98,6 +98,18 @@ function DraggablePoolCard({ item, footerActions }: { item: PoolItem; footerActi
             </span>
           )}
           <Badge variant="outline" className={cn("text-[10px] mt-1 block", cfg.color)}>{cfg.label}</Badge>
+          {onView && item.type === "pedido" && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 mt-1"
+              title="Ver documento origen"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onView(item); }}
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       </div>
       {footerActions && (
