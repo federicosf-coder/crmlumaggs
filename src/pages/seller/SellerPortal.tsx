@@ -483,9 +483,22 @@ export default function SellerPortal() {
   ).size;
   const ticketPromedio = facturas.length > 0 ? totalFacturado / facturas.length : 0;
   const unidadesPromedioCliente = clientesConCompra > 0 ? unidadesFacturadas / clientesConCompra : 0;
-  const prospectosNuevosPeriodo = dealsNuevos.filter(d => new Date(d.created_at).getTime() >= fromTs && new Date(d.created_at).getTime() <= toTs).length;
+  // Prospectos nuevos en periodo = deals primera_compra cuyo created_at cae en el periodo. Contamos por empresa única.
+  const dealsNuevosEnPeriodo = dealsNuevos.filter(d => {
+    const t = new Date(d.created_at).getTime();
+    return t >= fromTs && t <= toTs;
+  });
+  const empresasProspectoPeriodo = new Set(dealsNuevosEnPeriodo.map((d: any) => d.company_id).filter(Boolean));
+  const prospectosNuevosPeriodo = empresasProspectoPeriodo.size;
+  // Empresas únicas que facturaron en el periodo (no cancelada)
+  const empresasFacturaronPeriodo = new Set(
+    facturas.map((f: any) => f.empresa_id).filter(Boolean)
+  );
+  // Numerador: empresas únicas de prospectos primera_compra creados en el periodo que ADEMÁS facturaron en el periodo.
+  const prospectosConvertidosEnPeriodo = Array.from(empresasProspectoPeriodo)
+    .filter((cid) => empresasFacturaronPeriodo.has(cid)).length;
   const pctConversionProspectos = prospectosNuevosPeriodo > 0
-    ? (clientesNuevosCompraron / prospectosNuevosPeriodo) * 100
+    ? (prospectosConvertidosEnPeriodo / prospectosNuevosPeriodo) * 100
     : 0;
 
   // Score
