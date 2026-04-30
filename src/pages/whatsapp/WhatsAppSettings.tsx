@@ -26,6 +26,14 @@ type Settings = {
   away_template_language: string | null;
   bot_enabled: boolean;
   away_enabled: boolean;
+  notification_delay_minutes: number;
+  unassigned_strategy: "notify_admin" | "round_robin" | "notify_team";
+  admin_phone: string | null;
+  critical_escalation_enabled: boolean;
+  critical_escalation_hours: number;
+  supervisor_phone: string | null;
+  alert_template_name: string | null;
+  alert_template_language: string | null;
 };
 
 type QuickReply = {
@@ -149,6 +157,14 @@ export default function WhatsAppSettings() {
         away_template_language: settings.away_template_language,
         bot_enabled: settings.bot_enabled,
         away_enabled: settings.away_enabled,
+        notification_delay_minutes: settings.notification_delay_minutes,
+        unassigned_strategy: settings.unassigned_strategy,
+        admin_phone: settings.admin_phone,
+        critical_escalation_enabled: settings.critical_escalation_enabled,
+        critical_escalation_hours: settings.critical_escalation_hours,
+        supervisor_phone: settings.supervisor_phone,
+        alert_template_name: settings.alert_template_name,
+        alert_template_language: settings.alert_template_language,
         updated_by: ures.user?.id,
       })
       .eq("id", 1);
