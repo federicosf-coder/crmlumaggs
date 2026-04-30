@@ -249,6 +249,46 @@ export default function SellerPortal() {
         })
         .filter((f: any) => Number(f.saldo_pendiente_cobranza) > 0);
 
+      // Cobrado de vencido (en periodo): aplicaciones activas ligadas a facturas vencidas (fecha_vencimiento < hoy,
+      // factura no cancelada) cuyo pago cayó dentro del periodo y fue creado por el ejecutivo.
+      let cobradoVenc = 0;
+      try {
+        // Universo de facturas vencidas (a hoy) del ejecutivo + filtros — reutilizamos la query base.
+        let venTodayQ = supabase.from("documentos")
+          .select("id")
+          .eq("tipo_documento", "factura")
+          .eq("is_active", true)
+          .neq("estatus_factura", "cancelada")
+          .lt("fecha_vencimiento", todayIso)
+          .in("empresa_vendedora", marcasSeleccionadas as any)
+          .or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`)
+          .limit(5000);
+        if (plazaId !== "all") venTodayQ = venTodayQ.eq("plaza_id", plazaId);
+        const { data: venTodayDocs } = await venTodayQ;
+        const venTodayIds = (venTodayDocs || []).map((d: any) => d.id);
+        const pagosPeriodoIds = (pagosData || []).map((p: any) => p.id);
+        if (venTodayIds.length && pagosPeriodoIds.length) {
+          // Chunk in case lists are large
+          const chunk = <T,>(arr: T[], size: number) => {
+            const out: T[][] = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out;
+          };
+          for (const docChunk of chunk(venTodayIds, 200)) {
+            for (const pagChunk of chunk(pagosPeriodoIds, 200)) {
+              const { data: aplics } = await supabase
+                .from("cobranza_aplicaciones")
+                .select("monto_aplicado, estatus_aplicacion, documento_id, pago_id")
+                .in("documento_id", docChunk)
+                .in("pago_id", pagChunk)
+                .eq("estatus_aplicacion", "activa");
+              (aplics || []).forEach((a: any) => { cobradoVenc += Number(a.monto_aplicado || 0); });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[CobradoDeVencido] error", err);
+      }
+      setCobradoDeVencido(cobradoVenc);
+
       // Actividades CRM creadas/realizadas en el periodo (por ejecutivo)
       let actQ = supabase
         .from("crm_activities")
