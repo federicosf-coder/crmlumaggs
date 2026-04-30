@@ -446,7 +446,12 @@ export default function DeliverySchedule() {
     // TODO: also track scheduled tasks if we add task scheduling
 
     const pedidoItems: PoolItem[] = poolPedidos
-      .filter((p: any) => !scheduledDocIds.has(p.id))
+      .filter((p: any) =>
+        p.tipo_documento === "pedido" &&
+        p.is_active === true &&
+        POOL_STATUSES.includes(p.estatus_pedido) &&
+        !scheduledDocIds.has(p.id)
+      )
       .map((p: any) => {
         // Group quantities by presentacion
         const presByName: Record<string, number> = {};
@@ -473,19 +478,8 @@ export default function DeliverySchedule() {
         };
       });
 
-    const taskItems: PoolItem[] = poolTasks.map((t: any) => ({
-      id: `task-${t.id}`,
-      type: "tarea" as const,
-      title: t.title,
-      subtitle: t.companies?.name || (t.contacts ? `${t.contacts.first_name} ${t.contacts.last_name}` : "Sin asignar"),
-      total: undefined,
-      estatus: "confirmado_cliente",
-      plaza_id: undefined,
-      raw: t,
-    }));
-
-    return [...pedidoItems, ...taskItems];
-  }, [poolPedidos, poolTasks, allEntregas]);
+    return pedidoItems;
+  }, [poolPedidos, allEntregas]);
 
   // Build route items from entregas
   useEffect(() => {
