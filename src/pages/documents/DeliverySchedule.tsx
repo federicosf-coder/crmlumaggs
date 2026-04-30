@@ -1044,7 +1044,13 @@ export default function DeliverySchedule() {
                       <p className="text-sm">Sin pedidos disponibles</p>
                     </div>
                   ) : (
-                    filteredPool.map(item => <DraggablePoolCard key={item.id} item={item} />)
+                    filteredPool.map(item => (
+                      <DraggablePoolCard
+                        key={item.id}
+                        item={item}
+                        onView={(it) => navigate(`/documents/${it.id}/edit`)}
+                      />
+                    ))
                   )}
                 </div>
               </SortableContext>
