@@ -316,8 +316,12 @@ export default function SellerPortal() {
 
   // Tareas vencidas: fecha_vencimiento <= fecha_fin (to) y no completadas
   const tasksVencidas = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date).getTime() <= toTs && new Date(t.due_date) < todayStart);
-  // Tareas completadas en periodo (proxy: updated_at en periodo y completed=true)
-  const tasksCompletadasPeriodo = tasks.filter(t => t.completed && t.updated_at && new Date(t.updated_at).getTime() >= fromTs && new Date(t.updated_at).getTime() <= toTs);
+  // Tareas completadas en periodo: usar completed_at; fallback a updated_at solo si completed_at no existe (datos viejos previos al backfill).
+  const tasksCompletadasPeriodo = tasks.filter(t => {
+    if (!t.completed) return false;
+    const ts = t.completed_at ? new Date(t.completed_at).getTime() : (t.updated_at ? new Date(t.updated_at).getTime() : null);
+    return ts !== null && ts >= fromTs && ts <= toTs;
+  });
   // Tareas creadas en periodo
   const tasksCreadasPeriodo = tasks.filter(t => t.created_at && new Date(t.created_at).getTime() >= fromTs && new Date(t.created_at).getTime() <= toTs);
   const tasksHoyPendientes = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date) >= todayStart && new Date(t.due_date) <= todayEnd);
@@ -336,15 +340,25 @@ export default function SellerPortal() {
 
   const totalFacturado = sum(facturas, "total");
   const unidadesFacturadas = sum(facturas, "unidades_equivalentes_total");
-  const totalCobrado = sum(pagos, "monto_total");
-  const saldoPendiente = sum(facturas, "saldo_pendiente_cobranza");
+  // Total cobrado: usar monto_aplicado si existe (>0), sino monto_total. Evita sobreconteo cuando un pago se aplica parcialmente.
+  const totalCobrado = pagos.reduce((acc, p: any) => {
+    const aplicado = Number(p.monto_aplicado || 0);
+    return acc + (aplicado > 0 ? aplicado : Number(p.monto_total || 0));
+  }, 0);
+  // Saldo pendiente: calcular real desde aplicaciones activas. No depender de documentos.saldo_pendiente_cobranza.
+  // facturasPorVencer y facturasVencidasAll ya traen saldo recalculado; los saldos del periodo (facturas en filtro) los recalculamos abajo en cobradoVencidoState.
+  const saldoPendiente = facturas.reduce((acc, f: any) => {
+    // Para facturas dentro del periodo filtrado: usar saldo del documento, pero si la lista de cobranza recalculó algo distinto, preferir el cálculo.
+    // Como los pagos del periodo ya están en `pagos`, si el doc figura en facturasVencidasAll/facturasPorVencer usamos esa lectura saneada.
+    const recal = [...facturasVencidasAll, ...facturasPorVencer].find((x: any) => x.id === f.id);
+    if (recal) return acc + Number(recal.saldo_pendiente_cobranza || 0);
+    return acc + Number(f.saldo_pendiente_cobranza || 0);
+  }, 0);
 
   // Cobranza vencida
   const clientesConSaldoVencido = new Set(facturasVencidasAll.map(f => f.empresa_id)).size;
   const saldoVencidoTotal = sum(facturasVencidasAll, "saldo_pendiente_cobranza");
-  // Total cobrado de saldo vencido en periodo: pagos cuyas empresas tenían facturas vencidas
-  const empresasVencidasIds = new Set(facturasVencidasAll.map(f => f.empresa_id));
-  const cobradoDeVencido = pagos.filter(p => empresasVencidasIds.has(p.empresa_id)).reduce((a, b) => a + Number(b.monto_aplicado || 0), 0);
+  // Cobrado de vencido (en periodo): se calcula por separado vía aplicaciones ligadas a facturas vencidas. Ver cobradoDeVencido state.
 
   // Facturas por vencer agrupadas
   const ahora = startOfDay(new Date()).getTime();
