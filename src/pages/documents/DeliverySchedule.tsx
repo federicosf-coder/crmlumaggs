@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
-  ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon, FileText, Play, Flag,
+  ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon, FileText, Play, Flag, Eye,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -66,7 +66,7 @@ type PoolItem = {
 };
 
 // ─── Draggable Card ──────────────────────────────────────────
-function DraggablePoolCard({ item, footerActions }: { item: PoolItem; footerActions?: React.ReactNode }) {
+function DraggablePoolCard({ item, footerActions, onView }: { item: PoolItem; footerActions?: React.ReactNode; onView?: (item: PoolItem) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   const cfg = STATUS_CONFIG[item.estatus] || STATUS_CONFIG.confirmado_cliente;
@@ -98,6 +98,18 @@ function DraggablePoolCard({ item, footerActions }: { item: PoolItem; footerActi
             </span>
           )}
           <Badge variant="outline" className={cn("text-[10px] mt-1 block", cfg.color)}>{cfg.label}</Badge>
+          {onView && item.type === "pedido" && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 mt-1"
+              title="Ver documento origen"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onView(item); }}
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       </div>
       {footerActions && (
@@ -395,20 +407,6 @@ export default function DeliverySchedule() {
     },
   });
 
-  // Pool: tasks with programable_entrega
-  const { data: poolTasks = [], refetch: refetchPoolTasks } = useQuery({
-    queryKey: ["pool-tasks-entrega"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("crm_tasks")
-        .select("*, companies(name), contacts(first_name, last_name)")
-        .eq("programable_entrega", true)
-        .eq("completed", false)
-        .order("created_at", { ascending: false });
-      return data || [];
-    },
-  });
-
   // All routes (no filter by date/plaza - show all active)
   const { data: allRutas = [], refetch: refetchRutas } = useQuery({
     queryKey: ["all-rutas-entrega"],
@@ -448,7 +446,12 @@ export default function DeliverySchedule() {
     // TODO: also track scheduled tasks if we add task scheduling
 
     const pedidoItems: PoolItem[] = poolPedidos
-      .filter((p: any) => !scheduledDocIds.has(p.id))
+      .filter((p: any) =>
+        p.tipo_documento === "pedido" &&
+        p.is_active === true &&
+        (POOL_STATUSES as readonly string[]).includes(p.estatus_pedido) &&
+        !scheduledDocIds.has(p.id)
+      )
       .map((p: any) => {
         // Group quantities by presentacion
         const presByName: Record<string, number> = {};
@@ -475,19 +478,8 @@ export default function DeliverySchedule() {
         };
       });
 
-    const taskItems: PoolItem[] = poolTasks.map((t: any) => ({
-      id: `task-${t.id}`,
-      type: "tarea" as const,
-      title: t.title,
-      subtitle: t.companies?.name || (t.contacts ? `${t.contacts.first_name} ${t.contacts.last_name}` : "Sin asignar"),
-      total: undefined,
-      estatus: "confirmado_cliente",
-      plaza_id: undefined,
-      raw: t,
-    }));
-
-    return [...pedidoItems, ...taskItems];
-  }, [poolPedidos, poolTasks, allEntregas]);
+    return pedidoItems;
+  }, [poolPedidos, allEntregas]);
 
   // Build route items from entregas
   useEffect(() => {
@@ -639,6 +631,18 @@ export default function DeliverySchedule() {
       if (!ruta) return;
 
       if (item.type === "pedido") {
+        // Doble verificación: si ya está programado en cualquier ruta, no duplicar
+        const { data: existing } = await supabase
+          .from("entregas_programadas")
+          .select("id")
+          .eq("documento_id", item.id)
+          .maybeSingle();
+        if (existing) {
+          toast.warning("Este pedido ya está programado");
+          refetchPool();
+          refetchEntregas();
+          return;
+        }
         const { error } = await supabase.from("entregas_programadas").insert({
           documento_id: item.id,
           ruta_id: ruta.id,
@@ -647,7 +651,16 @@ export default function DeliverySchedule() {
           fecha_entrega: ruta.fecha_entrega,
           orden_ruta: (routeItems[ruta.id]?.length || 0),
         });
-        if (error) { toast.error(error.message); return; }
+        if (error) {
+          if ((error as any).code === "23505") {
+            toast.warning("Este pedido ya está programado");
+          } else {
+            toast.error(error.message);
+          }
+          refetchPool();
+          refetchEntregas();
+          return;
+        }
         await supabase.from("documentos").update({
           estatus_pedido: "programado_entrega",
           plaza_id: ruta.plaza_id,
@@ -655,7 +668,6 @@ export default function DeliverySchedule() {
         }).eq("id", item.id);
         toast.success("Pedido programado en ruta");
       }
-      // TODO: handle task drop
 
       refetchPool();
       refetchEntregas();
@@ -1032,7 +1044,13 @@ export default function DeliverySchedule() {
                       <p className="text-sm">Sin pedidos disponibles</p>
                     </div>
                   ) : (
-                    filteredPool.map(item => <DraggablePoolCard key={item.id} item={item} />)
+                    filteredPool.map(item => (
+                      <DraggablePoolCard
+                        key={item.id}
+                        item={item}
+                        onView={(it) => navigate(`/documents/${it.id}/edit`)}
+                      />
+                    ))
                   )}
                 </div>
               </SortableContext>
