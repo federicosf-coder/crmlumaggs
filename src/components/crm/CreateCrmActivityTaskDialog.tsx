@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmActivity, CrmActivityType, ACTIVITY_TYPE_CONFIG } from "@/hooks/useCrmActivities";
 import { useCreateCrmTask } from "@/hooks/useCrmTasks";
@@ -31,6 +32,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const createActivity = useCreateCrmActivity();
   const createTask = useCreateCrmTask();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: companies } = useQuery({
     queryKey: ["companies-picker"],
@@ -110,6 +112,37 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
     if (!session?.user) return;
 
     const typeLabel = ACTIVITY_TYPE_CONFIG[type].label;
+    const normalizedDealId = dealId && dealId !== "none" ? dealId : null;
+    const normalizedContactId = contactId && contactId !== "none" ? contactId : null;
+    let normalizedCompanyId = companyId && companyId !== "none" ? companyId : null;
+
+    // Auto-resolver company_id desde deal o contact si el usuario no la seleccionó
+    if (!normalizedCompanyId && normalizedDealId) {
+      const { data: dealRow } = await supabase
+        .from("crm_deals").select("company_id").eq("id", normalizedDealId).maybeSingle();
+      if (dealRow?.company_id) normalizedCompanyId = dealRow.company_id;
+    }
+    if (!normalizedCompanyId && normalizedContactId) {
+      const { data: contactRow } = await supabase
+        .from("contacts").select("company_id").eq("id", normalizedContactId).maybeSingle();
+      if (contactRow?.company_id) normalizedCompanyId = contactRow.company_id;
+    }
+
+    const invalidateAll = () => {
+      queryClient.invalidateQueries({ queryKey: ["crm_tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["crm_activities"] });
+      queryClient.invalidateQueries({ queryKey: ["seller-portal"] });
+    };
+
+    const verifyCompany = (data: any) => {
+      if (normalizedCompanyId && !data?.company_id) {
+        toast({
+          title: "Aviso",
+          description: "El registro se creó pero no quedó vinculado a la empresa seleccionada.",
+          variant: "destructive",
+        });
+      }
+    };
 
     if (isTask) {
       createTask.mutate(
@@ -119,15 +152,24 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
           description: description || null,
           due_date: activityDate || null,
           priority,
-          company_id: companyId && companyId !== "none" ? companyId : null,
-          deal_id: dealId && dealId !== "none" ? dealId : null,
-          contact_id: contactId && contactId !== "none" ? contactId : null,
+          company_id: normalizedCompanyId,
+          deal_id: normalizedDealId,
+          contact_id: normalizedContactId,
         },
         {
           onSuccess: async (data) => {
             await saveCollaborators("task", data.id);
+            verifyCompany(data);
+            invalidateAll();
             toast({ title: "Tarea creada" });
             resetAndClose();
+          },
+          onError: (err: any) => {
+            toast({
+              title: "Error al crear tarea",
+              description: err?.message || "No se pudo guardar la tarea.",
+              variant: "destructive",
+            });
           },
         }
       );
@@ -139,15 +181,24 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
           title: typeLabel,
           description: description || null,
           activity_date: activityDate ? new Date(activityDate).toISOString() : new Date().toISOString(),
-          company_id: companyId && companyId !== "none" ? companyId : null,
-          deal_id: dealId && dealId !== "none" ? dealId : null,
-          contact_id: contactId && contactId !== "none" ? contactId : null,
+          company_id: normalizedCompanyId,
+          deal_id: normalizedDealId,
+          contact_id: normalizedContactId,
         },
         {
           onSuccess: async (data) => {
             await saveCollaborators("activity", data.id);
+            verifyCompany(data);
+            invalidateAll();
             toast({ title: "Actividad registrada" });
             resetAndClose();
+          },
+          onError: (err: any) => {
+            toast({
+              title: "Error al registrar actividad",
+              description: err?.message || "No se pudo guardar la actividad.",
+              variant: "destructive",
+            });
           },
         }
       );
