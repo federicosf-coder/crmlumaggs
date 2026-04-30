@@ -1,0 +1,2 @@
+ALTER TABLE public.crm_activities DROP CONSTRAINT IF EXISTS crm_activities_type_check;
+ALTER TABLE public.crm_activities ADD CONSTRAINT crm_activities_type_check CHECK (type = ANY (ARRAY['call'::text, 'email'::text, 'meeting'::text, 'note'::text, 'field_visit'::text, 'whatsapp'::text, 'follow_up'::text]));
