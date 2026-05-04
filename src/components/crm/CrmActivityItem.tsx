@@ -7,9 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Pencil, Trash2, Save, X } from "lucide-react";
+import { Pencil, Trash2, Save, X, Eye } from "lucide-react";
 
-export function CrmActivityItem({ activity }: { activity: CrmActivity }) {
+export function CrmActivityItem({ activity, onOpen }: { activity: CrmActivity; onOpen?: () => void }) {
   const config = ACTIVITY_TYPE_CONFIG[activity.type] || ACTIVITY_TYPE_CONFIG.note;
   const updateActivity = useUpdateCrmActivity();
   const deleteActivity = useDeleteCrmActivity();
@@ -77,6 +77,11 @@ export function CrmActivityItem({ activity }: { activity: CrmActivity }) {
         </div>
       </div>
       <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+        {onOpen && (
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Abrir detalle" onClick={(e) => { e.stopPropagation(); onOpen(); }}>
+            <Eye className="h-3 w-3" />
+          </Button>
+        )}
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(true)}>
           <Pencil className="h-3 w-3" />
         </Button>

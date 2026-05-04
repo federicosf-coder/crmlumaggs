@@ -8,7 +8,8 @@ export type AppModule =
   | "cotizaciones" | "inventario" | "entregas"
   | "transferencias" | "facturacion" | "productos"
   | "proyectos" | "capacitacion" | "reportes"
-  | "modificar_pdf_cotizacion" | "eliminar_pdf_cotizacion";
+  | "modificar_pdf_cotizacion" | "eliminar_pdf_cotizacion"
+  | "tareas" | "actividades";
 
 interface ModuleAccess {
   accessLevel: AccessLevel;

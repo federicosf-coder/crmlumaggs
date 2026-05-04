@@ -33,8 +33,7 @@ export interface CrmActivity {
 }
 
 export function useCrmActivities(filters?: { type?: string; limit?: number; since?: string; pipelineId?: string; brand?: string }) {
-  const module = filters?.brand === "phillips66" ? "crm_phillips66" as const : "crm_chevron" as const;
-  const access = useModuleAccess(module);
+  const access = useModuleAccess("actividades");
 
   return useQuery({
     queryKey: ["crm_activities", filters, access.accessLevel, access.teamMemberIds],
@@ -49,21 +48,31 @@ export function useCrmActivities(filters?: { type?: string; limit?: number; sinc
       if (filters?.since) q = q.gte("created_at", filters.since);
       if (filters?.limit) q = q.limit(filters.limit);
 
-      // Apply access filtering on user_id, but also include activities where user is a collaborator
+      // PROPIO: propias + colaborador
+      // EQUIPO: del equipo + actividades donde un miembro del equipo es colaborador
       if (access.accessLevel === "propio" && access.userId) {
-        // Get activity IDs where user is collaborator
         const { data: collabRows } = await supabase
           .from("crm_activity_collaborators")
           .select("activity_id")
           .eq("user_id", access.userId);
-        const collabIds = collabRows?.map((r: any) => r.activity_id) || [];
+        const collabIds = Array.from(new Set((collabRows || []).map((r: any) => r.activity_id)));
         if (collabIds.length > 0) {
           q = q.or(`user_id.eq.${access.userId},id.in.(${collabIds.join(",")})`);
         } else {
           q = q.eq("user_id", access.userId);
         }
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
-        q = q.in("user_id", access.teamMemberIds);
+        const { data: collabRows } = await supabase
+          .from("crm_activity_collaborators")
+          .select("activity_id")
+          .in("user_id", access.teamMemberIds);
+        const collabIds = Array.from(new Set((collabRows || []).map((r: any) => r.activity_id)));
+        const ids = access.teamMemberIds.join(",");
+        if (collabIds.length > 0) {
+          q = q.or(`user_id.in.(${ids}),id.in.(${collabIds.join(",")})`);
+        } else {
+          q = q.in("user_id", access.teamMemberIds);
+        }
       }
 
       const { data, error } = await q;
@@ -107,7 +116,7 @@ export function useCreateCrmActivity() {
 export function useUpdateCrmActivity() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; title?: string; description?: string | null; type?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; title?: string; description?: string | null; type?: string; company_id?: string | null; deal_id?: string | null; contact_id?: string | null }) => {
       const { data, error } = await supabase.from("crm_activities").update(updates).eq("id", id).select().single();
       if (error) throw error;
       return data;

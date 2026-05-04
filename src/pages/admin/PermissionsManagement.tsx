@@ -7,11 +7,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { roleLabel } from "@/lib/roles";
 
 type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
-type AppModule = "directorio" | "crm_chevron" | "crm_phillips66" | "cotizaciones" | "pedidos" | "inventario" | "entregas" | "transferencias" | "facturacion" | "cobranza" | "productos" | "proyectos" | "capacitacion" | "reportes" | "modificar_pdf_cotizacion" | "eliminar_pdf_cotizacion";
+type AppModule = "directorio" | "crm_chevron" | "crm_phillips66" | "cotizaciones" | "pedidos" | "inventario" | "entregas" | "transferencias" | "facturacion" | "cobranza" | "productos" | "proyectos" | "capacitacion" | "reportes" | "modificar_pdf_cotizacion" | "eliminar_pdf_cotizacion" | "tareas" | "actividades";
 type AccessLevel = "todos" | "equipo" | "propio" | "ninguno";
 
 const ALL_ROLES: AppRole[] = ["admin", "manager", "sales", "delivery", "warehouse", "customer_service", "accounting"];
-const ALL_MODULES: AppModule[] = ["directorio", "crm_chevron", "crm_phillips66", "cotizaciones", "pedidos", "inventario", "entregas", "transferencias", "facturacion", "cobranza", "productos", "proyectos", "capacitacion", "reportes", "modificar_pdf_cotizacion", "eliminar_pdf_cotizacion"];
+const ALL_MODULES: AppModule[] = ["directorio", "crm_chevron", "crm_phillips66", "cotizaciones", "pedidos", "inventario", "entregas", "transferencias", "facturacion", "cobranza", "productos", "proyectos", "capacitacion", "reportes", "tareas", "actividades", "modificar_pdf_cotizacion", "eliminar_pdf_cotizacion"];
 const ACCESS_LEVELS: { value: AccessLevel; label: string }[] = [
   { value: "todos", label: "Todos" },
   { value: "equipo", label: "Equipo" },
@@ -34,6 +34,8 @@ const MODULE_LABELS: Record<AppModule, string> = {
   proyectos: "Proyectos",
   capacitacion: "Capacitación",
   reportes: "Reportes",
+  tareas: "Tareas",
+  actividades: "Actividades",
   modificar_pdf_cotizacion: "Modificar PDF Documento",
   eliminar_pdf_cotizacion: "Eliminar PDF Documento",
 };
