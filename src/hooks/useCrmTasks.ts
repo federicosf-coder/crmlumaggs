@@ -26,8 +26,7 @@ export interface CrmTask {
 
 export function useCrmTasks(filters?: { completed?: boolean; deal_id?: string; brand?: string }) {
   const { session } = useAuth();
-  const module = filters?.brand === "phillips66" ? "crm_phillips66" as const : "crm_chevron" as const;
-  const access = useModuleAccess(module);
+  const access = useModuleAccess("tareas");
 
   return useQuery({
     queryKey: ["crm_tasks", filters, access.accessLevel, access.teamMemberIds],
@@ -41,20 +40,32 @@ export function useCrmTasks(filters?: { completed?: boolean; deal_id?: string; b
       if (filters?.completed !== undefined) q = q.eq("completed", filters.completed);
       if (filters?.deal_id) q = q.eq("deal_id", filters.deal_id);
 
-      // Apply access filtering on user_id, include tasks where user is collaborator
+      // PROPIO: own tasks + tasks where I'm collaborator
+      // EQUIPO: tasks owned by team OR tasks where any team member is collaborator
+      // TODOS: no filter
       if (access.accessLevel === "propio" && access.userId) {
         const { data: collabRows } = await supabase
           .from("crm_task_collaborators")
           .select("task_id")
           .eq("user_id", access.userId);
-        const collabIds = collabRows?.map((r: any) => r.task_id) || [];
+        const collabIds = Array.from(new Set((collabRows || []).map((r: any) => r.task_id)));
         if (collabIds.length > 0) {
           q = q.or(`user_id.eq.${access.userId},id.in.(${collabIds.join(",")})`);
         } else {
           q = q.eq("user_id", access.userId);
         }
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
-        q = q.in("user_id", access.teamMemberIds);
+        const { data: collabRows } = await supabase
+          .from("crm_task_collaborators")
+          .select("task_id")
+          .in("user_id", access.teamMemberIds);
+        const collabIds = Array.from(new Set((collabRows || []).map((r: any) => r.task_id)));
+        const ids = access.teamMemberIds.join(",");
+        if (collabIds.length > 0) {
+          q = q.or(`user_id.in.(${ids}),id.in.(${collabIds.join(",")})`);
+        } else {
+          q = q.in("user_id", access.teamMemberIds);
+        }
       }
 
       const { data, error } = await q;
