@@ -43,13 +43,6 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(20);
 
-    // Productos del deal (si existen)
-    const { data: items } = await supabase
-      .from("crm_deal_items")
-      .select("cantidad, product:products(nombre, marca, viscosidad)")
-      .eq("deal_id", dealId)
-      .limit(30);
-
     const marca = (deal as any).crm_pipelines?.marca === "phillips66" ? "Phillips 66" : "Chevron";
     const stageName = (deal as any).crm_pipeline_stages?.name || "Desconocida";
     const empresa = (deal as any).companies?.name || "Sin empresa";
@@ -68,12 +61,6 @@ Deno.serve(async (req) => {
       empresa: (deal as any).companies,
       contacto: (deal as any).contacts,
       notas: deal.notes,
-      productos: (items || []).map((i: any) => ({
-        cantidad: i.cantidad,
-        nombre: i.product?.nombre,
-        marca: i.product?.marca,
-        viscosidad: i.product?.viscosidad,
-      })),
       actividades: (activities || []).map((a) => ({
         tipo: a.type, titulo: a.title, descripcion: a.description, fecha: a.created_at,
       })),
