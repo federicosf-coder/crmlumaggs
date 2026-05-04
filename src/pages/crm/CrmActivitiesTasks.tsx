@@ -6,6 +6,8 @@ import { CrmActivityItem } from "@/components/crm/CrmActivityItem";
 import { CrmTaskItem } from "@/components/crm/CrmTaskItem";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
+import { CrmActivityDetailDialog } from "@/components/crm/CrmActivityDetailDialog";
+import { CrmActivity } from "@/hooks/useCrmActivities";
 import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,7 @@ export default function CrmActivitiesTasks() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createDefaultDate, setCreateDefaultDate] = useState<string | undefined>();
   const [selectedTask, setSelectedTask] = useState<CrmTask | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<CrmActivity | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [sortBy, setSortBy] = useState("date_desc");
 
@@ -204,7 +207,7 @@ export default function CrmActivitiesTasks() {
             <>
               {tab === "all" && <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mt-4">Actividades</h3>}
               {filteredActivities.map((a) => (
-                <CrmActivityItem key={a.id} activity={a} />
+                <CrmActivityItem key={a.id} activity={a} onOpen={() => setSelectedActivity(a)} />
               ))}
             </>
           )}
@@ -309,6 +312,7 @@ export default function CrmActivitiesTasks() {
 
       <CreateCrmActivityTaskDialog open={createOpen} onOpenChange={setCreateOpen} defaultBrand={defaultBrand} defaultDate={createDefaultDate} />
       <CrmTaskDetailDialog task={selectedTask} open={!!selectedTask} onOpenChange={(o) => { if (!o) setSelectedTask(null); }} />
+      <CrmActivityDetailDialog activity={selectedActivity} open={!!selectedActivity} onOpenChange={(o) => { if (!o) setSelectedActivity(null); }} />
     </div>
   );
 }
