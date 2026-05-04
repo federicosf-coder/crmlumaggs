@@ -116,7 +116,7 @@ export function useCreateCrmActivity() {
 export function useUpdateCrmActivity() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; title?: string; description?: string | null; type?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; title?: string; description?: string | null; type?: string; company_id?: string | null; deal_id?: string | null; contact_id?: string | null }) => {
       const { data, error } = await supabase.from("crm_activities").update(updates).eq("id", id).select().single();
       if (error) throw error;
       return data;
