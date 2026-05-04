@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
       .select(`
         id, title, notes, potencial_unidades, close_date, mes_negocio, pipeline_type,
         companies(name),
-        contacts(first_name, last_name, position),
+        contacts(first_name, last_name),
         crm_pipeline_stages(name),
         crm_pipelines(nombre, marca)
       `)
