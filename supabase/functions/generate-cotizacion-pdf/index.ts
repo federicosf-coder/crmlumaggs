@@ -11,6 +11,26 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Require authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userClient = createClient(Deno.env.get("SUPABASE_URL")!, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { documento_id } = await req.json();
     if (!documento_id) throw new Error("documento_id requerido");
 
@@ -360,7 +380,11 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("PDF generation error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    const knownMessages = new Set(["documento_id requerido", "Documento no encontrado"]);
+    const msg = err instanceof Error && knownMessages.has(err.message)
+      ? err.message
+      : "Error interno al generar PDF";
+    return new Response(JSON.stringify({ error: msg }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
