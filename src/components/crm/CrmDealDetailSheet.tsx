@@ -20,6 +20,7 @@ import { CrmTaskItem } from "@/components/crm/CrmTaskItem";
 import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
 import { DealUnitsProgress } from "@/components/crm/DealUnitsProgress";
 import { DealDocumentsTab } from "@/components/crm/DealDocumentsTab";
+import { CrmDealStrategicAnalysis } from "@/components/crm/CrmDealStrategicAnalysis";
 import { formatCurrency, formatDate, formatMonthYear, lastDayOfMonth } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -451,6 +452,9 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                   <h4 className="text-sm font-semibold mb-3">Avance del negocio (en unidades)</h4>
                   <DealUnitsProgress deal={deal} />
                 </div>
+
+                <Separator />
+                <CrmDealStrategicAnalysis dealId={deal.id} />
               </TabsContent>
 
               {/* === Documentos Venta === */}
