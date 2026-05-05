@@ -100,8 +100,12 @@ export function CrmDealsListView({
                     {list.length === 0 ? (
                       <tr><td colSpan={9} className="px-3 py-4 text-center text-muted-foreground text-xs">Sin negocios</td></tr>
                     ) : list.map((d: any) => (
-                      <tr key={d.id} className="border-t hover:bg-muted/30">
-                        <td className="px-3 py-2">
+                      <tr
+                        key={d.id}
+                        className="border-t hover:bg-muted/30 cursor-pointer"
+                        onClick={() => onOpenDeal(d)}
+                      >
+                        <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedIds.has(d.id)}
                             onCheckedChange={() => onToggleSelect(d.id)}
@@ -116,7 +120,7 @@ export function CrmDealsListView({
                         <td className="px-3 py-2">{fmtDate(d.close_date)}</td>
                         <td className="px-3 py-2 text-right">{d.potencial_unidades ? Number(d.potencial_unidades).toLocaleString("es-MX") : "—"}</td>
                         <td className="px-3 py-2 text-right">{fmtMoney(d.value)}</td>
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onOpenDeal(d)} title="Abrir / Editar">
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
