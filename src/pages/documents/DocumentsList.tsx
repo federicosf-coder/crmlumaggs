@@ -280,7 +280,7 @@ export default function DocumentsList() {
   // seleccionar manualmente una plaza si lo desea.
 
   const { data: docs = [], isLoading, refetch } = useQuery({
-    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, estatusCobFilter, access.accessLevel, access.teamMemberIds],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, estatusCobFilter, access.accessLevel, access.teamMemberIds, assignedCompanyIds],
     queryFn: async () => {
       if (!access.canView) return [];
       let q = supabase
@@ -302,9 +302,23 @@ export default function DocumentsList() {
       if (tipoFilter === "factura" && estatusFacFilter !== "all") q = q.eq("estatus_factura", estatusFacFilter as any);
       if (tipoFilter === "factura" && estatusCobFilter !== "all") q = q.eq("estado_cobranza", estatusCobFilter as any);
       if (access.accessLevel === "propio" && access.userId) {
-        q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
+        const parts = [
+          `created_by.eq.${access.userId}`,
+          `ejecutivo_venta_id.eq.${access.userId}`,
+        ];
+        if (assignedCompanyIds.length > 0) {
+          parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        }
+        q = q.or(parts.join(","));
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
-        q = q.or(`created_by.in.(${access.teamMemberIds.join(",")}),ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`);
+        const parts = [
+          `created_by.in.(${access.teamMemberIds.join(",")})`,
+          `ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`,
+        ];
+        if (assignedCompanyIds.length > 0) {
+          parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        }
+        q = q.or(parts.join(","));
       }
       const data = await fetchAllRows<any>((from, to) => q.range(from, to));
       if (search) {
