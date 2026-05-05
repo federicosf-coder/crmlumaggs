@@ -390,6 +390,23 @@ export default function DocumentsList() {
   const safePage = Math.min(currentPage, totalPages);
   const pagedDocs = sortedDocs.slice((safePage - 1) * pageSize, safePage * pageSize);
 
+  // Helper for clickable sortable column headers
+  const cycleSort = (ascKey: string, descKey: string) => {
+    setSortBy(prev => prev === descKey ? ascKey : prev === ascKey ? descKey : descKey);
+  };
+  const SortableHead = ({ ascKey, descKey, children, className }: { ascKey: string; descKey: string; children: React.ReactNode; className?: string }) => {
+    const active = sortBy === ascKey || sortBy === descKey;
+    const arrow = sortBy === ascKey ? " ↑" : sortBy === descKey ? " ↓" : "";
+    return (
+      <TableHead
+        className={`cursor-pointer select-none hover:text-foreground ${active ? "text-foreground font-semibold" : ""} ${className || ""}`}
+        onClick={() => cycleSort(ascKey, descKey)}
+      >
+        {children}{arrow}
+      </TableHead>
+    );
+  };
+
   const handleDuplicate = async (e: React.MouseEvent, doc: any) => {
     e.stopPropagation();
     if (duplicating) return;
