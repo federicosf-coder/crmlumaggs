@@ -105,7 +105,7 @@ function getStatusBadgeClass(doc: any): string {
     enviada: "bg-sky-50 text-sky-700 border-sky-200",
     aceptada: "bg-green-50 text-green-700 border-green-200",
     rechazada: "bg-red-50 text-red-700 border-red-200",
-    vencida: "bg-orange-50 text-orange-700 border-orange-200",
+    vencida: "bg-red-50 text-red-700 border-red-200",
     confirmado_cliente: "bg-blue-50 text-blue-700 border-blue-200",
     espera_autorizacion_precio: "bg-yellow-50 text-yellow-700 border-yellow-200",
     precio_autorizado: "bg-teal-50 text-teal-700 border-teal-200",
