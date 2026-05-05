@@ -22,6 +22,7 @@ import { RegistrarPagoDialog } from "@/components/cobranza/RegistrarPagoDialog";
 import { AplicarPagoDialog } from "@/components/cobranza/AplicarPagoDialog";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 import { ColumnFilterBuilder, evaluateConditions, type ColumnFilterCondition, type ColumnFilterDef } from "@/components/cobranza/ColumnFilterBuilder";
+import { FacturasListEmbedded, type CobranzaPrefilter, type DaysBucket } from "@/components/cobranza/FacturasListEmbedded";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderTemplate, resolveEmailRecipients, type EmailRecipientItem } from "@/lib/templates";
@@ -199,6 +200,19 @@ function bucketLabel(dias: number | null): string {
   if (dias <= 20) return "11-20 días";
   if (dias <= 30) return "21-30 días";
   return "Más de 30 días";
+}
+
+function bucketLabelToBucket(label: string): DaysBucket | undefined {
+  switch (label) {
+    case "Vencidas": return "vencidas";
+    case "Vencen hoy": return "hoy";
+    case "1-5 días": return "1-5";
+    case "6-10 días": return "6-10";
+    case "11-20 días": return "11-20";
+    case "21-30 días": return "21-30";
+    case "Más de 30 días": return "+30";
+    default: return undefined;
+  }
 }
 
 export default function Cobranza() {
@@ -559,7 +573,10 @@ export default function Cobranza() {
             <BucketDetalle
               label={bucketSel.label}
               scopeLabel={bucketSel.scope === "credito" ? "Crédito Directo" : bucketSel.scope === "credito_cescemex" ? "Crédito Cescemex" : "Todas las facturas"}
-              facturas={(bucketSel.scope === "credito" ? facturasCreditoDirectoKpi : bucketSel.scope === "credito_cescemex" ? facturasCreditoCescemexKpi : facturas).filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(fechaVencimientoEfectiva(f))) === bucketSel.label)}
+              empresaVendedora={empresaVendedora}
+              plazaId={effectivePlazaId && effectivePlazaId !== "all" ? effectivePlazaId : null}
+              prefilter={bucketSel.scope === "credito" ? "credito_directo" : bucketSel.scope === "credito_cescemex" ? "credito_cescemex" : "none"}
+              daysBucket={bucketLabelToBucket(bucketSel.label)}
               onBack={() => setBucketSel(null)}
             />
           ) : (
@@ -749,72 +766,25 @@ export default function Cobranza() {
 
         {/* FACTURAS */}
         <TabsContent value="facturas" className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Input placeholder="Buscar por cliente o folio..." value={searchFacturas} onChange={(e) => setSearchFacturas(e.target.value)} className="max-w-md" />
-            <ColumnFilterBuilder
-              columns={facturasColumns}
-              conditions={facturasConditions}
-              onChange={setFacturasConditions}
-              combinator={facturasCombinator}
-              onCombinatorChange={setFacturasCombinator}
-            />
-            {facturasPrefilter !== "none" && (
+          {facturasPrefilter !== "none" && (
+            <div className="flex items-center gap-2">
               <Badge variant="secondary" className="gap-1">
-                {PREFILTER_LABEL[facturasPrefilter]}
+                Filtro: {PREFILTER_LABEL[facturasPrefilter]}
                 <button type="button" onClick={() => setFacturasPrefilter("none")} className="ml-1 hover:text-destructive">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
-            )}
-          </div>
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader><TableRow>
-                  <TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Plaza</TableHead>
-                  <TableHead>Emisión</TableHead><TableHead>Vence</TableHead><TableHead>Días</TableHead>
-                  <TableHead>Tipo de Pago</TableHead>
-                  <TableHead className="text-right">Total</TableHead><TableHead className="text-right">Saldo</TableHead>
-                  <TableHead>Estado</TableHead><TableHead></TableHead>
-                </TableRow></TableHeader>
-                <TableBody>
-                  {loadingDocs && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
-                  {!loadingDocs && facturasFiltradas.length === 0 && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Sin facturas</TableCell></TableRow>}
-                  {facturasFiltradas.map((f) => {
-                    const d = diasParaVencer(fechaVencimientoEfectiva(f));
-                    const aplicado = Number(f.total) - Number(f.saldo_pendiente_cobranza);
-                    return (
-                      <TableRow key={f.id}>
-                        <TableCell className="font-mono text-xs">{f.numero_factura || "—"}</TableCell>
-                        <TableCell className="truncate max-w-[200px]">{f.empresa?.name}</TableCell>
-                        <TableCell>{f.plaza?.nombre || "—"}</TableCell>
-                        <TableCell>{formatDate(f.fecha_documento)}</TableCell>
-                        <TableCell>{fechaVencimientoEfectiva(f) ? formatDate(fechaVencimientoEfectiva(f)!) : "—"}</TableCell>
-                        <TableCell><span className={d !== null && d < 0 ? "text-destructive font-medium" : ""}>{d ?? "—"}</span></TableCell>
-                        <TableCell className="text-xs">{tipoPagoLabel(f.tipo_pago)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
-                        <TableCell>
-                          <EstadoCobranzaBadge value={f.estatus_factura || f.estado_cobranza} />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Ver documento"
-                            title="Ver documento"
-                            onClick={() => navigate(`/documents/${f.id}/edit`)}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+            </div>
+          )}
+          <FacturasListEmbedded
+            empresaVendedora={empresaVendedora}
+            plazaId={effectivePlazaId && effectivePlazaId !== "all" ? effectivePlazaId : null}
+            prefilter={
+              facturasPrefilter === "vencimiento" ? "vencidas" :
+              facturasPrefilter === "credito_directo" ? "credito_directo" :
+              facturasPrefilter === "credito_cescemex" ? "credito_cescemex" : "none"
+            }
+          />
         </TabsContent>
       </Tabs>
 
@@ -1396,23 +1366,42 @@ function BucketReportCard({ title, buckets, onSelect }: { title: string; buckets
   );
 }
 
-function BucketDetalle({ label, scopeLabel, facturas, onBack }: { label: string; scopeLabel: string; facturas: any[]; onBack: () => void }) {
-  const total = facturas.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
-  const navigate = useNavigate();
+function BucketDetalle({ label, scopeLabel, empresaVendedora, plazaId, prefilter, daysBucket, onBack }: {
+  label: string;
+  scopeLabel: string;
+  empresaVendedora: "lumaggs_chevron" | "galsa_phillips66";
+  plazaId: string | null;
+  prefilter: CobranzaPrefilter;
+  daysBucket?: DaysBucket;
+  onBack: () => void;
+}) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <Button variant="outline" size="sm" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Regresar al dashboard
         </Button>
-        <div className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{facturas.length}</span> facturas · <span className="font-medium text-foreground">{formatCurrency(total)}</span>
+        <div className="text-sm text-muted-foreground font-medium text-foreground">
+          {scopeLabel} · {label}
         </div>
       </div>
-      <Card>
-        <CardHeader><CardTitle>{scopeLabel} · {label}</CardTitle></CardHeader>
-        <CardContent className="p-0">
-          <Table>
+      <FacturasListEmbedded
+        empresaVendedora={empresaVendedora}
+        plazaId={plazaId}
+        prefilter={prefilter}
+        daysBucket={daysBucket}
+      />
+    </div>
+  );
+}
+
+// Tabla heredada (no usada). Mantener stub vacío para evitar import dangling.
+function _LegacyBucketTable({ facturas }: { facturas: any[] }) {
+  const navigate = useNavigate();
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Folio</TableHead>
@@ -1461,9 +1450,8 @@ function BucketDetalle({ label, scopeLabel, facturas, onBack }: { label: string;
                 );
               })}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }
