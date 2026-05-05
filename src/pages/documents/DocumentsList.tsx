@@ -443,9 +443,19 @@ export default function DocumentsList() {
       }
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
       if (access.accessLevel === "propio" && access.userId) {
-        q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
+        const parts = [
+          `created_by.eq.${access.userId}`,
+          `ejecutivo_venta_id.eq.${access.userId}`,
+        ];
+        if (assignedCompanyIds.length > 0) parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        q = q.or(parts.join(","));
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
-        q = q.or(`created_by.in.(${access.teamMemberIds.join(",")}),ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`);
+        const parts = [
+          `created_by.in.(${access.teamMemberIds.join(",")})`,
+          `ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`,
+        ];
+        if (assignedCompanyIds.length > 0) parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        q = q.or(parts.join(","));
       }
       const data = await fetchAllRows<any>((from, to) => q.range(from, to));
       if (!data || data.length === 0) { toast.error("No hay datos para exportar"); return; }
