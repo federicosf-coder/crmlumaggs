@@ -182,6 +182,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
     ejecutivo_ids: [] as string[],
     comm_email: false, comm_email2: false, comm_whatsapp: false,
     comm_cel: false, comm_tel: false, comm_tel_emp: false,
+    sede: "" as "" | "mexicali" | "tijuana",
+    interes_ids: [] as string[],
   };
 
   const [form, setForm] = useState<any>(emptyForm);
