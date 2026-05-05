@@ -676,6 +676,8 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     title: string;
     description: string;
     formaPago?: string;
+    subjectOverride?: string;
+    htmlOverride?: string;
   }>({ templateName: "pago-confirmation", title: "Enviar confirmación", description: "" });
 
   useEffect(() => {
