@@ -458,8 +458,10 @@ export default function Cobranza() {
         default: return "";
       }
     }).sort((a, b) => {
-      const av = a.fecha_vencimiento ? new Date(a.fecha_vencimiento).getTime() : Infinity;
-      const bv = b.fecha_vencimiento ? new Date(b.fecha_vencimiento).getTime() : Infinity;
+      const afv = fechaVencimientoEfectiva(a);
+      const bfv = fechaVencimientoEfectiva(b);
+      const av = afv ? new Date(afv).getTime() : Infinity;
+      const bv = bfv ? new Date(bfv).getTime() : Infinity;
       return av - bv;
     });
   }, [facturas, searchFacturas, facturasConditions, facturasCombinator, facturasPrefilter]);
