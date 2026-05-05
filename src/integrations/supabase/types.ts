@@ -175,6 +175,9 @@ export type Database = {
           creado_por: string | null
           created_at: string
           empresa_id: string
+          empresa_vendedora:
+            | Database["public"]["Enums"]["empresa_vendedora"]
+            | null
           estado_pago: Database["public"]["Enums"]["estado_pago_cobranza"]
           estatus_pago: Database["public"]["Enums"]["estatus_pago_cobranza"]
           fecha_pago: string
@@ -194,6 +197,9 @@ export type Database = {
           creado_por?: string | null
           created_at?: string
           empresa_id: string
+          empresa_vendedora?:
+            | Database["public"]["Enums"]["empresa_vendedora"]
+            | null
           estado_pago?: Database["public"]["Enums"]["estado_pago_cobranza"]
           estatus_pago?: Database["public"]["Enums"]["estatus_pago_cobranza"]
           fecha_pago?: string
@@ -213,6 +219,9 @@ export type Database = {
           creado_por?: string | null
           created_at?: string
           empresa_id?: string
+          empresa_vendedora?:
+            | Database["public"]["Enums"]["empresa_vendedora"]
+            | null
           estado_pago?: Database["public"]["Enums"]["estado_pago_cobranza"]
           estatus_pago?: Database["public"]["Enums"]["estatus_pago_cobranza"]
           fecha_pago?: string

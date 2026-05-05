@@ -22,6 +22,7 @@ interface Props {
   onSaved: (pagoId?: string) => void;
   defaultEmpresaId?: string;
   defaultDocumentoId?: string;
+  empresaVendedora?: "lumaggs_chevron" | "galsa_phillips66" | null;
 }
 
 interface DocOption {
@@ -49,7 +50,7 @@ const FORMA_PAGO_OPTIONS: { value: FormaPago; label: string }[] = [
 
 const VALID_FORMAS: FormaPago[] = ["contado", "credito", "credito_cescemex"];
 
-export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpresaId, defaultDocumentoId }: Props) {
+export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpresaId, defaultDocumentoId, empresaVendedora }: Props) {
   const { user } = useAuth();
   const [companies, setCompanies] = useState<{ id: string; name: string; email?: string | null; tipo_pago?: string | null }[]>([]);
   const [docs, setDocs] = useState<DocOption[]>([]);
@@ -189,7 +190,8 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
       estatus_pago: "recibido",
       observaciones: observaciones || null,
       creado_por: user?.id,
-    }).select("id").single();
+      ...(empresaVendedora ? { empresa_vendedora: empresaVendedora } : {}),
+    } as any).select("id").single();
 
     if (error || !pago) { setSaving(false); toast.error(error?.message || "Error"); return; }
 

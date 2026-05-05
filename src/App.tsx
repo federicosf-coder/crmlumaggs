@@ -31,6 +31,7 @@ import CrmByCompany from "@/pages/crm/CrmByCompany";
 import NotFound from "@/pages/NotFound";
 import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
 import Cobranza from "@/pages/cobranza/Cobranza";
+import CobranzaLanding from "@/pages/cobranza/CobranzaLanding";
 import Unsubscribe from "@/pages/Unsubscribe";
 import WhatsAppInbox from "@/pages/whatsapp/WhatsAppInbox";
 import WhatsAppCampaigns from "@/pages/whatsapp/WhatsAppCampaigns";
@@ -98,7 +99,8 @@ const App = () => (
             <Route path="/delivery" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/schedule" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/entrega/:id" element={<ProtectedRoute><EntregaDetalle /></ProtectedRoute>} />
-            <Route path="/cobranza" element={<ProtectedRoute><Cobranza /></ProtectedRoute>} />
+            <Route path="/cobranza" element={<ProtectedRoute><CobranzaLanding /></ProtectedRoute>} />
+            <Route path="/cobranza/:brand" element={<ProtectedRoute><Cobranza /></ProtectedRoute>} />
             <Route path="/whatsapp" element={<ProtectedRoute><WhatsAppInbox /></ProtectedRoute>} />
             <Route path="/whatsapp/campaigns" element={<ProtectedRoute><WhatsAppCampaigns /></ProtectedRoute>} />
             <Route path="/whatsapp/templates" element={<ProtectedRoute><WhatsAppTemplates /></ProtectedRoute>} />
