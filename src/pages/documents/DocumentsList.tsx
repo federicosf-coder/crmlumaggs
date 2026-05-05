@@ -167,6 +167,11 @@ export default function DocumentsList() {
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
 
+  // Pagination
+  const [pageSize, setPageSize] = useState<number>(50);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize]);
+
   // Extra filter toolbar state
   const [tipoPagoFilter, setTipoPagoFilter] = useState<string>("all");
   const [fechaDesde, setFechaDesde] = useState<string>("");
