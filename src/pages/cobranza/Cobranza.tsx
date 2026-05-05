@@ -202,6 +202,19 @@ function bucketLabel(dias: number | null): string {
   return "Más de 30 días";
 }
 
+function bucketLabelToBucket(label: string): DaysBucket | undefined {
+  switch (label) {
+    case "Vencidas": return "vencidas";
+    case "Vencen hoy": return "hoy";
+    case "1-5 días": return "1-5";
+    case "6-10 días": return "6-10";
+    case "11-20 días": return "11-20";
+    case "21-30 días": return "21-30";
+    case "Más de 30 días": return "+30";
+    default: return undefined;
+  }
+}
+
 export default function Cobranza() {
   const { hasAnyRole, profile } = useAuth();
   const { brand } = useParams<{ brand: string }>();
