@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2, Download, Upload, Mail, Globe, Briefcase, Users, Tag, FileText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Merge } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
@@ -85,6 +86,7 @@ const TAB_COLORS: Record<string, { active: string; border: string }> = {
 
 export default function Directory() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const activeTab = searchParams.get("tab") || "companies";
   const selectId = searchParams.get("select");
   const { hasRole } = useAuth();
@@ -449,6 +451,16 @@ export default function Directory() {
               </Button>
             );
           })}
+          <Button
+            size="sm"
+            variant="outline"
+            className="transition-all duration-150 gap-1.5 bg-background text-foreground border border-input hover:bg-accent"
+            onClick={() => navigate("/directory/addresses")}
+            title="Gestiona las direcciones de entrega, fiscal y comercial de las empresas"
+          >
+            <MapPin className="h-4 w-4" />
+            Direcciones
+          </Button>
         </div>
         <div className="flex gap-1">
           <Button variant={view === "list" ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setView("list")}>

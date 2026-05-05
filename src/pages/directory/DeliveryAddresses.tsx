@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Plus, Search, Pencil } from "lucide-react";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { BackButton } from "@/components/BackButton";
 
 interface TipoCatalogItem {
   id: string;
@@ -207,6 +208,7 @@ export default function DeliveryAddresses() {
 
   return (
     <div className="space-y-4">
+      <BackButton fallback="/directory" />
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Direcciones</h1>
