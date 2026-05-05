@@ -3902,8 +3902,8 @@ export type Database = {
       }
       company_has_sold_units: {
         Args: {
-          _empresa_id: string
-          _ev: Database["public"]["Enums"]["empresa_vendedora"]
+          _company_id: string
+          _empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
         }
         Returns: boolean
       }
