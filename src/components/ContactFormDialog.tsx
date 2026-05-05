@@ -357,6 +357,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
       comm_cel: form.comm_cel,
       comm_tel: form.comm_tel,
       comm_tel_emp: form.comm_tel_emp,
+      sede: form.sede || null,
     };
 
     let contactId: string;
@@ -379,6 +380,13 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
     if (form.ejecutivo_ids.length > 0) {
       await supabase.from("contact_ejecutivos").insert(
         form.ejecutivo_ids.map((uid: string) => ({ contact_id: contactId, user_id: uid }))
+      );
+    }
+
+    await (supabase as any).from("contacto_intereses").delete().eq("contacto_id", contactId);
+    if (form.interes_ids.length > 0) {
+      await (supabase as any).from("contacto_intereses").insert(
+        form.interes_ids.map((iid: string) => ({ contacto_id: contactId, interes_id: iid }))
       );
     }
 
