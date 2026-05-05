@@ -413,10 +413,11 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
             </div>
           ) : (
             <Tabs defaultValue="resumen" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="resumen" className="text-xs">Resumen</TabsTrigger>
                 <TabsTrigger value="documentos" className="text-xs">Documentos Venta</TabsTrigger>
                 <TabsTrigger value="seguimiento" className="text-xs">Seguimiento</TabsTrigger>
+                <TabsTrigger value="evaluacion" className="text-xs">Evaluación Cliente</TabsTrigger>
               </TabsList>
 
               {/* === Resumen === */}
@@ -533,6 +534,15 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                   )}
                 </div>
               </TabsContent>
+
+              {/* === Evaluación Cliente === */}
+              <TabsContent value="evaluacion" className="mt-4">
+                {deal.company_id ? (
+                  <CompanyEvaluacionTab companyId={deal.company_id} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">Asigna una empresa al negocio para evaluarla.</p>
+                )}
+              </TabsContent>
             </Tabs>
           )}
 
@@ -553,8 +563,51 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          </div>
+
+          {/* Right column: recent activities + pending tasks */}
+          <aside className="space-y-6 lg:border-l lg:pl-6">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-semibold">Tareas pendientes</h4>
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setTaskDialogOpen(true)}>
+                  <Plus className="h-3 w-3 mr-1" /> Nueva
+                </Button>
+              </div>
+              {!tasks?.length ? (
+                <p className="text-xs text-muted-foreground">Sin tareas.</p>
+              ) : (
+                <div className="space-y-2">{tasks.slice(0, 5).map((t) => <CrmTaskItem key={t.id} task={t} />)}</div>
+              )}
+            </div>
+            <Separator />
+            <div>
+              <h4 className="text-sm font-semibold mb-2">Actividades recientes</h4>
+              {dealActivities.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Sin actividades.</p>
+              ) : (
+                <div className="space-y-3">
+                  {dealActivities.slice(0, 5).map((a) => (
+                    <div key={a.id} className="flex gap-2 text-xs">
+                      <div className="mt-0.5">
+                        {a.type === "call" && <Phone className="h-3.5 w-3.5 text-blue-500" />}
+                        {a.type === "email" && <Mail className="h-3.5 w-3.5 text-purple-500" />}
+                        {a.type === "meeting" && <Calendar className="h-3.5 w-3.5 text-orange-500" />}
+                        {a.type === "note" && <FileText className="h-3.5 w-3.5 text-green-500" />}
+                        {a.type === "whatsapp" && <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{a.title}</p>
+                        <p className="text-muted-foreground">{formatRelativeDate(a.created_at)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
         </div>
-      </SheetContent>
+      </DialogContent>
       <CreateCrmTaskDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} defaultDealId={deal.id} />
       <CompanyFormDialog
         open={companyDialogOpen}
@@ -576,6 +629,6 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
           }
         }}
       />
-    </Sheet>
+    </Dialog>
   );
 }
