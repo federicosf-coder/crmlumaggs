@@ -3924,13 +3924,18 @@ export type Database = {
         }[]
       }
       get_company_metrics: {
-        Args: { _company_id: string; _marca: string }
+        Args: { _company_id: string; _marca?: string }
         Returns: {
+          marca_label: string
           promedio_mensual_subtotal: number
           promedio_mensual_unidades: number
           total_subtotal: number
           total_unidades: number
         }[]
+      }
+      get_company_saldo_vencido: {
+        Args: { _company_id: string }
+        Returns: number
       }
       get_or_create_deal_recompra_mes: {
         Args: { p_company_id: string; p_marca: string; p_mes?: string }
