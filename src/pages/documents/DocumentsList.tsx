@@ -1047,10 +1047,14 @@ export default function DocumentsList() {
                           </TableCell>
                         )}
                         {tipoFilter !== "entrega_corporativa" && isColVisible("tipo_pago") && (() => {
-                          const tp = getTipoPagoInfo(doc.condiciones_pago);
+                          const tp = getTipoPagoInfo(doc.tipo_pago ?? doc.condiciones_pago);
                           return (
                             <TableCell>
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${tp.cls}`}>{tp.label}</span>
+                              {tp.cls ? (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${tp.cls}`}>{tp.label}</span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
                             </TableCell>
                           );
                         })()}
