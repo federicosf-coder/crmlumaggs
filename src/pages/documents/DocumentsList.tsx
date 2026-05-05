@@ -234,6 +234,21 @@ export default function DocumentsList() {
   const docModule = tipoFilter === "factura" ? "facturacion" as const : "cotizaciones" as const;
   const access = useModuleAccess(docModule);
 
+  // Companies assigned to the current user (matches RLS: documentos.empresa_id IN ejecutivos)
+  const { data: assignedCompanyIds = [] } = useQuery({
+    queryKey: ["my-assigned-companies", access.userId],
+    queryFn: async () => {
+      if (!access.userId) return [] as string[];
+      const { data, error } = await supabase
+        .from("company_ejecutivos")
+        .select("company_id")
+        .eq("user_id", access.userId);
+      if (error) throw error;
+      return (data || []).map((r: any) => r.company_id);
+    },
+    enabled: !!access.userId,
+  });
+
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-for-filter"],
     queryFn: async () => {
@@ -265,7 +280,7 @@ export default function DocumentsList() {
   // seleccionar manualmente una plaza si lo desea.
 
   const { data: docs = [], isLoading, refetch } = useQuery({
-    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, estatusCobFilter, access.accessLevel, access.teamMemberIds],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, estatusCobFilter, access.accessLevel, access.teamMemberIds, assignedCompanyIds],
     queryFn: async () => {
       if (!access.canView) return [];
       let q = supabase
@@ -287,9 +302,23 @@ export default function DocumentsList() {
       if (tipoFilter === "factura" && estatusFacFilter !== "all") q = q.eq("estatus_factura", estatusFacFilter as any);
       if (tipoFilter === "factura" && estatusCobFilter !== "all") q = q.eq("estado_cobranza", estatusCobFilter as any);
       if (access.accessLevel === "propio" && access.userId) {
-        q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
+        const parts = [
+          `created_by.eq.${access.userId}`,
+          `ejecutivo_venta_id.eq.${access.userId}`,
+        ];
+        if (assignedCompanyIds.length > 0) {
+          parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        }
+        q = q.or(parts.join(","));
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
-        q = q.or(`created_by.in.(${access.teamMemberIds.join(",")}),ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`);
+        const parts = [
+          `created_by.in.(${access.teamMemberIds.join(",")})`,
+          `ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`,
+        ];
+        if (assignedCompanyIds.length > 0) {
+          parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        }
+        q = q.or(parts.join(","));
       }
       const data = await fetchAllRows<any>((from, to) => q.range(from, to));
       if (search) {
@@ -414,9 +443,19 @@ export default function DocumentsList() {
       }
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
       if (access.accessLevel === "propio" && access.userId) {
-        q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
+        const parts = [
+          `created_by.eq.${access.userId}`,
+          `ejecutivo_venta_id.eq.${access.userId}`,
+        ];
+        if (assignedCompanyIds.length > 0) parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        q = q.or(parts.join(","));
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
-        q = q.or(`created_by.in.(${access.teamMemberIds.join(",")}),ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`);
+        const parts = [
+          `created_by.in.(${access.teamMemberIds.join(",")})`,
+          `ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`,
+        ];
+        if (assignedCompanyIds.length > 0) parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        q = q.or(parts.join(","));
       }
       const data = await fetchAllRows<any>((from, to) => q.range(from, to));
       if (!data || data.length === 0) { toast.error("No hay datos para exportar"); return; }
