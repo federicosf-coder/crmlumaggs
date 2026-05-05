@@ -237,6 +237,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
         comm_cel: !!editData.comm_cel,
         comm_tel: !!editData.comm_tel,
         comm_tel_emp: !!editData.comm_tel_emp,
+        sede: (editData.sede || "") as "" | "mexicali" | "tijuana",
+        interes_ids: [] as string[],
       };
       setForm(seeded);
       autosave.seed(seeded);
