@@ -292,9 +292,9 @@ export default function DocumentsList() {
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
       if (plazaFilter && plazaFilter !== "all") q = q.or(`plaza_id.eq.${plazaFilter},plaza_id.is.null`);
-      if (tipoPagoFilter === "contado") q = q.ilike("condiciones_pago", "%contado%");
-      else if (tipoPagoFilter === "directo") q = q.ilike("condiciones_pago", "%directo%");
-      else if (tipoPagoFilter === "cescemex") q = q.ilike("condiciones_pago", "%cescemex%");
+      if (tipoPagoFilter === "contado") q = q.eq("tipo_pago", "contado" as any);
+      else if (tipoPagoFilter === "directo") q = q.eq("tipo_pago", "credito_directo" as any);
+      else if (tipoPagoFilter === "cescemex") q = q.eq("tipo_pago", "credito_cescemex" as any);
       if (fechaDesde) q = q.gte("fecha_documento", fechaDesde);
       if (fechaHasta) q = q.lte("fecha_documento", fechaHasta);
       if (tipoFilter === "cotizacion" && estatusCotFilter !== "all") q = q.eq("estatus_cotizacion", estatusCotFilter as any);
