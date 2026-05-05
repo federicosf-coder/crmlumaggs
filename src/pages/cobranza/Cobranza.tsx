@@ -336,9 +336,10 @@ export default function Cobranza() {
 
   // Helpers de clasificación compartidos
   const isVencida = (f: typeof facturas[number]) => {
-    if (!f.fecha_vencimiento) return false;
+    const fv = fechaVencimientoEfectiva(f);
+    if (!fv) return false;
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const v = new Date(f.fecha_vencimiento); v.setHours(0, 0, 0, 0);
+    const v = new Date(fv); v.setHours(0, 0, 0, 0);
     return v.getTime() < hoy.getTime();
   };
   const isCreditoDirecto = (f: typeof facturas[number]) => (f.tipo_pago || "").toLowerCase().includes("directo") || f.tipo_pago === "credito";
@@ -354,7 +355,7 @@ export default function Cobranza() {
   const cartera = useMemo(() => {
     const abierta = facturas.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
     const vencida = facturas.filter((f) => {
-      const d = diasParaVencer(f.fecha_vencimiento);
+      const d = diasParaVencer(fechaVencimientoEfectiva(f));
       return d !== null && d < 0 && Number(f.saldo_pendiente_cobranza) > 0;
     }).reduce((s, f) => s + Number(f.saldo_pendiente_cobranza), 0);
     const porVencer = abierta - vencida;
@@ -374,7 +375,7 @@ export default function Cobranza() {
     orden.forEach((b) => acc[b] = { count: 0, monto: 0 });
     lista.forEach((f) => {
       if (Number(f.saldo_pendiente_cobranza) <= 0) return;
-      const lbl = bucketLabel(diasParaVencer(f.fecha_vencimiento));
+      const lbl = bucketLabel(diasParaVencer(fechaVencimientoEfectiva(f)));
       if (acc[lbl]) { acc[lbl].count++; acc[lbl].monto += Number(f.saldo_pendiente_cobranza); }
     });
     return orden.map((b) => ({ label: b, ...acc[b] }));
@@ -386,8 +387,8 @@ export default function Cobranza() {
 
   const proximasVencer = useMemo(() => {
     return [...facturas]
-      .filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && f.fecha_vencimiento)
-      .sort((a, b) => new Date(a.fecha_vencimiento!).getTime() - new Date(b.fecha_vencimiento!).getTime())
+      .filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && fechaVencimientoEfectiva(f))
+      .sort((a, b) => new Date(fechaVencimientoEfectiva(a)!).getTime() - new Date(fechaVencimientoEfectiva(b)!).getTime())
       .slice(0, 8);
   }, [facturas]);
 
@@ -448,8 +449,8 @@ export default function Cobranza() {
         case "empresa": return f.empresa?.name || "";
         case "plaza": return f.plaza?.nombre || "";
         case "fecha_documento": return f.fecha_documento;
-        case "fecha_vencimiento": return f.fecha_vencimiento;
-        case "dias": return diasParaVencer(f.fecha_vencimiento);
+        case "fecha_vencimiento": return fechaVencimientoEfectiva(f);
+        case "dias": return diasParaVencer(fechaVencimientoEfectiva(f));
         case "total": return Number(f.total);
         case "saldo_pendiente_cobranza": return Number(f.saldo_pendiente_cobranza);
         case "tipo_pago": return f.tipo_pago || "";
@@ -556,7 +557,7 @@ export default function Cobranza() {
             <BucketDetalle
               label={bucketSel.label}
               scopeLabel={bucketSel.scope === "credito" ? "Crédito Directo" : bucketSel.scope === "credito_cescemex" ? "Crédito Cescemex" : "Todas las facturas"}
-              facturas={(bucketSel.scope === "credito" ? facturasCreditoDirectoKpi : bucketSel.scope === "credito_cescemex" ? facturasCreditoCescemexKpi : facturas).filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(f.fecha_vencimiento)) === bucketSel.label)}
+              facturas={(bucketSel.scope === "credito" ? facturasCreditoDirectoKpi : bucketSel.scope === "credito_cescemex" ? facturasCreditoCescemexKpi : facturas).filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(fechaVencimientoEfectiva(f))) === bucketSel.label)}
               onBack={() => setBucketSel(null)}
             />
           ) : (
@@ -630,14 +631,14 @@ export default function Cobranza() {
                   <TableBody>
                     {proximasVencer.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin facturas pendientes</TableCell></TableRow>}
                     {proximasVencer.map((f) => {
-                      const d = diasParaVencer(f.fecha_vencimiento);
+                      const d = diasParaVencer(fechaVencimientoEfectiva(f));
                       return (
                         <TableRow key={f.id}>
                           <TableCell className="font-mono text-xs">{f.numero_factura || "—"}</TableCell>
                           <TableCell className="truncate max-w-[160px]">{f.empresa?.name}</TableCell>
                           <TableCell>
                             <span className={d !== null && d < 0 ? "text-destructive font-medium" : ""}>
-                              {f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : "—"}
+                              {fechaVencimientoEfectiva(f) ? formatDate(fechaVencimientoEfectiva(f)!) : "—"}
                               {d !== null && <span className="text-xs text-muted-foreground ml-1">({d}d)</span>}
                             </span>
                           </TableCell>
@@ -778,7 +779,7 @@ export default function Cobranza() {
                   {loadingDocs && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
                   {!loadingDocs && facturasFiltradas.length === 0 && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Sin facturas</TableCell></TableRow>}
                   {facturasFiltradas.map((f) => {
-                    const d = diasParaVencer(f.fecha_vencimiento);
+                    const d = diasParaVencer(fechaVencimientoEfectiva(f));
                     const aplicado = Number(f.total) - Number(f.saldo_pendiente_cobranza);
                     return (
                       <TableRow key={f.id}>
@@ -786,7 +787,7 @@ export default function Cobranza() {
                         <TableCell className="truncate max-w-[200px]">{f.empresa?.name}</TableCell>
                         <TableCell>{f.plaza?.nombre || "—"}</TableCell>
                         <TableCell>{formatDate(f.fecha_documento)}</TableCell>
-                        <TableCell>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : "—"}</TableCell>
+                        <TableCell>{fechaVencimientoEfectiva(f) ? formatDate(fechaVencimientoEfectiva(f)!) : "—"}</TableCell>
                         <TableCell><span className={d !== null && d < 0 ? "text-destructive font-medium" : ""}>{d ?? "—"}</span></TableCell>
                         <TableCell className="text-xs">{tipoPagoLabel(f.tipo_pago)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
@@ -1430,14 +1431,14 @@ function BucketDetalle({ label, scopeLabel, facturas, onBack }: { label: string;
                 <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Sin facturas en este grupo</TableCell></TableRow>
               )}
               {facturas.map((f) => {
-                const d = diasParaVencer(f.fecha_vencimiento);
+                const d = diasParaVencer(fechaVencimientoEfectiva(f));
                 return (
                   <TableRow key={f.id}>
                     <TableCell className="font-mono text-xs">{f.numero_factura || "—"}</TableCell>
                     <TableCell className="truncate max-w-[200px]">{f.empresa?.name || "—"}</TableCell>
                     <TableCell>{f.plaza?.nombre || "—"}</TableCell>
                     <TableCell>{formatDate(f.fecha_documento)}</TableCell>
-                    <TableCell>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : "—"}</TableCell>
+                    <TableCell>{fechaVencimientoEfectiva(f) ? formatDate(fechaVencimientoEfectiva(f)!) : "—"}</TableCell>
                     <TableCell><span className={d !== null && d < 0 ? "text-destructive font-medium" : ""}>{d ?? "—"}</span></TableCell>
                     <TableCell className="text-xs">{tipoPagoLabel(f.tipo_pago)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
