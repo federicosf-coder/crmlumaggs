@@ -47,6 +47,102 @@ function resolveCredentials(phoneNumberId: string | null | undefined) {
   return { TOKEN, phoneId: phoneNumberId ?? null };
 }
 
+/**
+ * Descarga un media de WhatsApp (document/image/audio/video/sticker) y lo
+ * sube al bucket privado `whatsapp-media`. Devuelve metadatos para persistir
+ * en `whatsapp_messages`.
+ */
+async function downloadAndStoreMedia(
+  admin: ReturnType<typeof createClient>,
+  mediaId: string,
+  fallbackFilename: string | null,
+  fallbackMime: string | null,
+  conversationId: string | null,
+): Promise<{
+  storage_path: string | null;
+  public_url: string | null;
+  mime_type: string | null;
+  filename: string | null;
+  size_bytes: number | null;
+}> {
+  const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+  if (!TOKEN || !mediaId) {
+    return { storage_path: null, public_url: null, mime_type: fallbackMime, filename: fallbackFilename, size_bytes: null };
+  }
+  try {
+    // 1) Resolver URL temporal del media
+    const metaRes = await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, {
+      headers: { Authorization: `Bearer ${TOKEN}` },
+    });
+    if (!metaRes.ok) {
+      console.warn(`[wa-webhook] media metadata failed (${metaRes.status})`);
+      return { storage_path: null, public_url: null, mime_type: fallbackMime, filename: fallbackFilename, size_bytes: null };
+    }
+    const meta = await metaRes.json();
+    const mediaUrl: string | undefined = meta?.url;
+    const mimeType: string = meta?.mime_type ?? fallbackMime ?? "application/octet-stream";
+    if (!mediaUrl) {
+      return { storage_path: null, public_url: null, mime_type: mimeType, filename: fallbackFilename, size_bytes: null };
+    }
+    // 2) Descargar binario (requiere Bearer)
+    const fileRes = await fetch(mediaUrl, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    if (!fileRes.ok) {
+      console.warn(`[wa-webhook] media download failed (${fileRes.status})`);
+      return { storage_path: null, public_url: null, mime_type: mimeType, filename: fallbackFilename, size_bytes: null };
+    }
+    const buf = new Uint8Array(await fileRes.arrayBuffer());
+    // 3) Determinar nombre y ruta
+    const extFromMime = (() => {
+      const m = mimeType.toLowerCase();
+      if (m.includes("pdf")) return "pdf";
+      if (m.includes("msword")) return "doc";
+      if (m.includes("officedocument.wordprocessingml")) return "docx";
+      if (m.includes("ms-excel")) return "xls";
+      if (m.includes("officedocument.spreadsheetml")) return "xlsx";
+      if (m.includes("powerpoint")) return "ppt";
+      if (m.includes("officedocument.presentationml")) return "pptx";
+      if (m.includes("plain")) return "txt";
+      if (m.includes("csv")) return "csv";
+      if (m.includes("zip")) return "zip";
+      if (m.includes("jpeg")) return "jpg";
+      if (m.includes("png")) return "png";
+      if (m.includes("webp")) return "webp";
+      if (m.includes("ogg")) return "ogg";
+      if (m.includes("mpeg")) return "mp3";
+      if (m.includes("mp4")) return "mp4";
+      return "bin";
+    })();
+    const safeBase = (fallbackFilename ?? `${mediaId}.${extFromMime}`)
+      .replace(/[^\w.\-]+/g, "_")
+      .slice(0, 120);
+    const finalName = safeBase.includes(".") ? safeBase : `${safeBase}.${extFromMime}`;
+    const folder = conversationId ?? "unlinked";
+    const storagePath = `${folder}/${Date.now()}_${mediaId}_${finalName}`;
+    // 4) Subir a Storage
+    const { error: upErr } = await admin.storage
+      .from("whatsapp-media")
+      .upload(storagePath, buf, { contentType: mimeType, upsert: false });
+    if (upErr) {
+      console.warn("[wa-webhook] storage upload failed:", upErr);
+      return { storage_path: null, public_url: null, mime_type: mimeType, filename: finalName, size_bytes: buf.byteLength };
+    }
+    // Bucket es privado: generamos URL firmada de larga duración (7 días) como referencia.
+    const { data: signed } = await admin.storage
+      .from("whatsapp-media")
+      .createSignedUrl(storagePath, 60 * 60 * 24 * 7);
+    return {
+      storage_path: storagePath,
+      public_url: signed?.signedUrl ?? null,
+      mime_type: mimeType,
+      filename: finalName,
+      size_bytes: buf.byteLength,
+    };
+  } catch (e) {
+    console.warn("[wa-webhook] downloadAndStoreMedia exception:", e);
+    return { storage_path: null, public_url: null, mime_type: fallbackMime, filename: fallbackFilename, size_bytes: null };
+  }
+}
+
 async function sendWhatsAppText(toPhone: string, text: string, businessPhoneId?: string | null) {
   const { TOKEN, phoneId } = resolveCredentials(businessPhoneId);
   if (!TOKEN || !phoneId) return { ok: false, error: "Missing WhatsApp credentials" };
@@ -309,16 +405,51 @@ Deno.serve(async (req) => {
               console.warn("Conversation persistence exception; message will still be saved:", conversationException);
             }
 
+            // ===== Descarga de media (document, image, audio, video, sticker) =====
+            let mediaInfo: {
+              storage_path: string | null;
+              public_url: string | null;
+              mime_type: string | null;
+              filename: string | null;
+              size_bytes: number | null;
+            } = { storage_path: null, public_url: null, mime_type: null, filename: null, size_bytes: null };
+            const mediaTypes = ["document", "image", "audio", "video", "sticker"] as const;
+            const mType = msg?.type as string | undefined;
+            if (mType && (mediaTypes as readonly string[]).includes(mType)) {
+              const mediaNode = msg[mType];
+              const mediaId = mediaNode?.id;
+              if (mediaId) {
+                mediaInfo = await downloadAndStoreMedia(
+                  admin,
+                  mediaId,
+                  mediaNode?.filename ?? null,
+                  mediaNode?.mime_type ?? null,
+                  conversationId,
+                );
+              }
+            }
+            // Para documentos, usamos el filename como cuerpo si no hay caption
+            const captionText = msg?.[mType ?? ""]?.caption ?? null;
+            const bodyToStore =
+              mType === "document"
+                ? captionText ?? mediaInfo.filename ?? text
+                : captionText ?? text;
+
             const { error: insErr } = await admin.from("whatsapp_messages").insert({
               wa_id: msg?.id ?? null,
               sender_phone: fromPhone,
-              message_body: text,
+              message_body: bodyToStore,
               direction: "inbound",
               status: "received",
               contact_id: contactId,
               conversation_id: conversationId,
               wa_profile_name: profileName,
               media_type: msg?.type ?? null,
+              media_url: mediaInfo.public_url,
+              media_storage_path: mediaInfo.storage_path,
+              media_filename: mediaInfo.filename,
+              media_mime_type: mediaInfo.mime_type,
+              media_size_bytes: mediaInfo.size_bytes,
               business_phone_number_id: businessPhoneId,
               whatsapp_account_id: whatsappAccountId,
             });
