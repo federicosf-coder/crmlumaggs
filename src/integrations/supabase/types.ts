@@ -2914,46 +2914,58 @@ export type Database = {
       }
       templates: {
         Row: {
+          bcc_emails: Json
           body: string
           category: Database["public"]["Enums"]["template_category"]
+          cc_emails: Json
           created_at: string
           created_by: string | null
           description: string | null
           id: string
           is_active: boolean
           name: string
+          reply_to: string | null
           subject: string | null
           system_key: string | null
+          to_emails: Json
           type: Database["public"]["Enums"]["template_type"]
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          bcc_emails?: Json
           body: string
           category?: Database["public"]["Enums"]["template_category"]
+          cc_emails?: Json
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           name: string
+          reply_to?: string | null
           subject?: string | null
           system_key?: string | null
+          to_emails?: Json
           type: Database["public"]["Enums"]["template_type"]
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          bcc_emails?: Json
           body?: string
           category?: Database["public"]["Enums"]["template_category"]
+          cc_emails?: Json
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           name?: string
+          reply_to?: string | null
           subject?: string | null
           system_key?: string | null
+          to_emails?: Json
           type?: Database["public"]["Enums"]["template_type"]
           updated_at?: string
           updated_by?: string | null
