@@ -234,6 +234,21 @@ export default function DocumentsList() {
   const docModule = tipoFilter === "factura" ? "facturacion" as const : "cotizaciones" as const;
   const access = useModuleAccess(docModule);
 
+  // Companies assigned to the current user (matches RLS: documentos.empresa_id IN ejecutivos)
+  const { data: assignedCompanyIds = [] } = useQuery({
+    queryKey: ["my-assigned-companies", access.userId],
+    queryFn: async () => {
+      if (!access.userId) return [] as string[];
+      const { data, error } = await supabase
+        .from("company_ejecutivos")
+        .select("company_id")
+        .eq("user_id", access.userId);
+      if (error) throw error;
+      return (data || []).map((r: any) => r.company_id);
+    },
+    enabled: !!access.userId,
+  });
+
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-for-filter"],
     queryFn: async () => {
