@@ -265,7 +265,7 @@ export default function DocumentsList() {
   // seleccionar manualmente una plaza si lo desea.
 
   const { data: docs = [], isLoading, refetch } = useQuery({
-    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, access.accessLevel, access.teamMemberIds],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, estatusCobFilter, access.accessLevel, access.teamMemberIds],
     queryFn: async () => {
       if (!access.canView) return [];
       let q = supabase
@@ -277,6 +277,15 @@ export default function DocumentsList() {
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
       if (plazaFilter && plazaFilter !== "all") q = q.eq("plaza_id", plazaFilter);
+      if (tipoPagoFilter === "contado") q = q.ilike("condiciones_pago", "%contado%");
+      else if (tipoPagoFilter === "directo") q = q.ilike("condiciones_pago", "%directo%");
+      else if (tipoPagoFilter === "cescemex") q = q.ilike("condiciones_pago", "%cescemex%");
+      if (fechaDesde) q = q.gte("fecha_documento", fechaDesde);
+      if (fechaHasta) q = q.lte("fecha_documento", fechaHasta);
+      if (tipoFilter === "cotizacion" && estatusCotFilter !== "all") q = q.eq("estatus_cotizacion", estatusCotFilter as any);
+      if (tipoFilter === "pedido" && estatusPedFilter !== "all") q = q.eq("estatus_pedido", estatusPedFilter as any);
+      if (tipoFilter === "factura" && estatusFacFilter !== "all") q = q.eq("estatus_factura", estatusFacFilter as any);
+      if (tipoFilter === "factura" && estatusCobFilter !== "all") q = q.eq("estado_cobranza", estatusCobFilter as any);
       if (access.accessLevel === "propio" && access.userId) {
         q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
