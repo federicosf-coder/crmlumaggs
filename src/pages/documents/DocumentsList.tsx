@@ -167,6 +167,32 @@ export default function DocumentsList() {
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
 
+  // Extra filter toolbar state
+  const [tipoPagoFilter, setTipoPagoFilter] = useState<string>("all");
+  const [fechaDesde, setFechaDesde] = useState<string>("");
+  const [fechaHasta, setFechaHasta] = useState<string>("");
+  const [estatusCotFilter, setEstatusCotFilter] = useState<string>("all");
+  const [estatusPedFilter, setEstatusPedFilter] = useState<string>("all");
+  const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
+  const [estatusCobFilter, setEstatusCobFilter] = useState<string>("all");
+  const clearFilters = () => {
+    setTipoPagoFilter("all");
+    setFechaDesde("");
+    setFechaHasta("");
+    setEstatusCotFilter("all");
+    setEstatusPedFilter("all");
+    setEstatusFacFilter("all");
+    setEstatusCobFilter("all");
+  };
+  const activeFiltersCount =
+    (tipoPagoFilter !== "all" ? 1 : 0) +
+    (fechaDesde ? 1 : 0) +
+    (fechaHasta ? 1 : 0) +
+    (tipoFilter === "cotizacion" && estatusCotFilter !== "all" ? 1 : 0) +
+    (tipoFilter === "pedido" && estatusPedFilter !== "all" ? 1 : 0) +
+    (tipoFilter === "factura" && estatusFacFilter !== "all" ? 1 : 0) +
+    (tipoFilter === "factura" && estatusCobFilter !== "all" ? 1 : 0);
+
   const setFilter = useCallback((key: string, value: string) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
