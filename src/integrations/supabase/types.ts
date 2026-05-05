@@ -3368,6 +3368,10 @@ export type Database = {
           direction: string | null
           error_message: string | null
           id: string
+          media_filename: string | null
+          media_mime_type: string | null
+          media_size_bytes: number | null
+          media_storage_path: string | null
           media_type: string | null
           media_url: string | null
           message_body: string | null
@@ -3387,6 +3391,10 @@ export type Database = {
           direction?: string | null
           error_message?: string | null
           id?: string
+          media_filename?: string | null
+          media_mime_type?: string | null
+          media_size_bytes?: number | null
+          media_storage_path?: string | null
           media_type?: string | null
           media_url?: string | null
           message_body?: string | null
@@ -3406,6 +3414,10 @@ export type Database = {
           direction?: string | null
           error_message?: string | null
           id?: string
+          media_filename?: string | null
+          media_mime_type?: string | null
+          media_size_bytes?: number | null
+          media_storage_path?: string | null
           media_type?: string | null
           media_url?: string | null
           message_body?: string | null
