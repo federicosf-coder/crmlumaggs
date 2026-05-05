@@ -560,7 +560,10 @@ export default function Cobranza() {
             <BucketDetalle
               label={bucketSel.label}
               scopeLabel={bucketSel.scope === "credito" ? "Crédito Directo" : bucketSel.scope === "credito_cescemex" ? "Crédito Cescemex" : "Todas las facturas"}
-              facturas={(bucketSel.scope === "credito" ? facturasCreditoDirectoKpi : bucketSel.scope === "credito_cescemex" ? facturasCreditoCescemexKpi : facturas).filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(fechaVencimientoEfectiva(f))) === bucketSel.label)}
+              empresaVendedora={empresaVendedora}
+              plazaId={effectivePlazaId && effectivePlazaId !== "all" ? effectivePlazaId : null}
+              prefilter={bucketSel.scope === "credito" ? "credito_directo" : bucketSel.scope === "credito_cescemex" ? "credito_cescemex" : "none"}
+              daysBucket={bucketLabelToBucket(bucketSel.label)}
               onBack={() => setBucketSel(null)}
             />
           ) : (
