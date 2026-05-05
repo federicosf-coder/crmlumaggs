@@ -287,19 +287,22 @@ Deno.serve(async (req) => {
   }
 
   // 4. Render React Email template to HTML and plain text
-  const html = await renderAsync(
-    React.createElement(template.component, templateData)
-  )
-  const plainText = await renderAsync(
-    React.createElement(template.component, templateData),
-    { plainText: true }
-  )
+  const html = htmlOverride
+    ? htmlOverride
+    : await renderAsync(React.createElement(template.component, templateData))
+  const plainText = htmlOverride
+    ? htmlOverride.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    : await renderAsync(
+        React.createElement(template.component, templateData),
+        { plainText: true }
+      )
 
-  // Resolve subject — supports static string or dynamic function
+  // Resolve subject — caller override > template static/function
   const resolvedSubject =
-    typeof template.subject === 'function'
+    subjectOverride ??
+    (typeof template.subject === 'function'
       ? template.subject(templateData)
-      : template.subject
+      : template.subject)
 
   // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
   // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
