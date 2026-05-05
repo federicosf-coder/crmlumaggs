@@ -24,7 +24,7 @@ import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfir
 import { ColumnFilterBuilder, evaluateConditions, type ColumnFilterCondition, type ColumnFilterDef } from "@/components/cobranza/ColumnFilterBuilder";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { renderTemplate } from "@/lib/templates";
+import { renderTemplate, resolveEmailRecipients, type EmailRecipientItem } from "@/lib/templates";
 
 const FORMA_PAGO_TPL_LABEL: Record<string, string> = {
   contado: "Contado",
@@ -32,16 +32,30 @@ const FORMA_PAGO_TPL_LABEL: Record<string, string> = {
   credito_cescemex: "Crédito Cescemex",
 };
 
-async function loadSystemTemplate(systemKey: string): Promise<{ subject: string; body: string } | null> {
+async function loadSystemTemplate(systemKey: string): Promise<{
+  subject: string;
+  body: string;
+  to_emails: EmailRecipientItem[];
+  cc_emails: EmailRecipientItem[];
+  bcc_emails: EmailRecipientItem[];
+  reply_to: string | null;
+} | null> {
   const { data } = await (supabase as any)
     .from("templates")
-    .select("subject, body")
+    .select("subject, body, to_emails, cc_emails, bcc_emails, reply_to")
     .eq("system_key", systemKey)
     .eq("is_active", true)
     .limit(1)
     .maybeSingle();
   if (!data || !data.body) return null;
-  return { subject: data.subject || "", body: data.body };
+  return {
+    subject: data.subject || "",
+    body: data.body,
+    to_emails: (data.to_emails as EmailRecipientItem[]) || [],
+    cc_emails: (data.cc_emails as EmailRecipientItem[]) || [],
+    bcc_emails: (data.bcc_emails as EmailRecipientItem[]) || [],
+    reply_to: data.reply_to || null,
+  };
 }
 
 const ESTADO_PAGO_LABEL: Record<string, string> = {
@@ -860,6 +874,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     formaPago?: string;
     subjectOverride?: string;
     htmlOverride?: string;
+    cc?: string[];
+    bcc?: string[];
+    replyTo?: string | null;
   }>({ templateName: "pago-confirmation", title: "Enviar confirmación", description: "" });
 
   useEffect(() => {
@@ -973,6 +990,16 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     const subjectOverride = dbTpl ? renderTemplate(dbTpl.subject, tplVars) : undefined;
     const htmlOverride = dbTpl ? renderTemplate(dbTpl.body, tplVars) : undefined;
 
+    // Resolve template-level recipients (to + cc + bcc + reply_to)
+    const tplToEmails = dbTpl ? await resolveEmailRecipients(dbTpl.to_emails) : [];
+    const tplCc = dbTpl ? await resolveEmailRecipients(dbTpl.cc_emails) : [];
+    const tplBcc = dbTpl ? await resolveEmailRecipients(dbTpl.bcc_emails) : [];
+    const tplReplyTo = dbTpl?.reply_to || null;
+    // Merge template "to" addresses with grupo/system emails (skip blocked)
+    tplToEmails.forEach((e) => {
+      if (!emails.includes(e) && !(isValidacion && blocked.includes(e.toLowerCase()))) emails.push(e);
+    });
+
     if (flow === "general") {
       setActiveFlow({
         templateName: "pago-confirmation",
@@ -980,6 +1007,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         description: "Envía el detalle del pago a los destinatarios.",
         subjectOverride,
         htmlOverride,
+        cc: tplCc,
+        bcc: tplBcc,
+        replyTo: tplReplyTo,
       });
     } else {
       const formaLabel =
@@ -992,6 +1022,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         formaPago: flow,
         subjectOverride,
         htmlOverride,
+        cc: tplCc,
+        bcc: tplBcc,
+        replyTo: tplReplyTo,
       });
     }
 
@@ -1177,6 +1210,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         templateName={activeFlow.templateName}
         subjectOverride={activeFlow.subjectOverride}
         htmlOverride={activeFlow.htmlOverride}
+        ccEmails={activeFlow.cc}
+        bccEmails={activeFlow.bcc}
+        replyTo={activeFlow.replyTo || undefined}
         title={activeFlow.title}
         description={activeFlow.description}
         extraTemplateData={{

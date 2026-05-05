@@ -249,21 +249,25 @@ Deno.serve(async (req) => {
       }
 
       try {
+        const sendArgs: Record<string, unknown> = {
+          run_id: payload.run_id,
+          to: payload.to,
+          from: payload.from,
+          sender_domain: payload.sender_domain,
+          subject: payload.subject,
+          html: payload.html,
+          text: payload.text,
+          purpose: payload.purpose,
+          label: payload.label,
+          idempotency_key: payload.idempotency_key,
+          unsubscribe_token: payload.unsubscribe_token,
+          message_id: payload.message_id,
+        }
+        if (Array.isArray(payload.cc) && payload.cc.length) sendArgs.cc = payload.cc
+        if (Array.isArray(payload.bcc) && payload.bcc.length) sendArgs.bcc = payload.bcc
+        if (typeof payload.reply_to === 'string' && payload.reply_to) sendArgs.reply_to = payload.reply_to
         await sendLovableEmail(
-          {
-            run_id: payload.run_id,
-            to: payload.to,
-            from: payload.from,
-            sender_domain: payload.sender_domain,
-            subject: payload.subject,
-            html: payload.html,
-            text: payload.text,
-            purpose: payload.purpose,
-            label: payload.label,
-            idempotency_key: payload.idempotency_key,
-            unsubscribe_token: payload.unsubscribe_token,
-            message_id: payload.message_id,
-          },
+          sendArgs as any,
           // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
           // falls back to the default Lovable API endpoint (https://api.lovable.dev).
           // Set LOVABLE_SEND_URL as a Supabase secret to override (e.g. for local dev).

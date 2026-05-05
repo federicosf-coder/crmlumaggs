@@ -25,6 +25,39 @@ export interface Template {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
+  to_emails?: EmailRecipientItem[];
+  cc_emails?: EmailRecipientItem[];
+  bcc_emails?: EmailRecipientItem[];
+  reply_to?: string | null;
+}
+
+export type EmailRecipientItem =
+  | { type: "email"; value: string; label?: string }
+  | { type: "group"; value: string; label?: string };
+
+/** Expand a list of recipient items (emails + groups) to a deduped array of email addresses. */
+export async function resolveEmailRecipients(items: EmailRecipientItem[] | null | undefined): Promise<string[]> {
+  if (!items || items.length === 0) return [];
+  const direct = items.filter((i) => i.type === "email").map((i) => i.value.trim()).filter(Boolean);
+  const groupIds = items.filter((i) => i.type === "group").map((i) => i.value).filter(Boolean);
+  let groupEmails: string[] = [];
+  if (groupIds.length > 0) {
+    const { data } = await (supabase as any)
+      .from("email_group_members")
+      .select("email,group_id")
+      .in("group_id", groupIds);
+    groupEmails = (data || []).map((r: any) => (r.email || "").trim()).filter(Boolean);
+  }
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const e of [...direct, ...groupEmails]) {
+    const k = e.toLowerCase();
+    if (!seen.has(k) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
+      seen.add(k);
+      out.push(e);
+    }
+  }
+  return out;
 }
 
 export interface TemplatePlaceholder {

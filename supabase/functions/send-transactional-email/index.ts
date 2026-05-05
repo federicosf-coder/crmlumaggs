@@ -62,6 +62,9 @@ Deno.serve(async (req) => {
   let templateData: Record<string, any> = {}
   let subjectOverride: string | undefined
   let htmlOverride: string | undefined
+  let cc: string[] | undefined
+  let bcc: string[] | undefined
+  let replyTo: string | undefined
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -73,6 +76,10 @@ Deno.serve(async (req) => {
     }
     if (typeof body.subjectOverride === 'string') subjectOverride = body.subjectOverride
     if (typeof body.htmlOverride === 'string') htmlOverride = body.htmlOverride
+    if (Array.isArray(body.cc)) cc = body.cc.filter((e: any) => typeof e === 'string' && e)
+    if (Array.isArray(body.bcc)) bcc = body.bcc.filter((e: any) => typeof e === 'string' && e)
+    if (typeof body.replyTo === 'string' && body.replyTo) replyTo = body.replyTo
+    else if (typeof body.reply_to === 'string' && body.reply_to) replyTo = body.reply_to
   } catch {
     return new Response(
       JSON.stringify({ error: 'Invalid JSON in request body' }),
@@ -330,6 +337,9 @@ Deno.serve(async (req) => {
       idempotency_key: idempotencyKey,
       unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
+      cc: cc && cc.length ? cc : undefined,
+      bcc: bcc && bcc.length ? bcc : undefined,
+      reply_to: replyTo || undefined,
     },
   })
 
