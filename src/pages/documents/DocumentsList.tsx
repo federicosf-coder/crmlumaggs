@@ -127,6 +127,16 @@ function getStatusBadgeClass(doc: any): string {
   return map[st] || "bg-slate-100 text-slate-700 border-slate-300";
 }
 
+// Tipo de Pago helpers
+function getTipoPagoInfo(condiciones: any): { label: string; cls: string } {
+  const v = String(condiciones || "").toLowerCase();
+  if (!v) return { label: "—", cls: "bg-slate-100 text-slate-600 border-slate-300" };
+  if (v.includes("cescemex")) return { label: "Crédito Cescemex", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+  if (v.includes("directo")) return { label: "Crédito Directo", cls: "bg-purple-50 text-purple-700 border-purple-200" };
+  if (v.includes("contado")) return { label: "Contado", cls: "bg-blue-50 text-blue-700 border-blue-200" };
+  return { label: "—", cls: "bg-slate-100 text-slate-600 border-slate-300" };
+}
+
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
