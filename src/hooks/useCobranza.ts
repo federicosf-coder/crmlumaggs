@@ -81,7 +81,7 @@ export function useCobranzaPagos(filters: CobranzaFilters = {}) {
 
   const fetchPagos = useCallback(async () => {
     setLoading(true);
-    let q = supabase
+    let q: any = supabase
       .from("cobranza_pagos")
       .select("*, empresa:companies(id,name,email), plaza:plazas(id,nombre)")
       .order("fecha_pago", { ascending: false });
@@ -164,7 +164,7 @@ export function useDocumentosCobranza(filters: CobranzaFilters = {}) {
 
   const fetchDocs = useCallback(async () => {
     setLoading(true);
-    let q = supabase
+    let q: any = supabase
       .from("documentos")
       .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,fecha_vencimiento,total,saldo_pendiente_cobranza,estado_cobranza,tipo_pago,empresa_id,plaza_id, empresa:companies(id,name), plaza:plazas(id,nombre)")
       .eq("is_active", true)
