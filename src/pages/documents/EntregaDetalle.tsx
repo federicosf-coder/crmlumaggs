@@ -23,6 +23,8 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 import { AddressDisplay } from "@/components/AddressDisplay";
+import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
+import { SignedDocImage } from "@/components/SignedDocImage";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
 export default function EntregaDetalle() {
@@ -578,23 +580,22 @@ export default function EntregaDetalle() {
                     const isImg = a.tipo_archivo?.startsWith("image/");
                     const isPdf = a.tipo_archivo === "application/pdf";
                     return (
-                      <a
-                        key={a.id}
-                        href={a.url_archivo}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="border rounded-md p-2 hover:bg-accent/40 transition-colors flex flex-col gap-1 min-w-0"
-                        title={a.nombre_archivo}
-                      >
-                        {isImg ? (
-                          <img src={a.url_archivo} alt={a.nombre_archivo} className="h-16 w-full object-cover rounded" loading="lazy" />
-                        ) : (
+                       <button
+                         key={a.id}
+                         type="button"
+                         onClick={() => openDocFilesSignedUrl(a.url_archivo)}
+                         className="border rounded-md p-2 hover:bg-accent/40 transition-colors flex flex-col gap-1 min-w-0 text-left"
+                         title={a.nombre_archivo}
+                       >
+                         {isImg ? (
+                           <SignedDocImage src={a.url_archivo} alt={a.nombre_archivo} className="h-16 w-full object-cover rounded" />
+                         ) : (
                           <div className="h-16 w-full flex items-center justify-center bg-muted rounded">
                             {isPdf ? <FileText className="h-6 w-6 text-primary" /> : <FileText className="h-6 w-6 text-muted-foreground" />}
                           </div>
                         )}
                         <div className="text-[11px] truncate">{a.nombre_archivo}</div>
-                      </a>
+                       </button>
                     );
                   })}
                 </div>
@@ -966,7 +967,7 @@ function ArchivosCard({
               return (
                 <div key={a.id} className="flex items-center gap-2 p-2 border rounded-md">
                   {isImg ? <ImageIcon className="h-4 w-4 text-primary shrink-0" /> : <FileText className="h-4 w-4 text-primary shrink-0" />}
-                  <a href={a.url_archivo} target="_blank" rel="noreferrer" className="flex-1 text-sm truncate hover:underline">{a.nombre_archivo}</a>
+                  <button type="button" onClick={() => openDocFilesSignedUrl(a.url_archivo)} className="flex-1 text-sm truncate hover:underline text-left">{a.nombre_archivo}</button>
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => onDelete(a.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
