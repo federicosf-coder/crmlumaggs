@@ -715,6 +715,14 @@ export default function Cobranza() {
               combinator={facturasCombinator}
               onCombinatorChange={setFacturasCombinator}
             />
+            {facturasPrefilter !== "none" && (
+              <Badge variant="secondary" className="gap-1">
+                {PREFILTER_LABEL[facturasPrefilter]}
+                <button type="button" onClick={() => setFacturasPrefilter("none")} className="ml-1 hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
           </div>
           <Card>
             <CardContent className="p-0">
