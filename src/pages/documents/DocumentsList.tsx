@@ -58,7 +58,7 @@ const ESTATUS_PED_LABELS: Record<string, string> = {
   programado_entrega: "Prog. Entrega", entregado: "Entregado", cancelado: "Cancelado",
 };
 const ESTATUS_FAC_LABELS: Record<string, string> = {
-  pendiente: "Vigente", pagada: "Pagada", parcial: "Parcial",
+  vigente: "Vigente", pendiente: "Vigente", pagada: "Pagada", parcial: "Parcial",
   vencida: "Vencida", cancelada: "Cancelada",
 };
 const ESTATUS_ENT_CORP_LABELS: Record<string, string> = {
@@ -79,7 +79,7 @@ function getEstatusVariant(doc: any): "default" | "secondary" | "destructive" | 
     : doc.tipo_documento === "pedido" ? doc.estatus_pedido
     : doc.tipo_documento === "factura" ? doc.estatus_factura
     : doc.estatus_entrega_corporativa;
-  if (["aceptada", "confirmado_cliente", "pagada", "entregado", "impresa", "precio_autorizado"].includes(st)) return "default";
+  if (["aceptada", "confirmado_cliente", "pagada", "entregado", "impresa", "precio_autorizado", "vigente"].includes(st)) return "default";
   if (["rechazada", "cancelado", "cancelada", "vencida"].includes(st)) return "destructive";
   if (["validado_contabilidad", "programado_entrega"].includes(st)) return "outline";
   return "secondary";
@@ -105,7 +105,7 @@ function getStatusBadgeClass(doc: any): string {
     enviada: "bg-sky-50 text-sky-700 border-sky-200",
     aceptada: "bg-green-50 text-green-700 border-green-200",
     rechazada: "bg-red-50 text-red-700 border-red-200",
-    vencida: "bg-orange-50 text-orange-700 border-orange-200",
+    vencida: "bg-red-50 text-red-700 border-red-200",
     confirmado_cliente: "bg-blue-50 text-blue-700 border-blue-200",
     espera_autorizacion_precio: "bg-yellow-50 text-yellow-700 border-yellow-200",
     precio_autorizado: "bg-teal-50 text-teal-700 border-teal-200",
@@ -116,6 +116,7 @@ function getStatusBadgeClass(doc: any): string {
     pendiente: "bg-slate-100 text-slate-700 border-slate-300",
     pagada: "bg-green-50 text-green-700 border-green-200",
     parcial: "bg-amber-50 text-amber-700 border-amber-200",
+    vigente: "bg-blue-50 text-blue-700 border-blue-200",
     cancelada: "bg-red-50 text-red-700 border-red-200",
     solicitada: "bg-slate-100 text-slate-700 border-slate-300",
     programada: "bg-amber-50 text-amber-700 border-amber-200",
