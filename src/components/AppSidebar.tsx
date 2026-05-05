@@ -32,7 +32,6 @@ const mainItems: NavItem[] = [
   { title: "Inicio", url: "/", icon: LayoutDashboard, roles: "all" },
   { title: "Portal del Vendedor", url: "/seller-portal", icon: Briefcase, roles: ["admin", "manager", "sales"] },
   { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
-  { title: "Direcciones", url: "/directory/addresses", icon: MapPin, roles: "all" },
   { title: "CRM", url: "/crm", icon: ShoppingCart, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Documentos", url: "/documents", icon: FileText, roles: ["admin", "manager", "sales"] },
   { title: "Cobranza", url: "/cobranza", icon: Wallet, roles: ["admin", "manager", "accounting"] },
