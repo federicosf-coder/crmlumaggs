@@ -23,6 +23,7 @@ import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Link } from "react-router-dom";
 import { DocumentPagosSection } from "@/components/documents/DocumentPagosSection";
 import { fetchAllRows } from "@/lib/supabasePagination";
+import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
@@ -866,10 +867,8 @@ export default function DocumentForm() {
         {viewMode && (
           <div className="flex gap-2 flex-wrap">
             {existingDoc?.pdf_url && (
-              <Button variant="default" asChild>
-                <a href={existingDoc.pdf_url} target="_blank" rel="noopener noreferrer">
-                  <Download className="mr-2 h-4 w-4" /> Ver PDF
-                </a>
+              <Button variant="default" onClick={() => openDocFilesSignedUrl(existingDoc.pdf_url!)}>
+                <Download className="mr-2 h-4 w-4" /> Ver PDF
               </Button>
             )}
             {form.tipo_documento === "cotizacion" && !existingDoc?.pdf_url && (

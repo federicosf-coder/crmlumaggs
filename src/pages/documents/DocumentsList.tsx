@@ -23,6 +23,7 @@ import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { ExportFieldsDialog, ExportField } from "@/components/documents/ExportFieldsDialog";
 import { ExportFilterDialog, ExportFilters } from "@/components/documents/ExportFilterDialog";
 import { fetchAllRows } from "@/lib/supabasePagination";
+import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 
 // Column visibility config per document type
 type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "fecha_programada" | "total" | "estatus" | "pdf" | "oc_cliente";
@@ -872,10 +873,13 @@ export default function DocumentsList() {
                         {isColVisible("pdf") && (
                           <TableCell className="hidden sm:table-cell">
                             {doc.pdf_url ? (
-                              <Button variant="ghost" size="icon" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                <a href={doc.pdf_url} target="_blank" rel="noopener noreferrer" title="Ver PDF">
-                                  <Download className="h-4 w-4" />
-                                </a>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Ver PDF"
+                                onClick={(e) => { e.stopPropagation(); openDocFilesSignedUrl(doc.pdf_url!); }}
+                              >
+                                <Download className="h-4 w-4" />
                               </Button>
                             ) : doc.tipo_documento === "cotizacion" ? (
                               <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); downloadCotizacionPdf(doc.id, () => refetch()); }} title="Generar PDF">

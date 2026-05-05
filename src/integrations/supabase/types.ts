@@ -3700,6 +3700,37 @@ export type Database = {
         Args: { _ev: Database["public"]["Enums"]["empresa_vendedora"] }
         Returns: string
       }
+      can_view_company: {
+        Args: { _company_id: string; _created_by: string; _user_id: string }
+        Returns: boolean
+      }
+      can_view_contact: {
+        Args: {
+          _company_id: string
+          _contact_id: string
+          _created_by: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      can_view_crm_deal: {
+        Args: {
+          _company_id: string
+          _created_by: string
+          _owner_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      can_view_documento: {
+        Args: {
+          _created_by: string
+          _ejecutivo_venta_id: string
+          _empresa_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       company_has_sold_units: {
         Args: {
           _empresa_id: string
@@ -3760,6 +3791,14 @@ export type Database = {
       merge_users: {
         Args: { _source_user_id: string; _target_user_id: string }
         Returns: Json
+      }
+      module_owner_allows: {
+        Args: {
+          _module: Database["public"]["Enums"]["app_module"]
+          _owner: string
+          _user_id: string
+        }
+        Returns: boolean
       }
       move_to_dlq: {
         Args: {
