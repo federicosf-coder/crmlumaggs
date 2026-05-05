@@ -370,7 +370,17 @@ export default function DocumentsList() {
         return String(nb).localeCompare(String(na), undefined, { numeric: true });
       }
       case "ejecutivo_asc": return getEjecutivoName(a.ejecutivo_venta_id).localeCompare(getEjecutivoName(b.ejecutivo_venta_id));
+      case "ejecutivo_desc": return getEjecutivoName(b.ejecutivo_venta_id).localeCompare(getEjecutivoName(a.ejecutivo_venta_id));
       case "estatus_asc": return getEstatusLabel(a).localeCompare(getEstatusLabel(b));
+      case "estatus_desc": return getEstatusLabel(b).localeCompare(getEstatusLabel(a));
+      case "plaza_asc": return ((a.plazas as any)?.nombre || "").localeCompare((b.plazas as any)?.nombre || "");
+      case "plaza_desc": return ((b.plazas as any)?.nombre || "").localeCompare((a.plazas as any)?.nombre || "");
+      case "vencimiento_asc": return new Date(a.fecha_vencimiento || 0).getTime() - new Date(b.fecha_vencimiento || 0).getTime();
+      case "vencimiento_desc": return new Date(b.fecha_vencimiento || 0).getTime() - new Date(a.fecha_vencimiento || 0).getTime();
+      case "programada_asc": return new Date(a.fecha_programada || 0).getTime() - new Date(b.fecha_programada || 0).getTime();
+      case "programada_desc": return new Date(b.fecha_programada || 0).getTime() - new Date(a.fecha_programada || 0).getTime();
+      case "tipo_pago_asc": return String(a.tipo_pago || "").localeCompare(String(b.tipo_pago || ""));
+      case "tipo_pago_desc": return String(b.tipo_pago || "").localeCompare(String(a.tipo_pago || ""));
       default: return 0;
     }
   });
@@ -379,6 +389,23 @@ export default function DocumentsList() {
   const totalPages = Math.max(1, Math.ceil(totalDocs / pageSize));
   const safePage = Math.min(currentPage, totalPages);
   const pagedDocs = sortedDocs.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  // Helper for clickable sortable column headers
+  const cycleSort = (ascKey: string, descKey: string) => {
+    setSortBy(prev => prev === descKey ? ascKey : prev === ascKey ? descKey : descKey);
+  };
+  const SortableHead = ({ ascKey, descKey, children, className }: { ascKey: string; descKey: string; children: React.ReactNode; className?: string }) => {
+    const active = sortBy === ascKey || sortBy === descKey;
+    const arrow = sortBy === ascKey ? " ↑" : sortBy === descKey ? " ↓" : "";
+    return (
+      <TableHead
+        className={`cursor-pointer select-none hover:text-foreground ${active ? "text-foreground font-semibold" : ""} ${className || ""}`}
+        onClick={() => cycleSort(ascKey, descKey)}
+      >
+        {children}{arrow}
+      </TableHead>
+    );
+  };
 
   const handleDuplicate = async (e: React.MouseEvent, doc: any) => {
     e.stopPropagation();
@@ -962,35 +989,46 @@ export default function DocumentsList() {
                         />
                       </TableHead>
                       {!hidesNumber && isColVisible("numero") && (
-                        <TableHead>
+                        <SortableHead
+                          ascKey={tipoFilter === "factura" ? "numero_factura_asc" : "numero_asc"}
+                          descKey={tipoFilter === "factura" ? "numero_factura_desc" : "numero_desc"}
+                        >
                           {tipoFilter === "factura" ? "No. Factura" : "Número"}
-                        </TableHead>
+                        </SortableHead>
                       )}
-                      {isColVisible("cliente") && <TableHead className="min-w-[180px]">Cliente</TableHead>}
-                      {isColVisible("ejecutivo") && <TableHead className="hidden sm:table-cell">Ejecutivo</TableHead>}
+                      {isColVisible("cliente") && (
+                        <SortableHead ascKey="client_asc" descKey="client_desc" className="min-w-[180px]">Cliente</SortableHead>
+                      )}
+                      {isColVisible("ejecutivo") && (
+                        <SortableHead ascKey="ejecutivo_asc" descKey="ejecutivo_desc" className="hidden sm:table-cell">Ejecutivo</SortableHead>
+                      )}
                       {tipoFilter === "factura" && isColVisible("plaza") && (
-                        <TableHead className="hidden md:table-cell">Plaza</TableHead>
+                        <SortableHead ascKey="plaza_asc" descKey="plaza_desc" className="hidden md:table-cell">Plaza</SortableHead>
                       )}
                       {isColVisible("fecha") && (
-                        <TableHead className="whitespace-nowrap">{tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}</TableHead>
+                        <SortableHead ascKey="date_asc" descKey="date_desc" className="whitespace-nowrap">
+                          {tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}
+                        </SortableHead>
                       )}
                       {tipoFilter === "factura" && isColVisible("fecha_vencimiento") && (
-                        <TableHead className="whitespace-nowrap">Fecha Vencimiento</TableHead>
+                        <SortableHead ascKey="vencimiento_asc" descKey="vencimiento_desc" className="whitespace-nowrap">Fecha Vencimiento</SortableHead>
                       )}
                       {showsScheduledDate && isColVisible("fecha_programada") && (
-                        <TableHead className="hidden md:table-cell">Fecha Programada</TableHead>
+                        <SortableHead ascKey="programada_asc" descKey="programada_desc" className="hidden md:table-cell">Fecha Programada</SortableHead>
                       )}
                       {tipoFilter === "entrega_corporativa" && isColVisible("oc_cliente") && (
                         <TableHead className="hidden md:table-cell">Núm. OC Cliente</TableHead>
                       )}
                       {tipoFilter !== "entrega_corporativa" && isColVisible("tipo_pago") && (
-                        <TableHead className="whitespace-nowrap">Tipo de Pago</TableHead>
+                        <SortableHead ascKey="tipo_pago_asc" descKey="tipo_pago_desc" className="whitespace-nowrap">Tipo de Pago</SortableHead>
                       )}
-                      {isColVisible("total") && <TableHead>Total</TableHead>}
+                      {isColVisible("total") && (
+                        <SortableHead ascKey="total_asc" descKey="total_desc">Total</SortableHead>
+                      )}
                       {isColVisible("estatus") && (
-                        <TableHead>
+                        <SortableHead ascKey="estatus_asc" descKey="estatus_desc">
                           {tipoFilter === "factura" ? "Estatus Factura" : "Estatus"}
-                        </TableHead>
+                        </SortableHead>
                       )}
                       {isColVisible("pdf") && <TableHead className="hidden sm:table-cell">PDF</TableHead>}
                       <TableHead></TableHead>
