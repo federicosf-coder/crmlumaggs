@@ -173,6 +173,23 @@ function diasParaVencer(fechaVenc: string | null): number | null {
   return Math.round((v.getTime() - hoy.getTime()) / 86400000);
 }
 
+/**
+ * Calcula la fecha de vencimiento efectiva a partir de la fecha de emisión
+ * y el tipo de pago. Contado = mismo día; Crédito y Crédito Cescemex = +30 días.
+ * Si no hay tipo_pago se usa la fecha_vencimiento almacenada.
+ */
+function fechaVencimientoEfectiva(f: { fecha_documento?: string | null; fecha_vencimiento?: string | null; tipo_pago?: string | null }): string | null {
+  const tp = (f.tipo_pago || "").toLowerCase();
+  if (!f.fecha_documento) return f.fecha_vencimiento ?? null;
+  if (tp === "contado") return f.fecha_documento;
+  if (tp === "credito" || tp === "credito_directo" || tp === "credito_cescemex" || tp.includes("credito") || tp.includes("cescemex")) {
+    const d = new Date(f.fecha_documento + "T12:00:00");
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().slice(0, 10);
+  }
+  return f.fecha_vencimiento ?? null;
+}
+
 function bucketLabel(dias: number | null): string {
   if (dias === null) return "Sin vencimiento";
   if (dias < 0) return "Vencidas";
