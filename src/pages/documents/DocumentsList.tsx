@@ -1161,7 +1161,6 @@ export default function DocumentsList() {
                   </div>
                 </div>
               )}
-            )}
           </CardContent>
         </Card>
       )}
