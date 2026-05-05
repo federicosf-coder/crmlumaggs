@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2, CheckSquare, Columns3 } from "lucide-react";
+import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2, CheckSquare, Columns3, Filter, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
@@ -26,7 +26,7 @@ import { fetchAllRows } from "@/lib/supabasePagination";
 import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 
 // Column visibility config per document type
-type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "fecha_programada" | "total" | "estatus" | "pdf" | "oc_cliente";
+type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "fecha_programada" | "total" | "estatus" | "pdf" | "oc_cliente" | "tipo_pago";
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "numero", label: "Número" },
   { key: "cliente", label: "Cliente" },
@@ -36,14 +36,15 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "fecha_vencimiento", label: "Fecha Vencimiento" },
   { key: "fecha_programada", label: "Fecha Programada" },
   { key: "oc_cliente", label: "Núm. OC Cliente" },
+  { key: "tipo_pago", label: "Tipo de Pago" },
   { key: "total", label: "Total" },
   { key: "estatus", label: "Estatus" },
   { key: "pdf", label: "PDF" },
 ];
 const DEFAULT_COLS_BY_TIPO: Record<string, ColumnKey[]> = {
-  cotizacion: ["numero", "cliente", "ejecutivo", "fecha", "total", "estatus", "pdf"],
-  pedido: ["cliente", "ejecutivo", "fecha", "fecha_programada", "total", "estatus", "pdf"],
-  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "fecha_vencimiento", "total", "estatus", "pdf"],
+  cotizacion: ["numero", "cliente", "ejecutivo", "fecha", "tipo_pago", "total", "estatus", "pdf"],
+  pedido: ["cliente", "ejecutivo", "fecha", "fecha_programada", "tipo_pago", "total", "estatus", "pdf"],
+  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "fecha_vencimiento", "tipo_pago", "total", "estatus", "pdf"],
   entrega_corporativa: ["cliente", "ejecutivo", "fecha", "fecha_programada", "oc_cliente", "estatus"],
 };
 const colsStorageKey = (userId: string, tipo: string) => `doc-cols:${userId}:${tipo}`;
@@ -126,6 +127,16 @@ function getStatusBadgeClass(doc: any): string {
   return map[st] || "bg-slate-100 text-slate-700 border-slate-300";
 }
 
+// Tipo de Pago helpers
+function getTipoPagoInfo(condiciones: any): { label: string; cls: string } {
+  const v = String(condiciones || "").toLowerCase();
+  if (!v) return { label: "—", cls: "bg-slate-100 text-slate-600 border-slate-300" };
+  if (v.includes("cescemex")) return { label: "Crédito Cescemex", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+  if (v.includes("directo")) return { label: "Crédito Directo", cls: "bg-purple-50 text-purple-700 border-purple-200" };
+  if (v.includes("contado")) return { label: "Contado", cls: "bg-blue-50 text-blue-700 border-blue-200" };
+  return { label: "—", cls: "bg-slate-100 text-slate-600 border-slate-300" };
+}
+
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -155,6 +166,32 @@ export default function DocumentsList() {
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+
+  // Extra filter toolbar state
+  const [tipoPagoFilter, setTipoPagoFilter] = useState<string>("all");
+  const [fechaDesde, setFechaDesde] = useState<string>("");
+  const [fechaHasta, setFechaHasta] = useState<string>("");
+  const [estatusCotFilter, setEstatusCotFilter] = useState<string>("all");
+  const [estatusPedFilter, setEstatusPedFilter] = useState<string>("all");
+  const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
+  const [estatusCobFilter, setEstatusCobFilter] = useState<string>("all");
+  const clearFilters = () => {
+    setTipoPagoFilter("all");
+    setFechaDesde("");
+    setFechaHasta("");
+    setEstatusCotFilter("all");
+    setEstatusPedFilter("all");
+    setEstatusFacFilter("all");
+    setEstatusCobFilter("all");
+  };
+  const activeFiltersCount =
+    (tipoPagoFilter !== "all" ? 1 : 0) +
+    (fechaDesde ? 1 : 0) +
+    (fechaHasta ? 1 : 0) +
+    (tipoFilter === "cotizacion" && estatusCotFilter !== "all" ? 1 : 0) +
+    (tipoFilter === "pedido" && estatusPedFilter !== "all" ? 1 : 0) +
+    (tipoFilter === "factura" && estatusFacFilter !== "all" ? 1 : 0) +
+    (tipoFilter === "factura" && estatusCobFilter !== "all" ? 1 : 0);
 
   const setFilter = useCallback((key: string, value: string) => {
     setSearchParams(prev => {
@@ -228,7 +265,7 @@ export default function DocumentsList() {
   // seleccionar manualmente una plaza si lo desea.
 
   const { data: docs = [], isLoading, refetch } = useQuery({
-    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, access.accessLevel, access.teamMemberIds],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, estatusCobFilter, access.accessLevel, access.teamMemberIds],
     queryFn: async () => {
       if (!access.canView) return [];
       let q = supabase
@@ -240,6 +277,15 @@ export default function DocumentsList() {
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
       if (plazaFilter && plazaFilter !== "all") q = q.eq("plaza_id", plazaFilter);
+      if (tipoPagoFilter === "contado") q = q.ilike("condiciones_pago", "%contado%");
+      else if (tipoPagoFilter === "directo") q = q.ilike("condiciones_pago", "%directo%");
+      else if (tipoPagoFilter === "cescemex") q = q.ilike("condiciones_pago", "%cescemex%");
+      if (fechaDesde) q = q.gte("fecha_documento", fechaDesde);
+      if (fechaHasta) q = q.lte("fecha_documento", fechaHasta);
+      if (tipoFilter === "cotizacion" && estatusCotFilter !== "all") q = q.eq("estatus_cotizacion", estatusCotFilter as any);
+      if (tipoFilter === "pedido" && estatusPedFilter !== "all") q = q.eq("estatus_pedido", estatusPedFilter as any);
+      if (tipoFilter === "factura" && estatusFacFilter !== "all") q = q.eq("estatus_factura", estatusFacFilter as any);
+      if (tipoFilter === "factura" && estatusCobFilter !== "all") q = q.eq("estado_cobranza", estatusCobFilter as any);
       if (access.accessLevel === "propio" && access.userId) {
         q = q.or(`created_by.eq.${access.userId},ejecutivo_venta_id.eq.${access.userId}`);
       } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
@@ -724,6 +770,105 @@ export default function DocumentsList() {
                 ]}
               />
             </div>
+            {/* Filter toolbar */}
+            {tipoFilter !== "entrega_corporativa" && (
+              <div className="mt-3 flex flex-wrap items-end gap-2 p-3 rounded-md border bg-muted/30">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mr-1">
+                  <Filter className="h-4 w-4" />
+                  Filtros
+                  {activeFiltersCount > 0 && (
+                    <Badge variant="secondary" className="ml-1">{activeFiltersCount}</Badge>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground">Tipo de Pago</label>
+                  <Select value={tipoPagoFilter} onValueChange={setTipoPagoFilter}>
+                    <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="contado">Contado</SelectItem>
+                      <SelectItem value="directo">Crédito Directo</SelectItem>
+                      <SelectItem value="cescemex">Crédito Cescemex</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground">Fecha desde</label>
+                  <Input type="date" className="h-8 w-40" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground">Fecha hasta</label>
+                  <Input type="date" className="h-8 w-40" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
+                </div>
+                {tipoFilter === "cotizacion" && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Estatus cotización</label>
+                    <Select value={estatusCotFilter} onValueChange={setEstatusCotFilter}>
+                      <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {Object.entries(ESTATUS_COT_LABELS).map(([v, l]) => (
+                          <SelectItem key={v} value={v}>{l}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {tipoFilter === "pedido" && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Estatus pedido</label>
+                    <Select value={estatusPedFilter} onValueChange={setEstatusPedFilter}>
+                      <SelectTrigger className="h-8 w-48"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="confirmado_cliente">Confirmado cliente</SelectItem>
+                        <SelectItem value="validado_contabilidad">Validado contabilidad</SelectItem>
+                        <SelectItem value="programado_entrega">Programado entrega</SelectItem>
+                        <SelectItem value="entregado">Entregado</SelectItem>
+                        <SelectItem value="cancelado">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {tipoFilter === "factura" && (
+                  <>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-muted-foreground">Estatus factura</label>
+                      <Select value={estatusFacFilter} onValueChange={setEstatusFacFilter}>
+                        <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          <SelectItem value="vigente">Vigente</SelectItem>
+                          <SelectItem value="parcial">Parcial</SelectItem>
+                          <SelectItem value="pagada">Pagada</SelectItem>
+                          <SelectItem value="vencida">Vencida</SelectItem>
+                          <SelectItem value="cancelada">Cancelada</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-muted-foreground">Estatus cobranza</label>
+                      <Select value={estatusCobFilter} onValueChange={setEstatusCobFilter}>
+                        <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          <SelectItem value="pendiente">Pendiente</SelectItem>
+                          <SelectItem value="parcial">Parcial</SelectItem>
+                          <SelectItem value="pagada">Pagada</SelectItem>
+                          <SelectItem value="vencida">Vencida</SelectItem>
+                          <SelectItem value="cancelada">Cancelada</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+                {activeFiltersCount > 0 && (
+                  <Button variant="ghost" size="sm" className="h-8" onClick={clearFilters}>
+                    <X className="h-3.5 w-3.5 mr-1" /> Limpiar filtros
+                  </Button>
+                )}
+              </div>
+            )}
           </CardHeader>
           <CardContent className="px-0 sm:px-6">
             {/* Bulk action bar */}
@@ -787,6 +932,9 @@ export default function DocumentsList() {
                       )}
                       {tipoFilter === "entrega_corporativa" && isColVisible("oc_cliente") && (
                         <TableHead className="hidden md:table-cell">Núm. OC Cliente</TableHead>
+                      )}
+                      {tipoFilter !== "entrega_corporativa" && isColVisible("tipo_pago") && (
+                        <TableHead className="whitespace-nowrap">Tipo de Pago</TableHead>
                       )}
                       {isColVisible("total") && <TableHead>Total</TableHead>}
                       {isColVisible("estatus") && (
@@ -859,6 +1007,14 @@ export default function DocumentsList() {
                             {doc.numero_oc_cliente || "-"}
                           </TableCell>
                         )}
+                        {tipoFilter !== "entrega_corporativa" && isColVisible("tipo_pago") && (() => {
+                          const tp = getTipoPagoInfo(doc.condiciones_pago);
+                          return (
+                            <TableCell>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${tp.cls}`}>{tp.label}</span>
+                            </TableCell>
+                          );
+                        })()}
                         {isColVisible("total") && (
                           <TableCell className="whitespace-nowrap">
                             ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
