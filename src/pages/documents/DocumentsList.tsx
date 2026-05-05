@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2, CheckSquare, Columns3 } from "lucide-react";
+import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2, CheckSquare, Columns3, Filter, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
@@ -26,7 +26,7 @@ import { fetchAllRows } from "@/lib/supabasePagination";
 import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 
 // Column visibility config per document type
-type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "fecha_programada" | "total" | "estatus" | "pdf" | "oc_cliente";
+type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "fecha_programada" | "total" | "estatus" | "pdf" | "oc_cliente" | "tipo_pago";
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "numero", label: "Número" },
   { key: "cliente", label: "Cliente" },
@@ -36,14 +36,15 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "fecha_vencimiento", label: "Fecha Vencimiento" },
   { key: "fecha_programada", label: "Fecha Programada" },
   { key: "oc_cliente", label: "Núm. OC Cliente" },
+  { key: "tipo_pago", label: "Tipo de Pago" },
   { key: "total", label: "Total" },
   { key: "estatus", label: "Estatus" },
   { key: "pdf", label: "PDF" },
 ];
 const DEFAULT_COLS_BY_TIPO: Record<string, ColumnKey[]> = {
-  cotizacion: ["numero", "cliente", "ejecutivo", "fecha", "total", "estatus", "pdf"],
-  pedido: ["cliente", "ejecutivo", "fecha", "fecha_programada", "total", "estatus", "pdf"],
-  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "fecha_vencimiento", "total", "estatus", "pdf"],
+  cotizacion: ["numero", "cliente", "ejecutivo", "fecha", "tipo_pago", "total", "estatus", "pdf"],
+  pedido: ["cliente", "ejecutivo", "fecha", "fecha_programada", "tipo_pago", "total", "estatus", "pdf"],
+  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "fecha_vencimiento", "tipo_pago", "total", "estatus", "pdf"],
   entrega_corporativa: ["cliente", "ejecutivo", "fecha", "fecha_programada", "oc_cliente", "estatus"],
 };
 const colsStorageKey = (userId: string, tipo: string) => `doc-cols:${userId}:${tipo}`;
