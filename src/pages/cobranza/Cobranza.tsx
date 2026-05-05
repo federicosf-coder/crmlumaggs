@@ -222,6 +222,13 @@ export default function Cobranza() {
   const [searchPagos, setSearchPagos] = useState("");
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
+  const [facturasPrefilter, setFacturasPrefilter] = useState<"none" | "vencimiento" | "credito_directo" | "credito_cescemex">("none");
+  const PREFILTER_LABEL: Record<typeof facturasPrefilter, string> = {
+    none: "Todas",
+    vencimiento: "Vencimiento",
+    credito_directo: "Crédito Directo",
+    credito_cescemex: "Crédito Cescemex",
+  } as const;
 
   // Filtros por columna
   const [pagosConditions, setPagosConditions] = useState<ColumnFilterCondition[]>([]);
@@ -386,7 +393,13 @@ export default function Cobranza() {
 
   const facturasFiltradas = useMemo(() => {
     const q = searchFacturas.toLowerCase();
-    const base = facturas.filter((f) =>
+    const prefiltered = facturas.filter((f) => {
+      if (facturasPrefilter === "vencimiento") return isVencida(f);
+      if (facturasPrefilter === "credito_directo") return isCreditoDirecto(f);
+      if (facturasPrefilter === "credito_cescemex") return isCreditoCescemex(f);
+      return true;
+    });
+    const base = prefiltered.filter((f) =>
       !q || f.empresa?.name?.toLowerCase().includes(q) || f.numero_factura?.toLowerCase().includes(q)
     );
     return evaluateConditions(base, facturasConditions, facturasCombinator, (f, key) => {
@@ -403,8 +416,12 @@ export default function Cobranza() {
         case "estado_cobranza": return f.estado_cobranza || "pendiente";
         default: return "";
       }
+    }).sort((a, b) => {
+      const av = a.fecha_vencimiento ? new Date(a.fecha_vencimiento).getTime() : Infinity;
+      const bv = b.fecha_vencimiento ? new Date(b.fecha_vencimiento).getTime() : Infinity;
+      return av - bv;
     });
-  }, [facturas, searchFacturas, facturasConditions, facturasCombinator]);
+  }, [facturas, searchFacturas, facturasConditions, facturasCombinator, facturasPrefilter]);
 
   const handleAplicar = (p: CobranzaPago) => { setPagoSel(p); setOpenAplicar(true); };
   const handleVerDetalle = (p: CobranzaPago) => { setPagoSel(p); setOpenDetalle(true); };
