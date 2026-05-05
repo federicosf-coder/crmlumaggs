@@ -22,6 +22,25 @@ import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfir
 import { ColumnFilterBuilder, evaluateConditions, type ColumnFilterCondition, type ColumnFilterDef } from "@/components/cobranza/ColumnFilterBuilder";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { renderTemplate } from "@/lib/templates";
+
+const FORMA_PAGO_TPL_LABEL: Record<string, string> = {
+  contado: "Contado",
+  credito: "Crédito Directo",
+  credito_cescemex: "Crédito Cescemex",
+};
+
+async function loadSystemTemplate(systemKey: string): Promise<{ subject: string; body: string } | null> {
+  const { data } = await (supabase as any)
+    .from("templates")
+    .select("subject, body")
+    .eq("system_key", systemKey)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+  if (!data || !data.body) return null;
+  return { subject: data.subject || "", body: data.body };
+}
 
 const ESTADO_PAGO_LABEL: Record<string, string> = {
   registrado: "Registrado",
