@@ -272,21 +272,22 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const openInNewTab = (path: string) => window.open(path, "_blank", "noopener,noreferrer");
 
   return (
-    <Sheet open={open} onOpenChange={(o) => { if (!o) setEditing(false); onOpenChange(o); }}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) setEditing(false); onOpenChange(o); }}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
           <div className="flex items-center justify-between">
-            <SheetTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full" style={{ backgroundColor: currentStage?.color }} />
               {deal.title}
-            </SheetTitle>
+            </DialogTitle>
             <Button variant="ghost" size="icon" onClick={() => setEditing(!editing)}>
               {editing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
             </Button>
           </div>
-        </SheetHeader>
+        </DialogHeader>
 
-        <div className="mt-6 space-y-6">
+        <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
           {editing ? (
             <div className="space-y-4">
               <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></div>
