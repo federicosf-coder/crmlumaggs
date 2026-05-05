@@ -375,6 +375,11 @@ export default function DocumentsList() {
     }
   });
 
+  const totalDocs = sortedDocs.length;
+  const totalPages = Math.max(1, Math.ceil(totalDocs / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedDocs = sortedDocs.slice((safePage - 1) * pageSize, safePage * pageSize);
+
   const handleDuplicate = async (e: React.MouseEvent, doc: any) => {
     e.stopPropagation();
     if (duplicating) return;
