@@ -117,12 +117,29 @@ const FORMA_PAGO_LABEL: Record<string, string> = {
 };
 
 const ESTADO_COBRANZA_LABEL: Record<string, string> = {
-  pendiente: "Pendiente",
+  pendiente: "Vigente",
+  vigente: "Vigente",
   parcial: "Parcial",
   pagada: "Pagada",
   vencida: "Vencida",
   cancelada: "Cancelada",
 };
+
+const ESTADO_COBRANZA_BADGE_CLASS: Record<string, string> = {
+  pendiente: "bg-blue-500 text-white hover:bg-blue-500/90 border-transparent",
+  vigente: "bg-blue-500 text-white hover:bg-blue-500/90 border-transparent",
+  parcial: "bg-amber-500 text-white hover:bg-amber-500/90 border-transparent",
+  pagada: "bg-green-600 text-white hover:bg-green-600/90 border-transparent",
+  vencida: "bg-red-600 text-white hover:bg-red-600/90 border-transparent",
+  cancelada: "bg-gray-400 text-white hover:bg-gray-400/90 border-transparent",
+};
+
+function EstadoCobranzaBadge({ value }: { value: string | null | undefined }) {
+  const key = (value || "vigente").toLowerCase();
+  const label = ESTADO_COBRANZA_LABEL[key] || "Vigente";
+  const cls = ESTADO_COBRANZA_BADGE_CLASS[key] || ESTADO_COBRANZA_BADGE_CLASS.vigente;
+  return <Badge className={cls}>{label}</Badge>;
+}
 
 function diasParaVencer(fechaVenc: string | null): number | null {
   if (!fechaVenc) return null;
@@ -593,11 +610,11 @@ export default function Cobranza() {
                   <TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Plaza</TableHead>
                   <TableHead>Emisión</TableHead><TableHead>Vence</TableHead><TableHead>Días</TableHead>
                   <TableHead className="text-right">Total</TableHead><TableHead className="text-right">Saldo</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <TableHead>Estado</TableHead><TableHead></TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {loadingDocs && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
-                  {!loadingDocs && facturasFiltradas.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sin facturas</TableCell></TableRow>}
+                  {loadingDocs && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
+                  {!loadingDocs && facturasFiltradas.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sin facturas</TableCell></TableRow>}
                   {facturasFiltradas.map((f) => {
                     const d = diasParaVencer(f.fecha_vencimiento);
                     const aplicado = Number(f.total) - Number(f.saldo_pendiente_cobranza);
@@ -612,13 +629,18 @@ export default function Cobranza() {
                         <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
                         <TableCell className="text-right font-medium">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
                         <TableCell>
-                          <Badge variant={
-                            f.estado_cobranza === "pagada" ? "default" :
-                            f.estado_cobranza === "vencida" ? "destructive" :
-                            f.estado_cobranza === "parcial" ? "secondary" : "outline"
-                          }>
-                            {f.estado_cobranza ? ESTADO_COBRANZA_LABEL[f.estado_cobranza] : "Pendiente"}
-                          </Badge>
+                          <EstadoCobranzaBadge value={f.estado_cobranza} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Ver documento"
+                            title="Ver documento"
+                            onClick={() => navigate(`/documents/${f.id}/edit`)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
