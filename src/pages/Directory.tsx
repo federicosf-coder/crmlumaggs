@@ -27,6 +27,7 @@ import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDialog";
+import { CompanyMetricsPanel } from "@/components/directory/CompanyMetricsPanel";
 
 interface Company {
   id: string; name: string; razon_social: string | null; industry: string | null; phone: string | null;
@@ -717,21 +718,26 @@ export default function Directory() {
       />
 
       {/* Company Detail Sheet */}
-      <Sheet open={!!selectedCompany} onOpenChange={open => { if (!open) setSelectedCompany(null); }}>
-        <SheetContent className="overflow-y-auto sm:max-w-lg">
+      {/* Company Detail Dialog */}
+      <Dialog open={!!selectedCompany} onOpenChange={open => { if (!open) setSelectedCompany(null); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           {selectedCompany && (
             <>
-              <SheetHeader className="flex flex-row items-start justify-between">
+              <DialogHeader className="flex flex-row items-start justify-between">
                 <div className="space-y-0.5">
-                  <SheetTitle>{selectedCompany.name}</SheetTitle>
+                  <DialogTitle>{selectedCompany.name}</DialogTitle>
                   {selectedCompany.razon_social && selectedCompany.razon_social !== selectedCompany.name && (
                     <p className="text-xs text-muted-foreground">Razón Social: {selectedCompany.razon_social}</p>
                   )}
                 </div>
-                <Button size="sm" variant="outline" onClick={() => setEditCompany(selectedCompany)}>
+                <Button size="sm" variant="outline" className="mr-8" onClick={() => setEditCompany(selectedCompany)}>
                   <Pencil className="h-4 w-4 mr-1" /> Editar
                 </Button>
-              </SheetHeader>
+              </DialogHeader>
+
+              <div className="mt-3">
+                <CompanyMetricsPanel companyId={selectedCompany.id} />
+              </div>
 
               <Tabs defaultValue="general" className="mt-4">
                 <TabsList className="w-full">
@@ -889,8 +895,8 @@ export default function Directory() {
               </Tabs>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {/* Contact Detail Sheet */}
       <Sheet open={!!selectedContact} onOpenChange={open => { if (!open) setSelectedContact(null); }}>
