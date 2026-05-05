@@ -993,6 +993,8 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         blockedEmails={blockedEmails}
         previouslySentEmails={previouslySentEmails}
         templateName={activeFlow.templateName}
+        subjectOverride={activeFlow.subjectOverride}
+        htmlOverride={activeFlow.htmlOverride}
         title={activeFlow.title}
         description={activeFlow.description}
         extraTemplateData={{
