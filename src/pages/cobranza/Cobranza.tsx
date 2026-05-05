@@ -874,6 +874,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     formaPago?: string;
     subjectOverride?: string;
     htmlOverride?: string;
+    cc?: string[];
+    bcc?: string[];
+    replyTo?: string | null;
   }>({ templateName: "pago-confirmation", title: "Enviar confirmación", description: "" });
 
   useEffect(() => {
@@ -987,6 +990,16 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     const subjectOverride = dbTpl ? renderTemplate(dbTpl.subject, tplVars) : undefined;
     const htmlOverride = dbTpl ? renderTemplate(dbTpl.body, tplVars) : undefined;
 
+    // Resolve template-level recipients (to + cc + bcc + reply_to)
+    const tplToEmails = dbTpl ? await resolveEmailRecipients(dbTpl.to_emails) : [];
+    const tplCc = dbTpl ? await resolveEmailRecipients(dbTpl.cc_emails) : [];
+    const tplBcc = dbTpl ? await resolveEmailRecipients(dbTpl.bcc_emails) : [];
+    const tplReplyTo = dbTpl?.reply_to || null;
+    // Merge template "to" addresses with grupo/system emails (skip blocked)
+    tplToEmails.forEach((e) => {
+      if (!emails.includes(e) && !(isValidacion && blocked.includes(e.toLowerCase()))) emails.push(e);
+    });
+
     if (flow === "general") {
       setActiveFlow({
         templateName: "pago-confirmation",
@@ -994,6 +1007,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         description: "Envía el detalle del pago a los destinatarios.",
         subjectOverride,
         htmlOverride,
+        cc: tplCc,
+        bcc: tplBcc,
+        replyTo: tplReplyTo,
       });
     } else {
       const formaLabel =
@@ -1006,6 +1022,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         formaPago: flow,
         subjectOverride,
         htmlOverride,
+        cc: tplCc,
+        bcc: tplBcc,
+        replyTo: tplReplyTo,
       });
     }
 
@@ -1191,6 +1210,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         templateName={activeFlow.templateName}
         subjectOverride={activeFlow.subjectOverride}
         htmlOverride={activeFlow.htmlOverride}
+        ccEmails={activeFlow.cc}
+        bccEmails={activeFlow.bcc}
+        replyTo={activeFlow.replyTo || undefined}
         title={activeFlow.title}
         description={activeFlow.description}
         extraTemplateData={{
