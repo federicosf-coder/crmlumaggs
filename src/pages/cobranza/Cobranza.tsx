@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams, Navigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -160,12 +162,39 @@ function bucketLabel(dias: number | null): string {
 }
 
 export default function Cobranza() {
-  const { hasAnyRole } = useAuth();
+  const { hasAnyRole, profile } = useAuth();
+  const { brand } = useParams<{ brand: string }>();
+  if (brand && brand !== "chevron" && brand !== "phillips66") {
+    return <Navigate to="/cobranza" replace />;
+  }
+  const empresaVendedora: "lumaggs_chevron" | "galsa_phillips66" =
+    brand === "phillips66" ? "galsa_phillips66" : "lumaggs_chevron";
+  const brandTitle = brand === "phillips66" ? "Cobranza — Phillips 66" : "Cobranza — Chevron";
+  const brandSubtitle = brand === "phillips66" ? "Galsa" : "Lumaggs";
+
+  const isAdminOrManager = hasAnyRole(["admin", "manager", "accounting"]);
+  const [selectedPlazaId, setSelectedPlazaId] = useState<string>(
+    !isAdminOrManager && profile?.plaza_id ? profile.plaza_id : (profile?.plaza_id || "all")
+  );
+  const effectivePlazaId = !isAdminOrManager && profile?.plaza_id ? profile.plaza_id : selectedPlazaId;
+
+  const { data: plazasList = [] } = useQuery({
+    queryKey: ["cobranza-plazas-filter"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre");
+      return data || [];
+    },
+  });
+
   const navigate = useNavigate();
   const canDelete = hasAnyRole(["admin", "manager"]);
   const canEditEstatus = hasAnyRole(["admin", "manager", "accounting"]);
-  const { pagos, breakdowns, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos();
-  const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza();
+  const filterArgs = {
+    empresaVendedora,
+    plazaId: effectivePlazaId && effectivePlazaId !== "all" ? effectivePlazaId : null,
+  };
+  const { pagos, breakdowns, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos(filterArgs);
+  const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza(filterArgs);
 
   const [openRegistrar, setOpenRegistrar] = useState(false);
   const [openAplicar, setOpenAplicar] = useState(false);
@@ -405,12 +434,33 @@ export default function Cobranza() {
         </Button>
       )}
       <PageBanner
-        title="Cobranza"
-        description="Gestión de pagos, aplicaciones y cartera por cobrar"
+        title={brandTitle}
+        description={brandSubtitle}
         avatar={<div className="h-10 w-10 rounded-md bg-primary/10 text-primary flex items-center justify-center"><Wallet className="h-5 w-5" /></div>}
       />
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <BackButton fallback="/cobranza" />
+          <div className="flex items-center gap-2">
+            <Label className="text-sm text-muted-foreground">Plaza</Label>
+            <Select
+              value={effectivePlazaId || "all"}
+              onValueChange={(v) => setSelectedPlazaId(v)}
+              disabled={!isAdminOrManager && !!profile?.plaza_id}
+            >
+              <SelectTrigger className="h-9 w-[220px]">
+                <SelectValue placeholder="Todas las plazas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las plazas</SelectItem>
+                {plazasList.map((p: any) => (
+                  <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <Button onClick={() => setOpenRegistrar(true)}>
           <Plus className="h-4 w-4 mr-2" /> Registrar pago
         </Button>
