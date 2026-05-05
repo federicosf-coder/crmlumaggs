@@ -1052,8 +1052,8 @@ function PagoArchivosSection({ pagoId }: { pagoId: string }) {
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
-                      <a href={a.url_archivo} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openDocFilesSignedUrl(a.url_archivo)}>
+                      <ExternalLink className="h-4 w-4" />
                     </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDelete(a.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
