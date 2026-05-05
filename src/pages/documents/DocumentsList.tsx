@@ -370,7 +370,17 @@ export default function DocumentsList() {
         return String(nb).localeCompare(String(na), undefined, { numeric: true });
       }
       case "ejecutivo_asc": return getEjecutivoName(a.ejecutivo_venta_id).localeCompare(getEjecutivoName(b.ejecutivo_venta_id));
+      case "ejecutivo_desc": return getEjecutivoName(b.ejecutivo_venta_id).localeCompare(getEjecutivoName(a.ejecutivo_venta_id));
       case "estatus_asc": return getEstatusLabel(a).localeCompare(getEstatusLabel(b));
+      case "estatus_desc": return getEstatusLabel(b).localeCompare(getEstatusLabel(a));
+      case "plaza_asc": return ((a.plazas as any)?.nombre || "").localeCompare((b.plazas as any)?.nombre || "");
+      case "plaza_desc": return ((b.plazas as any)?.nombre || "").localeCompare((a.plazas as any)?.nombre || "");
+      case "vencimiento_asc": return new Date(a.fecha_vencimiento || 0).getTime() - new Date(b.fecha_vencimiento || 0).getTime();
+      case "vencimiento_desc": return new Date(b.fecha_vencimiento || 0).getTime() - new Date(a.fecha_vencimiento || 0).getTime();
+      case "programada_asc": return new Date(a.fecha_programada || 0).getTime() - new Date(b.fecha_programada || 0).getTime();
+      case "programada_desc": return new Date(b.fecha_programada || 0).getTime() - new Date(a.fecha_programada || 0).getTime();
+      case "tipo_pago_asc": return String(a.tipo_pago || "").localeCompare(String(b.tipo_pago || ""));
+      case "tipo_pago_desc": return String(b.tipo_pago || "").localeCompare(String(a.tipo_pago || ""));
       default: return 0;
     }
   });
