@@ -146,9 +146,6 @@ export function RichTextEditor({ value, onChange, placeholders = [], placeholder
         </DropdownMenu>
       </div>
       <EditorContent editor={editor} />
-      {placeholder && (editor.isEmpty) && (
-        <div className="pointer-events-none -mt-[220px] px-3 py-2 text-sm text-muted-foreground">{placeholder}</div>
-      )}
     </div>
   );
 }
