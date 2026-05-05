@@ -276,7 +276,7 @@ export default function DocumentsList() {
         .order("created_at", { ascending: false });
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
-      if (plazaFilter && plazaFilter !== "all") q = q.eq("plaza_id", plazaFilter);
+      if (plazaFilter && plazaFilter !== "all") q = q.or(`plaza_id.eq.${plazaFilter},plaza_id.is.null`);
       if (tipoPagoFilter === "contado") q = q.ilike("condiciones_pago", "%contado%");
       else if (tipoPagoFilter === "directo") q = q.ilike("condiciones_pago", "%directo%");
       else if (tipoPagoFilter === "cescemex") q = q.ilike("condiciones_pago", "%cescemex%");
