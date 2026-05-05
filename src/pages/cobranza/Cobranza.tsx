@@ -222,6 +222,13 @@ export default function Cobranza() {
   const [searchPagos, setSearchPagos] = useState("");
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
+  const [facturasPrefilter, setFacturasPrefilter] = useState<"none" | "vencimiento" | "credito_directo" | "credito_cescemex">("none");
+  const PREFILTER_LABEL: Record<typeof facturasPrefilter, string> = {
+    none: "Todas",
+    vencimiento: "Vencimiento",
+    credito_directo: "Crédito Directo",
+    credito_cescemex: "Crédito Cescemex",
+  } as const;
 
   // Filtros por columna
   const [pagosConditions, setPagosConditions] = useState<ColumnFilterCondition[]>([]);
@@ -277,8 +284,31 @@ export default function Cobranza() {
     ]},
   ], []);
 
-  // Solo facturas activas para cartera/dashboard
-  const facturas = useMemo(() => documentos.filter((d) => d.tipo_documento === "factura" && d.estado_cobranza !== "cancelada"), [documentos]);
+  // Dataset unificado: solo facturas activas con saldo pendiente, excluye canceladas y pagadas.
+  // Esta es la MISMA fuente que usa "Seguimiento de Facturas" y todas las KPI cards.
+  const facturas = useMemo(() => documentos.filter((d) => {
+    if (d.tipo_documento !== "factura") return false;
+    const ef = (d.estatus_factura || "").toString().toLowerCase();
+    if (ef === "cancelada" || ef === "pagada") return false;
+    if (Number(d.saldo_pendiente_cobranza || 0) <= 0) return false;
+    return true;
+  }), [documentos]);
+
+  // Helpers de clasificación compartidos
+  const isVencida = (f: typeof facturas[number]) => {
+    if (!f.fecha_vencimiento) return false;
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const v = new Date(f.fecha_vencimiento); v.setHours(0, 0, 0, 0);
+    return v.getTime() < hoy.getTime();
+  };
+  const isCreditoDirecto = (f: typeof facturas[number]) => (f.tipo_pago || "").toLowerCase().includes("directo") || f.tipo_pago === "credito";
+  const isCreditoCescemex = (f: typeof facturas[number]) => (f.tipo_pago || "").toLowerCase().includes("cescemex") || f.tipo_pago === "credito_cescemex";
+
+  const facturasVencidasKpi = useMemo(() => facturas.filter(isVencida), [facturas]);
+  const facturasCreditoDirectoKpi = useMemo(() => facturas.filter(isCreditoDirecto), [facturas]);
+  const facturasCreditoCescemexKpi = useMemo(() => facturas.filter(isCreditoCescemex), [facturas]);
+
+  const sumSaldo = (arr: typeof facturas) => arr.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
 
   // KPIs
   const cartera = useMemo(() => {
@@ -310,12 +340,9 @@ export default function Cobranza() {
     return orden.map((b) => ({ label: b, ...acc[b] }));
   };
 
-  const facturasCreditoDirecto = useMemo(() => facturas.filter((f) => f.tipo_pago === "credito"), [facturas]);
-  const facturasCreditoCescemex = useMemo(() => facturas.filter((f) => f.tipo_pago === "credito_cescemex"), [facturas]);
-
   const buckets = useMemo(() => buildBuckets(facturas), [facturas]);
-  const bucketsCreditoDirecto = useMemo(() => buildBuckets(facturasCreditoDirecto), [facturasCreditoDirecto]);
-  const bucketsCreditoCescemex = useMemo(() => buildBuckets(facturasCreditoCescemex), [facturasCreditoCescemex]);
+  const bucketsCreditoDirecto = useMemo(() => buildBuckets(facturasCreditoDirectoKpi), [facturasCreditoDirectoKpi]);
+  const bucketsCreditoCescemex = useMemo(() => buildBuckets(facturasCreditoCescemexKpi), [facturasCreditoCescemexKpi]);
 
   const proximasVencer = useMemo(() => {
     return [...facturas]
@@ -366,7 +393,13 @@ export default function Cobranza() {
 
   const facturasFiltradas = useMemo(() => {
     const q = searchFacturas.toLowerCase();
-    const base = facturas.filter((f) =>
+    const prefiltered = facturas.filter((f) => {
+      if (facturasPrefilter === "vencimiento") return isVencida(f);
+      if (facturasPrefilter === "credito_directo") return isCreditoDirecto(f);
+      if (facturasPrefilter === "credito_cescemex") return isCreditoCescemex(f);
+      return true;
+    });
+    const base = prefiltered.filter((f) =>
       !q || f.empresa?.name?.toLowerCase().includes(q) || f.numero_factura?.toLowerCase().includes(q)
     );
     return evaluateConditions(base, facturasConditions, facturasCombinator, (f, key) => {
@@ -383,8 +416,12 @@ export default function Cobranza() {
         case "estado_cobranza": return f.estado_cobranza || "pendiente";
         default: return "";
       }
+    }).sort((a, b) => {
+      const av = a.fecha_vencimiento ? new Date(a.fecha_vencimiento).getTime() : Infinity;
+      const bv = b.fecha_vencimiento ? new Date(b.fecha_vencimiento).getTime() : Infinity;
+      return av - bv;
     });
-  }, [facturas, searchFacturas, facturasConditions, facturasCombinator]);
+  }, [facturas, searchFacturas, facturasConditions, facturasCombinator, facturasPrefilter]);
 
   const handleAplicar = (p: CobranzaPago) => { setPagoSel(p); setOpenAplicar(true); };
   const handleVerDetalle = (p: CobranzaPago) => { setPagoSel(p); setOpenDetalle(true); };
@@ -479,11 +516,37 @@ export default function Cobranza() {
             <BucketDetalle
               label={bucketSel.label}
               scopeLabel={bucketSel.scope === "credito" ? "Crédito Directo" : bucketSel.scope === "credito_cescemex" ? "Crédito Cescemex" : "Todas las facturas"}
-              facturas={(bucketSel.scope === "credito" ? facturasCreditoDirecto : bucketSel.scope === "credito_cescemex" ? facturasCreditoCescemex : facturas).filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(f.fecha_vencimiento)) === bucketSel.label)}
+              facturas={(bucketSel.scope === "credito" ? facturasCreditoDirectoKpi : bucketSel.scope === "credito_cescemex" ? facturasCreditoCescemexKpi : facturas).filter((f) => Number(f.saldo_pendiente_cobranza) > 0 && bucketLabel(diasParaVencer(f.fecha_vencimiento)) === bucketSel.label)}
               onBack={() => setBucketSel(null)}
             />
           ) : (
           <>
+          {/* KPIs unificadas — clic abre Seguimiento prefiltrado */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <UnifiedKpiCard
+              title="Vencimiento"
+              count={facturasVencidasKpi.length}
+              total={sumSaldo(facturasVencidasKpi)}
+              icon={AlertTriangle}
+              variant="destructive"
+              onClick={() => { setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
+            />
+            <UnifiedKpiCard
+              title="Crédito Directo"
+              count={facturasCreditoDirectoKpi.length}
+              total={sumSaldo(facturasCreditoDirectoKpi)}
+              icon={Wallet}
+              onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
+            />
+            <UnifiedKpiCard
+              title="Crédito Cescemex"
+              count={facturasCreditoCescemexKpi.length}
+              total={sumSaldo(facturasCreditoCescemexKpi)}
+              icon={Wallet}
+              onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
+            />
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <KpiCard title="Cartera abierta" value={formatCurrency(cartera.abierta)} icon={Wallet} />
             <KpiCard title="Cartera vencida" value={formatCurrency(cartera.vencida)} icon={AlertTriangle} variant="destructive" />
@@ -652,6 +715,14 @@ export default function Cobranza() {
               combinator={facturasCombinator}
               onCombinatorChange={setFacturasCombinator}
             />
+            {facturasPrefilter !== "none" && (
+              <Badge variant="secondary" className="gap-1">
+                {PREFILTER_LABEL[facturasPrefilter]}
+                <button type="button" onClick={() => setFacturasPrefilter("none")} className="ml-1 hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
           </div>
           <Card>
             <CardContent className="p-0">
@@ -679,7 +750,7 @@ export default function Cobranza() {
                         <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
                         <TableCell className="text-right font-medium">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
                         <TableCell>
-                          <EstadoCobranzaBadge value={f.estado_cobranza} />
+                          <EstadoCobranzaBadge value={f.estatus_factura || f.estado_cobranza} />
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -725,6 +796,45 @@ function KpiCard({ title, value, icon: Icon, variant }: { title: string; value: 
             <p className={`text-xl font-bold mt-1 ${variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : ""}`}>{value}</p>
           </div>
           <Icon className={`h-8 w-8 ${variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30"}`} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function UnifiedKpiCard({
+  title,
+  count,
+  total,
+  icon: Icon,
+  variant,
+  onClick,
+}: {
+  title: string;
+  count: number;
+  total: number;
+  icon: any;
+  variant?: "destructive" | "success";
+  onClick: () => void;
+}) {
+  return (
+    <Card
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
+      className="cursor-pointer hover:shadow-md hover:border-primary/40 transition-all"
+    >
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className={`text-2xl font-bold mt-1 ${variant === "destructive" ? "text-destructive" : ""}`}>
+              {formatCurrency(total)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{count} facturas</p>
+          </div>
+          <Icon className={`h-8 w-8 shrink-0 ${variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30"}`} />
         </div>
       </CardContent>
     </Card>
