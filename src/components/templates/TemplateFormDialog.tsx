@@ -20,6 +20,7 @@ import {
   unknownPlaceholders,
 } from "@/lib/templates";
 import { TemplateAttachmentsManager } from "@/components/templates/TemplateAttachmentsManager";
+import { EmailRecipientsInput } from "@/components/templates/EmailRecipientsInput";
 
 interface Props {
   open: boolean;
@@ -43,6 +44,7 @@ const schema = z.object({
 const empty = (): Partial<Template> => ({
   name: "", type: "whatsapp", category: "general",
   subject: "", body: "", description: "", is_active: true,
+  to_emails: [], cc_emails: [], bcc_emails: [], reply_to: "",
 });
 
 export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Props) {
@@ -53,7 +55,13 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
 
   useEffect(() => {
     if (!open) return;
-    setForm(editing ? { ...editing } : empty());
+    setForm(editing ? {
+      ...editing,
+      to_emails: (editing as any).to_emails || [],
+      cc_emails: (editing as any).cc_emails || [],
+      bcc_emails: (editing as any).bcc_emails || [],
+      reply_to: (editing as any).reply_to || "",
+    } : empty());
     setCreatedId(editing?.id || null);
   }, [open, editing]);
 
@@ -100,6 +108,10 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
       description: parsed.data.description || null,
       is_active: parsed.data.is_active,
       updated_by: user.id,
+      to_emails: parsed.data.type === "email" ? (form.to_emails || []) : [],
+      cc_emails: parsed.data.type === "email" ? (form.cc_emails || []) : [],
+      bcc_emails: parsed.data.type === "email" ? (form.bcc_emails || []) : [],
+      reply_to: parsed.data.type === "email" ? (form.reply_to?.trim() || null) : null,
     };
     let error;
     let savedId = editing?.id || createdId;
@@ -167,6 +179,41 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
                 <div className="space-y-1">
                   <Label>Asunto *</Label>
                   <Input value={form.subject || ""} onChange={(e) => setForm({ ...form, subject: e.target.value })} maxLength={200} />
+                </div>
+              )}
+
+              {form.type === "email" && (
+                <div className="space-y-3 rounded-md border p-3 bg-muted/20">
+                  <div className="space-y-1">
+                    <Label>Para</Label>
+                    <EmailRecipientsInput
+                      value={(form.to_emails as any) || []}
+                      onChange={(v) => setForm({ ...form, to_emails: v as any })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>CC</Label>
+                    <EmailRecipientsInput
+                      value={(form.cc_emails as any) || []}
+                      onChange={(v) => setForm({ ...form, cc_emails: v as any })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>CCO</Label>
+                    <EmailRecipientsInput
+                      value={(form.bcc_emails as any) || []}
+                      onChange={(v) => setForm({ ...form, bcc_emails: v as any })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Responder a</Label>
+                    <Input
+                      type="email"
+                      placeholder="correo@empresa.com"
+                      value={form.reply_to || ""}
+                      onChange={(e) => setForm({ ...form, reply_to: e.target.value })}
+                    />
+                  </div>
                 </div>
               )}
 
