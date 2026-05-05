@@ -43,6 +43,7 @@ type Template = {
   variable_map: string[] | null;
   header_type: string | null;
   header_image_url: string | null;
+  header_video_url: string | null;
   rejection_reason: string | null;
 };
 
@@ -82,6 +83,7 @@ export default function WhatsAppCampaigns() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
   const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
+  const [headerVideoUrl, setHeaderVideoUrl] = useState<string | null>(null);
   const [linePhoneId, setLinePhoneId] = useState<string>("");
   const [variables, setVariables] = useState<Record<string, string>>({});
 
@@ -99,7 +101,7 @@ export default function WhatsAppCampaigns() {
     const loadTpls = () =>
       supabase
         .from("whatsapp_templates")
-        .select("id,name,language,status,body,source_body,variable_map,header_type,header_image_url,rejection_reason")
+        .select("id,name,language,status,body,source_body,variable_map,header_type,header_image_url,header_video_url,rejection_reason")
         .order("name")
         .then(({ data }) => setTemplates(((data ?? []) as unknown) as Template[]));
     loadTpls();
@@ -164,6 +166,7 @@ export default function WhatsAppCampaigns() {
     setSearch("");
     setSelected(new Set());
     setHeaderImageUrl(null);
+    setHeaderVideoUrl(null);
     setVariables({});
   };
 
@@ -172,6 +175,7 @@ export default function WhatsAppCampaigns() {
     [templates, tplName],
   );
   const requiresImage = selectedTpl?.header_type === "IMAGE";
+  const requiresVideo = selectedTpl?.header_type === "VIDEO";
   const isApproved = selectedTpl?.status === "APPROVED";
   const variableKeys: string[] = Array.isArray(selectedTpl?.variable_map)
     ? (selectedTpl!.variable_map as string[])
@@ -190,6 +194,10 @@ export default function WhatsAppCampaigns() {
     }
     if (requiresImage && !headerImageUrl) {
       toast.error("Esta plantilla requiere una imagen de encabezado");
+      return;
+    }
+    if (requiresVideo && !headerVideoUrl) {
+      toast.error("Esta plantilla requiere un video de encabezado");
       return;
     }
     if (missingVars.length > 0) {
@@ -222,6 +230,7 @@ export default function WhatsAppCampaigns() {
         total_recipients: selected.size,
         created_by: ures.user?.id,
         header_image_url: headerImageUrl,
+        header_video_url: headerVideoUrl,
         business_phone_number_id: linePhoneId,
         template_variables: Object.keys(variables).length > 0 ? variables : null,
       })
@@ -293,7 +302,7 @@ export default function WhatsAppCampaigns() {
                 </div>
                 <div>
                   <Label>Plantilla</Label>
-                  <Select value={tplName} onValueChange={(v) => { setTplName(v); setVariables({}); setHeaderImageUrl(null); }}>
+                  <Select value={tplName} onValueChange={(v) => { setTplName(v); setVariables({}); setHeaderImageUrl(null); setHeaderVideoUrl(null); }}>
                     <SelectTrigger><SelectValue placeholder="Selecciona…" /></SelectTrigger>
                     <SelectContent>
                       {templates.length === 0 ? (
@@ -341,6 +350,19 @@ export default function WhatsAppCampaigns() {
                   <Label>Imagen del encabezado</Label>
                   <MarketingPromoUpload value={headerImageUrl} onChange={setHeaderImageUrl} />
                   <PromoPlaceholderHint />
+                </div>
+              )}
+
+              {requiresVideo && (
+                <div className="space-y-2">
+                  <Label>Video del encabezado</Label>
+                  <MarketingPromoUpload
+                    value={headerVideoUrl}
+                    onChange={setHeaderVideoUrl}
+                    kind="video"
+                    aspectRatio="16/9"
+                  />
+                  <p className="text-xs text-muted-foreground">MP4 · máx 16 MB.</p>
                 </div>
               )}
 
@@ -412,6 +434,7 @@ export default function WhatsAppCampaigns() {
                   creating ||
                   !isApproved ||
                   (requiresImage && !headerImageUrl) ||
+                  (requiresVideo && !headerVideoUrl) ||
                   missingVars.length > 0 ||
                   !linePhoneId ||
                   selected.size === 0
