@@ -47,6 +47,9 @@ interface Props {
   extraTemplateData?: Record<string, any>;
   subjectOverride?: string;
   htmlOverride?: string;
+  ccEmails?: string[];
+  bccEmails?: string[];
+  replyTo?: string;
   title?: string;
   description?: string;
   onSent?: () => void;
@@ -73,6 +76,9 @@ export function EnviarConfirmacionPagoDialog({
   extraTemplateData,
   subjectOverride,
   htmlOverride,
+  ccEmails,
+  bccEmails,
+  replyTo,
   title,
   description,
   onSent,
@@ -157,6 +163,9 @@ export function EnviarConfirmacionPagoDialog({
               idempotencyKey: `${templateName}-${pagoId}-${email}-${ts}`,
               subjectOverride,
               htmlOverride,
+              cc: ccEmails && ccEmails.length ? ccEmails : undefined,
+              bcc: bccEmails && bccEmails.length ? bccEmails : undefined,
+              replyTo: replyTo || undefined,
               templateData: {
                 empresa,
                 fechaPago,
