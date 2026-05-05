@@ -1398,30 +1398,34 @@ function BucketDetalle({ label, scopeLabel, facturas, onBack }: { label: string;
                 <TableHead>Folio</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Plaza</TableHead>
-                <TableHead>Fecha doc.</TableHead>
+                <TableHead>Emisión</TableHead>
                 <TableHead>Vence</TableHead>
-                <TableHead className="text-right">Días</TableHead>
+                <TableHead>Días</TableHead>
+                <TableHead>Tipo de Pago</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Saldo</TableHead>
+                <TableHead>Estado</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {facturas.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sin facturas en este grupo</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Sin facturas en este grupo</TableCell></TableRow>
               )}
               {facturas.map((f) => {
                 const d = diasParaVencer(f.fecha_vencimiento);
                 return (
                   <TableRow key={f.id}>
                     <TableCell className="font-mono text-xs">{f.numero_factura || "—"}</TableCell>
-                    <TableCell>{f.empresa?.name || "—"}</TableCell>
+                    <TableCell className="truncate max-w-[200px]">{f.empresa?.name || "—"}</TableCell>
                     <TableCell>{f.plaza?.nombre || "—"}</TableCell>
                     <TableCell>{formatDate(f.fecha_documento)}</TableCell>
                     <TableCell>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : "—"}</TableCell>
-                    <TableCell className="text-right"><span className={d !== null && d < 0 ? "text-destructive font-medium" : ""}>{d ?? "—"}</span></TableCell>
+                    <TableCell><span className={d !== null && d < 0 ? "text-destructive font-medium" : ""}>{d ?? "—"}</span></TableCell>
+                    <TableCell className="text-xs">{tipoPagoLabel(f.tipo_pago)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
+                    <TableCell><EstadoCobranzaBadge value={f.estatus_factura || f.estado_cobranza} /></TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
