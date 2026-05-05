@@ -117,12 +117,29 @@ const FORMA_PAGO_LABEL: Record<string, string> = {
 };
 
 const ESTADO_COBRANZA_LABEL: Record<string, string> = {
-  pendiente: "Pendiente",
+  pendiente: "Vigente",
+  vigente: "Vigente",
   parcial: "Parcial",
   pagada: "Pagada",
   vencida: "Vencida",
   cancelada: "Cancelada",
 };
+
+const ESTADO_COBRANZA_BADGE_CLASS: Record<string, string> = {
+  pendiente: "bg-blue-500 text-white hover:bg-blue-500/90 border-transparent",
+  vigente: "bg-blue-500 text-white hover:bg-blue-500/90 border-transparent",
+  parcial: "bg-amber-500 text-white hover:bg-amber-500/90 border-transparent",
+  pagada: "bg-green-600 text-white hover:bg-green-600/90 border-transparent",
+  vencida: "bg-red-600 text-white hover:bg-red-600/90 border-transparent",
+  cancelada: "bg-gray-400 text-white hover:bg-gray-400/90 border-transparent",
+};
+
+function EstadoCobranzaBadge({ value }: { value: string | null | undefined }) {
+  const key = (value || "vigente").toLowerCase();
+  const label = ESTADO_COBRANZA_LABEL[key] || "Vigente";
+  const cls = ESTADO_COBRANZA_BADGE_CLASS[key] || ESTADO_COBRANZA_BADGE_CLASS.vigente;
+  return <Badge className={cls}>{label}</Badge>;
+}
 
 function diasParaVencer(fechaVenc: string | null): number | null {
   if (!fechaVenc) return null;
