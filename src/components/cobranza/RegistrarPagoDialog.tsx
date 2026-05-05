@@ -189,7 +189,8 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
       estatus_pago: "recibido",
       observaciones: observaciones || null,
       creado_por: user?.id,
-    }).select("id").single();
+      ...(empresaVendedora ? { empresa_vendedora: empresaVendedora } : {}),
+    } as any).select("id").single();
 
     if (error || !pago) { setSaving(false); toast.error(error?.message || "Error"); return; }
 
