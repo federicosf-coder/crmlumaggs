@@ -167,6 +167,11 @@ export default function DocumentsList() {
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
 
+  // Pagination
+  const [pageSize, setPageSize] = useState<number>(50);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize]);
+
   // Extra filter toolbar state
   const [tipoPagoFilter, setTipoPagoFilter] = useState<string>("all");
   const [fechaDesde, setFechaDesde] = useState<string>("");
@@ -369,6 +374,11 @@ export default function DocumentsList() {
       default: return 0;
     }
   });
+
+  const totalDocs = sortedDocs.length;
+  const totalPages = Math.max(1, Math.ceil(totalDocs / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedDocs = sortedDocs.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const handleDuplicate = async (e: React.MouseEvent, doc: any) => {
     e.stopPropagation();
@@ -940,6 +950,7 @@ export default function DocumentsList() {
                 <p className="text-xs text-muted-foreground/70 mt-1">Crea un nuevo documento para comenzar</p>
               </div>
             ) : (
+              <>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -986,7 +997,7 @@ export default function DocumentsList() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedDocs.map((doc: any) => (
+                    {pagedDocs.map((doc: any) => (
                       <TableRow
                         key={doc.id}
                         className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedIds.has(doc.id) ? "bg-muted/30" : ""}`}
@@ -1114,6 +1125,44 @@ export default function DocumentsList() {
                   </TableBody>
                 </Table>
               </div>
+              {totalDocs > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Mostrar</span>
+                    <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                      <SelectTrigger className="h-8 w-[80px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-muted-foreground">
+                      {(safePage - 1) * pageSize + 1}-{Math.min(safePage * pageSize, totalDocs)} de {totalDocs}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" disabled={safePage <= 1} onClick={() => setCurrentPage(1)}>«</Button>
+                    <Button variant="outline" size="sm" disabled={safePage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</Button>
+                    <span className="text-muted-foreground">Página</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={totalPages}
+                      value={safePage}
+                      onChange={(e) => {
+                        const n = Number(e.target.value);
+                        if (!Number.isNaN(n)) setCurrentPage(Math.min(Math.max(1, n), totalPages));
+                      }}
+                      className="h-8 w-16 text-center"
+                    />
+                    <span className="text-muted-foreground">de {totalPages}</span>
+                    <Button variant="outline" size="sm" disabled={safePage >= totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>›</Button>
+                    <Button variant="outline" size="sm" disabled={safePage >= totalPages} onClick={() => setCurrentPage(totalPages)}>»</Button>
+                  </div>
+                </div>
+              )}
+              </>
             )}
           </CardContent>
         </Card>
