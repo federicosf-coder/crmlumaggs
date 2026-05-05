@@ -3951,6 +3951,7 @@ export type Database = {
         | "parcial"
         | "vencida"
         | "cancelada"
+        | "vigente"
       estatus_pago_cobranza:
         | "recibido"
         | "enviado_validar"
@@ -4270,6 +4271,7 @@ export const Constants = {
         "parcial",
         "vencida",
         "cancelada",
+        "vigente",
       ],
       estatus_pago_cobranza: [
         "recibido",
