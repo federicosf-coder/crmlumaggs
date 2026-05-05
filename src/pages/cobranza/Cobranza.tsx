@@ -164,9 +164,7 @@ function bucketLabel(dias: number | null): string {
 export default function Cobranza() {
   const { hasAnyRole, profile } = useAuth();
   const { brand } = useParams<{ brand: string }>();
-  if (brand && brand !== "chevron" && brand !== "phillips66") {
-    return <Navigate to="/cobranza" replace />;
-  }
+  const invalidBrand = !!brand && brand !== "chevron" && brand !== "phillips66";
   const empresaVendedora: "lumaggs_chevron" | "galsa_phillips66" =
     brand === "phillips66" ? "galsa_phillips66" : "lumaggs_chevron";
   const brandTitle = brand === "phillips66" ? "Cobranza — Phillips 66" : "Cobranza — Chevron";
@@ -195,6 +193,8 @@ export default function Cobranza() {
   };
   const { pagos, breakdowns, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos(filterArgs);
   const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza(filterArgs);
+
+  if (invalidBrand) return <Navigate to="/cobranza" replace />;
 
   const [openRegistrar, setOpenRegistrar] = useState(false);
   const [openAplicar, setOpenAplicar] = useState(false);
