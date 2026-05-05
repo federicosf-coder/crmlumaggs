@@ -996,7 +996,7 @@ export default function DocumentsList() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedDocs.map((doc: any) => (
+                    {pagedDocs.map((doc: any) => (
                       <TableRow
                         key={doc.id}
                         className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedIds.has(doc.id) ? "bg-muted/30" : ""}`}
