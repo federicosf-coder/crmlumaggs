@@ -1455,6 +1455,3 @@ function _LegacyBucketTable({ facturas }: { facturas: any[] }) {
     </Card>
   );
 }
-    </div>
-  );
-}
