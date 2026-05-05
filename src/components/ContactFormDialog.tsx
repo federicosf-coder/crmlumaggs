@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
@@ -500,6 +501,48 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
               </div>
 
               {/* Notas (al fondo) */}
+              {/* Sede + Giros (intereses) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Sede</Label>
+                  <Select
+                    value={form.sede || ""}
+                    onValueChange={(v) => setAndSaveNow("sede", v)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Seleccionar sede" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mexicali">Mexicali</SelectItem>
+                      <SelectItem value="tijuana">Tijuana</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Giro / Intereses</Label>
+                  <div className="flex flex-wrap gap-3 rounded-md border p-3">
+                    {intereses.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">Sin giros configurados</span>
+                    ) : intereses.map((g) => {
+                      const checked = form.interes_ids.includes(g.id);
+                      return (
+                        <label key={g.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const next = v
+                                ? [...form.interes_ids, g.id]
+                                : form.interes_ids.filter((id: string) => id !== g.id);
+                              setForm((prev: any) => ({ ...prev, interes_ids: next }));
+                              autosave.saveNow("interes_ids", next);
+                            }}
+                          />
+                          {g.nombre}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label>Notas</Label>
                 <Textarea
