@@ -1366,23 +1366,42 @@ function BucketReportCard({ title, buckets, onSelect }: { title: string; buckets
   );
 }
 
-function BucketDetalle({ label, scopeLabel, facturas, onBack }: { label: string; scopeLabel: string; facturas: any[]; onBack: () => void }) {
-  const total = facturas.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
-  const navigate = useNavigate();
+function BucketDetalle({ label, scopeLabel, empresaVendedora, plazaId, prefilter, daysBucket, onBack }: {
+  label: string;
+  scopeLabel: string;
+  empresaVendedora: "lumaggs_chevron" | "galsa_phillips66";
+  plazaId: string | null;
+  prefilter: CobranzaPrefilter;
+  daysBucket?: DaysBucket;
+  onBack: () => void;
+}) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <Button variant="outline" size="sm" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Regresar al dashboard
         </Button>
-        <div className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{facturas.length}</span> facturas · <span className="font-medium text-foreground">{formatCurrency(total)}</span>
+        <div className="text-sm text-muted-foreground font-medium text-foreground">
+          {scopeLabel} · {label}
         </div>
       </div>
-      <Card>
-        <CardHeader><CardTitle>{scopeLabel} · {label}</CardTitle></CardHeader>
-        <CardContent className="p-0">
-          <Table>
+      <FacturasListEmbedded
+        empresaVendedora={empresaVendedora}
+        plazaId={plazaId}
+        prefilter={prefilter}
+        daysBucket={daysBucket}
+      />
+    </div>
+  );
+}
+
+// Tabla heredada (no usada). Mantener stub vacío para evitar import dangling.
+function _LegacyBucketTable({ facturas }: { facturas: any[] }) {
+  const navigate = useNavigate();
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Folio</TableHead>
@@ -1431,9 +1450,11 @@ function BucketDetalle({ label, scopeLabel, facturas, onBack }: { label: string;
                 );
               })}
             </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
     </div>
   );
 }
