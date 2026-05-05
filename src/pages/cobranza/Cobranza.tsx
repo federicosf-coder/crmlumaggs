@@ -794,6 +794,45 @@ function KpiCard({ title, value, icon: Icon, variant }: { title: string; value: 
   );
 }
 
+function UnifiedKpiCard({
+  title,
+  count,
+  total,
+  icon: Icon,
+  variant,
+  onClick,
+}: {
+  title: string;
+  count: number;
+  total: number;
+  icon: any;
+  variant?: "destructive" | "success";
+  onClick: () => void;
+}) {
+  return (
+    <Card
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
+      className="cursor-pointer hover:shadow-md hover:border-primary/40 transition-all"
+    >
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className={`text-2xl font-bold mt-1 ${variant === "destructive" ? "text-destructive" : ""}`}>
+              {formatCurrency(total)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{count} facturas</p>
+          </div>
+          <Icon className={`h-8 w-8 shrink-0 ${variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30"}`} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { open: boolean; onOpenChange: (o: boolean) => void; pago: CobranzaPago | null; onChanged: () => void; onAplicar: (p: CobranzaPago) => void }) {
   const { user, profile, hasAnyRole } = useAuth();
   const canEditEstatus = hasAnyRole(["admin", "manager", "accounting"]);
