@@ -1124,6 +1124,43 @@ export default function DocumentsList() {
                   </TableBody>
                 </Table>
               </div>
+              {totalDocs > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Mostrar</span>
+                    <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                      <SelectTrigger className="h-8 w-[80px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-muted-foreground">
+                      {(safePage - 1) * pageSize + 1}-{Math.min(safePage * pageSize, totalDocs)} de {totalDocs}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" disabled={safePage <= 1} onClick={() => setCurrentPage(1)}>«</Button>
+                    <Button variant="outline" size="sm" disabled={safePage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</Button>
+                    <span className="text-muted-foreground">Página</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={totalPages}
+                      value={safePage}
+                      onChange={(e) => {
+                        const n = Number(e.target.value);
+                        if (!Number.isNaN(n)) setCurrentPage(Math.min(Math.max(1, n), totalPages));
+                      }}
+                      className="h-8 w-16 text-center"
+                    />
+                    <span className="text-muted-foreground">de {totalPages}</span>
+                    <Button variant="outline" size="sm" disabled={safePage >= totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>›</Button>
+                    <Button variant="outline" size="sm" disabled={safePage >= totalPages} onClick={() => setCurrentPage(totalPages)}>»</Button>
+                  </div>
+                </div>
+              )}
             )}
           </CardContent>
         </Card>
