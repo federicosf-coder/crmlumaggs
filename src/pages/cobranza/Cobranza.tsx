@@ -753,12 +753,13 @@ export default function Cobranza() {
                 <TableHeader><TableRow>
                   <TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Plaza</TableHead>
                   <TableHead>Emisión</TableHead><TableHead>Vence</TableHead><TableHead>Días</TableHead>
+                  <TableHead>Tipo de Pago</TableHead>
                   <TableHead className="text-right">Total</TableHead><TableHead className="text-right">Saldo</TableHead>
                   <TableHead>Estado</TableHead><TableHead></TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {loadingDocs && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
-                  {!loadingDocs && facturasFiltradas.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sin facturas</TableCell></TableRow>}
+                  {loadingDocs && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
+                  {!loadingDocs && facturasFiltradas.length === 0 && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Sin facturas</TableCell></TableRow>}
                   {facturasFiltradas.map((f) => {
                     const d = diasParaVencer(f.fecha_vencimiento);
                     const aplicado = Number(f.total) - Number(f.saldo_pendiente_cobranza);
@@ -770,6 +771,7 @@ export default function Cobranza() {
                         <TableCell>{formatDate(f.fecha_documento)}</TableCell>
                         <TableCell>{f.fecha_vencimiento ? formatDate(f.fecha_vencimiento) : "—"}</TableCell>
                         <TableCell><span className={d !== null && d < 0 ? "text-destructive font-medium" : ""}>{d ?? "—"}</span></TableCell>
+                        <TableCell className="text-xs">{tipoPagoLabel(f.tipo_pago)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
                         <TableCell className="text-right font-medium">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
                         <TableCell>
