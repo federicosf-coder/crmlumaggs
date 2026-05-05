@@ -11,9 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Copy, Power, Search, FileText, MessageCircle, Paperclip } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, Power, Search, FileText, MessageCircle, Paperclip, Eye } from "lucide-react";
 import { CATEGORY_LABELS, Template, TemplateCategory, TemplateType } from "@/lib/templates";
 import { TemplateFormDialog } from "@/components/templates/TemplateFormDialog";
+import { TemplatePreviewDialog } from "@/components/templates/TemplatePreviewDialog";
 
 export default function TemplatesManagement() {
   const { user } = useAuth();
@@ -22,6 +23,8 @@ export default function TemplatesManagement() {
   const [categoryFilter, setCategoryFilter] = useState<"all" | TemplateCategory>("all");
   const [editing, setEditing] = useState<Template | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [previewing, setPreviewing] = useState<Template | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const { data: templates, isLoading, refetch } = useQuery({
     queryKey: ["templates"],
@@ -161,6 +164,7 @@ export default function TemplatesManagement() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{new Date(t.updated_at).toLocaleString()}</TableCell>
                   <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => { setPreviewing(t); setPreviewOpen(true); }} title="Previsualizar"><Eye className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => openEdit(t)} title="Editar"><Pencil className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => duplicate(t)} title="Duplicar"><Copy className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => toggleActive(t)} title={t.is_active ? "Desactivar" : "Activar"}><Power className="h-4 w-4" /></Button>
@@ -174,6 +178,7 @@ export default function TemplatesManagement() {
       </div>
 
       <TemplateFormDialog open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} onSaved={refetch} />
+      <TemplatePreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} template={previewing} />
     </>
   );
 }
