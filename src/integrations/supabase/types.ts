@@ -256,6 +256,7 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          barrera_entrada: string | null
           city: string | null
           created_at: string
           created_by: string | null
@@ -290,6 +291,7 @@ export type Database = {
           origen_contacto: string | null
           phone: string | null
           plaza_id: string
+          potencial_cliente: string | null
           potencial_unidades: string | null
           prioridad_cliente_id: string | null
           proxima_recompra_chevron: string | null
@@ -317,6 +319,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          barrera_entrada?: string | null
           city?: string | null
           created_at?: string
           created_by?: string | null
@@ -351,6 +354,7 @@ export type Database = {
           origen_contacto?: string | null
           phone?: string | null
           plaza_id: string
+          potencial_cliente?: string | null
           potencial_unidades?: string | null
           prioridad_cliente_id?: string | null
           proxima_recompra_chevron?: string | null
@@ -378,6 +382,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          barrera_entrada?: string | null
           city?: string | null
           created_at?: string
           created_by?: string | null
@@ -412,6 +417,7 @@ export type Database = {
           origen_contacto?: string | null
           phone?: string | null
           plaza_id?: string
+          potencial_cliente?: string | null
           potencial_unidades?: string | null
           prioridad_cliente_id?: string | null
           proxima_recompra_chevron?: string | null
@@ -536,6 +542,85 @@ export type Database = {
             columns: ["plaza_id"]
             isOneToOne: false
             referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_productos_competencia: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          marca_competencia: string | null
+          notas: string | null
+          precio_actual: number | null
+          producto_descripcion: string
+          unidad_volumen: string | null
+          updated_at: string
+          volumen_estimado: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          marca_competencia?: string | null
+          notas?: string | null
+          precio_actual?: number | null
+          producto_descripcion: string
+          unidad_volumen?: string | null
+          updated_at?: string
+          volumen_estimado?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          marca_competencia?: string | null
+          notas?: string | null
+          precio_actual?: number | null
+          producto_descripcion?: string
+          unidad_volumen?: string | null
+          updated_at?: string
+          volumen_estimado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_productos_competencia_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_productos_competencia_fotos: {
+        Row: {
+          created_at: string
+          id: string
+          producto_id: string
+          url_foto: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          producto_id: string
+          url_foto: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          producto_id?: string
+          url_foto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_productos_competencia_fotos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "company_productos_competencia"
             referencedColumns: ["id"]
           },
         ]
