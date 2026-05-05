@@ -3187,6 +3187,7 @@ export type Database = {
           failed_count: number
           finished_at: string | null
           header_image_url: string | null
+          header_video_url: string | null
           id: string
           nombre: string
           sent_count: number
@@ -3207,6 +3208,7 @@ export type Database = {
           failed_count?: number
           finished_at?: string | null
           header_image_url?: string | null
+          header_video_url?: string | null
           id?: string
           nombre: string
           sent_count?: number
@@ -3227,6 +3229,7 @@ export type Database = {
           failed_count?: number
           finished_at?: string | null
           header_image_url?: string | null
+          header_video_url?: string | null
           id?: string
           nombre?: string
           sent_count?: number
@@ -3583,6 +3586,7 @@ export type Database = {
           header_image_url: string | null
           header_text: string | null
           header_type: string
+          header_video_url: string | null
           id: string
           language: string
           last_synced_at: string | null
@@ -3606,6 +3610,7 @@ export type Database = {
           header_image_url?: string | null
           header_text?: string | null
           header_type?: string
+          header_video_url?: string | null
           id?: string
           language?: string
           last_synced_at?: string | null
@@ -3629,6 +3634,7 @@ export type Database = {
           header_image_url?: string | null
           header_text?: string | null
           header_type?: string
+          header_video_url?: string | null
           id?: string
           language?: string
           last_synced_at?: string | null

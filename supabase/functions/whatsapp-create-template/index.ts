@@ -87,10 +87,11 @@ Deno.serve(async (req) => {
     const language = String(body?.language ?? "es_MX");
     const wabaIdInput = body?.waba_id ? String(body.waba_id) : null;
     const examplesOverride: string[] | undefined = Array.isArray(body?.examples) ? body.examples : undefined;
-    // Header opcional: NONE | TEXT | IMAGE
+    // Header opcional: NONE | TEXT | IMAGE | VIDEO
     const headerType = String(body?.header_type ?? "NONE").toUpperCase();
     const headerText: string | null = body?.header_text ? String(body.header_text) : null;
     const headerImageUrl: string | null = body?.header_image_url ? String(body.header_image_url) : null;
+    const headerVideoUrl: string | null = body?.header_video_url ? String(body.header_video_url) : null;
     // Botones interactivos opcionales (máx 3 según Meta)
     // Estructura esperada: [{ kind: 'quick_reply'|'opt_out'|'phone'|'url', text: string, phone?: string, url?: string }]
     const rawButtons: any[] = Array.isArray(body?.buttons) ? body.buttons : [];
@@ -131,26 +132,28 @@ Deno.serve(async (req) => {
     }
 
     const components: Record<string, unknown>[] = [];
-    if (headerType === "IMAGE") {
-      if (!headerImageUrl) {
-        return json({ error: "header_image_url requerido para header IMAGE" }, 400);
+    if (headerType === "IMAGE" || headerType === "VIDEO") {
+      const isVideo = headerType === "VIDEO";
+      const mediaUrl = isVideo ? headerVideoUrl : headerImageUrl;
+      const defaultMime = isVideo ? "video/mp4" : "image/jpeg";
+      const defaultName = isVideo ? "header.mp4" : "header.jpg";
+      if (!mediaUrl) {
+        return json({ error: `${isVideo ? "header_video_url" : "header_image_url"} requerido para header ${headerType}` }, 400);
       }
       if (!APP_ID) {
-        return json({ error: "Falta WHATSAPP_APP_ID (necesario para subir el ejemplo de imagen del header a Meta)" }, 500);
+        return json({ error: "Falta WHATSAPP_APP_ID (necesario para subir el ejemplo del header a Meta)" }, 500);
       }
       // Meta requiere un header_handle obtenido vía Resumable Upload API, no una URL pública.
       try {
-        // 1) Descargar la imagen pública
-        const imgRes = await fetch(headerImageUrl);
-        if (!imgRes.ok) {
-          return json({ error: `No se pudo descargar la imagen del header (${imgRes.status})` }, 400);
+        const mediaRes = await fetch(mediaUrl);
+        if (!mediaRes.ok) {
+          return json({ error: `No se pudo descargar el archivo del header (${mediaRes.status})` }, 400);
         }
-        const contentType = imgRes.headers.get("content-type") || "image/jpeg";
-        const imgBuf = new Uint8Array(await imgRes.arrayBuffer());
-        const fileLength = imgBuf.byteLength;
-        const fileName = headerImageUrl.split("/").pop()?.split("?")[0] || "header.jpg";
+        const contentType = mediaRes.headers.get("content-type") || defaultMime;
+        const mediaBuf = new Uint8Array(await mediaRes.arrayBuffer());
+        const fileLength = mediaBuf.byteLength;
+        const fileName = mediaUrl.split("/").pop()?.split("?")[0] || defaultName;
 
-        // 2) Crear sesión de upload
         const sessRes = await fetch(
           `https://graph.facebook.com/v21.0/${APP_ID}/uploads?file_name=${encodeURIComponent(fileName)}&file_length=${fileLength}&file_type=${encodeURIComponent(contentType)}`,
           { method: "POST", headers: { Authorization: `Bearer ${TOKEN}` } },
@@ -159,9 +162,8 @@ Deno.serve(async (req) => {
         if (!sessRes.ok || !sessData?.id) {
           return json({ error: "No se pudo iniciar la sesión de upload con Meta", details: sessData }, 400);
         }
-        const sessionId = sessData.id as string; // formato: upload:XYZ
+        const sessionId = sessData.id as string;
 
-        // 3) Subir bytes y obtener handle
         const upRes = await fetch(`https://graph.facebook.com/v21.0/${sessionId}`, {
           method: "POST",
           headers: {
@@ -169,21 +171,21 @@ Deno.serve(async (req) => {
             file_offset: "0",
             "Content-Type": contentType,
           },
-          body: imgBuf,
+          body: mediaBuf,
         });
         const upData = await upRes.json().catch(() => ({}));
         if (!upRes.ok || !upData?.h) {
-          return json({ error: "No se pudo subir la imagen del header a Meta", details: upData }, 400);
+          return json({ error: `No se pudo subir el ${isVideo ? "video" : "imagen"} del header a Meta`, details: upData }, 400);
         }
         const headerHandle = upData.h as string;
 
         components.push({
           type: "HEADER",
-          format: "IMAGE",
+          format: isVideo ? "VIDEO" : "IMAGE",
           example: { header_handle: [headerHandle] },
         });
       } catch (e) {
-        return json({ error: "Error subiendo la imagen del header: " + (e instanceof Error ? e.message : String(e)) }, 500);
+        return json({ error: "Error subiendo el archivo del header: " + (e instanceof Error ? e.message : String(e)) }, 500);
       }
     } else if (headerType === "TEXT" && headerText) {
       components.push({ type: "HEADER", format: "TEXT", text: headerText });
@@ -250,6 +252,7 @@ Deno.serve(async (req) => {
         components,
         header_type: headerType,
         header_image_url: headerType === "IMAGE" ? headerImageUrl : null,
+        header_video_url: headerType === "VIDEO" ? headerVideoUrl : null,
         header_text: headerType === "TEXT" ? headerText : null,
         buttons: rawButtons,
         rejection_reason: null,

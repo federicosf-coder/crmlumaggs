@@ -46,6 +46,7 @@ type Template = {
   last_synced_at: string | null;
   header_type?: string | null;
   header_image_url?: string | null;
+  header_video_url?: string | null;
   rejection_reason?: string | null;
   buttons?: TemplateButton[] | null;
 };
@@ -68,8 +69,9 @@ export default function WhatsAppTemplates() {
   const [category, setCategory] = useState("UTILITY");
   const [language, setLanguage] = useState("es_MX");
   const [bodyText, setBodyText] = useState("");
-  const [headerType, setHeaderType] = useState<"NONE" | "IMAGE" | "TEXT">("NONE");
+  const [headerType, setHeaderType] = useState<"NONE" | "IMAGE" | "VIDEO" | "TEXT">("NONE");
   const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
+  const [headerVideoUrl, setHeaderVideoUrl] = useState<string | null>(null);
   const [headerText, setHeaderText] = useState("");
   const [buttons, setButtons] = useState<TemplateButton[]>([]);
 
@@ -81,7 +83,7 @@ export default function WhatsAppTemplates() {
     setLoading(true);
     const { data, error } = await supabase
       .from("whatsapp_templates")
-      .select("id,name,language,category,status,body,source_body,variable_map,last_synced_at,header_type,header_image_url,rejection_reason,buttons")
+      .select("id,name,language,category,status,body,source_body,variable_map,last_synced_at,header_type,header_image_url,header_video_url,rejection_reason,buttons")
       .order("name", { ascending: true });
     setLoading(false);
     if (error) {
@@ -119,6 +121,7 @@ export default function WhatsAppTemplates() {
     setBodyText("");
     setHeaderType("NONE");
     setHeaderImageUrl(null);
+    setHeaderVideoUrl(null);
     setHeaderText("");
     setButtons([]);
   };
@@ -130,6 +133,10 @@ export default function WhatsAppTemplates() {
     }
     if (headerType === "IMAGE" && !headerImageUrl) {
       toast.error("Sube una imagen para el encabezado");
+      return;
+    }
+    if (headerType === "VIDEO" && !headerVideoUrl) {
+      toast.error("Sube un video MP4 para el encabezado");
       return;
     }
     if (headerType === "TEXT" && !headerText.trim()) {
@@ -149,6 +156,7 @@ export default function WhatsAppTemplates() {
         name, body: bodyText, category, language,
         header_type: headerType,
         header_image_url: headerType === "IMAGE" ? headerImageUrl : null,
+        header_video_url: headerType === "VIDEO" ? headerVideoUrl : null,
         header_text: headerType === "TEXT" ? headerText : null,
         buttons,
       },
@@ -328,6 +336,7 @@ export default function WhatsAppTemplates() {
                 <SelectContent>
                   <SelectItem value="NONE">Sin encabezado</SelectItem>
                   <SelectItem value="IMAGE">Imagen</SelectItem>
+                  <SelectItem value="VIDEO">Video</SelectItem>
                   <SelectItem value="TEXT">Texto</SelectItem>
                 </SelectContent>
               </Select>
@@ -335,6 +344,19 @@ export default function WhatsAppTemplates() {
                 <>
                   <MarketingPromoUpload value={headerImageUrl} onChange={setHeaderImageUrl} />
                   <PromoPlaceholderHint />
+                </>
+              )}
+              {headerType === "VIDEO" && (
+                <>
+                  <MarketingPromoUpload
+                    value={headerVideoUrl}
+                    onChange={setHeaderVideoUrl}
+                    kind="video"
+                    aspectRatio="16/9"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    MP4 · máx 16 MB. Meta valida la plantilla con este video como ejemplo.
+                  </p>
                 </>
               )}
               {headerType === "TEXT" && (

@@ -1,9 +1,11 @@
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Loader2, Upload, X, Image as ImageIcon, Video as VideoIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+type Kind = "image" | "video";
 
 interface Props {
   value: string | null;
@@ -12,10 +14,14 @@ interface Props {
   aspectRatio?: string;
   className?: string;
   disabled?: boolean;
+  /** Tipo de archivo. Por defecto "image". */
+  kind?: Kind;
 }
 
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
-const ALLOWED = ["image/jpeg", "image/jpg", "image/png"];
+const IMAGE_MAX = 5 * 1024 * 1024; // 5 MB
+const VIDEO_MAX = 16 * 1024 * 1024; // 16 MB (límite Meta para video en plantillas)
+const IMAGE_MIME = ["image/jpeg", "image/jpg", "image/png"];
+const VIDEO_MIME = ["video/mp4"];
 
 /**
  * Drag & drop uploader que sube imágenes al bucket público `marketing-promos`
@@ -27,24 +33,28 @@ export function MarketingPromoUpload({
   aspectRatio = "1.91/1",
   className,
   disabled,
+  kind = "image",
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isVideo = kind === "video";
+  const ALLOWED = isVideo ? VIDEO_MIME : IMAGE_MIME;
+  const MAX_BYTES = isVideo ? VIDEO_MAX : IMAGE_MAX;
 
   const upload = useCallback(
     async (file: File) => {
       if (!ALLOWED.includes(file.type)) {
-        toast.error("Solo JPG o PNG");
+        toast.error(isVideo ? "Solo MP4" : "Solo JPG o PNG");
         return;
       }
       if (file.size > MAX_BYTES) {
-        toast.error("La imagen no puede exceder 5 MB");
+        toast.error(isVideo ? "El video no puede exceder 16 MB" : "La imagen no puede exceder 5 MB");
         return;
       }
       setUploading(true);
       try {
-        const ext = file.name.split(".").pop() || "jpg";
+        const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
         const path = `${new Date().getFullYear()}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("marketing-promos")
@@ -82,7 +92,7 @@ export function MarketingPromoUpload({
         setUploading(false);
       }
     },
-    [onChange],
+    [onChange, isVideo, ALLOWED, MAX_BYTES],
   );
 
   const onDrop = (e: React.DragEvent) => {
@@ -116,7 +126,11 @@ export function MarketingPromoUpload({
     >
       {value ? (
         <>
-          <img src={value} alt="Promo" className="w-full h-full object-cover" />
+          {isVideo ? (
+            <video src={value} className="w-full h-full object-cover" controls />
+          ) : (
+            <img src={value} alt="Promo" className="w-full h-full object-cover" />
+          )}
           <Button
             type="button"
             size="icon"
@@ -141,9 +155,15 @@ export function MarketingPromoUpload({
             </>
           ) : (
             <>
-              <Upload className="h-6 w-6" />
-              <span className="font-medium">Arrastra una imagen aquí</span>
-              <span className="text-xs">o haz clic para seleccionar (JPG/PNG · máx 5 MB)</span>
+              {isVideo ? <VideoIcon className="h-6 w-6" /> : <Upload className="h-6 w-6" />}
+              <span className="font-medium">
+                {isVideo ? "Arrastra un video aquí" : "Arrastra una imagen aquí"}
+              </span>
+              <span className="text-xs">
+                {isVideo
+                  ? "o haz clic para seleccionar (MP4 · máx 16 MB)"
+                  : "o haz clic para seleccionar (JPG/PNG · máx 5 MB)"}
+              </span>
             </>
           )}
         </button>
@@ -151,7 +171,7 @@ export function MarketingPromoUpload({
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png"
+        accept={isVideo ? "video/mp4" : "image/jpeg,image/png"}
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
