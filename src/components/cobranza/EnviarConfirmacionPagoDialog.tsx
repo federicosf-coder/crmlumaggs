@@ -155,6 +155,8 @@ export function EnviarConfirmacionPagoDialog({
               recipientEmail: email,
               // Unique per attempt so resends are not blocked by idempotency
               idempotencyKey: `${templateName}-${pagoId}-${email}-${ts}`,
+              subjectOverride,
+              htmlOverride,
               templateData: {
                 empresa,
                 fechaPago,
