@@ -150,7 +150,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
     if (commValidation) throw new Error(commValidation);
     const dbPayload: Record<string, any> = {};
     for (const k of Object.keys(changes)) {
-      if (k === "ejecutivo_ids") continue;
+      if (k === "ejecutivo_ids" || k === "interes_ids") continue;
       const v = changes[k];
       if (k === "first_name" || k === "last_name") {
         dbPayload[k] = (v ?? "").toString();
@@ -169,6 +169,15 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
       if ((changes.ejecutivo_ids || []).length > 0) {
         await supabase.from("contact_ejecutivos").insert(
           (changes.ejecutivo_ids as string[]).map((uid) => ({ contact_id: editData!.id, user_id: uid }))
+        );
+      }
+    }
+    if ("interes_ids" in changes) {
+      await (supabase as any).from("contacto_intereses").delete().eq("contacto_id", editData!.id);
+      const ids = (changes.interes_ids as string[]) || [];
+      if (ids.length > 0) {
+        await (supabase as any).from("contacto_intereses").insert(
+          ids.map((iid) => ({ contacto_id: editData!.id, interes_id: iid }))
         );
       }
     }
