@@ -46,8 +46,14 @@ export function CompanyMetricsPanel({ companyId }: Props) {
         .limit(5000);
 
       const rows = (docs || []).filter((d: any) => String(d.estatus_factura ?? "") !== "cancelada");
-      const chevronRows = rows.filter((r: any) => String(r.empresa_vendedora ?? "").toLowerCase() === "lumaggs");
-      const galsaRows = rows.filter((r: any) => String(r.empresa_vendedora ?? "").toLowerCase() === "galsa");
+      const chevronRows = rows.filter((r: any) => {
+        const v = String(r.empresa_vendedora ?? "").toLowerCase();
+        return v === "lumaggs" || v === "lumaggs_chevron" || v === "chevron";
+      });
+      const galsaRows = rows.filter((r: any) => {
+        const v = String(r.empresa_vendedora ?? "").toLowerCase();
+        return v === "galsa" || v === "galsa_phillips66" || v === "phillips66";
+      });
 
       const chevron = computeStats(chevronRows);
       const galsa = computeStats(galsaRows);
