@@ -277,8 +277,31 @@ export default function Cobranza() {
     ]},
   ], []);
 
-  // Solo facturas activas para cartera/dashboard
-  const facturas = useMemo(() => documentos.filter((d) => d.tipo_documento === "factura" && d.estado_cobranza !== "cancelada"), [documentos]);
+  // Dataset unificado: solo facturas activas con saldo pendiente, excluye canceladas y pagadas.
+  // Esta es la MISMA fuente que usa "Seguimiento de Facturas" y todas las KPI cards.
+  const facturas = useMemo(() => documentos.filter((d) => {
+    if (d.tipo_documento !== "factura") return false;
+    const ef = (d.estatus_factura || "").toString().toLowerCase();
+    if (ef === "cancelada" || ef === "pagada") return false;
+    if (Number(d.saldo_pendiente_cobranza || 0) <= 0) return false;
+    return true;
+  }), [documentos]);
+
+  // Helpers de clasificación compartidos
+  const isVencida = (f: typeof facturas[number]) => {
+    if (!f.fecha_vencimiento) return false;
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const v = new Date(f.fecha_vencimiento); v.setHours(0, 0, 0, 0);
+    return v.getTime() < hoy.getTime();
+  };
+  const isCreditoDirecto = (f: typeof facturas[number]) => (f.tipo_pago || "").toLowerCase().includes("directo") || f.tipo_pago === "credito";
+  const isCreditoCescemex = (f: typeof facturas[number]) => (f.tipo_pago || "").toLowerCase().includes("cescemex") || f.tipo_pago === "credito_cescemex";
+
+  const facturasVencidasKpi = useMemo(() => facturas.filter(isVencida), [facturas]);
+  const facturasCreditoDirectoKpi = useMemo(() => facturas.filter(isCreditoDirecto), [facturas]);
+  const facturasCreditoCescemexKpi = useMemo(() => facturas.filter(isCreditoCescemex), [facturas]);
+
+  const sumSaldo = (arr: typeof facturas) => arr.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
 
   // KPIs
   const cartera = useMemo(() => {
@@ -310,12 +333,9 @@ export default function Cobranza() {
     return orden.map((b) => ({ label: b, ...acc[b] }));
   };
 
-  const facturasCreditoDirecto = useMemo(() => facturas.filter((f) => f.tipo_pago === "credito"), [facturas]);
-  const facturasCreditoCescemex = useMemo(() => facturas.filter((f) => f.tipo_pago === "credito_cescemex"), [facturas]);
-
   const buckets = useMemo(() => buildBuckets(facturas), [facturas]);
-  const bucketsCreditoDirecto = useMemo(() => buildBuckets(facturasCreditoDirecto), [facturasCreditoDirecto]);
-  const bucketsCreditoCescemex = useMemo(() => buildBuckets(facturasCreditoCescemex), [facturasCreditoCescemex]);
+  const bucketsCreditoDirecto = useMemo(() => buildBuckets(facturasCreditoDirectoKpi), [facturasCreditoDirectoKpi]);
+  const bucketsCreditoCescemex = useMemo(() => buildBuckets(facturasCreditoCescemexKpi), [facturasCreditoCescemexKpi]);
 
   const proximasVencer = useMemo(() => {
     return [...facturas]
