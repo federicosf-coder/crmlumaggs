@@ -71,8 +71,12 @@ Deno.serve(async (req) => {
     const variableMap: string[] = Array.isArray(tplRow.variable_map) ? (tplRow.variable_map as string[]) : [];
     const headerType: string = tplRow.header_type ?? "NONE";
     const headerImageUrl: string | null = campaign.header_image_url ?? null;
+    const headerVideoUrl: string | null = (campaign as any).header_video_url ?? null;
     if (headerType === "IMAGE" && !headerImageUrl) {
       return json({ error: "La plantilla requiere una imagen de encabezado y la campaña no la tiene." }, 400);
+    }
+    if (headerType === "VIDEO" && !headerVideoUrl) {
+      return json({ error: "La plantilla requiere un video de encabezado y la campaña no la tiene." }, 400);
     }
     const tplVariables: Record<string, string> =
       (campaign.template_variables as Record<string, string> | null) ?? {};
@@ -99,6 +103,12 @@ Deno.serve(async (req) => {
           components.push({
             type: "header",
             parameters: [{ type: "image", image: { link: headerImageUrl } }],
+          });
+        }
+        if (headerType === "VIDEO" && headerVideoUrl) {
+          components.push({
+            type: "header",
+            parameters: [{ type: "video", video: { link: headerVideoUrl } }],
           });
         }
         if (variableMap.length > 0) {
