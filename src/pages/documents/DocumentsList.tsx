@@ -950,6 +950,7 @@ export default function DocumentsList() {
                 <p className="text-xs text-muted-foreground/70 mt-1">Crea un nuevo documento para comenzar</p>
               </div>
             ) : (
+              <>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -1161,6 +1162,8 @@ export default function DocumentsList() {
                   </div>
                 </div>
               )}
+              </>
+            )}
           </CardContent>
         </Card>
       )}
