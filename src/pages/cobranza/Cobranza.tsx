@@ -702,7 +702,7 @@ export default function Cobranza() {
         </TabsContent>
       </Tabs>
 
-      <RegistrarPagoDialog open={openRegistrar} onOpenChange={setOpenRegistrar} onSaved={(newId) => { refetchPagos(); refetchDocs(); if (newId) { setActiveTab("pagos"); setPendingDetalleId(newId); } }} />
+      <RegistrarPagoDialog open={openRegistrar} onOpenChange={setOpenRegistrar} empresaVendedora={empresaVendedora} onSaved={(newId) => { refetchPagos(); refetchDocs(); if (newId) { setActiveTab("pagos"); setPendingDetalleId(newId); } }} />
       <AplicarPagoDialog open={openAplicar} onOpenChange={setOpenAplicar} pago={pagoSel} onSaved={() => { refetchPagos(); refetchDocs(); }} />
       <DetallePagoSheet
         open={openDetalle}
