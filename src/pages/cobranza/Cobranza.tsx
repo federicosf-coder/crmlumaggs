@@ -750,72 +750,25 @@ export default function Cobranza() {
 
         {/* FACTURAS */}
         <TabsContent value="facturas" className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Input placeholder="Buscar por cliente o folio..." value={searchFacturas} onChange={(e) => setSearchFacturas(e.target.value)} className="max-w-md" />
-            <ColumnFilterBuilder
-              columns={facturasColumns}
-              conditions={facturasConditions}
-              onChange={setFacturasConditions}
-              combinator={facturasCombinator}
-              onCombinatorChange={setFacturasCombinator}
-            />
-            {facturasPrefilter !== "none" && (
+          {facturasPrefilter !== "none" && (
+            <div className="flex items-center gap-2">
               <Badge variant="secondary" className="gap-1">
-                {PREFILTER_LABEL[facturasPrefilter]}
+                Filtro: {PREFILTER_LABEL[facturasPrefilter]}
                 <button type="button" onClick={() => setFacturasPrefilter("none")} className="ml-1 hover:text-destructive">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
-            )}
-          </div>
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader><TableRow>
-                  <TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Plaza</TableHead>
-                  <TableHead>Emisión</TableHead><TableHead>Vence</TableHead><TableHead>Días</TableHead>
-                  <TableHead>Tipo de Pago</TableHead>
-                  <TableHead className="text-right">Total</TableHead><TableHead className="text-right">Saldo</TableHead>
-                  <TableHead>Estado</TableHead><TableHead></TableHead>
-                </TableRow></TableHeader>
-                <TableBody>
-                  {loadingDocs && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
-                  {!loadingDocs && facturasFiltradas.length === 0 && <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Sin facturas</TableCell></TableRow>}
-                  {facturasFiltradas.map((f) => {
-                    const d = diasParaVencer(fechaVencimientoEfectiva(f));
-                    const aplicado = Number(f.total) - Number(f.saldo_pendiente_cobranza);
-                    return (
-                      <TableRow key={f.id}>
-                        <TableCell className="font-mono text-xs">{f.numero_factura || "—"}</TableCell>
-                        <TableCell className="truncate max-w-[200px]">{f.empresa?.name}</TableCell>
-                        <TableCell>{f.plaza?.nombre || "—"}</TableCell>
-                        <TableCell>{formatDate(f.fecha_documento)}</TableCell>
-                        <TableCell>{fechaVencimientoEfectiva(f) ? formatDate(fechaVencimientoEfectiva(f)!) : "—"}</TableCell>
-                        <TableCell><span className={d !== null && d < 0 ? "text-destructive font-medium" : ""}>{d ?? "—"}</span></TableCell>
-                        <TableCell className="text-xs">{tipoPagoLabel(f.tipo_pago)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
-                        <TableCell>
-                          <EstadoCobranzaBadge value={f.estatus_factura || f.estado_cobranza} />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Ver documento"
-                            title="Ver documento"
-                            onClick={() => navigate(`/documents/${f.id}/edit`)}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+            </div>
+          )}
+          <FacturasListEmbedded
+            empresaVendedora={empresaVendedora}
+            plazaId={effectivePlazaId && effectivePlazaId !== "all" ? effectivePlazaId : null}
+            prefilter={
+              facturasPrefilter === "vencimiento" ? "vencidas" :
+              facturasPrefilter === "credito_directo" ? "credito_directo" :
+              facturasPrefilter === "credito_cescemex" ? "credito_cescemex" : "none"
+            }
+          />
         </TabsContent>
       </Tabs>
 
