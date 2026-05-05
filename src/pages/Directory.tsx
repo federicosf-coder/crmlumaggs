@@ -742,6 +742,7 @@ export default function Directory() {
               <Tabs defaultValue="general" className="mt-4">
                 <TabsList className="w-full">
                   <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
+                  <TabsTrigger value="contactos" className="flex-1">Contactos</TabsTrigger>
                   <TabsTrigger value="clasificacion" className="flex-1">Clasificación</TabsTrigger>
                   <TabsTrigger value="facturacion" className="flex-1">Detalles Facturación</TabsTrigger>
                   <TabsTrigger value="decision" className="flex-1">Proceso Decisión</TabsTrigger>
@@ -798,7 +799,18 @@ export default function Directory() {
                     </div>
                   </div>
 
-                  {/* Contactos de la empresa (antes de Notas) */}
+                  {/* Notas */}
+                  {selectedCompany.notes && (
+                    <div className="rounded-lg border bg-accent/30 p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                        <FileText className="h-3.5 w-3.5" /> Notas
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap">{selectedCompany.notes}</p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="contactos" className="space-y-3 mt-4">
                   <div className="rounded-lg border p-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-primary">
                       <User className="h-3.5 w-3.5" /> Contactos de la empresa
@@ -823,16 +835,6 @@ export default function Directory() {
                       </div>
                     )}
                   </div>
-
-                  {/* Notas */}
-                  {selectedCompany.notes && (
-                    <div className="rounded-lg border bg-accent/30 p-3 space-y-2">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                        <FileText className="h-3.5 w-3.5" /> Notas
-                      </div>
-                      <p className="text-sm whitespace-pre-wrap">{selectedCompany.notes}</p>
-                    </div>
-                  )}
                 </TabsContent>
 
                 <TabsContent value="clasificacion" className="space-y-3 mt-4">
