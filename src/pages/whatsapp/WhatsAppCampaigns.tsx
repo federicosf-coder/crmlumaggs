@@ -62,6 +62,8 @@ type Contact = {
   whatsapp_phone: string | null;
   mobile: string | null;
   company_id: string | null;
+  sede?: "mexicali" | "tijuana" | null;
+  interes_ids?: string[];
 };
 
 const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -86,6 +88,9 @@ export default function WhatsAppCampaigns() {
   const [headerVideoUrl, setHeaderVideoUrl] = useState<string | null>(null);
   const [linePhoneId, setLinePhoneId] = useState<string>("");
   const [variables, setVariables] = useState<Record<string, string>>({});
+  const [sedeFilter, setSedeFilter] = useState<"all" | "mexicali" | "tijuana">("all");
+  const [giroFilter, setGiroFilter] = useState<string[]>([]);
+  const [intereses, setIntereses] = useState<{ id: string; nombre: string }[]>([]);
 
   const load = async () => {
     const { data } = await supabase
@@ -117,12 +122,25 @@ export default function WhatsAppCampaigns() {
       });
     supabase
       .from("contacts")
-      .select("id,first_name,last_name,whatsapp_phone,mobile,company_id")
+      .select("id,first_name,last_name,whatsapp_phone,mobile,company_id,sede,contacto_intereses(interes_id)")
       .eq("is_active", true)
       .eq("no_contactar", false)
       .order("first_name")
       .limit(2000)
-      .then(({ data }) => setContacts((data ?? []) as Contact[]));
+      .then(({ data }) => {
+        const rows = ((data ?? []) as any[]).map((r) => ({
+          ...r,
+          interes_ids: (r.contacto_intereses || []).map((ci: any) => ci.interes_id),
+        }));
+        setContacts(rows as Contact[]);
+      });
+
+    (supabase as any)
+      .from("intereses_giro")
+      .select("id,nombre")
+      .eq("is_active", true)
+      .order("nombre")
+      .then(({ data }: any) => setIntereses(data || []));
 
     const ch = supabase
       .channel("wa-campaigns")
@@ -136,8 +154,17 @@ export default function WhatsAppCampaigns() {
   }, []);
 
   const eligible = useMemo(() => {
-    return contacts.filter((c) => c.whatsapp_phone || c.mobile);
-  }, [contacts]);
+    return contacts.filter((c) => {
+      if (!(c.whatsapp_phone || c.mobile)) return false;
+      if (sedeFilter !== "all" && c.sede !== sedeFilter) return false;
+      if (giroFilter.length > 0) {
+        const ids = c.interes_ids || [];
+        // AND: contact must have ALL selected giros
+        if (!giroFilter.every((g) => ids.includes(g))) return false;
+      }
+      return true;
+    });
+  }, [contacts, sedeFilter, giroFilter]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
