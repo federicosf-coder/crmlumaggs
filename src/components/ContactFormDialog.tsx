@@ -290,12 +290,45 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
     enabled: !!editData?.id && open,
   });
 
+  const { data: intereses = [] } = useQuery({
+    queryKey: ["intereses_giro"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("intereses_giro")
+        .select("id,nombre")
+        .eq("is_active", true)
+        .order("nombre");
+      return (data || []) as { id: string; nombre: string }[];
+    },
+    enabled: open,
+  });
+
+  const { data: contactIntereses = [] } = useQuery({
+    queryKey: ["contacto_intereses", editData?.id],
+    queryFn: async () => {
+      if (!editData?.id) return [];
+      const { data } = await (supabase as any)
+        .from("contacto_intereses")
+        .select("interes_id")
+        .eq("contacto_id", editData.id);
+      return (data || []).map((ci: any) => ci.interes_id);
+    },
+    enabled: !!editData?.id && open,
+  });
+
   useEffect(() => {
     if (contactEjecutivos.length > 0 && open && editData?.id) {
       setForm((prev: any) => ({ ...prev, ejecutivo_ids: contactEjecutivos }));
       autosave.seed({ ejecutivo_ids: contactEjecutivos });
     }
   }, [contactEjecutivos, open, editData?.id]);
+
+  useEffect(() => {
+    if (open && editData?.id) {
+      setForm((prev: any) => ({ ...prev, interes_ids: contactIntereses }));
+      autosave.seed({ interes_ids: contactIntereses });
+    }
+  }, [contactIntereses, open, editData?.id]);
 
   const reset = () => setForm(emptyForm);
 
