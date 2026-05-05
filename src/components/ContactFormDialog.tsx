@@ -236,7 +236,25 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies_for_contact"],
-    queryFn: async () => { const { data } = await supabase.from("companies").select("id, name").order("name"); return data || []; },
+    queryFn: async () => {
+      const all: { id: string; name: string }[] = [];
+      const size = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("companies")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("name")
+          .range(from, from + size - 1);
+        if (error) break;
+        const rows = data || [];
+        all.push(...rows);
+        if (rows.length < size) break;
+        from += size;
+      }
+      return all;
+    },
     enabled: open,
   });
 
