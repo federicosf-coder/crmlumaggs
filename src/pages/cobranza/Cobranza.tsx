@@ -750,7 +750,7 @@ export default function Cobranza() {
                         <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
                         <TableCell className="text-right font-medium">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
                         <TableCell>
-                          <EstadoCobranzaBadge value={f.estado_cobranza} />
+                          <EstadoCobranzaBadge value={f.estatus_factura || f.estado_cobranza} />
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
