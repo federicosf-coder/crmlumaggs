@@ -2914,6 +2914,7 @@ export type Database = {
           is_active: boolean
           name: string
           subject: string | null
+          system_key: string | null
           type: Database["public"]["Enums"]["template_type"]
           updated_at: string
           updated_by: string | null
@@ -2928,6 +2929,7 @@ export type Database = {
           is_active?: boolean
           name: string
           subject?: string | null
+          system_key?: string | null
           type: Database["public"]["Enums"]["template_type"]
           updated_at?: string
           updated_by?: string | null
@@ -2942,6 +2944,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           subject?: string | null
+          system_key?: string | null
           type?: Database["public"]["Enums"]["template_type"]
           updated_at?: string
           updated_by?: string | null
