@@ -1149,6 +1149,7 @@ function BucketReportCard({ title, buckets, onSelect }: { title: string; buckets
 
 function BucketDetalle({ label, scopeLabel, facturas, onBack }: { label: string; scopeLabel: string; facturas: any[]; onBack: () => void }) {
   const total = facturas.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
+  const navigate = useNavigate();
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
@@ -1173,11 +1174,12 @@ function BucketDetalle({ label, scopeLabel, facturas, onBack }: { label: string;
                 <TableHead className="text-right">Días</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Saldo</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {facturas.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Sin facturas en este grupo</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sin facturas en este grupo</TableCell></TableRow>
               )}
               {facturas.map((f) => {
                 const d = diasParaVencer(f.fecha_vencimiento);
@@ -1191,6 +1193,17 @@ function BucketDetalle({ label, scopeLabel, facturas, onBack }: { label: string;
                     <TableCell className="text-right"><span className={d !== null && d < 0 ? "text-destructive font-medium" : ""}>{d ?? "—"}</span></TableCell>
                     <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Ver documento"
+                        title="Ver documento"
+                        onClick={() => navigate(`/documents/${f.id}/edit`)}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })}
