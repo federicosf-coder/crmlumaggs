@@ -521,6 +521,32 @@ export default function Cobranza() {
             />
           ) : (
           <>
+          {/* KPIs unificadas — clic abre Seguimiento prefiltrado */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <UnifiedKpiCard
+              title="Vencimiento"
+              count={facturasVencidasKpi.length}
+              total={sumSaldo(facturasVencidasKpi)}
+              icon={AlertTriangle}
+              variant="destructive"
+              onClick={() => { setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
+            />
+            <UnifiedKpiCard
+              title="Crédito Directo"
+              count={facturasCreditoDirectoKpi.length}
+              total={sumSaldo(facturasCreditoDirectoKpi)}
+              icon={Wallet}
+              onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
+            />
+            <UnifiedKpiCard
+              title="Crédito Cescemex"
+              count={facturasCreditoCescemexKpi.length}
+              total={sumSaldo(facturasCreditoCescemexKpi)}
+              icon={Wallet}
+              onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
+            />
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <KpiCard title="Cartera abierta" value={formatCurrency(cartera.abierta)} icon={Wallet} />
             <KpiCard title="Cartera vencida" value={formatCurrency(cartera.vencida)} icon={AlertTriangle} variant="destructive" />
