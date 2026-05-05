@@ -933,6 +933,9 @@ export default function DocumentsList() {
                       {tipoFilter === "entrega_corporativa" && isColVisible("oc_cliente") && (
                         <TableHead className="hidden md:table-cell">Núm. OC Cliente</TableHead>
                       )}
+                      {tipoFilter !== "entrega_corporativa" && isColVisible("tipo_pago") && (
+                        <TableHead className="whitespace-nowrap">Tipo de Pago</TableHead>
+                      )}
                       {isColVisible("total") && <TableHead>Total</TableHead>}
                       {isColVisible("estatus") && (
                         <TableHead>
@@ -1004,6 +1007,14 @@ export default function DocumentsList() {
                             {doc.numero_oc_cliente || "-"}
                           </TableCell>
                         )}
+                        {tipoFilter !== "entrega_corporativa" && isColVisible("tipo_pago") && (() => {
+                          const tp = getTipoPagoInfo(doc.condiciones_pago);
+                          return (
+                            <TableCell>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${tp.cls}`}>{tp.label}</span>
+                            </TableCell>
+                          );
+                        })()}
                         {isColVisible("total") && (
                           <TableCell className="whitespace-nowrap">
                             ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
