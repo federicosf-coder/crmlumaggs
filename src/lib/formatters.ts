@@ -15,7 +15,15 @@ export function formatRelativeDate(date: string | Date): string {
 }
 
 export function formatDate(date: string | Date): string {
-  return format(new Date(date), "d MMM yyyy", { locale: es });
+  // Parse YYYY-MM-DD as local date to avoid timezone shifts (e.g. UTC midnight → previous day).
+  let d: Date;
+  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const [y, m, day] = date.split("-").map(Number);
+    d = new Date(y, m - 1, day);
+  } else {
+    d = new Date(date as any);
+  }
+  return format(d, "d MMM yyyy", { locale: es });
 }
 
 /**
