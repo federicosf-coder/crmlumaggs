@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
@@ -36,6 +37,7 @@ export interface ContactEditData {
   comm_cel?: boolean | null;
   comm_tel?: boolean | null;
   comm_tel_emp?: boolean | null;
+  sede?: "mexicali" | "tijuana" | null;
 }
 
 interface Props {
@@ -149,7 +151,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
     if (commValidation) throw new Error(commValidation);
     const dbPayload: Record<string, any> = {};
     for (const k of Object.keys(changes)) {
-      if (k === "ejecutivo_ids") continue;
+      if (k === "ejecutivo_ids" || k === "interes_ids") continue;
       const v = changes[k];
       if (k === "first_name" || k === "last_name") {
         dbPayload[k] = (v ?? "").toString();
@@ -171,6 +173,15 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
         );
       }
     }
+    if ("interes_ids" in changes) {
+      await (supabase as any).from("contacto_intereses").delete().eq("contacto_id", editData!.id);
+      const ids = (changes.interes_ids as string[]) || [];
+      if (ids.length > 0) {
+        await (supabase as any).from("contacto_intereses").insert(
+          ids.map((iid) => ({ contacto_id: editData!.id, interes_id: iid }))
+        );
+      }
+    }
   });
 
   const emptyForm = {
@@ -181,6 +192,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
     ejecutivo_ids: [] as string[],
     comm_email: false, comm_email2: false, comm_whatsapp: false,
     comm_cel: false, comm_tel: false, comm_tel_emp: false,
+    sede: "" as "" | "mexicali" | "tijuana",
+    interes_ids: [] as string[],
   };
 
   const [form, setForm] = useState<any>(emptyForm);
@@ -225,6 +238,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
         comm_cel: !!editData.comm_cel,
         comm_tel: !!editData.comm_tel,
         comm_tel_emp: !!editData.comm_tel_emp,
+        sede: (editData.sede || "") as "" | "mexicali" | "tijuana",
+        interes_ids: [] as string[],
       };
       setForm(seeded);
       autosave.seed(seeded);
@@ -276,12 +291,45 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
     enabled: !!editData?.id && open,
   });
 
+  const { data: intereses = [] } = useQuery({
+    queryKey: ["intereses_giro"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("intereses_giro")
+        .select("id,nombre")
+        .eq("is_active", true)
+        .order("nombre");
+      return (data || []) as { id: string; nombre: string }[];
+    },
+    enabled: open,
+  });
+
+  const { data: contactIntereses = [] } = useQuery({
+    queryKey: ["contacto_intereses", editData?.id],
+    queryFn: async () => {
+      if (!editData?.id) return [];
+      const { data } = await (supabase as any)
+        .from("contacto_intereses")
+        .select("interes_id")
+        .eq("contacto_id", editData.id);
+      return (data || []).map((ci: any) => ci.interes_id);
+    },
+    enabled: !!editData?.id && open,
+  });
+
   useEffect(() => {
     if (contactEjecutivos.length > 0 && open && editData?.id) {
       setForm((prev: any) => ({ ...prev, ejecutivo_ids: contactEjecutivos }));
       autosave.seed({ ejecutivo_ids: contactEjecutivos });
     }
   }, [contactEjecutivos, open, editData?.id]);
+
+  useEffect(() => {
+    if (open && editData?.id) {
+      setForm((prev: any) => ({ ...prev, interes_ids: contactIntereses }));
+      autosave.seed({ interes_ids: contactIntereses });
+    }
+  }, [contactIntereses, open, editData?.id]);
 
   const reset = () => setForm(emptyForm);
 
@@ -310,6 +358,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
       comm_cel: form.comm_cel,
       comm_tel: form.comm_tel,
       comm_tel_emp: form.comm_tel_emp,
+      sede: form.sede || null,
     };
 
     let contactId: string;
@@ -332,6 +381,13 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
     if (form.ejecutivo_ids.length > 0) {
       await supabase.from("contact_ejecutivos").insert(
         form.ejecutivo_ids.map((uid: string) => ({ contact_id: contactId, user_id: uid }))
+      );
+    }
+
+    await (supabase as any).from("contacto_intereses").delete().eq("contacto_id", contactId);
+    if (form.interes_ids.length > 0) {
+      await (supabase as any).from("contacto_intereses").insert(
+        form.interes_ids.map((iid: string) => ({ contacto_id: contactId, interes_id: iid }))
       );
     }
 
@@ -445,6 +501,48 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
               </div>
 
               {/* Notas (al fondo) */}
+              {/* Sede + Giros (intereses) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Sede</Label>
+                  <Select
+                    value={form.sede || ""}
+                    onValueChange={(v) => setAndSaveNow("sede", v)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Seleccionar sede" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mexicali">Mexicali</SelectItem>
+                      <SelectItem value="tijuana">Tijuana</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Giro / Intereses</Label>
+                  <div className="flex flex-wrap gap-3 rounded-md border p-3">
+                    {intereses.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">Sin giros configurados</span>
+                    ) : intereses.map((g) => {
+                      const checked = form.interes_ids.includes(g.id);
+                      return (
+                        <label key={g.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const next = v
+                                ? [...form.interes_ids, g.id]
+                                : form.interes_ids.filter((id: string) => id !== g.id);
+                              setForm((prev: any) => ({ ...prev, interes_ids: next }));
+                              autosave.saveNow("interes_ids", next);
+                            }}
+                          />
+                          {g.nombre}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label>Notas</Label>
                 <Textarea

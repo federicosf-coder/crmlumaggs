@@ -678,6 +678,39 @@ export type Database = {
           },
         ]
       }
+      contacto_intereses: {
+        Row: {
+          contacto_id: string
+          created_at: string
+          interes_id: string
+        }
+        Insert: {
+          contacto_id: string
+          created_at?: string
+          interes_id: string
+        }
+        Update: {
+          contacto_id?: string
+          created_at?: string
+          interes_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacto_intereses_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacto_intereses_interes_id_fkey"
+            columns: ["interes_id"]
+            isOneToOne: false
+            referencedRelation: "intereses_giro"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           comm_cel: boolean
@@ -705,6 +738,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           rol_id: string | null
+          sede: Database["public"]["Enums"]["sede_contacto"] | null
           tel_emp: string | null
           updated_at: string
           whatsapp_phone: string | null
@@ -735,6 +769,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           rol_id?: string | null
+          sede?: Database["public"]["Enums"]["sede_contacto"] | null
           tel_emp?: string | null
           updated_at?: string
           whatsapp_phone?: string | null
@@ -765,6 +800,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           rol_id?: string | null
+          sede?: Database["public"]["Enums"]["sede_contacto"] | null
           tel_emp?: string | null
           updated_at?: string
           whatsapp_phone?: string | null
@@ -2348,6 +2384,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      intereses_giro: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       plazas: {
         Row: {
@@ -4106,6 +4166,7 @@ export type Database = {
         | "contacto_influencia"
         | "origen_prospecto"
         | "motivo_perdida"
+      sede_contacto: "mexicali" | "tijuana"
       template_category:
         | "seguimiento_cotizacion"
         | "recompra"
@@ -4431,6 +4492,7 @@ export const Constants = {
         "origen_prospecto",
         "motivo_perdida",
       ],
+      sede_contacto: ["mexicali", "tijuana"],
       template_category: [
         "seguimiento_cotizacion",
         "recompra",
