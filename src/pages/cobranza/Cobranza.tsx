@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageBanner } from "@/components/PageBanner";
+import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useCobranzaPagos, useDocumentosCobranza, useCobranzaAplicaciones, type CobranzaPago } from "@/hooks/useCobranza";
 import { RegistrarPagoDialog } from "@/components/cobranza/RegistrarPagoDialog";
