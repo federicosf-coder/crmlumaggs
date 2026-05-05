@@ -36,6 +36,7 @@ export interface ContactEditData {
   comm_cel?: boolean | null;
   comm_tel?: boolean | null;
   comm_tel_emp?: boolean | null;
+  sede?: "mexicali" | "tijuana" | null;
 }
 
 interface Props {
