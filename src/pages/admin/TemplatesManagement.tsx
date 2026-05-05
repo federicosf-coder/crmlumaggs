@@ -50,12 +50,22 @@ export default function TemplatesManagement() {
   const duplicate = async (t: Template) => {
     if (!user) return;
     const { error } = await (supabase as any).from("templates").insert({
-      name: `${t.name} (copia)`, type: t.type, category: t.category,
-      subject: t.subject, body: t.body, description: t.description,
-      is_active: false, created_by: user.id, updated_by: user.id,
+      name: `Copia de ${t.name}`,
+      type: t.type,
+      category: t.category,
+      subject: t.subject,
+      body: t.body,
+      description: t.description,
+      to_emails: (t as any).to_emails ?? null,
+      cc_emails: (t as any).cc_emails ?? null,
+      bcc_emails: (t as any).bcc_emails ?? null,
+      reply_to: (t as any).reply_to ?? null,
+      is_active: t.is_active,
+      created_by: user.id,
+      updated_by: user.id,
     });
     if (error) { toast.error(error.message); return; }
-    toast.success("Plantilla duplicada");
+    toast.success("Plantilla duplicada correctamente");
     refetch();
   };
 
