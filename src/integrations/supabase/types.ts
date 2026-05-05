@@ -4130,7 +4130,7 @@ export type Database = {
         | "factura"
         | "entrega_corporativa"
       tipo_negocio_crm: "prospecto" | "expansion" | "recompra" | "otro"
-      tipo_pago: "contado" | "credito" | "credito_cescemex"
+      tipo_pago: "contado" | "credito" | "credito_cescemex" | "credito_directo"
       uso_cfdi:
         | "G01"
         | "G02"
@@ -4452,7 +4452,7 @@ export const Constants = {
         "entrega_corporativa",
       ],
       tipo_negocio_crm: ["prospecto", "expansion", "recompra", "otro"],
-      tipo_pago: ["contado", "credito", "credito_cescemex"],
+      tipo_pago: ["contado", "credito", "credito_cescemex", "credito_directo"],
       uso_cfdi: [
         "G01",
         "G02",
