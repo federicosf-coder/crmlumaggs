@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -231,24 +231,18 @@ function ProductoFormDialog({
   const [saving, setSaving] = useState(false);
 
   // Reset on open
-  useState(() => {});
-  useQuery({
-    queryKey: ["__noop_reset", open, editing?.id],
-    queryFn: async () => {
-      if (open) {
-        setDescripcion(editing?.producto_descripcion || "");
-        setMarca(editing?.marca_competencia || "");
-        setPrecio(editing?.precio_actual != null ? String(editing.precio_actual) : "");
-        setVolumen(editing?.volumen_estimado != null ? String(editing.volumen_estimado) : "");
-        setUnidad(editing?.unidad_volumen || "litros");
-        setNotas(editing?.notas || "");
-        setFiles([]);
-        setExistingFotos(editing?.fotos || []);
-      }
-      return null;
-    },
-    enabled: open,
-  });
+  useEffect(() => {
+    if (open) {
+      setDescripcion(editing?.producto_descripcion || "");
+      setMarca(editing?.marca_competencia || "");
+      setPrecio(editing?.precio_actual != null ? String(editing.precio_actual) : "");
+      setVolumen(editing?.volumen_estimado != null ? String(editing.volumen_estimado) : "");
+      setUnidad(editing?.unidad_volumen || "litros");
+      setNotas(editing?.notas || "");
+      setFiles([]);
+      setExistingFotos(editing?.fotos || []);
+    }
+  }, [open, editing]);
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fs = Array.from(e.target.files || []);
