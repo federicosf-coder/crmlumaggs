@@ -32,6 +32,15 @@ const FORMA_PAGO_TPL_LABEL: Record<string, string> = {
   credito_cescemex: "Crédito Cescemex",
 };
 
+function tipoPagoLabel(value: string | null | undefined): string {
+  const v = (value || "").toLowerCase();
+  if (!v) return "—";
+  if (v === "contado") return "Contado";
+  if (v === "credito_cescemex" || v.includes("cescemex")) return "Crédito Cescemex";
+  if (v === "credito" || v.includes("directo")) return "Crédito Directo";
+  return FORMA_PAGO_TPL_LABEL[v] || value || "—";
+}
+
 async function loadSystemTemplate(systemKey: string): Promise<{
   subject: string;
   body: string;
