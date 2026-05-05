@@ -629,13 +629,18 @@ export default function Cobranza() {
                         <TableCell className="text-right">{formatCurrency(Number(f.total))}</TableCell>
                         <TableCell className="text-right font-medium">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
                         <TableCell>
-                          <Badge variant={
-                            f.estado_cobranza === "pagada" ? "default" :
-                            f.estado_cobranza === "vencida" ? "destructive" :
-                            f.estado_cobranza === "parcial" ? "secondary" : "outline"
-                          }>
-                            {f.estado_cobranza ? ESTADO_COBRANZA_LABEL[f.estado_cobranza] : "Pendiente"}
-                          </Badge>
+                          <EstadoCobranzaBadge value={f.estado_cobranza} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Ver documento"
+                            title="Ver documento"
+                            onClick={() => navigate(`/documents/${f.id}/edit`)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
