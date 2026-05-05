@@ -45,6 +45,8 @@ interface Props {
   previouslySentEmails?: string[];
   templateName?: string;
   extraTemplateData?: Record<string, any>;
+  subjectOverride?: string;
+  htmlOverride?: string;
   title?: string;
   description?: string;
   onSent?: () => void;
@@ -69,6 +71,8 @@ export function EnviarConfirmacionPagoDialog({
   previouslySentEmails = [],
   templateName = "pago-confirmation",
   extraTemplateData,
+  subjectOverride,
+  htmlOverride,
   title,
   description,
   onSent,
