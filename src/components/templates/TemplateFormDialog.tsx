@@ -21,6 +21,7 @@ import {
 } from "@/lib/templates";
 import { TemplateAttachmentsManager } from "@/components/templates/TemplateAttachmentsManager";
 import { EmailRecipientsInput } from "@/components/templates/EmailRecipientsInput";
+import { RichTextEditor } from "@/components/templates/RichTextEditor";
 
 interface Props {
   open: boolean;
@@ -219,13 +220,21 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
 
               <div className="space-y-1">
                 <Label>Mensaje *</Label>
-                <Textarea
-                  rows={10}
-                  value={form.body || ""}
-                  onChange={(e) => setForm({ ...form, body: e.target.value })}
-                  placeholder="Hola {nombre_contacto}, te comparto la cotización {folio_cotizacion}..."
-                  maxLength={8000}
-                />
+                {form.type === "email" ? (
+                  <RichTextEditor
+                    value={form.body || ""}
+                    onChange={(html) => setForm((f) => ({ ...f, body: html }))}
+                    placeholders={visiblePlaceholders}
+                  />
+                ) : (
+                  <Textarea
+                    rows={10}
+                    value={form.body || ""}
+                    onChange={(e) => setForm({ ...form, body: e.target.value })}
+                    placeholder="Hola {nombre_contacto}, te comparto la cotización {folio_cotizacion}..."
+                    maxLength={8000}
+                  />
+                )}
               </div>
 
               {unknown.length > 0 && (
