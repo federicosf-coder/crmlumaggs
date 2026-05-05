@@ -989,35 +989,46 @@ export default function DocumentsList() {
                         />
                       </TableHead>
                       {!hidesNumber && isColVisible("numero") && (
-                        <TableHead>
+                        <SortableHead
+                          ascKey={tipoFilter === "factura" ? "numero_factura_asc" : "numero_asc"}
+                          descKey={tipoFilter === "factura" ? "numero_factura_desc" : "numero_desc"}
+                        >
                           {tipoFilter === "factura" ? "No. Factura" : "Número"}
-                        </TableHead>
+                        </SortableHead>
                       )}
-                      {isColVisible("cliente") && <TableHead className="min-w-[180px]">Cliente</TableHead>}
-                      {isColVisible("ejecutivo") && <TableHead className="hidden sm:table-cell">Ejecutivo</TableHead>}
+                      {isColVisible("cliente") && (
+                        <SortableHead ascKey="client_asc" descKey="client_desc" className="min-w-[180px]">Cliente</SortableHead>
+                      )}
+                      {isColVisible("ejecutivo") && (
+                        <SortableHead ascKey="ejecutivo_asc" descKey="ejecutivo_desc" className="hidden sm:table-cell">Ejecutivo</SortableHead>
+                      )}
                       {tipoFilter === "factura" && isColVisible("plaza") && (
-                        <TableHead className="hidden md:table-cell">Plaza</TableHead>
+                        <SortableHead ascKey="plaza_asc" descKey="plaza_desc" className="hidden md:table-cell">Plaza</SortableHead>
                       )}
                       {isColVisible("fecha") && (
-                        <TableHead className="whitespace-nowrap">{tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}</TableHead>
+                        <SortableHead ascKey="date_asc" descKey="date_desc" className="whitespace-nowrap">
+                          {tipoFilter === "cotizacion" ? "Fecha" : "Fecha Documento"}
+                        </SortableHead>
                       )}
                       {tipoFilter === "factura" && isColVisible("fecha_vencimiento") && (
-                        <TableHead className="whitespace-nowrap">Fecha Vencimiento</TableHead>
+                        <SortableHead ascKey="vencimiento_asc" descKey="vencimiento_desc" className="whitespace-nowrap">Fecha Vencimiento</SortableHead>
                       )}
                       {showsScheduledDate && isColVisible("fecha_programada") && (
-                        <TableHead className="hidden md:table-cell">Fecha Programada</TableHead>
+                        <SortableHead ascKey="programada_asc" descKey="programada_desc" className="hidden md:table-cell">Fecha Programada</SortableHead>
                       )}
                       {tipoFilter === "entrega_corporativa" && isColVisible("oc_cliente") && (
                         <TableHead className="hidden md:table-cell">Núm. OC Cliente</TableHead>
                       )}
                       {tipoFilter !== "entrega_corporativa" && isColVisible("tipo_pago") && (
-                        <TableHead className="whitespace-nowrap">Tipo de Pago</TableHead>
+                        <SortableHead ascKey="tipo_pago_asc" descKey="tipo_pago_desc" className="whitespace-nowrap">Tipo de Pago</SortableHead>
                       )}
-                      {isColVisible("total") && <TableHead>Total</TableHead>}
+                      {isColVisible("total") && (
+                        <SortableHead ascKey="total_asc" descKey="total_desc">Total</SortableHead>
+                      )}
                       {isColVisible("estatus") && (
-                        <TableHead>
+                        <SortableHead ascKey="estatus_asc" descKey="estatus_desc">
                           {tipoFilter === "factura" ? "Estatus Factura" : "Estatus"}
-                        </TableHead>
+                        </SortableHead>
                       )}
                       {isColVisible("pdf") && <TableHead className="hidden sm:table-cell">PDF</TableHead>}
                       <TableHead></TableHead>
