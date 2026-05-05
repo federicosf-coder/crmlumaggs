@@ -128,13 +128,13 @@ function getStatusBadgeClass(doc: any): string {
 }
 
 // Tipo de Pago helpers
-function getTipoPagoInfo(condiciones: any): { label: string; cls: string } {
-  const v = String(condiciones || "").toLowerCase();
-  if (!v) return { label: "—", cls: "bg-slate-100 text-slate-600 border-slate-300" };
+function getTipoPagoInfo(valor: any): { label: string; cls: string } {
+  const v = String(valor || "").trim().toLowerCase();
+  if (!v) return { label: "-", cls: "" };
   if (v.includes("cescemex")) return { label: "Crédito Cescemex", cls: "bg-amber-50 text-amber-700 border-amber-200" };
   if (v.includes("directo")) return { label: "Crédito Directo", cls: "bg-purple-50 text-purple-700 border-purple-200" };
   if (v.includes("contado")) return { label: "Contado", cls: "bg-blue-50 text-blue-700 border-blue-200" };
-  return { label: "—", cls: "bg-slate-100 text-slate-600 border-slate-300" };
+  return { label: "-", cls: "" };
 }
 
 export default function DocumentsList() {
@@ -292,9 +292,9 @@ export default function DocumentsList() {
       if (tipoFilter !== "all") q = q.eq("tipo_documento", tipoFilter as any);
       if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
       if (plazaFilter && plazaFilter !== "all") q = q.or(`plaza_id.eq.${plazaFilter},plaza_id.is.null`);
-      if (tipoPagoFilter === "contado") q = q.ilike("condiciones_pago", "%contado%");
-      else if (tipoPagoFilter === "directo") q = q.ilike("condiciones_pago", "%directo%");
-      else if (tipoPagoFilter === "cescemex") q = q.ilike("condiciones_pago", "%cescemex%");
+      if (tipoPagoFilter === "contado") q = q.eq("tipo_pago", "contado" as any);
+      else if (tipoPagoFilter === "directo") q = q.eq("tipo_pago", "credito_directo" as any);
+      else if (tipoPagoFilter === "cescemex") q = q.eq("tipo_pago", "credito_cescemex" as any);
       if (fechaDesde) q = q.gte("fecha_documento", fechaDesde);
       if (fechaHasta) q = q.lte("fecha_documento", fechaHasta);
       if (tipoFilter === "cotizacion" && estatusCotFilter !== "all") q = q.eq("estatus_cotizacion", estatusCotFilter as any);
@@ -1047,10 +1047,14 @@ export default function DocumentsList() {
                           </TableCell>
                         )}
                         {tipoFilter !== "entrega_corporativa" && isColVisible("tipo_pago") && (() => {
-                          const tp = getTipoPagoInfo(doc.condiciones_pago);
+                          const tp = getTipoPagoInfo(doc.tipo_pago ?? doc.condiciones_pago);
                           return (
                             <TableCell>
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${tp.cls}`}>{tp.label}</span>
+                              {tp.cls ? (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${tp.cls}`}>{tp.label}</span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
                             </TableCell>
                           );
                         })()}
