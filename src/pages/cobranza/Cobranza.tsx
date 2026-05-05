@@ -774,11 +774,30 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     );
 
     // Configurar el flujo
+    // Variables disponibles para placeholders en plantillas del sistema
+    const tplVars: Record<string, any> = {
+      nombre_cliente: pago.empresa?.name || "",
+      monto_pago: `${formatCurrency(Number(pago.monto_total))} ${pago.moneda || "MXN"}`,
+      fecha_pago: formatDate(pago.fecha_pago),
+      tipo_pago: FORMA_PAGO_TPL_LABEL[pago.tipo_pago || ""] || pago.tipo_pago || "—",
+      referencia_pago: pago.referencia_pago || "—",
+      banco: pago.banco || "—",
+      observaciones: pago.observaciones || "—",
+      registrado_por: profile?.full_name || user?.email || "—",
+    };
+
+    const systemKey = flow === "general" ? "pago_registrado_contabilidad" : "pago_validado_notificacion";
+    const dbTpl = await loadSystemTemplate(systemKey);
+    const subjectOverride = dbTpl ? renderTemplate(dbTpl.subject, tplVars) : undefined;
+    const htmlOverride = dbTpl ? renderTemplate(dbTpl.body, tplVars) : undefined;
+
     if (flow === "general") {
       setActiveFlow({
         templateName: "pago-confirmation",
         title: "Enviar confirmación de pago",
         description: "Envía el detalle del pago a los destinatarios.",
+        subjectOverride,
+        htmlOverride,
       });
     } else {
       const formaLabel =
@@ -789,6 +808,8 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         title: `Solicitud de validación — ${formaLabel}`,
         description: `Se enviará a los destinatarios del grupo "${groupName}". Al enviar, el estatus del pago cambiará a "Enviado a Validar".`,
         formaPago: flow,
+        subjectOverride,
+        htmlOverride,
       });
     }
 
