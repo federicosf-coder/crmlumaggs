@@ -7,12 +7,14 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye } from "lucide-react";
+import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
+import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
+import { useNavigate } from "react-router-dom";
 
 type Conversation = {
   id: string;
@@ -55,6 +57,7 @@ function extractTemplateVars(body: string): number {
 }
 
 export default function WhatsAppInbox() {
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -64,6 +67,10 @@ export default function WhatsAppInbox() {
   const [editContactOpen, setEditContactOpen] = useState(false);
   const [editCompanyOpen, setEditCompanyOpen] = useState(false);
   const [createCompanyOpen, setCreateCompanyOpen] = useState(false);
+  const [createDealOpen, setCreateDealOpen] = useState(false);
+  const [openDeals, setOpenDeals] = useState<Array<{ id: string; title: string; pipeline_nombre: string | null; pipeline_marca: string | null; pipeline_type: string | null; brand: "chevron" | "phillips66" }>>([]);
+  const [defaultPipelineId, setDefaultPipelineId] = useState<string>("");
+  const [defaultPipelineStages, setDefaultPipelineStages] = useState<any[]>([]);
   const [templates, setTemplates] = useState<TemplateWithAccount[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
