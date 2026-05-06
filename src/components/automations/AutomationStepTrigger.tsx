@@ -102,6 +102,21 @@ export function AutomationStepTrigger({
 
 function defaultConfigFor(trigger: string): Record<string, any> {
   switch (trigger) {
+    case "existing_button_click":
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <TextField
+            label="Identificador del botón"
+            value={config.button_id}
+            onChange={(v) => setConfig({ button_id: v })}
+          />
+          <TextField
+            label="Ubicación / pantalla (opcional)"
+            value={config.location}
+            onChange={(v) => setConfig({ location: v })}
+          />
+        </div>
+      );
     case "button_click":
       return { button_label: "Ejecutar", button_icon: "Send", button_color: "default" };
     case "date_reached":
