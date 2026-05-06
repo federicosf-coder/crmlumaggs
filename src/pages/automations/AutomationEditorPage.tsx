@@ -23,7 +23,7 @@ import { AutomationStepTrigger } from "@/components/automations/AutomationStepTr
 import { AutomationStepConditions } from "@/components/automations/AutomationStepConditions";
 import { AutomationStepActions } from "@/components/automations/AutomationStepActions";
 import {
-  type ActionDraft, type AutomationDraft, triggerLabel, actionLabel,
+  type ActionDraft, type AutomationDraft, triggerLabel,
 } from "@/components/automations/types";
 
 const STEPS = [
@@ -286,6 +286,3 @@ function Summary({ draft }: { draft: AutomationDraft }) {
     </div>
   );
 }
-
-// Re-export to satisfy linter on unused import
-export const _used = actionLabel;
