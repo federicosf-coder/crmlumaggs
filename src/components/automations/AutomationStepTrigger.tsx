@@ -435,7 +435,7 @@ function ExistingButtonPicker({
                   className="mr-6"
                 >
                   <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                  Auto-detectar
+                  Actializar botones
                 </Button>
               </DialogTitle>
             </DialogHeader>
