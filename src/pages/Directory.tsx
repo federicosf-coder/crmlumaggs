@@ -276,7 +276,7 @@ export default function Directory() {
     };
 
     const buildContactsQuery = () => {
-      let q = supabase.from("contacts").select("*, companies(name, plazas(nombre))").order("last_name");
+      let q = supabase.from("contacts").select("*, companies(name, industry, plazas(nombre))").order("last_name");
 
       if (access.accessLevel === "propio" && access.userId) {
         const userId = access.userId;
