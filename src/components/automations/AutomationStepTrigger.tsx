@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   TRIGGER_GROUPS, DATE_FIELDS_BY_ENTITY, type AutomationDraft,
 } from "./types";
-import { AvailableFieldsDialog, FieldPickerDialog } from "./AvailableFieldsDialog";
+import { AvailableFieldsDialog, FieldPickerDialog, getFieldOptions } from "./AvailableFieldsDialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -172,8 +172,8 @@ function renderConfig({
       return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <FieldPickerDialog entityType={entityType} value={config.field_name} onChange={(v) => setConfig({ field_name: v })} />
-          <TextField label="Valor anterior (opcional)" value={config.old_value} onChange={(v) => setConfig({ old_value: v })} />
-          <TextField label="Valor nuevo (opcional)" value={config.new_value} onChange={(v) => setConfig({ new_value: v })} />
+          <ValueField label="Valor anterior (opcional)" field={config.field_name} value={config.old_value} onChange={(v) => setConfig({ old_value: v })} />
+          <ValueField label="Valor nuevo (opcional)" field={config.field_name} value={config.new_value} onChange={(v) => setConfig({ new_value: v })} />
         </div>
       );
     case "on_stage_change":
@@ -201,8 +201,8 @@ function renderConfig({
       return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <FieldPickerDialog entityType={entityType} value={config.field_name} onChange={(v) => setConfig({ field_name: v })} />
-          <TextField label="Valor anterior" value={config.from_value} onChange={(v) => setConfig({ from_value: v })} />
-          <TextField label="Valor nuevo" value={config.to_value} onChange={(v) => setConfig({ to_value: v })} />
+          <ValueField label="Valor anterior" field={config.field_name} value={config.from_value} onChange={(v) => setConfig({ from_value: v })} />
+          <ValueField label="Valor nuevo" field={config.field_name} value={config.to_value} onChange={(v) => setConfig({ to_value: v })} />
         </div>
       );
     case "date_reached":
@@ -270,6 +270,33 @@ function TextField({ label, value, onChange }: { label: string; value: any; onCh
       <Input value={value || ""} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
+}
+
+function ValueField({
+  label, field, value, onChange,
+}: {
+  label: string;
+  field?: string;
+  value: any;
+  onChange: (v: string) => void;
+}) {
+  const options = getFieldOptions(field);
+  if (options) {
+    return (
+      <div>
+        <Label>{label}</Label>
+        <Select value={value || ""} onValueChange={onChange}>
+          <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+          <SelectContent>
+            {options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+  return <TextField label={label} value={value} onChange={onChange} />;
 }
 
 function NumberField({ label, value, min, max, onChange }: { label: string; value: any; min?: number; max?: number; onChange: (v: number) => void }) {
