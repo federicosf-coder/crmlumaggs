@@ -1403,6 +1403,11 @@ export default function DocumentForm() {
         </div>
       )}
 
+      {/* Sección Entrega Corporativa: archivos OC, Acuse, fecha real */}
+      {isEdit && id && isEntregaCorp && (
+        <EntregaCorporativaSection documentoId={id} tipoDocumento={form.tipo_documento} />
+      )}
+
       {/* Dialog: Nueva Empresa (formulario completo) */}
       <CompanyFormDialog open={showNewCompany} onOpenChange={setShowNewCompany} onCreated={handleCompanyCreated} />
 
