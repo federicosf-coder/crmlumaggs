@@ -77,6 +77,9 @@ export const FILTER_FIELDS_BY_ENTITY: Record<
   document: [
     { value: "tipo_documento", label: "Tipo documento", type: "text" },
     { value: "estatus_factura", label: "Estatus factura", type: "text" },
+    { value: "estatus_cotizacion", label: "Estatus cotización", type: "text" },
+    { value: "estatus_pedido", label: "Estatus pedido", type: "text" },
+    { value: "estatus_entrega_corporativa", label: "Estatus entrega corporativa", type: "text" },
     { value: "total", label: "Total", type: "number" },
     { value: "saldo_pendiente_cobranza", label: "Saldo pendiente", type: "number" },
   ],
