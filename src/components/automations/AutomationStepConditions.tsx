@@ -1,10 +1,13 @@
 import { Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
   SelectGroup, SelectLabel,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AutomationDraft, GROUPED_FILTER_FIELDS, OPERATORS_BY_TYPE, findGroupedField,
   type Condition, type FieldDef,
@@ -16,6 +19,158 @@ function getOptionsForField(fieldValue: string) {
   return FIELD_OPTIONS[key] || null;
 }
 
+type RemoteSource = "companies" | "contacts" | "products" | "users";
+
+function getRemoteSource(fieldValue: string): RemoteSource | null {
+  // Fields that reference a company record
+  if (
+    fieldValue === "document.company_id" ||
+    fieldValue === "deal.company_id" ||
+    fieldValue === "company.name" ||
+    fieldValue === "company.razon_social" ||
+    fieldValue === "company.id_contpaq"
+  ) return "companies";
+  // Fields that reference a contact record
+  if (
+    fieldValue === "document.contact_id" ||
+    fieldValue === "deal.contact_id" ||
+    fieldValue === "contact.first_name" ||
+    fieldValue === "contact.last_name" ||
+    fieldValue === "contact.email"
+  ) return "contacts";
+  if (fieldValue === "product.codigo" || fieldValue === "product.nombre_producto") return "products";
+  if (fieldValue === "user.full_name" || fieldValue === "user.email") return "users";
+  return null;
+}
+
+function RemotePicker({
+  source, fieldValue, value, onChange,
+}: {
+  source: RemoteSource;
+  fieldValue: string;
+  value: any;
+  onChange: (v: string) => void;
+}) {
+  const [options, setOptions] = useState<{ value: string; label: string; searchText?: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [customMode, setCustomMode] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoading(true);
+      try {
+        if (source === "companies") {
+          const { data } = await supabase
+            .from("companies")
+            .select("id, name, razon_social, id_contpaq")
+            .eq("is_active", true)
+            .order("name")
+            .limit(1000);
+          const useId = fieldValue.endsWith("_id") || fieldValue === "document.company_id";
+          const opts = (data || []).map((c: any) => {
+            const label = c.name || c.razon_social || c.id_contpaq || c.id;
+            const val = useId
+              ? c.id
+              : fieldValue === "company.razon_social"
+              ? (c.razon_social || "")
+              : fieldValue === "company.id_contpaq"
+              ? (c.id_contpaq || "")
+              : (c.name || "");
+            return { value: String(val), label: String(label), searchText: `${c.name} ${c.razon_social ?? ""} ${c.id_contpaq ?? ""}` };
+          }).filter((o) => o.value);
+          if (active) setOptions(opts);
+        } else if (source === "contacts") {
+          const { data } = await supabase
+            .from("contacts")
+            .select("id, first_name, last_name, email")
+            .eq("is_active", true)
+            .order("first_name")
+            .limit(1000);
+          const useId = fieldValue.endsWith("_id");
+          const opts = (data || []).map((c: any) => {
+            const full = `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim();
+            const label = full || c.email || c.id;
+            const val = useId
+              ? c.id
+              : fieldValue === "contact.first_name"
+              ? (c.first_name || "")
+              : fieldValue === "contact.last_name"
+              ? (c.last_name || "")
+              : fieldValue === "contact.email"
+              ? (c.email || "")
+              : "";
+            return { value: String(val), label: String(label), searchText: `${full} ${c.email ?? ""}` };
+          }).filter((o) => o.value);
+          if (active) setOptions(opts);
+        } else if (source === "products") {
+          const { data } = await supabase
+            .from("productos")
+            .select("id, codigo, nombre_producto")
+            .eq("is_active", true)
+            .order("nombre_producto")
+            .limit(1000);
+          const opts = (data || []).map((p: any) => {
+            const val = fieldValue === "product.codigo" ? (p.codigo || "") : (p.nombre_producto || "");
+            const label = `${p.codigo ?? ""} — ${p.nombre_producto ?? ""}`.trim();
+            return { value: String(val), label, searchText: `${p.codigo ?? ""} ${p.nombre_producto ?? ""}` };
+          }).filter((o) => o.value);
+          if (active) setOptions(opts);
+        } else if (source === "users") {
+          const { data } = await supabase
+            .from("profiles")
+            .select("id, full_name, email")
+            .order("full_name")
+            .limit(500);
+          const opts = (data || []).map((u: any) => {
+            const val = fieldValue === "user.email" ? (u.email || "") : (u.full_name || "");
+            const label = u.full_name || u.email || u.id;
+            return { value: String(val), label, searchText: `${u.full_name ?? ""} ${u.email ?? ""}` };
+          }).filter((o) => o.value);
+          if (active) setOptions(opts);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [source, fieldValue]);
+
+  const current = String(value ?? "");
+  const matches = options.some((o) => o.value === current);
+
+  if (customMode || (current && !matches && !loading)) {
+    return (
+      <div className="flex items-center gap-2">
+        <Input
+          className="w-56"
+          value={current}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Valor personalizado"
+        />
+        <Button size="sm" variant="ghost" onClick={() => { setCustomMode(false); onChange(""); }}>
+          Lista
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <SearchableSelect
+        className="w-64"
+        value={current}
+        onValueChange={onChange}
+        options={options}
+        placeholder={loading ? "Cargando…" : "Selecciona…"}
+      />
+      <Button size="sm" variant="ghost" onClick={() => { setCustomMode(true); onChange(""); }}>
+        Otro
+      </Button>
+    </div>
+  );
+}
+
 function ValuePicker({
   fieldValue, type, value, onChange,
 }: {
@@ -24,6 +179,10 @@ function ValuePicker({
   value: any;
   onChange: (v: string) => void;
 }) {
+  const remote = getRemoteSource(fieldValue);
+  if (remote) {
+    return <RemotePicker source={remote} fieldValue={fieldValue} value={value} onChange={onChange} />;
+  }
   const options = getOptionsForField(fieldValue);
   if (!options || options.length === 0) {
     return (
