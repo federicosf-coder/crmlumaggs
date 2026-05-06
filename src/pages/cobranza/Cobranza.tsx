@@ -1290,6 +1290,10 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
           formaPago: activeFlow.formaPago || pago.tipo_pago,
         }}
         onSent={activeFlow.templateName === "pago-validacion" ? handleSentValidacion : undefined}
+        logContext={{
+          user_id: user?.id || null,
+          company_id: pago.empresa_id || null,
+        }}
       />
     </Dialog>
   );

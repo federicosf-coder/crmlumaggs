@@ -52,6 +52,14 @@ interface Props {
   replyTo?: string;
   title?: string;
   description?: string;
+  /** Contexto opcional para registrar la actividad en el historial del CRM */
+  logContext?: {
+    company_id?: string | null;
+    contact_id?: string | null;
+    deal_id?: string | null;
+    documento_id?: string | null;
+    user_id?: string | null;
+  };
   onSent?: () => void;
 }
 
@@ -81,6 +89,7 @@ export function EnviarConfirmacionPagoDialog({
   replyTo,
   title,
   description,
+  logContext,
   onSent,
 }: Props) {
   const blockedSet = new Set(blockedEmails.map((e) => e.toLowerCase()));
@@ -183,6 +192,27 @@ export function EnviarConfirmacionPagoDialog({
       );
       const failed = results.filter((r) => r.status === "rejected").length;
       if (failed === 0) {
+        // Log al historial CRM (no bloquea la UX)
+        if (logContext?.user_id) {
+          try {
+            const subject = subjectOverride || title || `Correo · ${templateName}`;
+            const description = `Correo enviado a: ${finalEmails.join(", ")}${
+              ccEmails && ccEmails.length ? ` · CC: ${ccEmails.join(", ")}` : ""
+            }${bccEmails && bccEmails.length ? ` · CCO: ${bccEmails.join(", ")}` : ""}`;
+            await supabase.from("crm_activities").insert({
+              user_id: logContext.user_id,
+              type: "email",
+              title: subject,
+              description,
+              company_id: logContext.company_id ?? null,
+              contact_id: logContext.contact_id ?? null,
+              deal_id: logContext.deal_id ?? null,
+              documento_id: logContext.documento_id ?? null,
+            } as any);
+          } catch (e) {
+            console.warn("[email] log activity failed", e);
+          }
+        }
         toast.success(
           `Correo enviado a ${finalEmails.length} ${
             finalEmails.length === 1 ? "destinatario" : "destinatarios"

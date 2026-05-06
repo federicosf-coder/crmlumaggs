@@ -1510,7 +1510,7 @@ export default function DocumentForm() {
           total_cotizacion: existingDoc?.total != null ? `$${Number(existingDoc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : null,
           fecha_vencimiento: form.fecha_vencimiento || null,
         }}
-        context={{ company_id: form.empresa_id || null, contact_id: form.contacto_id || null }}
+        context={{ company_id: form.empresa_id || null, contact_id: form.contacto_id || null, deal_id: form.negocio_id || null }}
         onSent={async () => {
           if (!id) return;
           await supabase.from("documentos").update({ whatsapp_last_sent_at: new Date().toISOString() }).eq("id", id);
