@@ -105,7 +105,7 @@ function RemotePicker({
           if (active) setOptions(opts);
         } else if (source === "products") {
           const { data } = await supabase
-            .from("products")
+            .from("productos")
             .select("id, codigo, nombre_producto")
             .eq("is_active", true)
             .order("nombre_producto")
