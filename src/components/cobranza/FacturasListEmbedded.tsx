@@ -500,6 +500,15 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
             <p className="mt-2 text-muted-foreground">No hay facturas</p>
           </div>
         ) : (
+          viewMode === "grouped" ? (
+            <GroupedByClient
+              docs={sortedDocs}
+              expanded={expandedGroups}
+              onToggle={toggleGroup}
+              onRowClick={(id) => navigate(`/documents/${id}`)}
+              fechaVencimientoEfectiva={fechaVencimientoEfectiva}
+            />
+          ) : (
           <>
             <div className="overflow-x-auto">
               <Table>
@@ -637,6 +646,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
               </div>
             )}
           </>
+          )
         )}
       </CardContent>
 
