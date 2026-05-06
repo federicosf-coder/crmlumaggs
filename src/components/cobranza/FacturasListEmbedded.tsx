@@ -699,8 +699,8 @@ function GroupedByClient({
 }) {
   const groups = new Map<string, { name: string; docs: any[]; total: number }>();
   for (const d of docs) {
-    const id = d.company_id || (d.companies as any)?.id || "__sin__";
     const name = (d.companies as any)?.name || "Sin cliente";
+    const id = d.empresa_id || d.company_id || `__name__:${name}`;
     if (!groups.has(id)) groups.set(id, { name, docs: [], total: 0 });
     const g = groups.get(id)!;
     g.docs.push(d);
