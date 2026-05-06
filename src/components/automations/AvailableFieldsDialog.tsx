@@ -77,6 +77,58 @@ export function getFieldDescription(field: string) {
   return FIELD_DESCRIPTIONS[field] || "—";
 }
 
+export const FIELD_OPTIONS: Record<string, { value: string; label: string }[]> = {
+  pipeline_type: [
+    { value: "primera_compra", label: "Primera compra" },
+    { value: "recompra", label: "Recompra" },
+  ],
+  tipo_negocio: [
+    { value: "prospecto", label: "Prospecto" },
+    { value: "expansion", label: "Expansión" },
+    { value: "recompra", label: "Recompra" },
+    { value: "otro", label: "Otro" },
+  ],
+  estatus_recompra_chevron: [
+    { value: "al_dia", label: "Al día" },
+    { value: "proximo", label: "Próximo" },
+    { value: "vencido", label: "Vencido" },
+    { value: "en_riesgo", label: "En riesgo" },
+    { value: "dormido", label: "Dormido" },
+    { value: "sin_historial", label: "Sin historial" },
+  ],
+  estatus_recompra_phillips66: [
+    { value: "al_dia", label: "Al día" },
+    { value: "proximo", label: "Próximo" },
+    { value: "vencido", label: "Vencido" },
+    { value: "en_riesgo", label: "En riesgo" },
+    { value: "dormido", label: "Dormido" },
+    { value: "sin_historial", label: "Sin historial" },
+  ],
+  tipo_documento: [
+    { value: "cotizacion", label: "Cotización" },
+    { value: "pedido", label: "Pedido" },
+    { value: "factura", label: "Factura" },
+    { value: "entrega_corporativa", label: "Entrega corporativa" },
+  ],
+  estatus_factura: [
+    { value: "pendiente", label: "Pendiente" },
+    { value: "pagada", label: "Pagada" },
+    { value: "parcial", label: "Parcial" },
+    { value: "vencida", label: "Vencida" },
+    { value: "cancelada", label: "Cancelada" },
+    { value: "vigente", label: "Vigente" },
+  ],
+  no_contactar: [
+    { value: "true", label: "Sí" },
+    { value: "false", label: "No" },
+  ],
+};
+
+export function getFieldOptions(field?: string) {
+  if (!field) return null;
+  return FIELD_OPTIONS[field] || null;
+}
+
 export function AvailableFieldsDialog({ entityType }: { entityType: EntityType }) {
   const [open, setOpen] = useState(false);
   const all = getAvailableFields(entityType);
