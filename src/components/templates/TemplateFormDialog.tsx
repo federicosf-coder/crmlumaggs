@@ -51,6 +51,7 @@ const empty = (): Partial<Template> => ({
 export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Props) {
   const { user } = useAuth();
   const [form, setForm] = useState<Partial<Template>>(empty());
+  const [replyToItems, setReplyToItems] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
 
@@ -63,6 +64,8 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
       bcc_emails: (editing as any).bcc_emails || [],
       reply_to: (editing as any).reply_to || "",
     } : empty());
+    const rt = (editing as any)?.reply_to as string | null | undefined;
+    setReplyToItems(rt ? [{ type: "email", value: rt, label: rt }] : []);
     setCreatedId(editing?.id || null);
   }, [open, editing]);
 
@@ -100,6 +103,22 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
     }
     if (!user) return;
     setSaving(true);
+    // Resolver reply_to a un único email (toma el primero; si es grupo, el primer miembro)
+    let resolvedReplyTo: string | null = null;
+    if (parsed.data.type === "email" && replyToItems.length > 0) {
+      const first = replyToItems[0];
+      if (first.type === "email") {
+        resolvedReplyTo = first.value;
+      } else if (first.type === "group") {
+        const { data: gm } = await (supabase as any)
+          .from("email_group_members")
+          .select("email")
+          .eq("group_id", first.value)
+          .limit(1)
+          .maybeSingle();
+        resolvedReplyTo = gm?.email || null;
+      }
+    }
     const payload: any = {
       name: parsed.data.name,
       type: parsed.data.type,
@@ -112,7 +131,7 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
       to_emails: parsed.data.type === "email" ? (form.to_emails || []) : [],
       cc_emails: parsed.data.type === "email" ? (form.cc_emails || []) : [],
       bcc_emails: parsed.data.type === "email" ? (form.bcc_emails || []) : [],
-      reply_to: parsed.data.type === "email" ? (form.reply_to?.trim() || null) : null,
+      reply_to: parsed.data.type === "email" ? resolvedReplyTo : null,
     };
     let error;
     let savedId = editing?.id || createdId;
@@ -208,12 +227,14 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
                   </div>
                   <div className="space-y-1">
                     <Label>Responder a</Label>
-                    <Input
-                      type="email"
+                    <EmailRecipientsInput
+                      value={replyToItems as any}
+                      onChange={(v) => setReplyToItems((v as any[]).slice(-1))}
                       placeholder="correo@empresa.com"
-                      value={form.reply_to || ""}
-                      onChange={(e) => setForm({ ...form, reply_to: e.target.value })}
                     />
+                    <p className="text-[11px] text-muted-foreground">
+                      Solo se usa una dirección. Si eliges un grupo, se tomará el primer miembro.
+                    </p>
                   </div>
                 </div>
               )}
