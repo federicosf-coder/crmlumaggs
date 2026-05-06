@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus, Zap, Pencil, Trash2, FileText, MousePointerClick, Save, FilePlus,
@@ -250,8 +250,8 @@ function RunLogSheet({
               </TableHeader>
               <TableBody>
                 {runs.map((r) => (
-                  <>
-                    <TableRow key={r.id}>
+                  <Fragment key={r.id}>
+                    <TableRow>
                       <TableCell>{formatDateTime(r.run_at)}</TableCell>
                       <TableCell className="text-sm">
                         {r.entity_label ?? r.entity_id ?? "—"}
@@ -273,13 +273,13 @@ function RunLogSheet({
                       <TableCell className="text-right">{r.actions_executed}</TableCell>
                     </TableRow>
                     {r.status === "failed" && r.error_message && (
-                      <TableRow key={r.id + "-err"}>
+                      <TableRow>
                         <TableCell colSpan={4} className="text-xs text-destructive bg-destructive/5">
                           {r.error_message}
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
