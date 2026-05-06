@@ -924,41 +924,50 @@ export default function SellerPortal() {
       </Card>
 
       {/* Tabs detalle */}
-      <Tabs defaultValue="prospectos">
+      <Tabs defaultValue="primera_compra">
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="prospectos">Prospectos ({dealsEnRango.length})</TabsTrigger>
+          <TabsTrigger value="primera_compra">1ra Compra ({dealsEnRango.filter(d => d.pipeline_type !== "recompra").length})</TabsTrigger>
+          <TabsTrigger value="recompra">Recompra ({dealsEnRango.filter(d => d.pipeline_type === "recompra").length})</TabsTrigger>
           <TabsTrigger value="cotizaciones">Cotizaciones ({cotizaciones.length})</TabsTrigger>
           <TabsTrigger value="pedidos">Pedidos ({pedidos.length})</TabsTrigger>
           <TabsTrigger value="facturas">Facturas ({facturas.length})</TabsTrigger>
           <TabsTrigger value="cobranza">Cobranza ({pagos.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="prospectos">
-          <Card>
-            <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limProspectos} onChange={setLimProspectos} total={dealsEnRango.length} onPageReset={() => setPageProspectos(1)} /></CardHeader>
-            <CardContent className="p-0 overflow-x-auto"><Table>
-            <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Tipo</TableHead><TableHead>Fecha</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
-            <TableBody>
-              {dealsEnRango.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Sin prospectos en el rango</TableCell></TableRow>}
-              {paginate(dealsEnRango, limProspectos, pageProspectos).map(d => {
-                const dealMarca = (d as any).crm_pipelines?.marca === "phillips66" ? "phillips66" : "chevron";
-                const dealType = d.pipeline_type === "recompra" ? "recompra" : "primera_compra";
-                const dealUrl = `/crm/${dealMarca}/pipeline?type=${dealType}&deal=${d.id}`;
-                return (
-                  <TableRow key={d.id}>
-                    <TableCell className="font-medium text-sm">{companyMap[d.company_id] || d.title}</TableCell>
-                    <TableCell><Badge variant="outline">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
-                    <TableCell className="text-xs">{format(new Date(d.created_at), "dd MMM yyyy", { locale: es })}</TableCell>
-                    <TableCell className="text-right text-sm">{fmtNum(Number(d.potencial_unidades || 0))}</TableCell>
-                    <TableCell><Button size="sm" variant="ghost" asChild><Link to={dealUrl}><ExternalLink className="h-3.5 w-3.5" /></Link></Button></TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          <Paginator page={pageProspectos} setPage={setPageProspectos} total={dealsEnRango.length} lim={limProspectos} />
-          </CardContent></Card>
-        </TabsContent>
+        {([
+          { key: "primera_compra", label: "1ra Compra", filter: (d: any) => d.pipeline_type !== "recompra", empty: "Sin prospectos de 1ra compra en el rango" },
+          { key: "recompra", label: "Recompra", filter: (d: any) => d.pipeline_type === "recompra", empty: "Sin recompras en el rango" },
+        ] as const).map(({ key, filter, empty }) => {
+          const rows = dealsEnRango.filter(filter);
+          return (
+            <TabsContent value={key} key={key}>
+              <Card>
+                <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limProspectos} onChange={setLimProspectos} total={rows.length} onPageReset={() => setPageProspectos(1)} /></CardHeader>
+                <CardContent className="p-0 overflow-x-auto"><Table>
+                <TableHeader><TableRow className="h-8"><TableHead className="py-1">Cliente</TableHead><TableHead className="py-1">Tipo</TableHead><TableHead className="py-1">Fecha</TableHead><TableHead className="py-1 text-right">Unid. equiv.</TableHead><TableHead className="py-1"></TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-4 text-muted-foreground text-sm">{empty}</TableCell></TableRow>}
+                  {paginate(rows, limProspectos, pageProspectos).map(d => {
+                    const dealMarca = (d as any).crm_pipelines?.marca === "phillips66" ? "phillips66" : "chevron";
+                    const dealType = d.pipeline_type === "recompra" ? "recompra" : "primera_compra";
+                    const dealUrl = `/crm/${dealMarca}/pipeline?type=${dealType}&deal=${d.id}`;
+                    return (
+                      <TableRow key={d.id} className="h-8">
+                        <TableCell className="font-medium text-sm py-1">{companyMap[d.company_id] || d.title}</TableCell>
+                        <TableCell className="py-1"><Badge variant="outline" className="text-xs">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
+                        <TableCell className="text-xs py-1">{format(new Date(d.created_at), "dd MMM yyyy", { locale: es })}</TableCell>
+                        <TableCell className="text-right text-sm py-1">{fmtNum(Number(d.potencial_unidades || 0))}</TableCell>
+                        <TableCell className="py-1"><Button size="sm" variant="ghost" asChild><Link to={dealUrl}><ExternalLink className="h-3.5 w-3.5" /></Link></Button></TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              <Paginator page={pageProspectos} setPage={setPageProspectos} total={rows.length} lim={limProspectos} />
+              </CardContent></Card>
+            </TabsContent>
+          );
+        })}
 
         {[
           { key: "cotizaciones", data: cotizaciones, lim: limCotizaciones, setLim: setLimCotizaciones, page: pageCotizaciones, setPage: setPageCotizaciones },
