@@ -319,3 +319,74 @@ function SelectField({
     </Select>
   );
 }
+
+function ExistingButtonPicker({
+  config, setConfig,
+}: {
+  config: Record<string, any>;
+  setConfig: (p: Record<string, any>) => void;
+}) {
+  const selected = EXISTING_BUTTONS.find((b) => b.id === config.button_id);
+  return (
+    <div className="space-y-2">
+      <Label>Botón existente</Label>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 text-sm">
+          {selected ? (
+            <span>
+              <span className="font-medium">{selected.name}</span>
+              <span className="text-muted-foreground"> — {selected.location}</span>
+            </span>
+          ) : (
+            <span className="text-muted-foreground">Ningún botón seleccionado.</span>
+          )}
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button type="button" variant="outline" size="sm">
+              {selected ? "Cambiar" : "Seleccionar botón"}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Botones disponibles en la aplicación</DialogTitle>
+            </DialogHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead>Ubicación</TableHead>
+                  <TableHead className="w-20"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {EXISTING_BUTTONS.map((b) => (
+                  <TableRow key={b.id} className={config.button_id === b.id ? "bg-primary/5" : ""}>
+                    <TableCell className="font-medium">{b.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{b.description}</TableCell>
+                    <TableCell className="text-sm">{b.location}</TableCell>
+                    <TableCell>
+                      <DialogTrigger asChild>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={config.button_id === b.id ? "default" : "outline"}
+                          onClick={() =>
+                            setConfig({ button_id: b.id, button_name: b.name, location: b.location })
+                          }
+                        >
+                          {config.button_id === b.id ? "Elegido" : "Elegir"}
+                        </Button>
+                      </DialogTrigger>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+}
