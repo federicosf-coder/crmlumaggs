@@ -664,10 +664,17 @@ export default function WhatsAppInbox() {
         onCreated={() => {
           if (active?.contact_id) {
             supabase.from("contacts").select("*").eq("id", active.contact_id).maybeSingle()
-              .then(({ data }) => {
+              .then(async ({ data }) => {
                 if (data) {
                   setContactName(`${data.first_name ?? ""} ${data.last_name ?? ""}`.trim());
                   setContactData(data as any);
+                  if ((data as any).company_id) {
+                    const { data: comp } = await supabase
+                      .from("companies").select("*").eq("id", (data as any).company_id).maybeSingle();
+                    setCompanyData((comp as any) ?? null);
+                  } else {
+                    setCompanyData(null);
+                  }
                 }
               });
           }
