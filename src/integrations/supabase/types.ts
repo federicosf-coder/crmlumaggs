@@ -44,6 +44,136 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_actions: {
+        Row: {
+          action_config: Json
+          action_type: string
+          automation_id: string
+          created_at: string
+          id: string
+          position: number
+        }
+        Insert: {
+          action_config?: Json
+          action_type: string
+          automation_id: string
+          created_at?: string
+          id?: string
+          position?: number
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          automation_id?: string
+          created_at?: string
+          id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_actions_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_runs: {
+        Row: {
+          actions_executed: number
+          automation_id: string
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string | null
+          error_message: string | null
+          id: string
+          run_at: string
+          status: string
+          triggered_by: string
+        }
+        Insert: {
+          actions_executed?: number
+          automation_id: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          id?: string
+          run_at?: string
+          status?: string
+          triggered_by?: string
+        }
+        Update: {
+          actions_executed?: number
+          automation_id?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          id?: string
+          run_at?: string
+          status?: string
+          triggered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automations: {
+        Row: {
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          entity_type: string
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          name: string
+          run_count: number
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entity_type: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name: string
+          run_count?: number
+          trigger_config?: Json
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name?: string
+          run_count?: number
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       brand_logos: {
         Row: {
           created_at: string | null
