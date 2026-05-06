@@ -53,6 +53,7 @@ const VALID_FORMAS: FormaPago[] = ["contado", "credito", "credito_cescemex"];
 export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpresaId, defaultDocumentoId, empresaVendedora }: Props) {
   const { user } = useAuth();
   const [companies, setCompanies] = useState<{ id: string; name: string; email?: string | null; tipo_pago?: string | null }[]>([]);
+  const [plazas, setPlazas] = useState<{ id: string; nombre: string }[]>([]);
   const [docs, setDocs] = useState<DocOption[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -60,6 +61,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [empresaId, setEmpresaId] = useState("");
+  const [plazaId, setPlazaId] = useState("");
   const [fechaPago, setFechaPago] = useState(new Date().toISOString().split("T")[0]);
   const [montoTotal, setMontoTotal] = useState("");
   const [observaciones, setObservaciones] = useState("");
@@ -72,6 +74,8 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
     if (!open) return;
     supabase.from("companies").select("id,name,email,tipo_pago").eq("is_active", true).order("name")
       .then(({ data }) => setCompanies(data || []));
+    supabase.from("plazas").select("id,nombre").eq("is_active", true).order("nombre")
+      .then(({ data }) => setPlazas(data || []));
   }, [open]);
 
   // Prefill empresa from default when dialog opens
@@ -165,13 +169,14 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
 
   const reset = () => {
-    setEmpresaId(""); setMontoTotal(""); setObservaciones("");
+    setEmpresaId(""); setPlazaId(""); setMontoTotal(""); setObservaciones("");
     setSeleccion({}); setFiles([]); setDocs([]); setFormaPago("");
     setFechaPago(new Date().toISOString().split("T")[0]);
   };
 
   const handleSave = async () => {
     if (!empresaId) { toast.error("Selecciona la empresa"); return; }
+    if (!plazaId) { toast.error("La plaza es requerida"); return; }
     if (!formaPago) { toast.error("Selecciona la forma de pago"); return; }
     if (!montoNum || montoNum <= 0) { toast.error("Monto inválido"); return; }
     const aplicaciones = Object.entries(seleccion)
@@ -182,6 +187,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
     setSaving(true);
     const { data: pago, error } = await supabase.from("cobranza_pagos").insert({
       empresa_id: empresaId,
+      plaza_id: plazaId,
       fecha_pago: fechaPago,
       monto_total: montoNum,
       monto_disponible: montoNum,
@@ -249,14 +255,26 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Registrar pago</DialogTitle></DialogHeader>
         <div className="space-y-4">
-          <div>
-            <Label>Empresa *</Label>
-            <SearchableSelect
-              value={empresaId}
-              onValueChange={setEmpresaId}
-              options={companies.map((c) => ({ value: c.id, label: c.name }))}
-              placeholder="Buscar empresa..."
-            />
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2">
+              <Label>Empresa *</Label>
+              <SearchableSelect
+                value={empresaId}
+                onValueChange={setEmpresaId}
+                options={companies.map((c) => ({ value: c.id, label: c.name }))}
+                placeholder="Buscar empresa..."
+              />
+            </div>
+            <div className="col-span-1">
+              <Label>Plaza *</Label>
+              <SearchableSelect
+                value={plazaId}
+                onValueChange={setPlazaId}
+                options={plazas.map((p) => ({ value: p.id, label: p.nombre }))}
+                placeholder="Selecciona plaza..."
+              />
+              {!plazaId && <p className="text-xs text-destructive mt-1">La plaza es requerida</p>}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
