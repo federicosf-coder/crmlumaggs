@@ -7,10 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox } from "lucide-react";
+import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
+import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
+import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 
 type Conversation = {
   id: string;
@@ -57,6 +59,11 @@ export default function WhatsAppInbox() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [contactName, setContactName] = useState<string | null>(null);
+  const [contactData, setContactData] = useState<ContactEditData | null>(null);
+  const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+  const [editContactOpen, setEditContactOpen] = useState(false);
+  const [editCompanyOpen, setEditCompanyOpen] = useState(false);
+  const [createCompanyOpen, setCreateCompanyOpen] = useState(false);
   const [templates, setTemplates] = useState<TemplateWithAccount[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
@@ -206,12 +213,28 @@ export default function WhatsAppInbox() {
     if (active?.contact_id) {
       supabase
         .from("contacts")
-        .select("first_name,last_name")
+        .select("*")
         .eq("id", active.contact_id)
         .maybeSingle()
-        .then(({ data }) => setContactName(data ? `${data.first_name} ${data.last_name}` : null));
+        .then(async ({ data }) => {
+          if (!data) {
+            setContactName(null); setContactData(null); setCompanyData(null);
+            return;
+          }
+          setContactName(`${data.first_name ?? ""} ${data.last_name ?? ""}`.trim());
+          setContactData(data as any);
+          if ((data as any).company_id) {
+            const { data: comp } = await supabase
+              .from("companies").select("*").eq("id", (data as any).company_id).maybeSingle();
+            setCompanyData((comp as any) ?? null);
+          } else {
+            setCompanyData(null);
+          }
+        });
     } else {
       setContactName(null);
+      setContactData(null);
+      setCompanyData(null);
     }
     const ch = supabase
       .channel(`wa-msg-${activeId}`)
@@ -601,16 +624,75 @@ export default function WhatsAppInbox() {
             <div>
               <div className="text-xs text-muted-foreground">Contacto CRM</div>
               {contactName ? (
-                <div className="text-sm font-medium text-primary">{contactName}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="text-sm font-medium text-primary truncate">{contactName}</div>
+                  <Button size="sm" variant="outline" onClick={() => setEditContactOpen(true)}>
+                    <Pencil className="h-3 w-3 mr-1" /> Abrir
+                  </Button>
+                </div>
               ) : (
                 <Button size="sm" variant="outline" onClick={createContact} className="mt-1">
                   <UserPlus className="h-3 w-3 mr-1" /> Crear contacto
                 </Button>
               )}
             </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Empresa</div>
+              {companyData ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="text-sm font-medium truncate">{companyData.name}</div>
+                  <Button size="sm" variant="outline" onClick={() => setEditCompanyOpen(true)}>
+                    <Eye className="h-3 w-3 mr-1" /> Ver
+                  </Button>
+                </div>
+              ) : contactData ? (
+                <Button size="sm" variant="outline" onClick={() => setCreateCompanyOpen(true)} className="mt-1">
+                  <Building2 className="h-3 w-3 mr-1" /> Agregar empresa
+                </Button>
+              ) : (
+                <div className="text-sm text-muted-foreground">—</div>
+              )}
+            </div>
           </div>
         )}
       </Card>
+
+      <ContactFormDialog
+        open={editContactOpen}
+        onOpenChange={setEditContactOpen}
+        editData={contactData}
+        onCreated={() => {
+          if (active?.contact_id) {
+            supabase.from("contacts").select("*").eq("id", active.contact_id).maybeSingle()
+              .then(({ data }) => {
+                if (data) {
+                  setContactName(`${data.first_name ?? ""} ${data.last_name ?? ""}`.trim());
+                  setContactData(data as any);
+                }
+              });
+          }
+        }}
+      />
+
+      <CompanyFormDialog
+        open={editCompanyOpen}
+        onOpenChange={setEditCompanyOpen}
+        editData={companyData}
+      />
+
+      <CompanyFormDialog
+        open={createCompanyOpen}
+        onOpenChange={setCreateCompanyOpen}
+        onCreated={async (newCompanyId: string) => {
+          if (contactData?.id && newCompanyId) {
+            await supabase.from("contacts").update({ company_id: newCompanyId }).eq("id", contactData.id);
+            const { data: comp } = await supabase.from("companies").select("*").eq("id", newCompanyId).maybeSingle();
+            setCompanyData((comp as any) ?? null);
+            setContactData({ ...(contactData as any), company_id: newCompanyId });
+            toast.success("Empresa vinculada al contacto");
+          }
+        }}
+      />
     </div>
   );
 }
