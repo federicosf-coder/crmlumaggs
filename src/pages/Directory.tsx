@@ -900,17 +900,17 @@ export default function Directory() {
         </DialogContent>
       </Dialog>
 
-      {/* Contact Detail Sheet */}
-      <Sheet open={!!selectedContact} onOpenChange={open => { if (!open) setSelectedContact(null); }}>
-        <SheetContent className="overflow-y-auto sm:max-w-lg">
+      {/* Contact Detail Dialog */}
+      <Dialog open={!!selectedContact} onOpenChange={open => { if (!open) setSelectedContact(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedContact && (
             <>
-              <SheetHeader className="flex flex-row items-center justify-between">
-                <SheetTitle>{selectedContact.first_name} {selectedContact.last_name}</SheetTitle>
+              <DialogHeader className="flex flex-row items-center justify-between">
+                <DialogTitle>{selectedContact.first_name} {selectedContact.last_name}</DialogTitle>
                 <Button size="sm" variant="outline" onClick={() => setEditContact(selectedContact)}>
                   <Pencil className="h-4 w-4 mr-1" /> Editar
                 </Button>
-              </SheetHeader>
+              </DialogHeader>
               <div className="space-y-4 mt-4">
                 {/* Identidad */}
                 <div className="grid grid-cols-2 gap-3">
@@ -962,8 +962,8 @@ export default function Directory() {
               </div>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {/* Bulk edit dialog */}
       <BulkEditDialog
