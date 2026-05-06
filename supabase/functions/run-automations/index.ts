@@ -218,6 +218,10 @@ Deno.serve(async (req) => {
     fecha_vencimiento: entity?.fecha_vencimiento || '',
     fecha_entrega_programada: entity?.fecha_entrega_programada || '',
     fecha_entrega_real: entity?.fecha_entrega_real || '',
+    fecha_entrega_solicitada: entity?.fecha_entrega_programada || '',
+    estatus_entrega: entity?.estatus_entrega_corporativa || '',
+    numero_oc_cliente: entity?.numero_oc_cliente || '',
+    fecha_oc_cliente: entity?.fecha_oc_cliente || '',
     total_cotizacion: entity?.total ?? '',
     saldo_pendiente: entity?.saldo_pendiente_cobranza ?? '',
     estatus_documento:
