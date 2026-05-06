@@ -25,6 +25,7 @@ import { DocumentPagosSection } from "@/components/documents/DocumentPagosSectio
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
+import { fireAutomation } from "@/hooks/useFireAutomation";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "confirmado_cliente", l: "Confirmado Cliente" }, { v: "validado_contabilidad", l: "Validado Contabilidad" }, { v: "programado_entrega", l: "Programado Entrega" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
@@ -900,7 +901,21 @@ export default function DocumentForm() {
               </Button>
             )}
             <Button
-              onClick={() => toast.success("Acuse enviado")}
+              onClick={async () => {
+                toast.success("Acuse enviado");
+                if (id) {
+                  const res = await fireAutomation({
+                    trigger_type: "existing_button_click",
+                    entity_type: "document",
+                    entity_id: id,
+                    trigger_key: "documents.enviar_acuse",
+                  });
+                  if (res && res.matched > 0) {
+                    const ok = res.runs.filter((r: any) => r.status === "success").length;
+                    if (ok > 0) toast.success(`Automatización ejecutada (${ok})`);
+                  }
+                }
+              }}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Send className="mr-2 h-4 w-4" /> Enviar Acuse

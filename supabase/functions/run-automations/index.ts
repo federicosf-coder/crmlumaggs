@@ -1,0 +1,327 @@
+import { createClient } from 'npm:@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
+}
+
+type EntityType = 'deal' | 'company' | 'document' | 'contact' | 'task'
+
+interface Body {
+  trigger_type: string
+  entity_type: EntityType
+  entity_id?: string | null
+  // Optional disambiguators (e.g. button id for existing_button_click)
+  trigger_key?: string | null
+  // Caller-provided context to enrich variable resolution
+  context?: Record<string, any>
+}
+
+function renderTemplate(body: string, vars: Record<string, any>): string {
+  if (!body) return ''
+  return body.replace(/\{([a-z0-9_]+)\}/gi, (m, key) => {
+    const v = vars[key.toLowerCase()]
+    return v === undefined || v === null || v === '' ? m : String(v)
+  })
+}
+
+function getPath(obj: any, path: string): any {
+  if (!obj) return undefined
+  return path
+    .split('.')
+    .slice(1) // strip leading entity prefix (document/company/etc.)
+    .reduce((acc: any, k: string) => (acc == null ? acc : acc[k]), obj)
+}
+
+function compare(left: any, op: string, right: any): boolean {
+  switch (op) {
+    case 'eq':
+    case '=':
+    case '==':
+      return String(left ?? '') === String(right ?? '')
+    case 'neq':
+    case '!=':
+      return String(left ?? '') !== String(right ?? '')
+    case 'gt':
+      return Number(left) > Number(right)
+    case 'gte':
+      return Number(left) >= Number(right)
+    case 'lt':
+      return Number(left) < Number(right)
+    case 'lte':
+      return Number(left) <= Number(right)
+    case 'contains':
+      return String(left ?? '')
+        .toLowerCase()
+        .includes(String(right ?? '').toLowerCase())
+    case 'in':
+      return Array.isArray(right) && right.map(String).includes(String(left))
+    case 'is_empty':
+      return left == null || left === ''
+    case 'is_not_empty':
+      return left != null && left !== ''
+    default:
+      return false
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const supabase = createClient(supabaseUrl, serviceKey)
+
+  let body: Body
+  try {
+    body = await req.json()
+  } catch {
+    return new Response(JSON.stringify({ error: 'invalid json' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const { trigger_type, entity_type, entity_id, trigger_key } = body
+  if (!trigger_type || !entity_type) {
+    return new Response(JSON.stringify({ error: 'trigger_type and entity_type required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // 1. Fetch matching automations
+  const { data: autos, error: aErr } = await supabase
+    .from('automations')
+    .select('*, automation_actions(*)')
+    .eq('is_active', true)
+    .eq('entity_type', entity_type)
+    .eq('trigger_type', trigger_type)
+
+  if (aErr) {
+    return new Response(JSON.stringify({ error: aErr.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Filter by trigger_key if provided (button id)
+  const filtered = (autos || []).filter((a: any) => {
+    if (!trigger_key) return true
+    const cfg = a.trigger_config || {}
+    return !cfg.button_id || cfg.button_id === trigger_key
+  })
+
+  // 2. Resolve entity (only document fully supported initially)
+  let entity: any = null
+  let company: any = null
+  let contact: any = null
+  let entityLabel = ''
+
+  if (entity_id && entity_type === 'document') {
+    const { data } = await supabase
+      .from('documentos')
+      .select('*')
+      .eq('id', entity_id)
+      .maybeSingle()
+    entity = data
+    entityLabel = data?.numero_cotizacion || data?.numero_factura || data?.numero_pedido || data?.id || ''
+    if (data?.empresa_id) {
+      const { data: c } = await supabase.from('companies').select('*').eq('id', data.empresa_id).maybeSingle()
+      company = c
+    }
+    if (data?.contacto_id) {
+      const { data: ct } = await supabase.from('contacts').select('*').eq('id', data.contacto_id).maybeSingle()
+      contact = ct
+    }
+  } else if (entity_id && entity_type === 'company') {
+    const { data } = await supabase.from('companies').select('*').eq('id', entity_id).maybeSingle()
+    entity = data
+    company = data
+    entityLabel = data?.name || ''
+  } else if (entity_id && entity_type === 'contact') {
+    const { data } = await supabase.from('contacts').select('*').eq('id', entity_id).maybeSingle()
+    entity = data
+    contact = data
+    entityLabel = [data?.first_name, data?.last_name].filter(Boolean).join(' ')
+  } else if (entity_id && entity_type === 'deal') {
+    const { data } = await supabase.from('crm_deals').select('*').eq('id', entity_id).maybeSingle()
+    entity = data
+    entityLabel = data?.title || ''
+  } else if (entity_id && entity_type === 'task') {
+    const { data } = await supabase.from('crm_tasks').select('*').eq('id', entity_id).maybeSingle()
+    entity = data
+    entityLabel = data?.title || ''
+  }
+
+  const entityScope: Record<string, any> = {}
+  entityScope[entity_type] = entity || {}
+  if (company) entityScope['company'] = company
+  if (contact) entityScope['contact'] = contact
+
+  // 3. Build placeholder vars (best-effort)
+  const vars: Record<string, any> = {
+    nombre_empresa: company?.name || '',
+    rfc_cliente: company?.rfc || '',
+    nombre_contacto: [contact?.first_name, contact?.last_name].filter(Boolean).join(' '),
+    correo_contacto: contact?.email || '',
+    telefono_contacto: contact?.phone || contact?.mobile || '',
+    folio_cotizacion: entity?.numero_cotizacion || '',
+    numero_factura: entity?.numero_factura || '',
+    fecha: entity?.fecha_documento || new Date().toISOString().slice(0, 10),
+    fecha_vencimiento: entity?.fecha_vencimiento || '',
+    fecha_entrega_programada: entity?.fecha_entrega_programada || '',
+    total_cotizacion: entity?.total ?? '',
+    saldo_pendiente: entity?.saldo_pendiente_cobranza ?? '',
+    estatus_documento:
+      entity?.estatus_factura || entity?.estatus_cotizacion || entity?.estatus_pedido || '',
+    observaciones: entity?.notas || '',
+    nombre_empresa_vendedora:
+      entity?.empresa_vendedora === 'galsa_phillips66' ? 'Galsa S.A. de C.V.' : 'Lumaggs S.A. de C.V.',
+    ...(body.context || {}),
+  }
+
+  const summary: any[] = []
+
+  for (const auto of filtered) {
+    const runRow: any = {
+      automation_id: auto.id,
+      entity_id: entity_id ?? null,
+      entity_type,
+      entity_label: entityLabel || null,
+      triggered_by: 'user',
+      status: 'success',
+      actions_executed: 0,
+    }
+
+    try {
+      // Evaluate conditions
+      const cond = auto.conditions || {}
+      const items: any[] = Array.isArray(cond) ? cond : cond.items || []
+      const logic: 'AND' | 'OR' = (cond.logic || 'AND') as any
+      let pass = true
+      if (items.length > 0) {
+        const results = items.map((it: any) => {
+          const left = it.field?.includes('.')
+            ? getPath(entityScope[it.field.split('.')[0]], it.field)
+            : entity?.[it.field]
+          return compare(left, it.operator, it.value)
+        })
+        pass = logic === 'OR' ? results.some(Boolean) : results.every(Boolean)
+      }
+
+      if (!pass) {
+        runRow.status = 'skipped'
+        runRow.error_message = 'Conditions not met'
+      } else {
+        const actions: any[] = (auto.automation_actions || []).sort(
+          (a: any, b: any) => (a.position ?? 0) - (b.position ?? 0)
+        )
+        let executed = 0
+        for (const act of actions) {
+          if (act.action_type === 'send_email') {
+            const tplId = act.action_config?.template_id
+            if (!tplId) continue
+            const { data: tpl } = await supabase
+              .from('templates')
+              .select('*')
+              .eq('id', tplId)
+              .maybeSingle()
+            if (!tpl) continue
+
+            // Resolve recipients (template.to_emails + groups)
+            const directList: string[] = []
+            const groupIds: string[] = []
+            for (const it of (tpl.to_emails || []) as any[]) {
+              if (it.type === 'email' && it.value) directList.push(it.value)
+              else if (it.type === 'group' && it.value) groupIds.push(it.value)
+            }
+            if (groupIds.length > 0) {
+              const { data: gm } = await supabase
+                .from('email_group_members')
+                .select('email')
+                .in('group_id', groupIds)
+              for (const r of gm || []) if (r.email) directList.push(r.email)
+            }
+            // Fallback to contact email
+            if (directList.length === 0 && contact?.email) directList.push(contact.email)
+            const recipients = Array.from(new Set(directList.map((e) => e.trim()).filter(Boolean)))
+            if (recipients.length === 0) {
+              runRow.error_message = 'Sin destinatarios para el correo'
+              continue
+            }
+
+            const subject = renderTemplate(tpl.subject || '', vars)
+            const html = renderTemplate(tpl.body || '', vars)
+            const ts = Date.now()
+
+            // Resolve cc/bcc the same way
+            const resolveList = async (list: any[]) => {
+              const out: string[] = []
+              const gids: string[] = []
+              for (const it of list || []) {
+                if (it.type === 'email' && it.value) out.push(it.value)
+                else if (it.type === 'group' && it.value) gids.push(it.value)
+              }
+              if (gids.length) {
+                const { data: gm } = await supabase
+                  .from('email_group_members')
+                  .select('email')
+                  .in('group_id', gids)
+                for (const r of gm || []) if (r.email) out.push(r.email)
+              }
+              return Array.from(new Set(out.map((e) => e.trim()).filter(Boolean)))
+            }
+            const ccList = await resolveList((tpl.cc_emails || []) as any[])
+            const bccList = await resolveList((tpl.bcc_emails || []) as any[])
+
+            for (const to of recipients) {
+              const { error: invErr } = await supabase.functions.invoke(
+                'send-transactional-email',
+                {
+                  body: {
+                    templateName: 'raw-html',
+                    recipientEmail: to,
+                    idempotencyKey: `auto-${auto.id}-${entity_id || 'na'}-${to}-${ts}`,
+                    subjectOverride: subject,
+                    htmlOverride: html,
+                    cc: ccList.length ? ccList : undefined,
+                    bcc: bccList.length ? bccList : undefined,
+                    replyTo: tpl.reply_to || undefined,
+                    templateData: { __subject: subject, __html: html },
+                  },
+                }
+              )
+              if (invErr) throw new Error(`send-transactional-email: ${invErr.message}`)
+            }
+            executed += 1
+          } else {
+            // Other action types: log as skipped (not yet implemented)
+            runRow.error_message = `Action '${act.action_type}' aún no implementada`
+          }
+        }
+        runRow.actions_executed = executed
+      }
+    } catch (e) {
+      runRow.status = 'failed'
+      runRow.error_message = e instanceof Error ? e.message : String(e)
+    }
+
+    await supabase.from('automation_runs').insert(runRow)
+    if (runRow.status === 'success' && runRow.actions_executed > 0) {
+      await supabase
+        .from('automations')
+        .update({ run_count: (auto.run_count || 0) + 1, last_run_at: new Date().toISOString() })
+        .eq('id', auto.id)
+    }
+    summary.push({ automation: auto.name, ...runRow })
+  }
+
+  return new Response(
+    JSON.stringify({ matched: filtered.length, runs: summary }),
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
+})
