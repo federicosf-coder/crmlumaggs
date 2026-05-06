@@ -95,7 +95,7 @@ export const EVALUACION_OPTIONS = [
   "Económico – \"cumple\"", "Económico – \"solo relleno\"",
 ];
 export const ROL_LUBRICANTE_OPTIONS = ["Crítico para la operación", "Importante pero no estratégico", "Insumo más"];
-export const TIPO_CLIENTE_OPTIONS = ["Contado", "Crédito directo", "Crédito Cescemex"];
+export const TIPO_CLIENTE_OPTIONS = ["Contado", "Crédito Directo", "Crédito Cescemex"];
 
 export const LISTA_PRECIOS_OPTIONS = [
   { v: "UF1", l: "UF1 1–10 unidades" },
@@ -109,7 +109,7 @@ export const LISTA_PRECIOS_OPTIONS = [
 ];
 
 const TIPO_PAGO_OPTS = [
-  { v: "contado", l: "Contado" }, { v: "credito", l: "Crédito" }, { v: "credito_cescemex", l: "Crédito Cescemex" },
+  { v: "contado", l: "Contado" }, { v: "credito", l: "Crédito Directo" }, { v: "credito_cescemex", l: "Crédito Cescemex" },
 ];
 const METODO_PAGO_OPTS = [
   { v: "PUE", l: "PUE - Pago en una sola exhibición" }, { v: "PPD", l: "PPD - Pago en parcialidades o diferido" },

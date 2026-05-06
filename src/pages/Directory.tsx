@@ -64,7 +64,7 @@ function DetailRow({ label, value }: { label: string; value: string | null | und
 
 const TIPO_PAGO_LABEL: Record<string, string> = {
   contado: "Contado",
-  credito: "Crédito",
+  credito: "Crédito Directo",
   credito_cescemex: "Crédito Cescemex",
 };
 const METODO_PAGO_LABEL: Record<string, string> = {
