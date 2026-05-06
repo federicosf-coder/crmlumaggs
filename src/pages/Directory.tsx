@@ -20,6 +20,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -111,6 +114,71 @@ export default function Directory() {
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+
+  // Filtros avanzados (contactos)
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterVendedor, setFilterVendedor] = useState<string>("all");
+  const [filterSede, setFilterSede] = useState<string>("all");
+  const [filterGiro, setFilterGiro] = useState<string>("all");
+
+  // Vendedores (perfiles con rol sales)
+  const { data: vendedoresList = [] } = useQuery({
+    queryKey: ["vendedores_sales_profiles"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "sales");
+      const ids = Array.from(new Set((roles || []).map((r: any) => r.user_id)));
+      if (ids.length === 0) return [];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", ids)
+        .order("full_name");
+      return profs || [];
+    },
+  });
+
+  // Mapa contact_id -> user_ids ejecutivos asignados
+  const { data: contactEjecutivosMap = {} } = useQuery<Record<string, string[]>>({
+    queryKey: ["contact_ejecutivos_map"],
+    queryFn: async () => {
+      const { data } = await supabase.from("contact_ejecutivos").select("contact_id, user_id");
+      const map: Record<string, string[]> = {};
+      (data || []).forEach((r: any) => {
+        if (!map[r.contact_id]) map[r.contact_id] = [];
+        map[r.contact_id].push(r.user_id);
+      });
+      return map;
+    },
+  });
+
+  const sedeOptions = useMemo(() => {
+    const s = new Set<string>();
+    contacts.forEach(c => { const v = (c as any).sede; if (v) s.add(v); });
+    return Array.from(s).sort();
+  }, [contacts]);
+
+  const giroOptions = useMemo(() => {
+    const s = new Set<string>();
+    contacts.forEach(c => { const v = (c.companies as any)?.industry || (companies.find(co => co.id === c.company_id)?.industry); if (v) s.add(v); });
+    return Array.from(s).sort();
+  }, [contacts, companies]);
+
+  const sedeLabel = (v: string) => v.charAt(0).toUpperCase() + v.slice(1).replace(/_/g, " ");
+
+  const clearContactFilters = () => {
+    setFilterVendedor("all");
+    setFilterSede("all");
+    setFilterGiro("all");
+    setContactSearch("");
+  };
+
+  const activeFilterCount =
+    (filterVendedor !== "all" ? 1 : 0) +
+    (filterSede !== "all" ? 1 : 0) +
+    (filterGiro !== "all" ? 1 : 0);
 
   const access = useModuleAccess("directorio");
 
@@ -298,10 +366,30 @@ export default function Directory() {
       }
     });
   const filteredContacts = contacts
-    .filter(c =>
-      `${c.first_name} ${c.last_name}`.toLowerCase().includes(contactSearch.toLowerCase()) ||
-      (c.companies?.name || "").toLowerCase().includes(contactSearch.toLowerCase())
-    )
+    .filter(c => {
+      const q = contactSearch.trim().toLowerCase();
+      if (q) {
+        const hay =
+          `${c.first_name} ${c.last_name}`.toLowerCase().includes(q) ||
+          (c.companies?.name || "").toLowerCase().includes(q) ||
+          (c.phone || "").toLowerCase().includes(q) ||
+          (c.mobile || "").toLowerCase().includes(q) ||
+          ((c as any).whatsapp_phone || "").toLowerCase().includes(q);
+        if (!hay) return false;
+      }
+      if (filterVendedor !== "all") {
+        const ids = contactEjecutivosMap[c.id] || [];
+        if (!ids.includes(filterVendedor)) return false;
+      }
+      if (filterSede !== "all") {
+        if ((c as any).sede !== filterSede) return false;
+      }
+      if (filterGiro !== "all") {
+        const giro = (c.companies as any)?.industry || companies.find(co => co.id === c.company_id)?.industry;
+        if (giro !== filterGiro) return false;
+      }
+      return true;
+    })
     .sort((a, b) => {
       switch (contactSort) {
         case "last_name_asc": return a.last_name.localeCompare(b.last_name);
