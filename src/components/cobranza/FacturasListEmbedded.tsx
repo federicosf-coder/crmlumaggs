@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Search, Pencil, Trash2, CheckSquare, Columns3, Filter, X, Download, FileText } from "lucide-react";
+import { Search, Pencil, Trash2, CheckSquare, Columns3, Filter, X, Download, FileText, List, Users, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { fetchAllRows } from "@/lib/supabasePagination";
@@ -141,6 +141,15 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
   const [fechaHasta, setFechaHasta] = useState<string>("");
   const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
   const [estatusCobFilter, setEstatusCobFilter] = useState<string>(prefilter === "vencidas" ? "vencida" : "all");
+  const [viewMode, setViewMode] = useState<"list" | "grouped">("list");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
 
   useEffect(() => {
     setTipoPagoFilter(
@@ -398,6 +407,28 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
               </div>
             </PopoverContent>
           </Popover>
+          <div className="flex rounded-md border overflow-hidden">
+            <Button
+              type="button"
+              size="sm"
+              variant={viewMode === "list" ? "default" : "ghost"}
+              className="rounded-none h-8"
+              onClick={() => setViewMode("list")}
+              title="Vista lista"
+            >
+              <List className="h-4 w-4 mr-1" /> Lista
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={viewMode === "grouped" ? "default" : "ghost"}
+              className="rounded-none h-8"
+              onClick={() => setViewMode("grouped")}
+              title="Agrupar por cliente"
+            >
+              <Users className="h-4 w-4 mr-1" /> Por cliente
+            </Button>
+          </div>
         </div>
         <div className="mt-3 flex flex-wrap items-end gap-2 p-3 rounded-md border bg-muted/30">
           <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mr-1">
