@@ -225,8 +225,12 @@ Deno.serve(async (req) => {
     observaciones: entity?.notas || '',
     nombre_empresa_vendedora:
       entity?.empresa_vendedora === 'galsa_phillips66' ? 'Galsa S.A. de C.V.' : 'Lumaggs S.A. de C.V.',
-    acuse_url: acuseUrlSigned,
-    orden_compra_url: ordenCompraUrlSigned,
+    acuse_url: acuseUrlSigned
+      ? `<a href="${acuseUrlSigned}" style="color:#2563eb;text-decoration:underline;" target="_blank" rel="noopener noreferrer">Ver Acuse Comprobante</a>`
+      : '',
+    orden_compra_url: ordenCompraUrlSigned
+      ? `<a href="${ordenCompraUrlSigned}" style="color:#2563eb;text-decoration:underline;" target="_blank" rel="noopener noreferrer">Ver Orden de Compra</a>`
+      : '',
     ...(body.context || {}),
   }
 
