@@ -630,7 +630,7 @@ export default function Directory() {
                       </TableHead>
                       <TableHead>Nombre</TableHead>
                       <TableHead>Apellido</TableHead>
-                      <TableHead className="hidden sm:table-cell">Celular / WhatsApp</TableHead>
+                      <TableHead className="hidden sm:table-cell">WhatsApp</TableHead>
                       <TableHead className="hidden sm:table-cell">Empresa</TableHead>
                       <TableHead className="hidden md:table-cell">Plaza</TableHead>
                       <TableHead>Estado</TableHead>
@@ -653,7 +653,7 @@ export default function Directory() {
                         </TableCell>
                         <TableCell className="font-medium">{c.first_name}</TableCell>
                         <TableCell>{c.last_name}</TableCell>
-                        <TableCell className="hidden sm:table-cell">{c.mobile || "—"}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{(c as any).whatsapp_phone || "—"}</TableCell>
                         <TableCell className="hidden sm:table-cell">{c.companies?.name || "—"}</TableCell>
                         <TableCell className="hidden md:table-cell">{(c.companies?.plazas as any)?.nombre || "—"}</TableCell>
                         <TableCell>
