@@ -155,6 +155,12 @@ export default function WhatsAppInbox() {
     loadOpenDeals(companyData?.id ?? null);
   }, [companyData?.id]);
 
+  // Refrescar lista cuando se cierra el diálogo de creación
+  useEffect(() => {
+    if (!createDealOpen) loadOpenDeals(companyData?.id ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createDealOpen]);
+
   // Cargar pipeline por defecto (Primera Compra de Chevron) y sus etapas para el diálogo de creación
   useEffect(() => {
     (async () => {
