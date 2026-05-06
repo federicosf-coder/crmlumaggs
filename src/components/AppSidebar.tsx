@@ -4,7 +4,7 @@ import {
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
   Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet, Upload,
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
-  Briefcase,
+  Briefcase, Zap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -42,6 +42,7 @@ const mainItems: NavItem[] = [
   { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
   { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
   { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
+  { title: "Automatizaciones", url: "/automations", icon: Zap, roles: ["admin", "manager"] },
 ];
 
 const adminItems: NavItem[] = [
