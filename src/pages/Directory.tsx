@@ -20,6 +20,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -111,6 +114,71 @@ export default function Directory() {
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+
+  // Filtros avanzados (contactos)
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterVendedor, setFilterVendedor] = useState<string>("all");
+  const [filterSede, setFilterSede] = useState<string>("all");
+  const [filterGiro, setFilterGiro] = useState<string>("all");
+
+  // Vendedores (perfiles con rol sales)
+  const { data: vendedoresList = [] } = useQuery({
+    queryKey: ["vendedores_sales_profiles"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "sales");
+      const ids = Array.from(new Set((roles || []).map((r: any) => r.user_id)));
+      if (ids.length === 0) return [];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", ids)
+        .order("full_name");
+      return profs || [];
+    },
+  });
+
+  // Mapa contact_id -> user_ids ejecutivos asignados
+  const { data: contactEjecutivosMap = {} } = useQuery<Record<string, string[]>>({
+    queryKey: ["contact_ejecutivos_map"],
+    queryFn: async () => {
+      const { data } = await supabase.from("contact_ejecutivos").select("contact_id, user_id");
+      const map: Record<string, string[]> = {};
+      (data || []).forEach((r: any) => {
+        if (!map[r.contact_id]) map[r.contact_id] = [];
+        map[r.contact_id].push(r.user_id);
+      });
+      return map;
+    },
+  });
+
+  const sedeOptions = useMemo(() => {
+    const s = new Set<string>();
+    contacts.forEach(c => { const v = (c as any).sede; if (v) s.add(v); });
+    return Array.from(s).sort();
+  }, [contacts]);
+
+  const giroOptions = useMemo(() => {
+    const s = new Set<string>();
+    contacts.forEach(c => { const v = (c.companies as any)?.industry || (companies.find(co => co.id === c.company_id)?.industry); if (v) s.add(v); });
+    return Array.from(s).sort();
+  }, [contacts, companies]);
+
+  const sedeLabel = (v: string) => v.charAt(0).toUpperCase() + v.slice(1).replace(/_/g, " ");
+
+  const clearContactFilters = () => {
+    setFilterVendedor("all");
+    setFilterSede("all");
+    setFilterGiro("all");
+    setContactSearch("");
+  };
+
+  const activeFilterCount =
+    (filterVendedor !== "all" ? 1 : 0) +
+    (filterSede !== "all" ? 1 : 0) +
+    (filterGiro !== "all" ? 1 : 0);
 
   const access = useModuleAccess("directorio");
 
@@ -208,7 +276,7 @@ export default function Directory() {
     };
 
     const buildContactsQuery = () => {
-      let q = supabase.from("contacts").select("*, companies(name, plazas(nombre))").order("last_name");
+      let q = supabase.from("contacts").select("*, companies(name, industry, plazas(nombre))").order("last_name");
 
       if (access.accessLevel === "propio" && access.userId) {
         const userId = access.userId;
@@ -298,10 +366,30 @@ export default function Directory() {
       }
     });
   const filteredContacts = contacts
-    .filter(c =>
-      `${c.first_name} ${c.last_name}`.toLowerCase().includes(contactSearch.toLowerCase()) ||
-      (c.companies?.name || "").toLowerCase().includes(contactSearch.toLowerCase())
-    )
+    .filter(c => {
+      const q = contactSearch.trim().toLowerCase();
+      if (q) {
+        const hay =
+          `${c.first_name} ${c.last_name}`.toLowerCase().includes(q) ||
+          (c.companies?.name || "").toLowerCase().includes(q) ||
+          (c.phone || "").toLowerCase().includes(q) ||
+          (c.mobile || "").toLowerCase().includes(q) ||
+          ((c as any).whatsapp_phone || "").toLowerCase().includes(q);
+        if (!hay) return false;
+      }
+      if (filterVendedor !== "all") {
+        const ids = contactEjecutivosMap[c.id] || [];
+        if (!ids.includes(filterVendedor)) return false;
+      }
+      if (filterSede !== "all") {
+        if ((c as any).sede !== filterSede) return false;
+      }
+      if (filterGiro !== "all") {
+        const giro = (c.companies as any)?.industry || companies.find(co => co.id === c.company_id)?.industry;
+        if (giro !== filterGiro) return false;
+      }
+      return true;
+    })
     .sort((a, b) => {
       switch (contactSort) {
         case "last_name_asc": return a.last_name.localeCompare(b.last_name);
@@ -480,7 +568,7 @@ export default function Directory() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={activeTab === "companies" ? "Buscar empresas..." : "Buscar contactos..."}
+                placeholder={activeTab === "companies" ? "Buscar empresas..." : "Buscar por nombre, empresa o teléfono..."}
                 className="pl-9"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -502,7 +590,77 @@ export default function Directory() {
                 { value: "company", label: "Empresa" },
               ]}
             />
+            {activeTab === "contacts" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFiltersOpen(o => !o)}
+                className="gap-2"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtros
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5">{activeFilterCount}</Badge>
+                )}
+                <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+              </Button>
+            )}
           </div>
+          {activeTab === "contacts" && (
+            <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <CollapsibleContent className="pt-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Vendedor</Label>
+                    <Select value={filterVendedor} onValueChange={setFilterVendedor}>
+                      <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los vendedores</SelectItem>
+                        {vendedoresList.map((v: any) => (
+                          <SelectItem key={v.user_id} value={v.user_id}>
+                            {v.full_name || v.email || "—"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Sede / Región</Label>
+                    <Select value={filterSede} onValueChange={setFilterSede}>
+                      <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las sedes</SelectItem>
+                        {sedeOptions.map(s => (
+                          <SelectItem key={s} value={s}>{sedeLabel(s)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Giro / Sector</Label>
+                    <Select value={filterGiro} onValueChange={setFilterGiro}>
+                      <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los giros</SelectItem>
+                        {giroOptions.map(g => (
+                          <SelectItem key={g} value={g}>{g}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearContactFilters}
+                    disabled={activeFilterCount === 0 && !contactSearch}
+                    className="gap-1 justify-self-start sm:justify-self-end"
+                  >
+                    <X className="h-4 w-4" /> Limpiar filtros
+                  </Button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
           {/* Bulk action bar */}
