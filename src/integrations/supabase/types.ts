@@ -1707,6 +1707,44 @@ export type Database = {
           },
         ]
       }
+      documento_acuse_archivos: {
+        Row: {
+          documento_id: string
+          fecha_carga: string
+          id: string
+          nombre_archivo: string
+          tipo_archivo: string
+          url_archivo: string
+          usuario_carga: string | null
+        }
+        Insert: {
+          documento_id: string
+          fecha_carga?: string
+          id?: string
+          nombre_archivo: string
+          tipo_archivo: string
+          url_archivo: string
+          usuario_carga?: string | null
+        }
+        Update: {
+          documento_id?: string
+          fecha_carga?: string
+          id?: string
+          nombre_archivo?: string
+          tipo_archivo?: string
+          url_archivo?: string
+          usuario_carga?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_acuse_archivos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documento_archivos_firmados: {
         Row: {
           categoria: string
@@ -1801,6 +1839,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "documento_fotos_entrega_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documento_orden_compra_archivos: {
+        Row: {
+          documento_id: string
+          fecha_carga: string
+          id: string
+          nombre_archivo: string
+          tipo_archivo: string
+          url_archivo: string
+          usuario_carga: string | null
+        }
+        Insert: {
+          documento_id: string
+          fecha_carga?: string
+          id?: string
+          nombre_archivo: string
+          tipo_archivo: string
+          url_archivo: string
+          usuario_carga?: string | null
+        }
+        Update: {
+          documento_id?: string
+          fecha_carga?: string
+          id?: string
+          nombre_archivo?: string
+          tipo_archivo?: string
+          url_archivo?: string
+          usuario_carga?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_orden_compra_archivos_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
             referencedRelation: "documentos"
@@ -1921,6 +1997,7 @@ export type Database = {
           estatus_pedido: Database["public"]["Enums"]["estatus_pedido"] | null
           fecha_documento: string
           fecha_entrega_programada: string | null
+          fecha_entrega_real: string | null
           fecha_oc_cliente: string | null
           fecha_vencimiento: string | null
           follow_up_status: Database["public"]["Enums"]["cotizacion_followup_status"]
@@ -1976,6 +2053,7 @@ export type Database = {
           estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
           fecha_documento?: string
           fecha_entrega_programada?: string | null
+          fecha_entrega_real?: string | null
           fecha_oc_cliente?: string | null
           fecha_vencimiento?: string | null
           follow_up_status?: Database["public"]["Enums"]["cotizacion_followup_status"]
@@ -2031,6 +2109,7 @@ export type Database = {
           estatus_pedido?: Database["public"]["Enums"]["estatus_pedido"] | null
           fecha_documento?: string
           fecha_entrega_programada?: string | null
+          fecha_entrega_real?: string | null
           fecha_oc_cliente?: string | null
           fecha_vencimiento?: string | null
           follow_up_status?: Database["public"]["Enums"]["cotizacion_followup_status"]
