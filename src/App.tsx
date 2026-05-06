@@ -42,6 +42,7 @@ import ReportsLanding from "@/pages/reports/ReportsLanding";
 import DailyDeliveryReport from "@/pages/reports/DailyDeliveryReport";
 import SellerPortal from "@/pages/seller/SellerPortal";
 import AutomationsPage from "@/pages/automations/AutomationsPage";
+import AutomationEditorPage from "@/pages/automations/AutomationEditorPage";
 
 const queryClient = new QueryClient();
 
@@ -114,6 +115,8 @@ const App = () => (
             <Route path="/reports/daily-delivery" element={<ProtectedRoute><DailyDeliveryReport /></ProtectedRoute>} />
             <Route path="/seller-portal" element={<ProtectedRoute><SellerPortal /></ProtectedRoute>} />
             <Route path="/automations" element={<ProtectedRoute><AutomationsPage /></ProtectedRoute>} />
+            <Route path="/automations/new" element={<ProtectedRoute><AutomationEditorPage /></ProtectedRoute>} />
+            <Route path="/automations/:id/edit" element={<ProtectedRoute><AutomationEditorPage /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
