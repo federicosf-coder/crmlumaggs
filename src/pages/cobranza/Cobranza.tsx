@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageBanner } from "@/components/PageBanner";
-import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
+import { openDocFilesSignedUrl, extractDocFilesPath } from "@/lib/storageSignedUrl";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useCobranzaPagos, useDocumentosCobranza, useCobranzaAplicaciones, type CobranzaPago } from "@/hooks/useCobranza";
 import { RegistrarPagoDialog } from "@/components/cobranza/RegistrarPagoDialog";
@@ -969,9 +969,18 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
       .from("cobranza_pago_archivos")
       .select("nombre_archivo,url_archivo")
       .eq("pago_id", pago.id);
-    setComprobantes(
-      (archivos || []).map((a: any) => ({ nombre: a.nombre_archivo, url: a.url_archivo }))
+    // Generar URLs firmadas (7 días) en el momento del envío para el bucket privado
+    const SIGNED_TTL = 60 * 60 * 24 * 7;
+    const signedComprobantes = await Promise.all(
+      (archivos || []).map(async (a: any) => {
+        const path = extractDocFilesPath(a.url_archivo);
+        const { data } = await supabase.storage
+          .from("document-files")
+          .createSignedUrl(path, SIGNED_TTL);
+        return { nombre: a.nombre_archivo, url: data?.signedUrl || a.url_archivo };
+      })
     );
+    setComprobantes(signedComprobantes);
 
     // Configurar el flujo
     // Variables disponibles para placeholders en plantillas del sistema
@@ -984,20 +993,14 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
           )
           .join("")
       : '<span style="color:#94a3b8;">Sin documentos ligados</span>';
-    const compsHtml = (await (async () => {
-      const { data: archivosTpl } = await supabase
-        .from("cobranza_pago_archivos")
-        .select("nombre_archivo,url_archivo")
-        .eq("pago_id", pago.id);
-      const list = archivosTpl || [];
-      if (!list.length) return '<span style="color:#94a3b8;">Sin comprobantes</span>';
-      return list
-        .map(
-          (a: any) =>
-            `<div style="padding:4px 0;"><a href="${a.url_archivo}" style="color:#2563eb;text-decoration:underline;">${a.nombre_archivo}</a></div>`
-        )
-        .join("");
-    })());
+    const compsHtml = signedComprobantes.length
+      ? signedComprobantes
+          .map(
+            (a) =>
+              `<div style="padding:4px 0;"><a href="${a.url}" style="color:#2563eb;text-decoration:underline;">${a.nombre}</a></div>`
+          )
+          .join("")
+      : '<span style="color:#94a3b8;">Sin comprobantes</span>';
     const formaLabelTpl =
       flow === "contado" ? "Contado" :
       flow === "credito" ? "Crédito Directo" :
