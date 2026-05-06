@@ -633,33 +633,32 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 </div>
               </div>
 
-              {/* Contacto: Correo, Teléfono, Sitio Web */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5"><Label className="text-xs">Correo</Label><Input type="email" value={form.email} onChange={e => setAndSchedule("email", e.target.value)} onBlur={e => autosave.saveNow("email", e.target.value)} className="h-9" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Teléfono</Label><Input type="tel" inputMode="tel" placeholder="+52..." value={form.phone} onChange={e => setAndSchedule("phone", formatMxPhoneInput(e.target.value))} onBlur={e => autosave.saveNow("phone", formatMxPhoneInput(e.target.value))} className="h-9" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Sitio Web</Label><Input value={form.website} onChange={e => setAndSchedule("website", e.target.value)} onBlur={e => autosave.saveNow("website", e.target.value)} className="h-9" /></div>
-              </div>
-
-              {/* Ejecutivo de Venta (multi-select) */}
-              <div className="space-y-1.5">
-                <Label className="text-xs">Ejecutivo(s) de Venta</Label>
-                <div className="flex flex-wrap gap-1.5 mb-1.5">
-                  {form.ejecutivo_ids.map(uid => {
-                    const p = profiles.find((pr: any) => pr.user_id === uid);
-                    return p ? (
-                      <Badge key={uid} variant="secondary" className="gap-1">
-                        {p.full_name || p.email}
-                        <X className="h-3 w-3 cursor-pointer" onClick={() => toggleEjecutivo(uid)} />
-                      </Badge>
-                    ) : null;
-                  })}
+              {/* Sitio Web + Ejecutivo(s) de Venta */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Sitio Web</Label>
+                  <Input value={form.website} onChange={e => setAndSchedule("website", e.target.value)} onBlur={e => autosave.saveNow("website", e.target.value)} className="h-9" />
                 </div>
-                <SearchableSelect
-                  value=""
-                  onValueChange={v => { if (v && !form.ejecutivo_ids.includes(v)) toggleEjecutivo(v); }}
-                  options={profiles.filter((p: any) => !form.ejecutivo_ids.includes(p.user_id)).map((p: any) => ({ value: p.user_id, label: p.full_name || p.email || "Sin nombre" }))}
-                  placeholder="Agregar ejecutivo..."
-                />
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Ejecutivo(s) de Venta</Label>
+                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                    {form.ejecutivo_ids.map(uid => {
+                      const p = profiles.find((pr: any) => pr.user_id === uid);
+                      return p ? (
+                        <Badge key={uid} variant="secondary" className="gap-1">
+                          {p.full_name || p.email}
+                          <X className="h-3 w-3 cursor-pointer" onClick={() => toggleEjecutivo(uid)} />
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                  <SearchableSelect
+                    value=""
+                    onValueChange={v => { if (v && !form.ejecutivo_ids.includes(v)) toggleEjecutivo(v); }}
+                    options={profiles.filter((p: any) => !form.ejecutivo_ids.includes(p.user_id)).map((p: any) => ({ value: p.user_id, label: p.full_name || p.email || "Sin nombre" }))}
+                    placeholder="Agregar ejecutivo..."
+                  />
+                </div>
               </div>
 
               {/* Datos comerciales y fiscales — compactos */}
