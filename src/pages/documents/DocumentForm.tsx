@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart, ExternalLink, MessageCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart, ExternalLink, MessageCircle, Send } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
 import { format, addDays } from "date-fns";
@@ -899,6 +899,12 @@ export default function DocumentForm() {
                 <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
               </Button>
             )}
+            <Button
+              onClick={() => toast({ title: "Acuse enviado" })}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Send className="mr-2 h-4 w-4" /> Enviar Acuse
+            </Button>
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
             </Button>
