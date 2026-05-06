@@ -98,10 +98,10 @@ export function useCrmItems(filters: CrmItemsFilters = {}) {
           q = q.gte("fecha_vencimiento", startOfTodayIso).lte("fecha_vencimiento", endOfTodayIso);
           break;
         case "pendientes":
-          q = q.in("status", ["pendiente", "en_progreso"]);
+          q = q.in("status", ["pendiente", "en_progreso", "vencida"]);
           break;
         case "vencidas":
-          q = q.eq("status", "pendiente").lt("fecha_vencimiento", nowIso);
+          q = q.eq("status", "vencida");
           break;
         case "completadas":
           q = q.eq("status", "completada");
@@ -165,8 +165,8 @@ export function useCrmItemsCount(tab: CrmItemTab) {
         case "hoy":
           q = q.gte("fecha_vencimiento", startOfTodayIso).lte("fecha_vencimiento", endOfTodayIso);
           break;
-        case "pendientes": q = q.in("status", ["pendiente", "en_progreso"]); break;
-        case "vencidas": q = q.eq("status", "pendiente").lt("fecha_vencimiento", nowIso); break;
+        case "pendientes": q = q.in("status", ["pendiente", "en_progreso", "vencida"]); break;
+        case "vencidas": q = q.eq("status", "vencida"); break;
         case "completadas": q = q.eq("status", "completada"); break;
         case "creadas": if (userId) q = q.eq("created_by", userId); break;
         default: break;
