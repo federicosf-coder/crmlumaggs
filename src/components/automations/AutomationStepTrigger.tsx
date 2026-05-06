@@ -19,7 +19,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { EXISTING_BUTTONS } from "./existingButtonsCatalog";
-import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, ExternalLink } from "lucide-react";
 
 const BUTTON_ICONS = ["Send", "Mail", "Phone", "Check", "X", "Star", "Bell", "Zap", "ArrowRight"];
 const BUTTON_COLORS = ["default", "blue", "green", "red", "orange"];
@@ -435,7 +435,7 @@ function ExistingButtonPicker({
                       Ubicación <SortIcon col="location" />
                     </button>
                   </TableHead>
-                  <TableHead className="w-20"></TableHead>
+                  <TableHead className="w-32"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -445,18 +445,31 @@ function ExistingButtonPicker({
                     <TableCell className="text-sm text-muted-foreground">{b.description}</TableCell>
                     <TableCell className="text-sm">{b.location}</TableCell>
                     <TableCell>
-                      <DialogTrigger asChild>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={config.button_id === b.id ? "default" : "outline"}
-                          onClick={() =>
-                            setConfig({ button_id: b.id, button_name: b.name, location: b.location })
-                          }
-                        >
-                          {config.button_id === b.id ? "Elegido" : "Elegir"}
-                        </Button>
-                      </DialogTrigger>
+                      <div className="flex items-center gap-1">
+                        <DialogTrigger asChild>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={config.button_id === b.id ? "default" : "outline"}
+                            onClick={() =>
+                              setConfig({ button_id: b.id, button_name: b.name, location: b.location })
+                            }
+                          >
+                            {config.button_id === b.id ? "Elegido" : "Elegir"}
+                          </Button>
+                        </DialogTrigger>
+                        {b.path && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            title="Abrir en nueva ventana"
+                            onClick={() => window.open(b.path, "_blank", "noopener,noreferrer")}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
