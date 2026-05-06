@@ -114,6 +114,7 @@ export const TRIGGER_GROUPS: {
   {
     label: "Interacción del usuario",
     triggers: [
+      { value: "existing_button_click", label: "Clic en botón existente" },
       { value: "button_click", label: "Clic en botón personalizado" },
       { value: "on_save", label: "Al guardar registro" },
       { value: "on_create", label: "Al crear registro" },
