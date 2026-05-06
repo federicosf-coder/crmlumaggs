@@ -1024,6 +1024,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
       registrado_por: profile?.full_name || user?.email || "—",
       documentos_lista: docsHtml,
       comprobantes_lista: compsHtml,
+      liga_documento: signedComprobantes[0]?.url ?? "",
     };
 
     const systemKey = flow === "general" ? "pago_registrado_contabilidad" : "pago_validacion";
