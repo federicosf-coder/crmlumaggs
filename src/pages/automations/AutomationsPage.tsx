@@ -25,7 +25,7 @@ import {
 import {
   useAutomations, useToggleAutomation, useDeleteAutomation, type Automation,
 } from "@/hooks/useAutomations";
-import { useAutomationRuns } from "@/hooks/useAutomationRuns";
+import { useAutomationRuns, useAllAutomationRuns } from "@/hooks/useAutomationRuns";
 
 const ENTITY_META: Record<string, { label: string; className: string }> = {
   deal: { label: "Negocio", className: "bg-blue-100 text-blue-800 hover:bg-blue-100" },
@@ -68,7 +68,7 @@ export default function AutomationsPage() {
   const toggle = useToggleAutomation();
   const del = useDeleteAutomation();
 
-  const [tab, setTab] = useState<"all" | "active" | "inactive">("all");
+  const [tab, setTab] = useState<"all" | "active" | "inactive" | "history">("all");
   const [logFor, setLogFor] = useState<Automation | null>(null);
   const [toDelete, setToDelete] = useState<Automation | null>(null);
 
@@ -94,10 +94,13 @@ export default function AutomationsPage() {
           <TabsTrigger value="all">Todas</TabsTrigger>
           <TabsTrigger value="active">Activas</TabsTrigger>
           <TabsTrigger value="inactive">Inactivas</TabsTrigger>
+          <TabsTrigger value="history">Historial</TabsTrigger>
         </TabsList>
 
         <TabsContent value={tab} className="mt-4">
-          {isLoading ? (
+          {tab === "history" ? (
+            <RunsHistory />
+          ) : isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
@@ -287,5 +290,84 @@ function RunLogSheet({
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function RunsHistory() {
+  const { data: runs = [], isLoading } = useAllAutomationRuns(300);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {[...Array(8)].map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (runs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center border rounded-lg">
+        <Activity className="h-12 w-12 text-muted-foreground mb-3" />
+        <p className="text-muted-foreground">Aún no hay ejecuciones registradas.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border rounded-lg">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Fecha</TableHead>
+            <TableHead>Automatización</TableHead>
+            <TableHead>Entidad</TableHead>
+            <TableHead>Origen</TableHead>
+            <TableHead>Estado</TableHead>
+            <TableHead className="text-right">Acciones</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {runs.map((r) => (
+            <Fragment key={r.id}>
+              <TableRow>
+                <TableCell className="whitespace-nowrap">{formatDateTime(r.run_at)}</TableCell>
+                <TableCell className="font-medium">{r.automation_name ?? "—"}</TableCell>
+                <TableCell className="text-sm">
+                  {r.entity_label ?? r.entity_id ?? "—"}
+                  {r.entity_type && (
+                    <span className="text-xs text-muted-foreground ml-1">({r.entity_type})</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-xs capitalize">{r.triggered_by}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={
+                      r.status === "success"
+                        ? "bg-green-100 text-green-800"
+                        : r.status === "failed"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
+                    }
+                  >
+                    {r.status === "success" ? "Éxito" : r.status === "failed" ? "Falló" : "Omitida"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">{r.actions_executed}</TableCell>
+              </TableRow>
+              {r.status === "failed" && r.error_message && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-xs text-destructive bg-destructive/5">
+                    {r.error_message}
+                  </TableCell>
+                </TableRow>
+              )}
+            </Fragment>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
