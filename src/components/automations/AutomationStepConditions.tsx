@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  SelectGroup, SelectLabel,
 } from "@/components/ui/select";
 import {
-  AutomationDraft, FILTER_FIELDS_BY_ENTITY, OPERATORS_BY_TYPE, type Condition,
+  AutomationDraft, GROUPED_FILTER_FIELDS, OPERATORS_BY_TYPE, findGroupedField,
+  type Condition, type FieldDef,
 } from "./types";
 
 export function AutomationStepConditions({
@@ -14,7 +16,8 @@ export function AutomationStepConditions({
   draft: AutomationDraft;
   onChange: (patch: Partial<AutomationDraft>) => void;
 }) {
-  const fields = FILTER_FIELDS_BY_ENTITY[draft.entity_type] || [];
+  const groups = GROUPED_FILTER_FIELDS;
+  const allFields: FieldDef[] = groups.flatMap((g) => g.fields);
   const items = draft.conditions?.items ?? [];
   const logic = draft.conditions?.logic ?? "AND";
 
@@ -24,7 +27,7 @@ export function AutomationStepConditions({
     onChange({ conditions: { logic: l, items } });
 
   const addCondition = () => {
-    const first = fields[0];
+    const first = allFields[0];
     setItems([
       ...items,
       { field: first?.value ?? "", operator: "eq", value: "" },
@@ -39,7 +42,7 @@ export function AutomationStepConditions({
 
   const remove = (idx: number) => setItems(items.filter((_, i) => i !== idx));
 
-  if (fields.length === 0) {
+  if (allFields.length === 0) {
     return (
       <div className="text-sm text-muted-foreground p-4 border rounded-lg">
         No hay campos filtrables para esta entidad. La automatización se ejecutará siempre que ocurra el disparador.
@@ -70,7 +73,7 @@ export function AutomationStepConditions({
 
       <div className="space-y-2">
         {items.map((c, idx) => {
-          const fieldDef = fields.find((f) => f.value === c.field) ?? fields[0];
+          const fieldDef = findGroupedField(c.field) ?? allFields[0];
           const ops = OPERATORS_BY_TYPE[fieldDef.type] || [];
           const opDef = ops.find((o) => o.value === c.operator);
           return (
@@ -78,15 +81,20 @@ export function AutomationStepConditions({
               <Select
                 value={c.field}
                 onValueChange={(v) => {
-                  const newField = fields.find((f) => f.value === v);
+                  const newField = findGroupedField(v);
                   const newOps = OPERATORS_BY_TYPE[newField?.type ?? "text"];
                   update(idx, { field: v, operator: newOps[0].value, value: "" });
                 }}
               >
-                <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {fields.map((f) => (
-                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                <SelectTrigger className="w-72"><SelectValue /></SelectTrigger>
+                <SelectContent className="max-h-96">
+                  {groups.map((g) => (
+                    <SelectGroup key={g.label}>
+                      <SelectLabel>{g.label}</SelectLabel>
+                      {g.fields.map((f) => (
+                        <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
