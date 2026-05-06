@@ -43,6 +43,12 @@ export const EXISTING_BUTTONS: ExistingButton[] = [
     location: "Documentos › Detalle del documento",
   },
   {
+    id: "documents.enviar_acuse",
+    name: "Enviar Acuse",
+    description: "Envía el acuse del documento al cliente.",
+    location: "Documentos › Detalle del documento",
+  },
+  {
     id: "crm.create_deal",
     name: "Crear negocio",
     description: "Crea un nuevo negocio en el pipeline de CRM.",
