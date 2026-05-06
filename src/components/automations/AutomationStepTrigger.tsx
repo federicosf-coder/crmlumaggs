@@ -200,7 +200,21 @@ function renderConfig({
     case "on_status_change":
       return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <FieldPickerDialog entityType={entityType} value={config.field_name} onChange={(v) => setConfig({ field_name: v })} />
+          <div>
+            <Label>Campo de estatus</Label>
+            <SelectField
+              value={config.field_name}
+              onChange={(v) => setConfig({ field_name: v, from_value: "", to_value: "" })}
+              options={[
+                { value: "estatus_cotizacion", label: "Estatus Cotización" },
+                { value: "estatus_pedido", label: "Estatus Pedido" },
+                { value: "estatus_factura", label: "Estatus Factura" },
+                { value: "estatus_entrega_corporativa", label: "Estatus Entrega" },
+                { value: "estatus_pago", label: "Estatus Pago" },
+                { value: "estatus_tarea", label: "Estatus Tarea/Actividad" },
+              ]}
+            />
+          </div>
           <ValueField label="Valor anterior" field={config.field_name} value={config.from_value} onChange={(v) => setConfig({ from_value: v })} />
           <ValueField label="Valor nuevo" field={config.field_name} value={config.to_value} onChange={(v) => setConfig({ to_value: v })} />
         </div>
