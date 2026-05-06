@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -1124,16 +1124,16 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     }));
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
           <div className="flex items-center justify-between gap-2">
-            <SheetTitle>Detalle del pago</SheetTitle>
+            <DialogTitle>Detalle del pago</DialogTitle>
             <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
               <ArrowLeft className="h-4 w-4 mr-2" /> Regresar a Pagos
             </Button>
           </div>
-        </SheetHeader>
+        </DialogHeader>
         <div className="space-y-4 mt-6">
           <div className="flex flex-wrap justify-end gap-2">
             {(!pago.tipo_pago || pago.tipo_pago === "contado") && (
