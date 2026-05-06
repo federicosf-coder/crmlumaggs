@@ -135,6 +135,13 @@ function renderConfig({
   dateFields: { value: string; label: string }[];
 }) {
   switch (trigger) {
+    case "existing_button_click":
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <TextField label="Identificador del botón" value={config.button_id} onChange={(v) => setConfig({ button_id: v })} />
+          <TextField label="Ubicación / pantalla (opcional)" value={config.location} onChange={(v) => setConfig({ location: v })} />
+        </div>
+      );
     case "button_click":
       return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
