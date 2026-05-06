@@ -27,13 +27,15 @@ import {
 } from "@/components/ui/dialog";
 import {
   ChevronLeft, ChevronRight, Search, CheckCircle2, RotateCcw, Trash2,
-  Plus, Filter, AlertCircle, Calendar, User, Building2,
+  Plus, Filter, AlertCircle, Calendar, User, Building2, Pencil,
 } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
+import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
+import { CrmActivityDetailDialog } from "@/components/crm/CrmActivityDetailDialog";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, "all"] as const;
 
@@ -158,6 +160,26 @@ export default function CrmItemsPage() {
   const [finalizeTarget, setFinalizeTarget] = useState<CrmItemUnified | null>(null);
   const [resultadoText, setResultadoText] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTask, setEditTask] = useState<any | null>(null);
+  const [editActivity, setEditActivity] = useState<any | null>(null);
+
+  const openEdit = async (it: CrmItemUnified) => {
+    try {
+      if (it.source_table === "crm_activities") {
+        const { data, error } = await supabase.from("crm_activities").select("*").eq("id", it.id).maybeSingle();
+        if (error) throw error;
+        if (data) setEditActivity(data);
+      } else {
+        // crm_tasks o crm_items (que comparte columnas básicas con tasks)
+        const table = it.source_table === "crm_items" ? "crm_items" : "crm_tasks";
+        const { data, error } = await supabase.from(table as any).select("*").eq("id", it.id).maybeSingle();
+        if (error) throw error;
+        if (data) setEditTask(data);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo abrir el registro");
+    }
+  };
 
   const onFinalize = async () => {
     if (!finalizeTarget) return;
@@ -352,6 +374,10 @@ export default function CrmItemsPage() {
                     )}
                   </div>
                   <div className="flex flex-col gap-1 shrink-0">
+                    <Button size="sm" variant="outline" className="gap-1"
+                      onClick={() => openEdit(it)}>
+                      <Pencil className="h-4 w-4" /> Abrir
+                    </Button>
                     {it.status !== "completada" && (
                       <Button size="sm" variant="default" className="gap-1"
                         onClick={() => { setFinalizeTarget(it); setResultadoText(""); }}>
