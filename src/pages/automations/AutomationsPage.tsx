@@ -25,7 +25,7 @@ import {
 import {
   useAutomations, useToggleAutomation, useDeleteAutomation, type Automation,
 } from "@/hooks/useAutomations";
-import { useAutomationRuns } from "@/hooks/useAutomationRuns";
+import { useAutomationRuns, useAllAutomationRuns } from "@/hooks/useAutomationRuns";
 
 const ENTITY_META: Record<string, { label: string; className: string }> = {
   deal: { label: "Negocio", className: "bg-blue-100 text-blue-800 hover:bg-blue-100" },
@@ -68,7 +68,7 @@ export default function AutomationsPage() {
   const toggle = useToggleAutomation();
   const del = useDeleteAutomation();
 
-  const [tab, setTab] = useState<"all" | "active" | "inactive">("all");
+  const [tab, setTab] = useState<"all" | "active" | "inactive" | "history">("all");
   const [logFor, setLogFor] = useState<Automation | null>(null);
   const [toDelete, setToDelete] = useState<Automation | null>(null);
 
@@ -94,10 +94,13 @@ export default function AutomationsPage() {
           <TabsTrigger value="all">Todas</TabsTrigger>
           <TabsTrigger value="active">Activas</TabsTrigger>
           <TabsTrigger value="inactive">Inactivas</TabsTrigger>
+          <TabsTrigger value="history">Historial</TabsTrigger>
         </TabsList>
 
         <TabsContent value={tab} className="mt-4">
-          {isLoading ? (
+          {tab === "history" ? (
+            <RunsHistory />
+          ) : isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
