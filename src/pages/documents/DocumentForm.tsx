@@ -900,7 +900,7 @@ export default function DocumentForm() {
               </Button>
             )}
             <Button
-              onClick={() => toast({ title: "Acuse enviado" })}
+              onClick={() => toast.success("Acuse enviado")}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Send className="mr-2 h-4 w-4" /> Enviar Acuse
