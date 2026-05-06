@@ -123,7 +123,7 @@ export const TRIGGER_GROUPS: {
       { value: "on_create", label: "Al crear registro" },
       { value: "on_field_change", label: "Al cambiar un campo" },
       { value: "on_stage_change", label: "Al cambiar etapa del negocio" },
-      { value: "on_status_change", label: "Al cambiar estatus" },
+      { value: "on_status_change", label: "Al cambiar estatus de documento o tarea" },
     ],
   },
   {

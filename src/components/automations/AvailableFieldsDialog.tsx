@@ -144,6 +144,16 @@ export const FIELD_OPTIONS: Record<string, { value: string; label: string }[]> =
     { value: "entregada", label: "Entregada" },
     { value: "acuse_enviado", label: "Acuse enviado" },
   ],
+  estatus_pago: [
+    { value: "recibido", label: "Recibido" },
+    { value: "enviado_validar", label: "Enviado a validar" },
+    { value: "validado", label: "Validado" },
+    { value: "aplicado", label: "Aplicado" },
+  ],
+  estatus_tarea: [
+    { value: "pendiente", label: "Pendiente" },
+    { value: "completada", label: "Completada" },
+  ],
   no_contactar: [
     { value: "true", label: "Sí" },
     { value: "false", label: "No" },
