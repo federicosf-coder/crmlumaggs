@@ -454,6 +454,18 @@ export default function CrmItemsPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
       />
+
+      {/* Dialogs editar */}
+      <CrmTaskDetailDialog
+        task={editTask}
+        open={!!editTask}
+        onOpenChange={(o) => !o && setEditTask(null)}
+      />
+      <CrmActivityDetailDialog
+        activity={editActivity}
+        open={!!editActivity}
+        onOpenChange={(o) => !o && setEditActivity(null)}
+      />
     </div>
   );
 }
