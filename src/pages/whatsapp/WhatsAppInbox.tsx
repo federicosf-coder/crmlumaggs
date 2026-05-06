@@ -7,12 +7,14 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye } from "lucide-react";
+import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
+import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
+import { useNavigate } from "react-router-dom";
 
 type Conversation = {
   id: string;
@@ -55,6 +57,7 @@ function extractTemplateVars(body: string): number {
 }
 
 export default function WhatsAppInbox() {
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -64,6 +67,10 @@ export default function WhatsAppInbox() {
   const [editContactOpen, setEditContactOpen] = useState(false);
   const [editCompanyOpen, setEditCompanyOpen] = useState(false);
   const [createCompanyOpen, setCreateCompanyOpen] = useState(false);
+  const [createDealOpen, setCreateDealOpen] = useState(false);
+  const [openDeals, setOpenDeals] = useState<Array<{ id: string; title: string; pipeline_nombre: string | null; pipeline_marca: string | null; pipeline_type: string | null; brand: "chevron" | "phillips66" }>>([]);
+  const [defaultPipelineId, setDefaultPipelineId] = useState<string>("");
+  const [defaultPipelineStages, setDefaultPipelineStages] = useState<any[]>([]);
   const [templates, setTemplates] = useState<TemplateWithAccount[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
@@ -121,6 +128,60 @@ export default function WhatsAppInbox() {
   }, []);
 
   const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [activeId, conversations]);
+
+  // Cargar negocios abiertos de la empresa vinculada al contacto activo
+  const loadOpenDeals = async (companyId: string | null | undefined) => {
+    if (!companyId) { setOpenDeals([]); return; }
+    const { data } = await supabase
+      .from("crm_deals")
+      .select("id, title, stage_id, pipeline_id, crm_pipelines(nombre, marca, pipeline_type), crm_pipeline_stages(name)")
+      .eq("company_id", companyId)
+      .order("updated_at", { ascending: false });
+    const rows = (data || []).filter((d: any) => {
+      const stageName = (d.crm_pipeline_stages?.name || "").toLowerCase();
+      return !["ganado", "perdido", "cerrado ganado", "cerrado perdido"].includes(stageName);
+    });
+    setOpenDeals(rows.map((d: any) => ({
+      id: d.id,
+      title: d.title,
+      pipeline_nombre: d.crm_pipelines?.nombre ?? null,
+      pipeline_marca: d.crm_pipelines?.marca ?? null,
+      pipeline_type: d.crm_pipelines?.pipeline_type ?? null,
+      brand: (d.crm_pipelines?.marca === "phillips66" ? "phillips66" : "chevron") as "chevron" | "phillips66",
+    })));
+  };
+
+  useEffect(() => {
+    loadOpenDeals(companyData?.id ?? null);
+  }, [companyData?.id]);
+
+  // Refrescar lista cuando se cierra el diálogo de creación
+  useEffect(() => {
+    if (!createDealOpen) loadOpenDeals(companyData?.id ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createDealOpen]);
+
+  // Cargar pipeline por defecto (Primera Compra de Chevron) y sus etapas para el diálogo de creación
+  useEffect(() => {
+    (async () => {
+      const { data: pipelines } = await supabase
+        .from("crm_pipelines")
+        .select("id, marca, pipeline_type")
+        .order("created_at", { ascending: true });
+      const list = pipelines || [];
+      const pick = list.find((p: any) => p.marca === "chevron" && p.pipeline_type === "primera_compra")
+        || list.find((p: any) => p.pipeline_type === "primera_compra")
+        || list[0];
+      if (!pick) return;
+      setDefaultPipelineId(pick.id);
+      const { data: st } = await supabase
+        .from("crm_pipeline_stages")
+        .select("id, name, color, position, pipeline_id")
+        .eq("pipeline_id", pick.id)
+        .order("position");
+      setDefaultPipelineStages(st || []);
+    })();
+  }, []);
 
   // Cuenta seleccionada (id de whatsapp_accounts)
   const selectedAccount = useMemo(
@@ -653,6 +714,43 @@ export default function WhatsAppInbox() {
                 <div className="text-sm text-muted-foreground">—</div>
               )}
             </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Negocios abiertos</div>
+              {companyData ? (
+                <div className="space-y-1 mt-1">
+                  {openDeals.length > 0 ? (
+                    openDeals.map((d) => (
+                      <div key={d.id} className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{d.title}</div>
+                          <div className="text-[11px] text-muted-foreground truncate">
+                            {(d.pipeline_marca === "phillips66" ? "Phillips 66" : "Chevron")}
+                            {d.pipeline_type === "recompra" ? " · Recompra" : " · Primera Compra"}
+                            {d.pipeline_nombre ? ` · ${d.pipeline_nombre}` : ""}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/crm/${d.brand}/pipeline?deal=${d.id}`)}
+                        >
+                          <Eye className="h-3 w-3 mr-1" /> Ver
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-muted-foreground">Sin negocios abiertos</div>
+                  )}
+                  {defaultPipelineId && (
+                    <Button size="sm" variant="outline" onClick={() => setCreateDealOpen(true)} className="mt-1">
+                      <Plus className="h-3 w-3 mr-1" /> Agregar negocio
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">—</div>
+              )}
+            </div>
           </div>
         )}
       </Card>
@@ -700,6 +798,17 @@ export default function WhatsAppInbox() {
           }
         }}
       />
+
+      {defaultPipelineId && (
+        <CreateCrmDealDialog
+          open={createDealOpen}
+          onOpenChange={setCreateDealOpen}
+          pipelineId={defaultPipelineId}
+          stages={defaultPipelineStages}
+          defaultCompanyId={companyData?.id || ""}
+          defaultContactId={contactData?.id || ""}
+        />
+      )}
     </div>
   );
 }
