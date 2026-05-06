@@ -1260,7 +1260,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
 
           <PagoArchivosSection pagoId={pago.id} />
         </div>
-      </SheetContent>
+      </DialogContent>
       <EnviarConfirmacionPagoDialog
         open={openEnviar}
         onOpenChange={setOpenEnviar}
@@ -1291,7 +1291,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         }}
         onSent={activeFlow.templateName === "pago-validacion" ? handleSentValidacion : undefined}
       />
-    </Sheet>
+    </Dialog>
   );
 }
 
