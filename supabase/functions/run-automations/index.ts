@@ -167,6 +167,44 @@ Deno.serve(async (req) => {
   if (company) entityScope['company'] = company
   if (contact) entityScope['contact'] = contact
 
+  // Resolve attached files for entrega corporativa (orden de compra + acuse).
+  // Generate 7-day signed URLs using the same pattern as cobranza's document-files bucket.
+  let acuseUrlSigned = ''
+  let ordenCompraUrlSigned = ''
+  if (entity_type === 'document' && entity_id) {
+    const SIGNED_TTL = 60 * 60 * 24 * 7 // 7 days
+    const toSignedUrl = async (publicOrPath: string): Promise<string> => {
+      if (!publicOrPath) return ''
+      // Extract path from a public URL of the "documentos" bucket if needed
+      const marker = '/documentos/'
+      let path = publicOrPath
+      const idx = publicOrPath.indexOf(marker)
+      if (idx >= 0) path = decodeURIComponent(publicOrPath.slice(idx + marker.length))
+      const { data: signed } = await supabase.storage
+        .from('documentos')
+        .createSignedUrl(path, SIGNED_TTL)
+      return signed?.signedUrl || publicOrPath
+    }
+    const { data: acuseRows } = await supabase
+      .from('documento_acuse_archivos')
+      .select('url_archivo, fecha_carga')
+      .eq('documento_id', entity_id)
+      .order('fecha_carga', { ascending: false })
+      .limit(1)
+    if (acuseRows && acuseRows.length > 0) {
+      acuseUrlSigned = await toSignedUrl((acuseRows[0] as any).url_archivo || '')
+    }
+    const { data: ocRows } = await supabase
+      .from('documento_orden_compra_archivos')
+      .select('url_archivo, fecha_carga')
+      .eq('documento_id', entity_id)
+      .order('fecha_carga', { ascending: false })
+      .limit(1)
+    if (ocRows && ocRows.length > 0) {
+      ordenCompraUrlSigned = await toSignedUrl((ocRows[0] as any).url_archivo || '')
+    }
+  }
+
   // 3. Build placeholder vars (best-effort)
   const vars: Record<string, any> = {
     nombre_empresa: company?.name || '',
@@ -179,6 +217,7 @@ Deno.serve(async (req) => {
     fecha: entity?.fecha_documento || new Date().toISOString().slice(0, 10),
     fecha_vencimiento: entity?.fecha_vencimiento || '',
     fecha_entrega_programada: entity?.fecha_entrega_programada || '',
+    fecha_entrega_real: entity?.fecha_entrega_real || '',
     total_cotizacion: entity?.total ?? '',
     saldo_pendiente: entity?.saldo_pendiente_cobranza ?? '',
     estatus_documento:
@@ -186,6 +225,8 @@ Deno.serve(async (req) => {
     observaciones: entity?.notas || '',
     nombre_empresa_vendedora:
       entity?.empresa_vendedora === 'galsa_phillips66' ? 'Galsa S.A. de C.V.' : 'Lumaggs S.A. de C.V.',
+    acuse_url: acuseUrlSigned,
+    orden_compra_url: ordenCompraUrlSigned,
     ...(body.context || {}),
   }
 
