@@ -975,18 +975,55 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
 
     // Configurar el flujo
     // Variables disponibles para placeholders en plantillas del sistema
+    // Construir listas HTML para placeholders {documentos_lista} y {comprobantes_lista}
+    const docsHtml = documentosLigados.length
+      ? documentosLigados
+          .map(
+            (d) =>
+              `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span><strong>${d.tipo}</strong> ${d.numero}</span><span style="font-weight:600;">${d.monto}</span></div>`
+          )
+          .join("")
+      : '<span style="color:#94a3b8;">Sin documentos ligados</span>';
+    const compsHtml = (await (async () => {
+      const { data: archivosTpl } = await supabase
+        .from("cobranza_pago_archivos")
+        .select("nombre_archivo,url_archivo")
+        .eq("pago_id", pago.id);
+      const list = archivosTpl || [];
+      if (!list.length) return '<span style="color:#94a3b8;">Sin comprobantes</span>';
+      return list
+        .map(
+          (a: any) =>
+            `<div style="padding:4px 0;"><a href="${a.url_archivo}" style="color:#2563eb;text-decoration:underline;">${a.nombre_archivo}</a></div>`
+        )
+        .join("");
+    })());
+    const formaLabelTpl =
+      flow === "contado" ? "Contado" :
+      flow === "credito" ? "Crédito Directo" :
+      flow === "credito_cescemex" ? "Crédito Cescemex" :
+      FORMA_PAGO_TPL_LABEL[pago.tipo_pago || ""] || pago.tipo_pago || "—";
+
     const tplVars: Record<string, any> = {
       nombre_cliente: pago.empresa?.name || "",
+      cliente: pago.empresa?.name || "",
+      empresa: pago.empresa?.name || "",
       monto_pago: `${formatCurrency(Number(pago.monto_total))} ${pago.moneda || "MXN"}`,
+      monto_total: formatCurrency(Number(pago.monto_total)),
+      moneda: pago.moneda || "MXN",
       fecha_pago: formatDate(pago.fecha_pago),
       tipo_pago: FORMA_PAGO_TPL_LABEL[pago.tipo_pago || ""] || pago.tipo_pago || "—",
+      forma_pago: formaLabelTpl,
+      referencia: pago.referencia_pago || "—",
       referencia_pago: pago.referencia_pago || "—",
       banco: pago.banco || "—",
       observaciones: pago.observaciones || "—",
       registrado_por: profile?.full_name || user?.email || "—",
+      documentos_lista: docsHtml,
+      comprobantes_lista: compsHtml,
     };
 
-    const systemKey = flow === "general" ? "pago_registrado_contabilidad" : "pago_validado_notificacion";
+    const systemKey = flow === "general" ? "pago_registrado_contabilidad" : "pago_validacion";
     const dbTpl = await loadSystemTemplate(systemKey);
     const subjectOverride = dbTpl ? renderTemplate(dbTpl.subject, tplVars) : undefined;
     const htmlOverride = dbTpl ? renderTemplate(dbTpl.body, tplVars) : undefined;
