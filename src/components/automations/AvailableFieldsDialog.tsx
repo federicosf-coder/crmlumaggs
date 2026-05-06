@@ -157,7 +157,9 @@ export function getFieldOptions(field?: string) {
 
 export function AvailableFieldsDialog({ entityType }: { entityType: EntityType }) {
   const [open, setOpen] = useState(false);
-  const all = getAvailableFields(entityType);
+  const all = [...getAvailableFields(entityType)].sort((a, b) =>
+    a.label.localeCompare(b.label, "es", { sensitivity: "base" }),
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -210,7 +212,9 @@ export function FieldPickerDialog({
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const all = getAvailableFields(entityType);
+  const all = [...getAvailableFields(entityType)].sort((a, b) =>
+    a.label.localeCompare(b.label, "es", { sensitivity: "base" }),
+  );
   const selected = all.find((f) => f.value === value);
   return (
     <div className="space-y-1">
