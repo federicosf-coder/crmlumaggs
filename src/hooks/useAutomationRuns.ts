@@ -30,3 +30,23 @@ export function useAutomationRuns(automationId: string | null) {
     },
   });
 }
+
+export type AutomationRunWithName = AutomationRun & { automation_name: string | null };
+
+export function useAllAutomationRuns(limit = 200) {
+  return useQuery({
+    queryKey: ["automation_runs_all", limit],
+    queryFn: async (): Promise<AutomationRunWithName[]> => {
+      const { data, error } = await (supabase as any)
+        .from("automation_runs")
+        .select("*, automations(name)")
+        .order("run_at", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return (data || []).map((r: any) => ({
+        ...r,
+        automation_name: r.automations?.name ?? null,
+      })) as AutomationRunWithName[];
+    },
+  });
+}
