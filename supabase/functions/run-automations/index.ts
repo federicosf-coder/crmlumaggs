@@ -129,6 +129,11 @@ Deno.serve(async (req) => {
       .maybeSingle()
     entity = data
     entityLabel = data?.numero_cotizacion || data?.numero_factura || data?.numero_pedido || data?.id || ''
+    if (data) {
+      // Aliases para que las condiciones acepten nombres comunes
+      ;(data as any).company_id = (data as any).company_id ?? data.empresa_id
+      ;(data as any).contact_id = (data as any).contact_id ?? data.contacto_id
+    }
     if (data?.empresa_id) {
       const { data: c } = await supabase.from('companies').select('*').eq('id', data.empresa_id).maybeSingle()
       company = c
