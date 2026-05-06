@@ -9,6 +9,66 @@ import {
   AutomationDraft, GROUPED_FILTER_FIELDS, OPERATORS_BY_TYPE, findGroupedField,
   type Condition, type FieldDef,
 } from "./types";
+import { FIELD_OPTIONS } from "./AvailableFieldsDialog";
+
+function getOptionsForField(fieldValue: string) {
+  const key = fieldValue.includes(".") ? fieldValue.split(".")[1] : fieldValue;
+  return FIELD_OPTIONS[key] || null;
+}
+
+function ValuePicker({
+  fieldValue, type, value, onChange,
+}: {
+  fieldValue: string;
+  type: "text" | "number" | "boolean";
+  value: any;
+  onChange: (v: string) => void;
+}) {
+  const options = getOptionsForField(fieldValue);
+  if (!options || options.length === 0) {
+    return (
+      <Input
+        className="w-56"
+        type={type === "number" ? "number" : "text"}
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Valor"
+      />
+    );
+  }
+  const current = String(value ?? "");
+  const matches = options.some((o) => o.value === current);
+  const selectVal = current === "" ? "" : matches ? current : "__custom__";
+  return (
+    <div className="flex items-center gap-2">
+      <Select
+        value={selectVal}
+        onValueChange={(v) => {
+          if (v === "__custom__") onChange("");
+          else onChange(v);
+        }}
+      >
+        <SelectTrigger className="w-56">
+          <SelectValue placeholder="Selecciona o escribe…" />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+          ))}
+          <SelectItem value="__custom__">Otro (escribir valor)…</SelectItem>
+        </SelectContent>
+      </Select>
+      {selectVal === "__custom__" && (
+        <Input
+          className="w-44"
+          value={current}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Valor personalizado"
+        />
+      )}
+    </div>
+  );
+}
 
 export function AutomationStepConditions({
   draft, onChange,
@@ -109,12 +169,11 @@ export function AutomationStepConditions({
               </Select>
 
               {!opDef?.noValue && (
-                <Input
-                  className="w-56"
-                  type={fieldDef.type === "number" ? "number" : "text"}
-                  value={c.value ?? ""}
-                  onChange={(e) => update(idx, { value: e.target.value })}
-                  placeholder="Valor"
+                <ValuePicker
+                  fieldValue={c.field}
+                  type={fieldDef.type}
+                  value={c.value}
+                  onChange={(v) => update(idx, { value: v })}
                 />
               )}
 
