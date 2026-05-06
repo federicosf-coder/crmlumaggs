@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   TRIGGER_GROUPS, DATE_FIELDS_BY_ENTITY, type AutomationDraft,
 } from "./types";
+import { AvailableFieldsDialog } from "./AvailableFieldsDialog";
 
 const BUTTON_ICONS = ["Send", "Mail", "Phone", "Check", "X", "Star", "Bell", "Zap", "ArrowRight"];
 const BUTTON_COLORS = ["default", "blue", "green", "red", "orange"];
@@ -82,7 +83,10 @@ export function AutomationStepTrigger({
 
       {draft.trigger_type && (
         <Card className="p-4 space-y-3">
-          <p className="text-sm font-semibold">Configuración del disparador</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Configuración del disparador</p>
+            <AvailableFieldsDialog entityType={draft.entity_type} />
+          </div>
           {renderConfig({
             trigger: draft.trigger_type,
             config: draft.trigger_config,
