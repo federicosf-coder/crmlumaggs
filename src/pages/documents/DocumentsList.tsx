@@ -304,7 +304,13 @@ export default function DocumentsList() {
       if (fechaHasta) q = q.lte("fecha_documento", fechaHasta);
       if (tipoFilter === "cotizacion" && estatusCotFilter !== "all") q = q.eq("estatus_cotizacion", estatusCotFilter as any);
       if (tipoFilter === "pedido" && estatusPedFilter !== "all") q = q.eq("estatus_pedido", estatusPedFilter as any);
-      if (tipoFilter === "factura" && estatusFacFilter !== "all") q = q.eq("estatus_factura", estatusFacFilter as any);
+      if (tipoFilter === "factura" && estatusFacFilter !== "all") {
+        if (estatusFacFilter === "vigente") {
+          q = q.in("estatus_factura", ["vigente", "pendiente"] as any);
+        } else {
+          q = q.eq("estatus_factura", estatusFacFilter as any);
+        }
+      }
       if (tipoFilter === "factura" && estatusCobFilter !== "all") q = q.eq("estado_cobranza", estatusCobFilter as any);
       if (access.accessLevel === "propio" && access.userId) {
         const parts = [
