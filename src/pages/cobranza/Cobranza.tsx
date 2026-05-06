@@ -868,6 +868,14 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const [loadingEmails, setLoadingEmails] = useState<null | "contado" | "credito" | "credito_cescemex" | "general">(null);
   const [editandoFormaPago, setEditandoFormaPago] = useState(false);
   const [nuevaFormaPago, setNuevaFormaPago] = useState<string>(pago?.tipo_pago || "");
+  const [nuevaPlazaId, setNuevaPlazaId] = useState<string>(pago?.plaza_id || "");
+  const { data: plazasEdit = [] } = useQuery({
+    queryKey: ["pago-edit-plazas"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plazas").select("id,nombre").eq("is_active", true).order("nombre");
+      return data || [];
+    },
+  });
   const [activeFlow, setActiveFlow] = useState<{
     templateName: string;
     title: string;
@@ -882,8 +890,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
 
   useEffect(() => {
     setNuevaFormaPago(pago?.tipo_pago || "");
+    setNuevaPlazaId(pago?.plaza_id || "");
     setEditandoFormaPago(false);
-  }, [pago?.id, pago?.tipo_pago]);
+  }, [pago?.id, pago?.tipo_pago, pago?.plaza_id]);
 
   const handleCancelarAplicacion = async (id: string) => {
     if (!confirm("¿Cancelar esta aplicación?")) return;
@@ -1149,26 +1158,44 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
           {editandoFormaPago && (
             <Card>
               <CardContent className="p-4 space-y-3">
-                <Label className="text-sm font-semibold">Editar Forma de Pago</Label>
-                <select
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  value={nuevaFormaPago}
-                  onChange={(e) => setNuevaFormaPago(e.target.value)}
-                >
-                  <option value="">— Sin definir —</option>
-                  <option value="contado">Contado</option>
-                  <option value="credito">Crédito Directo</option>
-                  <option value="credito_cescemex">Crédito Cescemex</option>
-                </select>
+                <Label className="text-sm font-semibold">Editar Pago</Label>
+                <div>
+                  <Label className="text-xs">Forma de Pago</Label>
+                  <select
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    value={nuevaFormaPago}
+                    onChange={(e) => setNuevaFormaPago(e.target.value)}
+                  >
+                    <option value="">— Sin definir —</option>
+                    <option value="contado">Contado</option>
+                    <option value="credito">Crédito Directo</option>
+                    <option value="credito_cescemex">Crédito Cescemex</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">Plaza *</Label>
+                  <select
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    value={nuevaPlazaId}
+                    onChange={(e) => setNuevaPlazaId(e.target.value)}
+                  >
+                    <option value="">— Selecciona plaza —</option>
+                    {plazasEdit.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                    ))}
+                  </select>
+                  {!nuevaPlazaId && <p className="text-xs text-destructive mt-1">La plaza es requerida</p>}
+                </div>
                 <div className="flex justify-end gap-2">
                   <Button size="sm" variant="outline" onClick={() => setEditandoFormaPago(false)}>Cancelar</Button>
                   <Button size="sm" onClick={async () => {
+                    if (!nuevaPlazaId) { toast.error("La plaza es requerida"); return; }
                     const { error } = await supabase
                       .from("cobranza_pagos")
-                      .update({ tipo_pago: (nuevaFormaPago || null) as any })
+                      .update({ tipo_pago: (nuevaFormaPago || null) as any, plaza_id: nuevaPlazaId })
                       .eq("id", pago.id);
                     if (error) { toast.error(error.message); return; }
-                    toast.success("Forma de pago actualizada");
+                    toast.success("Pago actualizado");
                     setEditandoFormaPago(false);
                     onChanged();
                   }}>Guardar</Button>
