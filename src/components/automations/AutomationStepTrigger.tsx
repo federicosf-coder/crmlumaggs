@@ -19,6 +19,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { EXISTING_BUTTONS } from "./existingButtonsCatalog";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
 const BUTTON_ICONS = ["Send", "Mail", "Phone", "Check", "X", "Star", "Bell", "Zap", "ArrowRight"];
 const BUTTON_COLORS = ["default", "blue", "green", "red", "orange"];
@@ -329,6 +330,24 @@ function ExistingButtonPicker({
   setConfig: (p: Record<string, any>) => void;
 }) {
   const selected = EXISTING_BUTTONS.find((b) => b.id === config.button_id);
+  const [sortBy, setSortBy] = useState<"name" | "location" | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const toggleSort = (col: "name" | "location") => {
+    if (sortBy !== col) { setSortBy(col); setSortDir("asc"); return; }
+    if (sortDir === "asc") { setSortDir("desc"); return; }
+    setSortBy(null);
+  };
+  const sorted = [...EXISTING_BUTTONS].sort((a, b) => {
+    if (!sortBy) return 0;
+    const av = (a as any)[sortBy] as string;
+    const bv = (b as any)[sortBy] as string;
+    const cmp = av.localeCompare(bv, "es", { sensitivity: "base" });
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+  const SortIcon = ({ col }: { col: "name" | "location" }) => {
+    if (sortBy !== col) return <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />;
+    return sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />;
+  };
   return (
     <div className="space-y-2">
       <Label>Botón existente</Label>
@@ -356,14 +375,30 @@ function ExistingButtonPicker({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nombre</TableHead>
+                  <TableHead>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 hover:text-foreground"
+                      onClick={() => toggleSort("name")}
+                    >
+                      Nombre <SortIcon col="name" />
+                    </button>
+                  </TableHead>
                   <TableHead>Descripción</TableHead>
-                  <TableHead>Ubicación</TableHead>
+                  <TableHead>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 hover:text-foreground"
+                      onClick={() => toggleSort("location")}
+                    >
+                      Ubicación <SortIcon col="location" />
+                    </button>
+                  </TableHead>
                   <TableHead className="w-20"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {EXISTING_BUTTONS.map((b) => (
+                {sorted.map((b) => (
                   <TableRow key={b.id} className={config.button_id === b.id ? "bg-primary/5" : ""}>
                     <TableCell className="font-medium">{b.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{b.description}</TableCell>
