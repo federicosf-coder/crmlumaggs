@@ -568,7 +568,7 @@ export default function Directory() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={activeTab === "companies" ? "Buscar empresas..." : "Buscar contactos..."}
+                placeholder={activeTab === "companies" ? "Buscar empresas..." : "Buscar por nombre, empresa o teléfono..."}
                 className="pl-9"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -590,7 +590,77 @@ export default function Directory() {
                 { value: "company", label: "Empresa" },
               ]}
             />
+            {activeTab === "contacts" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFiltersOpen(o => !o)}
+                className="gap-2"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtros
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5">{activeFilterCount}</Badge>
+                )}
+                <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+              </Button>
+            )}
           </div>
+          {activeTab === "contacts" && (
+            <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <CollapsibleContent className="pt-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Vendedor</Label>
+                    <Select value={filterVendedor} onValueChange={setFilterVendedor}>
+                      <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los vendedores</SelectItem>
+                        {vendedoresList.map((v: any) => (
+                          <SelectItem key={v.user_id} value={v.user_id}>
+                            {v.full_name || v.email || "—"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Sede / Región</Label>
+                    <Select value={filterSede} onValueChange={setFilterSede}>
+                      <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las sedes</SelectItem>
+                        {sedeOptions.map(s => (
+                          <SelectItem key={s} value={s}>{sedeLabel(s)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Giro / Sector</Label>
+                    <Select value={filterGiro} onValueChange={setFilterGiro}>
+                      <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los giros</SelectItem>
+                        {giroOptions.map(g => (
+                          <SelectItem key={g} value={g}>{g}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearContactFilters}
+                    disabled={activeFilterCount === 0 && !contactSearch}
+                    className="gap-1 justify-self-start sm:justify-self-end"
+                  >
+                    <X className="h-4 w-4" /> Limpiar filtros
+                  </Button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
           {/* Bulk action bar */}
