@@ -44,6 +44,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultCompanyId?: string;
+  defaultEjecutivoIds?: string[];
   editData?: ContactEditData | null;
   onCreated?: (id: string) => void;
 }
@@ -116,7 +117,7 @@ function phoneDigitCount(v: string): number {
   return (v || "").replace(/\D/g, "").length;
 }
 
-export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editData, onCreated }: Props) {
+export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaultEjecutivoIds, editData, onCreated }: Props) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const isEdit = !!editData;
@@ -189,7 +190,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
     email: "", email2: "",
     whatsapp_phone: "+52", mobile: "+52", phone: "+52", tel_emp: "+52",
     job_title: "", department: "", company_id: defaultCompanyId || "", notes: "",
-    ejecutivo_ids: [] as string[],
+    ejecutivo_ids: (defaultEjecutivoIds ?? []) as string[],
     comm_email: false, comm_email2: false, comm_whatsapp: false,
     comm_cel: false, comm_tel: false, comm_tel_emp: false,
     sede: "" as "" | "mexicali" | "tijuana",
@@ -244,10 +245,16 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, editDa
       setForm(seeded);
       autosave.seed(seeded);
       setTimeout(() => autosave.setEnabled(true), 0);
-    } else if (defaultCompanyId) {
-      setForm((prev: any) => ({ ...prev, company_id: defaultCompanyId }));
+    } else {
+      setForm((prev: any) => ({
+        ...prev,
+        ...(defaultCompanyId ? { company_id: defaultCompanyId } : {}),
+        ...(defaultEjecutivoIds && defaultEjecutivoIds.length > 0 && prev.ejecutivo_ids.length === 0
+          ? { ejecutivo_ids: defaultEjecutivoIds }
+          : {}),
+      }));
     }
-  }, [editData, defaultCompanyId]);
+  }, [editData, defaultCompanyId, defaultEjecutivoIds]);
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies_for_contact"],
