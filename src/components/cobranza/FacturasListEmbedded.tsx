@@ -687,3 +687,89 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
     </Card>
   );
 }
+
+function GroupedByClient({
+  docs, expanded, onToggle, onRowClick, fechaVencimientoEfectiva,
+}: {
+  docs: any[];
+  expanded: Set<string>;
+  onToggle: (key: string) => void;
+  onRowClick: (id: string) => void;
+  fechaVencimientoEfectiva: (d: any) => string | null;
+}) {
+  const groups = new Map<string, { name: string; docs: any[]; total: number }>();
+  for (const d of docs) {
+    const id = d.company_id || (d.companies as any)?.id || "__sin__";
+    const name = (d.companies as any)?.name || "Sin cliente";
+    if (!groups.has(id)) groups.set(id, { name, docs: [], total: 0 });
+    const g = groups.get(id)!;
+    g.docs.push(d);
+    g.total += Number(d.total || 0);
+  }
+  const arr = Array.from(groups.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name, "es"));
+  return (
+    <div className="space-y-2 px-2 sm:px-0">
+      {arr.map(([id, g]) => {
+        const isOpen = expanded.has(id);
+        return (
+          <div key={id} className="border rounded-md">
+            <button
+              type="button"
+              onClick={() => onToggle(id)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-muted/40"
+            >
+              <div className="flex items-center gap-2">
+                {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                <span className="font-medium">{g.name}</span>
+                <Badge variant="secondary">{g.docs.length}</Badge>
+              </div>
+              <span className="text-sm font-medium tabular-nums">
+                ${g.total.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+              </span>
+            </button>
+            {isOpen && (
+              <div className="border-t overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>No. Factura</TableHead>
+                      <TableHead>Fecha Documento</TableHead>
+                      <TableHead>Fecha Vencimiento</TableHead>
+                      <TableHead>Tipo de Pago</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Estatus</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {g.docs.map((doc: any) => {
+                      const fv = fechaVencimientoEfectiva(doc);
+                      const tp = getTipoPagoInfo(doc.tipo_pago);
+                      return (
+                        <TableRow key={doc.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onRowClick(doc.id)}>
+                          <TableCell className="font-medium whitespace-nowrap">{doc.numero_factura || "-"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{format(new Date(doc.fecha_documento), "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="whitespace-nowrap">{fv ? format(new Date(fv), "dd/MM/yyyy") : "-"}</TableCell>
+                          <TableCell>
+                            {tp.cls ? (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${tp.cls}`}>{tp.label}</span>
+                            ) : (<span className="text-muted-foreground">-</span>)}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(doc.estatus_factura)}`}>
+                              {ESTATUS_FAC_LABELS[doc.estatus_factura] || "-"}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
