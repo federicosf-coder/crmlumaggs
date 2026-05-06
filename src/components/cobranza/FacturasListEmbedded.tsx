@@ -139,7 +139,9 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
   );
   const [fechaDesde, setFechaDesde] = useState<string>("");
   const [fechaHasta, setFechaHasta] = useState<string>("");
-  const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
+  const [estatusFacFilter, setEstatusFacFilter] = useState<string>(
+    prefilter === "vencidas" || daysBucket === "vencidas" ? "vencida" : "all"
+  );
   const [estatusCobFilter, setEstatusCobFilter] = useState<string>(prefilter === "vencidas" ? "vencida" : "all");
   const [viewMode, setViewMode] = useState<"list" | "grouped">("list");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -157,7 +159,8 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
       prefilter === "credito_cescemex" ? "cescemex" : "all"
     );
     setEstatusCobFilter(prefilter === "vencidas" ? "vencida" : "all");
-  }, [prefilter]);
+    setEstatusFacFilter(prefilter === "vencidas" || daysBucket === "vencidas" ? "vencida" : "all");
+  }, [prefilter, daysBucket]);
 
   const clearFilters = () => {
     setTipoPagoFilter("all");
