@@ -41,6 +41,7 @@ import WhatsAppSettings from "@/pages/whatsapp/WhatsAppSettings";
 import ReportsLanding from "@/pages/reports/ReportsLanding";
 import DailyDeliveryReport from "@/pages/reports/DailyDeliveryReport";
 import SellerPortal from "@/pages/seller/SellerPortal";
+import AutomationsPage from "@/pages/automations/AutomationsPage";
 
 const queryClient = new QueryClient();
 
@@ -112,6 +113,7 @@ const App = () => (
             <Route path="/reports" element={<ProtectedRoute><ReportsLanding /></ProtectedRoute>} />
             <Route path="/reports/daily-delivery" element={<ProtectedRoute><DailyDeliveryReport /></ProtectedRoute>} />
             <Route path="/seller-portal" element={<ProtectedRoute><SellerPortal /></ProtectedRoute>} />
+            <Route path="/automations" element={<ProtectedRoute><AutomationsPage /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
