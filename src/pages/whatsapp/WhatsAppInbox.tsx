@@ -129,6 +129,54 @@ export default function WhatsAppInbox() {
 
   const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [activeId, conversations]);
 
+  // Cargar negocios abiertos de la empresa vinculada al contacto activo
+  const loadOpenDeals = async (companyId: string | null | undefined) => {
+    if (!companyId) { setOpenDeals([]); return; }
+    const { data } = await supabase
+      .from("crm_deals")
+      .select("id, title, stage_id, pipeline_id, crm_pipelines(nombre, marca, pipeline_type), crm_pipeline_stages(name)")
+      .eq("company_id", companyId)
+      .order("updated_at", { ascending: false });
+    const rows = (data || []).filter((d: any) => {
+      const stageName = (d.crm_pipeline_stages?.name || "").toLowerCase();
+      return !["ganado", "perdido", "cerrado ganado", "cerrado perdido"].includes(stageName);
+    });
+    setOpenDeals(rows.map((d: any) => ({
+      id: d.id,
+      title: d.title,
+      pipeline_nombre: d.crm_pipelines?.nombre ?? null,
+      pipeline_marca: d.crm_pipelines?.marca ?? null,
+      pipeline_type: d.crm_pipelines?.pipeline_type ?? null,
+      brand: (d.crm_pipelines?.marca === "phillips66" ? "phillips66" : "chevron") as "chevron" | "phillips66",
+    })));
+  };
+
+  useEffect(() => {
+    loadOpenDeals(companyData?.id ?? null);
+  }, [companyData?.id]);
+
+  // Cargar pipeline por defecto (Primera Compra de Chevron) y sus etapas para el diálogo de creación
+  useEffect(() => {
+    (async () => {
+      const { data: pipelines } = await supabase
+        .from("crm_pipelines")
+        .select("id, marca, pipeline_type")
+        .order("created_at", { ascending: true });
+      const list = pipelines || [];
+      const pick = list.find((p: any) => p.marca === "chevron" && p.pipeline_type === "primera_compra")
+        || list.find((p: any) => p.pipeline_type === "primera_compra")
+        || list[0];
+      if (!pick) return;
+      setDefaultPipelineId(pick.id);
+      const { data: st } = await supabase
+        .from("crm_pipeline_stages")
+        .select("id, name, color, position, pipeline_id")
+        .eq("pipeline_id", pick.id)
+        .order("position");
+      setDefaultPipelineStages(st || []);
+    })();
+  }, []);
+
   // Cuenta seleccionada (id de whatsapp_accounts)
   const selectedAccount = useMemo(
     () => accounts.find((a) => a.business_phone_number_id === selectedPhoneId) ?? null,
