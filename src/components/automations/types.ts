@@ -98,6 +98,8 @@ export const GROUPED_FILTER_FIELDS: FieldGroup[] = [
   {
     label: "Documento",
     fields: [
+      { value: "document.company_id", label: "Cliente (empresa)", type: "text" },
+      { value: "document.contact_id", label: "Contacto", type: "text" },
       { value: "document.tipo_documento", label: "Tipo de documento", type: "text" },
       { value: "document.estatus_factura", label: "Estatus factura", type: "text" },
       { value: "document.estatus_cotizacion", label: "Estatus cotización", type: "text" },
