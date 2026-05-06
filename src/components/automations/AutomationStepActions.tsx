@@ -313,20 +313,28 @@ function ActionConfigEditor({
 }
 
 function EmailActionEditor({ cfg, setCfg }: { cfg: any; setCfg: (p: any) => void }) {
-  const [templates, setTemplates] = useState<{ id: string; name: string }[]>([]);
+  const [templates, setTemplates] = useState<
+    { id: string; name: string; to_emails: any; cc_emails: any; bcc_emails: any }[]
+  >([]);
   useEffect(() => {
     (async () => {
       const { data } = await (supabase as any)
         .from("templates")
-        .select("id,name")
+        .select("id,name,to_emails,cc_emails,bcc_emails")
         .eq("type", "email")
         .eq("is_active", true)
         .order("name");
       setTemplates(data || []);
     })();
   }, []);
+  const selected = templates.find((t) => t.id === cfg.template_id);
+  const fmt = (v: any) => {
+    if (!v) return "—";
+    const arr = Array.isArray(v) ? v : [];
+    return arr.length ? arr.join(", ") : "—";
+  };
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+    <div className="space-y-2">
       <Field label="Plantilla">
         <SelectInline
           value={cfg.template_id}
@@ -334,21 +342,20 @@ function EmailActionEditor({ cfg, setCfg }: { cfg: any; setCfg: (p: any) => void
           options={templates.map((t) => ({ value: t.id, label: t.name }))}
         />
       </Field>
-      <Field label="Destinatario">
-        <SelectInline
-          value={cfg.to_type || "contacto_principal"}
-          onChange={(v) => setCfg({ to_type: v })}
-          options={[
-            { value: "contacto_principal", label: "Contacto principal" },
-            { value: "grupo_email", label: "Grupo de correo" },
-            { value: "ejecutivo_asignado", label: "Ejecutivo asignado" },
-            { value: "campo_email_personalizado", label: "Campo de correo personalizado" },
-          ]}
-        />
-      </Field>
-      <Field label="CC (opcional)">
-        <Input value={cfg.cc || ""} onChange={(e) => setCfg({ cc: e.target.value })} />
-      </Field>
+      {selected ? (
+        <div className="rounded-md border bg-muted/30 p-2 text-xs space-y-1">
+          <p className="text-muted-foreground">
+            Los destinatarios se toman de la plantilla:
+          </p>
+          <p><span className="font-medium">Para:</span> {fmt(selected.to_emails)}</p>
+          <p><span className="font-medium">CC:</span> {fmt(selected.cc_emails)}</p>
+          <p><span className="font-medium">CCO:</span> {fmt(selected.bcc_emails)}</p>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Selecciona una plantilla. Se usarán sus campos Para, CC y CCO al enviar.
+        </p>
+      )}
     </div>
   );
 }
