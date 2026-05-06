@@ -438,20 +438,6 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground">Estatus cobranza</label>
-            <Select value={estatusCobFilter} onValueChange={setEstatusCobFilter}>
-              <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="pendiente">Pendiente</SelectItem>
-                <SelectItem value="parcial">Parcial</SelectItem>
-                <SelectItem value="pagada">Pagada</SelectItem>
-                <SelectItem value="vencida">Vencida</SelectItem>
-                <SelectItem value="cancelada">Cancelada</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           {activeFiltersCount > 0 && (
             <Button variant="ghost" size="sm" className="h-8" onClick={clearFilters}>
               <X className="h-3.5 w-3.5 mr-1" /> Limpiar filtros
