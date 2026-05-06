@@ -18,8 +18,10 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { EXISTING_BUTTONS } from "./existingButtonsCatalog";
-import { ArrowUp, ArrowDown, ArrowUpDown, ExternalLink } from "lucide-react";
+import { EXISTING_BUTTONS, type ExistingButton } from "./existingButtonsCatalog";
+import { detectButtonsFromSource, mergeButtons } from "./detectButtons";
+import { ArrowUp, ArrowDown, ArrowUpDown, ExternalLink, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 const BUTTON_ICONS = ["Send", "Mail", "Phone", "Check", "X", "Star", "Bell", "Zap", "ArrowRight"];
 const BUTTON_COLORS = ["default", "blue", "green", "red", "orange"];
@@ -370,15 +372,27 @@ function ExistingButtonPicker({
   config: Record<string, any>;
   setConfig: (p: Record<string, any>) => void;
 }) {
-  const selected = EXISTING_BUTTONS.find((b) => b.id === config.button_id);
+  const [buttons, setButtons] = useState<ExistingButton[]>(EXISTING_BUTTONS);
+  const selected = buttons.find((b) => b.id === config.button_id);
   const [sortBy, setSortBy] = useState<"name" | "location" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const handleAutoDetect = () => {
+    const detected = detectButtonsFromSource();
+    const merged = mergeButtons(EXISTING_BUTTONS, detected);
+    const added = merged.length - buttons.length;
+    setButtons(merged);
+    toast.success(
+      added > 0
+        ? `${added} botón(es) nuevo(s) detectado(s)`
+        : "No se encontraron botones nuevos",
+    );
+  };
   const toggleSort = (col: "name" | "location") => {
     if (sortBy !== col) { setSortBy(col); setSortDir("asc"); return; }
     if (sortDir === "asc") { setSortDir("desc"); return; }
     setSortBy(null);
   };
-  const sorted = [...EXISTING_BUTTONS].sort((a, b) => {
+  const sorted = [...buttons].sort((a, b) => {
     if (!sortBy) return 0;
     const av = (a as any)[sortBy] as string;
     const bv = (b as any)[sortBy] as string;
@@ -411,7 +425,19 @@ function ExistingButtonPicker({
           </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Botones disponibles en la aplicación</DialogTitle>
+              <DialogTitle className="flex items-center justify-between gap-2">
+                <span>Botones disponibles en la aplicación</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleAutoDetect}
+                  className="mr-6"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                  Auto-detectar
+                </Button>
+              </DialogTitle>
             </DialogHeader>
             <Table>
               <TableHeader>
