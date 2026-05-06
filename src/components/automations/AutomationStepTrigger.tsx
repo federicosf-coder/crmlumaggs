@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   TRIGGER_GROUPS, DATE_FIELDS_BY_ENTITY, type AutomationDraft,
 } from "./types";
-import { AvailableFieldsDialog } from "./AvailableFieldsDialog";
+import { AvailableFieldsDialog, FieldPickerDialog } from "./AvailableFieldsDialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -101,6 +101,7 @@ export function AutomationStepTrigger({
             setConfig,
             stages,
             dateFields,
+            entityType: draft.entity_type,
           })}
         </Card>
       )}
@@ -134,13 +135,14 @@ function defaultConfigFor(trigger: string): Record<string, any> {
 }
 
 function renderConfig({
-  trigger, config, setConfig, stages, dateFields,
+  trigger, config, setConfig, stages, dateFields, entityType,
 }: {
   trigger: string;
   config: Record<string, any>;
   setConfig: (p: Record<string, any>) => void;
   stages: { id: string; name: string }[];
   dateFields: { value: string; label: string }[];
+  entityType: import("./types").EntityType;
 }) {
   switch (trigger) {
     case "existing_button_click":
@@ -168,7 +170,7 @@ function renderConfig({
     case "on_field_change":
       return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <TextField label="Campo" value={config.field_name} onChange={(v) => setConfig({ field_name: v })} />
+          <FieldPickerDialog entityType={entityType} value={config.field_name} onChange={(v) => setConfig({ field_name: v })} />
           <TextField label="Valor anterior (opcional)" value={config.old_value} onChange={(v) => setConfig({ old_value: v })} />
           <TextField label="Valor nuevo (opcional)" value={config.new_value} onChange={(v) => setConfig({ new_value: v })} />
         </div>
@@ -197,7 +199,7 @@ function renderConfig({
     case "on_status_change":
       return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <TextField label="Campo" value={config.field_name} onChange={(v) => setConfig({ field_name: v })} />
+          <FieldPickerDialog entityType={entityType} value={config.field_name} onChange={(v) => setConfig({ field_name: v })} />
           <TextField label="Valor anterior" value={config.from_value} onChange={(v) => setConfig({ from_value: v })} />
           <TextField label="Valor nuevo" value={config.to_value} onChange={(v) => setConfig({ to_value: v })} />
         </div>
@@ -239,7 +241,7 @@ function renderConfig({
     case "field_value_reaches":
       return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <TextField label="Campo" value={config.field_name} onChange={(v) => setConfig({ field_name: v })} />
+          <FieldPickerDialog entityType={entityType} value={config.field_name} onChange={(v) => setConfig({ field_name: v })} />
           <div>
             <Label>Operador</Label>
             <SelectField
