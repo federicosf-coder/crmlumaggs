@@ -31,11 +31,25 @@ export function AutomationStepTrigger({
   useEffect(() => {
     if (draft.trigger_type !== "on_stage_change") return;
     (async () => {
-      const { data } = await (supabase as any)
+      const { data: pipelines } = await (supabase as any)
+        .from("crm_pipelines")
+        .select("id,nombre,marca,pipeline_type");
+      const { data: stagesData } = await (supabase as any)
         .from("crm_pipeline_stages")
-        .select("id,name,position")
+        .select("id,name,position,pipeline_id")
         .order("position");
-      setStages((data || []).map((s: any) => ({ id: s.id, name: s.name })));
+      const pipMap = new Map<string, string>();
+      (pipelines || []).forEach((p: any) => {
+        const marca = p.marca === "chevron" ? "Chevron" : p.marca === "phillips66" ? "Phillips 66" : p.marca;
+        const tipo = p.pipeline_type === "primera_compra" ? "Primera Compra" : p.pipeline_type === "recompra" ? "Recompra" : "";
+        pipMap.set(p.id, [marca, tipo].filter(Boolean).join(" "));
+      });
+      setStages(
+        (stagesData || []).map((s: any) => ({
+          id: s.id,
+          name: pipMap.get(s.pipeline_id) ? `${s.name} - ${pipMap.get(s.pipeline_id)}` : s.name,
+        })),
+      );
     })();
   }, [draft.trigger_type]);
 
