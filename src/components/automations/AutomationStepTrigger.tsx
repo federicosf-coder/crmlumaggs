@@ -11,6 +11,14 @@ import {
   TRIGGER_GROUPS, DATE_FIELDS_BY_ENTITY, type AutomationDraft,
 } from "./types";
 import { AvailableFieldsDialog } from "./AvailableFieldsDialog";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import { EXISTING_BUTTONS } from "./existingButtonsCatalog";
 
 const BUTTON_ICONS = ["Send", "Mail", "Phone", "Check", "X", "Star", "Bell", "Zap", "ArrowRight"];
 const BUTTON_COLORS = ["default", "blue", "green", "red", "orange"];
@@ -136,12 +144,7 @@ function renderConfig({
 }) {
   switch (trigger) {
     case "existing_button_click":
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <TextField label="Identificador del botón" value={config.button_id} onChange={(v) => setConfig({ button_id: v })} />
-          <TextField label="Ubicación / pantalla (opcional)" value={config.location} onChange={(v) => setConfig({ location: v })} />
-        </div>
-      );
+      return <ExistingButtonPicker config={config} setConfig={setConfig} />;
     case "button_click":
       return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
