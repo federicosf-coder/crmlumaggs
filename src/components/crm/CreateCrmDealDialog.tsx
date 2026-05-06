@@ -44,12 +44,14 @@ interface CreateCrmDealDialogProps {
   pipelineId: string;
   stages: CrmPipelineStage[];
   defaultStageId?: string;
+  defaultCompanyId?: string;
+  defaultContactId?: string;
 }
 
 const pipelineTypeLabel = (t: string | null | undefined) =>
   t === "recompra" ? "Recompra" : "Primera Compra";
 
-export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, defaultStageId }: CreateCrmDealDialogProps) {
+export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, defaultStageId, defaultCompanyId, defaultContactId }: CreateCrmDealDialogProps) {
   const { session } = useAuth();
   const createDeal = useCreateCrmDeal();
   const { toast } = useToast();
@@ -186,15 +188,15 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
       setOwnerId(session?.user?.id || "");
       setTitle("");
       setTitleManuallyEdited(false);
-      setCompanyId("");
-      setContactId("");
+      setCompanyId(defaultCompanyId || "");
+      setContactId(defaultContactId || "");
       setValue("");
       setCloseDate("");
       setNotes("");
       setPlazaId("");
     }
     wasOpen.current = open;
-  }, [open, pipelineId, defaultStageId, stages, session?.user?.id]);
+  }, [open, pipelineId, defaultStageId, stages, session?.user?.id, defaultCompanyId, defaultContactId]);
 
   // Default plaza = plaza principal del ejecutivo seleccionado (si el usuario aún no la cambió manualmente)
   const plazaManuallyEdited = useRef(false);
