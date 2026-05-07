@@ -1045,7 +1045,7 @@ export default function DocumentsList() {
                       <TableRow
                         key={doc.id}
                         className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedIds.has(doc.id) ? "bg-muted/30" : ""}`}
-                        onClick={() => navigate(`/documents/${doc.id}`)}
+                         onClick={() => window.open(`/documents/${doc.id}`, "_blank")}
                       >
                         <TableCell className="w-10" onClick={e => e.stopPropagation()}>
                           <Checkbox
@@ -1145,7 +1145,7 @@ export default function DocumentsList() {
                         )}
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/documents/${doc.id}`); }} title="Editar">
+                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); window.open(`/documents/${doc.id}`, "_blank"); }} title="Editar">
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" disabled={duplicating === doc.id} onClick={(e) => handleDuplicate(e, doc)} title="Duplicar">
