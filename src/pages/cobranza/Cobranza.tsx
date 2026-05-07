@@ -823,6 +823,7 @@ export default function Cobranza() {
               countLabel={`${dashKpis.vencidas.length} facturas`}
               icon={AlertTriangle}
               variant="destructive"
+              valueBlack
               onClick={() => { setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
             />
             <DetailedKpiCard
@@ -831,6 +832,7 @@ export default function Cobranza() {
               countLabel={`${dashKpis.directoVencidas.length} facturas (${dashKpis.fmtPct(dashKpis.directoVencidas.length, dashKpis.vencidas.length)} de la vencida)`}
               icon={AlertTriangle}
               variant="destructive"
+              valueBlack
               onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
             />
             <DetailedKpiCard
@@ -839,6 +841,7 @@ export default function Cobranza() {
               countLabel={`${dashKpis.cescemexVencidas.length} facturas (${dashKpis.fmtPct(dashKpis.cescemexVencidas.length, dashKpis.vencidas.length)} de la vencida)`}
               icon={AlertTriangle}
               variant="destructive"
+              valueBlack
               onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
             />
           </div>
@@ -851,6 +854,7 @@ export default function Cobranza() {
               countLabel={`${cartera.facturasPagadas} facturas pagadas · ${pagos.length} pagos`}
               icon={CheckCircle2}
               variant="success"
+              valueBlack
             />
             <DetailedKpiCard
               title="Clientes en cartera vencida"
