@@ -1053,6 +1053,7 @@ function DetailedKpiCard({
   valueOverride,
   countLabel,
   extraLabel,
+  pctLabel,
   icon: Icon,
   variant,
   lines,
@@ -1063,6 +1064,7 @@ function DetailedKpiCard({
   valueOverride?: string;
   countLabel?: string;
   extraLabel?: string;
+  pctLabel?: string;
   icon: any;
   variant?: "destructive" | "success";
   lines?: { label: string; value: string; tone?: "destructive" | "success" }[];
@@ -1088,6 +1090,9 @@ function DetailedKpiCard({
             <p className={`text-2xl font-bold mt-1 ${valueClass}`}>
               {valueOverride !== undefined ? valueOverride : formatCurrency(total || 0)}
             </p>
+            {pctLabel && (
+              <p className="text-xs font-medium text-muted-foreground mt-0.5">{pctLabel}</p>
+            )}
             {countLabel && (
               <p className="text-sm text-muted-foreground mt-1">{countLabel}</p>
             )}
