@@ -164,9 +164,18 @@ export function EnviarConfirmacionPagoDialog({
     try {
       const ts = Date.now();
       const toAddr = finalEmails[0];
-      const ccAddrs = Array.from(
-        new Set(finalEmails.slice(1).filter((e) => e && e.toLowerCase() !== toAddr.toLowerCase()))
-      );
+      // Unificar TODOS los destinatarios en TO/CC para que el receptor pueda
+      // "Responder a todos" desde su cliente de correo. Movemos también los
+      // que venían como BCC a CC, e incluimos los CC propios del template.
+      const toLower = toAddr.toLowerCase();
+      const merged = [
+        ...finalEmails.slice(1),
+        ...((ccEmails || []) as string[]),
+        ...((bccEmails || []) as string[]),
+      ]
+        .filter((e) => typeof e === "string" && e)
+        .filter((e) => e.toLowerCase() !== toLower);
+      const ccAddrs = Array.from(new Set(merged));
       const results = await Promise.allSettled([
         supabase.functions.invoke("send-transactional-email", {
           body: {
@@ -177,7 +186,8 @@ export function EnviarConfirmacionPagoDialog({
             htmlOverride,
             to: [toAddr],
             cc: ccAddrs.length ? ccAddrs : undefined,
-            bcc: bccEmails && bccEmails.length ? bccEmails : undefined,
+            // Intencionalmente sin BCC: todos visibles para Reply-All
+            bcc: undefined,
             replyTo: replyTo || undefined,
             templateData: {
               empresa,
