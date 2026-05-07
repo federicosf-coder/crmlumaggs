@@ -163,20 +163,15 @@ export function EnviarConfirmacionPagoDialog({
     setSending(true);
     try {
       const ts = Date.now();
-      const [primaryEmail, ...restEmails] = finalEmails;
-      const allCc = Array.from(new Set([
-        ...restEmails,
-        ...(ccEmails || []),
-      ])).filter(Boolean);
       const results = await Promise.allSettled([
         supabase.functions.invoke("send-transactional-email", {
           body: {
             templateName,
-            recipientEmail: primaryEmail,
-            idempotencyKey: `${templateName}-${pagoId}-${primaryEmail}-${ts}`,
+            recipientEmail: finalEmails[0],
+            idempotencyKey: `${templateName}-${pagoId}-${finalEmails[0]}-${ts}`,
             subjectOverride,
             htmlOverride,
-            cc: allCc.length ? allCc : undefined,
+            to: finalEmails,
             bcc: bccEmails && bccEmails.length ? bccEmails : undefined,
             replyTo: replyTo || undefined,
             templateData: {
