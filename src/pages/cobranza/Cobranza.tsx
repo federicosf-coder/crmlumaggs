@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil } from "lucide-react";
+import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -274,6 +274,12 @@ export default function Cobranza() {
   }, [searchParams, setSearchParams]);
 
   const [searchPagos, setSearchPagos] = useState("");
+  const [pagosSortKey, setPagosSortKey] = useState<string | null>(null);
+  const [pagosSortDir, setPagosSortDir] = useState<"asc" | "desc">("asc");
+  const togglePagosSort = (key: string) => {
+    if (pagosSortKey === key) setPagosSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setPagosSortKey(key); setPagosSortDir("asc"); }
+  };
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
   const [facturasPrefilter, setFacturasPrefilter] = useState<"none" | "vencimiento" | "credito_directo" | "credito_cescemex">("none");
@@ -426,7 +432,7 @@ export default function Cobranza() {
     const base = pagos.filter((p) =>
       !q || p.empresa?.name?.toLowerCase().includes(q) || p.referencia_pago?.toLowerCase().includes(q)
     );
-    return evaluateConditions(base, pagosConditions, pagosCombinator, (p, key) => {
+    const filtered = evaluateConditions(base, pagosConditions, pagosCombinator, (p, key) => {
       const b = breakdowns[p.id];
       switch (key) {
         case "fecha_pago": return p.fecha_pago;
@@ -444,7 +450,30 @@ export default function Cobranza() {
         default: return "";
       }
     });
-  }, [pagos, searchPagos, pagosConditions, pagosCombinator, breakdowns]);
+    if (!pagosSortKey) return filtered;
+    const getVal = (p: any) => {
+      const b = breakdowns[p.id];
+      switch (pagosSortKey) {
+        case "fecha_pago": return p.fecha_pago || "";
+        case "empresa": return p.empresa?.name || "";
+        case "plaza": return p.plaza?.nombre || "";
+        case "monto_total": return Number(p.monto_total) || 0;
+        case "aplicado_facturas": return b?.aplicadoFacturas ?? 0;
+        case "aplicado_otros": return b?.aplicadoOtros ?? 0;
+        case "disponible_facturas": return b?.disponibleFacturas ?? Number(p.monto_disponible) ?? 0;
+        case "tipo_pago": return FORMA_PAGO_LABEL[p.tipo_pago || ""] || p.tipo_pago || "";
+        case "estatus_pago": return p.estatus_pago || "";
+        case "estado_pago": return p.estado_pago || "";
+        default: return "";
+      }
+    };
+    const sorted = [...filtered].sort((a, b) => {
+      const va = getVal(a); const vb = getVal(b);
+      if (typeof va === "number" && typeof vb === "number") return va - vb;
+      return String(va).localeCompare(String(vb), "es", { numeric: true });
+    });
+    return pagosSortDir === "desc" ? sorted.reverse() : sorted;
+  }, [pagos, searchPagos, pagosConditions, pagosCombinator, breakdowns, pagosSortKey, pagosSortDir]);
 
   const facturasFiltradas = useMemo(() => {
     const q = searchFacturas.toLowerCase();
@@ -712,14 +741,34 @@ export default function Cobranza() {
             <CardContent className="p-0">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Fecha</TableHead><TableHead>Cliente</TableHead><TableHead>Plaza</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Aplicado a Facturas</TableHead>
-                  <TableHead className="text-right">Aplicado a Cot/Pedidos</TableHead>
-                  <TableHead className="text-right">Disponible (facturas)</TableHead>
-                  <TableHead>Forma</TableHead>
-                  <TableHead>Estatus Pago</TableHead>
-                  <TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead>
+                  {([
+                    ["fecha_pago", "Fecha", ""],
+                    ["empresa", "Cliente", ""],
+                    ["plaza", "Plaza", ""],
+                    ["monto_total", "Total", "text-right"],
+                    ["aplicado_facturas", "Aplicado a Facturas", "text-right"],
+                    ["aplicado_otros", "Aplicado a Cot/Pedidos", "text-right"],
+                    ["disponible_facturas", "Disponible (facturas)", "text-right"],
+                    ["tipo_pago", "Forma", ""],
+                    ["estatus_pago", "Estatus Pago", ""],
+                    ["estado_pago", "Estado", ""],
+                  ] as const).map(([key, label, align]) => {
+                    const active = pagosSortKey === key;
+                    const Icon = !active ? ArrowUpDown : pagosSortDir === "asc" ? ArrowUp : ArrowDown;
+                    return (
+                      <TableHead key={key} className={align}>
+                        <button
+                          type="button"
+                          onClick={() => togglePagosSort(key)}
+                          className={`inline-flex items-center gap-1 hover:text-foreground ${align === "text-right" ? "ml-auto" : ""} ${active ? "text-foreground font-semibold" : ""}`}
+                        >
+                          {label}
+                          <Icon className="h-3.5 w-3.5 opacity-70" />
+                        </button>
+                      </TableHead>
+                    );
+                  })}
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {loadingPagos && <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
