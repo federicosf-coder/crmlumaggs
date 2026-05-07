@@ -390,12 +390,13 @@ export default function Cobranza() {
 
     const uniq = (arr: typeof facturas) => new Set(arr.map((f) => f.empresa?.id || f.empresa?.name).filter(Boolean));
     const clientesVencidos = uniq(vencidas);
-    const clientesEnTiempo = uniq(enTiempo);
     const clientesTotales = uniq(facturas);
+    // Solo cuentan como "en tiempo" los clientes que NO tienen ninguna factura vencida.
+    const clientesEnTiempo = new Set(Array.from(uniq(enTiempo)).filter((c) => !clientesVencidos.has(c)));
     const clientesVencidosDirecto = uniq(directoVencidas);
     const clientesVencidosCescemex = uniq(cescemexVencidas);
-    const clientesEnTiempoDirecto = uniq(directoEnTiempo);
-    const clientesEnTiempoCescemex = uniq(cescemexEnTiempo);
+    const clientesEnTiempoDirecto = new Set(Array.from(uniq(directoEnTiempo)).filter((c) => !clientesVencidos.has(c)));
+    const clientesEnTiempoCescemex = new Set(Array.from(uniq(cescemexEnTiempo)).filter((c) => !clientesVencidos.has(c)));
 
     return {
       totalCount,
