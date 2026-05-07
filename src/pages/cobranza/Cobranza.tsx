@@ -451,13 +451,16 @@ export default function Cobranza() {
     }).reduce((s, f) => s + Number(f.saldo_pendiente_cobranza), 0);
     const porVencer = abierta - vencida;
     const noAplicado = pagos.filter((p) => p.estado_pago !== "cancelado").reduce((s, p) => s + (breakdowns[p.id]?.disponibleFacturas ?? Number(p.monto_disponible)), 0);
-    const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
-    const cobradoMes = pagos.filter((p) => p.estado_pago !== "cancelado" && new Date(p.fecha_pago) >= inicioMes)
-      .reduce((s, p) => s + Number(p.monto_total), 0);
+    const pagosEnRango = pagos.filter((p) => p.estado_pago !== "cancelado" && inDateRange(p.fecha_pago));
+    const cobradoMes = pagosEnRango.reduce((s, p) => s + Number(p.monto_total), 0);
+    const pagosEnRangoCount = pagosEnRango.length;
+    const facturasPagadasEnRango = new Set<string>();
+    // Aproximación: facturas con estado_cobranza pagada del dataset filtrado
+    facturas.forEach((f) => { if (f.estado_cobranza === "pagada") facturasPagadasEnRango.add(f.id); });
     const facturasParciales = facturas.filter((f) => f.estado_cobranza === "parcial").length;
     const facturasPagadas = facturas.filter((f) => f.estado_cobranza === "pagada").length;
-    return { abierta, vencida, porVencer, noAplicado, cobradoMes, facturasParciales, facturasPagadas };
-  }, [facturas, pagos, breakdowns]);
+    return { abierta, vencida, porVencer, noAplicado, cobradoMes, pagosEnRangoCount, facturasParciales, facturasPagadas };
+  }, [facturas, pagos, breakdowns, from, to]);
 
   // Buckets de vencimiento (helper reusable)
   const buildBuckets = (lista: typeof facturas) => {
