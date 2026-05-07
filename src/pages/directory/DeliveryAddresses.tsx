@@ -103,10 +103,31 @@ export default function DeliveryAddresses() {
     queryFn: async () => {
       const { data } = await supabase
         .from("direcciones_empresa")
-        .select("*, companies(name)")
+        .select("*, companies(name, industry, plaza_id, plazas(nombre))")
         .eq("is_active", true)
         .order("created_at", { ascending: false });
       return (data || []) as unknown as Address[];
+    },
+  });
+
+  // Ejecutivos por empresa (para filtro Vendedor)
+  const { data: companyEjecutivosMap = {} } = useQuery<Record<string, string[]>>({
+    queryKey: ["company_ejecutivos_for_addresses"],
+    queryFn: async () => {
+      const { data } = await supabase.from("company_ejecutivos").select("company_id, user_id");
+      const map: Record<string, string[]> = {};
+      (data || []).forEach((r: any) => {
+        if (!map[r.company_id]) map[r.company_id] = [];
+        map[r.company_id].push(r.user_id);
+      });
+      return map;
+    },
+  });
+  const { data: profilesList = [] } = useQuery({
+    queryKey: ["profiles_for_addresses"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name, email");
+      return data || [];
     },
   });
 
