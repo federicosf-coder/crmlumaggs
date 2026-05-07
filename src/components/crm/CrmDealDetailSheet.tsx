@@ -307,15 +307,32 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
         <DialogHeader>
           <div className={`rounded-lg p-4 shadow-sm ${headerGradient}`}>
             <div className="flex items-start justify-between gap-2">
-              <DialogTitle className="flex items-center gap-2 text-lg">
+              <DialogTitle className="flex items-center gap-2 text-lg flex-wrap">
                 <div className="h-3 w-3 rounded-full ring-2 ring-white" style={{ backgroundColor: stageColor }} />
                 <span>{deal.title}</span>
+                {(deal.close_date || (isRecompra && cierreDefault)) && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    · Cierre: {isRecompra
+                      ? cierreDefault ? formatMonthYear(cierreDefault) : (periodoLabel || "—")
+                      : deal.close_date ? formatDate(deal.close_date) : "—"}
+                  </span>
+                )}
               </DialogTitle>
               <Button variant="ghost" size="icon" onClick={() => setEditing(!editing)}>
                 {editing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
               </Button>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              {deal.companies && (
+                <span className="inline-flex items-center gap-1 text-sm font-semibold text-foreground/80">
+                  <Building2 className="h-3.5 w-3.5" /> {deal.companies.name}
+                </span>
+              )}
+              {plazaName && (
+                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border shadow-sm ${plazaColor}`}>
+                  <MapPin className="h-3.5 w-3.5" /> {plazaName}
+                </span>
+              )}
               {currentStage && (
                 <Badge
                   className="text-sm font-semibold px-3 py-1 shadow-sm"
@@ -324,18 +341,8 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                   {currentStage.name}
                 </Badge>
               )}
-              {plazaName && (
-                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border shadow-sm ${plazaColor}`}>
-                  <MapPin className="h-3.5 w-3.5" /> {plazaName}
-                </span>
-              )}
               {isRecompra && (
                 <Badge variant="outline" className="text-sm font-semibold bg-white/70">Recompra</Badge>
-              )}
-              {deal.companies && (
-                <span className="inline-flex items-center gap-1 text-sm font-semibold text-foreground/80">
-                  <Building2 className="h-3.5 w-3.5" /> {deal.companies.name}
-                </span>
               )}
               {ownerName && (
                 <span className="inline-flex items-center gap-1 text-sm text-foreground/70">
