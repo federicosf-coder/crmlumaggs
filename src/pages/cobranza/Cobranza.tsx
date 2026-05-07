@@ -257,6 +257,35 @@ export default function Cobranza() {
   const { pagos, breakdowns, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos(filterArgs);
   const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza(filterArgs);
 
+  // Facturas pagadas del mes (por aplicaciones activas en el mes en curso)
+  const { data: facturasPagadasMes = 0 } = useQuery({
+    queryKey: ["cobranza-facturas-pagadas-mes", empresaVendedora, filterArgs.plazaId],
+    queryFn: async () => {
+      const inicioMes = new Date();
+      inicioMes.setDate(1);
+      inicioMes.setHours(0, 0, 0, 0);
+      let pq: any = supabase
+        .from("cobranza_pagos")
+        .select("id")
+        .gte("fecha_pago", inicioMes.toISOString())
+        .neq("estado_pago", "cancelado");
+      if (empresaVendedora) pq = pq.eq("empresa_vendedora" as any, empresaVendedora as any);
+      if (filterArgs.plazaId) pq = pq.eq("plaza_id", filterArgs.plazaId);
+      const { data: pagosMes } = await pq;
+      const ids = (pagosMes || []).map((p: any) => p.id);
+      if (ids.length === 0) return 0;
+      const { data: aplics } = await supabase
+        .from("cobranza_aplicaciones")
+        .select("documento_id,tipo_documento,estatus_aplicacion,pago_id")
+        .in("pago_id", ids)
+        .eq("estatus_aplicacion", "activa")
+        .eq("tipo_documento", "factura");
+      const set = new Set<string>();
+      (aplics || []).forEach((a: any) => { if (a.documento_id) set.add(a.documento_id); });
+      return set.size;
+    },
+  });
+
   if (invalidBrand) return <Navigate to="/cobranza" replace />;
 
   const [openRegistrar, setOpenRegistrar] = useState(false);
