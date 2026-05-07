@@ -365,6 +365,56 @@ export default function Cobranza() {
 
   const sumSaldo = (arr: typeof facturas) => arr.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
 
+  // Derivados para el nuevo layout de KPIs (no altera la lógica base)
+  const dashKpis = useMemo(() => {
+    const totalCount = facturas.length || 0;
+    const totalSaldo = sumSaldo(facturas);
+    const pct = (n: number, d: number) => (d > 0 ? (n / d) * 100 : 0);
+    const fmtPct = (n: number, d: number) => `${pct(n, d).toFixed(1)}%`;
+
+    const vencidas = facturasVencidasKpi;
+    const enTiempo = facturas.filter((f) => !isVencida(f));
+
+    const directo = facturasCreditoDirectoKpi;
+    const cescemex = facturasCreditoCescemexKpi;
+
+    const directoVencidas = directo.filter(isVencida);
+    const directoEnTiempo = directo.filter((f) => !isVencida(f));
+    const cescemexVencidas = cescemex.filter(isVencida);
+    const cescemexEnTiempo = cescemex.filter((f) => !isVencida(f));
+
+    const uniq = (arr: typeof facturas) => new Set(arr.map((f) => f.empresa?.id || f.empresa?.name).filter(Boolean));
+    const clientesVencidos = uniq(vencidas);
+    const clientesEnTiempo = uniq(enTiempo);
+    const clientesTotales = uniq(facturas);
+    const clientesVencidosDirecto = uniq(directoVencidas);
+    const clientesVencidosCescemex = uniq(cescemexVencidas);
+    const clientesEnTiempoDirecto = uniq(directoEnTiempo);
+    const clientesEnTiempoCescemex = uniq(cescemexEnTiempo);
+
+    return {
+      totalCount,
+      totalSaldo,
+      pct,
+      fmtPct,
+      vencidas,
+      enTiempo,
+      directo,
+      cescemex,
+      directoVencidas,
+      directoEnTiempo,
+      cescemexVencidas,
+      cescemexEnTiempo,
+      clientesVencidos,
+      clientesEnTiempo,
+      clientesTotales,
+      clientesVencidosDirecto,
+      clientesVencidosCescemex,
+      clientesEnTiempoDirecto,
+      clientesEnTiempoCescemex,
+    };
+  }, [facturas, facturasVencidasKpi, facturasCreditoDirectoKpi, facturasCreditoCescemexKpi]);
+
   // KPIs
   const cartera = useMemo(() => {
     const abierta = facturas.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
