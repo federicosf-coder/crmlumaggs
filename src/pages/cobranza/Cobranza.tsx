@@ -373,8 +373,9 @@ export default function Cobranza() {
     const ef = (d.estatus_factura || "").toString().toLowerCase();
     if (ef === "cancelada" || ef === "pagada") return false;
     if (Number(d.saldo_pendiente_cobranza || 0) <= 0) return false;
+    if (!inDateRange(d.fecha_documento)) return false;
     return true;
-  }), [documentos]);
+  }), [documentos, from, to]);
 
   // Helpers de clasificación compartidos
   const isVencida = (f: typeof facturas[number]) => {
