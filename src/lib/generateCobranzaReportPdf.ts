@@ -194,7 +194,7 @@ export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
     body.push([
       {
         content: `${cliente}  (${facs.length})`,
-        colSpan: 7,
+        colSpan: 6,
         styles: { fillColor: [240, 240, 245], fontStyle: "bold", textColor: [40, 40, 40] },
       },
       { content: fmtCurrency(subT), styles: { fillColor: [240, 240, 245], fontStyle: "bold", halign: "right" } },
@@ -208,7 +208,6 @@ export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
         f.fechaDocumento,
         f.fechaVencimiento,
         f.tipoPago,
-        "", // placeholder cliente (already in group)
         { content: fmtCurrency(f.total), styles: { halign: "right" } },
         { content: fmtCurrency(f.saldo), styles: { halign: "right", textColor: destructive, fontStyle: "bold" } },
       ]);
@@ -217,15 +216,14 @@ export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
 
   autoTable(doc, {
     startY: 50,
-    head: [["No. Factura", "Ejecutivo", "Plaza", "F. Documento", "F. Vencimiento", "Tipo Pago", "", "Total", "Saldo"]],
+    head: [["No. Factura", "Ejecutivo", "Plaza", "F. Documento", "F. Vencimiento", "Tipo Pago", "Total", "Saldo"]],
     body,
     theme: "grid",
     styles: { fontSize: 8, cellPadding: 3, lineColor: borderColor, lineWidth: 0.3 },
     headStyles: { fillColor: brandColor, textColor: 255, fontStyle: "bold" },
     columnStyles: {
-      6: { cellWidth: 0 }, // hide placeholder column visually
+      6: { halign: "right" },
       7: { halign: "right" },
-      8: { halign: "right" },
     },
     margin: { left: margin, right: margin },
     didDrawPage: () => {
