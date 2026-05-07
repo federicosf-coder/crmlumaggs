@@ -617,22 +617,18 @@ export default function Directory() {
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <SortMenu
-              value={activeTab === "companies" ? companySort : contactSort}
-              onChange={activeTab === "companies" ? setCompanySort : setContactSort}
-              options={activeTab === "companies" ? [
-                { value: "name_asc", label: "Nombre A-Z" },
-                { value: "name_desc", label: "Nombre Z-A" },
-                { value: "industry", label: "Industria" },
-                { value: "plaza", label: "Plaza" },
-                { value: "contacts_desc", label: "Más contactos" },
-              ] : [
-                { value: "last_name_asc", label: "Apellido A-Z" },
-                { value: "last_name_desc", label: "Apellido Z-A" },
-                { value: "first_name_asc", label: "Nombre A-Z" },
-                { value: "company", label: "Empresa" },
-              ]}
-            />
+            {activeTab === "contacts" && (
+              <SortMenu
+                value={contactSort}
+                onChange={setContactSort}
+                options={[
+                  { value: "last_name_asc", label: "Apellido A-Z" },
+                  { value: "last_name_desc", label: "Apellido Z-A" },
+                  { value: "first_name_asc", label: "Nombre A-Z" },
+                  { value: "company", label: "Empresa" },
+                ]}
+              />
+            )}
             {activeTab === "contacts" && (
               <Button
                 variant="outline"
