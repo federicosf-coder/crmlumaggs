@@ -1101,7 +1101,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
       (sentLogs || []).map((l: any) => (l.recipient_email || "").toLowerCase())
     );
     setPreviouslySentEmails(filteredEmails.filter((e) => sentSet.has(e.toLowerCase())).map((e) => e.toLowerCase()));
-    setDefaultEmails(filteredEmails);
+    setDefaultEmails([]);
     setLoadingEmails(null);
     setOpenEnviar(true);
   };
