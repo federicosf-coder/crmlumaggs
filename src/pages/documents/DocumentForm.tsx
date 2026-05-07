@@ -548,9 +548,15 @@ export default function DocumentForm() {
       const selectedAddr = addresses.find((a: any) => a.id === form.direccion_envio);
       const direccionText = selectedAddr ? `${selectedAddr.calle}${selectedAddr.ciudad ? ', ' + selectedAddr.ciudad : ''}${selectedAddr.estado ? ', ' + selectedAddr.estado : ''}${selectedAddr.codigo_postal ? ' C.P. ' + selectedAddr.codigo_postal : ''}` : (form.direccion_envio || null);
 
+      // Doble validación defensiva: plaza_id nunca debe llegar vacío al guardar
+      if (!form.plaza_id) {
+        toast.error("La plaza es obligatoria");
+        setSaving(false);
+        return;
+      }
       const docData: any = {
         empresa_vendedora: form.empresa_vendedora,
-        plaza_id: form.plaza_id || null,
+        plaza_id: form.plaza_id,
         tipo_documento: form.tipo_documento,
         created_by: user?.id,
         ejecutivo_venta_id: form.ejecutivo_venta_id || user?.id || null,
