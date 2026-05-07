@@ -239,6 +239,14 @@ export default function Cobranza() {
     },
   });
 
+  const { data: profilesList = [] } = useQuery({
+    queryKey: ["cobranza-profiles-for-report"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name").eq("is_active", true);
+      return data || [];
+    },
+  });
+
   const navigate = useNavigate();
   const canDelete = hasAnyRole(["admin", "manager"]);
   const canEditEstatus = hasAnyRole(["admin", "manager", "accounting"]);
