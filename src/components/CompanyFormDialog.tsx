@@ -198,6 +198,39 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   // Contactos seleccionados/creados en modo nuevo (se vinculan al crear la empresa)
   const [pendingContactIds, setPendingContactIds] = useState<string[]>([]);
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
+  // Contacto principal (id) — vinculado a companies.primary_contact_id
+  const [primaryContactId, setPrimaryContactId] = useState<string | null>(null);
+
+  // Cargar contacto principal actual de la empresa en modo edición
+  useQuery({
+    queryKey: ["company_primary_contact", editData?.id],
+    queryFn: async () => {
+      if (!editData?.id) return null;
+      const { data } = await supabase
+        .from("companies")
+        .select("primary_contact_id")
+        .eq("id", editData.id)
+        .maybeSingle();
+      setPrimaryContactId((data as any)?.primary_contact_id ?? null);
+      return data;
+    },
+    enabled: !!editData?.id && open,
+  });
+
+  const updatePrimaryContact = async (contactId: string | null) => {
+    setPrimaryContactId(contactId);
+    if (isEdit && editData?.id) {
+      const { error } = await supabase
+        .from("companies")
+        .update({ primary_contact_id: contactId } as any)
+        .eq("id", editData.id);
+      if (error) {
+        toast.error("No se pudo actualizar el contacto principal");
+      } else {
+        toast.success("Contacto principal actualizado");
+      }
+    }
+  };
 
   // Load contacts linked to this company
   const { data: companyContacts = [], refetch: refetchContacts } = useQuery({
