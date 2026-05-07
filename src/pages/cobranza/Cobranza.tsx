@@ -713,6 +713,7 @@ export default function Cobranza() {
               title="Clientes en cartera vencida"
               valueOverride={`${dashKpis.clientesVencidos.size}`}
               countLabel={`${dashKpis.fmtPct(dashKpis.clientesVencidos.size, dashKpis.clientesTotales.size)} del total`}
+              extraLabel={`Total de clientes: ${dashKpis.clientesTotales.size}`}
               icon={AlertTriangle}
               variant="destructive"
               lines={[
@@ -724,6 +725,7 @@ export default function Cobranza() {
               title="Clientes en tiempo"
               valueOverride={`${dashKpis.clientesEnTiempo.size}`}
               countLabel={`${dashKpis.fmtPct(dashKpis.clientesEnTiempo.size, dashKpis.clientesTotales.size)} del total`}
+              extraLabel={`Total de clientes: ${dashKpis.clientesTotales.size}`}
               icon={CheckCircle2}
               variant="success"
               lines={[
