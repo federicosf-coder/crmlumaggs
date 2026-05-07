@@ -792,6 +792,7 @@ export default function Cobranza() {
             <DetailedKpiCard
               title="Crédito Directo"
               total={sumSaldo(dashKpis.directo)}
+              pctLabel={`${dashKpis.fmtPct(sumSaldo(dashKpis.directo), dashKpis.totalSaldo)} del importe total`}
               countLabel={`${dashKpis.directo.length} facturas (${dashKpis.fmtPct(dashKpis.directo.length, dashKpis.totalCount)} del total)`}
               icon={Wallet}
               lines={[
@@ -803,6 +804,7 @@ export default function Cobranza() {
             <DetailedKpiCard
               title="Crédito Cescemex"
               total={sumSaldo(dashKpis.cescemex)}
+              pctLabel={`${dashKpis.fmtPct(sumSaldo(dashKpis.cescemex), dashKpis.totalSaldo)} del importe total`}
               countLabel={`${dashKpis.cescemex.length} facturas (${dashKpis.fmtPct(dashKpis.cescemex.length, dashKpis.totalCount)} del total)`}
               icon={Wallet}
               lines={[
@@ -1053,6 +1055,7 @@ function DetailedKpiCard({
   valueOverride,
   countLabel,
   extraLabel,
+  pctLabel,
   icon: Icon,
   variant,
   lines,
@@ -1063,6 +1066,7 @@ function DetailedKpiCard({
   valueOverride?: string;
   countLabel?: string;
   extraLabel?: string;
+  pctLabel?: string;
   icon: any;
   variant?: "destructive" | "success";
   lines?: { label: string; value: string; tone?: "destructive" | "success" }[];
@@ -1088,6 +1092,9 @@ function DetailedKpiCard({
             <p className={`text-2xl font-bold mt-1 ${valueClass}`}>
               {valueOverride !== undefined ? valueOverride : formatCurrency(total || 0)}
             </p>
+            {pctLabel && (
+              <p className="text-xs font-medium text-muted-foreground mt-0.5">{pctLabel}</p>
+            )}
             {countLabel && (
               <p className="text-sm text-muted-foreground mt-1">{countLabel}</p>
             )}
