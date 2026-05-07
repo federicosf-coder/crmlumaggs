@@ -792,6 +792,7 @@ export default function Cobranza() {
             <DetailedKpiCard
               title="Crédito Directo"
               total={sumSaldo(dashKpis.directo)}
+              pctLabel={`${dashKpis.fmtPct(sumSaldo(dashKpis.directo), dashKpis.totalSaldo)} del importe total`}
               countLabel={`${dashKpis.directo.length} facturas (${dashKpis.fmtPct(dashKpis.directo.length, dashKpis.totalCount)} del total)`}
               icon={Wallet}
               lines={[
@@ -803,6 +804,7 @@ export default function Cobranza() {
             <DetailedKpiCard
               title="Crédito Cescemex"
               total={sumSaldo(dashKpis.cescemex)}
+              pctLabel={`${dashKpis.fmtPct(sumSaldo(dashKpis.cescemex), dashKpis.totalSaldo)} del importe total`}
               countLabel={`${dashKpis.cescemex.length} facturas (${dashKpis.fmtPct(dashKpis.cescemex.length, dashKpis.totalCount)} del total)`}
               icon={Wallet}
               lines={[
