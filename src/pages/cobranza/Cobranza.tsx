@@ -280,6 +280,14 @@ export default function Cobranza() {
     if (pagosSortKey === key) setPagosSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setPagosSortKey(key); setPagosSortDir("asc"); }
   };
+  const [proxSortKey, setProxSortKey] = useState<string | null>(null);
+  const [proxSortDir, setProxSortDir] = useState<"asc" | "desc" | null>(null);
+  const toggleProxSort = (key: string) => {
+    if (proxSortKey !== key) { setProxSortKey(key); setProxSortDir("asc"); return; }
+    if (proxSortDir === "asc") setProxSortDir("desc");
+    else if (proxSortDir === "desc") { setProxSortKey(null); setProxSortDir(null); }
+    else setProxSortDir("asc");
+  };
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
   const [facturasPrefilter, setFacturasPrefilter] = useState<"none" | "vencimiento" | "credito_directo" | "credito_cescemex">("none");
