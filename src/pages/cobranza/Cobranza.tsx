@@ -1061,7 +1061,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     tplToEmails.forEach((e) => {
       if (!emails.includes(e) && !(isValidacion && blocked.includes(e.toLowerCase()))) emails.push(e);
     });
-
+console.log("DEBUG filteredEmails:", filteredEmails);
+console.log("DEBUG tplCc:", tplCc);
+console.log("DEBUG replyTo:", profile?.email, user?.email);
     if (flow === "general") {
       setActiveFlow({
         templateName: "pago-confirmation",
