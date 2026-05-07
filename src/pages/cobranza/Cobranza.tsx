@@ -1113,6 +1113,116 @@ function UnifiedKpiCard({
   );
 }
 
+function CarteraKpiCard({
+  title, total, facturasCount, facturasPctOfTotal, vencidasCount, vencidasPct, enTiempoCount, enTiempoPct, icon: Icon, onClick,
+}: {
+  title: string;
+  total: number;
+  facturasCount: number;
+  facturasPctOfTotal: number | null;
+  vencidasCount: number;
+  vencidasPct: number;
+  enTiempoCount: number;
+  enTiempoPct: number;
+  icon: any;
+  onClick?: () => void;
+}) {
+  return (
+    <Card
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => { if (onClick && (e.key === "Enter" || e.key === " ")) onClick(); }}
+      className={onClick ? "cursor-pointer hover:shadow-md hover:border-primary/40 transition-all" : ""}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className="text-3xl font-bold mt-1">{formatCurrency(total)}</p>
+            <p className="text-base font-semibold mt-1">
+              Facturas: {facturasCount}
+              {facturasPctOfTotal !== null && (
+                <span className="text-muted-foreground font-normal"> ({facturasPctOfTotal}%)</span>
+              )}
+            </p>
+            <div className="mt-2 space-y-0.5 text-xs">
+              <p className="text-destructive">Vencidas: {vencidasCount} <span className="text-muted-foreground">({vencidasPct}%)</span></p>
+              <p className="text-muted-foreground">En tiempo: {enTiempoCount} <span>({enTiempoPct}%)</span></p>
+            </div>
+          </div>
+          <Icon className="h-8 w-8 shrink-0 text-muted-foreground/30" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function VencidoKpiCard({
+  title, total, count, pctOfVencido, onClick,
+}: {
+  title: string;
+  total: number;
+  count: number;
+  pctOfVencido: number | null;
+  onClick?: () => void;
+}) {
+  return (
+    <Card
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => { if (onClick && (e.key === "Enter" || e.key === " ")) onClick(); }}
+      className={onClick ? "cursor-pointer hover:shadow-md hover:border-primary/40 transition-all" : ""}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className="text-2xl font-bold mt-1 text-destructive">{formatCurrency(total)}</p>
+            <p className="text-sm mt-1">{count} facturas</p>
+            {pctOfVencido !== null && (
+              <p className="text-xs text-muted-foreground mt-0.5">{pctOfVencido}% de cartera vencida</p>
+            )}
+          </div>
+          <AlertTriangle className="h-8 w-8 shrink-0 text-destructive/30" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ClientesKpiCard({
+  title, count, pctOfTotal, directo, cescemex, variant,
+}: {
+  title: string;
+  count: number;
+  pctOfTotal: number;
+  directo: number;
+  cescemex: number;
+  variant?: "destructive";
+}) {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className={`text-2xl font-bold mt-1 ${variant === "destructive" ? "text-destructive" : ""}`}>
+              {count} <span className="text-base font-normal text-muted-foreground">({pctOfTotal}%)</span>
+            </p>
+            <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+              <p>Crédito Directo: <span className="font-medium text-foreground">{directo}</span></p>
+              <p>Crédito Cescemex: <span className="font-medium text-foreground">{cescemex}</span></p>
+            </div>
+          </div>
+          <Users className={`h-8 w-8 shrink-0 ${variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30"}`} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { open: boolean; onOpenChange: (o: boolean) => void; pago: CobranzaPago | null; onChanged: () => void; onAplicar: (p: CobranzaPago) => void }) {
   const { user, profile, hasAnyRole } = useAuth();
   const canEditEstatus = hasAnyRole(["admin", "manager", "accounting"]);
