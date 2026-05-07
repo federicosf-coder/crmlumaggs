@@ -1,34 +1,26 @@
-## Problema
+## Sí es posible y es un cambio sencillo
 
-En el diálogo de "Nuevo Contacto" (`ContactFormDialog.tsx`), el selector de Empresa muestra solo una parte de las empresas. La base de datos tiene **1,167 empresas activas**, pero Supabase aplica un límite por defecto de **1,000 filas por consulta**, así que las últimas no aparecen en el listado.
+Actualmente el cálculo suma 30 días naturales a la fecha del documento (6 abril + 30 = 6 mayo). Para que el día del documento cuente como día 1 del crédito (6 abril → vence 5 mayo), basta con sumar **29 días** en lugar de 30 (regla general: `días_credito - 1`).
 
-La consulta actual:
+## Lugares a cambiar
 
-```ts
-supabase.from("companies").select("id, name").order("name")
-```
+1. **`src/pages/documents/DocumentForm.tsx`**
+   - Auto-cálculo al crear factura por `tipo_pago` (línea ~306): cambiar `30` → `29`.
+   - Auto-cálculo del vencimiento por defecto (línea ~280): cambiar `7` → `6` para mantener la misma regla (o dejarlo si solo aplica a facturas con crédito).
 
-No usa paginación ni `range`, por lo que se queda corta.
+2. **`src/components/cobranza/FacturasListEmbedded.tsx`**
+   - Función `fechaVencimientoEfectiva` (línea ~95): cambiar `setDate(d.getDate() + 30)` → `+ 29`.
 
-## Solución
+3. **Contado**: se queda igual (mismo día = fecha_documento).
 
-Modificar `src/components/ContactFormDialog.tsx` en el `useQuery` de `companies_for_contact` para traer todas las empresas activas usando paginación con `range()` en bucle (1000 filas por página) hasta agotar resultados, y filtrar también por `is_active = true` para no traer registros desactivados.
+## Datos existentes
 
-Pseudocódigo:
+Las facturas ya guardadas en la base tienen `fecha_vencimiento` calculada con la regla anterior (+30). Tengo dos opciones:
 
-```text
-let all = []
-let from = 0, size = 1000
-loop:
-  data = companies.select(id,name).eq(is_active,true).order(name).range(from, from+size-1)
-  all.push(...data)
-  if data.length < size break
-  from += size
-return all
-```
+- **A) Solo aplicar la nueva regla a facturas nuevas** y dejar las históricas como están.
+- **B) Recalcular las facturas existentes** con tipo_pago crédito / crédito_cescemex mediante una migración que reste 1 día a `fecha_vencimiento` cuando coincida con `fecha_documento + 30`.
 
-## Alcance
+Antes de implementar necesito confirmar:
 
-- Archivo único: `src/components/ContactFormDialog.tsx`
-- Sin cambios de schema ni de RLS
-- Sin afectar otras pantallas (se puede revisar después si otros selectores tienen el mismo problema, pero no se incluye en este cambio)
+1. ¿La regla "el día del documento cuenta como día 1" aplica también al vencimiento por defecto de cotizaciones/pedidos (los 7 días), o solo a facturas a crédito?
+2. ¿Recalculamos las facturas históricas (opción B) o solo aplicamos a nuevas (opción A)?

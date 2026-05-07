@@ -277,7 +277,8 @@ export default function DocumentForm() {
   // Auto-update fecha_vencimiento when fecha_documento changes (only if not editing existing)
   useEffect(() => {
     if (!isEdit && form.fecha_documento) {
-      const venc = format(addDays(new Date(form.fecha_documento + "T12:00:00"), 7), "yyyy-MM-dd");
+      // El día del documento cuenta como día 1, por eso sumamos (días - 1)
+      const venc = format(addDays(new Date(form.fecha_documento + "T12:00:00"), 6), "yyyy-MM-dd");
       set("fecha_vencimiento", venc);
     }
   }, [form.fecha_documento, isEdit]);
@@ -303,7 +304,8 @@ export default function DocumentForm() {
     if (form.tipo_documento !== "factura") return;
     if (!form.fecha_documento || !form.tipo_pago) return;
     const base = new Date(form.fecha_documento + "T12:00:00");
-    const days = form.tipo_pago === "contado" ? 0 : 30;
+    // El día del documento cuenta como día 1 del crédito, por eso sumamos (días - 1)
+    const days = form.tipo_pago === "contado" ? 0 : 29;
     const venc = format(addDays(base, days), "yyyy-MM-dd");
     if (venc !== form.fecha_vencimiento) {
       set("fecha_vencimiento", venc);
