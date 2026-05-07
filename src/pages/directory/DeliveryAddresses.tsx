@@ -13,7 +13,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Search, Pencil } from "lucide-react";
+import { Plus, Search, Pencil, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { BackButton } from "@/components/BackButton";
@@ -51,6 +51,20 @@ export default function DeliveryAddresses() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
+
+  type SortField = "empresa" | "nombre" | "tipos" | "direccion" | "coordenadas";
+  const [sortField, setSortField] = useState<SortField>("empresa");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const toggleSort = (f: SortField) => {
+    if (sortField === f) setSortDirection(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDirection("asc"); }
+  };
+  const SortIcon = ({ f }: { f: SortField }) => {
+    if (sortField !== f) return <ChevronsUpDown className="h-3.5 w-3.5 ml-1 inline text-muted-foreground" />;
+    return sortDirection === "asc"
+      ? <ChevronUp className="h-3.5 w-3.5 ml-1 inline" />
+      : <ChevronDown className="h-3.5 w-3.5 ml-1 inline" />;
+  };
 
   const [form, setForm] = useState<{
     empresa_id: string;
