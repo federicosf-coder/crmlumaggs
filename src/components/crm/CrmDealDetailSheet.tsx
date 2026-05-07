@@ -157,17 +157,6 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
     return PLAZA_COLORS[h % PLAZA_COLORS.length];
   })();
 
-  // Header gradient by brand
-  const isPhillips = dealPipeline?.marca === "phillips66";
-  const headerGradient = isPhillips
-    ? "bg-gradient-to-r from-red-50 via-orange-50 to-amber-50 border-l-4 border-red-500"
-    : "bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-l-4 border-blue-500";
-  const stageColor = currentStage?.color || "hsl(var(--primary))";
-  const sectionStyle: React.CSSProperties = {
-    borderLeftColor: stageColor,
-    borderLeftWidth: 4,
-  };
-
   const { data: dealPipeline } = useQuery({
     queryKey: ["crm-pipeline-marca", deal?.pipeline_id],
     enabled: !!deal?.pipeline_id,
