@@ -631,41 +631,102 @@ export default function Cobranza() {
             />
           ) : (
           <>
-          {/* KPIs unificadas — clic abre Seguimiento prefiltrado */}
+          {/* Fila 1: Cartera Total + Crédito Directo + Crédito Cescemex */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <UnifiedKpiCard
-              title="Vencimiento"
-              count={facturasVencidasKpi.length}
-              total={sumSaldo(facturasVencidasKpi)}
-              icon={AlertTriangle}
-              variant="destructive"
-              onClick={() => { setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
-            />
-            <UnifiedKpiCard
-              title="Crédito Directo"
-              count={facturasCreditoDirectoKpi.length}
-              total={sumSaldo(facturasCreditoDirectoKpi)}
+            <DetailedKpiCard
+              title="Cartera Total"
+              total={dashKpis.totalSaldo}
+              countLabel={`${dashKpis.totalCount} facturas`}
               icon={Wallet}
+              lines={[
+                { label: "Vencidas", value: `${dashKpis.vencidas.length} (${dashKpis.fmtPct(dashKpis.vencidas.length, dashKpis.totalCount)}) · ${formatCurrency(sumSaldo(dashKpis.vencidas))}`, tone: "destructive" },
+                { label: "En tiempo", value: `${dashKpis.enTiempo.length} (${dashKpis.fmtPct(dashKpis.enTiempo.length, dashKpis.totalCount)}) · ${formatCurrency(sumSaldo(dashKpis.enTiempo))}` },
+              ]}
+              onClick={() => { setFacturasPrefilter("none"); setActiveTab("facturas"); }}
+            />
+            <DetailedKpiCard
+              title="Crédito Directo"
+              total={sumSaldo(dashKpis.directo)}
+              countLabel={`${dashKpis.directo.length} facturas (${dashKpis.fmtPct(dashKpis.directo.length, dashKpis.totalCount)} del total)`}
+              icon={Wallet}
+              lines={[
+                { label: "Vencidas", value: `${dashKpis.directoVencidas.length} (${dashKpis.fmtPct(dashKpis.directoVencidas.length, dashKpis.directo.length)}) · ${formatCurrency(sumSaldo(dashKpis.directoVencidas))}`, tone: "destructive" },
+                { label: "En tiempo", value: `${dashKpis.directoEnTiempo.length} (${dashKpis.fmtPct(dashKpis.directoEnTiempo.length, dashKpis.directo.length)}) · ${formatCurrency(sumSaldo(dashKpis.directoEnTiempo))}` },
+              ]}
               onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
             />
-            <UnifiedKpiCard
+            <DetailedKpiCard
               title="Crédito Cescemex"
-              count={facturasCreditoCescemexKpi.length}
-              total={sumSaldo(facturasCreditoCescemexKpi)}
+              total={sumSaldo(dashKpis.cescemex)}
+              countLabel={`${dashKpis.cescemex.length} facturas (${dashKpis.fmtPct(dashKpis.cescemex.length, dashKpis.totalCount)} del total)`}
               icon={Wallet}
+              lines={[
+                { label: "Vencidas", value: `${dashKpis.cescemexVencidas.length} (${dashKpis.fmtPct(dashKpis.cescemexVencidas.length, dashKpis.cescemex.length)}) · ${formatCurrency(sumSaldo(dashKpis.cescemexVencidas))}`, tone: "destructive" },
+                { label: "En tiempo", value: `${dashKpis.cescemexEnTiempo.length} (${dashKpis.fmtPct(dashKpis.cescemexEnTiempo.length, dashKpis.cescemex.length)}) · ${formatCurrency(sumSaldo(dashKpis.cescemexEnTiempo))}` },
+              ]}
               onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KpiCard title="Cartera abierta" value={formatCurrency(cartera.abierta)} icon={Wallet} />
-            <KpiCard title="Cartera vencida" value={formatCurrency(cartera.vencida)} icon={AlertTriangle} variant="destructive" />
-            <KpiCard title="Por vencer" value={formatCurrency(cartera.porVencer)} icon={Clock} />
-            <KpiCard title="Cobrado del mes" value={formatCurrency(cartera.cobradoMes)} icon={CheckCircle2} variant="success" />
-            <KpiCard title="Pagos no aplicados" value={formatCurrency(cartera.noAplicado)} icon={Wallet} />
-            <KpiCard title="Facturas parciales" value={String(cartera.facturasParciales)} icon={Clock} />
-            <KpiCard title="Facturas pagadas" value={String(cartera.facturasPagadas)} icon={CheckCircle2} variant="success" />
-            <KpiCard title="Total pagos" value={String(pagos.length)} icon={Wallet} />
+          {/* Fila 2: KPIs de vencimiento */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <DetailedKpiCard
+              title="Cartera Vencida"
+              total={cartera.vencida}
+              countLabel={`${dashKpis.vencidas.length} facturas`}
+              icon={AlertTriangle}
+              variant="destructive"
+              onClick={() => { setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
+            />
+            <DetailedKpiCard
+              title="Vencido Crédito Directo"
+              total={sumSaldo(dashKpis.directoVencidas)}
+              countLabel={`${dashKpis.directoVencidas.length} facturas (${dashKpis.fmtPct(dashKpis.directoVencidas.length, dashKpis.vencidas.length)} de la vencida)`}
+              icon={AlertTriangle}
+              variant="destructive"
+              onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
+            />
+            <DetailedKpiCard
+              title="Vencido Crédito Cescemex"
+              total={sumSaldo(dashKpis.cescemexVencidas)}
+              countLabel={`${dashKpis.cescemexVencidas.length} facturas (${dashKpis.fmtPct(dashKpis.cescemexVencidas.length, dashKpis.vencidas.length)} de la vencida)`}
+              icon={AlertTriangle}
+              variant="destructive"
+              onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
+            />
+          </div>
+
+          {/* Fila 3: Cobrado del mes + Clientes vencidos + Clientes en tiempo (con desglose por crédito) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <DetailedKpiCard
+              title="Cobrado del mes"
+              total={cartera.cobradoMes}
+              countLabel={`${cartera.facturasPagadas} facturas pagadas · ${pagos.length} pagos`}
+              icon={CheckCircle2}
+              variant="success"
+            />
+            <DetailedKpiCard
+              title="Clientes en cartera vencida"
+              valueOverride={`${dashKpis.clientesVencidos.size}`}
+              countLabel={`${dashKpis.fmtPct(dashKpis.clientesVencidos.size, dashKpis.clientesTotales.size)} del total`}
+              icon={AlertTriangle}
+              variant="destructive"
+              lines={[
+                { label: "Crédito Directo", value: `${dashKpis.clientesVencidosDirecto.size}` },
+                { label: "Crédito Cescemex", value: `${dashKpis.clientesVencidosCescemex.size}` },
+              ]}
+            />
+            <DetailedKpiCard
+              title="Clientes en tiempo"
+              valueOverride={`${dashKpis.clientesEnTiempo.size}`}
+              countLabel={`${dashKpis.fmtPct(dashKpis.clientesEnTiempo.size, dashKpis.clientesTotales.size)} del total`}
+              icon={CheckCircle2}
+              variant="success"
+              lines={[
+                { label: "Crédito Directo", value: `${dashKpis.clientesEnTiempoDirecto.size}` },
+                { label: "Crédito Cescemex", value: `${dashKpis.clientesEnTiempoCescemex.size}` },
+              ]}
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
