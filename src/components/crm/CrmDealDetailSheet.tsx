@@ -481,7 +481,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               </TabsList>
 
               {/* === Resumen === */}
-              <TabsContent value="resumen" className="space-y-4 mt-4 min-h-[600px]">
+              <TabsContent value="resumen" className="space-y-4 mt-4 min-h-[580px] overflow-y-auto">
                 {/* Bloques empresa editables */}
                 {deal.company_id && (
                   <DealCompanyInlineBlocks companyId={deal.company_id} />
@@ -546,7 +546,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               </TabsContent>
 
               {/* === Documentos Venta === */}
-              <TabsContent value="documentos" className="mt-4 min-h-[600px]">
+              <TabsContent value="documentos" className="mt-4 min-h-[580px] overflow-y-auto">
                 <DealDocumentsTab
                   dealId={deal.id}
                   empresaId={deal.company_id ?? null}
@@ -559,7 +559,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               </TabsContent>
 
               {/* === Seguimiento === */}
-              <TabsContent value="seguimiento" className="space-y-4 mt-4 min-h-[600px]">
+              <TabsContent value="seguimiento" className="space-y-4 mt-4 min-h-[580px] overflow-y-auto">
                 <div className="rounded-lg shadow-sm bg-gray-50 p-4" style={sectionStyle}>
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-semibold inline-flex items-center gap-1.5"><ClipboardList className="h-4 w-4" /> Tareas</h4>
@@ -617,7 +617,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               </TabsContent>
 
               {/* === Evaluación Cliente === */}
-              <TabsContent value="evaluacion" className="mt-4 min-h-[600px]">
+              <TabsContent value="evaluacion" className="mt-4 min-h-[580px] overflow-y-auto">
                 {deal.company_id ? (
                   <div className="space-y-4">
                     <CompanyProcesoDecisionBlock companyId={deal.company_id} />

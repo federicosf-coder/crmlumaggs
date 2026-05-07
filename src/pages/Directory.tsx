@@ -908,7 +908,7 @@ export default function Directory() {
                   <TabsTrigger value="evaluacion" className="flex-1">Evaluación Cliente</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="general" className="space-y-3 mt-4">
+                <TabsContent value="general" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
                   {/* Resumen destacado */}
                   <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
                     <div className="grid grid-cols-2 gap-3">
@@ -970,7 +970,7 @@ export default function Directory() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="contactos" className="space-y-3 mt-4">
+                <TabsContent value="contactos" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
                   <div className="rounded-lg border p-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-primary">
                       <User className="h-3.5 w-3.5" /> Contactos de la empresa
@@ -997,7 +997,7 @@ export default function Directory() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="clasificacion" className="space-y-3 mt-4">
+                <TabsContent value="clasificacion" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
                   {/* Lista de precios + Tipo destino */}
                   <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-primary">
@@ -1026,7 +1026,7 @@ export default function Directory() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="facturacion" className="space-y-3 mt-4">
+                <TabsContent value="facturacion" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
                   <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-primary">
                       <Tag className="h-3.5 w-3.5" /> Datos fiscales y pago
@@ -1040,7 +1040,7 @@ export default function Directory() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="decision" className="space-y-3 mt-4">
+                <TabsContent value="decision" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
                   <div className="rounded-lg border p-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-primary">
                       <Users className="h-3.5 w-3.5" /> Proceso de Decisión
@@ -1055,7 +1055,7 @@ export default function Directory() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="evaluacion" className="space-y-3 mt-4">
+                <TabsContent value="evaluacion" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
                   <CompanyEvaluacionTab companyId={selectedCompany.id} />
                 </TabsContent>
               </Tabs>

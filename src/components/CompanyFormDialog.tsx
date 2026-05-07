@@ -571,7 +571,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
               <TabsTrigger value="decision" className="flex-1">Proceso Decisión</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="general" className="space-y-4 mt-4">
+            <TabsContent value="general" className="space-y-4 mt-4 min-h-[580px] overflow-y-auto">
               <div className="grid grid-cols-[1fr_140px] gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Nombre Comercial *</Label>
@@ -762,7 +762,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
               </div>
             </TabsContent>
 
-            <TabsContent value="clasificacion" className="space-y-4 mt-4">
+            <TabsContent value="clasificacion" className="space-y-4 mt-4 min-h-[580px] overflow-y-auto">
               {/* Industrias as searchable chips */}
               <div className="space-y-1.5">
                 <Label className="text-xs">Industria (multiopción)</Label>
@@ -800,7 +800,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
               </div>
             </TabsContent>
 
-            <TabsContent value="facturacion" className="space-y-4 mt-4">
+            <TabsContent value="facturacion" className="space-y-4 mt-4 min-h-[580px] overflow-y-auto">
               <div className="grid grid-cols-2 gap-3">
                 {renderEnumSelect("Tipo de Pago", form.tipo_pago, "tipo_pago", TIPO_PAGO_OPTS)}
                 {renderEnumSelect("Forma de Pago (SAT)", form.forma_pago, "forma_pago", FORMA_PAGO_OPTS)}
@@ -809,7 +809,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
               </div>
             </TabsContent>
 
-            <TabsContent value="decision" className="space-y-4 mt-4">
+            <TabsContent value="decision" className="space-y-4 mt-4 min-h-[580px] overflow-y-auto">
               <div className="grid grid-cols-2 gap-3">
                 {renderSelect("Tomador de decisión principal", form.tomador_decision, "tomador_decision", TOMADOR_DECISION_OPTIONS)}
                 {renderSelect("Riesgo percibido al cambio de marca", form.riesgo_cambio_marca, "riesgo_cambio_marca", RIESGO_OPTIONS)}
