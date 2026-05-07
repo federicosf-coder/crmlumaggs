@@ -1106,6 +1106,8 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
     );
     setPreviouslySentEmails(filteredEmails.filter((e) => sentSet.has(e.toLowerCase())).map((e) => e.toLowerCase()));
     setDefaultEmails(filteredEmails);
+    setCcEmailsFlow(Array.from(new Set([...filteredEmails, ...tplCc])));
+    setReplyToFlow(profile?.email || user?.email || tplReplyTo || undefined);
     setLoadingEmails(null);
     setOpenEnviar(true);
   };
