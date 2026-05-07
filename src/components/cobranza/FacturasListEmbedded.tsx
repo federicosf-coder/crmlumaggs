@@ -508,7 +508,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
               docs={sortedDocs}
               expanded={expandedGroups}
               onToggle={toggleGroup}
-              onRowClick={(id) => navigate(`/documents/${id}`)}
+              onRowClick={(id) => window.open(`/documents/${id}`, "_blank")}
               fechaVencimientoEfectiva={fechaVencimientoEfectiva}
             />
           ) : (
@@ -540,7 +540,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                       <TableRow
                         key={doc.id}
                         className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedIds.has(doc.id) ? "bg-muted/30" : ""}`}
-                        onClick={() => navigate(`/documents/${doc.id}`)}
+                        onClick={() => window.open(`/documents/${doc.id}`, "_blank")}
                       >
                         <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
                           <Checkbox
@@ -595,7 +595,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                         )}
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/documents/${doc.id}`); }} title="Editar">
+                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); window.open(`/documents/${doc.id}`, "_blank"); }} title="Editar">
                               <Pencil className="h-4 w-4" />
                             </Button>
                             {isAdmin && (
