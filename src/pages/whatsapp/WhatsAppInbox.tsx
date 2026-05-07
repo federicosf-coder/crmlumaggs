@@ -732,7 +732,7 @@ export default function WhatsAppInbox() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => navigate(`/crm/${d.brand}/pipeline?deal=${d.id}`)}
+                          onClick={() => window.open(`/crm/${d.brand}/pipeline?deal=${d.id}`, "_blank")}
                         >
                           <Eye className="h-3 w-3 mr-1" /> Ver
                         </Button>
