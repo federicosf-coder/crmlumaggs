@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmTask } from "@/hooks/useCrmTasks";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -17,9 +18,10 @@ interface CreateCrmTaskDialogProps {
   onOpenChange: (open: boolean) => void;
   defaultDealId?: string;
   defaultContactId?: string;
+  defaultCompanyId?: string;
 }
 
-export function CreateCrmTaskDialog({ open, onOpenChange, defaultDealId, defaultContactId }: CreateCrmTaskDialogProps) {
+export function CreateCrmTaskDialog({ open, onOpenChange, defaultDealId, defaultContactId, defaultCompanyId }: CreateCrmTaskDialogProps) {
   const { session } = useAuth();
   const createTask = useCreateCrmTask();
   const { toast } = useToast();
@@ -28,6 +30,14 @@ export function CreateCrmTaskDialog({ open, onOpenChange, defaultDealId, default
     queryKey: ["contacts-picker"],
     queryFn: async () => {
       const { data } = await supabase.from("contacts").select("id, first_name, last_name").eq("is_active", true).order("first_name");
+      return data || [];
+    },
+  });
+
+  const { data: companies } = useQuery({
+    queryKey: ["companies-picker"],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
       return data || [];
     },
   });
@@ -46,6 +56,33 @@ export function CreateCrmTaskDialog({ open, onOpenChange, defaultDealId, default
   const [priority, setPriority] = useState("medium");
   const [dealId, setDealId] = useState(defaultDealId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
+  const [companyId, setCompanyId] = useState(defaultCompanyId || "");
+
+  // Cuando se abre con un defaultDealId, resolver empresa y contacto principal
+  useEffect(() => {
+    if (!open || !defaultDealId) return;
+    (async () => {
+      const { data: deal } = await supabase
+        .from("crm_deals")
+        .select("company_id, contact_id")
+        .eq("id", defaultDealId)
+        .maybeSingle();
+      if (!deal) return;
+      const cId = (deal as any).company_id || "";
+      if (cId) {
+        setCompanyId((prev) => prev || cId);
+        const { data: comp } = await supabase
+          .from("companies")
+          .select("primary_contact_id")
+          .eq("id", cId)
+          .maybeSingle();
+        const primary = (comp as any)?.primary_contact_id || (deal as any).contact_id || "";
+        if (primary) setContactId((prev) => prev || primary);
+      } else if ((deal as any).contact_id) {
+        setContactId((prev) => prev || (deal as any).contact_id);
+      }
+    })();
+  }, [open, defaultDealId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,13 +96,14 @@ export function CreateCrmTaskDialog({ open, onOpenChange, defaultDealId, default
         priority,
         deal_id: dealId && dealId !== "none" ? dealId : null,
         contact_id: contactId && contactId !== "none" ? contactId : null,
+        company_id: companyId && companyId !== "none" ? companyId : null,
       },
       {
         onSuccess: () => {
           toast({ title: "Tarea creada" });
           onOpenChange(false);
           setTitle(""); setDescription(""); setDueDate(""); setPriority("medium");
-          setDealId(defaultDealId || ""); setContactId(defaultContactId || "");
+          setDealId(defaultDealId || ""); setContactId(defaultContactId || ""); setCompanyId(defaultCompanyId || "");
         },
       }
     );
@@ -113,18 +151,30 @@ export function CreateCrmTaskDialog({ open, onOpenChange, defaultDealId, default
               </Select>
             </div>
           )}
-          {!defaultContactId && (
-            <div className="space-y-2">
-              <Label>Vincular a Contacto</Label>
-              <Select value={contactId} onValueChange={setContactId}>
-                <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Ninguno</SelectItem>
-                  {contacts?.map((c) => <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label>Vincular a Empresa</Label>
+            <SearchableSelect
+              value={companyId || "none"}
+              onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
+              options={[
+                { value: "none", label: "Ninguna" },
+                ...((companies || []).map((c: any) => ({ value: c.id, label: c.name }))),
+              ]}
+              placeholder="Buscar empresa..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Vincular a Contacto</Label>
+            <SearchableSelect
+              value={contactId || "none"}
+              onValueChange={(v) => setContactId(v === "none" ? "" : v)}
+              options={[
+                { value: "none", label: "Ninguno" },
+                ...((contacts || []).map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))),
+              ]}
+              placeholder="Buscar contacto..."
+            />
+          </div>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={createTask.isPending}>
