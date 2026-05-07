@@ -1150,7 +1150,7 @@ export default function Directory() {
                                 {c.job_title && <span className="text-muted-foreground font-normal"> — {c.job_title}</span>}
                               </div>
                               <div className="text-xs text-muted-foreground truncate">
-                                {c.email || "—"} · {c.phone || c.mobile || "—"}
+                                {c.email || "—"} · WhatsApp: {c.mobile || c.phone || "—"}
                               </div>
                             </div>
                           </div>
