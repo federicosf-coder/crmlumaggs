@@ -92,7 +92,8 @@ function fechaVencimientoEfectiva(f: { fecha_documento?: string | null; fecha_ve
   if (tp === "contado") return f.fecha_documento;
   if (tp.includes("credito") || tp.includes("cescemex")) {
     const d = new Date(f.fecha_documento + "T12:00:00");
-    d.setDate(d.getDate() + 30);
+    // El día del documento cuenta como día 1, por eso sumamos 29 (días_crédito - 1)
+    d.setDate(d.getDate() + 29);
     return d.toISOString().slice(0, 10);
   }
   return f.fecha_vencimiento ?? null;
