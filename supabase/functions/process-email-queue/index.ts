@@ -62,9 +62,6 @@ async function moveToDlq(
   const payload = msg.message
   await supabase.from('email_send_log').insert({
     message_id: payload.message_id,
-    cc: payload.cc || undefined,
-    bcc: payload.bcc || undefined,
-    reply_to: payload.reply_to || undefined,
     template_name: (payload.label || queue) as string,
     recipient_email: payload.to,
     status: 'dlq',
