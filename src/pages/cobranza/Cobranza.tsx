@@ -578,7 +578,7 @@ export default function Cobranza() {
   const handleAplicar = (p: CobranzaPago) => { setPagoSel(p); setOpenAplicar(true); };
   const handleVerDetalle = (p: CobranzaPago) => { setPagoSel(p); setOpenDetalle(true); };
 
-  const handleDescargarReporte = () => {
+  const buildReporteInput = () => {
     const fmtPct = dashKpis.fmtPct;
     const ejecutivoNombre = (id: string | null | undefined) => {
       if (!id) return "-";
@@ -699,7 +699,15 @@ export default function Cobranza() {
         { title: "Crédito Cescemex", rows: bucketsCreditoCescemex },
       ],
       facturas: facturasVencidas,
-    });
+    } as const;
+  };
+
+  const handleDescargarReporte = () => {
+    generateCobranzaReportPdf(buildReporteInput() as any);
+  };
+
+  const handleDescargarReporteXlsx = () => {
+    generateCobranzaReportXlsx(buildReporteInput() as any);
   };
 
   useEffect(() => {
