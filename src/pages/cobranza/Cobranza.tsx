@@ -620,9 +620,14 @@ export default function Cobranza() {
             </Select>
           </div>
         </div>
-        <Button onClick={() => setOpenRegistrar(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Registrar pago
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleDescargarReporte}>
+            <Download className="h-4 w-4 mr-2" /> Descargar PDF
+          </Button>
+          <Button onClick={() => setOpenRegistrar(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Registrar pago
+          </Button>
+        </div>
       </div>
 
       <div className="text-sm text-muted-foreground">
