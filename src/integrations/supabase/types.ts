@@ -4240,6 +4240,14 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_template_placeholders: {
+        Args: {
+          _contacto_id?: string
+          _documento_id?: string
+          _pago_id?: string
+        }
+        Returns: Json
+      }
       seed_crm_pipeline:
         | { Args: { p_marca: string; p_user_id: string }; Returns: string }
         | {

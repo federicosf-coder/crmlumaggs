@@ -1038,8 +1038,19 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
 
     const systemKey = flow === "general" ? "pago_registrado_contabilidad" : "pago_validacion";
     const dbTpl = await loadSystemTemplate(systemKey);
-    const subjectOverride = dbTpl ? renderTemplate(dbTpl.subject, tplVars) : undefined;
-    const htmlOverride = dbTpl ? renderTemplate(dbTpl.body, tplVars) : undefined;
+    let resolvedSubject = dbTpl?.subject || "";
+    let resolvedBody = dbTpl?.body || "";
+    if (dbTpl) {
+      try {
+        const { resolveTemplate } = await import("@/lib/resolveTemplate");
+        resolvedSubject = await resolveTemplate(resolvedSubject, { pagoId: pago.id });
+        resolvedBody = await resolveTemplate(resolvedBody, { pagoId: pago.id });
+      } catch (e) {
+        console.warn("[cobranza] resolveTemplate failed", e);
+      }
+    }
+    const subjectOverride = dbTpl ? renderTemplate(resolvedSubject, tplVars) : undefined;
+    const htmlOverride = dbTpl ? renderTemplate(resolvedBody, tplVars) : undefined;
 
     // Resolve template-level recipients (to + cc + bcc + reply_to)
     const tplToEmails = dbTpl ? await resolveEmailRecipients(dbTpl.to_emails) : [];
