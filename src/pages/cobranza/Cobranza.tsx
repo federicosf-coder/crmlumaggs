@@ -617,18 +617,21 @@ export default function Cobranza() {
           value: formatCur(cartera.vencida),
           subtitle: `${dashKpis.vencidas.length} facturas`,
           variant: "destructive",
+          valueBlack: true,
         },
         {
           title: "Vencido Crédito Directo",
           value: formatCur(sumSaldo(dashKpis.directoVencidas)),
           subtitle: `${dashKpis.directoVencidas.length} facturas`,
           variant: "destructive",
+          valueBlack: true,
         },
         {
           title: "Vencido Crédito Cescemex",
           value: formatCur(sumSaldo(dashKpis.cescemexVencidas)),
           subtitle: `${dashKpis.cescemexVencidas.length} facturas`,
           variant: "destructive",
+          valueBlack: true,
         },
       ],
       kpisRow3: [
@@ -637,6 +640,7 @@ export default function Cobranza() {
           value: formatCur(cartera.cobradoMes),
           subtitle: `${cartera.facturasPagadas} pagadas · ${pagos.length} pagos`,
           variant: "success",
+          valueBlack: true,
         },
         {
           title: "Clientes en cartera vencida",
