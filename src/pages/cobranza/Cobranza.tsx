@@ -744,7 +744,7 @@ export default function Cobranza() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <BucketReportCard title="Vencimientos" buckets={buckets} onSelect={(label) => setBucketSel({ label, scope: "all" })} />
+            <BucketReportCard title="Cartera Total" buckets={buckets} onSelect={(label) => setBucketSel({ label, scope: "all" })} />
             <BucketReportCard title="Crédito Directo" buckets={bucketsCreditoDirecto} onSelect={(label) => setBucketSel({ label, scope: "credito" })} />
             <BucketReportCard title="Crédito Cescemex" buckets={bucketsCreditoCescemex} onSelect={(label) => setBucketSel({ label, scope: "credito_cescemex" })} />
           </div>
