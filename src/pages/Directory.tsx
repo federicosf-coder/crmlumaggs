@@ -108,6 +108,8 @@ export default function Directory() {
   const [companyView, setCompanyView] = useState<"list" | "cards">("list");
   const [contactView, setContactView] = useState<"list" | "cards">("list");
   const [companySort, setCompanySort] = useState("name_asc");
+  const [companySortField, setCompanySortField] = useState<"name" | "id_contpaq" | "industry" | "contacts" | "plaza" | "ejecutivo" | "venta" | "estado">("name");
+  const [companySortDir, setCompanySortDir] = useState<"asc" | "desc">("asc");
   const [contactSort, setContactSort] = useState("last_name_asc");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [editContact, setEditContact] = useState<ContactEditData | null>(null);
