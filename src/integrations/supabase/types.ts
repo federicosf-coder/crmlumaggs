@@ -423,6 +423,7 @@ export type Database = {
           plaza_id: string
           potencial_cliente: string | null
           potencial_unidades: string | null
+          primary_contact_id: string | null
           prioridad_cliente_id: string | null
           proxima_recompra_chevron: string | null
           proxima_recompra_phillips66: string | null
@@ -486,6 +487,7 @@ export type Database = {
           plaza_id: string
           potencial_cliente?: string | null
           potencial_unidades?: string | null
+          primary_contact_id?: string | null
           prioridad_cliente_id?: string | null
           proxima_recompra_chevron?: string | null
           proxima_recompra_phillips66?: string | null
@@ -549,6 +551,7 @@ export type Database = {
           plaza_id?: string
           potencial_cliente?: string | null
           potencial_unidades?: string | null
+          primary_contact_id?: string | null
           prioridad_cliente_id?: string | null
           proxima_recompra_chevron?: string | null
           proxima_recompra_phillips66?: string | null
@@ -586,6 +589,13 @@ export type Database = {
             columns: ["plaza_id"]
             isOneToOne: false
             referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
           {
