@@ -928,6 +928,68 @@ function KpiCard({ title, value, icon: Icon, variant }: { title: string; value: 
   );
 }
 
+function DetailedKpiCard({
+  title,
+  total,
+  valueOverride,
+  countLabel,
+  icon: Icon,
+  variant,
+  lines,
+  onClick,
+}: {
+  title: string;
+  total?: number;
+  valueOverride?: string;
+  countLabel?: string;
+  icon: any;
+  variant?: "destructive" | "success";
+  lines?: { label: string; value: string; tone?: "destructive" | "success" }[];
+  onClick?: () => void;
+}) {
+  const valueClass =
+    variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : "";
+  const iconClass =
+    variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30";
+  const clickable = !!onClick;
+  return (
+    <Card
+      onClick={onClick}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") onClick!(); } : undefined}
+      className={clickable ? "cursor-pointer hover:shadow-md hover:border-primary/40 transition-all" : ""}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className={`text-2xl font-bold mt-1 ${valueClass}`}>
+              {valueOverride !== undefined ? valueOverride : formatCurrency(total || 0)}
+            </p>
+            {countLabel && (
+              <p className="text-sm text-muted-foreground mt-1">{countLabel}</p>
+            )}
+            {lines && lines.length > 0 && (
+              <div className="mt-2 space-y-0.5">
+                {lines.map((l, i) => (
+                  <div key={i} className="flex justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground">{l.label}:</span>
+                    <span className={l.tone === "destructive" ? "text-destructive font-medium" : l.tone === "success" ? "text-primary font-medium" : "font-medium"}>
+                      {l.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <Icon className={`h-8 w-8 shrink-0 ${iconClass}`} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function UnifiedKpiCard({
   title,
   count,
