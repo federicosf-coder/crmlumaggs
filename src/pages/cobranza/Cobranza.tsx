@@ -1058,6 +1058,7 @@ function DetailedKpiCard({
   pctLabel,
   icon: Icon,
   variant,
+  valueBlack,
   lines,
   onClick,
 }: {
@@ -1074,7 +1075,7 @@ function DetailedKpiCard({
   onClick?: () => void;
 }) {
   const valueClass =
-    arguments[0]?.valueBlack
+    valueBlack
       ? "text-foreground"
       : variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : "";
   const iconClass =
