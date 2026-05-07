@@ -1054,6 +1054,10 @@ export default function Directory() {
                     </div>
                   </div>
                 </TabsContent>
+
+                <TabsContent value="evaluacion" className="space-y-3 mt-4">
+                  <CompanyEvaluacionTab companyId={selectedCompany.id} />
+                </TabsContent>
               </Tabs>
             </>
           )}
