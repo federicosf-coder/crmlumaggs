@@ -713,6 +713,7 @@ export default function Cobranza() {
               title="Clientes en cartera vencida"
               valueOverride={`${dashKpis.clientesVencidos.size}`}
               countLabel={`${dashKpis.fmtPct(dashKpis.clientesVencidos.size, dashKpis.clientesTotales.size)} del total`}
+              extraLabel={`Total de clientes: ${dashKpis.clientesTotales.size}`}
               icon={AlertTriangle}
               variant="destructive"
               lines={[
@@ -724,6 +725,7 @@ export default function Cobranza() {
               title="Clientes en tiempo"
               valueOverride={`${dashKpis.clientesEnTiempo.size}`}
               countLabel={`${dashKpis.fmtPct(dashKpis.clientesEnTiempo.size, dashKpis.clientesTotales.size)} del total`}
+              extraLabel={`Total de clientes: ${dashKpis.clientesTotales.size}`}
               icon={CheckCircle2}
               variant="success"
               lines={[
@@ -937,6 +939,7 @@ function DetailedKpiCard({
   total,
   valueOverride,
   countLabel,
+  extraLabel,
   icon: Icon,
   variant,
   lines,
@@ -946,6 +949,7 @@ function DetailedKpiCard({
   total?: number;
   valueOverride?: string;
   countLabel?: string;
+  extraLabel?: string;
   icon: any;
   variant?: "destructive" | "success";
   lines?: { label: string; value: string; tone?: "destructive" | "success" }[];
@@ -973,6 +977,9 @@ function DetailedKpiCard({
             </p>
             {countLabel && (
               <p className="text-sm text-muted-foreground mt-1">{countLabel}</p>
+            )}
+            {extraLabel && (
+              <p className="text-xs text-muted-foreground mt-0.5">{extraLabel}</p>
             )}
             {lines && lines.length > 0 && (
               <div className="mt-2 space-y-0.5">
