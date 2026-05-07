@@ -502,32 +502,6 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                   />
                 )}
 
-                <div className="rounded-lg shadow-sm bg-gray-50 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm" style={sectionStyle}>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-muted-foreground">Etapa</span>
-                    <div className="mt-[2px]">
-                      <Badge className="text-sm font-semibold px-3 py-1" style={{ backgroundColor: stageColor, color: "white" }}>{currentStage?.name}</Badge>
-                    </div>
-                  </div>
-                  {isRecompra && (
-                    <div>
-                      <span className="text-muted-foreground">Periodo</span>
-                      <p className="font-semibold">{periodoLabel || "—"}</p>
-                    </div>
-                  )}
-                  <div>
-                    <span className="text-muted-foreground">Fecha de Cierre</span>
-                    <p>
-                      {isRecompra
-                        ? cierreDefault
-                          ? formatMonthYear(cierreDefault)
-                          : periodoLabel || "No definida"
-                        : deal.close_date
-                          ? formatDate(deal.close_date)
-                          : "No definida"}
-                    </p>
-                  </div>
-                </div>
                 {deal.contacts && (
                   <div className="rounded-lg shadow-sm bg-gray-50 p-3 text-sm" style={sectionStyle}>
                     <span className="text-muted-foreground inline-flex items-center gap-1"><User className="h-3.5 w-3.5" /> Contacto</span>
