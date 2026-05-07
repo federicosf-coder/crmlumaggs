@@ -124,6 +124,12 @@ export default function Directory() {
   const [filterSede, setFilterSede] = useState<string>("all");
   const [filterGiro, setFilterGiro] = useState<string>("all");
 
+  // Filtros avanzados (empresas)
+  const [companyFiltersOpen, setCompanyFiltersOpen] = useState(false);
+  const [coFilterVendedor, setCoFilterVendedor] = useState<string>("all");
+  const [coFilterPlaza, setCoFilterPlaza] = useState<string>("all");
+  const [coFilterIndustria, setCoFilterIndustria] = useState<string>("all");
+
   // Vendedores (perfiles con rol sales)
   const { data: vendedoresList = [] } = useQuery({
     queryKey: ["vendedores_sales_profiles"],
@@ -378,8 +384,48 @@ export default function Directory() {
     const p = allProfiles.find((pr: any) => pr.user_id === ids[0]);
     return p?.full_name || p?.email || "";
   };
+  // Opciones de filtros para empresas (derivadas de los datos cargados)
+  const companyVendedorOptions = useMemo(() => {
+    const ids = new Set<string>();
+    companies.forEach(c => (companyEjecutivosMap[c.id] || []).forEach(uid => ids.add(uid)));
+    return Array.from(ids).map(uid => {
+      const p = allProfiles.find((pr: any) => pr.user_id === uid);
+      return { user_id: uid, label: p?.full_name || p?.email || uid };
+    }).sort((a, b) => a.label.localeCompare(b.label));
+  }, [companies, companyEjecutivosMap, allProfiles]);
+  const companyPlazaOptions = useMemo(() => {
+    const s = new Set<string>();
+    companies.forEach(c => { const n = (c.plazas as any)?.nombre; if (n) s.add(n); });
+    return Array.from(s).sort();
+  }, [companies]);
+  const companyIndustriaOptions = useMemo(() => {
+    const s = new Set<string>();
+    companies.forEach(c => { if (c.industry) s.add(c.industry); });
+    return Array.from(s).sort();
+  }, [companies]);
+  const companyActiveFilterCount =
+    (coFilterVendedor !== "all" ? 1 : 0) +
+    (coFilterPlaza !== "all" ? 1 : 0) +
+    (coFilterIndustria !== "all" ? 1 : 0);
+  const clearCompanyFilters = () => {
+    setCoFilterVendedor("all"); setCoFilterPlaza("all"); setCoFilterIndustria("all");
+  };
+
   const filteredCompanies = companies
     .filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase()))
+    .filter(c => {
+      if (coFilterVendedor !== "all") {
+        const ids = companyEjecutivosMap[c.id] || [];
+        if (!ids.includes(coFilterVendedor)) return false;
+      }
+      if (coFilterPlaza !== "all") {
+        if (((c.plazas as any)?.nombre || "") !== coFilterPlaza) return false;
+      }
+      if (coFilterIndustria !== "all") {
+        if ((c.industry || "") !== coFilterIndustria) return false;
+      }
+      return true;
+    })
     .sort((a, b) => {
       const dir = companySortDir === "asc" ? 1 : -1;
       switch (companySortField) {
@@ -644,7 +690,76 @@ export default function Directory() {
                 <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
               </Button>
             )}
+            {activeTab === "companies" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCompanyFiltersOpen(o => !o)}
+                className="gap-2"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtros
+                {companyActiveFilterCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5">{companyActiveFilterCount}</Badge>
+                )}
+                <ChevronDown className={`h-4 w-4 transition-transform ${companyFiltersOpen ? "rotate-180" : ""}`} />
+              </Button>
+            )}
           </div>
+          {activeTab === "companies" && (
+            <Collapsible open={companyFiltersOpen} onOpenChange={setCompanyFiltersOpen}>
+              <CollapsibleContent className="pt-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Vendedor</Label>
+                    <Select value={coFilterVendedor} onValueChange={setCoFilterVendedor}>
+                      <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los vendedores</SelectItem>
+                        {companyVendedorOptions.map(v => (
+                          <SelectItem key={v.user_id} value={v.user_id}>{v.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Plaza</Label>
+                    <Select value={coFilterPlaza} onValueChange={setCoFilterPlaza}>
+                      <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las plazas</SelectItem>
+                        {companyPlazaOptions.map(p => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Industria</Label>
+                    <Select value={coFilterIndustria} onValueChange={setCoFilterIndustria}>
+                      <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las industrias</SelectItem>
+                        {companyIndustriaOptions.map(i => (
+                          <SelectItem key={i} value={i}>{i}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {companyActiveFilterCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearCompanyFilters}
+                      className="gap-1 justify-self-start sm:justify-self-end"
+                    >
+                      <X className="h-4 w-4" /> Limpiar filtros
+                    </Button>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
           {activeTab === "contacts" && (
             <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
               <CollapsibleContent className="pt-3">

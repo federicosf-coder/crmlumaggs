@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,9 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Plus, Search, Pencil, ChevronUp, ChevronDown, ChevronsUpDown, SlidersHorizontal, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { BackButton } from "@/components/BackButton";
@@ -42,7 +44,7 @@ interface Address {
   coordenadas_lng: number | null;
   codigo_google: string | null;
   is_active: boolean;
-  companies?: { name: string } | null;
+  companies?: { name: string; industry: string | null; plaza_id: string | null; plazas?: { nombre: string } | null } | null;
 }
 
 export default function DeliveryAddresses() {
@@ -51,6 +53,11 @@ export default function DeliveryAddresses() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterVendedor, setFilterVendedor] = useState<string>("all");
+  const [filterPlaza, setFilterPlaza] = useState<string>("all");
+  const [filterIndustria, setFilterIndustria] = useState<string>("all");
 
   type SortField = "empresa" | "nombre" | "tipos" | "direccion" | "coordenadas";
   const [sortField, setSortField] = useState<SortField>("empresa");
@@ -101,10 +108,31 @@ export default function DeliveryAddresses() {
     queryFn: async () => {
       const { data } = await supabase
         .from("direcciones_empresa")
-        .select("*, companies(name)")
+        .select("*, companies(name, industry, plaza_id, plazas(nombre))")
         .eq("is_active", true)
         .order("created_at", { ascending: false });
       return (data || []) as unknown as Address[];
+    },
+  });
+
+  // Ejecutivos por empresa (para filtro Vendedor)
+  const { data: companyEjecutivosMap = {} } = useQuery<Record<string, string[]>>({
+    queryKey: ["company_ejecutivos_for_addresses"],
+    queryFn: async () => {
+      const { data } = await supabase.from("company_ejecutivos").select("company_id, user_id");
+      const map: Record<string, string[]> = {};
+      (data || []).forEach((r: any) => {
+        if (!map[r.company_id]) map[r.company_id] = [];
+        map[r.company_id].push(r.user_id);
+      });
+      return map;
+    },
+  });
+  const { data: profilesList = [] } = useQuery({
+    queryKey: ["profiles_for_addresses"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name, email");
+      return data || [];
     },
   });
 
@@ -116,11 +144,35 @@ export default function DeliveryAddresses() {
     },
   });
 
-  const filtered = addresses.filter((a) => {
+  const vendedorOptions = useMemo(() => {
+    const ids = new Set<string>();
+    addresses.forEach(a => (companyEjecutivosMap[a.empresa_id] || []).forEach(uid => ids.add(uid)));
+    return Array.from(ids).map(uid => {
+      const p = profilesList.find((pr: any) => pr.user_id === uid);
+      return { user_id: uid, label: p?.full_name || p?.email || uid };
+    }).sort((a, b) => a.label.localeCompare(b.label));
+  }, [addresses, companyEjecutivosMap, profilesList]);
+  const plazaOptions = useMemo(() => {
+    const s = new Set<string>();
+    addresses.forEach(a => { const n = a.companies?.plazas?.nombre; if (n) s.add(n); });
+    return Array.from(s).sort();
+  }, [addresses]);
+  const industriaOptions = useMemo(() => {
+    const s = new Set<string>();
+    addresses.forEach(a => { const n = a.companies?.industry; if (n) s.add(n); });
+    return Array.from(s).sort();
+  }, [addresses]);
+  const activeFilterCount =
+    (filterVendedor !== "all" ? 1 : 0) +
+    (filterPlaza !== "all" ? 1 : 0) +
+    (filterIndustria !== "all" ? 1 : 0);
+  const clearFilters = () => { setFilterVendedor("all"); setFilterPlaza("all"); setFilterIndustria("all"); };
+
+  const filtered = useMemo(() => addresses.filter((a) => {
     const q = search.toLowerCase();
     const tipos = (a.tipos && a.tipos.length ? a.tipos : [a.tipo]).join(" ").toLowerCase();
     const coord = `${a.coordenadas_lat ?? ""},${a.coordenadas_lng ?? ""}`;
-    return (
+    const matchesSearch = (
       a.calle.toLowerCase().includes(q) ||
       (a.nombre || "").toLowerCase().includes(q) ||
       (a.ciudad || "").toLowerCase().includes(q) ||
@@ -129,7 +181,15 @@ export default function DeliveryAddresses() {
       tipos.includes(q) ||
       coord.includes(q)
     );
-  });
+    if (!matchesSearch) return false;
+    if (filterVendedor !== "all") {
+      const ids = companyEjecutivosMap[a.empresa_id] || [];
+      if (!ids.includes(filterVendedor)) return false;
+    }
+    if (filterPlaza !== "all" && (a.companies?.plazas?.nombre || "") !== filterPlaza) return false;
+    if (filterIndustria !== "all" && (a.companies?.industry || "") !== filterIndustria) return false;
+    return true;
+  }), [addresses, search, filterVendedor, filterPlaza, filterIndustria, companyEjecutivosMap]);
 
   const sorted = [...filtered].sort((a, b) => {
     const dir = sortDirection === "asc" ? 1 : -1;
@@ -272,9 +332,68 @@ export default function DeliveryAddresses() {
         </div>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar dirección, empresa, coordenadas..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar dirección, empresa, coordenadas..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setFiltersOpen(o => !o)} className="gap-2">
+            <SlidersHorizontal className="h-4 w-4" />
+            Filtros
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5">{activeFilterCount}</Badge>
+            )}
+            <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+          </Button>
+        </div>
+        <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <CollapsibleContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end pt-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Vendedor</Label>
+                <Select value={filterVendedor} onValueChange={setFilterVendedor}>
+                  <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los vendedores</SelectItem>
+                    {vendedorOptions.map(v => (
+                      <SelectItem key={v.user_id} value={v.user_id}>{v.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Plaza</Label>
+                <Select value={filterPlaza} onValueChange={setFilterPlaza}>
+                  <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las plazas</SelectItem>
+                    {plazaOptions.map(p => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Industria</Label>
+                <Select value={filterIndustria} onValueChange={setFilterIndustria}>
+                  <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las industrias</SelectItem>
+                    {industriaOptions.map(i => (
+                      <SelectItem key={i} value={i}>{i}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {activeFilterCount > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 justify-self-start sm:justify-self-end">
+                  <X className="h-4 w-4" /> Limpiar filtros
+                </Button>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       <Card>
