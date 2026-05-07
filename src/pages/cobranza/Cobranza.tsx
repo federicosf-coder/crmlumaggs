@@ -548,6 +548,126 @@ export default function Cobranza() {
   const handleAplicar = (p: CobranzaPago) => { setPagoSel(p); setOpenAplicar(true); };
   const handleVerDetalle = (p: CobranzaPago) => { setPagoSel(p); setOpenDetalle(true); };
 
+  const handleDescargarReporte = () => {
+    const fmtPct = dashKpis.fmtPct;
+    const ejecutivoNombre = (id: string | null | undefined) => {
+      if (!id) return "-";
+      return (profilesList.find((p: any) => p.user_id === id) as any)?.full_name || "-";
+    };
+    const plazaNombre =
+      effectivePlazaId && effectivePlazaId !== "all"
+        ? (plazasList.find((p: any) => p.id === effectivePlazaId) as any)?.nombre || "—"
+        : "Todas las plazas";
+
+    const formatCur = (n: number) => formatCurrency(n);
+    const fmtDate = (d: string | null | undefined) => (d ? formatDate(d) : "-");
+
+    const facturasVencidas = facturas
+      .filter(isVencida)
+      .map((f) => ({
+        numero: f.numero_factura || "-",
+        cliente: f.empresa?.name || "Sin cliente",
+        ejecutivo: ejecutivoNombre((f as any).ejecutivo_venta_id),
+        plaza: f.plaza?.nombre || "-",
+        fechaDocumento: fmtDate(f.fecha_documento),
+        fechaVencimiento: fmtDate(fechaVencimientoEfectiva(f)),
+        tipoPago: tipoPagoLabel(f.tipo_pago),
+        total: Number(f.total || 0),
+        saldo: Number(f.saldo_pendiente_cobranza || 0),
+      }));
+
+    generateCobranzaReportPdf({
+      brand: empresaVendedora === "galsa_phillips66" ? "galsa" : "lumaggs",
+      empresaNombre: empresaVendedora === "galsa_phillips66" ? "Galsa" : "Lumaggs",
+      fecha: new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+      plaza: plazaNombre,
+      kpisRow1: [
+        {
+          title: "Cartera Total",
+          value: formatCur(dashKpis.totalSaldo),
+          subtitle: `${dashKpis.totalCount} facturas`,
+          variant: "success",
+          lines: [
+            { label: "Vencidas", tone: "destructive", value: `${dashKpis.vencidas.length} (${fmtPct(dashKpis.vencidas.length, dashKpis.totalCount)}) · ${formatCur(sumSaldo(dashKpis.vencidas))}` },
+            { label: "En tiempo", value: `${dashKpis.enTiempo.length} (${fmtPct(dashKpis.enTiempo.length, dashKpis.totalCount)}) · ${formatCur(sumSaldo(dashKpis.enTiempo))}` },
+          ],
+        },
+        {
+          title: "Crédito Directo",
+          value: formatCur(sumSaldo(dashKpis.directo)),
+          subtitle: `${dashKpis.directo.length} facturas (${fmtPct(dashKpis.directo.length, dashKpis.totalCount)})`,
+          lines: [
+            { label: "Vencidas", tone: "destructive", value: `${dashKpis.directoVencidas.length} · ${formatCur(sumSaldo(dashKpis.directoVencidas))}` },
+            { label: "En tiempo", value: `${dashKpis.directoEnTiempo.length} · ${formatCur(sumSaldo(dashKpis.directoEnTiempo))}` },
+          ],
+        },
+        {
+          title: "Crédito Cescemex",
+          value: formatCur(sumSaldo(dashKpis.cescemex)),
+          subtitle: `${dashKpis.cescemex.length} facturas (${fmtPct(dashKpis.cescemex.length, dashKpis.totalCount)})`,
+          lines: [
+            { label: "Vencidas", tone: "destructive", value: `${dashKpis.cescemexVencidas.length} · ${formatCur(sumSaldo(dashKpis.cescemexVencidas))}` },
+            { label: "En tiempo", value: `${dashKpis.cescemexEnTiempo.length} · ${formatCur(sumSaldo(dashKpis.cescemexEnTiempo))}` },
+          ],
+        },
+      ],
+      kpisRow2: [
+        {
+          title: "Cartera Vencida",
+          value: formatCur(cartera.vencida),
+          subtitle: `${dashKpis.vencidas.length} facturas`,
+          variant: "destructive",
+        },
+        {
+          title: "Vencido Crédito Directo",
+          value: formatCur(sumSaldo(dashKpis.directoVencidas)),
+          subtitle: `${dashKpis.directoVencidas.length} facturas`,
+          variant: "destructive",
+        },
+        {
+          title: "Vencido Crédito Cescemex",
+          value: formatCur(sumSaldo(dashKpis.cescemexVencidas)),
+          subtitle: `${dashKpis.cescemexVencidas.length} facturas`,
+          variant: "destructive",
+        },
+      ],
+      kpisRow3: [
+        {
+          title: "Cobrado del mes",
+          value: formatCur(cartera.cobradoMes),
+          subtitle: `${cartera.facturasPagadas} pagadas · ${pagos.length} pagos`,
+          variant: "success",
+        },
+        {
+          title: "Clientes en cartera vencida",
+          value: `${dashKpis.clientesVencidos.size}`,
+          subtitle: `${fmtPct(dashKpis.clientesVencidos.size, dashKpis.clientesTotales.size)} de ${dashKpis.clientesTotales.size}`,
+          variant: "destructive",
+          lines: [
+            { label: "Crédito Directo", value: `${dashKpis.clientesVencidosDirecto.size}` },
+            { label: "Crédito Cescemex", value: `${dashKpis.clientesVencidosCescemex.size}` },
+          ],
+        },
+        {
+          title: "Clientes en tiempo",
+          value: `${dashKpis.clientesEnTiempo.size}`,
+          subtitle: `${fmtPct(dashKpis.clientesEnTiempo.size, dashKpis.clientesTotales.size)} de ${dashKpis.clientesTotales.size}`,
+          variant: "success",
+          lines: [
+            { label: "Crédito Directo", value: `${dashKpis.clientesEnTiempoDirecto.size}` },
+            { label: "Crédito Cescemex", value: `${dashKpis.clientesEnTiempoCescemex.size}` },
+          ],
+        },
+      ],
+      buckets: [
+        { title: "Cartera Total", rows: buckets },
+        { title: "Crédito Directo", rows: bucketsCreditoDirecto },
+        { title: "Crédito Cescemex", rows: bucketsCreditoCescemex },
+      ],
+      facturas: facturasVencidas,
+    });
+  };
+
   useEffect(() => {
     if (!pendingDetalleId) return;
     const found = pagos.find((p) => p.id === pendingDetalleId);
