@@ -89,44 +89,45 @@ export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
       let accent: [number, number, number] = brandColor;
       if (c.variant === "destructive") accent = destructive;
       else if (c.variant === "success") accent = success;
-      doc.setFillColor(...accent);
-      doc.rect(x, startY, cardW, 3, "F");
       doc.setDrawColor(...borderColor);
       doc.rect(x, startY, cardW, cardH, "S");
+      // Left color stripe
+      doc.setFillColor(...accent);
+      doc.rect(x, startY, 4, cardH, "F");
 
-      // title
+      // title (larger, accent-colored)
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(...mutedText);
-      doc.text(c.title.toUpperCase(), x + 8, startY + 16);
+      doc.setFontSize(12);
+      doc.setTextColor(...accent);
+      doc.text(c.title, x + 12, startY + 18);
 
       // value
       doc.setFont("helvetica", "bold");
       doc.setFontSize(15);
       doc.setTextColor(0, 0, 0);
-      doc.text(c.value, x + 8, startY + 34);
+      doc.text(c.value, x + 12, startY + 36);
 
       // subtitle
       if (c.subtitle) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         doc.setTextColor(...mutedText);
-        doc.text(c.subtitle, x + 8, startY + 46);
+        doc.text(c.subtitle, x + 12, startY + 48);
       }
 
       // lines
       if (c.lines && c.lines.length) {
-        let ly = startY + 58;
+        let ly = startY + 60;
         c.lines.forEach((ln) => {
           const tone = ln.tone === "destructive" ? destructive : [60, 60, 60] as [number, number, number];
           doc.setFont("helvetica", "bold");
           doc.setFontSize(7.5);
           doc.setTextColor(...tone);
-          doc.text(ln.label + ":", x + 8, ly);
+          doc.text(ln.label + ":", x + 12, ly);
           doc.setFont("helvetica", "normal");
           doc.setTextColor(40, 40, 40);
-          const txt = doc.splitTextToSize(ln.value, cardW - 50);
-          doc.text(txt[0] || "", x + 50, ly);
+          const txt = doc.splitTextToSize(ln.value, cardW - 56);
+          doc.text(txt[0] || "", x + 56, ly);
           ly += 10;
         });
       }
