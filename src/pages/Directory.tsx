@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { SlidersHorizontal, X, ChevronDown, ChevronUp, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -108,6 +108,8 @@ export default function Directory() {
   const [companyView, setCompanyView] = useState<"list" | "cards">("list");
   const [contactView, setContactView] = useState<"list" | "cards">("list");
   const [companySort, setCompanySort] = useState("name_asc");
+  const [companySortField, setCompanySortField] = useState<"name" | "id_contpaq" | "industry" | "contacts" | "plaza" | "ejecutivo" | "venta" | "estado">("name");
+  const [companySortDir, setCompanySortDir] = useState<"asc" | "desc">("asc");
   const [contactSort, setContactSort] = useState("last_name_asc");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [editContact, setEditContact] = useState<ContactEditData | null>(null);
@@ -150,6 +152,20 @@ export default function Directory() {
       (data || []).forEach((r: any) => {
         if (!map[r.contact_id]) map[r.contact_id] = [];
         map[r.contact_id].push(r.user_id);
+      });
+      return map;
+    },
+  });
+
+  // Mapa company_id -> user_ids ejecutivos asignados
+  const { data: companyEjecutivosMap = {} } = useQuery<Record<string, string[]>>({
+    queryKey: ["company_ejecutivos_map"],
+    queryFn: async () => {
+      const { data } = await supabase.from("company_ejecutivos").select("company_id, user_id");
+      const map: Record<string, string[]> = {};
+      (data || []).forEach((r: any) => {
+        if (!map[r.company_id]) map[r.company_id] = [];
+        map[r.company_id].push(r.user_id);
       });
       return map;
     },
@@ -354,18 +370,44 @@ export default function Directory() {
     }
   }, [selectId, activeTab, companies, contacts, setSearchParams]);
 
+  const companyHasVenta = (c: Company) =>
+    Boolean((c as any).fecha_ultima_compra_chevron || (c as any).fecha_ultima_compra_phillips66 || (c as any).fecha_ultima_compra);
+  const companyEjecutivoName = (c: Company) => {
+    const ids = companyEjecutivosMap[c.id] || [];
+    if (ids.length === 0) return "";
+    const p = allProfiles.find((pr: any) => pr.user_id === ids[0]);
+    return p?.full_name || p?.email || "";
+  };
   const filteredCompanies = companies
     .filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase()))
     .sort((a, b) => {
-      switch (companySort) {
-        case "name_asc": return a.name.localeCompare(b.name);
-        case "name_desc": return b.name.localeCompare(a.name);
-        case "industry": return (a.industry || "").localeCompare(b.industry || "");
-        case "plaza": return ((a.plazas as any)?.nombre || "").localeCompare((b.plazas as any)?.nombre || "");
-        case "contacts_desc": return ((b.contacts as any[])?.length || 0) - ((a.contacts as any[])?.length || 0);
+      const dir = companySortDir === "asc" ? 1 : -1;
+      switch (companySortField) {
+        case "name": return a.name.localeCompare(b.name) * dir;
+        case "id_contpaq": return (a.id_contpaq || "").localeCompare(b.id_contpaq || "") * dir;
+        case "industry": return (a.industry || "").localeCompare(b.industry || "") * dir;
+        case "plaza": return ((a.plazas as any)?.nombre || "").localeCompare((b.plazas as any)?.nombre || "") * dir;
+        case "contacts": return (((a.contacts as any[])?.length || 0) - ((b.contacts as any[])?.length || 0)) * dir;
+        case "ejecutivo": return companyEjecutivoName(a).localeCompare(companyEjecutivoName(b)) * dir;
+        case "venta": return ((companyHasVenta(a) ? 1 : 0) - (companyHasVenta(b) ? 1 : 0)) * dir;
+        case "estado": return ((a.is_active ? 1 : 0) - (b.is_active ? 1 : 0)) * dir;
         default: return 0;
       }
     });
+  const toggleCompanySort = (field: typeof companySortField) => {
+    if (companySortField === field) {
+      setCompanySortDir(d => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setCompanySortField(field);
+      setCompanySortDir("asc");
+    }
+  };
+  const SortIcon = ({ field }: { field: typeof companySortField }) => {
+    if (companySortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 inline opacity-50" />;
+    return companySortDir === "asc"
+      ? <ChevronUp className="h-3 w-3 ml-1 inline" />
+      : <ChevronDown className="h-3 w-3 ml-1 inline" />;
+  };
   const filteredContacts = contacts
     .filter(c => {
       const q = contactSearch.trim().toLowerCase();
@@ -575,22 +617,18 @@ export default function Directory() {
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <SortMenu
-              value={activeTab === "companies" ? companySort : contactSort}
-              onChange={activeTab === "companies" ? setCompanySort : setContactSort}
-              options={activeTab === "companies" ? [
-                { value: "name_asc", label: "Nombre A-Z" },
-                { value: "name_desc", label: "Nombre Z-A" },
-                { value: "industry", label: "Industria" },
-                { value: "plaza", label: "Plaza" },
-                { value: "contacts_desc", label: "Más contactos" },
-              ] : [
-                { value: "last_name_asc", label: "Apellido A-Z" },
-                { value: "last_name_desc", label: "Apellido Z-A" },
-                { value: "first_name_asc", label: "Nombre A-Z" },
-                { value: "company", label: "Empresa" },
-              ]}
-            />
+            {activeTab === "contacts" && (
+              <SortMenu
+                value={contactSort}
+                onChange={setContactSort}
+                options={[
+                  { value: "last_name_asc", label: "Apellido A-Z" },
+                  { value: "last_name_desc", label: "Apellido Z-A" },
+                  { value: "first_name_asc", label: "Nombre A-Z" },
+                  { value: "company", label: "Empresa" },
+                ]}
+              />
+            )}
             {activeTab === "contacts" && (
               <Button
                 variant="outline"
@@ -698,12 +736,14 @@ export default function Directory() {
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead className="w-[110px]">ID Contpaq</TableHead>
-                      <TableHead className="hidden sm:table-cell">Industria</TableHead>
-                      <TableHead>Contactos</TableHead>
-                      <TableHead className="hidden md:table-cell">Plaza</TableHead>
-                      <TableHead>Estado</TableHead>
+                      <TableHead><button type="button" onClick={() => toggleCompanySort("name")} className="inline-flex items-center hover:text-foreground">Empresa<SortIcon field="name" /></button></TableHead>
+                      <TableHead className="w-[110px]"><button type="button" onClick={() => toggleCompanySort("id_contpaq")} className="inline-flex items-center hover:text-foreground">ID Contpaq<SortIcon field="id_contpaq" /></button></TableHead>
+                      <TableHead className="hidden sm:table-cell"><button type="button" onClick={() => toggleCompanySort("industry")} className="inline-flex items-center hover:text-foreground">Industria<SortIcon field="industry" /></button></TableHead>
+                      <TableHead><button type="button" onClick={() => toggleCompanySort("contacts")} className="inline-flex items-center hover:text-foreground">Contactos<SortIcon field="contacts" /></button></TableHead>
+                      <TableHead className="hidden md:table-cell"><button type="button" onClick={() => toggleCompanySort("plaza")} className="inline-flex items-center hover:text-foreground">Plaza<SortIcon field="plaza" /></button></TableHead>
+                      <TableHead className="hidden md:table-cell"><button type="button" onClick={() => toggleCompanySort("ejecutivo")} className="inline-flex items-center hover:text-foreground">Ejecutivo<SortIcon field="ejecutivo" /></button></TableHead>
+                      <TableHead><button type="button" onClick={() => toggleCompanySort("venta")} className="inline-flex items-center hover:text-foreground">Venta<SortIcon field="venta" /></button></TableHead>
+                      <TableHead><button type="button" onClick={() => toggleCompanySort("estado")} className="inline-flex items-center hover:text-foreground">Estado<SortIcon field="estado" /></button></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -726,6 +766,14 @@ export default function Directory() {
                         <TableCell className="hidden sm:table-cell">{c.industry || "—"}</TableCell>
                         <TableCell>{(c.contacts as any[])?.length || 0}</TableCell>
                         <TableCell className="hidden md:table-cell">{(c.plazas as any)?.nombre || "—"}</TableCell>
+                        <TableCell className="hidden md:table-cell">{companyEjecutivoName(c) || "—"}</TableCell>
+                        <TableCell>
+                          {companyHasVenta(c) ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-green-50 text-green-700 border-green-200">Sí</span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-slate-100 text-slate-700 border-slate-300">No</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${c.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-100 text-slate-700 border-slate-300"}`}>
                             {c.is_active ? "Activo" : "Inactivo"}
