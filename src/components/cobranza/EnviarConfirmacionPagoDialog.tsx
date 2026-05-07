@@ -162,34 +162,36 @@ export function EnviarConfirmacionPagoDialog({
     setSending(true);
     try {
       const ts = Date.now();
-      const results = await Promise.allSettled(
-        finalEmails.map((email) =>
-          supabase.functions.invoke("send-transactional-email", {
-            body: {
-              templateName,
-              recipientEmail: email,
-              // Unique per attempt so resends are not blocked by idempotency
-              idempotencyKey: `${templateName}-${pagoId}-${email}-${ts}`,
-              subjectOverride,
-              htmlOverride,
-              cc: ccEmails && ccEmails.length ? ccEmails : undefined,
-              bcc: bccEmails && bccEmails.length ? bccEmails : undefined,
-              replyTo: replyTo || undefined,
-              templateData: {
-                empresa,
-                fechaPago,
-                montoTotal,
-                moneda,
-                observaciones,
-                documentos,
-                comprobantes,
-                registradoPor,
-                ...(extraTemplateData || {}),
-              },
+      const [primaryEmail, ...restEmails] = finalEmails;
+      const allCc = Array.from(new Set([
+        ...restEmails,
+        ...(ccEmails || []),
+      ])).filter(Boolean);
+      const results = await Promise.allSettled([
+        supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName,
+            recipientEmail: primaryEmail,
+            idempotencyKey: `${templateName}-${pagoId}-${primaryEmail}-${ts}`,
+            subjectOverride,
+            htmlOverride,
+            cc: allCc.length ? allCc : undefined,
+            bcc: bccEmails && bccEmails.length ? bccEmails : undefined,
+            replyTo: replyTo || undefined,
+            templateData: {
+              empresa,
+              fechaPago,
+              montoTotal,
+              moneda,
+              observaciones,
+              documentos,
+              comprobantes,
+              registradoPor,
+              ...(extraTemplateData || {}),
             },
-          })
-        )
-      );
+          },
+        })
+      ]);
       const failed = results.filter((r) => r.status === "rejected").length;
       if (failed === 0) {
         // Log al historial CRM (no bloquea la UX)
