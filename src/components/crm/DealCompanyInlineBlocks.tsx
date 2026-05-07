@@ -37,7 +37,7 @@ export function DealCompanyInlineBlocks({ companyId }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("contacts")
-          .select("id, first_name, last_name, job_title, email, phone, mobile, whatsapp")
+          .select("id, first_name, last_name, job_title, email, phone, mobile, whatsapp_phone")
         .eq("company_id", companyId)
         .eq("is_active", true)
         .order("first_name");
@@ -92,7 +92,7 @@ export function DealCompanyInlineBlocks({ companyId }: Props) {
                   </div>
                   <div className="text-xs text-muted-foreground truncate space-x-2">
                     <span>📧 {c.email || "—"}</span>
-                    <span>💬 {c.whatsapp || c.mobile || c.phone || "—"}</span>
+                    <span>💬 {c.whatsapp_phone || c.mobile || c.phone || "—"}</span>
                   </div>
                 </div>
               </div>
