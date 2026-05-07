@@ -1615,11 +1615,11 @@ function BucketReportCard({ title, buckets, onSelect }: { title: string; buckets
               className="w-full text-left rounded-md p-2 -mx-2 hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
               <div className="flex justify-between text-sm mb-1">
-                <span className={isVencida ? "text-destructive font-medium" : isHoy ? "text-orange-500 font-medium" : ""}>{b.label} <span className="text-muted-foreground">({b.count})</span></span>
+                <span className={isVencida ? "text-destructive font-medium" : isHoy ? "text-green-600 font-medium" : ""}>{b.label} <span className="text-muted-foreground">({b.count})</span></span>
                 <span className="font-medium">{formatCurrency(b.monto)}</span>
               </div>
               <div className="h-2 bg-muted rounded overflow-hidden">
-                <div className={`h-full ${isVencida ? "bg-destructive" : isHoy ? "bg-orange-500" : "bg-primary"}`} style={{ width: `${pct}%` }} />
+                <div className={`h-full ${isVencida ? "bg-destructive" : isHoy ? "bg-green-600" : "bg-primary"}`} style={{ width: `${pct}%` }} />
               </div>
             </button>
           );
