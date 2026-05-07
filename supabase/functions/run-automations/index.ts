@@ -12,9 +12,7 @@ interface Body {
   trigger_type: string
   entity_type: EntityType
   entity_id?: string | null
-  // Optional disambiguators (e.g. button id for existing_button_click)
   trigger_key?: string | null
-  // Caller-provided context to enrich variable resolution
   context?: Record<string, any>
 }
 
@@ -30,7 +28,7 @@ function getPath(obj: any, path: string): any {
   if (!obj) return undefined
   return path
     .split('.')
-    .slice(1) // strip leading entity prefix (document/company/etc.)
+    .slice(1)
     .reduce((acc: any, k: string) => (acc == null ? acc : acc[k]), obj)
 }
 
@@ -93,7 +91,6 @@ Deno.serve(async (req) => {
     })
   }
 
-  // 1. Fetch matching automations
   const { data: autos, error: aErr } = await supabase
     .from('automations')
     .select('*, automation_actions(*)')
@@ -108,17 +105,18 @@ Deno.serve(async (req) => {
     })
   }
 
-  // Filter by trigger_key if provided (button id)
   const filtered = (autos || []).filter((a: any) => {
     if (!trigger_key) return true
     const cfg = a.trigger_config || {}
     return !cfg.button_id || cfg.button_id === trigger_key
   })
 
-  // 2. Resolve entity (only document fully supported initially)
   let entity: any = null
   let company: any = null
   let contact: any = null
+  let ejecutivo: any = null
+  let creador: any = null
+  let plaza: any = null
   let entityLabel = ''
 
   if (entity_id && entity_type === 'document') {
@@ -130,7 +128,6 @@ Deno.serve(async (req) => {
     entity = data
     entityLabel = data?.numero_cotizacion || data?.numero_factura || data?.numero_pedido || data?.id || ''
     if (data) {
-      // Aliases para que las condiciones acepten nombres comunes
       ;(data as any).company_id = (data as any).company_id ?? data.empresa_id
       ;(data as any).contact_id = (data as any).contact_id ?? data.contacto_id
     }
@@ -141,17 +138,18 @@ Deno.serve(async (req) => {
     if (data?.contacto_id) {
       const { data: ct } = await supabase.from('contacts').select('*').eq('id', data.contacto_id).maybeSingle()
       contact = ct
-    }if (data?.ejecutivo_venta_id) {
+    }
+    if (data?.ejecutivo_venta_id) {
       const { data: ej } = await supabase.from('profiles').select('full_name, email, phone').eq('user_id', data.ejecutivo_venta_id).maybeSingle()
-      ;(entity as any)._ejecutivo = ej
+      ejecutivo = ej
     }
     if (data?.created_by) {
       const { data: cr } = await supabase.from('profiles').select('full_name').eq('user_id', data.created_by).maybeSingle()
-      ;(entity as any)._creador = cr
+      creador = cr
     }
     if (data?.plaza_id) {
       const { data: pl } = await supabase.from('plazas').select('nombre').eq('id', data.plaza_id).maybeSingle()
-      ;(entity as any)._plaza = pl
+      plaza = pl
     }
   } else if (entity_id && entity_type === 'company') {
     const { data } = await supabase.from('companies').select('*').eq('id', entity_id).maybeSingle()
@@ -178,15 +176,12 @@ Deno.serve(async (req) => {
   if (company) entityScope['company'] = company
   if (contact) entityScope['contact'] = contact
 
-  // Resolve attached files for entrega corporativa (orden de compra + acuse).
-  // Generate 7-day signed URLs using the same pattern as cobranza's document-files bucket.
   let acuseUrlSigned = ''
   let ordenCompraUrlSigned = ''
   if (entity_type === 'document' && entity_id) {
-    const SIGNED_TTL = 60 * 60 * 24 * 7 // 7 days
+    const SIGNED_TTL = 60 * 60 * 24 * 7
     const toSignedUrl = async (publicOrPath: string): Promise<string> => {
       if (!publicOrPath) return ''
-      // Extract path from a public URL of the "documentos" bucket if needed
       const marker = '/documentos/'
       let path = publicOrPath
       const idx = publicOrPath.indexOf(marker)
@@ -216,13 +211,18 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 3. Build placeholder vars (best-effort)
   const vars: Record<string, any> = {
     nombre_empresa: company?.name || '',
+    nombre_cliente: company?.name || '',
     rfc_cliente: company?.rfc || '',
     nombre_contacto: [contact?.first_name, contact?.last_name].filter(Boolean).join(' '),
     correo_contacto: contact?.email || '',
     telefono_contacto: contact?.phone || contact?.mobile || '',
+    ejecutivo: ejecutivo?.full_name || '',
+    correo_ejecutivo: ejecutivo?.email || '',
+    telefono_ejecutivo: ejecutivo?.phone || '',
+    registrado_por: creador?.full_name || '',
+    plaza: plaza?.nombre || '',
     folio_cotizacion: entity?.numero_cotizacion || '',
     numero_factura: entity?.numero_factura || '',
     fecha: entity?.fecha_documento || new Date().toISOString().slice(0, 10),
@@ -235,20 +235,14 @@ Deno.serve(async (req) => {
     fecha_oc_cliente: entity?.fecha_oc_cliente || '',
     total_cotizacion: entity?.total ?? '',
     saldo_pendiente: entity?.saldo_pendiente_cobranza ?? '',
-    estatus_documento:
-      entity?.estatus_factura || entity?.estatus_cotizacion || entity?.estatus_pedido || '',
+    estatus_documento: entity?.estatus_factura || entity?.estatus_cotizacion || entity?.estatus_pedido || '',
     observaciones: entity?.notas || '',
-    nombre_empresa_vendedora:
-      entity?.empresa_vendedora === 'galsa_phillips66' ? 'Galsa S.A. de C.V.' : 'Lumaggs S.A. de C.V.', ejecutivo: entity?._ejecutivo?.full_name || '',
-    correo_ejecutivo: entity?._ejecutivo?.email || '',
-    telefono_ejecutivo: entity?._ejecutivo?.phone || '',
-    registrado_por: entity?._creador?.full_name || '',
-    plaza: entity?._plaza?.nombre || '',
+    instrucciones_entrega: entity?.instrucciones_entrega || '',
     direccion_entrega: entity?.direccion_envio || '',
     direccion_entrega_completa: entity?.direccion_envio || '',
-    nombre_cliente: company?.name || '',
-    instrucciones_entrega: entity?.instrucciones_entrega || '',
-    rfc_cliente: company?.rfc || '',
+    direccion_entrega_ciudad: entity?.direccion_envio || '',
+    direccion_entrega_estado: entity?.direccion_envio || '',
+    nombre_empresa_vendedora: entity?.empresa_vendedora === 'galsa_phillips66' ? 'Galsa S.A. de C.V.' : 'Lumaggs S.A. de C.V.',
     acuse_url: acuseUrlSigned
       ? `<a href="${acuseUrlSigned}" style="color:#2563eb;text-decoration:underline;" target="_blank" rel="noopener noreferrer">Ver Acuse Comprobante</a>`
       : '',
@@ -272,7 +266,6 @@ Deno.serve(async (req) => {
     }
 
     try {
-      // Evaluate conditions
       const cond = auto.conditions || {}
       const items: any[] = Array.isArray(cond) ? cond : cond.items || []
       const logic: 'AND' | 'OR' = (cond.logic || 'AND') as any
@@ -306,7 +299,6 @@ Deno.serve(async (req) => {
               .maybeSingle()
             if (!tpl) continue
 
-            // Resolve recipients (template.to_emails + groups)
             const directList: string[] = []
             const groupIds: string[] = []
             for (const it of (tpl.to_emails || []) as any[]) {
@@ -320,7 +312,6 @@ Deno.serve(async (req) => {
                 .in('group_id', groupIds)
               for (const r of gm || []) if (r.email) directList.push(r.email)
             }
-            // Fallback to contact email
             if (directList.length === 0 && contact?.email) directList.push(contact.email)
             const recipients = Array.from(new Set(directList.map((e) => e.trim()).filter(Boolean)))
             if (recipients.length === 0) {
@@ -332,7 +323,6 @@ Deno.serve(async (req) => {
             const html = renderTemplate(tpl.body || '', vars)
             const ts = Date.now()
 
-            // Resolve cc/bcc the same way
             const resolveList = async (list: any[]) => {
               const out: string[] = []
               const gids: string[] = []
@@ -373,7 +363,6 @@ Deno.serve(async (req) => {
             }
             executed += 1
           } else {
-            // Other action types: log as skipped (not yet implemented)
             runRow.error_message = `Action '${act.action_type}' aún no implementada`
           }
         }
