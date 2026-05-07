@@ -54,6 +54,11 @@ export default function DeliveryAddresses() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
 
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterVendedor, setFilterVendedor] = useState<string>("all");
+  const [filterPlaza, setFilterPlaza] = useState<string>("all");
+  const [filterIndustria, setFilterIndustria] = useState<string>("all");
+
   type SortField = "empresa" | "nombre" | "tipos" | "direccion" | "coordenadas";
   const [sortField, setSortField] = useState<SortField>("empresa");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
