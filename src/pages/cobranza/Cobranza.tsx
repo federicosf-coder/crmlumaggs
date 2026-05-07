@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderTemplate, resolveEmailRecipients, type EmailRecipientItem } from "@/lib/templates";
 import { generateCobranzaReportPdf } from "@/lib/generateCobranzaReportPdf";
+import { generateCobranzaReportXlsx } from "@/lib/generateCobranzaReportXlsx";
 
 const FORMA_PAGO_TPL_LABEL: Record<string, string> = {
   contado: "Contado",
@@ -577,7 +578,7 @@ export default function Cobranza() {
   const handleAplicar = (p: CobranzaPago) => { setPagoSel(p); setOpenAplicar(true); };
   const handleVerDetalle = (p: CobranzaPago) => { setPagoSel(p); setOpenDetalle(true); };
 
-  const handleDescargarReporte = () => {
+  const buildReporteInput = () => {
     const fmtPct = dashKpis.fmtPct;
     const ejecutivoNombre = (id: string | null | undefined) => {
       if (!id) return "-";
@@ -605,7 +606,7 @@ export default function Cobranza() {
         saldo: Number(f.saldo_pendiente_cobranza || 0),
       }));
 
-    generateCobranzaReportPdf({
+    return {
       brand: empresaVendedora === "galsa_phillips66" ? "galsa" : "lumaggs",
       empresaNombre: empresaVendedora === "galsa_phillips66" ? "Galsa" : "Lumaggs",
       fecha: new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
@@ -698,7 +699,15 @@ export default function Cobranza() {
         { title: "Crédito Cescemex", rows: bucketsCreditoCescemex },
       ],
       facturas: facturasVencidas,
-    });
+    } as const;
+  };
+
+  const handleDescargarReporte = () => {
+    generateCobranzaReportPdf(buildReporteInput() as any);
+  };
+
+  const handleDescargarReporteXlsx = () => {
+    generateCobranzaReportXlsx(buildReporteInput() as any);
   };
 
   useEffect(() => {
@@ -776,6 +785,9 @@ export default function Cobranza() {
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleDescargarReporte}>
             <Download className="h-4 w-4 mr-2" /> Descargar PDF
+          </Button>
+          <Button variant="outline" onClick={handleDescargarReporteXlsx}>
+            <Download className="h-4 w-4 mr-2" /> Descargar Excel
           </Button>
           <Button onClick={() => setOpenRegistrar(true)}>
             <Plus className="h-4 w-4 mr-2" /> Registrar pago
