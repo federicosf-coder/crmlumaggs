@@ -16,6 +16,7 @@ import {
 } from "@/lib/whatsapp";
 import { getAttachmentPublicUrl, isImageMime, listTemplateAttachments } from "@/lib/templates";
 import { Badge } from "@/components/ui/badge";
+import { useResolvedTemplate } from "@/hooks/useResolvedTemplate";
 
 interface Props {
   open: boolean;
@@ -56,6 +57,20 @@ export function WhatsAppActionDialog({
     queryFn: () => (templateId ? listTemplateAttachments(templateId) : Promise.resolve([])),
     enabled: open && !!templateId,
   });
+
+  const selectedTpl = templates?.find(t => t.id === selectedTplId);
+  const rawTplBody = selectedTpl?.mensaje || "";
+  const { data: resolvedTpl } = useResolvedTemplate({
+    body: rawTplBody,
+    contactoId: context.contact_id ?? undefined,
+    enabled: open && !!rawTplBody,
+  });
+
+  useEffect(() => {
+    if (!open || selectedTplId === "custom") return;
+    if (!resolvedTpl?.resolvedBody) return;
+    setMessage(renderTemplate(resolvedTpl.resolvedBody, variables));
+  }, [resolvedTpl?.resolvedBody, selectedTplId, open]); // eslint-disable-line
 
   const [includeLinks, setIncludeLinks] = useState(true);
 
