@@ -606,7 +606,7 @@ export default function Cobranza() {
         saldo: Number(f.saldo_pendiente_cobranza || 0),
       }));
 
-    generateCobranzaReportPdf({
+    return {
       brand: empresaVendedora === "galsa_phillips66" ? "galsa" : "lumaggs",
       empresaNombre: empresaVendedora === "galsa_phillips66" ? "Galsa" : "Lumaggs",
       fecha: new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
