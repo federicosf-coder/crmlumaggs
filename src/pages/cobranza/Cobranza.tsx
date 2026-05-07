@@ -872,6 +872,7 @@ export default function Cobranza() {
               facturasPrefilter === "credito_directo" ? "credito_directo" :
               facturasPrefilter === "credito_cescemex" ? "credito_cescemex" : "none"
             }
+            initialViewMode={facturasViewMode}
           />
         </TabsContent>
       </Tabs>
