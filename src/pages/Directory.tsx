@@ -690,7 +690,76 @@ export default function Directory() {
                 <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
               </Button>
             )}
+            {activeTab === "companies" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCompanyFiltersOpen(o => !o)}
+                className="gap-2"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtros
+                {companyActiveFilterCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5">{companyActiveFilterCount}</Badge>
+                )}
+                <ChevronDown className={`h-4 w-4 transition-transform ${companyFiltersOpen ? "rotate-180" : ""}`} />
+              </Button>
+            )}
           </div>
+          {activeTab === "companies" && (
+            <Collapsible open={companyFiltersOpen} onOpenChange={setCompanyFiltersOpen}>
+              <CollapsibleContent className="pt-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Vendedor</Label>
+                    <Select value={coFilterVendedor} onValueChange={setCoFilterVendedor}>
+                      <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los vendedores</SelectItem>
+                        {companyVendedorOptions.map(v => (
+                          <SelectItem key={v.user_id} value={v.user_id}>{v.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Plaza</Label>
+                    <Select value={coFilterPlaza} onValueChange={setCoFilterPlaza}>
+                      <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las plazas</SelectItem>
+                        {companyPlazaOptions.map(p => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Industria</Label>
+                    <Select value={coFilterIndustria} onValueChange={setCoFilterIndustria}>
+                      <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las industrias</SelectItem>
+                        {companyIndustriaOptions.map(i => (
+                          <SelectItem key={i} value={i}>{i}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {companyActiveFilterCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearCompanyFilters}
+                      className="gap-1 justify-self-start sm:justify-self-end"
+                    >
+                      <X className="h-4 w-4" /> Limpiar filtros
+                    </Button>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
           {activeTab === "contacts" && (
             <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
               <CollapsibleContent className="pt-3">
