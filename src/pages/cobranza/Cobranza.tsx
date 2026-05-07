@@ -1071,7 +1071,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         htmlOverride,
         cc: Array.from(new Set([...filteredEmails, ...tplCc])),
         bcc: tplBcc,
-        replyTo: "cobranza@lumaggs.com.mx",
+        replyTo: replyTo: tplReplyTo || user?.email || undefined,
       });
     } else {
       const formaLabel =
@@ -1086,7 +1086,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         htmlOverride,
         cc: Array.from(new Set([...filteredEmails, ...tplCc])),
         bcc: tplBcc,
-        replyTo: "cobranza@lumaggs.com.mx",
+        replyTo: replyTo: tplReplyTo || user?.email || undefined,
       });
     }
 
