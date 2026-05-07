@@ -861,6 +861,8 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const canEditEstatus = hasAnyRole(["admin", "manager", "accounting"]);
   const { aplicaciones, refetch } = useCobranzaAplicaciones(pago?.id || null);
   const [openEnviar, setOpenEnviar] = useState(false);
+  const [ccEmailsFlow, setCcEmailsFlow] = useState<string[]>([]);
+  const [replyToFlow, setReplyToFlow] = useState<string | undefined>(undefined);
   const [defaultEmails, setDefaultEmails] = useState<string[]>([]);
   const [blockedEmails, setBlockedEmails] = useState<string[]>([]);
   const [comprobantes, setComprobantes] = useState<{ nombre: string; url: string }[]>([]);
