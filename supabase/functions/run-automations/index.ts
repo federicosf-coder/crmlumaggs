@@ -141,6 +141,17 @@ Deno.serve(async (req) => {
     if (data?.contacto_id) {
       const { data: ct } = await supabase.from('contacts').select('*').eq('id', data.contacto_id).maybeSingle()
       contact = ct
+    }if (data?.ejecutivo_venta_id) {
+      const { data: ej } = await supabase.from('profiles').select('full_name, email, phone').eq('user_id', data.ejecutivo_venta_id).maybeSingle()
+      ;(entity as any)._ejecutivo = ej
+    }
+    if (data?.created_by) {
+      const { data: cr } = await supabase.from('profiles').select('full_name').eq('user_id', data.created_by).maybeSingle()
+      ;(entity as any)._creador = cr
+    }
+    if (data?.plaza_id) {
+      const { data: pl } = await supabase.from('plazas').select('nombre').eq('id', data.plaza_id).maybeSingle()
+      ;(entity as any)._plaza = pl
     }
   } else if (entity_id && entity_type === 'company') {
     const { data } = await supabase.from('companies').select('*').eq('id', entity_id).maybeSingle()
@@ -228,7 +239,16 @@ Deno.serve(async (req) => {
       entity?.estatus_factura || entity?.estatus_cotizacion || entity?.estatus_pedido || '',
     observaciones: entity?.notas || '',
     nombre_empresa_vendedora:
-      entity?.empresa_vendedora === 'galsa_phillips66' ? 'Galsa S.A. de C.V.' : 'Lumaggs S.A. de C.V.',
+      entity?.empresa_vendedora === 'galsa_phillips66' ? 'Galsa S.A. de C.V.' : 'Lumaggs S.A. de C.V.', ejecutivo: entity?._ejecutivo?.full_name || '',
+    correo_ejecutivo: entity?._ejecutivo?.email || '',
+    telefono_ejecutivo: entity?._ejecutivo?.phone || '',
+    registrado_por: entity?._creador?.full_name || '',
+    plaza: entity?._plaza?.nombre || '',
+    direccion_entrega: entity?.direccion_envio || '',
+    direccion_entrega_completa: entity?.direccion_envio || '',
+    nombre_cliente: company?.name || '',
+    instrucciones_entrega: entity?.instrucciones_entrega || '',
+    rfc_cliente: company?.rfc || '',
     acuse_url: acuseUrlSigned
       ? `<a href="${acuseUrlSigned}" style="color:#2563eb;text-decoration:underline;" target="_blank" rel="noopener noreferrer">Ver Acuse Comprobante</a>`
       : '',
