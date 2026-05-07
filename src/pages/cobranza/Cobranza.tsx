@@ -667,7 +667,7 @@ export default function Cobranza() {
         {
           title: "Cobrado del mes",
           value: formatCur(cartera.cobradoMes),
-          subtitle: `${cartera.facturasPagadas} pagadas · ${pagos.length} pagos`,
+          subtitle: `${facturasPagadasMes} pagadas · ${pagos.length} pagos`,
           variant: "success",
           valueBlack: true,
         },
@@ -884,7 +884,7 @@ export default function Cobranza() {
             <DetailedKpiCard
               title="Cobrado del mes"
               total={cartera.cobradoMes}
-              countLabel={`${cartera.facturasPagadas} facturas pagadas · ${pagos.length} pagos`}
+              countLabel={`${facturasPagadasMes} facturas pagadas · ${pagos.length} pagos`}
               icon={CheckCircle2}
               variant="success"
               valueBlack
