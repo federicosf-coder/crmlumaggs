@@ -1069,9 +1069,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         description: "Envía el detalle del pago a los destinatarios.",
         subjectOverride,
         htmlOverride,
-        cc: tplCc,
+        cc: Array.from(new Set([...filteredEmails, ...tplCc])),
         bcc: tplBcc,
-        replyTo: tplReplyTo,
+        replyTo: "cobranza@lumaggs.com.mx",
       });
     } else {
       const formaLabel =
@@ -1084,9 +1084,9 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         formaPago: flow,
         subjectOverride,
         htmlOverride,
-        cc: tplCc,
+        cc: Array.from(new Set([...filteredEmails, ...tplCc])),
         bcc: tplBcc,
-        replyTo: tplReplyTo,
+        replyTo: "cobranza@lumaggs.com.mx",
       });
     }
 
