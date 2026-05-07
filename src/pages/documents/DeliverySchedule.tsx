@@ -280,7 +280,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                           className="h-11 sm:h-8 px-3 gap-1.5 shadow"
                           title="Ver / editar pedido"
                           onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/documents/${item.id}/edit`); }}
+                          onClick={(e) => { e.stopPropagation(); window.open(`/documents/${item.id}/edit`, "_blank"); }}
                         >
                           <FileText className="h-4 w-4" />
                           <span className="text-xs">Editar</span>
@@ -291,7 +291,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                           className="h-11 sm:h-8 px-3 gap-1.5 shadow"
                           title="Abrir entrega"
                           onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/delivery/entrega/${item.id}`); }}
+                          onClick={(e) => { e.stopPropagation(); window.open(`/delivery/entrega/${item.id}`, "_blank"); }}
                         >
                           <ClipboardCheck className="h-4 w-4" />
                           <span className="text-xs">Entrega</span>
@@ -1048,7 +1048,7 @@ export default function DeliverySchedule() {
                       <DraggablePoolCard
                         key={item.id}
                         item={item}
-                        onView={(it) => navigate(`/documents/${it.id}/edit`)}
+                        onView={(it) => window.open(`/documents/${it.id}/edit`, "_blank")}
                       />
                     ))
                   )}
