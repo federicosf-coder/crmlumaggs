@@ -277,6 +277,7 @@ export default function Cobranza() {
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
   const [facturasPrefilter, setFacturasPrefilter] = useState<"none" | "vencimiento" | "credito_directo" | "credito_cescemex">("none");
+  const [facturasViewMode, setFacturasViewMode] = useState<"list" | "grouped">("list");
   const PREFILTER_LABEL: Record<typeof facturasPrefilter, string> = {
     none: "Todas",
     vencimiento: "Vencimiento",
