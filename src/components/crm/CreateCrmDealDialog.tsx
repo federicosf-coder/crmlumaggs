@@ -319,67 +319,92 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nuevo Negocio</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Ejecutivo + Pipeline */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Ejecutivo</Label>
-              <SearchableSelect
-                value={ownerId}
-                onValueChange={setOwnerId}
-                options={ejecutivoOptions}
-                placeholder="Seleccionar ejecutivo..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Pipeline</Label>
-              <SearchableSelect
-                value={selectedPipelineId}
-                onValueChange={setSelectedPipelineId}
-                options={pipelineOptions}
-                placeholder="Seleccionar pipeline..."
-              />
-            </div>
+          {/* Título del Negocio (autogenerado, editable) */}
+          <div className="space-y-2">
+            <Label htmlFor="deal-title">Título <span className="text-destructive">*</span></Label>
+            <Input
+              id="deal-title"
+              value={title}
+              onChange={(e) => { setTitle(e.target.value); setTitleManuallyEdited(true); }}
+              placeholder="Se autogenera al seleccionar empresa"
+              required
+              maxLength={200}
+            />
+            <p className="text-xs text-muted-foreground">Se genera como "Empresa - Tipo de pipeline". Puedes editarlo.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Etapa</Label>
-              <Select value={stageId} onValueChange={setStageId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {effectiveStages.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
-                        {s.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="deal-value">Unidades Eq. Mensuales</Label>
-              <Input id="deal-value" type="number" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="deal-value">Potencial Unidades</Label>
+            <Input
+              id="deal-value"
+              type="number"
+              step="any"
+              min="0"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="Unidades manuales"
+            />
           </div>
 
           <div className="space-y-2">
             <Label>Plaza <span className="text-destructive">*</span></Label>
-            <SearchableSelect
-              value={plazaId}
-              onValueChange={(v) => { plazaManuallyEdited.current = true; setPlazaId(v); }}
-              options={plazaOptions}
-              placeholder="Seleccionar plaza..."
-            />
+            <Select value={plazaId} onValueChange={(v) => { plazaManuallyEdited.current = true; setPlazaId(v); }}>
+              <SelectTrigger><SelectValue placeholder="Seleccionar plaza" /></SelectTrigger>
+              <SelectContent>
+                {(plazas || []).map((p: any) => (
+                  <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {!plazaId && (
               <p className="text-xs text-muted-foreground">La plaza es obligatoria.</p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Ejecutivo</Label>
+            <Select value={ownerId} onValueChange={setOwnerId}>
+              <SelectTrigger><SelectValue placeholder="Seleccionar ejecutivo" /></SelectTrigger>
+              <SelectContent>
+                {(ejecutivos || []).map((e: any) => (
+                  <SelectItem key={e.user_id} value={e.user_id}>{e.full_name || e.email}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Etapa</Label>
+            <Select value={stageId} onValueChange={setStageId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {effectiveStages.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+                      {s.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Pipeline</Label>
+            <Select value={selectedPipelineId} onValueChange={setSelectedPipelineId}>
+              <SelectTrigger><SelectValue placeholder="Seleccionar pipeline" /></SelectTrigger>
+              <SelectContent>
+                {(allPipelines || []).map((p: any) => (
+                  <SelectItem key={p.id} value={p.id}>{formatPipelineLabel(p)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -431,20 +456,6 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
           <div className="space-y-2">
             <Label htmlFor="deal-close-date">Fecha de Cierre</Label>
             <Input id="deal-close-date" type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} />
-          </div>
-
-          {/* Título del Negocio (autogenerado, editable) */}
-          <div className="space-y-2">
-            <Label htmlFor="deal-title">Título del Negocio *</Label>
-            <Input
-              id="deal-title"
-              value={title}
-              onChange={(e) => { setTitle(e.target.value); setTitleManuallyEdited(true); }}
-              placeholder="Se autogenera al seleccionar empresa"
-              required
-              maxLength={200}
-            />
-            <p className="text-xs text-muted-foreground">Se genera como "Empresa - Tipo de pipeline". Puedes editarlo.</p>
           </div>
 
           <div className="space-y-2">
