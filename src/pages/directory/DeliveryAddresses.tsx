@@ -282,21 +282,21 @@ export default function DeliveryAddresses() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Tipos</TableHead>
-                <TableHead>Dirección</TableHead>
-                <TableHead>Coordenadas</TableHead>
+                <TableHead><button type="button" onClick={() => toggleSort("empresa")} className="inline-flex items-center hover:text-foreground">Empresa<SortIcon f="empresa" /></button></TableHead>
+                <TableHead><button type="button" onClick={() => toggleSort("nombre")} className="inline-flex items-center hover:text-foreground">Nombre<SortIcon f="nombre" /></button></TableHead>
+                <TableHead><button type="button" onClick={() => toggleSort("tipos")} className="inline-flex items-center hover:text-foreground">Tipos<SortIcon f="tipos" /></button></TableHead>
+                <TableHead><button type="button" onClick={() => toggleSort("direccion")} className="inline-flex items-center hover:text-foreground">Dirección<SortIcon f="direccion" /></button></TableHead>
+                <TableHead><button type="button" onClick={() => toggleSort("coordenadas")} className="inline-flex items-center hover:text-foreground">Coordenadas<SortIcon f="coordenadas" /></button></TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
+              ) : sorted.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin direcciones</TableCell></TableRow>
               ) : (
-                filtered.map((a) => {
+                sorted.map((a) => {
                   const tipos = a.tipos && a.tipos.length ? a.tipos : [a.tipo];
                   const coords = a.coordenadas_lat != null && a.coordenadas_lng != null
                     ? `${Number(a.coordenadas_lat).toFixed(5)}, ${Number(a.coordenadas_lng).toFixed(5)}`
