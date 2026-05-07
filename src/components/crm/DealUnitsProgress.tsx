@@ -104,7 +104,7 @@ export function DealUnitsProgress({ deal }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <span className="text-base font-semibold uppercase tracking-wide text-muted-foreground">
           Potencial manual (u)
         </span>
         {editingPotencial ? (
@@ -115,7 +115,7 @@ export function DealUnitsProgress({ deal }: Props) {
               step="0.1"
               value={potencialInput}
               onChange={(e) => setPotencialInput(e.target.value)}
-              className="h-7 w-28 text-right font-mono text-xs"
+              className="h-8 w-28 text-right font-mono text-base"
               autoFocus
             />
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={savePotencial} disabled={updateDeal.isPending}>
@@ -129,7 +129,7 @@ export function DealUnitsProgress({ deal }: Props) {
           <button
             type="button"
             onClick={() => setEditingPotencial(true)}
-            className="flex items-center gap-1.5 text-sm font-mono hover:text-primary"
+            className="flex items-center gap-1.5 text-base font-mono font-semibold hover:text-primary"
           >
             {deal.potencial_unidades != null ? fmtUnits(Number(deal.potencial_unidades)) : "—"}
             <Pencil className="h-3 w-3 opacity-60" />
@@ -140,7 +140,6 @@ export function DealUnitsProgress({ deal }: Props) {
       {isRecompra && historico !== null && (
         <ProgressRow label="Histórico (prom. mensual)" value={historico} pct={100} variant="historic" />
       )}
-      <ProgressRow label="Potencial" value={potencial} pct={100} variant="potential" />
       <ProgressRow label="Cotizado" value={cotizado} pct={pctCotizado} base={potencial} />
       <ProgressRow label="Pedido" value={pedido} pct={pctPedido} base={potencial} />
       <ProgressRow label="Facturado (real)" value={facturado} pct={pctFacturado} base={potencial} />
