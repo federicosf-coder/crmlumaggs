@@ -28,7 +28,7 @@ import { SortMenu } from "@/components/SortMenu";
  * para casos especializados (Cobranza: vencidas, crédito directo, crédito cescemex).
  */
 
-type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "total" | "estatus" | "pdf" | "tipo_pago";
+type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "total" | "saldo" | "estatus" | "pdf" | "tipo_pago";
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "numero", label: "No. Factura" },
   { key: "cliente", label: "Cliente" },
@@ -38,10 +38,11 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "fecha_vencimiento", label: "Fecha Vencimiento" },
   { key: "tipo_pago", label: "Tipo de Pago" },
   { key: "total", label: "Total" },
+  { key: "saldo", label: "Saldo" },
   { key: "estatus", label: "Estatus" },
   { key: "pdf", label: "PDF" },
 ];
-const DEFAULT_COLS: ColumnKey[] = ["numero", "cliente", "ejecutivo", "plaza", "fecha", "fecha_vencimiento", "tipo_pago", "total", "estatus", "pdf"];
+const DEFAULT_COLS: ColumnKey[] = ["numero", "cliente", "ejecutivo", "plaza", "fecha", "fecha_vencimiento", "tipo_pago", "total", "saldo", "estatus", "pdf"];
 const colsStorageKey = (userId: string) => `doc-cols:${userId}:factura`;
 
 const ESTATUS_FAC_LABELS: Record<string, string> = {
@@ -530,6 +531,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                     {isColVisible("fecha_vencimiento") && <SortableHead ascKey="vencimiento_asc" descKey="vencimiento_desc" className="whitespace-nowrap">Fecha Vencimiento</SortableHead>}
                     {isColVisible("tipo_pago") && <TableHead className="whitespace-nowrap">Tipo de Pago</TableHead>}
                     {isColVisible("total") && <SortableHead ascKey="total_asc" descKey="total_desc">Total</SortableHead>}
+                    {isColVisible("saldo") && <TableHead className="whitespace-nowrap">Saldo</TableHead>}
                     {isColVisible("estatus") && <TableHead>Estatus Factura</TableHead>}
                     {isColVisible("pdf") && <TableHead className="hidden sm:table-cell">PDF</TableHead>}
                     <TableHead></TableHead>
@@ -579,6 +581,16 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                         {isColVisible("total") && (
                           <TableCell className="whitespace-nowrap">${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</TableCell>
                         )}
+                        {isColVisible("saldo") && (() => {
+                          const saldo = doc.saldo_pendiente_cobranza != null
+                            ? Number(doc.saldo_pendiente_cobranza)
+                            : Number(doc.total || 0) - Number(doc.monto_pagado || 0);
+                          return (
+                            <TableCell className="whitespace-nowrap font-medium">
+                              ${saldo.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                            </TableCell>
+                          );
+                        })()}
                         {isColVisible("estatus") && (
                           <TableCell>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(doc.estatus_factura)}`}>
@@ -742,6 +754,7 @@ function GroupedByClient({
                       <TableHead>Fecha Vencimiento</TableHead>
                       <TableHead>Tipo de Pago</TableHead>
                       <TableHead>Total</TableHead>
+                      <TableHead>Saldo</TableHead>
                       <TableHead>Estatus</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -760,6 +773,12 @@ function GroupedByClient({
                             ) : (<span className="text-muted-foreground">-</span>)}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="whitespace-nowrap font-medium">
+                            ${(doc.saldo_pendiente_cobranza != null
+                              ? Number(doc.saldo_pendiente_cobranza)
+                              : Number(doc.total || 0) - Number(doc.monto_pagado || 0)
+                            ).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                          </TableCell>
                           <TableCell>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(doc.estatus_factura)}`}>
                               {ESTATUS_FAC_LABELS[doc.estatus_factura] || "-"}
