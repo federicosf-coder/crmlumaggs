@@ -741,17 +741,33 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                     <p className="text-xs text-muted-foreground">Sin contactos vinculados.</p>
                   ) : (
                     <div className="space-y-1.5">
+                      <p className="text-[11px] text-muted-foreground">
+                        Selecciona el contacto principal de la empresa
+                      </p>
                       {companyContacts.map((c: any) => (
                         <div key={c.id} className="flex items-center justify-between rounded border bg-muted/30 px-3 py-1.5 text-sm">
-                          <div className="min-w-0 flex-1">
+                          <label className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="primary-contact"
+                              checked={primaryContactId === c.id}
+                              onChange={() => updatePrimaryContact(c.id)}
+                              className="h-3.5 w-3.5"
+                              title="Marcar como contacto principal"
+                            />
+                            <div className="min-w-0 flex-1">
                             <div className="font-medium truncate">
                               {c.first_name} {c.last_name}
                               {c.job_title && <span className="text-muted-foreground font-normal"> — {c.job_title}</span>}
+                              {primaryContactId === c.id && (
+                                <Badge variant="secondary" className="ml-2 text-[10px]">Principal</Badge>
+                              )}
                             </div>
                             <div className="text-xs text-muted-foreground truncate">
                               {c.email || "—"} · {c.phone || "—"}
                             </div>
-                          </div>
+                            </div>
+                          </label>
                           <Button
                             type="button"
                             size="sm"
@@ -769,22 +785,40 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                     <p className="text-xs text-muted-foreground">Aún no hay contactos. Crea uno nuevo o selecciona uno existente; se vincularán al guardar.</p>
                   ) : (
                     <div className="space-y-1.5">
+                      <p className="text-[11px] text-muted-foreground">
+                        Selecciona el contacto principal de la empresa
+                      </p>
                       {pendingContactsData.map((c: any) => (
                         <div key={c.id} className="flex items-center justify-between rounded border bg-muted/30 px-3 py-1.5 text-sm">
-                          <div className="min-w-0 flex-1">
+                          <label className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="primary-contact-pending"
+                              checked={primaryContactId === c.id}
+                              onChange={() => setPrimaryContactId(c.id)}
+                              className="h-3.5 w-3.5"
+                            />
+                            <div className="min-w-0 flex-1">
                             <div className="font-medium truncate">
                               {c.first_name} {c.last_name}
                               {c.job_title && <span className="text-muted-foreground font-normal"> — {c.job_title}</span>}
+                              {primaryContactId === c.id && (
+                                <Badge variant="secondary" className="ml-2 text-[10px]">Principal</Badge>
+                              )}
                             </div>
                             <div className="text-xs text-muted-foreground truncate">
                               {c.email || "—"} · {c.phone || "—"}
                             </div>
-                          </div>
+                            </div>
+                          </label>
                           <Button
                             type="button"
                             size="sm"
                             variant="ghost"
-                            onClick={() => setPendingContactIds(prev => prev.filter(id => id !== c.id))}
+                            onClick={() => {
+                              setPendingContactIds(prev => prev.filter(id => id !== c.id));
+                              if (primaryContactId === c.id) setPrimaryContactId(null);
+                            }}
                             title="Quitar"
                           >
                             <X className="h-3.5 w-3.5" />
