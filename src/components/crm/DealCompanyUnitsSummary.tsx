@@ -40,14 +40,17 @@ export function DealCompanyUnitsSummary({ companyId, marca }: Props) {
       const mesAnterior = yyyyMM(prev);
 
       let actual = 0, anterior = 0, total = 0;
+      const monthSet = new Set<string>();
       for (const r of rows) {
         const u = Number(r.unidades_equivalentes_total) || 0;
         total += u;
         const k = String(r.fecha_documento || "").slice(0, 7);
+        if (k) monthSet.add(k);
         if (k === mesActual) actual += u;
         if (k === mesAnterior) anterior += u;
       }
-      return { actual, anterior, total };
+      const promedioMensual = monthSet.size > 0 ? total / monthSet.size : 0;
+      return { actual, anterior, total, promedioMensual };
     },
   });
 
@@ -62,6 +65,7 @@ export function DealCompanyUnitsSummary({ companyId, marca }: Props) {
           <div className="flex gap-6 flex-wrap">
             <Stat label="Mes actual" value={fmt(data.actual)} />
             <Stat label="Mes anterior" value={fmt(data.anterior)} />
+            <Stat label="Promedio mensual" value={fmt(data.promedioMensual)} />
             <Stat label="Total histórico" value={fmt(data.total)} />
           </div>
         </div>
