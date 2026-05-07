@@ -736,12 +736,14 @@ export default function Directory() {
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead className="w-[110px]">ID Contpaq</TableHead>
-                      <TableHead className="hidden sm:table-cell">Industria</TableHead>
-                      <TableHead>Contactos</TableHead>
-                      <TableHead className="hidden md:table-cell">Plaza</TableHead>
-                      <TableHead>Estado</TableHead>
+                      <TableHead><button type="button" onClick={() => toggleCompanySort("name")} className="inline-flex items-center hover:text-foreground">Empresa<SortIcon field="name" /></button></TableHead>
+                      <TableHead className="w-[110px]"><button type="button" onClick={() => toggleCompanySort("id_contpaq")} className="inline-flex items-center hover:text-foreground">ID Contpaq<SortIcon field="id_contpaq" /></button></TableHead>
+                      <TableHead className="hidden sm:table-cell"><button type="button" onClick={() => toggleCompanySort("industry")} className="inline-flex items-center hover:text-foreground">Industria<SortIcon field="industry" /></button></TableHead>
+                      <TableHead><button type="button" onClick={() => toggleCompanySort("contacts")} className="inline-flex items-center hover:text-foreground">Contactos<SortIcon field="contacts" /></button></TableHead>
+                      <TableHead className="hidden md:table-cell"><button type="button" onClick={() => toggleCompanySort("plaza")} className="inline-flex items-center hover:text-foreground">Plaza<SortIcon field="plaza" /></button></TableHead>
+                      <TableHead className="hidden md:table-cell"><button type="button" onClick={() => toggleCompanySort("ejecutivo")} className="inline-flex items-center hover:text-foreground">Ejecutivo<SortIcon field="ejecutivo" /></button></TableHead>
+                      <TableHead><button type="button" onClick={() => toggleCompanySort("venta")} className="inline-flex items-center hover:text-foreground">Venta<SortIcon field="venta" /></button></TableHead>
+                      <TableHead><button type="button" onClick={() => toggleCompanySort("estado")} className="inline-flex items-center hover:text-foreground">Estado<SortIcon field="estado" /></button></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -764,6 +766,14 @@ export default function Directory() {
                         <TableCell className="hidden sm:table-cell">{c.industry || "—"}</TableCell>
                         <TableCell>{(c.contacts as any[])?.length || 0}</TableCell>
                         <TableCell className="hidden md:table-cell">{(c.plazas as any)?.nombre || "—"}</TableCell>
+                        <TableCell className="hidden md:table-cell">{companyEjecutivoName(c) || "—"}</TableCell>
+                        <TableCell>
+                          {companyHasVenta(c) ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-green-50 text-green-700 border-green-200">Sí</span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-slate-100 text-slate-700 border-slate-300">No</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${c.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-100 text-slate-700 border-slate-300"}`}>
                             {c.is_active ? "Activo" : "Inactivo"}
