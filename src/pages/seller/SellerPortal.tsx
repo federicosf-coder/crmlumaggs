@@ -861,7 +861,7 @@ export default function SellerPortal() {
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                           )}
-                          {r.raw?.deal_id && <Button size="sm" variant="ghost" asChild><Link to="/crm"><ExternalLink className="h-3.5 w-3.5" /></Link></Button>}
+                          {r.raw?.deal_id && <Button size="sm" variant="ghost" onClick={() => window.open("/crm", "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -911,7 +911,7 @@ export default function SellerPortal() {
                         </Button>
                         {!t.completed && <Button size="sm" variant="ghost" onClick={() => completarTarea(t.id)}><CheckCircle2 className="h-3.5 w-3.5" /></Button>}
                         {!t.completed && <Button size="sm" variant="ghost" onClick={() => reprogramarTarea(t.id)}><Clock className="h-3.5 w-3.5" /></Button>}
-                        {t.deal_id && <Button size="sm" variant="ghost" asChild><Link to="/crm"><ExternalLink className="h-3.5 w-3.5" /></Link></Button>}
+                        {t.deal_id && <Button size="sm" variant="ghost" onClick={() => window.open("/crm", "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>}
                       </TableCell>
                     </TableRow>
                   );
@@ -957,7 +957,7 @@ export default function SellerPortal() {
                         <TableCell className="py-1"><Badge variant="outline" className="text-xs">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
                         <TableCell className="text-xs py-1">{format(new Date(d.created_at), "dd MMM yyyy", { locale: es })}</TableCell>
                         <TableCell className="text-right text-sm py-1">{fmtNum(Number(d.potencial_unidades || 0))}</TableCell>
-                        <TableCell className="py-1"><Button size="sm" variant="ghost" asChild><Link to={dealUrl}><ExternalLink className="h-3.5 w-3.5" /></Link></Button></TableCell>
+                        <TableCell className="py-1"><Button size="sm" variant="ghost" onClick={() => window.open(dealUrl, "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
                       </TableRow>
                     );
                   })}
@@ -989,7 +989,7 @@ export default function SellerPortal() {
                     <TableCell><Badge variant="outline" className="text-xs">{docStatus(d)}</Badge></TableCell>
                     <TableCell className="text-right text-sm">{fmtMoney(Number(d.total))}</TableCell>
                     <TableCell className="text-right text-sm">{fmtNum(Number(d.unidades_equivalentes_total))}</TableCell>
-                    <TableCell><Button size="sm" variant="ghost" asChild><Link to={`/documents/${d.id}`}><ExternalLink className="h-3.5 w-3.5" /></Link></Button></TableCell>
+                    <TableCell><Button size="sm" variant="ghost" onClick={() => window.open(`/documents/${d.id}`, "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -1013,7 +1013,7 @@ export default function SellerPortal() {
                   <TableCell><Badge variant="outline" className="text-xs">{p.estatus_pago}</Badge></TableCell>
                   <TableCell className="text-right text-sm">{fmtMoney(Number(p.monto_total))}</TableCell>
                   <TableCell className="text-right text-sm">{fmtMoney(Number(p.monto_aplicado))}</TableCell>
-                  <TableCell><Button size="sm" variant="ghost" asChild><Link to="/cobranza"><ExternalLink className="h-3.5 w-3.5" /></Link></Button></TableCell>
+                  <TableCell><Button size="sm" variant="ghost" onClick={() => window.open("/cobranza", "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1141,8 +1141,8 @@ export default function SellerPortal() {
                             <TableCell className="text-xs">{ejNombre}</TableCell>
                             <TableCell><Badge variant="outline" className={cn("text-xs", estatusColor)}>{estatus}</Badge></TableCell>
                             <TableCell className="text-right space-x-1 whitespace-nowrap">
-                              <Button size="sm" variant="ghost" asChild title="Abrir factura">
-                                <Link to={`/documents/${f.id}`}><ExternalLink className="h-3.5 w-3.5" /></Link>
+                              <Button size="sm" variant="ghost" title="Abrir factura" onClick={() => window.open(`/documents/${f.id}`, "_blank")}>
+                                <ExternalLink className="h-3.5 w-3.5" />
                               </Button>
                               {waUrl ? (
                                 <Button size="sm" variant="ghost" asChild title="Enviar WhatsApp">

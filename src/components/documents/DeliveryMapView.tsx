@@ -166,7 +166,7 @@ export function DeliveryMapView({ entregas, rutas, vehiculos, plazas, selectedPl
         google.maps.event.addListenerOnce(infoRef.current, "domready", () => {
           const btn = document.getElementById(`btn-open-${e.documento_id}`);
           if (btn) {
-            btn.onclick = () => navigate(`/delivery/entrega/${e.documento_id}`);
+            btn.onclick = () => window.open(`/delivery/entrega/${e.documento_id}`, "_blank");
           }
         });
       });
