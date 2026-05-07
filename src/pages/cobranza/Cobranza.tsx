@@ -255,6 +255,15 @@ export default function Cobranza() {
 
   if (invalidBrand) return <Navigate to="/cobranza" replace />;
 
+  // Filtro superior de fechas (estilo Portal del Vendedor)
+  const [from, setFrom] = useState<Date>(() => { const d = new Date(); d.setDate(d.getDate() - 30); return startOfDay(d); });
+  const [to, setTo] = useState<Date>(() => endOfDay(new Date()));
+  const inDateRange = (dateStr?: string | null) => {
+    if (!dateStr) return false;
+    const t = new Date(dateStr).getTime();
+    return t >= from.getTime() && t <= to.getTime();
+  };
+
   const [openRegistrar, setOpenRegistrar] = useState(false);
   const [openAplicar, setOpenAplicar] = useState(false);
   const [pagoSel, setPagoSel] = useState<CobranzaPago | null>(null);
