@@ -11,6 +11,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Calendar as CalendarIcon, Users } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { es } from "date-fns/locale";
 import { Label } from "@/components/ui/label";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
