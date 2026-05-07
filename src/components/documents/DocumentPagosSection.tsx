@@ -90,7 +90,7 @@ export function DocumentPagosSection({ documentoId, empresaId }: Props) {
               <button
                 key={p.id}
                 type="button"
-                onClick={() => navigate(`/cobranza?pagoId=${p.id}`)}
+                onClick={() => window.open(`/cobranza?pagoId=${p.id}`, "_blank")}
                 className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/50 text-left transition-colors"
               >
                 <div className="flex flex-col">
