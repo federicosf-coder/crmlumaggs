@@ -1071,7 +1071,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         htmlOverride,
         cc: Array.from(new Set([...filteredEmails, ...tplCc])),
         bcc: tplBcc,
-        replyTo: tplReplyTo || user?.email || undefined,
+        replyTo: tplReplyTo || profile?.email || user?.email || undefined,
       });
     } else {
       const formaLabel =
@@ -1086,7 +1086,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
         htmlOverride,
         cc: Array.from(new Set([...filteredEmails, ...tplCc])),
         bcc: tplBcc,
-        replyTo: tplReplyTo || user?.email || undefined,
+        replyTo: tplReplyTo || profile?.email || user?.email || undefined,
       });
     }
 
