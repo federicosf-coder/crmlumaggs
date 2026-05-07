@@ -280,6 +280,14 @@ export default function Cobranza() {
     if (pagosSortKey === key) setPagosSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setPagosSortKey(key); setPagosSortDir("asc"); }
   };
+  const [proxSortKey, setProxSortKey] = useState<string | null>(null);
+  const [proxSortDir, setProxSortDir] = useState<"asc" | "desc" | null>(null);
+  const toggleProxSort = (key: string) => {
+    if (proxSortKey !== key) { setProxSortKey(key); setProxSortDir("asc"); return; }
+    if (proxSortDir === "asc") setProxSortDir("desc");
+    else if (proxSortDir === "desc") { setProxSortKey(null); setProxSortDir(null); }
+    else setProxSortDir("asc");
+  };
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
   const [facturasPrefilter, setFacturasPrefilter] = useState<"none" | "vencimiento" | "credito_directo" | "credito_cescemex">("none");
@@ -674,11 +682,49 @@ export default function Cobranza() {
               <CardContent>
                 <Table>
                   <TableHeader><TableRow>
-                    <TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Vence</TableHead><TableHead className="text-right">Saldo</TableHead>
+                    {([
+                      ["folio", "Folio", ""],
+                      ["cliente", "Cliente", ""],
+                      ["vence", "Vence", ""],
+                      ["saldo", "Saldo", "text-right"],
+                    ] as const).map(([key, label, align]) => {
+                      const active = proxSortKey === key;
+                      const Icon = !active ? ArrowUpDown : proxSortDir === "asc" ? ArrowUp : ArrowDown;
+                      return (
+                        <TableHead key={key} className={align}>
+                          <button
+                            type="button"
+                            onClick={() => toggleProxSort(key)}
+                            className={`inline-flex items-center gap-1 hover:text-foreground ${align === "text-right" ? "ml-auto" : ""} ${active ? "text-foreground font-semibold" : ""}`}
+                          >
+                            {label}
+                            <Icon className="h-3.5 w-3.5 opacity-70" />
+                          </button>
+                        </TableHead>
+                      );
+                    })}
+                    <TableHead className="w-10"></TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
-                    {proximasVencer.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin facturas pendientes</TableCell></TableRow>}
-                    {proximasVencer.map((f) => {
+                    {proximasVencer.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin facturas pendientes</TableCell></TableRow>}
+                    {(() => {
+                      if (!proxSortKey || !proxSortDir) return proximasVencer;
+                      const getVal = (f: any) => {
+                        switch (proxSortKey) {
+                          case "folio": return f.numero_factura || "";
+                          case "cliente": return f.empresa?.name || "";
+                          case "vence": return fechaVencimientoEfectiva(f) || "";
+                          case "saldo": return Number(f.saldo_pendiente_cobranza) || 0;
+                          default: return "";
+                        }
+                      };
+                      const sorted = [...proximasVencer].sort((a, b) => {
+                        const va = getVal(a); const vb = getVal(b);
+                        if (typeof va === "number" && typeof vb === "number") return va - vb;
+                        return String(va).localeCompare(String(vb), "es", { numeric: true });
+                      });
+                      return proxSortDir === "desc" ? sorted.reverse() : sorted;
+                    })().map((f) => {
                       const d = diasParaVencer(fechaVencimientoEfectiva(f));
                       return (
                         <TableRow key={f.id}>
@@ -691,6 +737,11 @@ export default function Cobranza() {
                             </span>
                           </TableCell>
                           <TableCell className="text-right">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
+                          <TableCell className="text-right">
+                            <Button size="sm" variant="ghost" onClick={() => window.open(`/documentos/${f.id}`, "_blank")} title="Abrir documento">
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       );
                     })}
