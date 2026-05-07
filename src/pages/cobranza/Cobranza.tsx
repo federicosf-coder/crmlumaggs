@@ -663,6 +663,38 @@ export default function Cobranza() {
         </Button>
       </div>
 
+      {/* Filtro superior de fechas */}
+      <Card>
+        <CardContent className="p-3 flex flex-wrap gap-2 items-center">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <CalendarIcon className="h-3.5 w-3.5" />
+                Desde: {format(from, "dd MMM yyyy", { locale: es })}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={from} onSelect={(d) => { if (d) setFrom(startOfDay(d)); }} className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <CalendarIcon className="h-3.5 w-3.5" />
+                Hasta: {format(to, "dd MMM yyyy", { locale: es })}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={to} onSelect={(d) => { if (d) setTo(endOfDay(d)); }} className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          <Button variant="ghost" size="sm" onClick={() => { setFrom(startOfDay(new Date())); setTo(endOfDay(new Date())); }}>Hoy</Button>
+          <Button variant="ghost" size="sm" onClick={() => { const d = new Date(); d.setDate(d.getDate() - 7); setFrom(startOfDay(d)); setTo(endOfDay(new Date())); }}>7 días</Button>
+          <Button variant="ghost" size="sm" onClick={() => { const n = new Date(); setFrom(startOfDay(startOfMonth(n))); setTo(endOfDay(endOfMonth(n))); }}>Mes Actual</Button>
+          <Button variant="ghost" size="sm" onClick={() => { const n = subMonths(new Date(), 1); setFrom(startOfDay(startOfMonth(n))); setTo(endOfDay(endOfMonth(n))); }}>Mes Anterior</Button>
+        </CardContent>
+      </Card>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
