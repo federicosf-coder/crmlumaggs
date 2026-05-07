@@ -81,6 +81,8 @@ interface Props {
   daysBucket?: DaysBucket;
   /** Si true, oculta facturas pagadas/canceladas y con saldo 0 */
   onlyConSaldo?: boolean;
+  /** Modo de vista inicial: lista o agrupado por cliente */
+  initialViewMode?: "list" | "grouped";
 }
 
 function fechaVencimientoEfectiva(f: { fecha_documento?: string | null; fecha_vencimiento?: string | null; tipo_pago?: string | null }): string | null {
@@ -115,7 +117,7 @@ function inDaysBucket(d: number | null, bucket: DaysBucket): boolean {
   }
 }
 
-export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "none", daysBucket, onlyConSaldo = true }: Props) {
+export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "none", daysBucket, onlyConSaldo = true, initialViewMode = "list" }: Props) {
   const navigate = useNavigate();
   const { hasRole, user } = useAuth();
   const isAdmin = hasRole("admin");
@@ -143,7 +145,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
     prefilter === "vencidas" || daysBucket === "vencidas" ? "vencida" : "all"
   );
   const [estatusCobFilter, setEstatusCobFilter] = useState<string>(prefilter === "vencidas" ? "vencida" : "all");
-  const [viewMode, setViewMode] = useState<"list" | "grouped">("list");
+  const [viewMode, setViewMode] = useState<"list" | "grouped">(initialViewMode);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const toggleGroup = (key: string) => {
     setExpandedGroups((prev) => {

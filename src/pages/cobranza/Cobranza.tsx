@@ -277,6 +277,7 @@ export default function Cobranza() {
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
   const [facturasPrefilter, setFacturasPrefilter] = useState<"none" | "vencimiento" | "credito_directo" | "credito_cescemex">("none");
+  const [facturasViewMode, setFacturasViewMode] = useState<"list" | "grouped">("list");
   const PREFILTER_LABEL: Record<typeof facturasPrefilter, string> = {
     none: "Todas",
     vencimiento: "Vencimiento",
@@ -721,6 +722,7 @@ export default function Cobranza() {
                 { label: "Crédito Directo", value: `${dashKpis.clientesVencidosDirecto.size}` },
                 { label: "Crédito Cescemex", value: `${dashKpis.clientesVencidosCescemex.size}` },
               ]}
+              onClick={() => { setFacturasViewMode("grouped"); setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
             />
             <DetailedKpiCard
               title="Clientes en tiempo"
@@ -872,6 +874,7 @@ export default function Cobranza() {
               facturasPrefilter === "credito_directo" ? "credito_directo" :
               facturasPrefilter === "credito_cescemex" ? "credito_cescemex" : "none"
             }
+            initialViewMode={facturasViewMode}
           />
         </TabsContent>
       </Tabs>
