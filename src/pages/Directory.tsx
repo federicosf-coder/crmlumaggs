@@ -279,7 +279,7 @@ export default function Directory() {
     if (access.isLoading || !access.canView) { setLoading(false); return; }
     setLoading(true);
     const buildCompaniesQuery = () => {
-      let q = supabase.from("companies").select("*, plazas(nombre), contacts(id)").order("name");
+      let q = supabase.from("companies").select("*, plazas(nombre), contacts!contacts_company_id_fkey(id)").order("name");
 
       if (access.accessLevel === "propio" && access.userId) {
         const userId = access.userId;
