@@ -356,8 +356,12 @@ export default function Cobranza() {
     const v = new Date(fv); v.setHours(0, 0, 0, 0);
     return v.getTime() < hoy.getTime();
   };
-  const isCreditoDirecto = (f: typeof facturas[number]) => (f.tipo_pago || "").toLowerCase().includes("directo") || f.tipo_pago === "credito";
-  const isCreditoCescemex = (f: typeof facturas[number]) => (f.tipo_pago || "").toLowerCase().includes("cescemex") || f.tipo_pago === "credito_cescemex";
+  const isCreditoCescemex = (f: typeof facturas[number]) => {
+    const tp = (f.tipo_pago || "").toLowerCase();
+    return tp.includes("cescemex");
+  };
+  // Crédito Directo = explícitamente directo, "credito" genérico, o sin tipo_pago (default).
+  const isCreditoDirecto = (f: typeof facturas[number]) => !isCreditoCescemex(f);
 
   const facturasVencidasKpi = useMemo(() => facturas.filter(isVencida), [facturas]);
   const facturasCreditoDirectoKpi = useMemo(() => facturas.filter(isCreditoDirecto), [facturas]);
