@@ -13,7 +13,7 @@ export async function resolveTemplate(
   if (!data) return body;
   let result = body;
   for (const [key, value] of Object.entries(data as Record<string, string>)) {
-    result = result.replaceAll(key, value ?? '');
+    result = result.split(key).join(value ?? '');
   }
   return result;
 }
