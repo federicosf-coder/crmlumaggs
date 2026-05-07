@@ -123,7 +123,7 @@ export default function CrmByCompany() {
               <Card
                 key={c.id}
                 className="cursor-pointer hover:border-primary transition-colors"
-                onClick={() => navigate(`/directory?company=${c.id}`)}
+                onClick={() => window.open(`/directory?company=${c.id}`, "_blank")}
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base truncate">{c.name}</CardTitle>
