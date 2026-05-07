@@ -144,11 +144,35 @@ export default function DeliveryAddresses() {
     },
   });
 
-  const filtered = addresses.filter((a) => {
+  const vendedorOptions = useMemo(() => {
+    const ids = new Set<string>();
+    addresses.forEach(a => (companyEjecutivosMap[a.empresa_id] || []).forEach(uid => ids.add(uid)));
+    return Array.from(ids).map(uid => {
+      const p = profilesList.find((pr: any) => pr.user_id === uid);
+      return { user_id: uid, label: p?.full_name || p?.email || uid };
+    }).sort((a, b) => a.label.localeCompare(b.label));
+  }, [addresses, companyEjecutivosMap, profilesList]);
+  const plazaOptions = useMemo(() => {
+    const s = new Set<string>();
+    addresses.forEach(a => { const n = a.companies?.plazas?.nombre; if (n) s.add(n); });
+    return Array.from(s).sort();
+  }, [addresses]);
+  const industriaOptions = useMemo(() => {
+    const s = new Set<string>();
+    addresses.forEach(a => { const n = a.companies?.industry; if (n) s.add(n); });
+    return Array.from(s).sort();
+  }, [addresses]);
+  const activeFilterCount =
+    (filterVendedor !== "all" ? 1 : 0) +
+    (filterPlaza !== "all" ? 1 : 0) +
+    (filterIndustria !== "all" ? 1 : 0);
+  const clearFilters = () => { setFilterVendedor("all"); setFilterPlaza("all"); setFilterIndustria("all"); };
+
+  const filtered = useMemo(() => addresses.filter((a) => {
     const q = search.toLowerCase();
     const tipos = (a.tipos && a.tipos.length ? a.tipos : [a.tipo]).join(" ").toLowerCase();
     const coord = `${a.coordenadas_lat ?? ""},${a.coordenadas_lng ?? ""}`;
-    return (
+    const matchesSearch = (
       a.calle.toLowerCase().includes(q) ||
       (a.nombre || "").toLowerCase().includes(q) ||
       (a.ciudad || "").toLowerCase().includes(q) ||
@@ -157,7 +181,15 @@ export default function DeliveryAddresses() {
       tipos.includes(q) ||
       coord.includes(q)
     );
-  });
+    if (!matchesSearch) return false;
+    if (filterVendedor !== "all") {
+      const ids = companyEjecutivosMap[a.empresa_id] || [];
+      if (!ids.includes(filterVendedor)) return false;
+    }
+    if (filterPlaza !== "all" && (a.companies?.plazas?.nombre || "") !== filterPlaza) return false;
+    if (filterIndustria !== "all" && (a.companies?.industry || "") !== filterIndustria) return false;
+    return true;
+  }), [addresses, search, filterVendedor, filterPlaza, filterIndustria, companyEjecutivosMap]);
 
   const sorted = [...filtered].sort((a, b) => {
     const dir = sortDirection === "asc" ? 1 : -1;
