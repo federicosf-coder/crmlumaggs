@@ -1630,7 +1630,7 @@ function _LegacyBucketTable({ facturas }: { facturas: any[] }) {
                         size="icon"
                         aria-label="Ver documento"
                         title="Ver documento"
-                        onClick={() => navigate(`/documents/${f.id}/edit`)}
+                        onClick={() => window.open(`/documents/${f.id}/edit`, "_blank")}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>
