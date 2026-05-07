@@ -131,6 +131,22 @@ export default function DeliveryAddresses() {
     );
   });
 
+  const sorted = [...filtered].sort((a, b) => {
+    const dir = sortDirection === "asc" ? 1 : -1;
+    const getVal = (x: Address): string | number => {
+      switch (sortField) {
+        case "empresa": return (x.companies?.name || "").toLowerCase();
+        case "nombre": return (x.nombre || "").toLowerCase();
+        case "tipos": return ((x.tipos && x.tipos.length ? x.tipos : [x.tipo]).join(",") || "").toLowerCase();
+        case "direccion": return (x.direccion_completa || x.calle || "").toLowerCase();
+        case "coordenadas": return x.coordenadas_lat != null ? Number(x.coordenadas_lat) : Number.NEGATIVE_INFINITY;
+      }
+    };
+    const va = getVal(a); const vb = getVal(b);
+    if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+    return String(va).localeCompare(String(vb)) * dir;
+  });
+
   const resetForm = () => {
     setForm({ empresa_id: "", tipos: ["envio"], nombre: "", nombre_touched: false, referencia: "", address: { ...emptyAddress } });
     setEditing(null);
