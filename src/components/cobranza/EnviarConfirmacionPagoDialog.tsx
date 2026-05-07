@@ -159,6 +159,7 @@ export function EnviarConfirmacionPagoDialog({
     list.filter((e) => previouslySentEmails.includes(e.toLowerCase()));
 
   const doSend = async (finalEmails: string[]) => {
+    console.log("DOSEND finalEmails:", finalEmails);
     setSending(true);
     try {
       const ts = Date.now();
