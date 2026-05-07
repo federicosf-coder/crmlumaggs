@@ -1076,6 +1076,10 @@ function DetailedKpiCard({
     variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : "";
   const iconClass =
     variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30";
+  const stripeClass =
+    variant === "destructive" ? "bg-destructive" : variant === "success" ? "bg-emerald-500" : "bg-primary";
+  const titleColor =
+    variant === "destructive" ? "text-destructive" : variant === "success" ? "text-emerald-600" : "text-primary";
   const clickable = !!onClick;
   return (
     <Card
@@ -1083,12 +1087,13 @@ function DetailedKpiCard({
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") onClick!(); } : undefined}
-      className={clickable ? "cursor-pointer hover:shadow-md hover:border-primary/40 transition-all" : ""}
+      className={`relative overflow-hidden ${clickable ? "cursor-pointer hover:shadow-md hover:border-primary/40 transition-all" : ""}`}
     >
+      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${stripeClass}`} />
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className={`text-base font-semibold ${titleColor}`}>{title}</p>
             <p className={`text-2xl font-bold mt-1 ${valueClass}`}>
               {valueOverride !== undefined ? valueOverride : formatCurrency(total || 0)}
             </p>
