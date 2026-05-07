@@ -124,6 +124,12 @@ export default function Directory() {
   const [filterSede, setFilterSede] = useState<string>("all");
   const [filterGiro, setFilterGiro] = useState<string>("all");
 
+  // Filtros avanzados (empresas)
+  const [companyFiltersOpen, setCompanyFiltersOpen] = useState(false);
+  const [coFilterVendedor, setCoFilterVendedor] = useState<string>("all");
+  const [coFilterPlaza, setCoFilterPlaza] = useState<string>("all");
+  const [coFilterIndustria, setCoFilterIndustria] = useState<string>("all");
+
   // Vendedores (perfiles con rol sales)
   const { data: vendedoresList = [] } = useQuery({
     queryKey: ["vendedores_sales_profiles"],
