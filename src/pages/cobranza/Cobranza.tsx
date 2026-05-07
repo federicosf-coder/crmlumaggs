@@ -722,6 +722,7 @@ export default function Cobranza() {
                 { label: "Crédito Directo", value: `${dashKpis.clientesVencidosDirecto.size}` },
                 { label: "Crédito Cescemex", value: `${dashKpis.clientesVencidosCescemex.size}` },
               ]}
+              onClick={() => { setFacturasViewMode("grouped"); setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
             />
             <DetailedKpiCard
               title="Clientes en tiempo"
