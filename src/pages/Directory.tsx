@@ -155,6 +155,20 @@ export default function Directory() {
     },
   });
 
+  // Mapa company_id -> user_ids ejecutivos asignados
+  const { data: companyEjecutivosMap = {} } = useQuery<Record<string, string[]>>({
+    queryKey: ["company_ejecutivos_map"],
+    queryFn: async () => {
+      const { data } = await supabase.from("company_ejecutivos").select("company_id, user_id");
+      const map: Record<string, string[]> = {};
+      (data || []).forEach((r: any) => {
+        if (!map[r.company_id]) map[r.company_id] = [];
+        map[r.company_id].push(r.user_id);
+      });
+      return map;
+    },
+  });
+
   const sedeOptions = useMemo(() => {
     const s = new Set<string>();
     contacts.forEach(c => { const v = (c as any).sede; if (v) s.add(v); });
