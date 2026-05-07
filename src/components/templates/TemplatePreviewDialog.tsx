@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { CATEGORY_LABELS, Template, EmailRecipientItem } from "@/lib/templates";
+import { useResolvedTemplate } from "@/hooks/useResolvedTemplate";
 
 interface Props {
   open: boolean;
@@ -27,6 +28,14 @@ export function TemplatePreviewDialog({ open, onOpenChange, template }: Props) {
   const to = recipientsLabel(template.to_emails);
   const cc = recipientsLabel(template.cc_emails);
 
+  const { data: resolved } = useResolvedTemplate({
+    body: template.body || "",
+    subject: template.subject || "",
+    enabled: open,
+  });
+  const previewBody = resolved?.resolvedBody ?? template.body ?? "";
+  const previewSubject = resolved?.resolvedSubject ?? template.subject ?? "";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
@@ -47,12 +56,12 @@ export function TemplatePreviewDialog({ open, onOpenChange, template }: Props) {
                 {cc && (
                   <div><span className="text-muted-foreground">CC:</span> <span className="font-medium">{cc}</span></div>
                 )}
-                <div><span className="text-muted-foreground">Asunto:</span> <span className="font-medium">{template.subject || "—"}</span></div>
+                <div><span className="text-muted-foreground">Asunto:</span> <span className="font-medium">{previewSubject || "—"}</span></div>
               </div>
               <div className="border-t" />
               <div
                 className="bg-white rounded-md p-4 text-sm leading-relaxed prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: highlight(template.body || "") }}
+                dangerouslySetInnerHTML={{ __html: highlight(previewBody) }}
               />
             </div>
           ) : (
@@ -63,7 +72,7 @@ export function TemplatePreviewDialog({ open, onOpenChange, template }: Props) {
                   <div className="ml-auto max-w-[90%] bg-[#DCF8C6] rounded-lg shadow-sm px-3 py-2">
                     <div
                       className="text-[13px] text-[#303030] whitespace-pre-wrap leading-snug"
-                      dangerouslySetInnerHTML={{ __html: highlight(template.body || "") }}
+                      dangerouslySetInnerHTML={{ __html: highlight(previewBody) }}
                     />
                   </div>
                 </div>
