@@ -776,9 +776,9 @@ export default function ProductCatalog() {
           <TabsTrigger value="presentaciones">Presentaciones</TabsTrigger>
           <TabsTrigger value="opciones">Opciones</TabsTrigger>
         </TabsList>
-        <TabsContent value="productos"><ProductosTab /></TabsContent>
-        <TabsContent value="presentaciones"><PresentacionesTab /></TabsContent>
-        <TabsContent value="opciones"><OptionsTab /></TabsContent>
+        <TabsContent value="productos" className="min-h-[580px] overflow-y-auto"><ProductosTab /></TabsContent>
+        <TabsContent value="presentaciones" className="min-h-[580px] overflow-y-auto"><PresentacionesTab /></TabsContent>
+        <TabsContent value="opciones" className="min-h-[580px] overflow-y-auto"><OptionsTab /></TabsContent>
       </Tabs>
     </div>
   );
