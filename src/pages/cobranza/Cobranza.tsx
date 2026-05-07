@@ -823,6 +823,7 @@ export default function Cobranza() {
               countLabel={`${dashKpis.vencidas.length} facturas`}
               icon={AlertTriangle}
               variant="destructive"
+              valueBlack
               onClick={() => { setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
             />
             <DetailedKpiCard
@@ -831,6 +832,7 @@ export default function Cobranza() {
               countLabel={`${dashKpis.directoVencidas.length} facturas (${dashKpis.fmtPct(dashKpis.directoVencidas.length, dashKpis.vencidas.length)} de la vencida)`}
               icon={AlertTriangle}
               variant="destructive"
+              valueBlack
               onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
             />
             <DetailedKpiCard
@@ -839,6 +841,7 @@ export default function Cobranza() {
               countLabel={`${dashKpis.cescemexVencidas.length} facturas (${dashKpis.fmtPct(dashKpis.cescemexVencidas.length, dashKpis.vencidas.length)} de la vencida)`}
               icon={AlertTriangle}
               variant="destructive"
+              valueBlack
               onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
             />
           </div>
@@ -851,6 +854,7 @@ export default function Cobranza() {
               countLabel={`${cartera.facturasPagadas} facturas pagadas · ${pagos.length} pagos`}
               icon={CheckCircle2}
               variant="success"
+              valueBlack
             />
             <DetailedKpiCard
               title="Clientes en cartera vencida"
@@ -1058,6 +1062,7 @@ function DetailedKpiCard({
   pctLabel,
   icon: Icon,
   variant,
+  valueBlack,
   lines,
   onClick,
 }: {
@@ -1069,11 +1074,14 @@ function DetailedKpiCard({
   pctLabel?: string;
   icon: any;
   variant?: "destructive" | "success";
+  valueBlack?: boolean;
   lines?: { label: string; value: string; tone?: "destructive" | "success" }[];
   onClick?: () => void;
 }) {
   const valueClass =
-    variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : "";
+    valueBlack
+      ? "text-foreground"
+      : variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : "";
   const iconClass =
     variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30";
   const stripeClass =
