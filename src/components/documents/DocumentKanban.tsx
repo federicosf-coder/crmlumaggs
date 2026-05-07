@@ -193,7 +193,7 @@ export function DocumentKanban({ documents, tipoFilter }: DocumentKanbanProps) {
               docs={getDocsForStatus(col.key)}
               statusField={statusField}
               onStatusChange={handleStatusChange}
-              onNavigate={(id) => navigate(`/documents/${id}`)}
+              onNavigate={(id) => window.open(`/documents/${id}`, "_blank")}
             />
           ))}
         </div>
