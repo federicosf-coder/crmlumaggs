@@ -432,7 +432,7 @@ export default function Cobranza() {
     const base = pagos.filter((p) =>
       !q || p.empresa?.name?.toLowerCase().includes(q) || p.referencia_pago?.toLowerCase().includes(q)
     );
-    return evaluateConditions(base, pagosConditions, pagosCombinator, (p, key) => {
+    const filtered = evaluateConditions(base, pagosConditions, pagosCombinator, (p, key) => {
       const b = breakdowns[p.id];
       switch (key) {
         case "fecha_pago": return p.fecha_pago;
@@ -450,7 +450,30 @@ export default function Cobranza() {
         default: return "";
       }
     });
-  }, [pagos, searchPagos, pagosConditions, pagosCombinator, breakdowns]);
+    if (!pagosSortKey) return filtered;
+    const getVal = (p: any) => {
+      const b = breakdowns[p.id];
+      switch (pagosSortKey) {
+        case "fecha_pago": return p.fecha_pago || "";
+        case "empresa": return p.empresa?.name || "";
+        case "plaza": return p.plaza?.nombre || "";
+        case "monto_total": return Number(p.monto_total) || 0;
+        case "aplicado_facturas": return b?.aplicadoFacturas ?? 0;
+        case "aplicado_otros": return b?.aplicadoOtros ?? 0;
+        case "disponible_facturas": return b?.disponibleFacturas ?? Number(p.monto_disponible) ?? 0;
+        case "tipo_pago": return FORMA_PAGO_LABEL[p.tipo_pago || ""] || p.tipo_pago || "";
+        case "estatus_pago": return p.estatus_pago || "";
+        case "estado_pago": return p.estado_pago || "";
+        default: return "";
+      }
+    };
+    const sorted = [...filtered].sort((a, b) => {
+      const va = getVal(a); const vb = getVal(b);
+      if (typeof va === "number" && typeof vb === "number") return va - vb;
+      return String(va).localeCompare(String(vb), "es", { numeric: true });
+    });
+    return pagosSortDir === "desc" ? sorted.reverse() : sorted;
+  }, [pagos, searchPagos, pagosConditions, pagosCombinator, breakdowns, pagosSortKey, pagosSortDir]);
 
   const facturasFiltradas = useMemo(() => {
     const q = searchFacturas.toLowerCase();
