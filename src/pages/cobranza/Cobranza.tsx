@@ -642,6 +642,7 @@ export default function Cobranza() {
               total={dashKpis.totalSaldo}
               countLabel={`${dashKpis.totalCount} facturas`}
               icon={Wallet}
+              variant="success"
               lines={[
                 { label: "Vencidas", value: `${dashKpis.vencidas.length} (${dashKpis.fmtPct(dashKpis.vencidas.length, dashKpis.totalCount)}) · ${formatCurrency(sumSaldo(dashKpis.vencidas))}`, tone: "destructive" },
                 { label: "En tiempo", value: `${dashKpis.enTiempo.length} (${dashKpis.fmtPct(dashKpis.enTiempo.length, dashKpis.totalCount)}) · ${formatCurrency(sumSaldo(dashKpis.enTiempo))}` },
