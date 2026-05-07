@@ -1069,11 +1069,14 @@ function DetailedKpiCard({
   pctLabel?: string;
   icon: any;
   variant?: "destructive" | "success";
+  valueBlack?: boolean;
   lines?: { label: string; value: string; tone?: "destructive" | "success" }[];
   onClick?: () => void;
 }) {
   const valueClass =
-    variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : "";
+    arguments[0]?.valueBlack
+      ? "text-foreground"
+      : variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : "";
   const iconClass =
     variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30";
   const stripeClass =
