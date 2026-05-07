@@ -13,7 +13,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Search, Pencil } from "lucide-react";
+import { Plus, Search, Pencil, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { BackButton } from "@/components/BackButton";
@@ -51,6 +51,20 @@ export default function DeliveryAddresses() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
+
+  type SortField = "empresa" | "nombre" | "tipos" | "direccion" | "coordenadas";
+  const [sortField, setSortField] = useState<SortField>("empresa");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const toggleSort = (f: SortField) => {
+    if (sortField === f) setSortDirection(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDirection("asc"); }
+  };
+  const SortIcon = ({ f }: { f: SortField }) => {
+    if (sortField !== f) return <ChevronsUpDown className="h-3.5 w-3.5 ml-1 inline text-muted-foreground" />;
+    return sortDirection === "asc"
+      ? <ChevronUp className="h-3.5 w-3.5 ml-1 inline" />
+      : <ChevronDown className="h-3.5 w-3.5 ml-1 inline" />;
+  };
 
   const [form, setForm] = useState<{
     empresa_id: string;
@@ -115,6 +129,22 @@ export default function DeliveryAddresses() {
       tipos.includes(q) ||
       coord.includes(q)
     );
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    const dir = sortDirection === "asc" ? 1 : -1;
+    const getVal = (x: Address): string | number => {
+      switch (sortField) {
+        case "empresa": return (x.companies?.name || "").toLowerCase();
+        case "nombre": return (x.nombre || "").toLowerCase();
+        case "tipos": return ((x.tipos && x.tipos.length ? x.tipos : [x.tipo]).join(",") || "").toLowerCase();
+        case "direccion": return (x.direccion_completa || x.calle || "").toLowerCase();
+        case "coordenadas": return x.coordenadas_lat != null ? Number(x.coordenadas_lat) : Number.NEGATIVE_INFINITY;
+      }
+    };
+    const va = getVal(a); const vb = getVal(b);
+    if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+    return String(va).localeCompare(String(vb)) * dir;
   });
 
   const resetForm = () => {
@@ -252,21 +282,21 @@ export default function DeliveryAddresses() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Tipos</TableHead>
-                <TableHead>Dirección</TableHead>
-                <TableHead>Coordenadas</TableHead>
+                <TableHead><button type="button" onClick={() => toggleSort("empresa")} className="inline-flex items-center hover:text-foreground">Empresa<SortIcon f="empresa" /></button></TableHead>
+                <TableHead><button type="button" onClick={() => toggleSort("nombre")} className="inline-flex items-center hover:text-foreground">Nombre<SortIcon f="nombre" /></button></TableHead>
+                <TableHead><button type="button" onClick={() => toggleSort("tipos")} className="inline-flex items-center hover:text-foreground">Tipos<SortIcon f="tipos" /></button></TableHead>
+                <TableHead><button type="button" onClick={() => toggleSort("direccion")} className="inline-flex items-center hover:text-foreground">Dirección<SortIcon f="direccion" /></button></TableHead>
+                <TableHead><button type="button" onClick={() => toggleSort("coordenadas")} className="inline-flex items-center hover:text-foreground">Coordenadas<SortIcon f="coordenadas" /></button></TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
+              ) : sorted.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin direcciones</TableCell></TableRow>
               ) : (
-                filtered.map((a) => {
+                sorted.map((a) => {
                   const tipos = a.tipos && a.tipos.length ? a.tipos : [a.tipo];
                   const coords = a.coordenadas_lat != null && a.coordenadas_lng != null
                     ? `${Number(a.coordenadas_lat).toFixed(5)}, ${Number(a.coordenadas_lng).toFixed(5)}`
