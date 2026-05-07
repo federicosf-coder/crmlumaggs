@@ -7,6 +7,7 @@ export interface KpiCardData {
   subtitle?: string;
   lines?: { label: string; value: string; tone?: "destructive" | "default" }[];
   variant?: "default" | "success" | "destructive";
+  valueBlack?: boolean;
 }
 
 export interface BucketData {
@@ -104,7 +105,11 @@ export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
       // value
       doc.setFont("helvetica", "bold");
       doc.setFontSize(15);
-      doc.setTextColor(0, 0, 0);
+      if (c.valueBlack || !c.variant || c.variant === "default") {
+        doc.setTextColor(0, 0, 0);
+      } else {
+        doc.setTextColor(...accent);
+      }
       doc.text(c.value, x + 12, startY + 36);
 
       // subtitle
