@@ -384,8 +384,48 @@ export default function Directory() {
     const p = allProfiles.find((pr: any) => pr.user_id === ids[0]);
     return p?.full_name || p?.email || "";
   };
+  // Opciones de filtros para empresas (derivadas de los datos cargados)
+  const companyVendedorOptions = useMemo(() => {
+    const ids = new Set<string>();
+    companies.forEach(c => (companyEjecutivosMap[c.id] || []).forEach(uid => ids.add(uid)));
+    return Array.from(ids).map(uid => {
+      const p = allProfiles.find((pr: any) => pr.user_id === uid);
+      return { user_id: uid, label: p?.full_name || p?.email || uid };
+    }).sort((a, b) => a.label.localeCompare(b.label));
+  }, [companies, companyEjecutivosMap, allProfiles]);
+  const companyPlazaOptions = useMemo(() => {
+    const s = new Set<string>();
+    companies.forEach(c => { const n = (c.plazas as any)?.nombre; if (n) s.add(n); });
+    return Array.from(s).sort();
+  }, [companies]);
+  const companyIndustriaOptions = useMemo(() => {
+    const s = new Set<string>();
+    companies.forEach(c => { if (c.industry) s.add(c.industry); });
+    return Array.from(s).sort();
+  }, [companies]);
+  const companyActiveFilterCount =
+    (coFilterVendedor !== "all" ? 1 : 0) +
+    (coFilterPlaza !== "all" ? 1 : 0) +
+    (coFilterIndustria !== "all" ? 1 : 0);
+  const clearCompanyFilters = () => {
+    setCoFilterVendedor("all"); setCoFilterPlaza("all"); setCoFilterIndustria("all");
+  };
+
   const filteredCompanies = companies
     .filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase()))
+    .filter(c => {
+      if (coFilterVendedor !== "all") {
+        const ids = companyEjecutivosMap[c.id] || [];
+        if (!ids.includes(coFilterVendedor)) return false;
+      }
+      if (coFilterPlaza !== "all") {
+        if (((c.plazas as any)?.nombre || "") !== coFilterPlaza) return false;
+      }
+      if (coFilterIndustria !== "all") {
+        if ((c.industry || "") !== coFilterIndustria) return false;
+      }
+      return true;
+    })
     .sort((a, b) => {
       const dir = companySortDir === "asc" ? 1 : -1;
       switch (companySortField) {
