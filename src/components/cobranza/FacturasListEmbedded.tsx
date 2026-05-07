@@ -754,6 +754,7 @@ function GroupedByClient({
                       <TableHead>Fecha Vencimiento</TableHead>
                       <TableHead>Tipo de Pago</TableHead>
                       <TableHead>Total</TableHead>
+                      <TableHead>Saldo</TableHead>
                       <TableHead>Estatus</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -772,6 +773,12 @@ function GroupedByClient({
                             ) : (<span className="text-muted-foreground">-</span>)}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="whitespace-nowrap font-medium">
+                            ${(doc.saldo_pendiente_cobranza != null
+                              ? Number(doc.saldo_pendiente_cobranza)
+                              : Number(doc.total || 0) - Number(doc.monto_pagado || 0)
+                            ).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                          </TableCell>
                           <TableCell>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(doc.estatus_factura)}`}>
                               {ESTATUS_FAC_LABELS[doc.estatus_factura] || "-"}
