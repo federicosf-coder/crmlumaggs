@@ -1296,9 +1296,9 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
         templateName={activeFlow.templateName}
         subjectOverride={activeFlow.subjectOverride}
         htmlOverride={activeFlow.htmlOverride}
-        ccEmails={activeFlow.cc}
+        ccEmails={ccEmailsFlow}
         bccEmails={activeFlow.bcc}
-        replyTo={activeFlow.replyTo || undefined}
+        replyTo={replyToFlow}
         title={activeFlow.title}
         description={activeFlow.description}
         extraTemplateData={{
