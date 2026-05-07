@@ -196,7 +196,7 @@ export function DealDocumentsTab({
               <div
                 key={d.id}
                 className="rounded-lg border bg-card p-3 hover:bg-accent/50 transition cursor-pointer"
-                onClick={() => navigate(`/documents/${d.id}`)}
+                onClick={() => window.open(`/documents/${d.id}`, "_blank")}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2 min-w-0 flex-1">
@@ -234,10 +234,10 @@ export function DealDocumentsTab({
                       variant="ghost"
                       size="sm"
                       className="h-6 px-1 mt-1 text-[11px]"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/documents/${d.id}`);
-                      }}
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         window.open(`/documents/${d.id}`, "_blank");
+                       }}
                     >
                       Abrir <ExternalLink className="h-3 w-3 ml-1" />
                     </Button>
