@@ -394,6 +394,54 @@ export default function Cobranza() {
 
   const sumSaldo = (arr: typeof facturas) => arr.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
 
+  // Helpers de % seguros
+  const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
+
+  // Subconjuntos por estatus de vencimiento
+  const facturasEnTiempoKpi = useMemo(() => facturas.filter((f) => !isVencida(f)), [facturas]);
+
+  const facturasDirectoVencidas = useMemo(() => facturasCreditoDirectoKpi.filter(isVencida), [facturasCreditoDirectoKpi]);
+  const facturasDirectoEnTiempo = useMemo(() => facturasCreditoDirectoKpi.filter((f) => !isVencida(f)), [facturasCreditoDirectoKpi]);
+  const facturasCescemexVencidas = useMemo(() => facturasCreditoCescemexKpi.filter(isVencida), [facturasCreditoCescemexKpi]);
+  const facturasCescemexEnTiempo = useMemo(() => facturasCreditoCescemexKpi.filter((f) => !isVencida(f)), [facturasCreditoCescemexKpi]);
+
+  // Clientes (empresa_id distintos) — vencidos / en tiempo, con desglose por crédito
+  const clientesStats = useMemo(() => {
+    const all = new Set<string>();
+    const vencTotal = new Set<string>();
+    const vencDirecto = new Set<string>();
+    const vencCescemex = new Set<string>();
+    const tiempoDirecto = new Set<string>();
+    const tiempoCescemex = new Set<string>();
+    facturas.forEach((f) => {
+      const id = f.empresa?.id || f.empresa_id;
+      if (!id) return;
+      all.add(id);
+      const v = isVencida(f);
+      const cd = isCreditoDirecto(f);
+      const cc = isCreditoCescemex(f);
+      if (v) {
+        vencTotal.add(id);
+        if (cd) vencDirecto.add(id);
+        if (cc) vencCescemex.add(id);
+      } else {
+        if (cd) tiempoDirecto.add(id);
+        if (cc) tiempoCescemex.add(id);
+      }
+    });
+    const tiempoTotal = new Set<string>();
+    all.forEach((id) => { if (!vencTotal.has(id)) tiempoTotal.add(id); });
+    return {
+      total: all.size,
+      vencTotal: vencTotal.size,
+      vencDirecto: vencDirecto.size,
+      vencCescemex: vencCescemex.size,
+      tiempoTotal: tiempoTotal.size,
+      tiempoDirecto: tiempoDirecto.size,
+      tiempoCescemex: tiempoCescemex.size,
+    };
+  }, [facturas]);
+
   // KPIs
   const cartera = useMemo(() => {
     const abierta = facturas.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
