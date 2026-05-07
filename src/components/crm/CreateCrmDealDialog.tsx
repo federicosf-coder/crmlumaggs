@@ -14,7 +14,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, ExternalLink } from "lucide-react";
+import { Loader2, Plus, ExternalLink, Building2, MapPin, User, Briefcase } from "lucide-react";
 import { fetchAllRows } from "@/lib/supabasePagination";
 
 function cleanPipelineName(nombre: string): string {
@@ -317,11 +317,59 @@ export function CreateCrmDealDialog({ open, onOpenChange, pipelineId, stages, de
     label: formatPipelineLabel(p),
   }));
 
+  // Header visual igual al detalle de negocio
+  const selectedStage = effectiveStages.find((s) => s.id === stageId);
+  const stageColor = selectedStage?.color || "hsl(var(--primary))";
+  const isPhillips = selectedPipeline?.marca === "phillips66";
+  const headerGradient = isPhillips
+    ? "bg-gradient-to-r from-red-50 via-orange-50 to-amber-50 border-l-4 border-red-500"
+    : "bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-l-4 border-blue-500";
+  const plazaName = (plazas || []).find((p: any) => p.id === plazaId)?.nombre || null;
+  const ownerName =
+    (ejecutivos || []).find((e: any) => e.user_id === ownerId)?.full_name ||
+    (ejecutivos || []).find((e: any) => e.user_id === ownerId)?.email ||
+    null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nuevo Negocio</DialogTitle>
+          <div className={`rounded-lg p-4 shadow-sm ${headerGradient}`}>
+            <DialogTitle className="flex items-center gap-2 text-lg flex-wrap">
+              <div className="h-3 w-3 rounded-full ring-2 ring-white" style={{ backgroundColor: stageColor }} />
+              <span>{title || "Nuevo Negocio"}</span>
+            </DialogTitle>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              {selectedCompany && (
+                <span className="inline-flex items-center gap-1 text-sm font-semibold text-foreground/80">
+                  <Building2 className="h-3.5 w-3.5" /> {selectedCompany.name}
+                </span>
+              )}
+              {plazaName && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border shadow-sm bg-white/70">
+                  <MapPin className="h-3.5 w-3.5" /> {plazaName}
+                </span>
+              )}
+              {selectedStage && (
+                <span
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold shadow-sm"
+                  style={{ backgroundColor: stageColor, color: "white" }}
+                >
+                  {selectedStage.name}
+                </span>
+              )}
+              {selectedPipeline?.pipeline_type === "recompra" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-white/70 border">
+                  Recompra
+                </span>
+              )}
+              {ownerName && (
+                <span className="inline-flex items-center gap-1 text-sm text-foreground/70">
+                  <User className="h-3.5 w-3.5" /> {ownerName}
+                </span>
+              )}
+            </div>
+          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Título del Negocio (autogenerado, editable) */}
