@@ -22,6 +22,9 @@ import { DealUnitsProgress } from "@/components/crm/DealUnitsProgress";
 import { DealDocumentsTab } from "@/components/crm/DealDocumentsTab";
 import { CrmDealStrategicAnalysis } from "@/components/crm/CrmDealStrategicAnalysis";
 import { CompanyEvaluacionTab } from "@/components/crm/CompanyEvaluacionTab";
+import { DealCompanyUnitsSummary } from "@/components/crm/DealCompanyUnitsSummary";
+import { DealCompanyInlineBlocks } from "@/components/crm/DealCompanyInlineBlocks";
+import { CompanyProcesoDecisionBlock } from "@/components/crm/CompanyProcesoDecisionBlock";
 import { formatCurrency, formatDate, formatMonthYear, lastDayOfMonth } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -135,6 +138,24 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
   const ownerName = deal?.owner_id
     ? ejecutivos?.find((e: any) => e.user_id === deal.owner_id)?.full_name || null
     : null;
+
+  // Color por plaza (estable, basado en hash del nombre)
+  const PLAZA_COLORS = [
+    "bg-blue-100 text-blue-800 border-blue-200",
+    "bg-purple-100 text-purple-800 border-purple-200",
+    "bg-emerald-100 text-emerald-800 border-emerald-200",
+    "bg-amber-100 text-amber-800 border-amber-200",
+    "bg-rose-100 text-rose-800 border-rose-200",
+    "bg-cyan-100 text-cyan-800 border-cyan-200",
+    "bg-indigo-100 text-indigo-800 border-indigo-200",
+    "bg-orange-100 text-orange-800 border-orange-200",
+  ];
+  const plazaColor = (() => {
+    if (!plazaName) return "bg-muted text-muted-foreground border";
+    let h = 0;
+    for (let i = 0; i < plazaName.length; i++) h = (h * 31 + plazaName.charCodeAt(i)) >>> 0;
+    return PLAZA_COLORS[h % PLAZA_COLORS.length];
+  })();
 
   const { data: dealPipeline } = useQuery({
     queryKey: ["crm-pipeline-marca", deal?.pipeline_id],
@@ -422,9 +443,48 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
 
               {/* === Resumen === */}
               <TabsContent value="resumen" className="space-y-6 mt-4">
+                {/* Encabezado: empresa · ejecutivo · plaza */}
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  {deal.companies && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground text-xs">Empresa</span>
+                      <span className="font-semibold">{deal.companies.name}</span>
+                    </div>
+                  )}
+                  {ownerName && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground text-xs">Ejecutivo</span>
+                      <span className="font-medium">{ownerName}</span>
+                    </div>
+                  )}
+                  {plazaName && (
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${plazaColor}`}>
+                      {plazaName}
+                    </span>
+                  )}
+                </div>
+
+                {/* Bloques empresa editables */}
+                {deal.company_id && (
+                  <DealCompanyInlineBlocks companyId={deal.company_id} />
+                )}
+
+                {/* Resumen unidades por marca */}
+                {deal.company_id && (
+                  <DealCompanyUnitsSummary
+                    companyId={deal.company_id}
+                    marca={dealPipeline?.marca === "phillips66" ? "phillips66" : "chevron"}
+                  />
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div><span className="text-muted-foreground">Potencial (u)</span><p className="font-semibold text-lg">{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(Number((deal as any).potencial_unidades) || Number((deal as any).volumen_mensual_estimado) || 0)}</p></div>
-                  <div><span className="text-muted-foreground">Etapa</span><Badge style={{ backgroundColor: currentStage?.color, color: "white" }}>{currentStage?.name}</Badge></div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-muted-foreground">Etapa</span>
+                    <div className="mt-[2px]">
+                      <Badge style={{ backgroundColor: currentStage?.color, color: "white" }}>{currentStage?.name}</Badge>
+                    </div>
+                  </div>
                   {isRecompra && (
                     <div>
                       <span className="text-muted-foreground">Periodo</span>
@@ -444,10 +504,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                     </p>
                   </div>
                 </div>
-                {deal.companies && <div className="text-sm"><span className="text-muted-foreground">Empresa</span><p className="font-medium">{deal.companies.name}</p></div>}
                 {deal.contacts && <div className="text-sm"><span className="text-muted-foreground">Contacto</span><p className="font-medium">{deal.contacts.first_name} {deal.contacts.last_name}</p></div>}
-                {ownerName && <div className="text-sm"><span className="text-muted-foreground">Ejecutivo</span><p className="font-medium">{ownerName}</p></div>}
-                {plazaName && <div className="text-sm"><span className="text-muted-foreground">Plaza</span><p className="font-medium">{plazaName}</p></div>}
                 {deal.notes && <div className="text-sm"><span className="text-muted-foreground">Notas</span><p className="mt-1 whitespace-pre-wrap">{deal.notes}</p></div>}
 
                 <Separator />
@@ -538,7 +595,10 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               {/* === Evaluación Cliente === */}
               <TabsContent value="evaluacion" className="mt-4">
                 {deal.company_id ? (
-                  <CompanyEvaluacionTab companyId={deal.company_id} />
+                  <div className="space-y-4">
+                    <CompanyProcesoDecisionBlock companyId={deal.company_id} />
+                    <CompanyEvaluacionTab companyId={deal.company_id} />
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">Asigna una empresa al negocio para evaluarla.</p>
                 )}
