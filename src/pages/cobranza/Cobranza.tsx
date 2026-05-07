@@ -741,14 +741,34 @@ export default function Cobranza() {
             <CardContent className="p-0">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Fecha</TableHead><TableHead>Cliente</TableHead><TableHead>Plaza</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Aplicado a Facturas</TableHead>
-                  <TableHead className="text-right">Aplicado a Cot/Pedidos</TableHead>
-                  <TableHead className="text-right">Disponible (facturas)</TableHead>
-                  <TableHead>Forma</TableHead>
-                  <TableHead>Estatus Pago</TableHead>
-                  <TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead>
+                  {([
+                    ["fecha_pago", "Fecha", ""],
+                    ["empresa", "Cliente", ""],
+                    ["plaza", "Plaza", ""],
+                    ["monto_total", "Total", "text-right"],
+                    ["aplicado_facturas", "Aplicado a Facturas", "text-right"],
+                    ["aplicado_otros", "Aplicado a Cot/Pedidos", "text-right"],
+                    ["disponible_facturas", "Disponible (facturas)", "text-right"],
+                    ["tipo_pago", "Forma", ""],
+                    ["estatus_pago", "Estatus Pago", ""],
+                    ["estado_pago", "Estado", ""],
+                  ] as const).map(([key, label, align]) => {
+                    const active = pagosSortKey === key;
+                    const Icon = !active ? ArrowUpDown : pagosSortDir === "asc" ? ArrowUp : ArrowDown;
+                    return (
+                      <TableHead key={key} className={align}>
+                        <button
+                          type="button"
+                          onClick={() => togglePagosSort(key)}
+                          className={`inline-flex items-center gap-1 hover:text-foreground ${align === "text-right" ? "ml-auto" : ""} ${active ? "text-foreground font-semibold" : ""}`}
+                        >
+                          {label}
+                          <Icon className="h-3.5 w-3.5 opacity-70" />
+                        </button>
+                      </TableHead>
+                    );
+                  })}
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {loadingPagos && <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
