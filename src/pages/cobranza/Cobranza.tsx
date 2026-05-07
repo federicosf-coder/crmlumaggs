@@ -10,12 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { Calendar as CalendarIcon, Users } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from "date-fns";
-import { es } from "date-fns/locale";
+import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -255,15 +250,6 @@ export default function Cobranza() {
 
   if (invalidBrand) return <Navigate to="/cobranza" replace />;
 
-  // Filtro superior de fechas (estilo Portal del Vendedor)
-  const [from, setFrom] = useState<Date>(() => { const d = new Date(); d.setDate(d.getDate() - 30); return startOfDay(d); });
-  const [to, setTo] = useState<Date>(() => endOfDay(new Date()));
-  const inDateRange = (dateStr?: string | null) => {
-    if (!dateStr) return false;
-    const t = new Date(dateStr).getTime();
-    return t >= from.getTime() && t <= to.getTime();
-  };
-
   const [openRegistrar, setOpenRegistrar] = useState(false);
   const [openAplicar, setOpenAplicar] = useState(false);
   const [pagoSel, setPagoSel] = useState<CobranzaPago | null>(null);
@@ -288,20 +274,6 @@ export default function Cobranza() {
   }, [searchParams, setSearchParams]);
 
   const [searchPagos, setSearchPagos] = useState("");
-  const [pagosSortKey, setPagosSortKey] = useState<string | null>(null);
-  const [pagosSortDir, setPagosSortDir] = useState<"asc" | "desc">("asc");
-  const togglePagosSort = (key: string) => {
-    if (pagosSortKey === key) setPagosSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setPagosSortKey(key); setPagosSortDir("asc"); }
-  };
-  const [proxSortKey, setProxSortKey] = useState<string | null>(null);
-  const [proxSortDir, setProxSortDir] = useState<"asc" | "desc" | null>(null);
-  const toggleProxSort = (key: string) => {
-    if (proxSortKey !== key) { setProxSortKey(key); setProxSortDir("asc"); return; }
-    if (proxSortDir === "asc") setProxSortDir("desc");
-    else if (proxSortDir === "desc") { setProxSortKey(null); setProxSortDir(null); }
-    else setProxSortDir("asc");
-  };
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
   const [facturasPrefilter, setFacturasPrefilter] = useState<"none" | "vencimiento" | "credito_directo" | "credito_cescemex">("none");
@@ -373,9 +345,8 @@ export default function Cobranza() {
     const ef = (d.estatus_factura || "").toString().toLowerCase();
     if (ef === "cancelada" || ef === "pagada") return false;
     if (Number(d.saldo_pendiente_cobranza || 0) <= 0) return false;
-    if (!inDateRange(d.fecha_documento)) return false;
     return true;
-  }), [documentos, from, to]);
+  }), [documentos]);
 
   // Helpers de clasificación compartidos
   const isVencida = (f: typeof facturas[number]) => {
@@ -394,54 +365,6 @@ export default function Cobranza() {
 
   const sumSaldo = (arr: typeof facturas) => arr.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
 
-  // Helpers de % seguros
-  const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
-
-  // Subconjuntos por estatus de vencimiento
-  const facturasEnTiempoKpi = useMemo(() => facturas.filter((f) => !isVencida(f)), [facturas]);
-
-  const facturasDirectoVencidas = useMemo(() => facturasCreditoDirectoKpi.filter(isVencida), [facturasCreditoDirectoKpi]);
-  const facturasDirectoEnTiempo = useMemo(() => facturasCreditoDirectoKpi.filter((f) => !isVencida(f)), [facturasCreditoDirectoKpi]);
-  const facturasCescemexVencidas = useMemo(() => facturasCreditoCescemexKpi.filter(isVencida), [facturasCreditoCescemexKpi]);
-  const facturasCescemexEnTiempo = useMemo(() => facturasCreditoCescemexKpi.filter((f) => !isVencida(f)), [facturasCreditoCescemexKpi]);
-
-  // Clientes (empresa_id distintos) — vencidos / en tiempo, con desglose por crédito
-  const clientesStats = useMemo(() => {
-    const all = new Set<string>();
-    const vencTotal = new Set<string>();
-    const vencDirecto = new Set<string>();
-    const vencCescemex = new Set<string>();
-    const tiempoDirecto = new Set<string>();
-    const tiempoCescemex = new Set<string>();
-    facturas.forEach((f) => {
-      const id = f.empresa?.id || f.empresa_id;
-      if (!id) return;
-      all.add(id);
-      const v = isVencida(f);
-      const cd = isCreditoDirecto(f);
-      const cc = isCreditoCescemex(f);
-      if (v) {
-        vencTotal.add(id);
-        if (cd) vencDirecto.add(id);
-        if (cc) vencCescemex.add(id);
-      } else {
-        if (cd) tiempoDirecto.add(id);
-        if (cc) tiempoCescemex.add(id);
-      }
-    });
-    const tiempoTotal = new Set<string>();
-    all.forEach((id) => { if (!vencTotal.has(id)) tiempoTotal.add(id); });
-    return {
-      total: all.size,
-      vencTotal: vencTotal.size,
-      vencDirecto: vencDirecto.size,
-      vencCescemex: vencCescemex.size,
-      tiempoTotal: tiempoTotal.size,
-      tiempoDirecto: tiempoDirecto.size,
-      tiempoCescemex: tiempoCescemex.size,
-    };
-  }, [facturas]);
-
   // KPIs
   const cartera = useMemo(() => {
     const abierta = facturas.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
@@ -451,16 +374,13 @@ export default function Cobranza() {
     }).reduce((s, f) => s + Number(f.saldo_pendiente_cobranza), 0);
     const porVencer = abierta - vencida;
     const noAplicado = pagos.filter((p) => p.estado_pago !== "cancelado").reduce((s, p) => s + (breakdowns[p.id]?.disponibleFacturas ?? Number(p.monto_disponible)), 0);
-    const pagosEnRango = pagos.filter((p) => p.estado_pago !== "cancelado" && inDateRange(p.fecha_pago));
-    const cobradoMes = pagosEnRango.reduce((s, p) => s + Number(p.monto_total), 0);
-    const pagosEnRangoCount = pagosEnRango.length;
-    const facturasPagadasEnRango = new Set<string>();
-    // Aproximación: facturas con estado_cobranza pagada del dataset filtrado
-    facturas.forEach((f) => { if (f.estado_cobranza === "pagada") facturasPagadasEnRango.add(f.id); });
+    const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
+    const cobradoMes = pagos.filter((p) => p.estado_pago !== "cancelado" && new Date(p.fecha_pago) >= inicioMes)
+      .reduce((s, p) => s + Number(p.monto_total), 0);
     const facturasParciales = facturas.filter((f) => f.estado_cobranza === "parcial").length;
     const facturasPagadas = facturas.filter((f) => f.estado_cobranza === "pagada").length;
-    return { abierta, vencida, porVencer, noAplicado, cobradoMes, pagosEnRangoCount, facturasParciales, facturasPagadas };
-  }, [facturas, pagos, breakdowns, from, to]);
+    return { abierta, vencida, porVencer, noAplicado, cobradoMes, facturasParciales, facturasPagadas };
+  }, [facturas, pagos, breakdowns]);
 
   // Buckets de vencimiento (helper reusable)
   const buildBuckets = (lista: typeof facturas) => {
@@ -506,7 +426,7 @@ export default function Cobranza() {
     const base = pagos.filter((p) =>
       !q || p.empresa?.name?.toLowerCase().includes(q) || p.referencia_pago?.toLowerCase().includes(q)
     );
-    const filtered = evaluateConditions(base, pagosConditions, pagosCombinator, (p, key) => {
+    return evaluateConditions(base, pagosConditions, pagosCombinator, (p, key) => {
       const b = breakdowns[p.id];
       switch (key) {
         case "fecha_pago": return p.fecha_pago;
@@ -524,30 +444,7 @@ export default function Cobranza() {
         default: return "";
       }
     });
-    if (!pagosSortKey) return filtered;
-    const getVal = (p: any) => {
-      const b = breakdowns[p.id];
-      switch (pagosSortKey) {
-        case "fecha_pago": return p.fecha_pago || "";
-        case "empresa": return p.empresa?.name || "";
-        case "plaza": return p.plaza?.nombre || "";
-        case "monto_total": return Number(p.monto_total) || 0;
-        case "aplicado_facturas": return b?.aplicadoFacturas ?? 0;
-        case "aplicado_otros": return b?.aplicadoOtros ?? 0;
-        case "disponible_facturas": return b?.disponibleFacturas ?? Number(p.monto_disponible) ?? 0;
-        case "tipo_pago": return FORMA_PAGO_LABEL[p.tipo_pago || ""] || p.tipo_pago || "";
-        case "estatus_pago": return p.estatus_pago || "";
-        case "estado_pago": return p.estado_pago || "";
-        default: return "";
-      }
-    };
-    const sorted = [...filtered].sort((a, b) => {
-      const va = getVal(a); const vb = getVal(b);
-      if (typeof va === "number" && typeof vb === "number") return va - vb;
-      return String(va).localeCompare(String(vb), "es", { numeric: true });
-    });
-    return pagosSortDir === "desc" ? sorted.reverse() : sorted;
-  }, [pagos, searchPagos, pagosConditions, pagosCombinator, breakdowns, pagosSortKey, pagosSortDir]);
+  }, [pagos, searchPagos, pagosConditions, pagosCombinator, breakdowns]);
 
   const facturasFiltradas = useMemo(() => {
     const q = searchFacturas.toLowerCase();
@@ -663,38 +560,6 @@ export default function Cobranza() {
         </Button>
       </div>
 
-      {/* Filtro superior de fechas */}
-      <Card>
-        <CardContent className="p-3 flex flex-wrap gap-2 items-center">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <CalendarIcon className="h-3.5 w-3.5" />
-                Desde: {format(from, "dd MMM yyyy", { locale: es })}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={from} onSelect={(d) => { if (d) setFrom(startOfDay(d)); }} className="p-3 pointer-events-auto" />
-            </PopoverContent>
-          </Popover>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <CalendarIcon className="h-3.5 w-3.5" />
-                Hasta: {format(to, "dd MMM yyyy", { locale: es })}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={to} onSelect={(d) => { if (d) setTo(endOfDay(d)); }} className="p-3 pointer-events-auto" />
-            </PopoverContent>
-          </Popover>
-          <Button variant="ghost" size="sm" onClick={() => { setFrom(startOfDay(new Date())); setTo(endOfDay(new Date())); }}>Hoy</Button>
-          <Button variant="ghost" size="sm" onClick={() => { const d = new Date(); d.setDate(d.getDate() - 7); setFrom(startOfDay(d)); setTo(endOfDay(new Date())); }}>7 días</Button>
-          <Button variant="ghost" size="sm" onClick={() => { const n = new Date(); setFrom(startOfDay(startOfMonth(n))); setTo(endOfDay(endOfMonth(n))); }}>Mes Actual</Button>
-          <Button variant="ghost" size="sm" onClick={() => { const n = subMonths(new Date(), 1); setFrom(startOfDay(startOfMonth(n))); setTo(endOfDay(endOfMonth(n))); }}>Mes Anterior</Button>
-        </CardContent>
-      </Card>
-
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -716,100 +581,41 @@ export default function Cobranza() {
             />
           ) : (
           <>
-          {/* FILA 1 — KPIs DE CARTERA TOTAL */}
+          {/* KPIs unificadas — clic abre Seguimiento prefiltrado */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <CarteraKpiCard
-              title="Cartera Total"
-              total={sumSaldo(facturas)}
-              facturasCount={facturas.length}
-              facturasPctOfTotal={null}
-              vencidasCount={facturasVencidasKpi.length}
-              vencidasPct={pct(facturasVencidasKpi.length, facturas.length)}
-              enTiempoCount={facturasEnTiempoKpi.length}
-              enTiempoPct={pct(facturasEnTiempoKpi.length, facturas.length)}
-              icon={Wallet}
-              onClick={() => setActiveTab("facturas")}
-            />
-            <CarteraKpiCard
-              title="Crédito Directo"
-              total={sumSaldo(facturasCreditoDirectoKpi)}
-              facturasCount={facturasCreditoDirectoKpi.length}
-              facturasPctOfTotal={pct(facturasCreditoDirectoKpi.length, facturas.length)}
-              vencidasCount={facturasDirectoVencidas.length}
-              vencidasPct={pct(facturasDirectoVencidas.length, facturasCreditoDirectoKpi.length)}
-              enTiempoCount={facturasDirectoEnTiempo.length}
-              enTiempoPct={pct(facturasDirectoEnTiempo.length, facturasCreditoDirectoKpi.length)}
-              icon={Wallet}
-              onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
-            />
-            <CarteraKpiCard
-              title="Crédito Cescemex"
-              total={sumSaldo(facturasCreditoCescemexKpi)}
-              facturasCount={facturasCreditoCescemexKpi.length}
-              facturasPctOfTotal={pct(facturasCreditoCescemexKpi.length, facturas.length)}
-              vencidasCount={facturasCescemexVencidas.length}
-              vencidasPct={pct(facturasCescemexVencidas.length, facturasCreditoCescemexKpi.length)}
-              enTiempoCount={facturasCescemexEnTiempo.length}
-              enTiempoPct={pct(facturasCescemexEnTiempo.length, facturasCreditoCescemexKpi.length)}
-              icon={Wallet}
-              onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
-            />
-          </div>
-
-          {/* FILA 2 — KPIs DE VENCIMIENTO */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <VencidoKpiCard
-              title="Cartera Vencida"
-              total={sumSaldo(facturasVencidasKpi)}
+            <UnifiedKpiCard
+              title="Vencimiento"
               count={facturasVencidasKpi.length}
-              pctOfVencido={null}
+              total={sumSaldo(facturasVencidasKpi)}
+              icon={AlertTriangle}
+              variant="destructive"
               onClick={() => { setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
             />
-            <VencidoKpiCard
-              title="Vencido Crédito Directo"
-              total={sumSaldo(facturasDirectoVencidas)}
-              count={facturasDirectoVencidas.length}
-              pctOfVencido={pct(sumSaldo(facturasDirectoVencidas), sumSaldo(facturasVencidasKpi))}
+            <UnifiedKpiCard
+              title="Crédito Directo"
+              count={facturasCreditoDirectoKpi.length}
+              total={sumSaldo(facturasCreditoDirectoKpi)}
+              icon={Wallet}
               onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
             />
-            <VencidoKpiCard
-              title="Vencido Crédito Cescemex"
-              total={sumSaldo(facturasCescemexVencidas)}
-              count={facturasCescemexVencidas.length}
-              pctOfVencido={pct(sumSaldo(facturasCescemexVencidas), sumSaldo(facturasVencidasKpi))}
+            <UnifiedKpiCard
+              title="Crédito Cescemex"
+              count={facturasCreditoCescemexKpi.length}
+              total={sumSaldo(facturasCreditoCescemexKpi)}
+              icon={Wallet}
               onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
             />
           </div>
 
-          {/* FILA 3 — KPIs OPERATIVOS / RECUPERACIÓN */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">Cobrado del periodo</p>
-                    <p className="text-2xl font-bold mt-1 text-primary">{formatCurrency(cartera.cobradoMes)}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{cartera.facturasPagadas} facturas pagadas · {cartera.pagosEnRangoCount} pagos</p>
-                  </div>
-                  <CheckCircle2 className="h-8 w-8 shrink-0 text-muted-foreground/30" />
-                </div>
-              </CardContent>
-            </Card>
-            <ClientesKpiCard
-              title="Clientes en Cartera Vencida"
-              count={clientesStats.vencTotal}
-              pctOfTotal={pct(clientesStats.vencTotal, clientesStats.total)}
-              directo={clientesStats.vencDirecto}
-              cescemex={clientesStats.vencCescemex}
-              variant="destructive"
-            />
-            <ClientesKpiCard
-              title="Clientes en Tiempo"
-              count={clientesStats.tiempoTotal}
-              pctOfTotal={pct(clientesStats.tiempoTotal, clientesStats.total)}
-              directo={clientesStats.tiempoDirecto}
-              cescemex={clientesStats.tiempoCescemex}
-            />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <KpiCard title="Cartera abierta" value={formatCurrency(cartera.abierta)} icon={Wallet} />
+            <KpiCard title="Cartera vencida" value={formatCurrency(cartera.vencida)} icon={AlertTriangle} variant="destructive" />
+            <KpiCard title="Por vencer" value={formatCurrency(cartera.porVencer)} icon={Clock} />
+            <KpiCard title="Cobrado del mes" value={formatCurrency(cartera.cobradoMes)} icon={CheckCircle2} variant="success" />
+            <KpiCard title="Pagos no aplicados" value={formatCurrency(cartera.noAplicado)} icon={Wallet} />
+            <KpiCard title="Facturas parciales" value={String(cartera.facturasParciales)} icon={Clock} />
+            <KpiCard title="Facturas pagadas" value={String(cartera.facturasPagadas)} icon={CheckCircle2} variant="success" />
+            <KpiCard title="Total pagos" value={String(pagos.length)} icon={Wallet} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -839,49 +645,11 @@ export default function Cobranza() {
               <CardContent>
                 <Table>
                   <TableHeader><TableRow>
-                    {([
-                      ["folio", "Folio", ""],
-                      ["cliente", "Cliente", ""],
-                      ["vence", "Vence", ""],
-                      ["saldo", "Saldo", "text-right"],
-                    ] as const).map(([key, label, align]) => {
-                      const active = proxSortKey === key;
-                      const Icon = !active ? ArrowUpDown : proxSortDir === "asc" ? ArrowUp : ArrowDown;
-                      return (
-                        <TableHead key={key} className={align}>
-                          <button
-                            type="button"
-                            onClick={() => toggleProxSort(key)}
-                            className={`inline-flex items-center gap-1 hover:text-foreground ${align === "text-right" ? "ml-auto" : ""} ${active ? "text-foreground font-semibold" : ""}`}
-                          >
-                            {label}
-                            <Icon className="h-3.5 w-3.5 opacity-70" />
-                          </button>
-                        </TableHead>
-                      );
-                    })}
-                    <TableHead className="w-10"></TableHead>
+                    <TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Vence</TableHead><TableHead className="text-right">Saldo</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
-                    {proximasVencer.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin facturas pendientes</TableCell></TableRow>}
-                    {(() => {
-                      if (!proxSortKey || !proxSortDir) return proximasVencer;
-                      const getVal = (f: any) => {
-                        switch (proxSortKey) {
-                          case "folio": return f.numero_factura || "";
-                          case "cliente": return f.empresa?.name || "";
-                          case "vence": return fechaVencimientoEfectiva(f) || "";
-                          case "saldo": return Number(f.saldo_pendiente_cobranza) || 0;
-                          default: return "";
-                        }
-                      };
-                      const sorted = [...proximasVencer].sort((a, b) => {
-                        const va = getVal(a); const vb = getVal(b);
-                        if (typeof va === "number" && typeof vb === "number") return va - vb;
-                        return String(va).localeCompare(String(vb), "es", { numeric: true });
-                      });
-                      return proxSortDir === "desc" ? sorted.reverse() : sorted;
-                    })().map((f) => {
+                    {proximasVencer.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin facturas pendientes</TableCell></TableRow>}
+                    {proximasVencer.map((f) => {
                       const d = diasParaVencer(fechaVencimientoEfectiva(f));
                       return (
                         <TableRow key={f.id}>
@@ -894,11 +662,6 @@ export default function Cobranza() {
                             </span>
                           </TableCell>
                           <TableCell className="text-right">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
-                          <TableCell className="text-right">
-                            <Button size="sm" variant="ghost" onClick={() => window.open(`/documentos/${f.id}`, "_blank")} title="Abrir documento">
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -949,34 +712,14 @@ export default function Cobranza() {
             <CardContent className="p-0">
               <Table>
                 <TableHeader><TableRow>
-                  {([
-                    ["fecha_pago", "Fecha", ""],
-                    ["empresa", "Cliente", ""],
-                    ["plaza", "Plaza", ""],
-                    ["monto_total", "Total", "text-right"],
-                    ["aplicado_facturas", "Aplicado a Facturas", "text-right"],
-                    ["aplicado_otros", "Aplicado a Cot/Pedidos", "text-right"],
-                    ["disponible_facturas", "Disponible (facturas)", "text-right"],
-                    ["tipo_pago", "Forma", ""],
-                    ["estatus_pago", "Estatus Pago", ""],
-                    ["estado_pago", "Estado", ""],
-                  ] as const).map(([key, label, align]) => {
-                    const active = pagosSortKey === key;
-                    const Icon = !active ? ArrowUpDown : pagosSortDir === "asc" ? ArrowUp : ArrowDown;
-                    return (
-                      <TableHead key={key} className={align}>
-                        <button
-                          type="button"
-                          onClick={() => togglePagosSort(key)}
-                          className={`inline-flex items-center gap-1 hover:text-foreground ${align === "text-right" ? "ml-auto" : ""} ${active ? "text-foreground font-semibold" : ""}`}
-                        >
-                          {label}
-                          <Icon className="h-3.5 w-3.5 opacity-70" />
-                        </button>
-                      </TableHead>
-                    );
-                  })}
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead>Fecha</TableHead><TableHead>Cliente</TableHead><TableHead>Plaza</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Aplicado a Facturas</TableHead>
+                  <TableHead className="text-right">Aplicado a Cot/Pedidos</TableHead>
+                  <TableHead className="text-right">Disponible (facturas)</TableHead>
+                  <TableHead>Forma</TableHead>
+                  <TableHead>Estatus Pago</TableHead>
+                  <TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {loadingPagos && <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
@@ -1107,116 +850,6 @@ function UnifiedKpiCard({
             <p className="text-xs text-muted-foreground mt-0.5">{count} facturas</p>
           </div>
           <Icon className={`h-8 w-8 shrink-0 ${variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30"}`} />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function CarteraKpiCard({
-  title, total, facturasCount, facturasPctOfTotal, vencidasCount, vencidasPct, enTiempoCount, enTiempoPct, icon: Icon, onClick,
-}: {
-  title: string;
-  total: number;
-  facturasCount: number;
-  facturasPctOfTotal: number | null;
-  vencidasCount: number;
-  vencidasPct: number;
-  enTiempoCount: number;
-  enTiempoPct: number;
-  icon: any;
-  onClick?: () => void;
-}) {
-  return (
-    <Card
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={(e) => { if (onClick && (e.key === "Enter" || e.key === " ")) onClick(); }}
-      className={onClick ? "cursor-pointer hover:shadow-md hover:border-primary/40 transition-all" : ""}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold mt-1">{formatCurrency(total)}</p>
-            <p className="text-base font-semibold mt-1">
-              Facturas: {facturasCount}
-              {facturasPctOfTotal !== null && (
-                <span className="text-muted-foreground font-normal"> ({facturasPctOfTotal}%)</span>
-              )}
-            </p>
-            <div className="mt-2 space-y-0.5 text-xs">
-              <p className="text-destructive">Vencidas: {vencidasCount} <span className="text-muted-foreground">({vencidasPct}%)</span></p>
-              <p className="text-muted-foreground">En tiempo: {enTiempoCount} <span>({enTiempoPct}%)</span></p>
-            </div>
-          </div>
-          <Icon className="h-8 w-8 shrink-0 text-muted-foreground/30" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function VencidoKpiCard({
-  title, total, count, pctOfVencido, onClick,
-}: {
-  title: string;
-  total: number;
-  count: number;
-  pctOfVencido: number | null;
-  onClick?: () => void;
-}) {
-  return (
-    <Card
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={(e) => { if (onClick && (e.key === "Enter" || e.key === " ")) onClick(); }}
-      className={onClick ? "cursor-pointer hover:shadow-md hover:border-primary/40 transition-all" : ""}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold mt-1 text-destructive">{formatCurrency(total)}</p>
-            <p className="text-sm mt-1">{count} facturas</p>
-            {pctOfVencido !== null && (
-              <p className="text-xs text-muted-foreground mt-0.5">{pctOfVencido}% de cartera vencida</p>
-            )}
-          </div>
-          <AlertTriangle className="h-8 w-8 shrink-0 text-destructive/30" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ClientesKpiCard({
-  title, count, pctOfTotal, directo, cescemex, variant,
-}: {
-  title: string;
-  count: number;
-  pctOfTotal: number;
-  directo: number;
-  cescemex: number;
-  variant?: "destructive";
-}) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground">{title}</p>
-            <p className={`text-2xl font-bold mt-1 ${variant === "destructive" ? "text-destructive" : ""}`}>
-              {count} <span className="text-base font-normal text-muted-foreground">({pctOfTotal}%)</span>
-            </p>
-            <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
-              <p>Crédito Directo: <span className="font-medium text-foreground">{directo}</span></p>
-              <p>Crédito Cescemex: <span className="font-medium text-foreground">{cescemex}</span></p>
-            </div>
-          </div>
-          <Users className={`h-8 w-8 shrink-0 ${variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30"}`} />
         </div>
       </CardContent>
     </Card>
@@ -1897,7 +1530,7 @@ function _LegacyBucketTable({ facturas }: { facturas: any[] }) {
                         size="icon"
                         aria-label="Ver documento"
                         title="Ver documento"
-                        onClick={() => window.open(`/documents/${f.id}/edit`, "_blank")}
+                        onClick={() => navigate(`/documents/${f.id}/edit`)}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>
