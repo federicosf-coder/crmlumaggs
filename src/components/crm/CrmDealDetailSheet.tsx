@@ -503,7 +503,6 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                 )}
 
                 <div className="rounded-lg shadow-sm bg-gray-50 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm" style={sectionStyle}>
-                  <div><span className="text-muted-foreground">Potencial (u)</span><p className="font-semibold text-lg">{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(Number((deal as any).potencial_unidades) || Number((deal as any).volumen_mensual_estimado) || 0)}</p></div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-muted-foreground">Etapa</span>
                     <div className="mt-[2px]">
