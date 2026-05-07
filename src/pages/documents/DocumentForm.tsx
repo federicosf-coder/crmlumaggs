@@ -299,6 +299,7 @@ export default function DocumentForm() {
   // Auto-calculate fecha_vencimiento for Facturas based on tipo_pago
   // Contado => same day; Crédito / Crédito Cescemex => +30 days
   useEffect(() => {
+    if (isEdit) return;
     if (form.tipo_documento !== "factura") return;
     if (!form.fecha_documento || !form.tipo_pago) return;
     const base = new Date(form.fecha_documento + "T12:00:00");
@@ -307,7 +308,7 @@ export default function DocumentForm() {
     if (venc !== form.fecha_vencimiento) {
       set("fecha_vencimiento", venc);
     }
-  }, [form.tipo_documento, form.tipo_pago, form.fecha_documento]);
+  }, [form.tipo_documento, form.tipo_pago, form.fecha_documento, isEdit]);
 
   useEffect(() => {
     if (existingDoc) {
