@@ -616,6 +616,10 @@ export default function Cobranza() {
         </Button>
       </div>
 
+      <div className="text-sm text-muted-foreground">
+        Fecha del reporte: <span className="font-medium text-foreground">{new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
