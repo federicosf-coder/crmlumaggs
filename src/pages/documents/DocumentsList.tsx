@@ -644,6 +644,12 @@ export default function DocumentsList() {
           { value: "galsa_phillips66", label: "Galsa Phillips 66" },
         ],
       },
+      {
+        key: "plaza_id",
+        label: "Plaza",
+        type: "select",
+        options: plazas.map((p: any) => ({ value: p.id, label: p.nombre })),
+      },
     ];
     if (tipoFilter === "cotizacion") {
       fields.push({
