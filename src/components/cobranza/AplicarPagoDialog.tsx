@@ -11,6 +11,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { CobranzaPago } from "@/hooks/useCobranza";
 import { formatCurrency } from "@/lib/formatters";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   open: boolean;
@@ -27,6 +31,7 @@ export function AplicarPagoDialog({ open, onOpenChange, pago, onSaved }: Props) 
   const [monto, setMonto] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmAjuste, setConfirmAjuste] = useState(false);
 
   useEffect(() => {
     if (!open || !pago) return;
@@ -77,6 +82,29 @@ export function AplicarPagoDialog({ open, onOpenChange, pago, onSaved }: Props) 
 
   if (!pago) return null;
 
+  const showAjuste = pago.monto_disponible > 0 && pago.monto_disponible < 25;
+
+  const handleAjusteManual = async () => {
+    if (!pago || !docId) { toast.error("Selecciona un documento primero"); return; }
+    setSaving(true);
+    const { error } = await supabase.from("cobranza_aplicaciones").insert({
+      pago_id: pago.id,
+      tipo_documento: "factura",
+      documento_id: docId,
+      monto_aplicado: pago.monto_disponible,
+      fecha_aplicacion: new Date().toISOString().split("T")[0],
+      observaciones: "Ajuste Contable Diferencias",
+      origen_aplicacion: "ajuste_manual",
+      creado_por: user?.id,
+    });
+    setSaving(false);
+    setConfirmAjuste(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Ajuste contable aplicado");
+    onSaved();
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
@@ -123,8 +151,34 @@ export function AplicarPagoDialog({ open, onOpenChange, pago, onSaved }: Props) 
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          {showAjuste && (
+            <Button
+              variant="secondary"
+              onClick={() => setConfirmAjuste(true)}
+              disabled={saving || !docId}
+              title={!docId ? "Selecciona un documento primero" : ""}
+            >
+              Ajuste Manual ({formatCurrency(pago.monto_disponible)})
+            </Button>
+          )}
           <Button onClick={handleSave} disabled={saving}>{saving ? "Aplicando..." : "Aplicar"}</Button>
         </DialogFooter>
+        <AlertDialog open={confirmAjuste} onOpenChange={setConfirmAjuste}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Ajuste Manual</AlertDialogTitle>
+              <AlertDialogDescription>
+                ¿Aplicar {formatCurrency(pago.monto_disponible)} como Ajuste Contable Diferencias?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleAjusteManual} disabled={saving}>
+                {saving ? "Aplicando..." : "Confirmar"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
