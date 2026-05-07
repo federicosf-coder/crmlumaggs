@@ -234,6 +234,15 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
 
   const dealActivities = activities?.filter((a) => a.deal_id === deal.id) || [];
   const currentStage = stages.find((s) => s.id === deal.stage_id);
+  const isPhillips = dealPipeline?.marca === "phillips66";
+  const headerGradient = isPhillips
+    ? "bg-gradient-to-r from-red-50 via-orange-50 to-amber-50 border-l-4 border-red-500"
+    : "bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-l-4 border-blue-500";
+  const stageColor = currentStage?.color || "hsl(var(--primary))";
+  const sectionStyle: React.CSSProperties = {
+    borderLeftColor: stageColor,
+    borderLeftWidth: 4,
+  };
   const isRecompra = (deal as any).pipeline_type === "recompra";
   const periodoLabel = isRecompra ? formatMonthYear((deal as any).mes_negocio) : "";
   const cierreDefault =
