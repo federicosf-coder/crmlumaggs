@@ -550,6 +550,14 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         .in("id", pendingContactIds);
     }
 
+    // Guardar contacto principal si fue seleccionado durante la creación
+    if (!isEdit && primaryContactId) {
+      await supabase
+        .from("companies")
+        .update({ primary_contact_id: primaryContactId } as any)
+        .eq("id", companyId);
+    }
+
     setSaving(false);
     toast.success(isEdit ? "Empresa actualizada" : "Empresa creada");
     reset();
