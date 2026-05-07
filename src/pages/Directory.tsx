@@ -370,18 +370,44 @@ export default function Directory() {
     }
   }, [selectId, activeTab, companies, contacts, setSearchParams]);
 
+  const companyHasVenta = (c: Company) =>
+    Boolean((c as any).fecha_ultima_compra_chevron || (c as any).fecha_ultima_compra_phillips66 || (c as any).fecha_ultima_compra);
+  const companyEjecutivoName = (c: Company) => {
+    const ids = companyEjecutivosMap[c.id] || [];
+    if (ids.length === 0) return "";
+    const p = allProfiles.find((pr: any) => pr.user_id === ids[0]);
+    return p?.full_name || p?.email || "";
+  };
   const filteredCompanies = companies
     .filter(c => c.name.toLowerCase().includes(companySearch.toLowerCase()))
     .sort((a, b) => {
-      switch (companySort) {
-        case "name_asc": return a.name.localeCompare(b.name);
-        case "name_desc": return b.name.localeCompare(a.name);
-        case "industry": return (a.industry || "").localeCompare(b.industry || "");
-        case "plaza": return ((a.plazas as any)?.nombre || "").localeCompare((b.plazas as any)?.nombre || "");
-        case "contacts_desc": return ((b.contacts as any[])?.length || 0) - ((a.contacts as any[])?.length || 0);
+      const dir = companySortDir === "asc" ? 1 : -1;
+      switch (companySortField) {
+        case "name": return a.name.localeCompare(b.name) * dir;
+        case "id_contpaq": return (a.id_contpaq || "").localeCompare(b.id_contpaq || "") * dir;
+        case "industry": return (a.industry || "").localeCompare(b.industry || "") * dir;
+        case "plaza": return ((a.plazas as any)?.nombre || "").localeCompare((b.plazas as any)?.nombre || "") * dir;
+        case "contacts": return (((a.contacts as any[])?.length || 0) - ((b.contacts as any[])?.length || 0)) * dir;
+        case "ejecutivo": return companyEjecutivoName(a).localeCompare(companyEjecutivoName(b)) * dir;
+        case "venta": return ((companyHasVenta(a) ? 1 : 0) - (companyHasVenta(b) ? 1 : 0)) * dir;
+        case "estado": return ((a.is_active ? 1 : 0) - (b.is_active ? 1 : 0)) * dir;
         default: return 0;
       }
     });
+  const toggleCompanySort = (field: typeof companySortField) => {
+    if (companySortField === field) {
+      setCompanySortDir(d => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setCompanySortField(field);
+      setCompanySortDir("asc");
+    }
+  };
+  const SortIcon = ({ field }: { field: typeof companySortField }) => {
+    if (companySortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 inline opacity-50" />;
+    return companySortDir === "asc"
+      ? <ChevronUp className="h-3 w-3 ml-1 inline" />
+      : <ChevronDown className="h-3 w-3 ml-1 inline" />;
+  };
   const filteredContacts = contacts
     .filter(c => {
       const q = contactSearch.trim().toLowerCase();
