@@ -59,6 +59,7 @@ export interface DocumentoCobranza {
   tipo_pago: "contado" | "credito" | "credito_cescemex" | null;
   empresa_id: string | null;
   plaza_id: string | null;
+  ejecutivo_venta_id?: string | null;
   empresa?: { id: string; name: string } | null;
   plaza?: { id: string; nombre: string } | null;
 }
