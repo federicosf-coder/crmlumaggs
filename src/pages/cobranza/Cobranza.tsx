@@ -365,6 +365,56 @@ export default function Cobranza() {
 
   const sumSaldo = (arr: typeof facturas) => arr.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
 
+  // Derivados para el nuevo layout de KPIs (no altera la lógica base)
+  const dashKpis = useMemo(() => {
+    const totalCount = facturas.length || 0;
+    const totalSaldo = sumSaldo(facturas);
+    const pct = (n: number, d: number) => (d > 0 ? (n / d) * 100 : 0);
+    const fmtPct = (n: number, d: number) => `${pct(n, d).toFixed(1)}%`;
+
+    const vencidas = facturasVencidasKpi;
+    const enTiempo = facturas.filter((f) => !isVencida(f));
+
+    const directo = facturasCreditoDirectoKpi;
+    const cescemex = facturasCreditoCescemexKpi;
+
+    const directoVencidas = directo.filter(isVencida);
+    const directoEnTiempo = directo.filter((f) => !isVencida(f));
+    const cescemexVencidas = cescemex.filter(isVencida);
+    const cescemexEnTiempo = cescemex.filter((f) => !isVencida(f));
+
+    const uniq = (arr: typeof facturas) => new Set(arr.map((f) => f.empresa?.id || f.empresa?.name).filter(Boolean));
+    const clientesVencidos = uniq(vencidas);
+    const clientesEnTiempo = uniq(enTiempo);
+    const clientesTotales = uniq(facturas);
+    const clientesVencidosDirecto = uniq(directoVencidas);
+    const clientesVencidosCescemex = uniq(cescemexVencidas);
+    const clientesEnTiempoDirecto = uniq(directoEnTiempo);
+    const clientesEnTiempoCescemex = uniq(cescemexEnTiempo);
+
+    return {
+      totalCount,
+      totalSaldo,
+      pct,
+      fmtPct,
+      vencidas,
+      enTiempo,
+      directo,
+      cescemex,
+      directoVencidas,
+      directoEnTiempo,
+      cescemexVencidas,
+      cescemexEnTiempo,
+      clientesVencidos,
+      clientesEnTiempo,
+      clientesTotales,
+      clientesVencidosDirecto,
+      clientesVencidosCescemex,
+      clientesEnTiempoDirecto,
+      clientesEnTiempoCescemex,
+    };
+  }, [facturas, facturasVencidasKpi, facturasCreditoDirectoKpi, facturasCreditoCescemexKpi]);
+
   // KPIs
   const cartera = useMemo(() => {
     const abierta = facturas.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
@@ -581,41 +631,102 @@ export default function Cobranza() {
             />
           ) : (
           <>
-          {/* KPIs unificadas — clic abre Seguimiento prefiltrado */}
+          {/* Fila 1: Cartera Total + Crédito Directo + Crédito Cescemex */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <UnifiedKpiCard
-              title="Vencimiento"
-              count={facturasVencidasKpi.length}
-              total={sumSaldo(facturasVencidasKpi)}
-              icon={AlertTriangle}
-              variant="destructive"
-              onClick={() => { setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
-            />
-            <UnifiedKpiCard
-              title="Crédito Directo"
-              count={facturasCreditoDirectoKpi.length}
-              total={sumSaldo(facturasCreditoDirectoKpi)}
+            <DetailedKpiCard
+              title="Cartera Total"
+              total={dashKpis.totalSaldo}
+              countLabel={`${dashKpis.totalCount} facturas`}
               icon={Wallet}
+              lines={[
+                { label: "Vencidas", value: `${dashKpis.vencidas.length} (${dashKpis.fmtPct(dashKpis.vencidas.length, dashKpis.totalCount)}) · ${formatCurrency(sumSaldo(dashKpis.vencidas))}`, tone: "destructive" },
+                { label: "En tiempo", value: `${dashKpis.enTiempo.length} (${dashKpis.fmtPct(dashKpis.enTiempo.length, dashKpis.totalCount)}) · ${formatCurrency(sumSaldo(dashKpis.enTiempo))}` },
+              ]}
+              onClick={() => { setFacturasPrefilter("none"); setActiveTab("facturas"); }}
+            />
+            <DetailedKpiCard
+              title="Crédito Directo"
+              total={sumSaldo(dashKpis.directo)}
+              countLabel={`${dashKpis.directo.length} facturas (${dashKpis.fmtPct(dashKpis.directo.length, dashKpis.totalCount)} del total)`}
+              icon={Wallet}
+              lines={[
+                { label: "Vencidas", value: `${dashKpis.directoVencidas.length} (${dashKpis.fmtPct(dashKpis.directoVencidas.length, dashKpis.directo.length)}) · ${formatCurrency(sumSaldo(dashKpis.directoVencidas))}`, tone: "destructive" },
+                { label: "En tiempo", value: `${dashKpis.directoEnTiempo.length} (${dashKpis.fmtPct(dashKpis.directoEnTiempo.length, dashKpis.directo.length)}) · ${formatCurrency(sumSaldo(dashKpis.directoEnTiempo))}` },
+              ]}
               onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
             />
-            <UnifiedKpiCard
+            <DetailedKpiCard
               title="Crédito Cescemex"
-              count={facturasCreditoCescemexKpi.length}
-              total={sumSaldo(facturasCreditoCescemexKpi)}
+              total={sumSaldo(dashKpis.cescemex)}
+              countLabel={`${dashKpis.cescemex.length} facturas (${dashKpis.fmtPct(dashKpis.cescemex.length, dashKpis.totalCount)} del total)`}
               icon={Wallet}
+              lines={[
+                { label: "Vencidas", value: `${dashKpis.cescemexVencidas.length} (${dashKpis.fmtPct(dashKpis.cescemexVencidas.length, dashKpis.cescemex.length)}) · ${formatCurrency(sumSaldo(dashKpis.cescemexVencidas))}`, tone: "destructive" },
+                { label: "En tiempo", value: `${dashKpis.cescemexEnTiempo.length} (${dashKpis.fmtPct(dashKpis.cescemexEnTiempo.length, dashKpis.cescemex.length)}) · ${formatCurrency(sumSaldo(dashKpis.cescemexEnTiempo))}` },
+              ]}
               onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KpiCard title="Cartera abierta" value={formatCurrency(cartera.abierta)} icon={Wallet} />
-            <KpiCard title="Cartera vencida" value={formatCurrency(cartera.vencida)} icon={AlertTriangle} variant="destructive" />
-            <KpiCard title="Por vencer" value={formatCurrency(cartera.porVencer)} icon={Clock} />
-            <KpiCard title="Cobrado del mes" value={formatCurrency(cartera.cobradoMes)} icon={CheckCircle2} variant="success" />
-            <KpiCard title="Pagos no aplicados" value={formatCurrency(cartera.noAplicado)} icon={Wallet} />
-            <KpiCard title="Facturas parciales" value={String(cartera.facturasParciales)} icon={Clock} />
-            <KpiCard title="Facturas pagadas" value={String(cartera.facturasPagadas)} icon={CheckCircle2} variant="success" />
-            <KpiCard title="Total pagos" value={String(pagos.length)} icon={Wallet} />
+          {/* Fila 2: KPIs de vencimiento */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <DetailedKpiCard
+              title="Cartera Vencida"
+              total={cartera.vencida}
+              countLabel={`${dashKpis.vencidas.length} facturas`}
+              icon={AlertTriangle}
+              variant="destructive"
+              onClick={() => { setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
+            />
+            <DetailedKpiCard
+              title="Vencido Crédito Directo"
+              total={sumSaldo(dashKpis.directoVencidas)}
+              countLabel={`${dashKpis.directoVencidas.length} facturas (${dashKpis.fmtPct(dashKpis.directoVencidas.length, dashKpis.vencidas.length)} de la vencida)`}
+              icon={AlertTriangle}
+              variant="destructive"
+              onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
+            />
+            <DetailedKpiCard
+              title="Vencido Crédito Cescemex"
+              total={sumSaldo(dashKpis.cescemexVencidas)}
+              countLabel={`${dashKpis.cescemexVencidas.length} facturas (${dashKpis.fmtPct(dashKpis.cescemexVencidas.length, dashKpis.vencidas.length)} de la vencida)`}
+              icon={AlertTriangle}
+              variant="destructive"
+              onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
+            />
+          </div>
+
+          {/* Fila 3: Cobrado del mes + Clientes vencidos + Clientes en tiempo (con desglose por crédito) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <DetailedKpiCard
+              title="Cobrado del mes"
+              total={cartera.cobradoMes}
+              countLabel={`${cartera.facturasPagadas} facturas pagadas · ${pagos.length} pagos`}
+              icon={CheckCircle2}
+              variant="success"
+            />
+            <DetailedKpiCard
+              title="Clientes en cartera vencida"
+              valueOverride={`${dashKpis.clientesVencidos.size}`}
+              countLabel={`${dashKpis.fmtPct(dashKpis.clientesVencidos.size, dashKpis.clientesTotales.size)} del total`}
+              icon={AlertTriangle}
+              variant="destructive"
+              lines={[
+                { label: "Crédito Directo", value: `${dashKpis.clientesVencidosDirecto.size}` },
+                { label: "Crédito Cescemex", value: `${dashKpis.clientesVencidosCescemex.size}` },
+              ]}
+            />
+            <DetailedKpiCard
+              title="Clientes en tiempo"
+              valueOverride={`${dashKpis.clientesEnTiempo.size}`}
+              countLabel={`${dashKpis.fmtPct(dashKpis.clientesEnTiempo.size, dashKpis.clientesTotales.size)} del total`}
+              icon={CheckCircle2}
+              variant="success"
+              lines={[
+                { label: "Crédito Directo", value: `${dashKpis.clientesEnTiempoDirecto.size}` },
+                { label: "Crédito Cescemex", value: `${dashKpis.clientesEnTiempoCescemex.size}` },
+              ]}
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -811,6 +922,68 @@ function KpiCard({ title, value, icon: Icon, variant }: { title: string; value: 
             <p className={`text-xl font-bold mt-1 ${variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : ""}`}>{value}</p>
           </div>
           <Icon className={`h-8 w-8 ${variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30"}`} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DetailedKpiCard({
+  title,
+  total,
+  valueOverride,
+  countLabel,
+  icon: Icon,
+  variant,
+  lines,
+  onClick,
+}: {
+  title: string;
+  total?: number;
+  valueOverride?: string;
+  countLabel?: string;
+  icon: any;
+  variant?: "destructive" | "success";
+  lines?: { label: string; value: string; tone?: "destructive" | "success" }[];
+  onClick?: () => void;
+}) {
+  const valueClass =
+    variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : "";
+  const iconClass =
+    variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30";
+  const clickable = !!onClick;
+  return (
+    <Card
+      onClick={onClick}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") onClick!(); } : undefined}
+      className={clickable ? "cursor-pointer hover:shadow-md hover:border-primary/40 transition-all" : ""}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className={`text-2xl font-bold mt-1 ${valueClass}`}>
+              {valueOverride !== undefined ? valueOverride : formatCurrency(total || 0)}
+            </p>
+            {countLabel && (
+              <p className="text-sm text-muted-foreground mt-1">{countLabel}</p>
+            )}
+            {lines && lines.length > 0 && (
+              <div className="mt-2 space-y-0.5">
+                {lines.map((l, i) => (
+                  <div key={i} className="flex justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground">{l.label}:</span>
+                    <span className={l.tone === "destructive" ? "text-destructive font-medium" : l.tone === "success" ? "text-primary font-medium" : "font-medium"}>
+                      {l.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <Icon className={`h-8 w-8 shrink-0 ${iconClass}`} />
         </div>
       </CardContent>
     </Card>
