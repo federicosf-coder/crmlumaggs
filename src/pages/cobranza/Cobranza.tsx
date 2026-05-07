@@ -274,6 +274,12 @@ export default function Cobranza() {
   }, [searchParams, setSearchParams]);
 
   const [searchPagos, setSearchPagos] = useState("");
+  const [pagosSortKey, setPagosSortKey] = useState<string | null>(null);
+  const [pagosSortDir, setPagosSortDir] = useState<"asc" | "desc">("asc");
+  const togglePagosSort = (key: string) => {
+    if (pagosSortKey === key) setPagosSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setPagosSortKey(key); setPagosSortDir("asc"); }
+  };
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
   const [facturasPrefilter, setFacturasPrefilter] = useState<"none" | "vencimiento" | "credito_directo" | "credito_cescemex">("none");
