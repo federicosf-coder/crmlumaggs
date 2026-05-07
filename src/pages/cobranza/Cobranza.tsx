@@ -786,6 +786,9 @@ export default function Cobranza() {
           <Button variant="outline" onClick={handleDescargarReporte}>
             <Download className="h-4 w-4 mr-2" /> Descargar PDF
           </Button>
+          <Button variant="outline" onClick={handleDescargarReporteXlsx}>
+            <Download className="h-4 w-4 mr-2" /> Descargar Excel
+          </Button>
           <Button onClick={() => setOpenRegistrar(true)}>
             <Plus className="h-4 w-4 mr-2" /> Registrar pago
           </Button>
