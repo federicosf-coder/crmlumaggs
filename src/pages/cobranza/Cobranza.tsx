@@ -758,36 +758,6 @@ export default function Cobranza() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>Próximas facturas a vencer</CardTitle></CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader><TableRow>
-                    <TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Vence</TableHead><TableHead className="text-right">Saldo</TableHead>
-                  </TableRow></TableHeader>
-                  <TableBody>
-                    {proximasVencer.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin facturas pendientes</TableCell></TableRow>}
-                    {proximasVencer.map((f) => {
-                      const d = diasParaVencer(fechaVencimientoEfectiva(f));
-                      return (
-                        <TableRow key={f.id}>
-                          <TableCell className="font-mono text-xs">{f.numero_factura || "—"}</TableCell>
-                          <TableCell className="truncate max-w-[160px]">{f.empresa?.name}</TableCell>
-                          <TableCell>
-                            <span className={d !== null && d < 0 ? "text-destructive font-medium" : ""}>
-                              {fechaVencimientoEfectiva(f) ? formatDate(fechaVencimientoEfectiva(f)!) : "—"}
-                              {d !== null && <span className="text-xs text-muted-foreground ml-1">({d}d)</span>}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">{formatCurrency(Number(f.saldo_pendiente_cobranza))}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            <Card>
               <CardHeader><CardTitle>Pagos no aplicados</CardTitle></CardHeader>
               <CardContent>
                 <Table>
