@@ -28,7 +28,7 @@ import { CompanyProcesoDecisionBlock } from "@/components/crm/CompanyProcesoDeci
 import { formatCurrency, formatDate, formatMonthYear, lastDayOfMonth } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Phone, Mail, Calendar, FileText, Trash2, Save, Pencil, X, Plus, MessageCircle, ExternalLink } from "lucide-react";
+import { Phone, Mail, Calendar, FileText, Trash2, Save, Pencil, X, Plus, MessageCircle, ExternalLink, Building2, User, MapPin, Target, TrendingUp, ClipboardList, Briefcase } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCrmActivities } from "@/hooks/useCrmActivities";
@@ -234,6 +234,15 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
 
   const dealActivities = activities?.filter((a) => a.deal_id === deal.id) || [];
   const currentStage = stages.find((s) => s.id === deal.stage_id);
+  const isPhillips = dealPipeline?.marca === "phillips66";
+  const headerGradient = isPhillips
+    ? "bg-gradient-to-r from-red-50 via-orange-50 to-amber-50 border-l-4 border-red-500"
+    : "bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-l-4 border-blue-500";
+  const stageColor = currentStage?.color || "hsl(var(--primary))";
+  const sectionStyle: React.CSSProperties = {
+    borderLeftColor: stageColor,
+    borderLeftWidth: 4,
+  };
   const isRecompra = (deal as any).pipeline_type === "recompra";
   const periodoLabel = isRecompra ? formatMonthYear((deal as any).mes_negocio) : "";
   const cierreDefault =
@@ -296,14 +305,44 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
     <Dialog open={open} onOpenChange={(o) => { if (!o) setEditing(false); onOpenChange(o); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: currentStage?.color }} />
-              {deal.title}
-            </DialogTitle>
-            <Button variant="ghost" size="icon" onClick={() => setEditing(!editing)}>
-              {editing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-            </Button>
+          <div className={`rounded-lg p-4 shadow-sm ${headerGradient}`}>
+            <div className="flex items-start justify-between gap-2">
+              <DialogTitle className="flex items-center gap-2 text-lg">
+                <div className="h-3 w-3 rounded-full ring-2 ring-white" style={{ backgroundColor: stageColor }} />
+                <span>{deal.title}</span>
+              </DialogTitle>
+              <Button variant="ghost" size="icon" onClick={() => setEditing(!editing)}>
+                {editing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              {currentStage && (
+                <Badge
+                  className="text-sm font-semibold px-3 py-1 shadow-sm"
+                  style={{ backgroundColor: stageColor, color: "white" }}
+                >
+                  {currentStage.name}
+                </Badge>
+              )}
+              {plazaName && (
+                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold border shadow-sm ${plazaColor}`}>
+                  <MapPin className="h-3.5 w-3.5" /> {plazaName}
+                </span>
+              )}
+              {isRecompra && (
+                <Badge variant="outline" className="text-sm font-semibold bg-white/70">Recompra</Badge>
+              )}
+              {deal.companies && (
+                <span className="inline-flex items-center gap-1 text-sm font-semibold text-foreground/80">
+                  <Building2 className="h-3.5 w-3.5" /> {deal.companies.name}
+                </span>
+              )}
+              {ownerName && (
+                <span className="inline-flex items-center gap-1 text-sm text-foreground/70">
+                  <User className="h-3.5 w-3.5" /> {ownerName}
+                </span>
+              )}
+            </div>
           </div>
         </DialogHeader>
 
@@ -442,28 +481,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               </TabsList>
 
               {/* === Resumen === */}
-              <TabsContent value="resumen" className="space-y-6 mt-4">
-                {/* Encabezado: empresa · ejecutivo · plaza */}
-                <div className="flex flex-wrap items-center gap-3 text-sm">
-                  {deal.companies && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground text-xs">Empresa</span>
-                      <span className="font-semibold">{deal.companies.name}</span>
-                    </div>
-                  )}
-                  {ownerName && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground text-xs">Ejecutivo</span>
-                      <span className="font-medium">{ownerName}</span>
-                    </div>
-                  )}
-                  {plazaName && (
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${plazaColor}`}>
-                      {plazaName}
-                    </span>
-                  )}
-                </div>
-
+              <TabsContent value="resumen" className="space-y-4 mt-4 min-h-[600px]">
                 {/* Bloques empresa editables */}
                 {deal.company_id && (
                   <DealCompanyInlineBlocks companyId={deal.company_id} />
@@ -477,12 +495,12 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                   />
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="rounded-lg shadow-sm bg-gray-50 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm" style={sectionStyle}>
                   <div><span className="text-muted-foreground">Potencial (u)</span><p className="font-semibold text-lg">{new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(Number((deal as any).potencial_unidades) || Number((deal as any).volumen_mensual_estimado) || 0)}</p></div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-muted-foreground">Etapa</span>
                     <div className="mt-[2px]">
-                      <Badge style={{ backgroundColor: currentStage?.color, color: "white" }}>{currentStage?.name}</Badge>
+                      <Badge className="text-sm font-semibold px-3 py-1" style={{ backgroundColor: stageColor, color: "white" }}>{currentStage?.name}</Badge>
                     </div>
                   </div>
                   {isRecompra && (
@@ -504,21 +522,31 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                     </p>
                   </div>
                 </div>
-                {deal.contacts && <div className="text-sm"><span className="text-muted-foreground">Contacto</span><p className="font-medium">{deal.contacts.first_name} {deal.contacts.last_name}</p></div>}
-                {deal.notes && <div className="text-sm"><span className="text-muted-foreground">Notas</span><p className="mt-1 whitespace-pre-wrap">{deal.notes}</p></div>}
+                {deal.contacts && (
+                  <div className="rounded-lg shadow-sm bg-gray-50 p-3 text-sm" style={sectionStyle}>
+                    <span className="text-muted-foreground inline-flex items-center gap-1"><User className="h-3.5 w-3.5" /> Contacto</span>
+                    <p className="font-medium">{deal.contacts.first_name} {deal.contacts.last_name}</p>
+                  </div>
+                )}
+                {deal.notes && (
+                  <div className="rounded-lg shadow-sm bg-gray-50 p-3 text-sm" style={sectionStyle}>
+                    <span className="text-muted-foreground inline-flex items-center gap-1"><FileText className="h-3.5 w-3.5" /> Notas</span>
+                    <p className="mt-1 whitespace-pre-wrap">{deal.notes}</p>
+                  </div>
+                )}
 
-                <Separator />
-                <div>
-                  <h4 className="text-sm font-semibold mb-3">Avance del negocio (en unidades)</h4>
+                <div className="rounded-lg shadow-sm bg-gray-50 p-4" style={sectionStyle}>
+                  <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5"><TrendingUp className="h-4 w-4" /> Avance del negocio (en unidades)</h4>
                   <DealUnitsProgress deal={deal} />
                 </div>
 
-                <Separator />
-                <CrmDealStrategicAnalysis dealId={deal.id} />
+                <div className="rounded-lg shadow-sm bg-gray-50 p-4" style={sectionStyle}>
+                  <CrmDealStrategicAnalysis dealId={deal.id} />
+                </div>
               </TabsContent>
 
               {/* === Documentos Venta === */}
-              <TabsContent value="documentos" className="mt-4">
+              <TabsContent value="documentos" className="mt-4 min-h-[600px]">
                 <DealDocumentsTab
                   dealId={deal.id}
                   empresaId={deal.company_id ?? null}
@@ -531,10 +559,10 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               </TabsContent>
 
               {/* === Seguimiento === */}
-              <TabsContent value="seguimiento" className="space-y-6 mt-4">
-                <div>
+              <TabsContent value="seguimiento" className="space-y-4 mt-4 min-h-[600px]">
+                <div className="rounded-lg shadow-sm bg-gray-50 p-4" style={sectionStyle}>
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-semibold">Tareas</h4>
+                    <h4 className="text-sm font-semibold inline-flex items-center gap-1.5"><ClipboardList className="h-4 w-4" /> Tareas</h4>
                     <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setTaskDialogOpen(true)}>
                       <Plus className="h-3 w-3 mr-1" /> Agregar Tarea
                     </Button>
@@ -546,10 +574,8 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                   )}
                 </div>
 
-                <Separator />
-
-                <div>
-                  <h4 className="text-sm font-semibold mb-3">Registrar Actividad</h4>
+                <div className="rounded-lg shadow-sm bg-gray-50 p-4" style={sectionStyle}>
+                  <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5"><Target className="h-4 w-4" /> Registrar Actividad</h4>
                   <div className="flex gap-2 mb-2">
                     <Input placeholder="Título de la actividad..." value={activityTitle} onChange={(e) => setActivityTitle(e.target.value)} className="flex-1" />
                   </div>
@@ -561,10 +587,8 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
                   </div>
                 </div>
 
-                <Separator />
-
-                <div>
-                  <h4 className="text-sm font-semibold mb-3">Línea de Tiempo</h4>
+                <div className="rounded-lg shadow-sm bg-gray-50 p-4" style={sectionStyle}>
+                  <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5"><Calendar className="h-4 w-4" /> Línea de Tiempo</h4>
                   {dealActivities.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Sin actividades registradas.</p>
                   ) : (
@@ -593,7 +617,7 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               </TabsContent>
 
               {/* === Evaluación Cliente === */}
-              <TabsContent value="evaluacion" className="mt-4">
+              <TabsContent value="evaluacion" className="mt-4 min-h-[600px]">
                 {deal.company_id ? (
                   <div className="space-y-4">
                     <CompanyProcesoDecisionBlock companyId={deal.company_id} />
