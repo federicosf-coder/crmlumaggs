@@ -716,41 +716,100 @@ export default function Cobranza() {
             />
           ) : (
           <>
-          {/* KPIs unificadas — clic abre Seguimiento prefiltrado */}
+          {/* FILA 1 — KPIs DE CARTERA TOTAL */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <UnifiedKpiCard
-              title="Vencimiento"
-              count={facturasVencidasKpi.length}
-              total={sumSaldo(facturasVencidasKpi)}
-              icon={AlertTriangle}
-              variant="destructive"
-              onClick={() => { setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
+            <CarteraKpiCard
+              title="Cartera Total"
+              total={sumSaldo(facturas)}
+              facturasCount={facturas.length}
+              facturasPctOfTotal={null}
+              vencidasCount={facturasVencidasKpi.length}
+              vencidasPct={pct(facturasVencidasKpi.length, facturas.length)}
+              enTiempoCount={facturasEnTiempoKpi.length}
+              enTiempoPct={pct(facturasEnTiempoKpi.length, facturas.length)}
+              icon={Wallet}
+              onClick={() => setActiveTab("facturas")}
             />
-            <UnifiedKpiCard
+            <CarteraKpiCard
               title="Crédito Directo"
-              count={facturasCreditoDirectoKpi.length}
               total={sumSaldo(facturasCreditoDirectoKpi)}
+              facturasCount={facturasCreditoDirectoKpi.length}
+              facturasPctOfTotal={pct(facturasCreditoDirectoKpi.length, facturas.length)}
+              vencidasCount={facturasDirectoVencidas.length}
+              vencidasPct={pct(facturasDirectoVencidas.length, facturasCreditoDirectoKpi.length)}
+              enTiempoCount={facturasDirectoEnTiempo.length}
+              enTiempoPct={pct(facturasDirectoEnTiempo.length, facturasCreditoDirectoKpi.length)}
               icon={Wallet}
               onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
             />
-            <UnifiedKpiCard
+            <CarteraKpiCard
               title="Crédito Cescemex"
-              count={facturasCreditoCescemexKpi.length}
               total={sumSaldo(facturasCreditoCescemexKpi)}
+              facturasCount={facturasCreditoCescemexKpi.length}
+              facturasPctOfTotal={pct(facturasCreditoCescemexKpi.length, facturas.length)}
+              vencidasCount={facturasCescemexVencidas.length}
+              vencidasPct={pct(facturasCescemexVencidas.length, facturasCreditoCescemexKpi.length)}
+              enTiempoCount={facturasCescemexEnTiempo.length}
+              enTiempoPct={pct(facturasCescemexEnTiempo.length, facturasCreditoCescemexKpi.length)}
               icon={Wallet}
               onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KpiCard title="Cartera abierta" value={formatCurrency(cartera.abierta)} icon={Wallet} />
-            <KpiCard title="Cartera vencida" value={formatCurrency(cartera.vencida)} icon={AlertTriangle} variant="destructive" />
-            <KpiCard title="Por vencer" value={formatCurrency(cartera.porVencer)} icon={Clock} />
-            <KpiCard title="Cobrado del mes" value={formatCurrency(cartera.cobradoMes)} icon={CheckCircle2} variant="success" />
-            <KpiCard title="Pagos no aplicados" value={formatCurrency(cartera.noAplicado)} icon={Wallet} />
-            <KpiCard title="Facturas parciales" value={String(cartera.facturasParciales)} icon={Clock} />
-            <KpiCard title="Facturas pagadas" value={String(cartera.facturasPagadas)} icon={CheckCircle2} variant="success" />
-            <KpiCard title="Total pagos" value={String(pagos.length)} icon={Wallet} />
+          {/* FILA 2 — KPIs DE VENCIMIENTO */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <VencidoKpiCard
+              title="Cartera Vencida"
+              total={sumSaldo(facturasVencidasKpi)}
+              count={facturasVencidasKpi.length}
+              pctOfVencido={null}
+              onClick={() => { setFacturasPrefilter("vencimiento"); setActiveTab("facturas"); }}
+            />
+            <VencidoKpiCard
+              title="Vencido Crédito Directo"
+              total={sumSaldo(facturasDirectoVencidas)}
+              count={facturasDirectoVencidas.length}
+              pctOfVencido={pct(sumSaldo(facturasDirectoVencidas), sumSaldo(facturasVencidasKpi))}
+              onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
+            />
+            <VencidoKpiCard
+              title="Vencido Crédito Cescemex"
+              total={sumSaldo(facturasCescemexVencidas)}
+              count={facturasCescemexVencidas.length}
+              pctOfVencido={pct(sumSaldo(facturasCescemexVencidas), sumSaldo(facturasVencidasKpi))}
+              onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
+            />
+          </div>
+
+          {/* FILA 3 — KPIs OPERATIVOS / RECUPERACIÓN */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Cobrado del periodo</p>
+                    <p className="text-2xl font-bold mt-1 text-primary">{formatCurrency(cartera.cobradoMes)}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{cartera.facturasPagadas} facturas pagadas · {cartera.pagosEnRangoCount} pagos</p>
+                  </div>
+                  <CheckCircle2 className="h-8 w-8 shrink-0 text-muted-foreground/30" />
+                </div>
+              </CardContent>
+            </Card>
+            <ClientesKpiCard
+              title="Clientes en Cartera Vencida"
+              count={clientesStats.vencTotal}
+              pctOfTotal={pct(clientesStats.vencTotal, clientesStats.total)}
+              directo={clientesStats.vencDirecto}
+              cescemex={clientesStats.vencCescemex}
+              variant="destructive"
+            />
+            <ClientesKpiCard
+              title="Clientes en Tiempo"
+              count={clientesStats.tiempoTotal}
+              pctOfTotal={pct(clientesStats.tiempoTotal, clientesStats.total)}
+              directo={clientesStats.tiempoDirecto}
+              cescemex={clientesStats.tiempoCescemex}
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
