@@ -1525,6 +1525,18 @@ export default function DocumentForm() {
           qc.invalidateQueries({ queryKey: ["documento", id] });
         }}
       />
+
+      <AssignNewDealDialog
+        open={!!pendingNewDeal}
+        prefill={pendingNewDeal}
+        onClose={() => setPendingNewDeal(null)}
+        onCreated={(dealId) => {
+          setPendingNewDeal(null);
+          qc.invalidateQueries({ queryKey: ["documento", pendingNewDeal?.docId] });
+          qc.invalidateQueries({ queryKey: ["documentos"] });
+          qc.invalidateQueries({ queryKey: ["crm_deals"] });
+        }}
+      />
     </div>
   );
 }
