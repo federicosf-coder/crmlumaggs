@@ -151,6 +151,7 @@ export default function DocumentForm() {
   });
   const [items, setItems] = useState<LineItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [pendingNewDeal, setPendingNewDeal] = useState<AssignNewDealPrefill | null>(null);
 
   // Dialog states
   const [showNewCompany, setShowNewCompany] = useState(false);
