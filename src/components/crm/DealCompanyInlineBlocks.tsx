@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Briefcase, Users, Tag } from "lucide-react";
+import { Plus, Briefcase, Users, Tag, ExternalLink } from "lucide-react";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -95,6 +95,15 @@ export function DealCompanyInlineBlocks({ companyId }: Props) {
                     <span>💬 {c.whatsapp_phone || c.mobile || c.phone || "—"}</span>
                   </div>
                 </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 shrink-0"
+                  title="Ver contacto en nueva pestaña"
+                  onClick={() => window.open(`/directory?tab=contacts&select=${c.id}`, "_blank", "noopener,noreferrer")}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Button>
               </div>
             ))}
           </div>
