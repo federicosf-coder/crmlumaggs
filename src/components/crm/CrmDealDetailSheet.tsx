@@ -326,6 +326,15 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               {deal.companies && (
                 <span className="inline-flex items-center gap-1 text-sm font-semibold text-foreground/80">
                   <Building2 className="h-3.5 w-3.5" /> {deal.companies.name}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 ml-1"
+                    title="Ver empresa en nueva ventana"
+                    onClick={() => openInNewTab(`/directory?company=${deal.company_id}`)}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
                 </span>
               )}
               {plazaName && (
