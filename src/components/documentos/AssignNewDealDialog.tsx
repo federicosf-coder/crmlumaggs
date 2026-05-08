@@ -195,7 +195,7 @@ export function AssignNewDealDialog({ open, prefill, onClose, onCreated }: Props
             <Label>Empresa (cliente) *</Label>
             <SearchableSelect
               value={empresaId}
-              onChange={(v) => { setEmpresaId(v); setContactoId(""); }}
+              onValueChange={(v) => { setEmpresaId(v); setContactoId(""); }}
               options={(companies as any[]).map((c) => ({ value: c.id, label: c.name }))}
               placeholder="Selecciona empresa..."
             />
@@ -205,7 +205,7 @@ export function AssignNewDealDialog({ open, prefill, onClose, onCreated }: Props
             <Label>Contacto</Label>
             <SearchableSelect
               value={contactoId}
-              onChange={setContactoId}
+              onValueChange={setContactoId}
               options={(contacts as any[]).map((c) => ({ value: c.id, label: `${c.first_name || ""} ${c.last_name || ""}`.trim() }))}
               placeholder="(opcional)"
             />
