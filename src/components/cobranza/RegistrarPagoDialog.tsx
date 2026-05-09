@@ -72,8 +72,25 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
 
   useEffect(() => {
     if (!open) return;
-    supabase.from("companies").select("id,name,email,tipo_pago").eq("is_active", true).order("name")
-      .then(({ data }) => setCompanies(data || []));
+    (async () => {
+      const all: any[] = [];
+      const size = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("companies")
+          .select("id,name,email,tipo_pago")
+          .eq("is_active", true)
+          .order("name")
+          .range(from, from + size - 1);
+        if (error) break;
+        const rows = data || [];
+        all.push(...rows);
+        if (rows.length < size) break;
+        from += size;
+      }
+      setCompanies(all);
+    })();
     supabase.from("plazas").select("id,nombre").eq("is_active", true).order("nombre")
       .then(({ data }) => setPlazas(data || []));
   }, [open]);
