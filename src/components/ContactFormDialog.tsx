@@ -16,6 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X } from "lucide-react";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
+import { Plus } from "lucide-react";
+import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface ContactEditData {
   id: string;
@@ -279,6 +282,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
     },
     enabled: open,
   });
+  const queryClient = useQueryClient();
+  const [openNewCompany, setOpenNewCompany] = useState(false);
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles_active"],
@@ -436,12 +441,19 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Empresa</Label>
-                  <SearchableSelect
-                    value={form.company_id}
-                    onValueChange={v => setAndSaveNow("company_id", v)}
-                    options={companies.map(c => ({ value: c.id, label: c.name }))}
-                    placeholder="Seleccionar empresa"
-                  />
+                  <div className="flex gap-2">
+                    <div className="flex-1 min-w-0">
+                      <SearchableSelect
+                        value={form.company_id}
+                        onValueChange={v => setAndSaveNow("company_id", v)}
+                        options={companies.map(c => ({ value: c.id, label: c.name }))}
+                        placeholder="Seleccionar empresa"
+                      />
+                    </div>
+                    <Button type="button" variant="outline" size="icon" onClick={() => setOpenNewCompany(true)} title="Nueva empresa">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Ejecutivo(s) de Venta</Label>
