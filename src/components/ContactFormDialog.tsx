@@ -584,6 +584,14 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
           </div>
         </form>
       </DialogContent>
+      <CompanyFormDialog
+        open={openNewCompany}
+        onOpenChange={setOpenNewCompany}
+        onCreated={async (newId) => {
+          await queryClient.invalidateQueries({ queryKey: ["companies_for_contact"] });
+          setAndSaveNow("company_id", newId);
+        }}
+      />
     </Dialog>
   );
 }
