@@ -734,20 +734,25 @@ function GroupedByClient({
         const isOpen = expanded.has(id);
         return (
           <div key={id} className="border rounded-md">
-            <button
-              type="button"
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => onToggle(id)}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-muted/40"
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(id); } }}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-muted/40 cursor-pointer"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <span className="font-medium">{g.name}</span>
+                <span className="font-medium truncate">{g.name}</span>
                 <Badge variant="secondary">{g.docs.length}</Badge>
               </div>
-              <span className="text-sm font-medium tabular-nums">
-                ${g.total.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-              </span>
-            </button>
+              <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                <span className="text-sm font-medium tabular-nums">
+                  ${g.total.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                </span>
+                <ClientActions empresaId={g.docs[0]?.empresa_id || g.docs[0]?.company_id || null} clientName={g.name} docIds={g.docs.map((d: any) => d.id)} />
+              </div>
+            </div>
             {isOpen && (
               <div className="border-t overflow-x-auto">
                 <Table>
