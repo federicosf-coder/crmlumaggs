@@ -49,6 +49,8 @@ interface Props {
   defaultEjecutivoIds?: string[];
   editData?: ContactEditData | null;
   onCreated?: (id: string) => void;
+  /** Si se está creando desde una empresa nueva aún no guardada, mostrar su nombre y bloquear el selector. */
+  pendingCompanyName?: string;
 }
 
 // Field map: form key → { label, valueKey, flagKey }
@@ -119,7 +121,7 @@ function phoneDigitCount(v: string): number {
   return (v || "").replace(/\D/g, "").length;
 }
 
-export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaultEjecutivoIds, editData, onCreated }: Props) {
+export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaultEjecutivoIds, editData, onCreated, pendingCompanyName }: Props) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const isEdit = !!editData;
@@ -440,6 +442,12 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Empresa</Label>
+                  {pendingCompanyName && !editData ? (
+                    <div className="flex h-10 items-center rounded-md border border-input bg-muted px-3 text-sm">
+                      <span className="truncate">{pendingCompanyName}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">(se vinculará al guardar)</span>
+                    </div>
+                  ) : (
                   <div className="flex gap-2">
                     <div className="flex-1 min-w-0">
                       <SearchableSelect
@@ -453,6 +461,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Ejecutivo(s) de Venta</Label>
