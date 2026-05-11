@@ -27,9 +27,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   ChevronLeft, ChevronRight, Search, CheckCircle2, RotateCcw, Trash2,
-  Plus, Filter, AlertCircle, Calendar, User, Building2, Pencil,
+  Plus, Filter, AlertCircle, Calendar, User, Building2, Pencil, CalendarClock,
 } from "lucide-react";
-import { format, parseISO, isValid } from "date-fns";
+import { format, parseISO, isValid, addHours, startOfHour } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -162,6 +162,61 @@ export default function CrmItemsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTask, setEditTask] = useState<any | null>(null);
   const [editActivity, setEditActivity] = useState<any | null>(null);
+  const [rescheduleTarget, setRescheduleTarget] = useState<CrmItemUnified | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleReason, setRescheduleReason] = useState("");
+  const [rescheduleSaving, setRescheduleSaving] = useState(false);
+
+  // Fetch reschedule_count for visible task rows (badge "Reprog. Nx")
+  const taskIds = rows.filter(r => r.source_table === "crm_tasks").map(r => r.id);
+  const { data: tasksMeta = [] } = useQuery({
+    queryKey: ["items_tasks_meta", taskIds],
+    enabled: taskIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("crm_tasks")
+        .select("id, reschedule_count")
+        .in("id", taskIds);
+      return data || [];
+    },
+  });
+  const rescheduleMap = new Map<string, number>(
+    (tasksMeta as any[]).map(t => [t.id, t.reschedule_count || 0])
+  );
+
+  const openReschedule = (it: CrmItemUnified) => {
+    const base = it.fecha_vencimiento ? new Date(it.fecha_vencimiento) : addHours(startOfHour(new Date()), 1);
+    setRescheduleDate(format(base, "yyyy-MM-dd'T'HH:mm"));
+    setRescheduleReason("");
+    setRescheduleTarget(it);
+  };
+
+  const submitReschedule = async () => {
+    if (!rescheduleTarget || !rescheduleDate) return;
+    setRescheduleSaving(true);
+    try {
+      const current = rescheduleMap.get(rescheduleTarget.id) || 0;
+      const { error } = await supabase
+        .from("crm_tasks")
+        .update({
+          due_date: new Date(rescheduleDate).toISOString(),
+          task_status: "rescheduled",
+          reschedule_count: current + 1,
+          reschedule_reason: rescheduleReason || null,
+        } as any)
+        .eq("id", rescheduleTarget.id);
+      if (error) throw error;
+      toast.success("Tarea reprogramada");
+      setRescheduleTarget(null);
+      // Refrescar datos
+      // (las invalidaciones globales del hook ocurrirán en el próximo poll; forzamos refetch básico)
+      window.dispatchEvent(new Event("focus"));
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo reprogramar");
+    } finally {
+      setRescheduleSaving(false);
+    }
+  };
 
   const openEdit = async (it: CrmItemUnified) => {
     try {
@@ -335,6 +390,11 @@ export default function CrmItemsPage() {
                       {it.marca && (
                         <Badge variant="outline" className="text-xs capitalize">{it.marca}</Badge>
                       )}
+                      {it.source_table === "crm_tasks" && (rescheduleMap.get(it.id) || 0) > 0 && (
+                        <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 border-amber-200">
+                          Reprog. {rescheduleMap.get(it.id)}x
+                        </Badge>
+                      )}
                     </div>
                     {it.description && (
                       <div className="text-sm text-muted-foreground line-clamp-2">{it.description}</div>
@@ -382,6 +442,12 @@ export default function CrmItemsPage() {
                       <Button size="sm" variant="default" className="gap-1"
                         onClick={() => { setFinalizeTarget(it); setResultadoText(""); }}>
                         <CheckCircle2 className="h-4 w-4" /> Finalizar
+                      </Button>
+                    )}
+                    {it.source_table === "crm_tasks" && it.status !== "completada" && (
+                      <Button size="sm" variant="outline" className="gap-1"
+                        onClick={() => openReschedule(it)}>
+                        <CalendarClock className="h-4 w-4" /> Reprogramar
                       </Button>
                     )}
                     {it.status === "completada" && it.source_table !== "crm_activities" && (
@@ -466,6 +532,43 @@ export default function CrmItemsPage() {
         open={!!editActivity}
         onOpenChange={(o) => !o && setEditActivity(null)}
       />
+
+      {/* Dialog reprogramar */}
+      <Dialog open={!!rescheduleTarget} onOpenChange={(o) => !o && setRescheduleTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reprogramar: {rescheduleTarget?.title}</DialogTitle>
+            <DialogDescription>
+              Selecciona una nueva fecha y hora. Opcionalmente indica el motivo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Nueva fecha y hora *</label>
+              <Input
+                type="datetime-local"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Motivo</label>
+              <Textarea
+                placeholder="¿Por qué se reprograma?"
+                value={rescheduleReason}
+                onChange={(e) => setRescheduleReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRescheduleTarget(null)}>Cancelar</Button>
+            <Button onClick={submitReschedule} disabled={rescheduleSaving || !rescheduleDate}>
+              {rescheduleSaving ? "Guardando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
