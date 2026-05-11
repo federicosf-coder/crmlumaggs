@@ -806,6 +806,22 @@ export default function WhatsAppInbox() {
           defaultContactId={contactData?.id || ""}
         />
       )}
+
+      <TemplatePickerDialog
+        open={tplPickerOpen}
+        onOpenChange={setTplPickerOpen}
+        templates={filteredTemplates}
+        selectedId={filteredTemplates.find((t) => t.name === tplName)?.id}
+        onSelect={(id) => {
+          const tpl = filteredTemplates.find((t) => t.id === id);
+          if (tpl) {
+            setTplName(tpl.name);
+            const n = tpl.body ? extractTemplateVars(tpl.body) : 0;
+            setTplVars(Array(n).fill(""));
+          }
+          setTplPickerOpen(false);
+        }}
+      />
     </div>
   );
 }
