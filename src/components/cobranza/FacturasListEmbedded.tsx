@@ -13,7 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Search, Pencil, Trash2, CheckSquare, Columns3, Filter, X, Download, FileText, List, Users, ChevronDown, ChevronRight } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Search, Pencil, Trash2, CheckSquare, Columns3, Filter, X, Download, FileText, List, Users, ChevronDown, ChevronRight, MoreHorizontal, MessageCircle, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { fetchAllRows } from "@/lib/supabasePagination";
@@ -21,6 +22,7 @@ import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { SortMenu } from "@/components/SortMenu";
+import { useFireAutomation } from "@/hooks/useFireAutomation";
 
 /**
  * Lista embebida de Facturas — espejo del listado en Documentos > Facturas.
