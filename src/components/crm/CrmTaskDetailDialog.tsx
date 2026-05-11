@@ -63,6 +63,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const [userId, setUserId] = useState<string | null>(null);
   const [programable, setProgramable] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -78,10 +79,14 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
       setUserId(task.user_id || null);
       setProgramable(!!(task as any).programable_entrega);
       setCalMonth(task.due_date ? parseISO(task.due_date) : new Date());
+      setCalendarOpen(false);
       initialized.current = true;
       setSaveStatus("idle");
     }
-    if (!open) initialized.current = false;
+    if (!open) {
+      initialized.current = false;
+      setCalendarOpen(false);
+    }
   }, [task, open]);
 
   // pickers
@@ -209,6 +214,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
     setDueDate(v);
     triggerSave({ due_date: v ? v : null });
     if (v) setCalMonth(parseISO(v));
+    setCalendarOpen(false);
   };
   const handlePriorityClick = () => {
     const np = nextPriority(priority);
@@ -405,6 +411,8 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                     type="date"
                     value={dueDate}
                     onChange={(e) => handleDueDateChange(e.target.value)}
+                    onFocus={() => setCalendarOpen(true)}
+                    onClick={() => setCalendarOpen(true)}
                     className={inputCls}
                   />
                 </div>
@@ -421,6 +429,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
 
           {/* Right column */}
           <div className="md:col-span-1 overflow-y-auto p-5 space-y-5 bg-muted/30">
+            {calendarOpen && (
             <section>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -461,6 +470,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                 })}
               </div>
             </section>
+            )}
 
             <Separator />
 
