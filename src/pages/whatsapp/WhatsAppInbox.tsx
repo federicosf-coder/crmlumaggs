@@ -621,26 +621,21 @@ export default function WhatsAppInbox() {
                 </Button>
               </div>
               <div className="flex gap-2">
-                <select
-                  className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm"
-                  value={tplName}
-                  onChange={(e) => {
-                    const name = e.target.value;
-                    setTplName(name);
-                    const tpl = templates.find((t) => t.name === name);
-                    const n = tpl?.body ? extractTemplateVars(tpl.body) : 0;
-                    setTplVars(Array(n).fill(""));
-                  }}
+                <button
+                  type="button"
+                  onClick={() => setTplPickerOpen(true)}
+                  className="flex-1 flex items-center justify-between gap-2 h-9 rounded-md border border-input bg-background px-3 text-sm hover:bg-muted/50 transition-colors"
                 >
-                  <option value="">
-                    — Enviar plantilla {activeAccount ? `(${activeAccount.label})` : ""} —
-                  </option>
-                  {filteredTemplates.map((t) => (
-                    <option key={t.id} value={t.name}>
-                      {t.name} ({t.language})
-                    </option>
-                  ))}
-                </select>
+                  <span className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="truncate">
+                      {tplName
+                        ? tplName
+                        : <span className="text-muted-foreground">— Enviar plantilla {activeAccount ? `(${activeAccount.label})` : ""} —</span>}
+                    </span>
+                  </span>
+                  <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
                 <Button variant="outline" size="sm" onClick={sendTemplate} disabled={!tplName || sending}>
                   Enviar plantilla
                 </Button>
