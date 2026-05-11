@@ -6,8 +6,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+import {
+  Dialog as MediaDialog,
+  DialogContent as MediaDialogContent,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus, FileText, Search } from "lucide-react";
+import {
+  MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus,
+  FileText, Search, Paperclip, Image as ImageIcon, File as FileIcon, Download, Play, X,
+  FileSpreadsheet, FileType, AlertCircle,
+} from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
@@ -16,6 +28,43 @@ import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDia
 import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
 import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
 import { useNavigate } from "react-router-dom";
+
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+const IMG_MIMES = ["image/jpeg", "image/png", "image/webp"];
+const VIDEO_MIMES = ["video/mp4", "video/3gpp", "video/quicktime"];
+const DOC_MIMES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain", "text/csv", "application/zip",
+];
+
+type MediaCategory = "image" | "video" | "document";
+
+function categorizeFile(file: File): MediaCategory | null {
+  if (IMG_MIMES.includes(file.type)) return "image";
+  if (VIDEO_MIMES.includes(file.type)) return "video";
+  if (DOC_MIMES.includes(file.type)) return "document";
+  return null;
+}
+
+function formatBytes(n: number | null | undefined): string {
+  if (!n || n <= 0) return "—";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+}
+
+function docIconFor(mime?: string | null) {
+  const m = (mime || "").toLowerCase();
+  if (m.includes("excel") || m.includes("spreadsheet") || m.includes("csv")) return FileSpreadsheet;
+  if (m.includes("pdf")) return FileType;
+  return FileIcon;
+}
 
 type Conversation = {
   id: string;
@@ -40,6 +89,12 @@ type Message = {
   status: string | null;
   template_name: string | null;
   created_at: string;
+  media_type?: string | null;
+  media_url?: string | null;
+  media_storage_path?: string | null;
+  media_filename?: string | null;
+  media_mime_type?: string | null;
+  media_size_bytes?: number | null;
 };
 
 type Template = { id: string; name: string; language: string; status: string; body: string | null };
