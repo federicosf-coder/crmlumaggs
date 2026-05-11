@@ -911,6 +911,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
           }}
           defaultCompanyId={isEdit ? editData?.id : undefined}
           defaultEjecutivoIds={form.ejecutivo_ids}
+          pendingCompanyName={!isEdit ? (form.name || "Nueva empresa") : undefined}
           editData={editingContact}
           onCreated={(newId) => {
             if (isEdit) {
