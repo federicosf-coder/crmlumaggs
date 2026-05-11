@@ -324,10 +324,40 @@ export default function CrmItemsPage() {
         await supabase.from("crm_tasks").update({ task_status: "done" } as any).eq("id", target.id);
         const { data: taskRow } = await supabase
           .from("crm_tasks")
-          .select("id, company_id, task_type, due_date, title")
+          .select("id, company_id, task_type, due_date, title, description, priority, user_id, contact_id, deal_id, recurrence")
           .eq("id", target.id)
           .maybeSingle();
-        if (taskRow) setNextStepTarget({ task: taskRow });
+        if (taskRow) {
+          // Recurrencia: si la tarea es recurrente, crear automáticamente la siguiente.
+          const rec = (taskRow as any).recurrence as string | null;
+          if (rec && rec !== "none" && taskRow.due_date) {
+            const base = new Date(taskRow.due_date as string);
+            let next: Date | null = null;
+            if (rec === "daily") next = addDays(base, 1);
+            else if (rec === "weekly") next = addDays(base, 7);
+            else if (rec === "monthly") next = addMonths(base, 1);
+            if (next) {
+              const { error: insErr } = await supabase.from("crm_tasks").insert({
+                user_id: (taskRow as any).user_id,
+                title: taskRow.title,
+                description: (taskRow as any).description ?? null,
+                priority: (taskRow as any).priority ?? "medium",
+                company_id: (taskRow as any).company_id ?? null,
+                contact_id: (taskRow as any).contact_id ?? null,
+                deal_id: (taskRow as any).deal_id ?? null,
+                task_type: (taskRow as any).task_type ?? null,
+                task_status: "planned",
+                recurrence: rec,
+                due_date: next.toISOString(),
+                origen_tarea_id: taskRow.id,
+              } as any);
+              if (!insErr) {
+                toast.success(`Tarea recurrente reprogramada para ${format(next, "d MMM yyyy HH:mm", { locale: es })}`);
+              }
+            }
+          }
+          setNextStepTarget({ task: taskRow });
+        }
       }
     } catch (e: any) {
       toast.error(e.message || "No se pudo finalizar");
