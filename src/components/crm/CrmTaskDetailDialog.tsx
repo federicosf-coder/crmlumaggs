@@ -63,6 +63,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const [userId, setUserId] = useState<string | null>(null);
   const [programable, setProgramable] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -78,10 +79,14 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
       setUserId(task.user_id || null);
       setProgramable(!!(task as any).programable_entrega);
       setCalMonth(task.due_date ? parseISO(task.due_date) : new Date());
+      setCalendarOpen(false);
       initialized.current = true;
       setSaveStatus("idle");
     }
-    if (!open) initialized.current = false;
+    if (!open) {
+      initialized.current = false;
+      setCalendarOpen(false);
+    }
   }, [task, open]);
 
   // pickers
@@ -209,6 +214,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
     setDueDate(v);
     triggerSave({ due_date: v ? v : null });
     if (v) setCalMonth(parseISO(v));
+    setCalendarOpen(false);
   };
   const handlePriorityClick = () => {
     const np = nextPriority(priority);
