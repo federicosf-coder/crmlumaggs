@@ -242,7 +242,10 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) resetAndClose(); else onOpenChange(true); }}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0">
+      <DialogContent
+        className="sm:max-w-lg max-h-[90vh] flex flex-col p-0"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>Nueva Actividad / Tarea</DialogTitle>
         </DialogHeader>
