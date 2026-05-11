@@ -29,6 +29,29 @@ import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
 import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
 import { useNavigate } from "react-router-dom";
 
+// Descarga un archivo del bucket privado evitando bloqueos del navegador / ad-blockers.
+async function downloadMediaFile(storagePath: string | null | undefined, filename?: string | null) {
+  if (!storagePath) {
+    toast.error("El enlace de descarga ha expirado, por favor intenta abrirlo de nuevo");
+    return;
+  }
+  try {
+    const { data, error } = await supabase.storage.from("whatsapp-media").download(storagePath);
+    if (error || !data) throw error ?? new Error("No data");
+    const blobUrl = URL.createObjectURL(data);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || storagePath.split("/").pop() || "archivo";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  } catch (e) {
+    console.error("download error", e);
+    toast.error("El enlace de descarga ha expirado, por favor intenta abrirlo de nuevo");
+  }
+}
+
 const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 const IMG_MIMES = ["image/jpeg", "image/png", "image/webp"];
 const VIDEO_MIMES = ["video/mp4", "video/3gpp", "video/quicktime"];
