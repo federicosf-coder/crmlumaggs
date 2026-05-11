@@ -429,13 +429,65 @@ export default function CrmItemsPage() {
     },
   });
 
+  // ── Tab Cobranza: tareas tipo cobranza no finalizadas, con datos enriquecidos ──
+  const { data: cobranzaData = [], isLoading: cobranzaLoading, refetch: refetchCobranza } = useQuery({
+    queryKey: ["tasks_cobranza_v1"],
+    enabled: viewTab === "cobranza",
+    queryFn: async () => {
+      const { data: tareas, error } = await supabase
+        .from("crm_tasks")
+        .select("*")
+        .eq("task_type", "cobranza")
+        .neq("task_status", "done")
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      const list = (tareas || []) as any[];
+      const companyIds = Array.from(new Set(list.map((t) => t.company_id).filter(Boolean)));
+      const empresasMap = new Map<string, { name: string }>();
+      const saldoMap = new Map<string, number>();
+      const intentosMap = new Map<string, number>();
+      if (companyIds.length > 0) {
+        const [{ data: comps }, { data: docs }, { data: intentos }] = await Promise.all([
+          supabase.from("companies").select("id, name").in("id", companyIds),
+          supabase
+            .from("documentos")
+            .select("empresa_id, saldo_pendiente_cobranza, fecha_documento, estado_cobranza")
+            .in("empresa_id", companyIds)
+            .eq("estado_cobranza", "vencida")
+            .order("fecha_documento", { ascending: false }),
+          supabase
+            .from("crm_tasks")
+            .select("company_id")
+            .eq("task_type", "cobranza")
+            .in("company_id", companyIds),
+        ]);
+        (comps || []).forEach((c: any) => empresasMap.set(c.id, { name: c.name }));
+        (docs || []).forEach((d: any) => {
+          if (!saldoMap.has(d.empresa_id)) {
+            saldoMap.set(d.empresa_id, Number(d.saldo_pendiente_cobranza || 0));
+          }
+        });
+        (intentos || []).forEach((t: any) => {
+          intentosMap.set(t.company_id, (intentosMap.get(t.company_id) || 0) + 1);
+        });
+      }
+      return list.map((t) => ({
+        ...t,
+        _company_name: t.company_id ? (empresasMap.get(t.company_id)?.name || "Cliente") : "Cliente",
+        _saldo_pendiente: t.company_id ? (saldoMap.get(t.company_id) || 0) : 0,
+        _intentos: t.company_id ? (intentosMap.get(t.company_id) || 1) : 1,
+      }));
+    },
+  });
+
   // Refetch on dialogs close so cards reflect updates
   useEffect(() => {
     if (!finalizeTarget && !rescheduleTarget && !createOpen) {
       if (viewTab === "hoy") refetchHoy();
       if (viewTab === "semana") refetchWeek();
+      if (viewTab === "cobranza") refetchCobranza();
     }
-  }, [finalizeTarget, rescheduleTarget, createOpen, viewTab, refetchHoy, refetchWeek]);
+  }, [finalizeTarget, rescheduleTarget, createOpen, viewTab, refetchHoy, refetchWeek, refetchCobranza]);
 
   // Aplicar filtros cliente sobre rows (Tab Lista)
   const filteredRows = useMemo(() => {
