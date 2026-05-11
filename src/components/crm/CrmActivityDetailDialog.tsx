@@ -100,7 +100,10 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) setEditing(false); onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-md p-0 max-h-[90vh] flex flex-col">
+      <DialogContent
+        className="sm:max-w-md p-0 max-h-[90vh] flex flex-col"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <div className="flex items-center justify-between border-b px-6 py-3 shrink-0">
           <DialogTitle className="text-lg font-semibold truncate">{activity.title}</DialogTitle>
           <Button variant="ghost" size="icon" onClick={() => setEditing(!editing)}>
