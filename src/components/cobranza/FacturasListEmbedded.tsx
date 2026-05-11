@@ -22,7 +22,7 @@ import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { SortMenu } from "@/components/SortMenu";
-import { useFireAutomation } from "@/hooks/useFireAutomation";
+import { fireAutomation } from "@/hooks/useFireAutomation";
 
 /**
  * Lista embebida de Facturas — espejo del listado en Documentos > Facturas.
