@@ -172,7 +172,7 @@ export default function WhatsAppInbox() {
   const [dragOver, setDragOver] = useState(false);
   const [accept, setAccept] = useState<string>("");
   // Lightbox
-  const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video"; name?: string } | null>(null);
+  const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video"; name?: string; storagePath?: string | null } | null>(null);
   // Cache de URLs firmadas frescas por id de mensaje
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
 
@@ -830,7 +830,7 @@ export default function WhatsAppInbox() {
                         {isImg && url && (
                           <button
                             type="button"
-                            onClick={() => setLightbox({ url, type: "image", name: m.media_filename ?? undefined })}
+                            onClick={() => setLightbox({ url, type: "image", name: m.media_filename ?? undefined, storagePath: m.media_storage_path })}
                             className="block w-full max-w-[260px] mb-1 rounded overflow-hidden focus:outline-none focus:ring-2 focus:ring-ring"
                           >
                             <img src={url} alt={m.media_filename ?? "imagen"} className="w-full h-auto object-cover" loading="lazy" />
@@ -839,7 +839,7 @@ export default function WhatsAppInbox() {
                         {isVid && url && (
                           <button
                             type="button"
-                            onClick={() => setLightbox({ url, type: "video", name: m.media_filename ?? undefined })}
+                            onClick={() => setLightbox({ url, type: "video", name: m.media_filename ?? undefined, storagePath: m.media_storage_path })}
                             className="relative block w-full max-w-[260px] mb-1 rounded overflow-hidden bg-black/40"
                           >
                             <video src={url} className="w-full h-auto" preload="metadata" />
@@ -1236,11 +1236,13 @@ export default function WhatsAppInbox() {
           )}
           {lightbox && (
             <div className="flex justify-end pt-2">
-              <a href={lightbox.url} download={lightbox.name} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" variant="outline">
-                  <Download className="h-4 w-4 mr-1" /> Descargar
-                </Button>
-              </a>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => downloadMediaFile(lightbox.storagePath, lightbox.name)}
+              >
+                <Download className="h-4 w-4 mr-1" /> Descargar
+              </Button>
             </div>
           )}
         </MediaDialogContent>
