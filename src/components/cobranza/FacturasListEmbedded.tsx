@@ -537,7 +537,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                     {isColVisible("saldo") && <TableHead className="whitespace-nowrap">Saldo</TableHead>}
                     {isColVisible("estatus") && <TableHead>Estatus Factura</TableHead>}
                     {isColVisible("pdf") && <TableHead className="hidden sm:table-cell">PDF</TableHead>}
-                    <TableHead></TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -760,6 +760,7 @@ function GroupedByClient({
                       <TableHead>Total</TableHead>
                       <TableHead>Saldo</TableHead>
                       <TableHead>Estatus</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -788,6 +789,9 @@ function GroupedByClient({
                               {ESTATUS_FAC_LABELS[doc.estatus_factura] || "-"}
                             </span>
                           </TableCell>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <RowActions doc={doc} />
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -799,5 +803,41 @@ function GroupedByClient({
         );
       })}
     </div>
+  );
+}
+
+function RowActions({ doc }: { doc: any }) {
+  const handleFire = async (e: React.MouseEvent, key: string, label: string) => {
+    e.stopPropagation();
+    const res = await fireAutomation({
+      trigger_type: "existing_button_click",
+      entity_type: "document",
+      entity_id: doc.id,
+      trigger_key: key,
+      context: { empresa_id: doc.empresa_id || null, numero_factura: doc.numero_factura || null },
+    });
+    if (res && res.matched > 0) {
+      const ok = res.runs.filter((r: any) => r.status === "success").length;
+      toast.success(`${label}: ${ok > 0 ? `automatización ejecutada (${ok})` : "sin éxito"}`);
+    } else {
+      toast.message(`${label}: no hay automatización configurada`);
+    }
+  };
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+        <Button variant="ghost" size="sm" className="h-8 gap-1">
+          Acciones <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem onClick={(e) => handleFire(e as any, "cobranza.relacion.send_whatsapp", "WhatsApp desde relación cobranza")}>
+          <MessageCircle className="mr-2 h-4 w-4 text-green-600" /> WhatsApp
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={(e) => handleFire(e as any, "cobranza.relacion.send_email", "Correo desde relación cobranza")}>
+          <Mail className="mr-2 h-4 w-4 text-blue-600" /> Correo
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
