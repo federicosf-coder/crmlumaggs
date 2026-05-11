@@ -282,7 +282,10 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent
+        className="max-w-4xl p-0 h-[85vh] flex flex-col overflow-hidden"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
           <div className="flex items-start gap-3">
