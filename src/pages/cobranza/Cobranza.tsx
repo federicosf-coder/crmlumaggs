@@ -18,6 +18,7 @@ import { PageBanner } from "@/components/PageBanner";
 import { openDocFilesSignedUrl, extractDocFilesPath } from "@/lib/storageSignedUrl";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useCobranzaPagos, useDocumentosCobranza, useCobranzaAplicaciones, type CobranzaPago } from "@/hooks/useCobranza";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { RegistrarPagoDialog } from "@/components/cobranza/RegistrarPagoDialog";
 import { AplicarPagoDialog } from "@/components/cobranza/AplicarPagoDialog";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
@@ -227,6 +228,19 @@ export default function Cobranza() {
   const brandSubtitle = brand === "phillips66" ? "Galsa" : "Lumaggs";
 
   const isAdminOrManager = hasAnyRole(["admin", "manager", "accounting"]);
+  const facturacionAccess = useModuleAccess("facturacion");
+  const { data: assignedCompanyIds = [] } = useQuery({
+    queryKey: ["cobranza-my-assigned-companies", facturacionAccess.userId],
+    queryFn: async () => {
+      if (!facturacionAccess.userId) return [] as string[];
+      const { data } = await supabase
+        .from("company_ejecutivos")
+        .select("company_id")
+        .eq("user_id", facturacionAccess.userId);
+      return (data || []).map((r: any) => r.company_id);
+    },
+    enabled: !!facturacionAccess.userId,
+  });
   const [selectedPlazaId, setSelectedPlazaId] = useState<string>(
     !isAdminOrManager && profile?.plaza_id ? profile.plaza_id : (profile?.plaza_id || "all")
   );
@@ -255,8 +269,15 @@ export default function Cobranza() {
     empresaVendedora,
     plazaId: effectivePlazaId && effectivePlazaId !== "all" ? effectivePlazaId : null,
   };
+  const docsFilterArgs = {
+    ...filterArgs,
+    accessLevel: facturacionAccess.accessLevel,
+    userId: facturacionAccess.userId,
+    teamMemberIds: facturacionAccess.teamMemberIds,
+    assignedCompanyIds,
+  };
   const { pagos, breakdowns, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos(filterArgs);
-  const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza(filterArgs);
+  const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza(docsFilterArgs);
 
   // Facturas pagadas del mes (por aplicaciones activas en el mes en curso)
   const { data: facturasPagadasMes = 0 } = useQuery({
