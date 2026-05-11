@@ -427,6 +427,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
 
           {/* Right column */}
           <div className="md:col-span-1 overflow-y-auto p-5 space-y-5 bg-muted/30">
+            {calendarOpen && (
             <section>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -467,6 +468,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                 })}
               </div>
             </section>
+            )}
 
             <Separator />
 
