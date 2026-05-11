@@ -854,12 +854,10 @@ export default function WhatsAppInbox() {
                           <audio controls src={url} className="w-full max-w-[240px] mb-1" />
                         )}
                         {isDoc && (
-                          <a
-                            href={url ?? "#"}
-                            download={m.media_filename ?? undefined}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`flex items-center gap-2 mb-1 rounded-md p-2 ${
+                          <button
+                            type="button"
+                            onClick={() => downloadMediaFile(m.media_storage_path, m.media_filename)}
+                            className={`flex items-center gap-2 mb-1 rounded-md p-2 w-full text-left ${
                               isOut ? "bg-primary-foreground/10 hover:bg-primary-foreground/20" : "bg-background hover:bg-accent"
                             }`}
                           >
@@ -869,7 +867,7 @@ export default function WhatsAppInbox() {
                               <div className="text-[10px] opacity-70">{formatBytes(m.media_size_bytes)}</div>
                             </div>
                             <Download className="h-4 w-4 opacity-70" />
-                          </a>
+                          </button>
                         )}
                         {/* Texto / caption */}
                         {m.message_body && !(isDoc && !url && m.message_body === m.media_filename) && (
