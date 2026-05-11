@@ -76,6 +76,7 @@ export default function WhatsAppInbox() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [qrOpen, setQrOpen] = useState(false);
+  const [tplPickerOpen, setTplPickerOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [tplName, setTplName] = useState("");
   const [tplVars, setTplVars] = useState<string[]>([]);
