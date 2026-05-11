@@ -29,6 +29,20 @@ export const EXISTING_BUTTONS: ExistingButton[] = [
     path: "/cobranza",
   },
   {
+    id: "cobranza.relacion.send_whatsapp",
+    name: "WhatsApp desde relación cobranza",
+    description: "Envía un WhatsApp al cliente desde la fila de la relación de cobranza (lista de facturas).",
+    location: "Cobranza › Relación de facturas › Acciones de fila",
+    path: "/cobranza",
+  },
+  {
+    id: "cobranza.relacion.send_email",
+    name: "Correo desde relación cobranza",
+    description: "Envía un correo al cliente desde la fila de la relación de cobranza (lista de facturas).",
+    location: "Cobranza › Relación de facturas › Acciones de fila",
+    path: "/cobranza",
+  },
+  {
     id: "documents.generate_pdf",
     name: "Generar PDF",
     description: "Genera el PDF del documento (cotización, pedido, factura).",
