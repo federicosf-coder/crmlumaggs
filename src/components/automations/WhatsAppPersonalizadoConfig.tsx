@@ -12,10 +12,8 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Settings2, Smartphone, Cloud, Search, ArrowUpDown, FileText, Check } from "lucide-react";
-import { renderTemplate } from "@/lib/whatsapp";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { MessageCircle, Settings2, Smartphone, Cloud, Search, FileText } from "lucide-react";
+import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
 
 type WaTemplate = { id: string; name: string; language: string | null; category: string | null; status: string | null; body: string | null };
 
