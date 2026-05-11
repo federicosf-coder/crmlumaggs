@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { ACTION_GROUPS, actionLabel, type ActionDraft } from "./types";
+import { WhatsAppPersonalizadoEditor } from "./WhatsAppPersonalizadoConfig";
 
 export function AutomationStepActions({
   actions, onChange,
@@ -158,6 +159,8 @@ function ActionConfigEditor({
       return <EmailActionEditor cfg={cfg} setCfg={setCfg} />;
     case "send_whatsapp":
       return <WhatsAppActionEditor cfg={cfg} setCfg={setCfg} />;
+    case "send_whatsapp_personalizado":
+      return <WhatsAppPersonalizadoEditor cfg={cfg as any} setCfg={(p) => setCfg(p)} />;
     case "send_notification":
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
