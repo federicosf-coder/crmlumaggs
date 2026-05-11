@@ -625,6 +625,7 @@ export default function CrmItemsPage() {
           <TabsTrigger value="lista">Lista</TabsTrigger>
           <TabsTrigger value="hoy">Hoy</TabsTrigger>
           <TabsTrigger value="semana">Esta semana</TabsTrigger>
+          <TabsTrigger value="cobranza">Cobranza</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -926,6 +927,28 @@ export default function CrmItemsPage() {
           loading={weekLoading}
           renderCard={renderTaskCard}
           weekStart={weekRange.start}
+        />
+      )}
+
+      {/* ───── VISTA: COBRANZA ───── */}
+      {viewTab === "cobranza" && (
+        <CobranzaView
+          tasks={cobranzaData as any[]}
+          loading={cobranzaLoading}
+          onComplete={(t) => {
+            setFinalizeTarget({
+              id: t.id, source_table: "crm_tasks", title: t.title, status: "pendiente",
+              type: t.task_type, kind: "tarea", priority: t.priority, marca: null,
+              company_id: t.company_id, contact_id: t.contact_id, deal_id: t.deal_id,
+              description: t.description, fecha_creacion: t.created_at, fecha_vencimiento: t.due_date,
+              fecha_terminacion: null, completed_by: null, created_by: t.user_id, assigned_to: null,
+              resultado: null,
+            } as any);
+            setResultadoText("");
+          }}
+          onReschedule={(t) => openReschedule({
+            id: t.id, source_table: "crm_tasks", title: t.title, fecha_vencimiento: t.due_date,
+          } as any)}
         />
       )}
 
