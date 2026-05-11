@@ -1203,6 +1203,27 @@ export default function WhatsAppInbox() {
           setTplPickerOpen(false);
         }}
       />
+
+      {/* Lightbox para imágenes y video */}
+      <MediaDialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
+        <MediaDialogContent className="max-w-5xl p-2 bg-background">
+          {lightbox?.type === "image" && (
+            <img src={lightbox.url} alt={lightbox.name ?? "imagen"} className="w-full max-h-[85vh] object-contain" />
+          )}
+          {lightbox?.type === "video" && (
+            <video src={lightbox.url} controls autoPlay className="w-full max-h-[85vh]" />
+          )}
+          {lightbox && (
+            <div className="flex justify-end pt-2">
+              <a href={lightbox.url} download={lightbox.name} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" variant="outline">
+                  <Download className="h-4 w-4 mr-1" /> Descargar
+                </Button>
+              </a>
+            </div>
+          )}
+        </MediaDialogContent>
+      </MediaDialog>
     </div>
   );
 }
