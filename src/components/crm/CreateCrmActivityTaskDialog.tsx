@@ -53,9 +53,13 @@ interface Props {
   defaultContactId?: string;
   defaultBrand?: string;
   defaultDate?: string;
+  defaultCompanyId?: string;
+  defaultTaskType?: TaskTypeKey;
+  defaultDescription?: string;
+  origenTareaId?: string;
 }
 
-export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId, defaultContactId, defaultBrand, defaultDate }: Props) {
+export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId, defaultContactId, defaultBrand, defaultDate, defaultCompanyId, defaultTaskType, defaultDescription, origenTareaId }: Props) {
   const { session } = useAuth();
   const createTask = useCreateCrmTask();
   const { toast } = useToast();
@@ -95,14 +99,14 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
 
   const defaultDateValue = defaultDate || nextRoundHourLocal();
 
-  const [taskType, setTaskType] = useState<TaskTypeKey>("call");
+  const [taskType, setTaskType] = useState<TaskTypeKey>(defaultTaskType || "call");
   const [activityDate, setActivityDate] = useState(defaultDateValue);
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(defaultDescription || "");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("medium");
   const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
   const [taskStatus, setTaskStatus] = useState<"planned" | "done" | "cancelled">("planned");
-  const [companyId, setCompanyId] = useState("");
+  const [companyId, setCompanyId] = useState(defaultCompanyId || "");
   const [brand, setBrand] = useState(defaultBrand || "");
   const [dealId, setDealId] = useState(defaultDealId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
@@ -197,6 +201,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
         recurrence,
         task_status: taskStatus,
         completed: taskStatus === "done",
+        origen_tarea_id: origenTareaId || null,
       } as any,
       {
         onSuccess: async (data) => {
@@ -219,14 +224,14 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
 
   const resetAndClose = () => {
     onOpenChange(false);
-    setTaskType("call");
+    setTaskType(defaultTaskType || "call");
     setActivityDate(defaultDate || nextRoundHourLocal());
-    setDescription("");
+    setDescription(defaultDescription || "");
     setDueDate("");
     setPriority("medium");
     setRecurrence("none");
     setTaskStatus("planned");
-    setCompanyId("");
+    setCompanyId(defaultCompanyId || "");
     setBrand(defaultBrand || "");
     setDealId(defaultDealId || "");
     setContactId(defaultContactId || "");
