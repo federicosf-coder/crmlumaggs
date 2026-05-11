@@ -512,7 +512,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
               docs={sortedDocs}
               expanded={expandedGroups}
               onToggle={toggleGroup}
-              onRowClick={(id) => window.open(`/documents/${id}`, "_blank")}
+              onRowClick={(id) => navigate(`/documents/${id}`)}
               fechaVencimientoEfectiva={fechaVencimientoEfectiva}
             />
           ) : (
@@ -545,7 +545,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                       <TableRow
                         key={doc.id}
                         className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedIds.has(doc.id) ? "bg-muted/30" : ""}`}
-                        onClick={() => window.open(`/documents/${doc.id}`, "_blank")}
+                        onClick={() => navigate(`/documents/${doc.id}`)}
                       >
                         <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
                           <Checkbox
