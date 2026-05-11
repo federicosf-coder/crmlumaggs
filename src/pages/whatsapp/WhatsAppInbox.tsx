@@ -776,27 +776,100 @@ export default function WhatsAppInbox() {
                 </div>
               )}
             </div>
-            <ScrollArea className="flex-1 min-h-0 p-3">
-              <div className="space-y-2">
-                {messages.map((m) => (
-                  <div
-                    key={m.id}
-                    className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                      m.direction === "outbound"
-                        ? "ml-auto bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
-                  >
-                    {m.template_name && <div className="text-[10px] uppercase opacity-70">📋 {m.template_name}</div>}
-                    <div className="whitespace-pre-wrap">{m.message_body}</div>
-                    <div className="text-[10px] opacity-70 mt-1">
-                      {new Date(m.created_at).toLocaleString()}
-                    </div>
+            <div
+              className="relative flex-1 min-h-0"
+              onDragOver={onChatDragOver}
+              onDragLeave={onChatDragLeave}
+              onDrop={onChatDrop}
+            >
+              <ScrollArea className="h-full p-3">
+                <div className="space-y-2">
+                  {messages.map((m) => {
+                    const isOut = m.direction === "outbound";
+                    const url = mediaUrls[m.id] ?? m.media_url ?? null;
+                    const mt = (m.media_type || "").toLowerCase();
+                    const isImg = mt === "image" || mt === "sticker";
+                    const isVid = mt === "video";
+                    const isAud = mt === "audio";
+                    const isDoc = mt === "document";
+                    const DocIcon = docIconFor(m.media_mime_type);
+                    return (
+                      <div
+                        key={m.id}
+                        className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
+                          isOut ? "ml-auto bg-primary text-primary-foreground" : "bg-muted"
+                        }`}
+                      >
+                        {m.template_name && (
+                          <div className="text-[10px] uppercase opacity-70">📋 {m.template_name}</div>
+                        )}
+                        {/* Media */}
+                        {isImg && url && (
+                          <button
+                            type="button"
+                            onClick={() => setLightbox({ url, type: "image", name: m.media_filename ?? undefined })}
+                            className="block w-full max-w-[260px] mb-1 rounded overflow-hidden focus:outline-none focus:ring-2 focus:ring-ring"
+                          >
+                            <img src={url} alt={m.media_filename ?? "imagen"} className="w-full h-auto object-cover" loading="lazy" />
+                          </button>
+                        )}
+                        {isVid && url && (
+                          <button
+                            type="button"
+                            onClick={() => setLightbox({ url, type: "video", name: m.media_filename ?? undefined })}
+                            className="relative block w-full max-w-[260px] mb-1 rounded overflow-hidden bg-black/40"
+                          >
+                            <video src={url} className="w-full h-auto" preload="metadata" />
+                            <span className="absolute inset-0 flex items-center justify-center">
+                              <span className="bg-black/60 text-white rounded-full p-3">
+                                <Play className="h-6 w-6" />
+                              </span>
+                            </span>
+                          </button>
+                        )}
+                        {isAud && url && (
+                          <audio controls src={url} className="w-full max-w-[240px] mb-1" />
+                        )}
+                        {isDoc && (
+                          <a
+                            href={url ?? "#"}
+                            download={m.media_filename ?? undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex items-center gap-2 mb-1 rounded-md p-2 ${
+                              isOut ? "bg-primary-foreground/10 hover:bg-primary-foreground/20" : "bg-background hover:bg-accent"
+                            }`}
+                          >
+                            <DocIcon className="h-8 w-8 shrink-0 opacity-80" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-medium truncate">{m.media_filename ?? "archivo"}</div>
+                              <div className="text-[10px] opacity-70">{formatBytes(m.media_size_bytes)}</div>
+                            </div>
+                            <Download className="h-4 w-4 opacity-70" />
+                          </a>
+                        )}
+                        {/* Texto / caption */}
+                        {m.message_body && !(isDoc && !url && m.message_body === m.media_filename) && (
+                          <div className="whitespace-pre-wrap">{m.message_body}</div>
+                        )}
+                        <div className="flex items-center gap-1 text-[10px] opacity-70 mt-1">
+                          <span>{new Date(m.created_at).toLocaleString()}</span>
+                          {isOut && m.status && <span>· {m.status}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+              {dragOver && (
+                <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary flex items-center justify-center pointer-events-none">
+                  <div className="bg-card rounded-lg px-4 py-3 shadow-lg flex items-center gap-2 text-sm font-medium">
+                    <Paperclip className="h-4 w-4" /> Suelta el archivo para adjuntar
                   </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
+                </div>
+              )}
+            </div>
             <div className="p-3 border-t space-y-2 shrink-0 bg-card">
               {!windowOpen && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded">
@@ -804,7 +877,80 @@ export default function WhatsAppInbox() {
                   Ventana de atención cerrada (24h). Use una plantilla para reanudar.
                 </div>
               )}
+              {/* Vista previa de archivo a enviar */}
+              {pendingFile && (
+                <div className="rounded-md border bg-muted/40 p-2">
+                  <div className="flex items-start gap-3">
+                    {pendingPreviewUrl && categorizeFile(pendingFile) === "image" ? (
+                      <img src={pendingPreviewUrl} alt="preview" className="h-16 w-16 object-cover rounded" />
+                    ) : pendingPreviewUrl && categorizeFile(pendingFile) === "video" ? (
+                      <video src={pendingPreviewUrl} className="h-16 w-16 object-cover rounded bg-black" />
+                    ) : (
+                      <div className="h-16 w-16 rounded bg-background flex items-center justify-center">
+                        {(() => {
+                          const I = docIconFor(pendingFile.type);
+                          return <I className="h-8 w-8 text-muted-foreground" />;
+                        })()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium truncate">{pendingFile.name}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {formatBytes(pendingFile.size)} · {pendingFile.type || "—"}
+                      </div>
+                      <Input
+                        value={pendingCaption}
+                        onChange={(e) => setPendingCaption(e.target.value)}
+                        placeholder="Añadir un comentario (opcional)"
+                        className="h-8 text-sm mt-1"
+                        disabled={sending}
+                      />
+                      {uploadProgress !== null && (
+                        <Progress value={uploadProgress} className="h-1.5 mt-2" />
+                      )}
+                      {uploadError && (
+                        <div className="flex items-center gap-1 text-[11px] text-destructive mt-1">
+                          <AlertCircle className="h-3 w-3" /> {uploadError}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Button size="sm" onClick={sendMedia} disabled={sending || !windowOpen}>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={clearPending} disabled={sending}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="flex gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" disabled={!windowOpen || sending} title="Adjuntar">
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem onClick={() => openFilePicker("media")}>
+                      <ImageIcon className="h-4 w-4 mr-2" /> Imagen y Video
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openFilePicker("document")}>
+                      <FileIcon className="h-4 w-4 mr-2" /> Documento
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={accept}
+                  className="hidden"
+                  onChange={(e) => {
+                    handleFilePicked(e.target.files?.[0] ?? null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                />
                 <Textarea
                   placeholder={windowOpen ? "Escribe un mensaje..." : "Bloqueado — usa una plantilla"}
                   value={draft}
