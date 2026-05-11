@@ -518,7 +518,7 @@ export default function DocumentForm() {
     if (!form.tipo_documento) { toast.error("Selecciona el tipo de documento"); return; }
     if (!form.plaza_id) { toast.error("La plaza es obligatoria"); return; }
     if (!form.empresa_id) { toast.error("La empresa (cliente) es obligatoria"); return; }
-    // Contacto temporalmente opcional
+    if (!isEdit && !form.contacto_id) { toast.error("El contacto es obligatorio"); return; }
     if (form.contacto_id) {
       const c: any = contacts.find((x: any) => x.id === form.contacto_id);
       const hasWa = !!(c?.whatsapp_phone || "").toString().replace(/\D/g, "").length && (c?.whatsapp_phone || "").toString().replace(/\D/g, "").length >= 8;

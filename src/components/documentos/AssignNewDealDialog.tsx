@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ContactFormDialog } from "@/components/ContactFormDialog";
+import { Plus } from "lucide-react";
 
 export type AssignNewDealPrefill = {
   docId: string;
@@ -41,6 +43,7 @@ interface Props {
 }
 
 export function AssignNewDealDialog({ open, prefill, onClose, onCreated }: Props) {
+  const queryClient = useQueryClient();
   const [empresaVendedora, setEmpresaVendedora] = useState<string>("");
   const [empresaId, setEmpresaId] = useState<string>("");
   const [contactoId, setContactoId] = useState<string>("");
@@ -49,6 +52,7 @@ export function AssignNewDealDialog({ open, prefill, onClose, onCreated }: Props
   const [closeDate, setCloseDate] = useState<string>(lastDayOfCurrentMonth());
   const [potencial, setPotencial] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!prefill) return;
@@ -93,6 +97,7 @@ export function AssignNewDealDialog({ open, prefill, onClose, onCreated }: Props
       return data || [];
     },
   });
+  const qcContactsKey = ["assign_new_deal_contacts", empresaId];
 
   const { data: plazas = [] } = useQuery({
     queryKey: ["assign_new_deal_plazas"],
@@ -203,12 +208,24 @@ export function AssignNewDealDialog({ open, prefill, onClose, onCreated }: Props
 
           <div className="space-y-1.5">
             <Label>Contacto</Label>
-            <SearchableSelect
-              value={contactoId}
-              onValueChange={setContactoId}
-              options={(contacts as any[]).map((c) => ({ value: c.id, label: `${c.first_name || ""} ${c.last_name || ""}`.trim() }))}
-              placeholder="(opcional)"
-            />
+            <div className="flex gap-1">
+              <SearchableSelect
+                value={contactoId}
+                onValueChange={setContactoId}
+                options={(contacts as any[]).map((c) => ({ value: c.id, label: `${c.first_name || ""} ${c.last_name || ""}`.trim() }))}
+                placeholder={empresaId ? "(opcional)" : "Selecciona empresa primero"}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={!empresaId}
+                onClick={() => setContactDialogOpen(true)}
+                title="Agregar contacto"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -257,6 +274,15 @@ export function AssignNewDealDialog({ open, prefill, onClose, onCreated }: Props
             {saving ? "Creando..." : "Crear negocio"}
           </Button>
         </DialogFooter>
+        <ContactFormDialog
+          open={contactDialogOpen}
+          onOpenChange={setContactDialogOpen}
+          defaultCompanyId={empresaId || undefined}
+          onCreated={async (newId) => {
+            await queryClient.invalidateQueries({ queryKey: ["assign_new_deal_contacts", empresaId] });
+            setContactoId(newId);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
