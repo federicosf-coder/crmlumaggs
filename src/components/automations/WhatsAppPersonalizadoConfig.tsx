@@ -13,7 +13,9 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Eye, Settings2, Smartphone, Cloud } from "lucide-react";
-import { renderTemplate, type WhatsAppMessageTemplate } from "@/lib/whatsapp";
+import { renderTemplate } from "@/lib/whatsapp";
+
+type WaTemplate = { id: string; name: string; language: string | null; category: string | null; status: string | null; body: string | null };
 
 type Mode = "api" | "local";
 
@@ -78,16 +80,15 @@ function ConfigDialog({
   const [requireConfirm, setRequireConfirm] = useState<boolean>(cfg?.require_confirmation !== false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const [templates, setTemplates] = useState<WhatsAppMessageTemplate[]>([]);
+  const [templates, setTemplates] = useState<WaTemplate[]>([]);
   useEffect(() => {
     if (!open) return;
     (async () => {
       const { data } = await (supabase as any)
-        .from("whatsapp_message_templates")
-        .select("id,nombre,tipo,mensaje,meta_template_id,activo,orden")
-        .eq("activo", true)
-        .order("orden");
-      setTemplates((data || []) as WhatsAppMessageTemplate[]);
+        .from("whatsapp_templates")
+        .select("id,name,language,category,status,body")
+        .order("name", { ascending: true });
+      setTemplates((data || []) as WaTemplate[]);
     })();
   }, [open]);
 
@@ -158,7 +159,9 @@ function ConfigDialog({
                   <SelectTrigger><SelectValue placeholder="Selecciona una plantilla..." /></SelectTrigger>
                   <SelectContent>
                     {templates.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}{t.language ? ` · ${t.language}` : ""}{t.status ? ` · ${t.status}` : ""}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -222,10 +225,10 @@ function ConfigDialog({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Previsualización de plantilla</DialogTitle>
-            <DialogDescription>{selectedTpl?.nombre}</DialogDescription>
+            <DialogDescription>{selectedTpl?.name}</DialogDescription>
           </DialogHeader>
           <div className="rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap">
-            {selectedTpl ? renderTemplate(selectedTpl.mensaje, {
+            {selectedTpl ? renderTemplate(selectedTpl.body || "", {
               contacto_nombre: "[Nombre del contacto]",
               empresa_nombre: "[Empresa]",
               empresa_vendedora: "[Empresa vendedora]",
