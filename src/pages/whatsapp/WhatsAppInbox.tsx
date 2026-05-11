@@ -6,8 +6,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+import {
+  Dialog as MediaDialog,
+  DialogContent as MediaDialogContent,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus, FileText, Search } from "lucide-react";
+import {
+  MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus,
+  FileText, Search, Paperclip, Image as ImageIcon, File as FileIcon, Download, Play, X,
+  FileSpreadsheet, FileType, AlertCircle,
+} from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
@@ -16,6 +28,43 @@ import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDia
 import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
 import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
 import { useNavigate } from "react-router-dom";
+
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+const IMG_MIMES = ["image/jpeg", "image/png", "image/webp"];
+const VIDEO_MIMES = ["video/mp4", "video/3gpp", "video/quicktime"];
+const DOC_MIMES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain", "text/csv", "application/zip",
+];
+
+type MediaCategory = "image" | "video" | "document";
+
+function categorizeFile(file: File): MediaCategory | null {
+  if (IMG_MIMES.includes(file.type)) return "image";
+  if (VIDEO_MIMES.includes(file.type)) return "video";
+  if (DOC_MIMES.includes(file.type)) return "document";
+  return null;
+}
+
+function formatBytes(n: number | null | undefined): string {
+  if (!n || n <= 0) return "—";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+}
+
+function docIconFor(mime?: string | null) {
+  const m = (mime || "").toLowerCase();
+  if (m.includes("excel") || m.includes("spreadsheet") || m.includes("csv")) return FileSpreadsheet;
+  if (m.includes("pdf")) return FileType;
+  return FileIcon;
+}
 
 type Conversation = {
   id: string;
@@ -40,6 +89,12 @@ type Message = {
   status: string | null;
   template_name: string | null;
   created_at: string;
+  media_type?: string | null;
+  media_url?: string | null;
+  media_storage_path?: string | null;
+  media_filename?: string | null;
+  media_mime_type?: string | null;
+  media_size_bytes?: number | null;
 };
 
 type Template = { id: string; name: string; language: string; status: string; body: string | null };
@@ -84,6 +139,81 @@ export default function WhatsAppInbox() {
   // Inbox seleccionado por línea (business_phone_number_id). null = aún no inicializado
   const [selectedPhoneId, setSelectedPhoneId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  // Media (outbound)
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
+  const [pendingCaption, setPendingCaption] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [accept, setAccept] = useState<string>("");
+  // Lightbox
+  const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video"; name?: string } | null>(null);
+  // Cache de URLs firmadas frescas por id de mensaje
+  const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
+
+  // Limpia object URL al cambiar archivo
+  useEffect(() => {
+    return () => {
+      if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    };
+  }, [pendingPreviewUrl]);
+
+  const clearPending = () => {
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    setPendingFile(null);
+    setPendingPreviewUrl(null);
+    setPendingCaption("");
+    setUploadError(null);
+    setUploadProgress(null);
+  };
+
+  const handleFilePicked = (file: File | null) => {
+    if (!file) return;
+    const cat = categorizeFile(file);
+    if (!cat) {
+      toast.error(`Formato no compatible: ${file.type || file.name}`);
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      toast.error(`El archivo supera el límite de 25 MB (${formatBytes(file.size)})`);
+      return;
+    }
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    setPendingFile(file);
+    setUploadError(null);
+    setUploadProgress(null);
+    setPendingCaption("");
+    if (cat === "image" || cat === "video") {
+      setPendingPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setPendingPreviewUrl(null);
+    }
+  };
+
+  const openFilePicker = (mode: "media" | "document") => {
+    setAccept(mode === "media" ? "image/*,video/*" : DOC_MIMES.join(","));
+    setTimeout(() => fileInputRef.current?.click(), 0);
+  };
+
+  // Drag & Drop sobre el área del chat
+  const onChatDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer?.types?.includes("Files")) {
+      e.preventDefault();
+      setDragOver(true);
+    }
+  };
+  const onChatDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+  const onChatDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer?.files?.[0];
+    if (f) handleFilePicked(f);
+  };
 
   // Load conversations + realtime
   useEffect(() => {
@@ -264,7 +394,7 @@ export default function WhatsAppInbox() {
     const loadMsgs = async () => {
       const { data } = await supabase
         .from("whatsapp_messages")
-        .select("id,conversation_id,sender_phone,message_body,direction,status,template_name,created_at")
+        .select("id,conversation_id,sender_phone,message_body,direction,status,template_name,created_at,media_type,media_url,media_storage_path,media_filename,media_mime_type,media_size_bytes")
         .eq("conversation_id", activeId)
         .order("created_at", { ascending: true })
         .limit(500);
@@ -339,6 +469,35 @@ export default function WhatsAppInbox() {
     return () => clearTimeout(t);
   }, [messages, activeId]);
 
+  // Resolver URLs firmadas frescas para mensajes con archivos
+  useEffect(() => {
+    const pending = messages.filter(
+      (m) => m.media_storage_path && !mediaUrls[m.id],
+    );
+    if (pending.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const updates: Record<string, string> = {};
+      for (const m of pending) {
+        try {
+          const { data } = await supabase.storage
+            .from("whatsapp-media")
+            .createSignedUrl(m.media_storage_path!, 60 * 60 * 6);
+          if (data?.signedUrl) updates[m.id] = data.signedUrl;
+          else if (m.media_url) updates[m.id] = m.media_url;
+        } catch {
+          if (m.media_url) updates[m.id] = m.media_url;
+        }
+      }
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setMediaUrls((prev) => ({ ...prev, ...updates }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [messages, mediaUrls]);
+
   const sendText = async () => {
     if (!active || !draft.trim()) return;
     if (!active.business_phone_number_id) {
@@ -404,6 +563,57 @@ export default function WhatsAppInbox() {
     setTplName("");
     setTplVars([]);
     toast.success("Plantilla enviada");
+  };
+
+  const sendMedia = async () => {
+    if (!active || !pendingFile) return;
+    if (!active.business_phone_number_id) {
+      toast.error("Esta conversación no tiene línea asociada");
+      return;
+    }
+    const cat = categorizeFile(pendingFile);
+    if (!cat) {
+      setUploadError("Formato no compatible");
+      return;
+    }
+    setUploadError(null);
+    setSending(true);
+    setUploadProgress(10);
+    try {
+      const safeName = pendingFile.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
+      const path = `${active.id}/out_${Date.now()}_${safeName}`;
+      // 1) Subir al bucket
+      setUploadProgress(35);
+      const { error: upErr } = await supabase.storage
+        .from("whatsapp-media")
+        .upload(path, pendingFile, { contentType: pendingFile.type, upsert: false });
+      if (upErr) throw new Error(upErr.message);
+      setUploadProgress(70);
+      // 2) Llamar al edge function que sube a Meta y envía
+      const { error: fnErr } = await supabase.functions.invoke("whatsapp-send-message", {
+        body: {
+          to_phone: active.wa_phone,
+          conversation_id: active.id,
+          kind: "media",
+          business_phone_number_id: active.business_phone_number_id,
+          media_storage_path: path,
+          media_category: cat,
+          media_mime_type: pendingFile.type,
+          media_filename: pendingFile.name,
+          caption: pendingCaption.trim() || undefined,
+        },
+      });
+      if (fnErr) throw new Error(fnErr.message ?? "No se pudo enviar el archivo");
+      setUploadProgress(100);
+      toast.success("Archivo enviado");
+      clearPending();
+    } catch (e: any) {
+      setUploadError(e?.message ?? "Error al enviar el archivo");
+      toast.error(e?.message ?? "Error al enviar el archivo");
+    } finally {
+      setSending(false);
+      setTimeout(() => setUploadProgress(null), 800);
+    }
   };
 
   const createContact = async () => {
@@ -566,27 +776,100 @@ export default function WhatsAppInbox() {
                 </div>
               )}
             </div>
-            <ScrollArea className="flex-1 min-h-0 p-3">
-              <div className="space-y-2">
-                {messages.map((m) => (
-                  <div
-                    key={m.id}
-                    className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                      m.direction === "outbound"
-                        ? "ml-auto bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
-                  >
-                    {m.template_name && <div className="text-[10px] uppercase opacity-70">📋 {m.template_name}</div>}
-                    <div className="whitespace-pre-wrap">{m.message_body}</div>
-                    <div className="text-[10px] opacity-70 mt-1">
-                      {new Date(m.created_at).toLocaleString()}
-                    </div>
+            <div
+              className="relative flex-1 min-h-0"
+              onDragOver={onChatDragOver}
+              onDragLeave={onChatDragLeave}
+              onDrop={onChatDrop}
+            >
+              <ScrollArea className="h-full p-3">
+                <div className="space-y-2">
+                  {messages.map((m) => {
+                    const isOut = m.direction === "outbound";
+                    const url = mediaUrls[m.id] ?? m.media_url ?? null;
+                    const mt = (m.media_type || "").toLowerCase();
+                    const isImg = mt === "image" || mt === "sticker";
+                    const isVid = mt === "video";
+                    const isAud = mt === "audio";
+                    const isDoc = mt === "document";
+                    const DocIcon = docIconFor(m.media_mime_type);
+                    return (
+                      <div
+                        key={m.id}
+                        className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
+                          isOut ? "ml-auto bg-primary text-primary-foreground" : "bg-muted"
+                        }`}
+                      >
+                        {m.template_name && (
+                          <div className="text-[10px] uppercase opacity-70">📋 {m.template_name}</div>
+                        )}
+                        {/* Media */}
+                        {isImg && url && (
+                          <button
+                            type="button"
+                            onClick={() => setLightbox({ url, type: "image", name: m.media_filename ?? undefined })}
+                            className="block w-full max-w-[260px] mb-1 rounded overflow-hidden focus:outline-none focus:ring-2 focus:ring-ring"
+                          >
+                            <img src={url} alt={m.media_filename ?? "imagen"} className="w-full h-auto object-cover" loading="lazy" />
+                          </button>
+                        )}
+                        {isVid && url && (
+                          <button
+                            type="button"
+                            onClick={() => setLightbox({ url, type: "video", name: m.media_filename ?? undefined })}
+                            className="relative block w-full max-w-[260px] mb-1 rounded overflow-hidden bg-black/40"
+                          >
+                            <video src={url} className="w-full h-auto" preload="metadata" />
+                            <span className="absolute inset-0 flex items-center justify-center">
+                              <span className="bg-black/60 text-white rounded-full p-3">
+                                <Play className="h-6 w-6" />
+                              </span>
+                            </span>
+                          </button>
+                        )}
+                        {isAud && url && (
+                          <audio controls src={url} className="w-full max-w-[240px] mb-1" />
+                        )}
+                        {isDoc && (
+                          <a
+                            href={url ?? "#"}
+                            download={m.media_filename ?? undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex items-center gap-2 mb-1 rounded-md p-2 ${
+                              isOut ? "bg-primary-foreground/10 hover:bg-primary-foreground/20" : "bg-background hover:bg-accent"
+                            }`}
+                          >
+                            <DocIcon className="h-8 w-8 shrink-0 opacity-80" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-medium truncate">{m.media_filename ?? "archivo"}</div>
+                              <div className="text-[10px] opacity-70">{formatBytes(m.media_size_bytes)}</div>
+                            </div>
+                            <Download className="h-4 w-4 opacity-70" />
+                          </a>
+                        )}
+                        {/* Texto / caption */}
+                        {m.message_body && !(isDoc && !url && m.message_body === m.media_filename) && (
+                          <div className="whitespace-pre-wrap">{m.message_body}</div>
+                        )}
+                        <div className="flex items-center gap-1 text-[10px] opacity-70 mt-1">
+                          <span>{new Date(m.created_at).toLocaleString()}</span>
+                          {isOut && m.status && <span>· {m.status}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+              {dragOver && (
+                <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary flex items-center justify-center pointer-events-none">
+                  <div className="bg-card rounded-lg px-4 py-3 shadow-lg flex items-center gap-2 text-sm font-medium">
+                    <Paperclip className="h-4 w-4" /> Suelta el archivo para adjuntar
                   </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
+                </div>
+              )}
+            </div>
             <div className="p-3 border-t space-y-2 shrink-0 bg-card">
               {!windowOpen && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded">
@@ -594,7 +877,80 @@ export default function WhatsAppInbox() {
                   Ventana de atención cerrada (24h). Use una plantilla para reanudar.
                 </div>
               )}
+              {/* Vista previa de archivo a enviar */}
+              {pendingFile && (
+                <div className="rounded-md border bg-muted/40 p-2">
+                  <div className="flex items-start gap-3">
+                    {pendingPreviewUrl && categorizeFile(pendingFile) === "image" ? (
+                      <img src={pendingPreviewUrl} alt="preview" className="h-16 w-16 object-cover rounded" />
+                    ) : pendingPreviewUrl && categorizeFile(pendingFile) === "video" ? (
+                      <video src={pendingPreviewUrl} className="h-16 w-16 object-cover rounded bg-black" />
+                    ) : (
+                      <div className="h-16 w-16 rounded bg-background flex items-center justify-center">
+                        {(() => {
+                          const I = docIconFor(pendingFile.type);
+                          return <I className="h-8 w-8 text-muted-foreground" />;
+                        })()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium truncate">{pendingFile.name}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {formatBytes(pendingFile.size)} · {pendingFile.type || "—"}
+                      </div>
+                      <Input
+                        value={pendingCaption}
+                        onChange={(e) => setPendingCaption(e.target.value)}
+                        placeholder="Añadir un comentario (opcional)"
+                        className="h-8 text-sm mt-1"
+                        disabled={sending}
+                      />
+                      {uploadProgress !== null && (
+                        <Progress value={uploadProgress} className="h-1.5 mt-2" />
+                      )}
+                      {uploadError && (
+                        <div className="flex items-center gap-1 text-[11px] text-destructive mt-1">
+                          <AlertCircle className="h-3 w-3" /> {uploadError}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Button size="sm" onClick={sendMedia} disabled={sending || !windowOpen}>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={clearPending} disabled={sending}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="flex gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" disabled={!windowOpen || sending} title="Adjuntar">
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem onClick={() => openFilePicker("media")}>
+                      <ImageIcon className="h-4 w-4 mr-2" /> Imagen y Video
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openFilePicker("document")}>
+                      <FileIcon className="h-4 w-4 mr-2" /> Documento
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={accept}
+                  className="hidden"
+                  onChange={(e) => {
+                    handleFilePicked(e.target.files?.[0] ?? null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                />
                 <Textarea
                   placeholder={windowOpen ? "Escribe un mensaje..." : "Bloqueado — usa una plantilla"}
                   value={draft}
@@ -847,6 +1203,27 @@ export default function WhatsAppInbox() {
           setTplPickerOpen(false);
         }}
       />
+
+      {/* Lightbox para imágenes y video */}
+      <MediaDialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
+        <MediaDialogContent className="max-w-5xl p-2 bg-background">
+          {lightbox?.type === "image" && (
+            <img src={lightbox.url} alt={lightbox.name ?? "imagen"} className="w-full max-h-[85vh] object-contain" />
+          )}
+          {lightbox?.type === "video" && (
+            <video src={lightbox.url} controls autoPlay className="w-full max-h-[85vh]" />
+          )}
+          {lightbox && (
+            <div className="flex justify-end pt-2">
+              <a href={lightbox.url} download={lightbox.name} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" variant="outline">
+                  <Download className="h-4 w-4 mr-1" /> Descargar
+                </Button>
+              </a>
+            </div>
+          )}
+        </MediaDialogContent>
+      </MediaDialog>
     </div>
   );
 }

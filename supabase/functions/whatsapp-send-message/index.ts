@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const toPhone = normalizePhone(body?.to_phone ?? body?.wa_phone);
     const conversationId = body?.conversation_id as string | undefined;
-    const kind = body?.kind as "text" | "template";
+    const kind = body?.kind as "text" | "template" | "media";
     const text = body?.text as string | undefined;
     const templateName = body?.template_name as string | undefined;
     const templateLanguage = (body?.template_language as string | undefined) || "es_MX";
@@ -52,11 +52,23 @@ Deno.serve(async (req) => {
     // Nuevo: variables nombradas { nombre_cliente: "...", folio_cotizacion: "..." }
     const templateVariables = body?.template_variables as Record<string, string | number> | undefined;
     const explicitPhoneId = (body?.business_phone_number_id as string | undefined)?.trim() || null;
+    // Media (outbound)
+    const mediaStoragePath = body?.media_storage_path as string | undefined;
+    const mediaCategory = body?.media_category as "image" | "video" | "document" | "audio" | undefined;
+    const mediaMime = body?.media_mime_type as string | undefined;
+    const mediaFilename = body?.media_filename as string | undefined;
+    const mediaCaption = (body?.caption as string | undefined) ?? "";
 
     if (!toPhone) return json({ error: "to_phone requerido" }, 400);
-    if (kind !== "text" && kind !== "template") return json({ error: "kind inválido" }, 400);
+    if (kind !== "text" && kind !== "template" && kind !== "media") return json({ error: "kind inválido" }, 400);
     if (kind === "text" && !text) return json({ error: "text requerido" }, 400);
     if (kind === "template" && !templateName) return json({ error: "template_name requerido" }, 400);
+    if (kind === "media") {
+      if (!mediaStoragePath) return json({ error: "media_storage_path requerido" }, 400);
+      if (!mediaCategory || !["image", "video", "document", "audio"].includes(mediaCategory)) {
+        return json({ error: "media_category inválido" }, 400);
+      }
+    }
 
     // Si vienen variables nombradas, construir `template_components` desde variable_map.
     // Esto evita el error #132000 (number of parameters doesn't match).
@@ -187,7 +199,7 @@ Deno.serve(async (req) => {
     }
 
     // 24h window enforcement for free-form text
-    if (kind === "text") {
+    if (kind === "text" || kind === "media") {
       const lastInbound = convRow.last_inbound_at ? new Date(convRow.last_inbound_at).getTime() : 0;
       const ageMs = Date.now() - lastInbound;
       if (!lastInbound || ageMs > 24 * 60 * 60 * 1000) {
@@ -201,25 +213,81 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ===== Media flow: bucket → Meta /media → send by id =====
+    let metaMediaId: string | null = null;
+    let mediaPublicUrl: string | null = null;
+    let mediaSizeBytes: number | null = null;
+    if (kind === "media") {
+      // 1) Descargar binario desde el bucket privado
+      const { data: fileBlob, error: dlErr } = await admin.storage
+        .from("whatsapp-media")
+        .download(mediaStoragePath!);
+      if (dlErr || !fileBlob) {
+        return json({ error: `No se pudo leer el archivo: ${dlErr?.message ?? "desconocido"}` }, 400);
+      }
+      const ab = await fileBlob.arrayBuffer();
+      mediaSizeBytes = ab.byteLength;
+      const contentType = mediaMime || fileBlob.type || "application/octet-stream";
+      // 2) Subir a Meta /media
+      const form = new FormData();
+      form.append("messaging_product", "whatsapp");
+      form.append("type", contentType);
+      form.append(
+        "file",
+        new Blob([ab], { type: contentType }),
+        mediaFilename || "file.bin",
+      );
+      const upRes = await fetch(`https://graph.facebook.com/v21.0/${activePhoneId}/media`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${TOKEN}` },
+        body: form,
+      });
+      const upData = await upRes.json().catch(() => ({}));
+      if (!upRes.ok || !upData?.id) {
+        return json(
+          { error: upData?.error?.message ?? "Falló la subida del archivo a WhatsApp", details: upData },
+          400,
+        );
+      }
+      metaMediaId = String(upData.id);
+      // 3) Generar signed URL para mostrar en el historial
+      const { data: signed } = await admin.storage
+        .from("whatsapp-media")
+        .createSignedUrl(mediaStoragePath!, 60 * 60 * 24 * 7);
+      mediaPublicUrl = signed?.signedUrl ?? null;
+    }
+
     // Send to Meta
-    const payload =
-      kind === "text"
-        ? {
-            messaging_product: "whatsapp",
-            to: toPhone,
-            type: "text",
-            text: { body: text },
-          }
-        : {
-            messaging_product: "whatsapp",
-            to: toPhone,
-            type: "template",
-            template: {
-              name: templateName,
-              language: { code: templateLanguage },
-              ...(templateComponents ? { components: templateComponents } : {}),
-            },
-          };
+    let payload: Record<string, unknown>;
+    if (kind === "text") {
+      payload = { messaging_product: "whatsapp", to: toPhone, type: "text", text: { body: text } };
+    } else if (kind === "template") {
+      payload = {
+        messaging_product: "whatsapp",
+        to: toPhone,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: templateLanguage },
+          ...(templateComponents ? { components: templateComponents } : {}),
+        },
+      };
+    } else {
+      // media
+      const mediaObj: Record<string, unknown> = { id: metaMediaId };
+      if (mediaCaption && (mediaCategory === "image" || mediaCategory === "video" || mediaCategory === "document")) {
+        mediaObj.caption = mediaCaption.slice(0, 1024);
+      }
+      if (mediaCategory === "document" && mediaFilename) {
+        mediaObj.filename = mediaFilename;
+      }
+      payload = {
+        messaging_product: "whatsapp",
+        to: toPhone,
+        type: mediaCategory!,
+        [mediaCategory!]: mediaObj,
+      };
+    }
 
     const r = await fetch(`https://graph.facebook.com/v21.0/${activePhoneId}/messages`, {
       method: "POST",
@@ -231,10 +299,17 @@ Deno.serve(async (req) => {
     const waMessageId = data?.messages?.[0]?.id ?? null;
     const ok = r.ok && !data?.error;
 
+    const previewText =
+      kind === "text"
+        ? text
+        : kind === "template"
+          ? `[plantilla] ${templateName}`
+          : `[${mediaCategory}] ${mediaFilename ?? ""}${mediaCaption ? ` · ${mediaCaption}` : ""}`;
+
     await admin.from("whatsapp_messages").insert({
       wa_id: waMessageId,
       sender_phone: toPhone,
-      message_body: kind === "text" ? text : `[template: ${templateName}]`,
+      message_body: kind === "media" ? (mediaCaption || mediaFilename || null) : (kind === "text" ? text : `[template: ${templateName}]`),
       direction: "outbound",
       status: ok ? "sent" : "failed",
       conversation_id: convId,
@@ -243,6 +318,16 @@ Deno.serve(async (req) => {
       created_by: userId,
       error_message: ok ? null : JSON.stringify(data?.error ?? data).slice(0, 500),
       business_phone_number_id: activePhoneId,
+      ...(kind === "media"
+        ? {
+            media_type: mediaCategory,
+            media_url: mediaPublicUrl,
+            media_storage_path: mediaStoragePath,
+            media_filename: mediaFilename ?? null,
+            media_mime_type: mediaMime ?? null,
+            media_size_bytes: mediaSizeBytes,
+          }
+        : {}),
     });
 
     if (ok) {
@@ -250,7 +335,7 @@ Deno.serve(async (req) => {
         .from("whatsapp_conversations")
         .update({
           last_outbound_at: new Date().toISOString(),
-          last_message_preview: (kind === "text" ? text : `[plantilla] ${templateName}`)?.slice(0, 120),
+          last_message_preview: previewText?.slice(0, 120),
           unread_count: 0,
           status: "open",
         })
