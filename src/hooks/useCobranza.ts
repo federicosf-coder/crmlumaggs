@@ -73,6 +73,11 @@ export interface PagoBreakdown {
 export interface CobranzaFilters {
   empresaVendedora?: "lumaggs_chevron" | "galsa_phillips66" | null;
   plazaId?: string | null;
+  /** Filtro de permisos por módulo (facturacion). Si se provee, restringe documentos a la visibilidad del usuario. */
+  accessLevel?: "todos" | "equipo" | "propio" | "ninguno" | null;
+  userId?: string | null;
+  teamMemberIds?: string[];
+  assignedCompanyIds?: string[];
 }
 
 export function useCobranzaPagos(filters: CobranzaFilters = {}) {
@@ -160,12 +165,24 @@ export function useCobranzaAplicaciones(pagoId: string | null) {
 }
 
 export function useDocumentosCobranza(filters: CobranzaFilters = {}) {
-  const { empresaVendedora = null, plazaId = null } = filters;
+  const {
+    empresaVendedora = null,
+    plazaId = null,
+    accessLevel = null,
+    userId = null,
+    teamMemberIds = [],
+    assignedCompanyIds = [],
+  } = filters;
   const [documentos, setDocumentos] = useState<DocumentoCobranza[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchDocs = useCallback(async () => {
     setLoading(true);
+    if (accessLevel === "ninguno") {
+      setDocumentos([]);
+      setLoading(false);
+      return;
+    }
     let q: any = supabase
       .from("documentos")
       .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,fecha_vencimiento,total,saldo_pendiente_cobranza,estado_cobranza,estatus_factura,tipo_pago,empresa_id,plaza_id,ejecutivo_venta_id, empresa:companies(id,name), plaza:plazas(id,nombre)")
@@ -174,10 +191,23 @@ export function useDocumentosCobranza(filters: CobranzaFilters = {}) {
       .order("fecha_documento", { ascending: false });
     if (empresaVendedora) q = q.eq("empresa_vendedora", empresaVendedora as any);
     if (plazaId) q = q.eq("plaza_id", plazaId);
+    // Replicar la misma lógica de visibilidad que FacturasListEmbedded
+    if (accessLevel === "propio" && userId) {
+      const parts = [`created_by.eq.${userId}`, `ejecutivo_venta_id.eq.${userId}`];
+      if (assignedCompanyIds.length > 0) parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+      q = q.or(parts.join(","));
+    } else if (accessLevel === "equipo" && teamMemberIds.length > 0) {
+      const parts = [
+        `created_by.in.(${teamMemberIds.join(",")})`,
+        `ejecutivo_venta_id.in.(${teamMemberIds.join(",")})`,
+      ];
+      if (assignedCompanyIds.length > 0) parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+      q = q.or(parts.join(","));
+    }
     const { data, error } = await q;
     if (!error && data) setDocumentos(data as any);
     setLoading(false);
-  }, [empresaVendedora, plazaId]);
+  }, [empresaVendedora, plazaId, accessLevel, userId, teamMemberIds.join(","), assignedCompanyIds.join(",")]);
 
   useEffect(() => { fetchDocs(); }, [fetchDocs]);
 
