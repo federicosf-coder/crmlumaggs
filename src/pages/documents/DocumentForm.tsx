@@ -888,6 +888,7 @@ export default function DocumentForm() {
                 <FileText className="mr-2 h-4 w-4" /> Convertir a Factura
               </Button>
             )}
+            {isEntregaCorp && (
             <Button
               onClick={async () => {
                 toast.success("Acuse enviado");
@@ -908,6 +909,7 @@ export default function DocumentForm() {
             >
               <Send className="mr-2 h-4 w-4" /> Enviar Acuse
             </Button>
+            )}
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
             </Button>
