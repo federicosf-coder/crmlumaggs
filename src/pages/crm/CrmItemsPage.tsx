@@ -29,11 +29,11 @@ import {
   ChevronLeft, ChevronRight, Search, CheckCircle2, RotateCcw, Trash2,
   Plus, Filter, AlertCircle, Calendar, User, Building2, Pencil, CalendarClock,
   SlidersHorizontal, Phone, Mail, CalendarCheck, Car, MessageCircle, Banknote,
-  RefreshCw, FileText,
+  RefreshCw, FileText, ChevronDown, ChevronUp, ListChecks,
 } from "lucide-react";
 import {
   format, parseISO, isValid, addHours, startOfHour, startOfDay, endOfDay,
-  addDays, isSameDay, differenceInDays,
+  addDays, addMonths, isSameDay, differenceInDays,
 } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
 import { CrmActivityDetailDialog } from "@/components/crm/CrmActivityDetailDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, "all"] as const;
 
@@ -109,7 +110,7 @@ export default function CrmItemsPage() {
   const canSeeAssignedFilter = hasAnyRole(["admin", "manager"]);
 
   // ── Vista superior: Lista | Hoy | Esta semana ──
-  const [viewTab, setViewTab] = useState<"lista" | "hoy" | "semana">("lista");
+  const [viewTab, setViewTab] = useState<"lista" | "hoy" | "semana" | "cobranza">("lista");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Filtros cliente adicionales (Tab Lista)
@@ -323,10 +324,40 @@ export default function CrmItemsPage() {
         await supabase.from("crm_tasks").update({ task_status: "done" } as any).eq("id", target.id);
         const { data: taskRow } = await supabase
           .from("crm_tasks")
-          .select("id, company_id, task_type, due_date, title")
+          .select("id, company_id, task_type, due_date, title, description, priority, user_id, contact_id, deal_id, recurrence")
           .eq("id", target.id)
           .maybeSingle();
-        if (taskRow) setNextStepTarget({ task: taskRow });
+        if (taskRow) {
+          // Recurrencia: si la tarea es recurrente, crear automáticamente la siguiente.
+          const rec = (taskRow as any).recurrence as string | null;
+          if (rec && rec !== "none" && taskRow.due_date) {
+            const base = new Date(taskRow.due_date as string);
+            let next: Date | null = null;
+            if (rec === "daily") next = addDays(base, 1);
+            else if (rec === "weekly") next = addDays(base, 7);
+            else if (rec === "monthly") next = addMonths(base, 1);
+            if (next) {
+              const { error: insErr } = await supabase.from("crm_tasks").insert({
+                user_id: (taskRow as any).user_id,
+                title: taskRow.title,
+                description: (taskRow as any).description ?? null,
+                priority: (taskRow as any).priority ?? "medium",
+                company_id: (taskRow as any).company_id ?? null,
+                contact_id: (taskRow as any).contact_id ?? null,
+                deal_id: (taskRow as any).deal_id ?? null,
+                task_type: (taskRow as any).task_type ?? null,
+                task_status: "planned",
+                recurrence: rec,
+                due_date: next.toISOString(),
+                origen_tarea_id: taskRow.id,
+              } as any);
+              if (!insErr) {
+                toast.success(`Tarea recurrente reprogramada para ${format(next, "d MMM yyyy HH:mm", { locale: es })}`);
+              }
+            }
+          }
+          setNextStepTarget({ task: taskRow });
+        }
       }
     } catch (e: any) {
       toast.error(e.message || "No se pudo finalizar");
@@ -398,13 +429,65 @@ export default function CrmItemsPage() {
     },
   });
 
+  // ── Tab Cobranza: tareas tipo cobranza no finalizadas, con datos enriquecidos ──
+  const { data: cobranzaData = [], isLoading: cobranzaLoading, refetch: refetchCobranza } = useQuery({
+    queryKey: ["tasks_cobranza_v1"],
+    enabled: viewTab === "cobranza",
+    queryFn: async () => {
+      const { data: tareas, error } = await supabase
+        .from("crm_tasks")
+        .select("*")
+        .eq("task_type", "cobranza")
+        .neq("task_status", "done")
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      const list = (tareas || []) as any[];
+      const companyIds = Array.from(new Set(list.map((t) => t.company_id).filter(Boolean)));
+      const empresasMap = new Map<string, { name: string }>();
+      const saldoMap = new Map<string, number>();
+      const intentosMap = new Map<string, number>();
+      if (companyIds.length > 0) {
+        const [{ data: comps }, { data: docs }, { data: intentos }] = await Promise.all([
+          supabase.from("companies").select("id, name").in("id", companyIds),
+          supabase
+            .from("documentos")
+            .select("empresa_id, saldo_pendiente_cobranza, fecha_documento, estado_cobranza")
+            .in("empresa_id", companyIds)
+            .eq("estado_cobranza", "vencida")
+            .order("fecha_documento", { ascending: false }),
+          supabase
+            .from("crm_tasks")
+            .select("company_id")
+            .eq("task_type", "cobranza")
+            .in("company_id", companyIds),
+        ]);
+        (comps || []).forEach((c: any) => empresasMap.set(c.id, { name: c.name }));
+        (docs || []).forEach((d: any) => {
+          if (!saldoMap.has(d.empresa_id)) {
+            saldoMap.set(d.empresa_id, Number(d.saldo_pendiente_cobranza || 0));
+          }
+        });
+        (intentos || []).forEach((t: any) => {
+          intentosMap.set(t.company_id, (intentosMap.get(t.company_id) || 0) + 1);
+        });
+      }
+      return list.map((t) => ({
+        ...t,
+        _company_name: t.company_id ? (empresasMap.get(t.company_id)?.name || "Cliente") : "Cliente",
+        _saldo_pendiente: t.company_id ? (saldoMap.get(t.company_id) || 0) : 0,
+        _intentos: t.company_id ? (intentosMap.get(t.company_id) || 1) : 1,
+      }));
+    },
+  });
+
   // Refetch on dialogs close so cards reflect updates
   useEffect(() => {
     if (!finalizeTarget && !rescheduleTarget && !createOpen) {
       if (viewTab === "hoy") refetchHoy();
       if (viewTab === "semana") refetchWeek();
+      if (viewTab === "cobranza") refetchCobranza();
     }
-  }, [finalizeTarget, rescheduleTarget, createOpen, viewTab, refetchHoy, refetchWeek]);
+  }, [finalizeTarget, rescheduleTarget, createOpen, viewTab, refetchHoy, refetchWeek, refetchCobranza]);
 
   // Aplicar filtros cliente sobre rows (Tab Lista)
   const filteredRows = useMemo(() => {
@@ -500,6 +583,7 @@ export default function CrmItemsPage() {
                 </span>
               )}
             </div>
+            <TaskChecklist taskId={t.id} />
           </div>
           <div className="flex flex-col gap-1 shrink-0">
             <Button size="sm" variant="default" className="gap-1" onClick={() => {
@@ -541,6 +625,7 @@ export default function CrmItemsPage() {
           <TabsTrigger value="lista">Lista</TabsTrigger>
           <TabsTrigger value="hoy">Hoy</TabsTrigger>
           <TabsTrigger value="semana">Esta semana</TabsTrigger>
+          <TabsTrigger value="cobranza">Cobranza</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -845,6 +930,28 @@ export default function CrmItemsPage() {
         />
       )}
 
+      {/* ───── VISTA: COBRANZA ───── */}
+      {viewTab === "cobranza" && (
+        <CobranzaView
+          tasks={cobranzaData as any[]}
+          loading={cobranzaLoading}
+          onComplete={(t) => {
+            setFinalizeTarget({
+              id: t.id, source_table: "crm_tasks", title: t.title, status: "pendiente",
+              type: t.task_type, kind: "tarea", priority: t.priority, marca: null,
+              company_id: t.company_id, contact_id: t.contact_id, deal_id: t.deal_id,
+              description: t.description, fecha_creacion: t.created_at, fecha_vencimiento: t.due_date,
+              fecha_terminacion: null, completed_by: null, created_by: t.user_id, assigned_to: null,
+              resultado: null,
+            } as any);
+            setResultadoText("");
+          }}
+          onReschedule={(t) => openReschedule({
+            id: t.id, source_table: "crm_tasks", title: t.title, fecha_vencimiento: t.due_date,
+          } as any)}
+        />
+      )}
+
       {/* Dialog finalizar */}
       <Dialog open={!!finalizeTarget} onOpenChange={(o) => !o && setFinalizeTarget(null)}>
         <DialogContent>
@@ -1052,6 +1159,197 @@ function SemanaView({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ── Checklist (subtareas) por tarea, con lazy load ── */
+function TaskChecklist({ taskId }: { taskId: string }) {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("crm_task_subtasks" as any)
+      .select("*")
+      .eq("task_id", taskId)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (!error) setItems((data || []) as any[]);
+    setLoaded(true);
+    setLoading(false);
+  };
+
+  const toggle = async () => {
+    const next = !open;
+    setOpen(next);
+    if (next && !loaded) await load();
+  };
+
+  const setCompleted = async (id: string, completed: boolean) => {
+    setItems((arr) => arr.map((it) => it.id === id ? { ...it, completed, completed_at: completed ? new Date().toISOString() : null } : it));
+    const { error } = await supabase
+      .from("crm_task_subtasks" as any)
+      .update({ completed, completed_at: completed ? new Date().toISOString() : null } as any)
+      .eq("id", id);
+    if (error) {
+      toast.error("No se pudo actualizar el paso");
+      load();
+    }
+  };
+
+  const addItem = async () => {
+    const title = newTitle.trim();
+    if (!title) return;
+    setAdding(true);
+    const maxPos = items.reduce((m, it) => Math.max(m, Number(it.position) || 0), 0);
+    const { data, error } = await supabase
+      .from("crm_task_subtasks" as any)
+      .insert({ task_id: taskId, title, position: maxPos + 1 } as any)
+      .select("*")
+      .maybeSingle();
+    setAdding(false);
+    if (error) {
+      toast.error("No se pudo agregar el paso");
+      return;
+    }
+    if (data) setItems((arr) => [...arr, data]);
+    setNewTitle("");
+  };
+
+  const total = items.length;
+  const done = items.filter((i) => i.completed).length;
+  const allDone = total > 0 && done === total;
+
+  return (
+    <div className="mt-2 border-t pt-2" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={toggle}
+        className={cn(
+          "w-full flex items-center gap-1 text-xs font-medium hover:underline",
+          allDone ? "text-emerald-700" : "text-muted-foreground",
+        )}
+      >
+        <ListChecks className="h-3.5 w-3.5" />
+        Checklist {loaded && total > 0 ? `(${done}/${total})` : ""}
+        {open ? <ChevronUp className="h-3.5 w-3.5 ml-auto" /> : <ChevronDown className="h-3.5 w-3.5 ml-auto" />}
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-1.5">
+          {loading && <div className="text-xs text-muted-foreground">Cargando...</div>}
+          {!loading && items.length === 0 && (
+            <div className="text-xs text-muted-foreground">Sin pasos aún.</div>
+          )}
+          {items.map((it) => (
+            <label key={it.id} className="flex items-start gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={!!it.completed}
+                onCheckedChange={(c) => setCompleted(it.id, !!c)}
+                className="mt-0.5"
+              />
+              <span className={cn("flex-1", it.completed && "line-through text-muted-foreground")}>
+                {it.title}
+              </span>
+            </label>
+          ))}
+          <div className="flex items-center gap-1.5 pt-1">
+            <Input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addItem(); } }}
+              placeholder="Agregar paso..."
+              className="h-8 text-sm"
+            />
+            <Button size="sm" variant="outline" className="h-8 px-2" disabled={adding || !newTitle.trim()} onClick={addItem}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Vista de Cobranza ── */
+function CobranzaView({
+  tasks, loading, onComplete, onReschedule,
+}: {
+  tasks: any[];
+  loading: boolean;
+  onComplete: (t: any) => void;
+  onReschedule: (t: any) => void;
+}) {
+  if (loading) {
+    return <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>;
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground py-12 border rounded-lg">
+        Sin tareas de cobranza pendientes.
+      </div>
+    );
+  }
+
+  const now = startOfDay(new Date());
+  const fmtMx = (n: number) => `$${(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  return (
+    <div className="space-y-3">
+      {tasks.map((t) => {
+        const due = t.due_date ? new Date(t.due_date) : null;
+        const dias = due ? differenceInDays(now, startOfDay(due)) : 0;
+        const vencida = dias > 0;
+        return (
+          <div key={t.id} className="rounded-lg border bg-card p-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-semibold truncate">{t._company_name}</h3>
+                  {vencida && (
+                    <Badge variant="destructive" className="text-xs">
+                      Vencida hace {dias} día{dias === 1 ? "" : "s"}
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-xs">
+                    {t._intentos} intento{t._intentos === 1 ? "" : "s"} de contacto
+                  </Badge>
+                </div>
+
+                <div className="mt-2 text-2xl font-bold text-emerald-600">
+                  {fmtMx(t._saldo_pendiente)}
+                </div>
+                <div className="text-xs text-muted-foreground">Saldo pendiente</div>
+
+                {t.title && <div className="text-sm mt-2 font-medium">{t.title}</div>}
+                {t.description && <div className="text-xs text-muted-foreground line-clamp-2">{t.description}</div>}
+
+                <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  Vence: {fmtDate(t.due_date)}
+                </div>
+                <TaskChecklist taskId={t.id} />
+              </div>
+              <div className="flex flex-col gap-1 shrink-0">
+                <Button size="sm" variant="default" className="gap-1" onClick={() => onComplete(t)}>
+                  <CheckCircle2 className="h-4 w-4" /> Completar
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => onReschedule(t)}>
+                  <CalendarClock className="h-4 w-4" /> Reprogramar
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
