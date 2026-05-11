@@ -29,6 +29,29 @@ import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
 import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
 import { useNavigate } from "react-router-dom";
 
+// Descarga un archivo del bucket privado evitando bloqueos del navegador / ad-blockers.
+async function downloadMediaFile(storagePath: string | null | undefined, filename?: string | null) {
+  if (!storagePath) {
+    toast.error("El enlace de descarga ha expirado, por favor intenta abrirlo de nuevo");
+    return;
+  }
+  try {
+    const { data, error } = await supabase.storage.from("whatsapp-media").download(storagePath);
+    if (error || !data) throw error ?? new Error("No data");
+    const blobUrl = URL.createObjectURL(data);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || storagePath.split("/").pop() || "archivo";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  } catch (e) {
+    console.error("download error", e);
+    toast.error("El enlace de descarga ha expirado, por favor intenta abrirlo de nuevo");
+  }
+}
+
 const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 const IMG_MIMES = ["image/jpeg", "image/png", "image/webp"];
 const VIDEO_MIMES = ["video/mp4", "video/3gpp", "video/quicktime"];
@@ -149,7 +172,7 @@ export default function WhatsAppInbox() {
   const [dragOver, setDragOver] = useState(false);
   const [accept, setAccept] = useState<string>("");
   // Lightbox
-  const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video"; name?: string } | null>(null);
+  const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video"; name?: string; storagePath?: string | null } | null>(null);
   // Cache de URLs firmadas frescas por id de mensaje
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
 
@@ -807,7 +830,7 @@ export default function WhatsAppInbox() {
                         {isImg && url && (
                           <button
                             type="button"
-                            onClick={() => setLightbox({ url, type: "image", name: m.media_filename ?? undefined })}
+                            onClick={() => setLightbox({ url, type: "image", name: m.media_filename ?? undefined, storagePath: m.media_storage_path })}
                             className="block w-full max-w-[260px] mb-1 rounded overflow-hidden focus:outline-none focus:ring-2 focus:ring-ring"
                           >
                             <img src={url} alt={m.media_filename ?? "imagen"} className="w-full h-auto object-cover" loading="lazy" />
@@ -816,7 +839,7 @@ export default function WhatsAppInbox() {
                         {isVid && url && (
                           <button
                             type="button"
-                            onClick={() => setLightbox({ url, type: "video", name: m.media_filename ?? undefined })}
+                            onClick={() => setLightbox({ url, type: "video", name: m.media_filename ?? undefined, storagePath: m.media_storage_path })}
                             className="relative block w-full max-w-[260px] mb-1 rounded overflow-hidden bg-black/40"
                           >
                             <video src={url} className="w-full h-auto" preload="metadata" />
@@ -831,12 +854,10 @@ export default function WhatsAppInbox() {
                           <audio controls src={url} className="w-full max-w-[240px] mb-1" />
                         )}
                         {isDoc && (
-                          <a
-                            href={url ?? "#"}
-                            download={m.media_filename ?? undefined}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`flex items-center gap-2 mb-1 rounded-md p-2 ${
+                          <button
+                            type="button"
+                            onClick={() => downloadMediaFile(m.media_storage_path, m.media_filename)}
+                            className={`flex items-center gap-2 mb-1 rounded-md p-2 w-full text-left ${
                               isOut ? "bg-primary-foreground/10 hover:bg-primary-foreground/20" : "bg-background hover:bg-accent"
                             }`}
                           >
@@ -846,7 +867,7 @@ export default function WhatsAppInbox() {
                               <div className="text-[10px] opacity-70">{formatBytes(m.media_size_bytes)}</div>
                             </div>
                             <Download className="h-4 w-4 opacity-70" />
-                          </a>
+                          </button>
                         )}
                         {/* Texto / caption */}
                         {m.message_body && !(isDoc && !url && m.message_body === m.media_filename) && (
@@ -1215,11 +1236,13 @@ export default function WhatsAppInbox() {
           )}
           {lightbox && (
             <div className="flex justify-end pt-2">
-              <a href={lightbox.url} download={lightbox.name} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" variant="outline">
-                  <Download className="h-4 w-4 mr-1" /> Descargar
-                </Button>
-              </a>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => downloadMediaFile(lightbox.storagePath, lightbox.name)}
+              >
+                <Download className="h-4 w-4 mr-1" /> Descargar
+              </Button>
             </div>
           )}
         </MediaDialogContent>
