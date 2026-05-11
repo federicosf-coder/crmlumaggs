@@ -612,6 +612,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                         )}
                         <TableCell>
                           <div className="flex gap-1">
+                            <RowActions doc={doc} />
                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); window.open(`/documents/${doc.id}`, "_blank"); }} title="Editar">
                               <Pencil className="h-4 w-4" />
                             </Button>
