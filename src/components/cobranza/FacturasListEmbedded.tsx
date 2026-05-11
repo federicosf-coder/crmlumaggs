@@ -846,3 +846,39 @@ function RowActions({ doc }: { doc: any }) {
     </DropdownMenu>
   );
 }
+
+function ClientActions({ empresaId, clientName, docIds }: { empresaId: string | null; clientName: string; docIds: string[] }) {
+  const handleFire = async (e: React.MouseEvent, key: string, label: string) => {
+    e.stopPropagation();
+    const res = await fireAutomation({
+      trigger_type: "existing_button_click",
+      entity_type: "company",
+      entity_id: empresaId || undefined,
+      trigger_key: key,
+      context: { empresa_id: empresaId, cliente_nombre: clientName, document_ids: docIds, total_documentos: docIds.length },
+    });
+    if (res && res.matched > 0) {
+      const ok = res.runs.filter((r: any) => r.status === "success").length;
+      toast.success(`${label}: ${ok > 0 ? `automatización ejecutada (${ok})` : "sin éxito"}`);
+    } else {
+      toast.message(`${label}: no hay automatización configurada`);
+    }
+  };
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+        <Button variant="ghost" size="sm" className="h-8 gap-1">
+          Acciones <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem onClick={(e) => handleFire(e as any, "cobranza.relacion.send_whatsapp_cliente", "WhatsApp por Cliente")}>
+          <MessageCircle className="mr-2 h-4 w-4 text-green-600" /> WhatsApp por Cliente
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={(e) => handleFire(e as any, "cobranza.relacion.send_email_cliente", "Correo por Cliente")}>
+          <Mail className="mr-2 h-4 w-4 text-blue-600" /> Correo por Cliente
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
