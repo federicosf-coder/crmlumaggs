@@ -829,21 +829,28 @@ function RowActions({ doc }: { doc: any }) {
     }
   };
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-        <Button variant="ghost" size="sm" className="h-8 gap-1">
-          Acciones <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onClick={(e) => handleFire(e as any, "cobranza.relacion.send_whatsapp", "WhatsApp desde relación cobranza")}>
-          <MessageCircle className="mr-2 h-4 w-4 text-green-600" /> WhatsApp
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={(e) => handleFire(e as any, "cobranza.relacion.send_email", "Correo desde relación cobranza")}>
-          <Mail className="mr-2 h-4 w-4 text-blue-600" /> Correo
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        title="WhatsApp"
+        aria-label="WhatsApp"
+        onClick={(e) => handleFire(e, "cobranza.relacion.send_whatsapp", "WhatsApp desde relación cobranza")}
+      >
+        <MessageCircle className="h-4 w-4 text-green-600" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        title="Correo"
+        aria-label="Correo"
+        onClick={(e) => handleFire(e, "cobranza.relacion.send_email", "Correo desde relación cobranza")}
+      >
+        <Mail className="h-4 w-4 text-blue-600" />
+      </Button>
+    </div>
   );
 }
 
@@ -865,20 +872,27 @@ function ClientActions({ empresaId, clientName, docIds }: { empresaId: string | 
     }
   };
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-        <Button variant="ghost" size="sm" className="h-8 gap-1">
-          Acciones <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onClick={(e) => handleFire(e as any, "cobranza.relacion.send_whatsapp_cliente", "WhatsApp por Cliente")}>
-          <MessageCircle className="mr-2 h-4 w-4 text-green-600" /> WhatsApp por Cliente
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={(e) => handleFire(e as any, "cobranza.relacion.send_email_cliente", "Correo por Cliente")}>
-          <Mail className="mr-2 h-4 w-4 text-blue-600" /> Correo por Cliente
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        title="WhatsApp por Cliente"
+        aria-label="WhatsApp por Cliente"
+        onClick={(e) => handleFire(e, "cobranza.relacion.send_whatsapp_cliente", "WhatsApp por Cliente")}
+      >
+        <MessageCircle className="h-4 w-4 text-green-600" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        title="Correo por Cliente"
+        aria-label="Correo por Cliente"
+        onClick={(e) => handleFire(e, "cobranza.relacion.send_email_cliente", "Correo por Cliente")}
+      >
+        <Mail className="h-4 w-4 text-blue-600" />
+      </Button>
+    </div>
   );
 }
