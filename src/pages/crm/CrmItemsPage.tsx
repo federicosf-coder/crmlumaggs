@@ -390,6 +390,11 @@ export default function CrmItemsPage() {
                       {it.marca && (
                         <Badge variant="outline" className="text-xs capitalize">{it.marca}</Badge>
                       )}
+                      {it.source_table === "crm_tasks" && (rescheduleMap.get(it.id) || 0) > 0 && (
+                        <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 border-amber-200">
+                          Reprog. {rescheduleMap.get(it.id)}x
+                        </Badge>
+                      )}
                     </div>
                     {it.description && (
                       <div className="text-sm text-muted-foreground line-clamp-2">{it.description}</div>
@@ -437,6 +442,12 @@ export default function CrmItemsPage() {
                       <Button size="sm" variant="default" className="gap-1"
                         onClick={() => { setFinalizeTarget(it); setResultadoText(""); }}>
                         <CheckCircle2 className="h-4 w-4" /> Finalizar
+                      </Button>
+                    )}
+                    {it.source_table === "crm_tasks" && it.status !== "completada" && (
+                      <Button size="sm" variant="outline" className="gap-1"
+                        onClick={() => openReschedule(it)}>
+                        <CalendarClock className="h-4 w-4" /> Reprogramar
                       </Button>
                     )}
                     {it.status === "completada" && it.source_table !== "crm_activities" && (
