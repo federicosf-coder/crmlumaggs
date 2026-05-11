@@ -150,6 +150,8 @@ export default function WhatsAppInbox() {
   const [accept, setAccept] = useState<string>("");
   // Lightbox
   const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video"; name?: string } | null>(null);
+  // Cache de URLs firmadas frescas por id de mensaje
+  const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
 
   // Limpia object URL al cambiar archivo
   useEffect(() => {
