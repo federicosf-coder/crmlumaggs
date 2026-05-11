@@ -894,7 +894,7 @@ export default function CrmItemsPage() {
 
       {/* Dialog reprogramar */}
       <Dialog open={!!rescheduleTarget} onOpenChange={(o) => !o && setRescheduleTarget(null)}>
-        <DialogContent>
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Reprogramar: {rescheduleTarget?.title}</DialogTitle>
             <DialogDescription>
