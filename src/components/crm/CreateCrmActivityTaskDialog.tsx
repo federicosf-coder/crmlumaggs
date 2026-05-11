@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreateCrmActivity, CrmActivityType, ACTIVITY_TYPE_CONFIG } from "@/hooks/useCrmActivities";
 import { useCreateCrmTask } from "@/hooks/useCrmTasks";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,10 +12,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, X } from "lucide-react";
-import { format } from "date-fns";
+import {
+  Loader2, X, Phone, Mail, CalendarCheck, Car, MessageCircle, Banknote, RefreshCw, FileText,
+} from "lucide-react";
+import { format, addHours, startOfHour } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+
+type TaskTypeKey =
+  | "call" | "email" | "meeting" | "field_visit"
+  | "whatsapp" | "cobranza" | "follow_up" | "note";
+
+const TASK_TYPES: { key: TaskTypeKey; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: "call",        label: "Llamada",     Icon: Phone },
+  { key: "email",       label: "Email",       Icon: Mail },
+  { key: "meeting",     label: "Reunión",     Icon: CalendarCheck },
+  { key: "field_visit", label: "Visita",      Icon: Car },
+  { key: "whatsapp",    label: "WhatsApp",    Icon: MessageCircle },
+  { key: "cobranza",    label: "Cobranza",    Icon: Banknote },
+  { key: "follow_up",   label: "Seguimiento", Icon: RefreshCw },
+  { key: "note",        label: "Nota",        Icon: FileText },
+];
+
+const TASK_TYPE_LABEL: Record<TaskTypeKey, string> = TASK_TYPES.reduce((acc, t) => {
+  acc[t.key] = t.label;
+  return acc;
+}, {} as Record<TaskTypeKey, string>);
+
+/** Próxima hora redonda (si son las 14:23 → 15:00). */
+function nextRoundHourLocal(): string {
+  const next = addHours(startOfHour(new Date()), 1);
+  return format(next, "yyyy-MM-dd'T'HH:mm");
+}
 
 interface Props {
   open: boolean;
@@ -29,7 +58,6 @@ interface Props {
 
 export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId, defaultContactId, defaultBrand, defaultDate }: Props) {
   const { session } = useAuth();
-  const createActivity = useCreateCrmActivity();
   const createTask = useCreateCrmTask();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -66,20 +94,19 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
     },
   });
 
-  const nowLocal = format(new Date(), "yyyy-MM-dd'T'HH:mm");
+  const defaultDateValue = defaultDate || nextRoundHourLocal();
 
-  const [type, setType] = useState<CrmActivityType>("call");
-  const [activityDate, setActivityDate] = useState(defaultDate || nowLocal);
+  const [taskType, setTaskType] = useState<TaskTypeKey>("call");
+  const [activityDate, setActivityDate] = useState(defaultDateValue);
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [recurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
   const [companyId, setCompanyId] = useState("");
   const [brand, setBrand] = useState(defaultBrand || "");
   const [dealId, setDealId] = useState(defaultDealId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
-
-  const isTask = type === "task";
 
   const filteredDeals = brand
     ? deals?.filter((d: any) => d.crm_pipelines?.marca === brand) || []
@@ -120,9 +147,9 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user) return;
-    if (createTask.isPending || createActivity.isPending) return;
+    if (createTask.isPending) return;
 
-    const typeLabel = ACTIVITY_TYPE_CONFIG[type].label;
+    const typeLabel = TASK_TYPE_LABEL[taskType];
     const normalizedDealId = dealId && dealId !== "none" ? dealId : null;
     const normalizedContactId = contactId && contactId !== "none" ? contactId : null;
     let normalizedCompanyId = companyId && companyId !== "none" ? companyId : null;
@@ -155,72 +182,43 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
       }
     };
 
-    if (isTask) {
-      createTask.mutate(
-        {
-          user_id: session.user.id,
-          title: typeLabel,
-          description: description || null,
-          due_date: activityDate || null,
-          priority,
-          company_id: normalizedCompanyId,
-          deal_id: normalizedDealId,
-          contact_id: normalizedContactId,
+    createTask.mutate(
+      {
+        user_id: session.user.id,
+        title: typeLabel,
+        description: description || null,
+        due_date: activityDate || null,
+        priority,
+        company_id: normalizedCompanyId,
+        deal_id: normalizedDealId,
+        contact_id: normalizedContactId,
+        // Nuevas columnas (el hook hace insert directo, los campos extra pasan tal cual)
+        task_type: taskType,
+        recurrence,
+      } as any,
+      {
+        onSuccess: async (data) => {
+          verifyCompany(data);
+          invalidateAll();
+          toast({ title: "Tarea creada" });
+          resetAndClose();
+          saveCollaborators("task", data.id);
         },
-        {
-          onSuccess: async (data) => {
-            verifyCompany(data);
-            invalidateAll();
-            toast({ title: "Tarea creada" });
-            resetAndClose();
-            // Guardar colaboradores en segundo plano (no bloquea cierre)
-            saveCollaborators("task", data.id);
-          },
-          onError: (err: any) => {
-            toast({
-              title: "Error al crear tarea",
-              description: err?.message || "No se pudo guardar la tarea.",
-              variant: "destructive",
-            });
-          },
-        }
-      );
-    } else {
-      createActivity.mutate(
-        {
-          user_id: session.user.id,
-          type,
-          title: typeLabel,
-          description: description || null,
-          activity_date: activityDate ? new Date(activityDate).toISOString() : new Date().toISOString(),
-          company_id: normalizedCompanyId,
-          deal_id: normalizedDealId,
-          contact_id: normalizedContactId,
+        onError: (err: any) => {
+          toast({
+            title: "Error al crear tarea",
+            description: err?.message || "No se pudo guardar la tarea.",
+            variant: "destructive",
+          });
         },
-        {
-          onSuccess: async (data) => {
-            verifyCompany(data);
-            invalidateAll();
-            toast({ title: "Actividad registrada" });
-            resetAndClose();
-            saveCollaborators("activity", data.id);
-          },
-          onError: (err: any) => {
-            toast({
-              title: "Error al registrar actividad",
-              description: err?.message || "No se pudo guardar la actividad.",
-              variant: "destructive",
-            });
-          },
-        }
-      );
-    }
+      }
+    );
   };
 
   const resetAndClose = () => {
     onOpenChange(false);
-    setType("call");
-    setActivityDate(defaultDate || format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+    setTaskType("call");
+    setActivityDate(defaultDate || nextRoundHourLocal());
     setDescription("");
     setDueDate("");
     setPriority("medium");
@@ -231,11 +229,11 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
     setCollaboratorIds([]);
   };
 
-  const isPending = createActivity.isPending || createTask.isPending;
+  const isPending = createTask.isPending;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) resetAndClose(); else onOpenChange(true); }}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>Nueva Actividad / Tarea</DialogTitle>
         </DialogHeader>
@@ -248,15 +246,53 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
 
             <div className="space-y-2">
               <Label>Tipo *</Label>
-              <Select value={type} onValueChange={(v) => setType(v as CrmActivityType)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(ACTIVITY_TYPE_CONFIG).map(([key, config]) => (
-                    <SelectItem key={key} value={key}>{config.emoji} {config.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-4 gap-2">
+                {TASK_TYPES.map(({ key, label, Icon }) => {
+                  const selected = taskType === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setTaskType(key)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 p-3 transition-all",
+                        "hover:border-primary/50 hover:bg-accent/50",
+                        selected
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background text-muted-foreground"
+                      )}
+                      aria-pressed={selected}
+                    >
+                      <Icon className="h-6 w-6" />
+                      <span className={cn("text-xs font-medium", selected && "text-primary")}>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            <div className="space-y-2">
+              <Label>Recurrencia</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Select value="none" disabled>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sin recurrencia</SelectItem>
+                          <SelectItem value="daily">Diaria</SelectItem>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="monthly">Mensual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Próximamente</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
             <div className="space-y-2">
               <Label>Descripción</Label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detalles de la actividad..." maxLength={2000} />
@@ -294,19 +330,17 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
               )}
             </div>
 
-            {isTask && (
-              <div className="space-y-2">
-                <Label>Prioridad</Label>
-                <Select value={priority} onValueChange={setPriority}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Baja</SelectItem>
-                    <SelectItem value="medium">Media</SelectItem>
-                    <SelectItem value="high">Alta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>Prioridad</Label>
+              <Select value={priority} onValueChange={setPriority}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baja</SelectItem>
+                  <SelectItem value="medium">Media</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="space-y-2">
               <Label>CRM (opcional)</Label>
