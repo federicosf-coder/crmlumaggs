@@ -583,6 +583,7 @@ export default function CrmItemsPage() {
                 </span>
               )}
             </div>
+            <TaskChecklist taskId={t.id} />
           </div>
           <div className="flex flex-col gap-1 shrink-0">
             <Button size="sm" variant="default" className="gap-1" onClick={() => {
