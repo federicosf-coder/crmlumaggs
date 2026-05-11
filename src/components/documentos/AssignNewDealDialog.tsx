@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
@@ -43,6 +43,7 @@ interface Props {
 }
 
 export function AssignNewDealDialog({ open, prefill, onClose, onCreated }: Props) {
+  const queryClient = useQueryClient();
   const [empresaVendedora, setEmpresaVendedora] = useState<string>("");
   const [empresaId, setEmpresaId] = useState<string>("");
   const [contactoId, setContactoId] = useState<string>("");
@@ -277,7 +278,10 @@ export function AssignNewDealDialog({ open, prefill, onClose, onCreated }: Props
           open={contactDialogOpen}
           onOpenChange={setContactDialogOpen}
           defaultCompanyId={empresaId || undefined}
-          onCreated={(newId) => { setContactoId(newId); }}
+          onCreated={async (newId) => {
+            await queryClient.invalidateQueries({ queryKey: ["assign_new_deal_contacts", empresaId] });
+            setContactoId(newId);
+          }}
         />
       </DialogContent>
     </Dialog>
