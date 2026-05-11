@@ -411,6 +411,8 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                     type="date"
                     value={dueDate}
                     onChange={(e) => handleDueDateChange(e.target.value)}
+                    onFocus={() => setCalendarOpen(true)}
+                    onClick={() => setCalendarOpen(true)}
                     className={inputCls}
                   />
                 </div>
