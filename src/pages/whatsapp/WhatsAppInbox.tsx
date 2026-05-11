@@ -7,13 +7,14 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus } from "lucide-react";
+import { MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus, FileText, Search } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
+import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
 import { useNavigate } from "react-router-dom";
 
 type Conversation = {
@@ -75,6 +76,7 @@ export default function WhatsAppInbox() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [qrOpen, setQrOpen] = useState(false);
+  const [tplPickerOpen, setTplPickerOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [tplName, setTplName] = useState("");
   const [tplVars, setTplVars] = useState<string[]>([]);
@@ -619,26 +621,21 @@ export default function WhatsAppInbox() {
                 </Button>
               </div>
               <div className="flex gap-2">
-                <select
-                  className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm"
-                  value={tplName}
-                  onChange={(e) => {
-                    const name = e.target.value;
-                    setTplName(name);
-                    const tpl = templates.find((t) => t.name === name);
-                    const n = tpl?.body ? extractTemplateVars(tpl.body) : 0;
-                    setTplVars(Array(n).fill(""));
-                  }}
+                <button
+                  type="button"
+                  onClick={() => setTplPickerOpen(true)}
+                  className="flex-1 flex items-center justify-between gap-2 h-9 rounded-md border border-input bg-background px-3 text-sm hover:bg-muted/50 transition-colors"
                 >
-                  <option value="">
-                    — Enviar plantilla {activeAccount ? `(${activeAccount.label})` : ""} —
-                  </option>
-                  {filteredTemplates.map((t) => (
-                    <option key={t.id} value={t.name}>
-                      {t.name} ({t.language})
-                    </option>
-                  ))}
-                </select>
+                  <span className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="truncate">
+                      {tplName
+                        ? tplName
+                        : <span className="text-muted-foreground">— Enviar plantilla {activeAccount ? `(${activeAccount.label})` : ""} —</span>}
+                    </span>
+                  </span>
+                  <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
                 <Button variant="outline" size="sm" onClick={sendTemplate} disabled={!tplName || sending}>
                   Enviar plantilla
                 </Button>
@@ -809,6 +806,22 @@ export default function WhatsAppInbox() {
           defaultContactId={contactData?.id || ""}
         />
       )}
+
+      <TemplatePickerDialog
+        open={tplPickerOpen}
+        onOpenChange={setTplPickerOpen}
+        templates={filteredTemplates}
+        selectedId={filteredTemplates.find((t) => t.name === tplName)?.id}
+        onSelect={(id) => {
+          const tpl = filteredTemplates.find((t) => t.id === id);
+          if (tpl) {
+            setTplName(tpl.name);
+            const n = tpl.body ? extractTemplateVars(tpl.body) : 0;
+            setTplVars(Array(n).fill(""));
+          }
+          setTplPickerOpen(false);
+        }}
+      />
     </div>
   );
 }
