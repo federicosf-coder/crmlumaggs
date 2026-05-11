@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +83,7 @@ export default function WhatsAppInbox() {
   const [sending, setSending] = useState(false);
   // Inbox seleccionado por línea (business_phone_number_id). null = aún no inicializado
   const [selectedPhoneId, setSelectedPhoneId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Load conversations + realtime
   useEffect(() => {
@@ -329,6 +330,15 @@ export default function WhatsAppInbox() {
     return Date.now() - new Date(active.last_inbound_at).getTime() < 24 * 60 * 60 * 1000;
   }, [active]);
 
+  // Auto-scroll al fondo cuando cambian los mensajes o la conversación activa
+  useEffect(() => {
+    if (!activeId) return;
+    const t = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 50);
+    return () => clearTimeout(t);
+  }, [messages, activeId]);
+
   const sendText = async () => {
     if (!active || !draft.trim()) return;
     if (!active.business_phone_number_id) {
@@ -433,9 +443,9 @@ export default function WhatsAppInbox() {
   };
 
   return (
-    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-8rem)]">
+    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-8rem)] overflow-hidden">
       {/* Conversaciones */}
-      <Card className="col-span-3 flex flex-col">
+      <Card className="col-span-3 flex flex-col h-full overflow-hidden">
         <div className="p-3 border-b space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 font-medium">
@@ -450,14 +460,15 @@ export default function WhatsAppInbox() {
             <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1">
               {accounts.map((a) => {
                 const isSelected = selectedPhoneId === a.business_phone_number_id;
-                const count = conversations.filter(
-                  (c) => c.business_phone_number_id === a.business_phone_number_id,
-                ).length;
+                const unread = conversations
+                  .filter((c) => c.business_phone_number_id === a.business_phone_number_id)
+                  .reduce((acc, c) => acc + (c.unread_count || 0), 0);
+                const hasAlert = !isSelected && unread > 0;
                 return (
                   <button
                     key={a.id}
                     onClick={() => setSelectedPhoneId(a.business_phone_number_id)}
-                    className={`flex items-center justify-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold transition ${
+                    className={`relative flex items-center justify-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold transition ${
                       isSelected
                         ? "shadow-sm text-white"
                         : "text-muted-foreground hover:bg-background"
@@ -466,20 +477,27 @@ export default function WhatsAppInbox() {
                   >
                     <Inbox className="h-3 w-3" />
                     <span className="uppercase tracking-wide">{a.label}</span>
-                    <span
-                      className={`rounded-full px-1.5 text-[10px] ${
-                        isSelected ? "bg-white/25" : "bg-muted-foreground/15"
-                      }`}
-                    >
-                      {count}
-                    </span>
+                    {unread > 0 && (
+                      <span
+                        className={`rounded-full px-1.5 text-[10px] font-bold ${
+                          isSelected
+                            ? "bg-white/25 text-white"
+                            : "bg-destructive text-destructive-foreground"
+                        }`}
+                      >
+                        {unread}
+                      </span>
+                    )}
+                    {hasAlert && (
+                      <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                    )}
                   </button>
                 );
               })}
             </div>
           )}
         </div>
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           {filteredConversations.length === 0 ? (
             <div className="p-4 text-sm text-muted-foreground">
               Sin conversaciones en esta línea.
@@ -491,11 +509,15 @@ export default function WhatsAppInbox() {
                 onClick={() => setActiveId(c.id)}
                 className={`w-full text-left p-3 border-b hover:bg-accent transition ${activeId === c.id ? "bg-accent" : ""}`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium truncate">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium truncate flex-1">
                     {c.wa_profile_name || c.wa_phone}
                   </span>
-                  {c.unread_count > 0 && <Badge variant="default">{c.unread_count}</Badge>}
+                  {c.unread_count > 0 && (
+                    <span className="shrink-0 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold">
+                      {c.unread_count}
+                    </span>
+                  )}
                 </div>
                 {(() => {
                   const acct = c.business_phone_number_id
@@ -518,14 +540,14 @@ export default function WhatsAppInbox() {
       </Card>
 
       {/* Chat */}
-      <Card className="col-span-6 flex flex-col">
+      <Card className="col-span-6 flex flex-col h-full overflow-hidden">
         {!active ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
             Selecciona una conversación
           </div>
         ) : (
           <>
-            <div className="p-3 border-b">
+            <div className="p-3 border-b shrink-0 bg-card">
               <div className="flex items-center gap-2">
                 <div className="font-medium">{contactName || active.wa_profile_name || active.wa_phone}</div>
                 {activeAccount && (
@@ -544,7 +566,7 @@ export default function WhatsAppInbox() {
                 </div>
               )}
             </div>
-            <ScrollArea className="flex-1 p-3">
+            <ScrollArea className="flex-1 min-h-0 p-3">
               <div className="space-y-2">
                 {messages.map((m) => (
                   <div
@@ -562,9 +584,10 @@ export default function WhatsAppInbox() {
                     </div>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
-            <div className="p-3 border-t space-y-2">
+            <div className="p-3 border-t space-y-2 shrink-0 bg-card">
               {!windowOpen && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded">
                   <Lock className="h-3 w-3" />
@@ -666,7 +689,8 @@ export default function WhatsAppInbox() {
       </Card>
 
       {/* Lateral */}
-      <Card className="col-span-3 p-3">
+      <Card className="col-span-3 flex flex-col h-full overflow-hidden">
+        <div className="p-3 overflow-y-auto flex-1 min-h-0">
         {!active ? (
           <div className="text-sm text-muted-foreground">Datos del contacto</div>
         ) : (
@@ -750,6 +774,7 @@ export default function WhatsAppInbox() {
             </div>
           </div>
         )}
+        </div>
       </Card>
 
       <ContactFormDialog
