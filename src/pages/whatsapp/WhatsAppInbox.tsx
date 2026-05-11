@@ -469,6 +469,35 @@ export default function WhatsAppInbox() {
     return () => clearTimeout(t);
   }, [messages, activeId]);
 
+  // Resolver URLs firmadas frescas para mensajes con archivos
+  useEffect(() => {
+    const pending = messages.filter(
+      (m) => m.media_storage_path && !mediaUrls[m.id],
+    );
+    if (pending.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const updates: Record<string, string> = {};
+      for (const m of pending) {
+        try {
+          const { data } = await supabase.storage
+            .from("whatsapp-media")
+            .createSignedUrl(m.media_storage_path!, 60 * 60 * 6);
+          if (data?.signedUrl) updates[m.id] = data.signedUrl;
+          else if (m.media_url) updates[m.id] = m.media_url;
+        } catch {
+          if (m.media_url) updates[m.id] = m.media_url;
+        }
+      }
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setMediaUrls((prev) => ({ ...prev, ...updates }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [messages, mediaUrls]);
+
   const sendText = async () => {
     if (!active || !draft.trim()) return;
     if (!active.business_phone_number_id) {
