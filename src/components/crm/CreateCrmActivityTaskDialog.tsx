@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, X, Phone, Mail, CalendarCheck, Car, MessageCircle, Banknote, RefreshCw, FileText,
@@ -101,7 +100,8 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("medium");
-  const [recurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
+  const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
+  const [taskStatus, setTaskStatus] = useState<"planned" | "done" | "cancelled">("planned");
   const [companyId, setCompanyId] = useState("");
   const [brand, setBrand] = useState(defaultBrand || "");
   const [dealId, setDealId] = useState(defaultDealId || "");
@@ -192,9 +192,11 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
         company_id: normalizedCompanyId,
         deal_id: normalizedDealId,
         contact_id: normalizedContactId,
-        // Nuevas columnas (el hook hace insert directo, los campos extra pasan tal cual)
+        // Nuevas columnas
         task_type: taskType,
         recurrence,
+        task_status: taskStatus,
+        completed: taskStatus === "done",
       } as any,
       {
         onSuccess: async (data) => {
@@ -222,6 +224,8 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
     setDescription("");
     setDueDate("");
     setPriority("medium");
+    setRecurrence("none");
+    setTaskStatus("planned");
     setCompanyId("");
     setBrand(defaultBrand || "");
     setDealId(defaultDealId || "");
