@@ -392,7 +392,7 @@ export default function WhatsAppInbox() {
     const loadMsgs = async () => {
       const { data } = await supabase
         .from("whatsapp_messages")
-        .select("id,conversation_id,sender_phone,message_body,direction,status,template_name,created_at")
+        .select("id,conversation_id,sender_phone,message_body,direction,status,template_name,created_at,media_type,media_url,media_storage_path,media_filename,media_mime_type,media_size_bytes")
         .eq("conversation_id", activeId)
         .order("created_at", { ascending: true })
         .limit(500);
