@@ -29,11 +29,11 @@ import {
   ChevronLeft, ChevronRight, Search, CheckCircle2, RotateCcw, Trash2,
   Plus, Filter, AlertCircle, Calendar, User, Building2, Pencil, CalendarClock,
   SlidersHorizontal, Phone, Mail, CalendarCheck, Car, MessageCircle, Banknote,
-  RefreshCw, FileText,
+  RefreshCw, FileText, ChevronDown, ChevronUp, ListChecks,
 } from "lucide-react";
 import {
   format, parseISO, isValid, addHours, startOfHour, startOfDay, endOfDay,
-  addDays, isSameDay, differenceInDays,
+  addDays, addMonths, isSameDay, differenceInDays,
 } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
 import { CrmActivityDetailDialog } from "@/components/crm/CrmActivityDetailDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, "all"] as const;
 
@@ -109,7 +110,7 @@ export default function CrmItemsPage() {
   const canSeeAssignedFilter = hasAnyRole(["admin", "manager"]);
 
   // ── Vista superior: Lista | Hoy | Esta semana ──
-  const [viewTab, setViewTab] = useState<"lista" | "hoy" | "semana">("lista");
+  const [viewTab, setViewTab] = useState<"lista" | "hoy" | "semana" | "cobranza">("lista");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Filtros cliente adicionales (Tab Lista)
