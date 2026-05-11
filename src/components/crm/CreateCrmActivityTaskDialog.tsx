@@ -277,24 +277,27 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
 
             <div className="space-y-2">
               <Label>Recurrencia</Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Select value="none" disabled>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Sin recurrencia</SelectItem>
-                          <SelectItem value="daily">Diaria</SelectItem>
-                          <SelectItem value="weekly">Semanal</SelectItem>
-                          <SelectItem value="monthly">Mensual</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>Próximamente</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Ninguna</SelectItem>
+                  <SelectItem value="daily">Diaria</SelectItem>
+                  <SelectItem value="weekly">Semanal</SelectItem>
+                  <SelectItem value="monthly">Mensual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Estatus</Label>
+              <Select value={taskStatus} onValueChange={(v) => setTaskStatus(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="planned">Planificada</SelectItem>
+                  <SelectItem value="done">Realizada</SelectItem>
+                  <SelectItem value="cancelled">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -347,19 +350,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
             </div>
 
             <div className="space-y-2">
-              <Label>CRM (opcional)</Label>
-              <Select value={brand || "none"} onValueChange={(v) => { setBrand(v === "none" ? "" : v); setDealId(""); }}>
-                <SelectTrigger><SelectValue placeholder="Sin CRM" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin CRM</SelectItem>
-                  <SelectItem value="chevron">Chevron</SelectItem>
-                  <SelectItem value="phillips66">Phillips 66</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Vincular a Empresa</Label>
+              <Label>Empresa / Cliente</Label>
               <SearchableSelect
                 value={companyId || "none"}
                 onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
