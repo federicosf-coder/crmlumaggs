@@ -43,6 +43,20 @@ export const EXISTING_BUTTONS: ExistingButton[] = [
     path: "/cobranza",
   },
   {
+    id: "cobranza.relacion.send_whatsapp_cliente",
+    name: "WhatsApp por Cliente",
+    description: "Envía un WhatsApp consolidado al cliente desde el encabezado del grupo en la vista agrupada por cliente.",
+    location: "Cobranza › Relación de facturas (agrupada) › Acciones por cliente",
+    path: "/cobranza",
+  },
+  {
+    id: "cobranza.relacion.send_email_cliente",
+    name: "Correo por Cliente",
+    description: "Envía un correo consolidado al cliente desde el encabezado del grupo en la vista agrupada por cliente.",
+    location: "Cobranza › Relación de facturas (agrupada) › Acciones por cliente",
+    path: "/cobranza",
+  },
+  {
     id: "documents.generate_pdf",
     name: "Generar PDF",
     description: "Genera el PDF del documento (cotización, pedido, factura).",
