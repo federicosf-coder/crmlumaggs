@@ -319,6 +319,8 @@ export default function CrmItemsPage() {
       setResultadoText("");
       // Solo ofrecer seguimiento para crm_tasks
       if (target.source_table === "crm_tasks") {
+        // Asegurar task_status='done' (el trigger maneja completed_at)
+        await supabase.from("crm_tasks").update({ task_status: "done" } as any).eq("id", target.id);
         const { data: taskRow } = await supabase
           .from("crm_tasks")
           .select("id, company_id, task_type, due_date, title")
