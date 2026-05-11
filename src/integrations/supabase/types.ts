@@ -1529,8 +1529,11 @@ export type Database = {
           due_date: string | null
           id: string
           mensaje_sugerido: string | null
+          origen_tarea_id: string | null
           priority: string
           programable_entrega: boolean
+          recurrence: string
+          task_type: string
           title: string
           updated_at: string
           user_id: string
@@ -1548,8 +1551,11 @@ export type Database = {
           due_date?: string | null
           id?: string
           mensaje_sugerido?: string | null
+          origen_tarea_id?: string | null
           priority?: string
           programable_entrega?: boolean
+          recurrence?: string
+          task_type?: string
           title: string
           updated_at?: string
           user_id: string
@@ -1567,8 +1573,11 @@ export type Database = {
           due_date?: string | null
           id?: string
           mensaje_sugerido?: string | null
+          origen_tarea_id?: string | null
           priority?: string
           programable_entrega?: boolean
+          recurrence?: string
+          task_type?: string
           title?: string
           updated_at?: string
           user_id?: string
@@ -1595,6 +1604,13 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tasks_origen_tarea_id_fkey"
+            columns: ["origen_tarea_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tasks"
             referencedColumns: ["id"]
           },
         ]
