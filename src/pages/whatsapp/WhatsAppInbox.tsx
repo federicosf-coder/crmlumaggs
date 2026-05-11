@@ -534,6 +534,57 @@ export default function WhatsAppInbox() {
     toast.success("Plantilla enviada");
   };
 
+  const sendMedia = async () => {
+    if (!active || !pendingFile) return;
+    if (!active.business_phone_number_id) {
+      toast.error("Esta conversación no tiene línea asociada");
+      return;
+    }
+    const cat = categorizeFile(pendingFile);
+    if (!cat) {
+      setUploadError("Formato no compatible");
+      return;
+    }
+    setUploadError(null);
+    setSending(true);
+    setUploadProgress(10);
+    try {
+      const safeName = pendingFile.name.replace(/[^\w.\-]+/g, "_").slice(0, 120);
+      const path = `${active.id}/out_${Date.now()}_${safeName}`;
+      // 1) Subir al bucket
+      setUploadProgress(35);
+      const { error: upErr } = await supabase.storage
+        .from("whatsapp-media")
+        .upload(path, pendingFile, { contentType: pendingFile.type, upsert: false });
+      if (upErr) throw new Error(upErr.message);
+      setUploadProgress(70);
+      // 2) Llamar al edge function que sube a Meta y envía
+      const { error: fnErr } = await supabase.functions.invoke("whatsapp-send-message", {
+        body: {
+          to_phone: active.wa_phone,
+          conversation_id: active.id,
+          kind: "media",
+          business_phone_number_id: active.business_phone_number_id,
+          media_storage_path: path,
+          media_category: cat,
+          media_mime_type: pendingFile.type,
+          media_filename: pendingFile.name,
+          caption: pendingCaption.trim() || undefined,
+        },
+      });
+      if (fnErr) throw new Error(fnErr.message ?? "No se pudo enviar el archivo");
+      setUploadProgress(100);
+      toast.success("Archivo enviado");
+      clearPending();
+    } catch (e: any) {
+      setUploadError(e?.message ?? "Error al enviar el archivo");
+      toast.error(e?.message ?? "Error al enviar el archivo");
+    } finally {
+      setSending(false);
+      setTimeout(() => setUploadProgress(null), 800);
+    }
+  };
+
   const createContact = async () => {
     if (!active) return;
     const fullName = active.wa_profile_name?.trim() || `WhatsApp ${active.wa_phone}`;
