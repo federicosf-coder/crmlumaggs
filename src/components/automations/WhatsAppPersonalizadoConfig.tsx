@@ -109,7 +109,7 @@ function ConfigDialog({
     setCfg({
       mode,
       template_id: mode === "api" ? templateId || null : null,
-      template_name: mode === "api" ? selectedTpl?.nombre || null : null,
+      template_name: mode === "api" ? selectedTpl?.name || null : null,
       default_message: mode === "local" ? defaultMessage : undefined,
       to_type: toType,
       phone_field: toType === "campo_telefono" ? phoneField : undefined,
