@@ -826,6 +826,118 @@ export default function DocumentsList() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
+              {tipoFilter !== "entrega_corporativa" && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="gap-1.5">
+                      <Filter className="h-4 w-4" />
+                      Filtros
+                      {activeFiltersCount > 0 && (
+                        <Badge variant="secondary" className="ml-1">{activeFiltersCount}</Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-[min(92vw,640px)] p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5 text-sm font-medium">
+                        <Filter className="h-4 w-4" /> Filtros
+                        {activeFiltersCount > 0 && (
+                          <Badge variant="secondary" className="ml-1">{activeFiltersCount}</Badge>
+                        )}
+                      </div>
+                      {activeFiltersCount > 0 && (
+                        <Button variant="ghost" size="sm" className="h-8" onClick={clearFilters}>
+                          <X className="h-3.5 w-3.5 mr-1" /> Limpiar
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-muted-foreground">Tipo de Pago</label>
+                        <Select value={tipoPagoFilter} onValueChange={setTipoPagoFilter}>
+                          <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="contado">Contado</SelectItem>
+                            <SelectItem value="directo">Crédito Directo</SelectItem>
+                            <SelectItem value="cescemex">Crédito Cescemex</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-muted-foreground">Fecha desde</label>
+                        <Input type="date" className="h-8 w-40" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-muted-foreground">Fecha hasta</label>
+                        <Input type="date" className="h-8 w-40" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
+                      </div>
+                      {tipoFilter === "cotizacion" && (
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-muted-foreground">Estatus cotización</label>
+                          <Select value={estatusCotFilter} onValueChange={setEstatusCotFilter}>
+                            <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              {Object.entries(ESTATUS_COT_LABELS).map(([v, l]) => (
+                                <SelectItem key={v} value={v}>{l}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      {tipoFilter === "pedido" && (
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-muted-foreground">Estatus pedido</label>
+                          <Select value={estatusPedFilter} onValueChange={setEstatusPedFilter}>
+                            <SelectTrigger className="h-8 w-48"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              <SelectItem value="confirmado_cliente">Confirmado cliente</SelectItem>
+                              <SelectItem value="validado_contabilidad">Validado contabilidad</SelectItem>
+                              <SelectItem value="programado_entrega">Programado entrega</SelectItem>
+                              <SelectItem value="entregado">Entregado</SelectItem>
+                              <SelectItem value="cancelado">Cancelado</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      {tipoFilter === "factura" && (
+                        <>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs text-muted-foreground">Estatus factura</label>
+                            <Select value={estatusFacFilter} onValueChange={setEstatusFacFilter}>
+                              <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">Todos</SelectItem>
+                                <SelectItem value="vigente">Vigente</SelectItem>
+                                <SelectItem value="parcial">Parcial</SelectItem>
+                                <SelectItem value="pagada">Pagada</SelectItem>
+                                <SelectItem value="vencida">Vencida</SelectItem>
+                                <SelectItem value="cancelada">Cancelada</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs text-muted-foreground">Estatus cobranza</label>
+                            <Select value={estatusCobFilter} onValueChange={setEstatusCobFilter}>
+                              <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">Todos</SelectItem>
+                                <SelectItem value="pendiente">Pendiente</SelectItem>
+                                <SelectItem value="parcial">Parcial</SelectItem>
+                                <SelectItem value="pagada">Pagada</SelectItem>
+                                <SelectItem value="vencida">Vencida</SelectItem>
+                                <SelectItem value="cancelada">Cancelada</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
               <Select value={ejecutivoFilter} onValueChange={v => setFilter("ejecutivo", v)}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="Ejecutivo" />
