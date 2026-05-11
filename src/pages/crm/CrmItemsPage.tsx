@@ -532,6 +532,43 @@ export default function CrmItemsPage() {
         open={!!editActivity}
         onOpenChange={(o) => !o && setEditActivity(null)}
       />
+
+      {/* Dialog reprogramar */}
+      <Dialog open={!!rescheduleTarget} onOpenChange={(o) => !o && setRescheduleTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reprogramar: {rescheduleTarget?.title}</DialogTitle>
+            <DialogDescription>
+              Selecciona una nueva fecha y hora. Opcionalmente indica el motivo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Nueva fecha y hora *</label>
+              <Input
+                type="datetime-local"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Motivo</label>
+              <Textarea
+                placeholder="¿Por qué se reprograma?"
+                value={rescheduleReason}
+                onChange={(e) => setRescheduleReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRescheduleTarget(null)}>Cancelar</Button>
+            <Button onClick={submitReschedule} disabled={rescheduleSaving || !rescheduleDate}>
+              {rescheduleSaving ? "Guardando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
