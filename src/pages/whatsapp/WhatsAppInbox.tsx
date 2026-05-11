@@ -139,6 +139,79 @@ export default function WhatsAppInbox() {
   // Inbox seleccionado por línea (business_phone_number_id). null = aún no inicializado
   const [selectedPhoneId, setSelectedPhoneId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  // Media (outbound)
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
+  const [pendingCaption, setPendingCaption] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [accept, setAccept] = useState<string>("");
+  // Lightbox
+  const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video"; name?: string } | null>(null);
+
+  // Limpia object URL al cambiar archivo
+  useEffect(() => {
+    return () => {
+      if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    };
+  }, [pendingPreviewUrl]);
+
+  const clearPending = () => {
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    setPendingFile(null);
+    setPendingPreviewUrl(null);
+    setPendingCaption("");
+    setUploadError(null);
+    setUploadProgress(null);
+  };
+
+  const handleFilePicked = (file: File | null) => {
+    if (!file) return;
+    const cat = categorizeFile(file);
+    if (!cat) {
+      toast.error(`Formato no compatible: ${file.type || file.name}`);
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      toast.error(`El archivo supera el límite de 25 MB (${formatBytes(file.size)})`);
+      return;
+    }
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    setPendingFile(file);
+    setUploadError(null);
+    setUploadProgress(null);
+    setPendingCaption("");
+    if (cat === "image" || cat === "video") {
+      setPendingPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setPendingPreviewUrl(null);
+    }
+  };
+
+  const openFilePicker = (mode: "media" | "document") => {
+    setAccept(mode === "media" ? "image/*,video/*" : DOC_MIMES.join(","));
+    setTimeout(() => fileInputRef.current?.click(), 0);
+  };
+
+  // Drag & Drop sobre el área del chat
+  const onChatDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer?.types?.includes("Files")) {
+      e.preventDefault();
+      setDragOver(true);
+    }
+  };
+  const onChatDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+  const onChatDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer?.files?.[0];
+    if (f) handleFilePicked(f);
+  };
 
   // Load conversations + realtime
   useEffect(() => {
