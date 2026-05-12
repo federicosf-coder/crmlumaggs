@@ -460,6 +460,9 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
               </div>
             </PopoverContent>
           </Popover>
+          <Button variant="outline" size="sm" onClick={handleExportExcel} title="Exportar a Excel">
+            <Download className="mr-1 h-4 w-4" /> Excel
+          </Button>
           <div className="flex rounded-md border overflow-hidden">
             <Button
               type="button"
