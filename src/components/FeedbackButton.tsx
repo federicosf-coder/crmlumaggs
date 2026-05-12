@@ -35,7 +35,6 @@ export function FeedbackButton() {
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { user, profile } = useAuth();
-  const location = useLocation();
 
   const pageUrl = typeof window !== "undefined" ? window.location.href : "";
   const userName = profile?.full_name || user?.email || "Usuario anónimo";
