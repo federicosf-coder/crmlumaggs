@@ -260,7 +260,7 @@ export default function WhatsAppCampaigns() {
       });
     supabase
       .from("contacts")
-      .select("id,first_name,last_name,whatsapp_phone,mobile,company_id,plaza_id,contacto_intereses(interes_id),companies(name)")
+      .select("id,first_name,last_name,whatsapp_phone,mobile,company_id,plaza_id,contacto_intereses(interes_id),companies!contacts_company_id_fkey(name,plaza_id)")
       .eq("is_active", true)
       .eq("no_contactar", false)
       .order("first_name")
@@ -269,6 +269,7 @@ export default function WhatsAppCampaigns() {
         const rows = ((data ?? []) as any[]).map((r) => ({
           ...r,
           interes_ids: (r.contacto_intereses || []).map((ci: any) => ci.interes_id),
+          plaza_id: r.plaza_id || r.companies?.plaza_id || null,
           company_name: r.companies?.name ?? null,
         }));
         setContacts(rows as Contact[]);
