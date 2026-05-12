@@ -320,6 +320,19 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
     enabled: open,
   });
 
+  const { data: plazas = [] } = useQuery({
+    queryKey: ["plazas_active"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("plazas")
+        .select("id,nombre")
+        .eq("is_active", true)
+        .order("nombre");
+      return (data || []) as { id: string; nombre: string }[];
+    },
+    enabled: open,
+  });
+
   const { data: contactIntereses = [] } = useQuery({
     queryKey: ["contacto_intereses", editData?.id],
     queryFn: async () => {
