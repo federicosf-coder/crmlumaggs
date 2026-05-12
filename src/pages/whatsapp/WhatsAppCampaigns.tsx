@@ -21,7 +21,10 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Megaphone, Play, Plus, AlertTriangle, CheckCircle2, Clock, CalendarIcon, Users, X } from "lucide-react";
+import { Megaphone, Play, Plus, AlertTriangle, CheckCircle2, Clock, CalendarIcon, Users, X, Loader2, Pause, Eye, RotateCcw, Trash2, Search, ArrowUpDown } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { isToday, isYesterday } from "date-fns";
+import { es } from "date-fns/locale";
 import { MarketingPromoUpload, PromoPlaceholderHint } from "@/components/whatsapp/MarketingPromoUpload";
 import { WhatsAppChatPreview } from "@/components/whatsapp/WhatsAppChatPreview";
 
@@ -82,6 +85,52 @@ const statusVariant = (s: string): "default" | "secondary" | "destructive" | "ou
   if (s === "failed") return "destructive";
   return "outline";
 };
+
+const statusLabels: Record<string, string> = {
+  draft: "Borrador",
+  scheduled: "Programada",
+  running: "En curso",
+  paused: "Pausada",
+  completed: "Completada",
+  failed: "Fallida",
+};
+
+function CampaignStatusBadge({ status, hasFailures }: { status: string; hasFailures: boolean }) {
+  const cls =
+    status === "running"
+      ? "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-900"
+      : status === "completed"
+      ? hasFailures
+        ? "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-900"
+        : "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-900"
+      : status === "failed"
+      ? "bg-red-100 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-950 dark:text-red-300 dark:border-red-900"
+      : status === "paused"
+      ? "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-900"
+      : status === "scheduled"
+      ? "bg-violet-100 text-violet-700 border-violet-200 hover:bg-violet-100 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-900"
+      : "bg-muted text-muted-foreground border-border";
+  const Icon =
+    status === "running" ? Loader2 :
+    status === "completed" ? CheckCircle2 :
+    status === "failed" ? AlertTriangle :
+    status === "paused" ? Pause :
+    status === "scheduled" ? CalendarIcon :
+    Clock;
+  return (
+    <Badge variant="outline" className={cn("gap-1 font-medium", cls)}>
+      <Icon className={cn("h-3 w-3", status === "running" && "animate-spin")} />
+      {statusLabels[status] ?? status}
+    </Badge>
+  );
+}
+
+function formatCreated(iso: string): string {
+  const d = new Date(iso);
+  if (isToday(d)) return `Hoy, ${format(d, "h:mm a")}`;
+  if (isYesterday(d)) return `Ayer, ${format(d, "h:mm a")}`;
+  return format(d, "d MMM, yyyy", { locale: es });
+}
 
 export default function WhatsAppCampaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
