@@ -23,6 +23,7 @@ import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { BulkEditDialog } from "@/components/BulkEditDialog";
 import { SortMenu } from "@/components/SortMenu";
 import { fireAutomation } from "@/hooks/useFireAutomation";
+import * as XLSX from "xlsx";
 
 /**
  * Lista embebida de Facturas — espejo del listado en Documentos > Facturas.
