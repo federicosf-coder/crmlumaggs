@@ -410,12 +410,9 @@ export default function Cobranza() {
   }), [documentos]);
 
   // Helpers de clasificación compartidos
+  // "Vencida" = Estatus de Factura = 'vencida' (fuente única de verdad para el KPI Cartera Vencida).
   const isVencida = (f: typeof facturas[number]) => {
-    const fv = fechaVencimientoEfectiva(f);
-    if (!fv) return false;
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const v = new Date(fv); v.setHours(0, 0, 0, 0);
-    return v.getTime() < hoy.getTime();
+    return (f.estatus_factura || "").toString().toLowerCase() === "vencida";
   };
   const isCreditoCescemex = (f: typeof facturas[number]) => {
     const tp = (f.tipo_pago || "").toLowerCase();
@@ -484,10 +481,9 @@ export default function Cobranza() {
   // KPIs
   const cartera = useMemo(() => {
     const abierta = facturas.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
-    const vencida = facturas.filter((f) => {
-      const d = diasParaVencer(fechaVencimientoEfectiva(f));
-      return d !== null && d < 0 && Number(f.saldo_pendiente_cobranza) > 0;
-    }).reduce((s, f) => s + Number(f.saldo_pendiente_cobranza), 0);
+    const vencida = facturas
+      .filter((f) => isVencida(f) && Number(f.saldo_pendiente_cobranza) > 0)
+      .reduce((s, f) => s + Number(f.saldo_pendiente_cobranza), 0);
     const porVencer = abierta - vencida;
     const noAplicado = pagos.filter((p) => p.estado_pago !== "cancelado").reduce((s, p) => s + (breakdowns[p.id]?.disponibleFacturas ?? Number(p.monto_disponible)), 0);
     const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
