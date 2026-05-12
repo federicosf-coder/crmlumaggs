@@ -484,6 +484,27 @@ function ProductosTab() {
 
   const selectedPres = presentaciones.find(p => p.id === form.presentacion_id);
 
+  const filterDefs: { key: keyof typeof selectedFilters; label: string; opts: { id: string; value: string }[] }[] = [
+    { key: "marca", label: "Marca", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("marca").map(o => ({ id: o.id, value: o.value }))] },
+    { key: "presentacion", label: "Presentación", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...presentaciones.filter(p => p.is_active).map(p => ({ id: p.id, value: p.nombre }))] },
+    { key: "aplicacion", label: "Aplicación", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("aplicacion").map(o => ({ id: o.id, value: o.value }))] },
+    { key: "uso", label: "Uso", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("uso").map(o => ({ id: o.id, value: o.value }))] },
+    { key: "formula", label: "Fórmula", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("formula").map(o => ({ id: o.id, value: o.value }))] },
+    { key: "viscosidad", label: "Viscosidad", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("viscosidad").map(o => ({ id: o.id, value: o.value }))] },
+    { key: "categoria", label: "Categoría", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("categoria").map(o => ({ id: o.id, value: o.value }))] },
+    { key: "linea", label: "Línea", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("linea").map(o => ({ id: o.id, value: o.value }))] },
+    { key: "activo", label: "Estado", opts: [{ id: "true", value: "Activo" }, { id: "false", value: "Inactivo" }] },
+  ];
+  const totalActiveFilters = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0);
+  const addFilter = (key: keyof typeof selectedFilters, id: string) => {
+    if (!id) return;
+    setSelectedFilters(prev => prev[key].includes(id) ? prev : { ...prev, [key]: [...prev[key], id] });
+  };
+  const removeFilter = (key: keyof typeof selectedFilters, id: string) => {
+    setSelectedFilters(prev => ({ ...prev, [key]: prev[key].filter(x => x !== id) }));
+  };
+  const clearAllFilters = () => setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [], activo: [] });
+
   return (
     <Card>
       <CardHeader className="gap-4">
@@ -494,6 +515,38 @@ function ProductosTab() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-8 w-60" placeholder="Buscar por código o nombre..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Filtros
+                {totalActiveFilters > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5">{totalActiveFilters}</Badge>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[420px] max-w-[95vw] p-4" align="end">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium">Filtros</span>
+                {totalActiveFilters > 0 && (
+                  <Button size="sm" variant="ghost" className="h-7" onClick={clearAllFilters}>Limpiar todo</Button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto">
+                {filterDefs.map(f => (
+                  <div key={f.key} className="flex flex-col gap-1">
+                    <Label className="text-xs text-muted-foreground">{f.label}</Label>
+                    <Select value="" onValueChange={(v) => addFilter(f.key, v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder={`Agregar ${f.label.toLowerCase()}`} /></SelectTrigger>
+                      <SelectContent>
+                        {f.opts.filter(o => !selectedFilters[f.key].includes(o.id)).map(o => (
+                          <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           {canImportExport && (
             <>
               <Button size="sm" variant="outline" onClick={handleExport}><Download className="mr-1 h-4 w-4" /> Exportar</Button>
@@ -519,66 +572,25 @@ function ProductosTab() {
           />
         </div>
         </div>
-        {(() => {
-          const filterDefs: { key: keyof typeof selectedFilters; label: string; opts: { id: string; value: string }[] }[] = [
-            { key: "marca", label: "Marca", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("marca").map(o => ({ id: o.id, value: o.value }))] },
-            { key: "presentacion", label: "Presentación", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...presentaciones.filter(p => p.is_active).map(p => ({ id: p.id, value: p.nombre }))] },
-            { key: "aplicacion", label: "Aplicación", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("aplicacion").map(o => ({ id: o.id, value: o.value }))] },
-            { key: "uso", label: "Uso", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("uso").map(o => ({ id: o.id, value: o.value }))] },
-            { key: "formula", label: "Fórmula", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("formula").map(o => ({ id: o.id, value: o.value }))] },
-            { key: "viscosidad", label: "Viscosidad", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("viscosidad").map(o => ({ id: o.id, value: o.value }))] },
-            { key: "categoria", label: "Categoría", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("categoria").map(o => ({ id: o.id, value: o.value }))] },
-            { key: "linea", label: "Línea", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("linea").map(o => ({ id: o.id, value: o.value }))] },
-            { key: "activo", label: "Estado", opts: [{ id: "true", value: "Activo" }, { id: "false", value: "Inactivo" }] },
-          ];
-          const totalActive = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0);
-          const addFilter = (key: keyof typeof selectedFilters, id: string) => {
-            if (!id) return;
-            setSelectedFilters(prev => prev[key].includes(id) ? prev : { ...prev, [key]: [...prev[key], id] });
-          };
-          const removeFilter = (key: keyof typeof selectedFilters, id: string) => {
-            setSelectedFilters(prev => ({ ...prev, [key]: prev[key].filter(x => x !== id) }));
-          };
-          const clearAll = () => setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [], activo: [] });
-          return (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-muted-foreground">Filtros:</span>
-                {filterDefs.map(f => (
-                  <Select key={f.key} value="" onValueChange={(v) => addFilter(f.key, v)}>
-                    <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder={f.label} /></SelectTrigger>
-                    <SelectContent>
-                      {f.opts.filter(o => !selectedFilters[f.key].includes(o.id)).map(o => (
-                        <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ))}
-                {totalActive > 0 && (
-                  <Button size="sm" variant="ghost" className="h-8" onClick={clearAll}>Limpiar filtros</Button>
-                )}
-              </div>
-              {totalActive > 0 && (
-                <div className="flex items-center gap-1 flex-wrap">
-                    {filterDefs.flatMap(f =>
-                      selectedFilters[f.key].map(id => {
-                        const isEmptyFilter = id === "__EMPTY__";
-                        const opt = isEmptyFilter ? { value: "Sin valor" } : f.opts.find(o => o.id === id);
-                        return (
-                          <Badge key={`${f.key}-${id}`} variant="secondary" className="gap-1">
-                            <span className="text-xs">{f.label}: {opt?.value ?? id}</span>
-                            <button type="button" onClick={() => removeFilter(f.key, id)} className="ml-1 hover:text-destructive">
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        );
-                      })
-                    )}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        {totalActiveFilters > 0 && (
+          <div className="flex items-center gap-1 flex-wrap">
+            {filterDefs.flatMap(f =>
+              selectedFilters[f.key].map(id => {
+                const isEmptyFilter = id === "__EMPTY__";
+                const opt = isEmptyFilter ? { value: "Sin valor" } : f.opts.find(o => o.id === id);
+                return (
+                  <Badge key={`${f.key}-${id}`} variant="secondary" className="gap-1">
+                    <span className="text-xs">{f.label}: {opt?.value ?? id}</span>
+                    <button type="button" onClick={() => removeFilter(f.key, id)} className="ml-1 hover:text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })
+            )}
+            <Button size="sm" variant="ghost" className="h-7" onClick={clearAllFilters}>Limpiar filtros</Button>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
