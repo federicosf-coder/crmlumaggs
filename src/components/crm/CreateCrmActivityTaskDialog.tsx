@@ -154,6 +154,31 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const lockDeal = !!defaultDealId;
   const lockContact = !!defaultContactId;
 
+  const handleDealChange = async (v: string) => {
+    const newDealId = v === "none" ? "" : v;
+    setDealId(newDealId);
+    if (!newDealId) return;
+    const { data: deal } = await supabase
+      .from("crm_deals")
+      .select("company_id, contact_id")
+      .eq("id", newDealId)
+      .maybeSingle();
+    if (!deal) return;
+    const cId = (deal as any).company_id || "";
+    if (cId) {
+      setCompanyId(cId);
+      const { data: comp } = await supabase
+        .from("companies")
+        .select("primary_contact_id")
+        .eq("id", cId)
+        .maybeSingle();
+      const primary = (comp as any)?.primary_contact_id || (deal as any).contact_id || "";
+      if (primary) setContactId(primary);
+    } else if ((deal as any).contact_id) {
+      setContactId((deal as any).contact_id);
+    }
+  };
+
   const filteredDeals = brand
     ? deals?.filter((d: any) => d.crm_pipelines?.marca === brand) || []
     : deals || [];
@@ -416,7 +441,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
                   <Label className="flex items-center gap-2">Vincular a Negocio {lockDeal && <span className="text-[10px] text-muted-foreground">(prellenado)</span>}</Label>
                   <SearchableSelect
                     value={dealId || "none"}
-                    onValueChange={(v) => setDealId(v === "none" ? "" : v)}
+                    onValueChange={handleDealChange}
                     options={[
                       { value: "none", label: "Ninguno" },
                       ...(filteredDeals?.map((d: any) => ({ value: d.id, label: d.title })) || []),
