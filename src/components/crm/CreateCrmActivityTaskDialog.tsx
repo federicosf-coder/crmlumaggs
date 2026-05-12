@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmTask } from "@/hooks/useCrmTasks";
@@ -17,7 +17,6 @@ import {
   Loader2, X, Phone, Mail, CalendarCheck, Car, MessageCircle, Banknote, RefreshCw, FileText,
 } from "lucide-react";
 import { format, addHours, startOfHour } from "date-fns";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 type TaskTypeKey =
@@ -111,6 +110,49 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const [dealId, setDealId] = useState(defaultDealId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
+
+  // Auto-resolver vínculos cuando se abre desde una vista específica
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      // Si viene defaultDealId: resolver empresa y contacto principal
+      if (defaultDealId) {
+        const { data: deal } = await supabase
+          .from("crm_deals")
+          .select("company_id, contact_id")
+          .eq("id", defaultDealId)
+          .maybeSingle();
+        if (deal) {
+          const cId = (deal as any).company_id || "";
+          if (cId) {
+            setCompanyId((prev) => prev || cId);
+            const { data: comp } = await supabase
+              .from("companies")
+              .select("primary_contact_id")
+              .eq("id", cId)
+              .maybeSingle();
+            const primary = (comp as any)?.primary_contact_id || (deal as any).contact_id || "";
+            if (primary) setContactId((prev) => prev || primary);
+          } else if ((deal as any).contact_id) {
+            setContactId((prev) => prev || (deal as any).contact_id);
+          }
+        }
+      } else if (defaultCompanyId) {
+        // Si viene defaultCompanyId: resolver contacto principal
+        const { data: comp } = await supabase
+          .from("companies")
+          .select("primary_contact_id")
+          .eq("id", defaultCompanyId)
+          .maybeSingle();
+        const primary = (comp as any)?.primary_contact_id;
+        if (primary) setContactId((prev) => prev || primary);
+      }
+    })();
+  }, [open, defaultDealId, defaultCompanyId]);
+
+  const lockCompany = !!defaultCompanyId || !!defaultDealId;
+  const lockDeal = !!defaultDealId;
+  const lockContact = !!defaultContactId;
 
   const filteredDeals = brand
     ? deals?.filter((d: any) => d.crm_pipelines?.marca === brand) || []
@@ -243,22 +285,18 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) resetAndClose(); else onOpenChange(true); }}>
       <DialogContent
-        className="sm:max-w-lg max-h-[90vh] flex flex-col p-0"
+        className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader className="px-6 pt-6 pb-2">
+        <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
           <DialogTitle>Nueva Actividad / Tarea</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="flex-1 px-6 pb-6 overflow-y-auto">
-          <form onSubmit={handleSubmit} className="space-y-4 pr-2">
-            <div className="space-y-2">
-              <Label>Fecha *</Label>
-              <Input type="datetime-local" value={activityDate} onChange={(e) => setActivityDate(e.target.value)} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tipo *</Label>
-              <div className="grid grid-cols-4 gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {/* Tipo - iconos compactos full width */}
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Tipo *</Label>
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
                 {TASK_TYPES.map(({ key, label, Icon }) => {
                   const selected = taskType === key;
                   return (
@@ -266,8 +304,9 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
                       key={key}
                       type="button"
                       onClick={() => setTaskType(key)}
+                      title={label}
                       className={cn(
-                        "flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 p-3 transition-all",
+                        "flex flex-col items-center justify-center gap-0.5 rounded-md border p-1.5 transition-all",
                         "hover:border-primary/50 hover:bg-accent/50",
                         selected
                           ? "border-primary bg-primary/10 text-primary"
@@ -275,137 +314,146 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
                       )}
                       aria-pressed={selected}
                     >
-                      <Icon className="h-6 w-6" />
-                      <span className={cn("text-xs font-medium", selected && "text-primary")}>{label}</span>
+                      <Icon className="h-4 w-4" />
+                      <span className={cn("text-[10px] font-medium leading-tight", selected && "text-primary")}>{label}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Recurrencia</Label>
-              <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Ninguna</SelectItem>
-                  <SelectItem value="daily">Diaria</SelectItem>
-                  <SelectItem value="weekly">Semanal</SelectItem>
-                  <SelectItem value="monthly">Mensual</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Doble columna */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+              {/* Columna Izquierda */}
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Fecha y hora *</Label>
+                  <Input type="datetime-local" value={activityDate} onChange={(e) => setActivityDate(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1.5">
+                    <Label>Prioridad</Label>
+                    <Select value={priority} onValueChange={setPriority}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Baja</SelectItem>
+                        <SelectItem value="medium">Media</SelectItem>
+                        <SelectItem value="high">Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Estatus</Label>
+                    <Select value={taskStatus} onValueChange={(v) => setTaskStatus(v as any)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="planned">Planificada</SelectItem>
+                        <SelectItem value="done">Realizada</SelectItem>
+                        <SelectItem value="cancelled">Cancelada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Recurrencia</Label>
+                  <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Ninguna</SelectItem>
+                      <SelectItem value="daily">Diaria</SelectItem>
+                      <SelectItem value="weekly">Semanal</SelectItem>
+                      <SelectItem value="monthly">Mensual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Columna Derecha - Vinculación */}
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Colaboradores</Label>
+                  <SearchableSelect
+                    value="none"
+                    onValueChange={handleAddCollaborator}
+                    options={[
+                      { value: "none", label: "Agregar colaborador..." },
+                      ...availableCollaborators.map((u) => ({
+                        value: u.user_id,
+                        label: u.full_name || u.email || "Sin nombre",
+                      })),
+                    ]}
+                    placeholder="Buscar usuario..."
+                  />
+                  {collaboratorIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {collaboratorIds.map((uid) => {
+                        const user = users?.find((u) => u.user_id === uid);
+                        return (
+                          <Badge key={uid} variant="secondary" className="gap-1">
+                            {user?.full_name || user?.email || uid.slice(0, 8)}
+                            <button type="button" onClick={() => handleRemoveCollaborator(uid)}>
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-2">Empresa / Cliente {lockCompany && <span className="text-[10px] text-muted-foreground">(prellenada)</span>}</Label>
+                  <SearchableSelect
+                    value={companyId || "none"}
+                    onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
+                    options={[
+                      { value: "none", label: "Ninguna" },
+                      ...(companies?.map((c) => ({ value: c.id, label: c.name })) || []),
+                    ]}
+                    placeholder="Buscar empresa..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-2">Vincular a Negocio {lockDeal && <span className="text-[10px] text-muted-foreground">(prellenado)</span>}</Label>
+                  <SearchableSelect
+                    value={dealId || "none"}
+                    onValueChange={(v) => setDealId(v === "none" ? "" : v)}
+                    options={[
+                      { value: "none", label: "Ninguno" },
+                      ...(filteredDeals?.map((d: any) => ({ value: d.id, label: d.title })) || []),
+                    ]}
+                    placeholder="Buscar negocio..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-2">Vincular a Contacto {lockContact && <span className="text-[10px] text-muted-foreground">(prellenado)</span>}</Label>
+                  <SearchableSelect
+                    value={contactId || "none"}
+                    onValueChange={(v) => setContactId(v === "none" ? "" : v)}
+                    options={[
+                      { value: "none", label: "Ninguno" },
+                      ...(contacts?.map((c) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` })) || []),
+                    ]}
+                    placeholder="Buscar contacto..."
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Estatus</Label>
-              <Select value={taskStatus} onValueChange={(v) => setTaskStatus(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="planned">Planificada</SelectItem>
-                  <SelectItem value="done">Realizada</SelectItem>
-                  <SelectItem value="cancelled">Cancelada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
+            {/* Descripción full width */}
+            <div className="space-y-1.5">
               <Label>Descripción</Label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detalles de la actividad..." maxLength={2000} />
             </div>
+          </div>
 
-            {/* Collaborators - right after description */}
-            <div className="space-y-2">
-              <Label>Colaboradores</Label>
-              <SearchableSelect
-                value="none"
-                onValueChange={handleAddCollaborator}
-                options={[
-                  { value: "none", label: "Agregar colaborador..." },
-                  ...availableCollaborators.map((u) => ({
-                    value: u.user_id,
-                    label: u.full_name || u.email || "Sin nombre",
-                  })),
-                ]}
-                placeholder="Buscar usuario..."
-              />
-              {collaboratorIds.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {collaboratorIds.map((uid) => {
-                    const user = users?.find((u) => u.user_id === uid);
-                    return (
-                      <Badge key={uid} variant="secondary" className="gap-1">
-                        {user?.full_name || user?.email || uid.slice(0, 8)}
-                        <button type="button" onClick={() => handleRemoveCollaborator(uid)}>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Prioridad</Label>
-              <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Baja</SelectItem>
-                  <SelectItem value="medium">Media</SelectItem>
-                  <SelectItem value="high">Alta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Empresa / Cliente</Label>
-              <SearchableSelect
-                value={companyId || "none"}
-                onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
-                options={[
-                  { value: "none", label: "Ninguna" },
-                  ...(companies?.map((c) => ({ value: c.id, label: c.name })) || []),
-                ]}
-                placeholder="Buscar empresa..."
-              />
-            </div>
-            {!defaultDealId && (
-              <div className="space-y-2">
-                <Label>Vincular a Negocio</Label>
-                <SearchableSelect
-                  value={dealId || "none"}
-                  onValueChange={(v) => setDealId(v === "none" ? "" : v)}
-                  options={[
-                    { value: "none", label: "Ninguno" },
-                    ...(filteredDeals?.map((d: any) => ({ value: d.id, label: d.title })) || []),
-                  ]}
-                  placeholder="Buscar negocio..."
-                />
-              </div>
-            )}
-            {!defaultContactId && (
-              <div className="space-y-2">
-                <Label>Vincular a Contacto</Label>
-                <SearchableSelect
-                  value={contactId || "none"}
-                  onValueChange={(v) => setContactId(v === "none" ? "" : v)}
-                  options={[
-                    { value: "none", label: "Ninguno" },
-                    ...(contacts?.map((c) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` })) || []),
-                  ]}
-                  placeholder="Buscar contacto..."
-                />
-              </div>
-            )}
-
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-2">
-              <Button type="button" variant="outline" onClick={resetAndClose}>Cancelar</Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Registrar"}
-              </Button>
-            </div>
-          </form>
-        </ScrollArea>
+          {/* Sticky footer */}
+          <div className="border-t bg-background px-6 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end shrink-0">
+            <Button type="button" variant="outline" onClick={resetAndClose}>Cancelar</Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Registrar"}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
