@@ -64,6 +64,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { profile, roles, signOut, hasAnyRole, hasRole } = useAuth();
   const [pendingCount, setPendingCount] = useState(0);
+  const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
 
   useEffect(() => {
     if (!hasRole("admin")) return;
@@ -85,6 +86,27 @@ export function AppSidebar() {
       supabase.removeChannel(channel);
     };
   }, [hasRole]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await (supabase as any)
+        .from("whatsapp_conversations")
+        .select("unread_count")
+        .gt("unread_count", 0);
+      const total = (data ?? []).reduce((sum: number, row: any) => sum + (row.unread_count || 0), 0);
+      if (!cancelled) setUnreadWhatsApp(total);
+    };
+    load();
+    const channel = supabase
+      .channel(`wa-unread-sidebar-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_conversations" }, load)
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const canAccess = (item: NavItem) => {
     if (item.roles === "all") return true;
