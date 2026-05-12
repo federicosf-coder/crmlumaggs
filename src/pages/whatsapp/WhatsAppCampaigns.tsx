@@ -21,7 +21,10 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Megaphone, Play, Plus, AlertTriangle, CheckCircle2, Clock, CalendarIcon, Users, X } from "lucide-react";
+import { Megaphone, Play, Plus, AlertTriangle, CheckCircle2, Clock, CalendarIcon, Users, X, Loader2, Pause, Eye, RotateCcw, Trash2, Search, ArrowUpDown } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { isToday, isYesterday } from "date-fns";
+import { es } from "date-fns/locale";
 import { MarketingPromoUpload, PromoPlaceholderHint } from "@/components/whatsapp/MarketingPromoUpload";
 import { WhatsAppChatPreview } from "@/components/whatsapp/WhatsAppChatPreview";
 
@@ -76,12 +79,51 @@ type Contact = {
   company_name?: string | null;
 };
 
-const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
-  if (s === "completed") return "default";
-  if (s === "running") return "secondary";
-  if (s === "failed") return "destructive";
-  return "outline";
+const statusLabels: Record<string, string> = {
+  draft: "Borrador",
+  scheduled: "Programada",
+  running: "En curso",
+  paused: "Pausada",
+  completed: "Completada",
+  failed: "Fallida",
 };
+
+function CampaignStatusBadge({ status, hasFailures }: { status: string; hasFailures: boolean }) {
+  const cls =
+    status === "running"
+      ? "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-900"
+      : status === "completed"
+      ? hasFailures
+        ? "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-900"
+        : "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-900"
+      : status === "failed"
+      ? "bg-red-100 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-950 dark:text-red-300 dark:border-red-900"
+      : status === "paused"
+      ? "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-900"
+      : status === "scheduled"
+      ? "bg-violet-100 text-violet-700 border-violet-200 hover:bg-violet-100 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-900"
+      : "bg-muted text-muted-foreground border-border";
+  const Icon =
+    status === "running" ? Loader2 :
+    status === "completed" ? CheckCircle2 :
+    status === "failed" ? AlertTriangle :
+    status === "paused" ? Pause :
+    status === "scheduled" ? CalendarIcon :
+    Clock;
+  return (
+    <Badge variant="outline" className={cn("gap-1 font-medium", cls)}>
+      <Icon className={cn("h-3 w-3", status === "running" && "animate-spin")} />
+      {statusLabels[status] ?? status}
+    </Badge>
+  );
+}
+
+function formatCreated(iso: string): string {
+  const d = new Date(iso);
+  if (isToday(d)) return `Hoy, ${format(d, "h:mm a")}`;
+  if (isYesterday(d)) return `Ayer, ${format(d, "h:mm a")}`;
+  return format(d, "d MMM, yyyy", { locale: es });
+}
 
 export default function WhatsAppCampaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -108,6 +150,13 @@ export default function WhatsAppCampaigns() {
   const [excludeRecent, setExcludeRecent] = useState<boolean>(true);
   const [recentContactIds, setRecentContactIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Tabla: búsqueda, ordenamiento, acciones
+  const [tableSearch, setTableSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"recent" | "oldest" | "linea">("recent");
+  const [reportCampaign, setReportCampaign] = useState<Campaign | null>(null);
+  const [reportRows, setReportRows] = useState<Array<{ id: string; wa_phone: string; status: string; error_message: string | null; sent_at: string | null; contact_name?: string | null }>>([]);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [deleteCampaign, setDeleteCampaign] = useState<Campaign | null>(null);
 
   const load = async () => {
     const { data } = await supabase
@@ -117,6 +166,78 @@ export default function WhatsAppCampaigns() {
       .limit(100);
     setCampaigns((data ?? []) as Campaign[]);
   };
+
+  const openReport = async (c: Campaign) => {
+    setReportCampaign(c);
+    setReportLoading(true);
+    const { data } = await supabase
+      .from("whatsapp_campaign_recipients")
+      .select("id,wa_phone,status,error_message,sent_at,contacts(first_name,last_name)")
+      .eq("campaign_id", c.id)
+      .order("status", { ascending: true })
+      .limit(1000);
+    setReportRows(((data ?? []) as any[]).map((r) => ({
+      id: r.id,
+      wa_phone: r.wa_phone,
+      status: r.status,
+      error_message: r.error_message,
+      sent_at: r.sent_at,
+      contact_name: r.contacts ? `${r.contacts.first_name ?? ""} ${r.contacts.last_name ?? ""}`.trim() : null,
+    })));
+    setReportLoading(false);
+  };
+
+  const togglePause = async (c: Campaign) => {
+    const next = c.status === "paused" ? "running" : "paused";
+    const { error } = await supabase.from("whatsapp_campaigns").update({ status: next }).eq("id", c.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next === "paused" ? "Campaña pausada" : "Reanudando campaña…");
+    if (next === "running") {
+      await supabase.functions.invoke("whatsapp-campaign-runner", { body: { campaign_id: c.id } });
+    }
+    load();
+  };
+
+  const retryFailed = async (c: Campaign) => {
+    const { error: uErr, count } = await supabase
+      .from("whatsapp_campaign_recipients")
+      .update({ status: "pending", error_message: null, sent_at: null }, { count: "exact" })
+      .eq("campaign_id", c.id)
+      .eq("status", "failed");
+    if (uErr) { toast.error(uErr.message); return; }
+    if (!count) { toast.info("No hay fallidos para reintentar"); return; }
+    await supabase.from("whatsapp_campaigns").update({ status: "running", failed_count: 0, finished_at: null }).eq("id", c.id);
+    const { error: rErr } = await supabase.functions.invoke("whatsapp-campaign-runner", { body: { campaign_id: c.id } });
+    if (rErr) { toast.error(rErr.message); return; }
+    toast.success(`Reintentando ${count} destinatario(s)`);
+    load();
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteCampaign) return;
+    const { error } = await supabase.from("whatsapp_campaigns").delete().eq("id", deleteCampaign.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Campaña eliminada");
+    setDeleteCampaign(null);
+    load();
+  };
+
+  const visibleCampaigns = useMemo(() => {
+    const q = tableSearch.trim().toLowerCase();
+    let arr = campaigns;
+    if (q) arr = arr.filter((c) => c.nombre.toLowerCase().includes(q));
+    arr = [...arr].sort((a, b) => {
+      if (sortBy === "linea") {
+        const la = accounts.find((x) => x.business_phone_number_id === a.business_phone_number_id)?.label ?? "";
+        const lb = accounts.find((x) => x.business_phone_number_id === b.business_phone_number_id)?.label ?? "";
+        return la.localeCompare(lb);
+      }
+      const da = new Date(a.created_at).getTime();
+      const db = new Date(b.created_at).getTime();
+      return sortBy === "oldest" ? da - db : db - da;
+    });
+    return arr;
+  }, [campaigns, tableSearch, sortBy, accounts]);
 
   useEffect(() => {
     load();
@@ -754,30 +875,58 @@ export default function WhatsAppCampaigns() {
         </AlertDialog>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={tableSearch}
+            onChange={(e) => setTableSearch(e.target.value)}
+            placeholder="Buscar campaña por nombre…"
+            className="pl-8"
+          />
+        </div>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+          <SelectTrigger className="w-[200px]">
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recent">Más recientes</SelectItem>
+            <SelectItem value="oldest">Más antiguas</SelectItem>
+            <SelectItem value="linea">Por línea / plaza</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
               <TableHead>Plantilla</TableHead>
-              <TableHead>Línea</TableHead>
-              <TableHead>Estado</TableHead>
+              <TableHead>Línea / Plaza</TableHead>
+              <TableHead className="min-w-[200px]">Estado</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Enviados</TableHead>
               <TableHead className="text-right">Fallidos</TableHead>
               <TableHead className="text-right">Omitidos</TableHead>
               <TableHead>Creada</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {campaigns.length === 0 ? (
+            {visibleCampaigns.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                  Aún no hay campañas.
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  {campaigns.length === 0 ? "Aún no hay campañas." : "Sin resultados para la búsqueda."}
                 </TableCell>
               </TableRow>
-            ) : campaigns.map((c) => {
+            ) : visibleCampaigns.map((c) => {
               const acc = accounts.find((a) => a.business_phone_number_id === c.business_phone_number_id);
+              const processed = (c.sent_count ?? 0) + (c.failed_count ?? 0) + (c.skipped_count ?? 0);
+              const pct = c.total_recipients > 0 ? Math.min(100, Math.round((processed / c.total_recipients) * 100)) : 0;
+              const hasFailures = (c.failed_count ?? 0) > 0;
+              const showProgress = c.status === "running" || c.status === "paused" || (c.status === "completed" && processed < c.total_recipients);
               return (
               <TableRow key={c.id}>
                 <TableCell className="font-medium">{c.nombre}</TableCell>
@@ -791,13 +940,69 @@ export default function WhatsAppCampaigns() {
                     <span className="text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell><Badge variant={statusVariant(c.status)}>{c.status}</Badge></TableCell>
+                <TableCell>
+                  <div className="space-y-1.5">
+                    <CampaignStatusBadge status={c.status} hasFailures={hasFailures} />
+                    {(c.status === "running" || showProgress) && (
+                      <div className="space-y-0.5">
+                        <Progress value={pct} className="h-1.5" />
+                        <div className="text-[10px] text-muted-foreground">
+                          {processed}/{c.total_recipients} ({pct}%)
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-right">{c.total_recipients}</TableCell>
-                <TableCell className="text-right text-primary">{c.sent_count}</TableCell>
-                <TableCell className="text-right text-destructive">{c.failed_count}</TableCell>
+                <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-medium">{c.sent_count}</TableCell>
+                <TableCell className={cn("text-right font-medium", hasFailures ? "text-destructive" : "text-muted-foreground")}>{c.failed_count}</TableCell>
                 <TableCell className="text-right text-muted-foreground">{c.skipped_count}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {new Date(c.created_at).toLocaleString()}
+                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  {formatCreated(c.created_at)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-0.5">
+                    {(c.status === "running" || c.status === "paused") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title={c.status === "paused" ? "Reanudar" : "Pausar"}
+                        onClick={() => togglePause(c)}
+                      >
+                        {c.status === "paused" ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="Ver reporte"
+                      onClick={() => openReport(c)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    {hasFailures && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-amber-600 hover:text-amber-700"
+                        title="Reintentar fallidos"
+                        onClick={() => retryFailed(c)}
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      title="Eliminar"
+                      onClick={() => setDeleteCampaign(c)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
               );
@@ -805,6 +1010,67 @@ export default function WhatsAppCampaigns() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Dialogo de reporte de destinatarios */}
+      <Dialog open={!!reportCampaign} onOpenChange={(v) => { if (!v) { setReportCampaign(null); setReportRows([]); } }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Reporte: {reportCampaign?.nombre}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {reportLoading ? (
+              <div className="text-center py-8 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline mr-2" />Cargando…</div>
+            ) : reportRows.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">Sin destinatarios.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Contacto</TableHead>
+                    <TableHead>Teléfono</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Detalle</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reportRows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="text-sm">{r.contact_name || "—"}</TableCell>
+                      <TableCell className="text-xs"><code>+{r.wa_phone}</code></TableCell>
+                      <TableCell>
+                        <Badge variant={r.status === "failed" ? "destructive" : r.status === "pending" ? "outline" : "default"}>
+                          {r.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-md truncate" title={r.error_message ?? ""}>
+                        {r.error_message || (r.sent_at ? `Enviado ${format(new Date(r.sent_at), "dd/MM HH:mm")}` : "—")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmar eliminación */}
+      <AlertDialog open={!!deleteCampaign} onOpenChange={(v) => { if (!v) setDeleteCampaign(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar campaña</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará <strong>{deleteCampaign?.nombre}</strong> y todos sus destinatarios. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={confirmDelete}>
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
     const { data: campaign } = await admin.from("whatsapp_campaigns").select("*").eq("id", campaign_id).maybeSingle();
     if (!campaign) return json({ error: "Campaña no encontrada" }, 404);
     if (campaign.status === "completed") return json({ ok: true, message: "Ya completada" }, 200);
+    if (campaign.status === "paused") return json({ ok: true, message: "Campaña pausada" }, 200);
 
     // Honrar programación: no enviar antes de la fecha programada
     if (campaign.scheduled_at) {
@@ -174,7 +175,14 @@ Deno.serve(async (req) => {
       .eq("campaign_id", campaign_id)
       .eq("status", "pending");
 
-    const finalStatus = (stillPending ?? 0) > 0 ? "running" : "completed";
+    // Re-leer estado para no sobrescribir 'paused' establecido durante el envío.
+    const { data: cur } = await admin
+      .from("whatsapp_campaigns")
+      .select("status")
+      .eq("id", campaign_id)
+      .maybeSingle();
+    const wasPaused = cur?.status === "paused";
+    const finalStatus = wasPaused ? "paused" : ((stillPending ?? 0) > 0 ? "running" : "completed");
     await admin
       .from("whatsapp_campaigns")
       .update({
