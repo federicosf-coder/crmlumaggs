@@ -3651,6 +3651,7 @@ export type Database = {
           header_video_url: string | null
           id: string
           nombre: string
+          scheduled_at: string | null
           sent_count: number
           skipped_count: number
           started_at: string | null
@@ -3672,6 +3673,7 @@ export type Database = {
           header_video_url?: string | null
           id?: string
           nombre: string
+          scheduled_at?: string | null
           sent_count?: number
           skipped_count?: number
           started_at?: string | null
@@ -3693,6 +3695,7 @@ export type Database = {
           header_video_url?: string | null
           id?: string
           nombre?: string
+          scheduled_at?: string | null
           sent_count?: number
           skipped_count?: number
           started_at?: string | null
