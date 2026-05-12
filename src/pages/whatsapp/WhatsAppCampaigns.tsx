@@ -343,10 +343,18 @@ export default function WhatsAppCampaigns() {
         // OR: contact must have AT LEAST ONE selected giro
         if (!giroFilter.some((g) => ids.includes(g))) return false;
       }
+      if (clientTypeFilter !== "all" && c.company_id) {
+        const types = companyPipelineTypes.get(c.company_id);
+        if (clientTypeFilter === "cliente") {
+          if (!companyHasConverted.has(c.company_id)) return false;
+        } else if (!types || !types.has(clientTypeFilter)) {
+          return false;
+        }
+      }
       if (excludeRecent && recentContactIds.has(c.id)) return false;
       return true;
     });
-  }, [contacts, plazaFilter, giroFilter, excludeRecent, recentContactIds]);
+  }, [contacts, plazaFilter, giroFilter, clientTypeFilter, companyPipelineTypes, companyHasConverted, excludeRecent, recentContactIds]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
