@@ -144,6 +144,9 @@ export default function WhatsAppCampaigns() {
   const [plazas, setPlazas] = useState<{ id: string; nombre: string }[]>([]);
   const [giroFilter, setGiroFilter] = useState<string[]>([]);
   const [intereses, setIntereses] = useState<{ id: string; nombre: string }[]>([]);
+  const [clientTypeFilter, setClientTypeFilter] = useState<"all" | "primera_compra" | "recompra" | "cliente">("all");
+  const [companyPipelineTypes, setCompanyPipelineTypes] = useState<Map<string, Set<string>>>(new Map());
+  const [companyHasConverted, setCompanyHasConverted] = useState<Set<string>>(new Set());
   const [scheduleMode, setScheduleMode] = useState<"now" | "later">("now");
   const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState<string>("09:00");
