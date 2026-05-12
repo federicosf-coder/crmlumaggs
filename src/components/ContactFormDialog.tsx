@@ -532,18 +532,19 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
               </div>
 
               {/* Notas (al fondo) */}
-              {/* Sede + Giros (intereses) */}
+              {/* Plaza + Giros (intereses) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Sede</Label>
+                  <Label>Plaza</Label>
                   <Select
-                    value={form.sede || ""}
-                    onValueChange={(v) => setAndSaveNow("sede", v)}
+                    value={form.plaza_id || ""}
+                    onValueChange={(v) => setAndSaveNow("plaza_id", v)}
                   >
-                    <SelectTrigger><SelectValue placeholder="Seleccionar sede" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar plaza" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="mexicali">Mexicali</SelectItem>
-                      <SelectItem value="tijuana">Tijuana</SelectItem>
+                      {plazas.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
