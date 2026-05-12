@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { roleLabel } from "@/lib/roles";
+import { FeedbackButton } from "@/components/FeedbackButton";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { roles } = useAuth();
