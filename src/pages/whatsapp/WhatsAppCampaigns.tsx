@@ -627,6 +627,21 @@ export default function WhatsAppCampaigns() {
                       })}
                     </div>
                   </div>
+                  <div>
+                    <Label className="text-xs">Tipo de negocio</Label>
+                    <Select
+                      value={clientTypeFilter}
+                      onValueChange={(v) => { setClientTypeFilter(v as any); setSelected(new Set()); }}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="primera_compra">Primera Compra</SelectItem>
+                        <SelectItem value="recompra">Recompra</SelectItem>
+                        <SelectItem value="cliente">Cliente (convertido)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <label className="flex items-center gap-2 text-xs cursor-pointer">
                   <Checkbox
