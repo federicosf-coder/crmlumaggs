@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { roleLabel } from "@/lib/roles";
 import { FeedbackButton } from "@/components/FeedbackButton";
+import { usePendingFeedbackCount } from "@/hooks/usePendingFeedbackCount";
+import { MessageCircleQuestion } from "lucide-react";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { roles } = useAuth();
