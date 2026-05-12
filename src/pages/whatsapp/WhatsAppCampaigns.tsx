@@ -882,30 +882,58 @@ export default function WhatsAppCampaigns() {
         </AlertDialog>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={tableSearch}
+            onChange={(e) => setTableSearch(e.target.value)}
+            placeholder="Buscar campaña por nombre…"
+            className="pl-8"
+          />
+        </div>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+          <SelectTrigger className="w-[200px]">
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recent">Más recientes</SelectItem>
+            <SelectItem value="oldest">Más antiguas</SelectItem>
+            <SelectItem value="linea">Por línea / plaza</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
               <TableHead>Plantilla</TableHead>
-              <TableHead>Línea</TableHead>
-              <TableHead>Estado</TableHead>
+              <TableHead>Línea / Plaza</TableHead>
+              <TableHead className="min-w-[200px]">Estado</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Enviados</TableHead>
               <TableHead className="text-right">Fallidos</TableHead>
               <TableHead className="text-right">Omitidos</TableHead>
               <TableHead>Creada</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {campaigns.length === 0 ? (
+            {visibleCampaigns.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                  Aún no hay campañas.
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  {campaigns.length === 0 ? "Aún no hay campañas." : "Sin resultados para la búsqueda."}
                 </TableCell>
               </TableRow>
-            ) : campaigns.map((c) => {
+            ) : visibleCampaigns.map((c) => {
               const acc = accounts.find((a) => a.business_phone_number_id === c.business_phone_number_id);
+              const processed = (c.sent_count ?? 0) + (c.failed_count ?? 0) + (c.skipped_count ?? 0);
+              const pct = c.total_recipients > 0 ? Math.min(100, Math.round((processed / c.total_recipients) * 100)) : 0;
+              const hasFailures = (c.failed_count ?? 0) > 0;
+              const showProgress = c.status === "running" || c.status === "paused" || (c.status === "completed" && processed < c.total_recipients);
               return (
               <TableRow key={c.id}>
                 <TableCell className="font-medium">{c.nombre}</TableCell>
@@ -919,13 +947,69 @@ export default function WhatsAppCampaigns() {
                     <span className="text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell><Badge variant={statusVariant(c.status)}>{c.status}</Badge></TableCell>
+                <TableCell>
+                  <div className="space-y-1.5">
+                    <CampaignStatusBadge status={c.status} hasFailures={hasFailures} />
+                    {(c.status === "running" || showProgress) && (
+                      <div className="space-y-0.5">
+                        <Progress value={pct} className="h-1.5" />
+                        <div className="text-[10px] text-muted-foreground">
+                          {processed}/{c.total_recipients} ({pct}%)
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-right">{c.total_recipients}</TableCell>
-                <TableCell className="text-right text-primary">{c.sent_count}</TableCell>
-                <TableCell className="text-right text-destructive">{c.failed_count}</TableCell>
+                <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-medium">{c.sent_count}</TableCell>
+                <TableCell className={cn("text-right font-medium", hasFailures ? "text-destructive" : "text-muted-foreground")}>{c.failed_count}</TableCell>
                 <TableCell className="text-right text-muted-foreground">{c.skipped_count}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {new Date(c.created_at).toLocaleString()}
+                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  {formatCreated(c.created_at)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-0.5">
+                    {(c.status === "running" || c.status === "paused") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title={c.status === "paused" ? "Reanudar" : "Pausar"}
+                        onClick={() => togglePause(c)}
+                      >
+                        {c.status === "paused" ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="Ver reporte"
+                      onClick={() => openReport(c)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    {hasFailures && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-amber-600 hover:text-amber-700"
+                        title="Reintentar fallidos"
+                        onClick={() => retryFailed(c)}
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      title="Eliminar"
+                      onClick={() => setDeleteCampaign(c)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
               );
@@ -933,6 +1017,67 @@ export default function WhatsAppCampaigns() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Dialogo de reporte de destinatarios */}
+      <Dialog open={!!reportCampaign} onOpenChange={(v) => { if (!v) { setReportCampaign(null); setReportRows([]); } }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Reporte: {reportCampaign?.nombre}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {reportLoading ? (
+              <div className="text-center py-8 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline mr-2" />Cargando…</div>
+            ) : reportRows.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">Sin destinatarios.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Contacto</TableHead>
+                    <TableHead>Teléfono</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Detalle</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reportRows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="text-sm">{r.contact_name || "—"}</TableCell>
+                      <TableCell className="text-xs"><code>+{r.wa_phone}</code></TableCell>
+                      <TableCell>
+                        <Badge variant={r.status === "failed" ? "destructive" : r.status === "pending" ? "outline" : "default"}>
+                          {r.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-md truncate" title={r.error_message ?? ""}>
+                        {r.error_message || (r.sent_at ? `Enviado ${format(new Date(r.sent_at), "dd/MM HH:mm")}` : "—")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmar eliminación */}
+      <AlertDialog open={!!deleteCampaign} onOpenChange={(v) => { if (!v) setDeleteCampaign(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar campaña</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará <strong>{deleteCampaign?.nombre}</strong> y todos sus destinatarios. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={confirmDelete}>
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
