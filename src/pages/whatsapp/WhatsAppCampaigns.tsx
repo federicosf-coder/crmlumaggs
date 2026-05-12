@@ -292,6 +292,24 @@ export default function WhatsAppCampaigns() {
       .order("nombre")
       .then(({ data }) => setPlazas((data || []) as any));
 
+    // Cargar pipeline types de crm_deals por empresa para filtro de primera compra / recompra
+    (supabase as any)
+      .from("crm_deals")
+      .select("company_id,pipeline_type,convertido_a_cliente")
+      .not("company_id", "is", null)
+      .then(({ data }: any) => {
+        const map = new Map<string, Set<string>>();
+        const converted = new Set<string>();
+        for (const d of data || []) {
+          const cid = d.company_id as string;
+          if (!map.has(cid)) map.set(cid, new Set());
+          map.get(cid)!.add(d.pipeline_type);
+          if (d.convertido_a_cliente) converted.add(cid);
+        }
+        setCompanyPipelineTypes(map);
+        setCompanyHasConverted(converted);
+      });
+
     // Cargar contactos con envíos en últimas 48h para filtro de exclusión
     const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     (supabase as any)
