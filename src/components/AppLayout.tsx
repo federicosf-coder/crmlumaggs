@@ -4,9 +4,14 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { roleLabel } from "@/lib/roles";
+import { FeedbackButton } from "@/components/FeedbackButton";
+import { usePendingFeedbackCount } from "@/hooks/usePendingFeedbackCount";
+import { MessageCircleQuestion } from "lucide-react";
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { roles } = useAuth();
+  const { roles, hasRole } = useAuth();
+  const pendingFeedback = usePendingFeedbackCount();
+  const isAdmin = hasRole("admin");
 
   return (
     <SidebarProvider>
@@ -17,6 +22,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <SidebarTrigger />
             <div className="flex-1" />
             <div className="flex items-center gap-2">
+              {isAdmin && pendingFeedback > 0 && (
+                <Badge variant="destructive" className="text-xs flex items-center gap-1">
+                  <MessageCircleQuestion className="h-3 w-3" />
+                  {pendingFeedback} reporte{pendingFeedback > 1 ? "s" : ""} nuevo{pendingFeedback > 1 ? "s" : ""}
+                </Badge>
+              )}
               {roles.map((role) => (
                 <Badge key={role} variant="secondary" className="text-xs">
                   {roleLabel(role)}
@@ -25,6 +36,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
           </header>
           <main className="flex-1 p-6">{children}</main>
+          <FeedbackButton />
         </div>
       </div>
     </SidebarProvider>

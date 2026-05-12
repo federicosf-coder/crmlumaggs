@@ -3436,6 +3436,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_feedback: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string | null
+          feedback_type: string
+          id: string
+          page_url: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          feedback_type: string
+          id?: string
+          page_url?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          feedback_type?: string
+          id?: string
+          page_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       user_merge_log: {
         Row: {
           affected_counts: Json
