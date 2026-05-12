@@ -455,6 +455,11 @@ export default function Cobranza() {
     const clientesEnTiempoDirecto = new Set(Array.from(uniq(directoEnTiempo)).filter((c) => !clientesVencidos.has(c)));
     const clientesEnTiempoCescemex = new Set(Array.from(uniq(cescemexEnTiempo)).filter((c) => !clientesVencidos.has(c)));
 
+    // Totales sumando por tipo de crédito (un cliente con ambos tipos cuenta en cada uno).
+    const clientesVencidosTotal = clientesVencidosDirecto.size + clientesVencidosCescemex.size;
+    const clientesEnTiempoTotal = clientesEnTiempoDirecto.size + clientesEnTiempoCescemex.size;
+    const clientesTotalCount = clientesVencidosTotal + clientesEnTiempoTotal;
+
     return {
       totalCount,
       totalSaldo,
@@ -475,6 +480,9 @@ export default function Cobranza() {
       clientesVencidosCescemex,
       clientesEnTiempoDirecto,
       clientesEnTiempoCescemex,
+      clientesVencidosTotal,
+      clientesEnTiempoTotal,
+      clientesTotalCount,
     };
   }, [facturas, facturasVencidasKpi, facturasCreditoDirectoKpi, facturasCreditoCescemexKpi]);
 
@@ -691,8 +699,8 @@ export default function Cobranza() {
         },
         {
           title: "Clientes en cartera vencida",
-          value: `${dashKpis.clientesVencidos.size}`,
-          subtitle: `${fmtPct(dashKpis.clientesVencidos.size, dashKpis.clientesTotales.size)} de ${dashKpis.clientesTotales.size}`,
+          value: `${dashKpis.clientesVencidosTotal}`,
+          subtitle: `${fmtPct(dashKpis.clientesVencidosTotal, dashKpis.clientesTotalCount)} de ${dashKpis.clientesTotalCount}`,
           variant: "destructive",
           lines: [
             { label: "Crédito Directo", value: `${dashKpis.clientesVencidosDirecto.size}` },
@@ -701,8 +709,8 @@ export default function Cobranza() {
         },
         {
           title: "Clientes en tiempo",
-          value: `${dashKpis.clientesEnTiempo.size}`,
-          subtitle: `${fmtPct(dashKpis.clientesEnTiempo.size, dashKpis.clientesTotales.size)} de ${dashKpis.clientesTotales.size}`,
+          value: `${dashKpis.clientesEnTiempoTotal}`,
+          subtitle: `${fmtPct(dashKpis.clientesEnTiempoTotal, dashKpis.clientesTotalCount)} de ${dashKpis.clientesTotalCount}`,
           variant: "success",
           lines: [
             { label: "Crédito Directo", value: `${dashKpis.clientesEnTiempoDirecto.size}` },
@@ -920,9 +928,9 @@ export default function Cobranza() {
             />
             <DetailedKpiCard
               title="Clientes en cartera vencida"
-              valueOverride={`${dashKpis.clientesVencidos.size}`}
-              countLabel={`${dashKpis.fmtPct(dashKpis.clientesVencidos.size, dashKpis.clientesTotales.size)} del total`}
-              extraLabel={`Total de clientes: ${dashKpis.clientesTotales.size}`}
+              valueOverride={`${dashKpis.clientesVencidosTotal}`}
+              countLabel={`${dashKpis.fmtPct(dashKpis.clientesVencidosTotal, dashKpis.clientesTotalCount)} del total`}
+              extraLabel={`Total de clientes: ${dashKpis.clientesTotalCount}`}
               icon={AlertTriangle}
               variant="destructive"
               lines={[
@@ -933,9 +941,9 @@ export default function Cobranza() {
             />
             <DetailedKpiCard
               title="Clientes en tiempo"
-              valueOverride={`${dashKpis.clientesEnTiempo.size}`}
-              countLabel={`${dashKpis.fmtPct(dashKpis.clientesEnTiempo.size, dashKpis.clientesTotales.size)} del total`}
-              extraLabel={`Total de clientes: ${dashKpis.clientesTotales.size}`}
+              valueOverride={`${dashKpis.clientesEnTiempoTotal}`}
+              countLabel={`${dashKpis.fmtPct(dashKpis.clientesEnTiempoTotal, dashKpis.clientesTotalCount)} del total`}
+              extraLabel={`Total de clientes: ${dashKpis.clientesTotalCount}`}
               icon={CheckCircle2}
               variant="success"
               lines={[
