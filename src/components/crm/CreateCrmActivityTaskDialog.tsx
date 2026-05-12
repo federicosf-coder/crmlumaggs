@@ -426,18 +426,6 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="flex items-center gap-2">Empresa / Cliente {lockCompany && <span className="text-[10px] text-muted-foreground">(prellenada)</span>}</Label>
-                  <SearchableSelect
-                    value={companyId || "none"}
-                    onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
-                    options={[
-                      { value: "none", label: "Ninguna" },
-                      ...(companies?.map((c) => ({ value: c.id, label: c.name })) || []),
-                    ]}
-                    placeholder="Buscar empresa..."
-                  />
-                </div>
-                <div className="space-y-1.5">
                   <Label className="flex items-center gap-2">Vincular a Negocio {lockDeal && <span className="text-[10px] text-muted-foreground">(prellenado)</span>}</Label>
                   <SearchableSelect
                     value={dealId || "none"}
@@ -447,6 +435,18 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
                       ...(filteredDeals?.map((d: any) => ({ value: d.id, label: d.title })) || []),
                     ]}
                     placeholder="Buscar negocio..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-2">Empresa / Cliente {lockCompany && <span className="text-[10px] text-muted-foreground">(prellenada)</span>}</Label>
+                  <SearchableSelect
+                    value={companyId || "none"}
+                    onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
+                    options={[
+                      { value: "none", label: "Ninguna" },
+                      ...(companies?.map((c) => ({ value: c.id, label: c.name })) || []),
+                    ]}
+                    placeholder="Buscar empresa..."
                   />
                 </div>
                 <div className="space-y-1.5">
