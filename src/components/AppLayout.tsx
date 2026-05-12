@@ -26,6 +26,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
           </header>
           <main className="flex-1 p-6">{children}</main>
+          <FeedbackButton />
         </div>
       </div>
     </SidebarProvider>
