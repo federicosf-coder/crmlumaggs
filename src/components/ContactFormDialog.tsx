@@ -40,6 +40,7 @@ export interface ContactEditData {
   comm_tel?: boolean | null;
   comm_tel_emp?: boolean | null;
   sede?: "mexicali" | "tijuana" | null;
+  plaza_id?: string | null;
 }
 
 interface Props {
@@ -198,6 +199,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
     comm_email: false, comm_email2: false, comm_whatsapp: false,
     comm_cel: false, comm_tel: false, comm_tel_emp: false,
     sede: "" as "" | "mexicali" | "tijuana",
+    plaza_id: "",
     interes_ids: [] as string[],
   };
 
@@ -244,6 +246,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
         comm_tel: !!editData.comm_tel,
         comm_tel_emp: !!editData.comm_tel_emp,
         sede: (editData.sede || "") as "" | "mexicali" | "tijuana",
+        plaza_id: editData.plaza_id || "",
         interes_ids: [] as string[],
       };
       setForm(seeded);
@@ -317,6 +320,19 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
     enabled: open,
   });
 
+  const { data: plazas = [] } = useQuery({
+    queryKey: ["plazas_active"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("plazas")
+        .select("id,nombre")
+        .eq("is_active", true)
+        .order("nombre");
+      return (data || []) as { id: string; nombre: string }[];
+    },
+    enabled: open,
+  });
+
   const { data: contactIntereses = [] } = useQuery({
     queryKey: ["contacto_intereses", editData?.id],
     queryFn: async () => {
@@ -372,6 +388,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
       comm_tel: form.comm_tel,
       comm_tel_emp: form.comm_tel_emp,
       sede: form.sede || null,
+      plaza_id: form.plaza_id || null,
     };
 
     let contactId: string;
@@ -528,18 +545,19 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
               </div>
 
               {/* Notas (al fondo) */}
-              {/* Sede + Giros (intereses) */}
+              {/* Plaza + Giros (intereses) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Sede</Label>
+                  <Label>Plaza</Label>
                   <Select
-                    value={form.sede || ""}
-                    onValueChange={(v) => setAndSaveNow("sede", v)}
+                    value={form.plaza_id || ""}
+                    onValueChange={(v) => setAndSaveNow("plaza_id", v)}
                   >
-                    <SelectTrigger><SelectValue placeholder="Seleccionar sede" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar plaza" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="mexicali">Mexicali</SelectItem>
-                      <SelectItem value="tijuana">Tijuana</SelectItem>
+                      {plazas.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
