@@ -877,6 +877,7 @@ export type Database = {
           no_contactar_motivo: string | null
           notes: string | null
           phone: string | null
+          plaza_id: string | null
           rol_id: string | null
           sede: Database["public"]["Enums"]["sede_contacto"] | null
           tel_emp: string | null
@@ -908,6 +909,7 @@ export type Database = {
           no_contactar_motivo?: string | null
           notes?: string | null
           phone?: string | null
+          plaza_id?: string | null
           rol_id?: string | null
           sede?: Database["public"]["Enums"]["sede_contacto"] | null
           tel_emp?: string | null
@@ -939,6 +941,7 @@ export type Database = {
           no_contactar_motivo?: string | null
           notes?: string | null
           phone?: string | null
+          plaza_id?: string | null
           rol_id?: string | null
           sede?: Database["public"]["Enums"]["sede_contacto"] | null
           tel_emp?: string | null
@@ -958,6 +961,13 @@ export type Database = {
             columns: ["influencia_id"]
             isOneToOne: false
             referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
             referencedColumns: ["id"]
           },
           {
