@@ -592,7 +592,7 @@ export default function WhatsAppCampaigns() {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs">Plaza</Label>
                     <Select value={plazaFilter} onValueChange={(v) => { setPlazaFilter(v); setSelected(new Set()); }}>
