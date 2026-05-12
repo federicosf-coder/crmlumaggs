@@ -40,6 +40,7 @@ export interface ContactEditData {
   comm_tel?: boolean | null;
   comm_tel_emp?: boolean | null;
   sede?: "mexicali" | "tijuana" | null;
+  plaza_id?: string | null;
 }
 
 interface Props {
@@ -198,6 +199,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
     comm_email: false, comm_email2: false, comm_whatsapp: false,
     comm_cel: false, comm_tel: false, comm_tel_emp: false,
     sede: "" as "" | "mexicali" | "tijuana",
+    plaza_id: "",
     interes_ids: [] as string[],
   };
 
@@ -244,6 +246,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
         comm_tel: !!editData.comm_tel,
         comm_tel_emp: !!editData.comm_tel_emp,
         sede: (editData.sede || "") as "" | "mexicali" | "tijuana",
+        plaza_id: editData.plaza_id || "",
         interes_ids: [] as string[],
       };
       setForm(seeded);
@@ -372,6 +375,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
       comm_tel: form.comm_tel,
       comm_tel_emp: form.comm_tel_emp,
       sede: form.sede || null,
+      plaza_id: form.plaza_id || null,
     };
 
     let contactId: string;
