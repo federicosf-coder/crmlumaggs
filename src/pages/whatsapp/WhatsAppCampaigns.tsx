@@ -11,9 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Megaphone, Play, Plus, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Megaphone, Play, Plus, AlertTriangle, CheckCircle2, Clock, CalendarIcon, Users, X } from "lucide-react";
 import { MarketingPromoUpload, PromoPlaceholderHint } from "@/components/whatsapp/MarketingPromoUpload";
 import { WhatsAppChatPreview } from "@/components/whatsapp/WhatsAppChatPreview";
 
@@ -31,6 +39,7 @@ type Campaign = {
   started_at: string | null;
   finished_at: string | null;
   business_phone_number_id: string | null;
+  scheduled_at?: string | null;
 };
 
 type Template = {
@@ -64,6 +73,7 @@ type Contact = {
   company_id: string | null;
   plaza_id?: string | null;
   interes_ids?: string[];
+  company_name?: string | null;
 };
 
 const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -92,6 +102,12 @@ export default function WhatsAppCampaigns() {
   const [plazas, setPlazas] = useState<{ id: string; nombre: string }[]>([]);
   const [giroFilter, setGiroFilter] = useState<string[]>([]);
   const [intereses, setIntereses] = useState<{ id: string; nombre: string }[]>([]);
+  const [scheduleMode, setScheduleMode] = useState<"now" | "later">("now");
+  const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
+  const [scheduledTime, setScheduledTime] = useState<string>("09:00");
+  const [excludeRecent, setExcludeRecent] = useState<boolean>(true);
+  const [recentContactIds, setRecentContactIds] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const load = async () => {
     const { data } = await supabase
@@ -123,7 +139,7 @@ export default function WhatsAppCampaigns() {
       });
     supabase
       .from("contacts")
-      .select("id,first_name,last_name,whatsapp_phone,mobile,company_id,plaza_id,contacto_intereses(interes_id)")
+      .select("id,first_name,last_name,whatsapp_phone,mobile,company_id,plaza_id,contacto_intereses(interes_id),companies(name)")
       .eq("is_active", true)
       .eq("no_contactar", false)
       .order("first_name")
@@ -132,6 +148,7 @@ export default function WhatsAppCampaigns() {
         const rows = ((data ?? []) as any[]).map((r) => ({
           ...r,
           interes_ids: (r.contacto_intereses || []).map((ci: any) => ci.interes_id),
+          company_name: r.companies?.name ?? null,
         }));
         setContacts(rows as Contact[]);
       });
@@ -150,6 +167,19 @@ export default function WhatsAppCampaigns() {
       .order("nombre")
       .then(({ data }) => setPlazas((data || []) as any));
 
+    // Cargar contactos con envíos en últimas 48h para filtro de exclusión
+    const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    (supabase as any)
+      .from("whatsapp_campaign_recipients")
+      .select("contact_id")
+      .gte("sent_at", since)
+      .in("status", ["sent", "delivered", "read"])
+      .limit(5000)
+      .then(({ data }: any) => {
+        const ids = new Set<string>((data || []).map((r: any) => r.contact_id).filter(Boolean));
+        setRecentContactIds(ids);
+      });
+
     const ch = supabase
       .channel("wa-campaigns")
       .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_campaigns" }, load)
@@ -167,18 +197,20 @@ export default function WhatsAppCampaigns() {
       if (plazaFilter !== "all" && c.plaza_id !== plazaFilter) return false;
       if (giroFilter.length > 0) {
         const ids = c.interes_ids || [];
-        // AND: contact must have ALL selected giros
-        if (!giroFilter.every((g) => ids.includes(g))) return false;
+        // OR: contact must have AT LEAST ONE selected giro
+        if (!giroFilter.some((g) => ids.includes(g))) return false;
       }
+      if (excludeRecent && recentContactIds.has(c.id)) return false;
       return true;
     });
-  }, [contacts, plazaFilter, giroFilter]);
+  }, [contacts, plazaFilter, giroFilter, excludeRecent, recentContactIds]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     if (!s) return eligible;
     return eligible.filter((c) =>
       `${c.first_name} ${c.last_name}`.toLowerCase().includes(s) ||
+      (c.company_name || "").toLowerCase().includes(s) ||
       (c.whatsapp_phone || c.mobile || "").toLowerCase().includes(s),
     );
   }, [eligible, search]);
@@ -203,6 +235,10 @@ export default function WhatsAppCampaigns() {
     setHeaderImageUrl(null);
     setHeaderVideoUrl(null);
     setVariables({});
+    setScheduleMode("now");
+    setScheduledAt(undefined);
+    setScheduledTime("09:00");
+    setExcludeRecent(true);
   };
 
   const selectedTpl = useMemo(
@@ -218,40 +254,86 @@ export default function WhatsAppCampaigns() {
   const missingVars = variableKeys.filter((k) => !(variables[k] ?? "").trim());
   const selectedLine = accounts.find((a) => a.business_phone_number_id === linePhoneId);
 
-  const createAndLaunch = async () => {
+  // Vista previa con datos reales del primer destinatario seleccionado
+  const previewContact = useMemo(() => {
+    const firstId = Array.from(selected)[0];
+    return firstId ? contacts.find((c) => c.id === firstId) || null : null;
+  }, [selected, contacts]);
+
+  const previewVariables: Record<string, string> = useMemo(() => {
+    const base: Record<string, string> = { ...variables };
+    const c = previewContact;
+    if (c) {
+      const fullName = `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim();
+      if (!base.nombre) base.nombre = fullName || "Cliente";
+      if (!base.nombre_cliente) base.nombre_cliente = fullName || "Cliente";
+      if (!base.empresa) base.empresa = c.company_name || "Su empresa";
+      if (!base.nombre_empresa) base.nombre_empresa = c.company_name || "Su empresa";
+    }
+    return base;
+  }, [variables, previewContact]);
+
+  const isMassSend = selected.size >= 500;
+  const computedScheduledAt = (): string | null => {
+    if (scheduleMode !== "later" || !scheduledAt) return null;
+    const [hh, mm] = (scheduledTime || "09:00").split(":").map((n) => parseInt(n, 10) || 0);
+    const dt = new Date(scheduledAt);
+    dt.setHours(hh, mm, 0, 0);
+    return dt.toISOString();
+  };
+
+  const validateBeforeLaunch = (): boolean => {
     if (!name.trim() || !tplName) {
       toast.error("Nombre y plantilla son obligatorios");
-      return;
+      return false;
     }
     if (!isApproved) {
       toast.error("Solo puedes lanzar plantillas APROBADAS por Meta");
-      return;
+      return false;
     }
     if (requiresImage && !headerImageUrl) {
       toast.error("Esta plantilla requiere una imagen de encabezado");
-      return;
+      return false;
     }
     if (requiresVideo && !headerVideoUrl) {
       toast.error("Esta plantilla requiere un video de encabezado");
-      return;
+      return false;
     }
     if (missingVars.length > 0) {
       toast.error(`Faltan variables: ${missingVars.join(", ")}`);
-      return;
+      return false;
     }
     if (!linePhoneId) {
-      toast.error("Selecciona la línea de salida (Tijuana o Mexicali)");
-      return;
+      toast.error("Selecciona la línea de salida");
+      return false;
     }
     if (selected.size === 0) {
       toast.error("Selecciona al menos un destinatario");
-      return;
+      return false;
     }
+    if (scheduleMode === "later") {
+      const iso = computedScheduledAt();
+      if (!iso) {
+        toast.error("Selecciona fecha y hora para programar el envío");
+        return false;
+      }
+      if (new Date(iso).getTime() <= Date.now()) {
+        toast.error("La fecha programada debe ser en el futuro");
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const createAndLaunch = async () => {
+    if (!validateBeforeLaunch()) return;
     const tpl = selectedTpl;
     if (!tpl) {
       toast.error("Plantilla no encontrada");
       return;
     }
+    const scheduleIso = computedScheduledAt();
+    const isScheduled = !!scheduleIso;
     setCreating(true);
     const { data: ures } = await supabase.auth.getUser();
     const { data: camp, error: cErr } = await supabase
@@ -261,7 +343,8 @@ export default function WhatsAppCampaigns() {
         template_id: tpl.id,
         template_name: tpl.name,
         template_language: tpl.language,
-        status: "draft",
+        status: isScheduled ? "scheduled" : "draft",
+        scheduled_at: scheduleIso,
         total_recipients: selected.size,
         created_by: ures.user?.id,
         header_image_url: headerImageUrl,
@@ -289,6 +372,14 @@ export default function WhatsAppCampaigns() {
     if (rErr) {
       setCreating(false);
       toast.error(rErr.message);
+      return;
+    }
+    if (isScheduled) {
+      setCreating(false);
+      toast.success(`Campaña programada para ${format(new Date(scheduleIso!), "dd/MM/yyyy HH:mm")} con ${recips.length} destinatarios`);
+      setOpen(false);
+      reset();
+      load();
       return;
     }
     const { error: lErr } = await supabase.functions.invoke("whatsapp-campaign-runner", {
@@ -334,9 +425,20 @@ export default function WhatsAppCampaigns() {
               <div className="rounded-md border p-3 space-y-3 bg-primary/5">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs uppercase text-primary font-semibold">Segmentación de audiencia</Label>
-                  <span className="text-xs text-muted-foreground">
-                    {eligible.length} contactos coinciden
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={isMassSend ? "destructive" : "default"}
+                      className="text-sm px-3 py-1 gap-1"
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      {eligible.length} contactos coinciden
+                    </Badge>
+                    {eligible.length > 500 && (
+                      <Badge variant="outline" className="border-orange-500 text-orange-600 gap-1">
+                        <AlertTriangle className="h-3 w-3" /> Envío masivo detectado
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
@@ -344,7 +446,7 @@ export default function WhatsAppCampaigns() {
                     <Select value={plazaFilter} onValueChange={(v) => { setPlazaFilter(v); setSelected(new Set()); }}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="all">Todas las plazas</SelectItem>
                         {plazas.map((p) => (
                           <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
                         ))}
@@ -352,7 +454,7 @@ export default function WhatsAppCampaigns() {
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-xs">Giro (debe cumplir todos los seleccionados)</Label>
+                    <Label className="text-xs">Giro (cumple cualquiera de los seleccionados)</Label>
                     <div className="flex flex-wrap gap-2 rounded-md border bg-background p-2 min-h-10">
                       {intereses.length === 0 ? (
                         <span className="text-xs text-muted-foreground">Sin giros</span>
@@ -374,6 +476,14 @@ export default function WhatsAppCampaigns() {
                     </div>
                   </div>
                 </div>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <Checkbox
+                    checked={excludeRecent}
+                    onCheckedChange={(v) => { setExcludeRecent(!!v); setSelected(new Set()); }}
+                  />
+                  Excluir contactos a los que se les envió una campaña en las últimas 48 horas
+                  <Badge variant="outline" className="ml-1">{recentContactIds.size} excluibles</Badge>
+                </label>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -447,6 +557,61 @@ export default function WhatsAppCampaigns() {
                 </div>
               )}
 
+              {/* Programación de envío */}
+              <div className="rounded-md border p-3 space-y-2">
+                <Label className="text-xs uppercase text-muted-foreground">Programación</Label>
+                <div className="flex flex-wrap gap-3">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="radio"
+                      name="schedule"
+                      checked={scheduleMode === "now"}
+                      onChange={() => setScheduleMode("now")}
+                    />
+                    Enviar ahora
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="radio"
+                      name="schedule"
+                      checked={scheduleMode === "later"}
+                      onChange={() => setScheduleMode("later")}
+                    />
+                    Programar envío
+                  </label>
+                </div>
+                {scheduleMode === "later" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn("justify-start text-left font-normal", !scheduledAt && "text-muted-foreground")}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {scheduledAt ? format(scheduledAt, "PPP") : "Selecciona fecha"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={scheduledAt}
+                          onSelect={setScheduledAt}
+                          disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <Input
+                      type="time"
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+
               {variableKeys.length > 0 && (
                 <div className="space-y-2 rounded-md border p-3 bg-muted/20">
                   <Label className="text-xs uppercase text-muted-foreground">Variables del mensaje</Label>
@@ -467,12 +632,19 @@ export default function WhatsAppCampaigns() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label>Destinatarios ({selected.size} de {filtered.length})</Label>
-                  <Button size="sm" variant="outline" onClick={toggleAll}>
-                    {selected.size === filtered.length && filtered.length > 0 ? "Deseleccionar" : "Seleccionar todos"}
-                  </Button>
+                  <div className="flex gap-2">
+                    {selected.size > 0 && (
+                      <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+                        <X className="h-3 w-3 mr-1" /> Limpiar selección
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" onClick={toggleAll}>
+                      {selected.size === filtered.length && filtered.length > 0 ? "Deseleccionar" : "Seleccionar todos"}
+                    </Button>
+                  </div>
                 </div>
                 <Input
-                  placeholder="Buscar por nombre o teléfono…"
+                  placeholder="Buscar por nombre, empresa o teléfono…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="mb-2"
@@ -487,7 +659,10 @@ export default function WhatsAppCampaigns() {
                       <Checkbox checked={selected.has(c.id)} onCheckedChange={() => toggleOne(c.id)} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm truncate">{c.first_name} {c.last_name}</div>
-                        <div className="text-xs text-muted-foreground">+{(c.whatsapp_phone || c.mobile || "").replace(/\D/g, "")}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {c.company_name ? `${c.company_name} · ` : ""}
+                          +{(c.whatsapp_phone || c.mobile || "").replace(/\D/g, "")}
+                        </div>
                       </div>
                     </label>
                   ))}
@@ -497,20 +672,26 @@ export default function WhatsAppCampaigns() {
 
               {/* Preview lateral */}
               <div className="space-y-2">
-                <Label className="text-xs uppercase text-muted-foreground">Vista previa</Label>
+                <Label className="text-xs uppercase text-muted-foreground">
+                  Vista previa {previewContact && <span className="normal-case text-foreground">· {previewContact.first_name} {previewContact.last_name}</span>}
+                </Label>
                 <WhatsAppChatPreview
                   imageUrl={headerImageUrl}
                   bodyText={selectedTpl?.source_body || selectedTpl?.body || "Selecciona una plantilla para ver la vista previa…"}
-                  variables={variables}
-                  contactName="Cliente"
+                  variables={previewVariables}
+                  contactName={previewContact ? `${previewContact.first_name} ${previewContact.last_name}` : "Cliente"}
                   linePhone={selectedLine?.label}
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  Soporta variables como {`{nombre}`} y {`{empresa}`}. La vista previa usa los datos del primer destinatario seleccionado.
+                </p>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
               <Button
-                onClick={createAndLaunch}
+                onClick={() => { if (validateBeforeLaunch()) setConfirmOpen(true); }}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
                 disabled={
                   creating ||
                   !isApproved ||
@@ -526,11 +707,51 @@ export default function WhatsAppCampaigns() {
                   ? "Lanzando…"
                   : !isApproved
                   ? "Plantilla no aprobada"
+                  : scheduleMode === "later"
+                  ? `Programar envío a ${selected.size}`
                   : `Lanzar a ${selected.size} destinatarios`}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {scheduleMode === "later" ? "Confirmar programación" : "Confirmar envío masivo"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {scheduleMode === "later" ? (
+                  <>
+                    Se programará la campaña <strong>{name || "(sin nombre)"}</strong> para
+                    {" "}<strong>{scheduledAt ? format(scheduledAt, "dd/MM/yyyy") : ""} {scheduledTime}</strong>
+                    {" "}con <strong>{selected.size}</strong> destinatarios.
+                  </>
+                ) : (
+                  <>
+                    Se enviará la campaña <strong>{name || "(sin nombre)"}</strong> a
+                    {" "}<strong>{selected.size}</strong> destinatarios usando la línea
+                    {" "}<strong>{selectedLine?.label || "—"}</strong>.
+                    {isMassSend && (
+                      <span className="block mt-2 text-orange-600 font-medium">
+                        ⚠ Envío masivo: revisa que la plantilla cumpla las políticas de Meta para evitar bloqueos.
+                      </span>
+                    )}
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-orange-600 hover:bg-orange-700"
+                onClick={() => { setConfirmOpen(false); createAndLaunch(); }}
+              >
+                {scheduleMode === "later" ? "Programar" : "Sí, lanzar ahora"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <Card>

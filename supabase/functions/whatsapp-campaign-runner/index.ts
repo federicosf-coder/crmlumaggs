@@ -38,6 +38,14 @@ Deno.serve(async (req) => {
     if (!campaign) return json({ error: "Campaña no encontrada" }, 404);
     if (campaign.status === "completed") return json({ ok: true, message: "Ya completada" }, 200);
 
+    // Honrar programación: no enviar antes de la fecha programada
+    if (campaign.scheduled_at) {
+      const due = new Date(campaign.scheduled_at).getTime();
+      if (due > Date.now()) {
+        return json({ ok: true, message: "Campaña programada para el futuro", scheduled_at: campaign.scheduled_at }, 200);
+      }
+    }
+
     // Resolver línea (phone_number_id) a usar para esta campaña.
     let activePhoneId: string | null = campaign.business_phone_number_id ?? null;
     if (!activePhoneId) {
