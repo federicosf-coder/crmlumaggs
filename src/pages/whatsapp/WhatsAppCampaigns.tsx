@@ -157,6 +157,13 @@ export default function WhatsAppCampaigns() {
   const [excludeRecent, setExcludeRecent] = useState<boolean>(true);
   const [recentContactIds, setRecentContactIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Tabla: búsqueda, ordenamiento, acciones
+  const [tableSearch, setTableSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"recent" | "oldest" | "linea">("recent");
+  const [reportCampaign, setReportCampaign] = useState<Campaign | null>(null);
+  const [reportRows, setReportRows] = useState<Array<{ id: string; wa_phone: string; status: string; error_message: string | null; sent_at: string | null; contact_name?: string | null }>>([]);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [deleteCampaign, setDeleteCampaign] = useState<Campaign | null>(null);
 
   const load = async () => {
     const { data } = await supabase
@@ -166,6 +173,78 @@ export default function WhatsAppCampaigns() {
       .limit(100);
     setCampaigns((data ?? []) as Campaign[]);
   };
+
+  const openReport = async (c: Campaign) => {
+    setReportCampaign(c);
+    setReportLoading(true);
+    const { data } = await supabase
+      .from("whatsapp_campaign_recipients")
+      .select("id,wa_phone,status,error_message,sent_at,contacts(first_name,last_name)")
+      .eq("campaign_id", c.id)
+      .order("status", { ascending: true })
+      .limit(1000);
+    setReportRows(((data ?? []) as any[]).map((r) => ({
+      id: r.id,
+      wa_phone: r.wa_phone,
+      status: r.status,
+      error_message: r.error_message,
+      sent_at: r.sent_at,
+      contact_name: r.contacts ? `${r.contacts.first_name ?? ""} ${r.contacts.last_name ?? ""}`.trim() : null,
+    })));
+    setReportLoading(false);
+  };
+
+  const togglePause = async (c: Campaign) => {
+    const next = c.status === "paused" ? "running" : "paused";
+    const { error } = await supabase.from("whatsapp_campaigns").update({ status: next }).eq("id", c.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next === "paused" ? "Campaña pausada" : "Reanudando campaña…");
+    if (next === "running") {
+      await supabase.functions.invoke("whatsapp-campaign-runner", { body: { campaign_id: c.id } });
+    }
+    load();
+  };
+
+  const retryFailed = async (c: Campaign) => {
+    const { error: uErr, count } = await supabase
+      .from("whatsapp_campaign_recipients")
+      .update({ status: "pending", error_message: null, sent_at: null }, { count: "exact" })
+      .eq("campaign_id", c.id)
+      .eq("status", "failed");
+    if (uErr) { toast.error(uErr.message); return; }
+    if (!count) { toast.info("No hay fallidos para reintentar"); return; }
+    await supabase.from("whatsapp_campaigns").update({ status: "running", failed_count: 0, finished_at: null }).eq("id", c.id);
+    const { error: rErr } = await supabase.functions.invoke("whatsapp-campaign-runner", { body: { campaign_id: c.id } });
+    if (rErr) { toast.error(rErr.message); return; }
+    toast.success(`Reintentando ${count} destinatario(s)`);
+    load();
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteCampaign) return;
+    const { error } = await supabase.from("whatsapp_campaigns").delete().eq("id", deleteCampaign.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Campaña eliminada");
+    setDeleteCampaign(null);
+    load();
+  };
+
+  const visibleCampaigns = useMemo(() => {
+    const q = tableSearch.trim().toLowerCase();
+    let arr = campaigns;
+    if (q) arr = arr.filter((c) => c.nombre.toLowerCase().includes(q));
+    arr = [...arr].sort((a, b) => {
+      if (sortBy === "linea") {
+        const la = accounts.find((x) => x.business_phone_number_id === a.business_phone_number_id)?.label ?? "";
+        const lb = accounts.find((x) => x.business_phone_number_id === b.business_phone_number_id)?.label ?? "";
+        return la.localeCompare(lb);
+      }
+      const da = new Date(a.created_at).getTime();
+      const db = new Date(b.created_at).getTime();
+      return sortBy === "oldest" ? da - db : db - da;
+    });
+    return arr;
+  }, [campaigns, tableSearch, sortBy, accounts]);
 
   useEffect(() => {
     load();
