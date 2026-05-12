@@ -441,7 +441,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
                   <Label className="flex items-center gap-2">Vincular a Negocio {lockDeal && <span className="text-[10px] text-muted-foreground">(prellenado)</span>}</Label>
                   <SearchableSelect
                     value={dealId || "none"}
-                    onValueChange={(v) => setDealId(v === "none" ? "" : v)}
+                    onValueChange={handleDealChange}
                     options={[
                       { value: "none", label: "Ninguno" },
                       ...(filteredDeals?.map((d: any) => ({ value: d.id, label: d.title })) || []),
