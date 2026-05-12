@@ -62,7 +62,7 @@ type Contact = {
   whatsapp_phone: string | null;
   mobile: string | null;
   company_id: string | null;
-  sede?: "mexicali" | "tijuana" | null;
+  plaza_id?: string | null;
   interes_ids?: string[];
 };
 
@@ -88,7 +88,8 @@ export default function WhatsAppCampaigns() {
   const [headerVideoUrl, setHeaderVideoUrl] = useState<string | null>(null);
   const [linePhoneId, setLinePhoneId] = useState<string>("");
   const [variables, setVariables] = useState<Record<string, string>>({});
-  const [sedeFilter, setSedeFilter] = useState<"all" | "mexicali" | "tijuana">("all");
+  const [plazaFilter, setPlazaFilter] = useState<string>("all");
+  const [plazas, setPlazas] = useState<{ id: string; nombre: string }[]>([]);
   const [giroFilter, setGiroFilter] = useState<string[]>([]);
   const [intereses, setIntereses] = useState<{ id: string; nombre: string }[]>([]);
 
@@ -122,7 +123,7 @@ export default function WhatsAppCampaigns() {
       });
     supabase
       .from("contacts")
-      .select("id,first_name,last_name,whatsapp_phone,mobile,company_id,sede,contacto_intereses(interes_id)")
+      .select("id,first_name,last_name,whatsapp_phone,mobile,company_id,plaza_id,contacto_intereses(interes_id)")
       .eq("is_active", true)
       .eq("no_contactar", false)
       .order("first_name")
@@ -142,6 +143,13 @@ export default function WhatsAppCampaigns() {
       .order("nombre")
       .then(({ data }: any) => setIntereses(data || []));
 
+    supabase
+      .from("plazas")
+      .select("id,nombre")
+      .eq("is_active", true)
+      .order("nombre")
+      .then(({ data }) => setPlazas((data || []) as any));
+
     const ch = supabase
       .channel("wa-campaigns")
       .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_campaigns" }, load)
@@ -156,7 +164,7 @@ export default function WhatsAppCampaigns() {
   const eligible = useMemo(() => {
     return contacts.filter((c) => {
       if (!(c.whatsapp_phone || c.mobile)) return false;
-      if (sedeFilter !== "all" && c.sede !== sedeFilter) return false;
+      if (plazaFilter !== "all" && c.plaza_id !== plazaFilter) return false;
       if (giroFilter.length > 0) {
         const ids = c.interes_ids || [];
         // AND: contact must have ALL selected giros
@@ -164,7 +172,7 @@ export default function WhatsAppCampaigns() {
       }
       return true;
     });
-  }, [contacts, sedeFilter, giroFilter]);
+  }, [contacts, plazaFilter, giroFilter]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -332,13 +340,14 @@ export default function WhatsAppCampaigns() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs">Sede</Label>
-                    <Select value={sedeFilter} onValueChange={(v) => { setSedeFilter(v as any); setSelected(new Set()); }}>
+                    <Label className="text-xs">Plaza</Label>
+                    <Select value={plazaFilter} onValueChange={(v) => { setPlazaFilter(v); setSelected(new Set()); }}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todas</SelectItem>
-                        <SelectItem value="mexicali">Mexicali</SelectItem>
-                        <SelectItem value="tijuana">Tijuana</SelectItem>
+                        {plazas.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
