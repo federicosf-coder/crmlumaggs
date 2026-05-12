@@ -104,7 +104,7 @@ export function FeedbackButton() {
       </TooltipProvider>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {feedbackType === "bug" ? (
@@ -174,13 +174,13 @@ export function FeedbackButton() {
               />
             </div>
 
-            <div className="rounded-md bg-muted p-3 text-xs text-muted-foreground space-y-1">
-              <div>
+            <div className="rounded-md bg-muted p-3 text-xs text-muted-foreground space-y-1 min-w-0">
+              <div className="break-words">
                 <span className="font-medium">Usuario:</span> {userName}
               </div>
-              <div className="truncate">
+              <div className="min-w-0">
                 <span className="font-medium">Página:</span>{" "}
-                <span className="font-mono">{pageUrl}</span>
+                <span className="font-mono break-all">{pageUrl}</span>
               </div>
             </div>
 
