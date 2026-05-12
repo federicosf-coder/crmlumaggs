@@ -455,6 +455,11 @@ export default function Cobranza() {
     const clientesEnTiempoDirecto = new Set(Array.from(uniq(directoEnTiempo)).filter((c) => !clientesVencidos.has(c)));
     const clientesEnTiempoCescemex = new Set(Array.from(uniq(cescemexEnTiempo)).filter((c) => !clientesVencidos.has(c)));
 
+    // Totales sumando por tipo de crédito (un cliente con ambos tipos cuenta en cada uno).
+    const clientesVencidosTotal = clientesVencidosDirecto.size + clientesVencidosCescemex.size;
+    const clientesEnTiempoTotal = clientesEnTiempoDirecto.size + clientesEnTiempoCescemex.size;
+    const clientesTotalCount = clientesVencidosTotal + clientesEnTiempoTotal;
+
     return {
       totalCount,
       totalSaldo,
@@ -475,6 +480,9 @@ export default function Cobranza() {
       clientesVencidosCescemex,
       clientesEnTiempoDirecto,
       clientesEnTiempoCescemex,
+      clientesVencidosTotal,
+      clientesEnTiempoTotal,
+      clientesTotalCount,
     };
   }, [facturas, facturasVencidasKpi, facturasCreditoDirectoKpi, facturasCreditoCescemexKpi]);
 
