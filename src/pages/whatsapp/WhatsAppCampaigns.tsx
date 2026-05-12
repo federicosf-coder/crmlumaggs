@@ -79,13 +79,6 @@ type Contact = {
   company_name?: string | null;
 };
 
-const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
-  if (s === "completed") return "default";
-  if (s === "running") return "secondary";
-  if (s === "failed") return "destructive";
-  return "outline";
-};
-
 const statusLabels: Record<string, string> = {
   draft: "Borrador",
   scheduled: "Programada",
