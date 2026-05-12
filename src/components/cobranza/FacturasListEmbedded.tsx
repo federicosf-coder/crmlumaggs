@@ -316,6 +316,49 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
   const cycleSort = (ascKey: string, descKey: string) => {
     setSortBy(prev => prev === descKey ? ascKey : prev === ascKey ? descKey : descKey);
   };
+
+  const handleExportExcel = () => {
+    if (sortedDocs.length === 0) {
+      toast.error("No hay facturas para exportar");
+      return;
+    }
+    const rows = sortedDocs.map((d: any) => {
+      const tp = getTipoPagoInfo(d.tipo_pago).label;
+      const fv = fechaVencimientoEfectiva(d);
+      return {
+        "No. Factura": d.numero_factura || "",
+        "Cliente": (d.companies as any)?.name || "",
+        "Ejecutivo": (d.profiles as any)?.full_name || (d.ejecutivo as any)?.full_name || "",
+        "Plaza": (d.plazas as any)?.nombre || (d.plaza as any)?.nombre || "",
+        "Fecha Documento": d.fecha_documento || "",
+        "Fecha Vencimiento": fv || "",
+        "Tipo de Pago": tp,
+        "Total": Number(d.total) || 0,
+        "Saldo": Number(d.saldo_pendiente_cobranza) || 0,
+        "Estatus Factura": ESTATUS_FAC_LABELS[(d.estatus_factura || "").toLowerCase()] || d.estatus_factura || "",
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [
+      { wch: 14 }, { wch: 36 }, { wch: 22 }, { wch: 16 },
+      { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+    ];
+    const range = XLSX.utils.decode_range(ws["!ref"]!);
+    for (let R = range.s.r + 1; R <= range.e.r; R++) {
+      for (const C of [7, 8]) {
+        const addr = XLSX.utils.encode_cell({ r: R, c: C });
+        const cell = ws[addr];
+        if (cell && typeof cell.v === "number") { cell.t = "n"; cell.z = '"$"#,##0.00'; }
+      }
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Facturas");
+    const brand = empresaVendedora === "lumaggs_chevron" ? "Chevron" : "Phillips66";
+    const fname = `Facturas_${brand}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fname);
+    toast.success(`Exportadas ${rows.length} facturas`);
+  };
+
   const SortableHead = ({ ascKey, descKey, children, className }: { ascKey: string; descKey: string; children: React.ReactNode; className?: string }) => {
     const active = sortBy === ascKey || sortBy === descKey;
     const arrow = sortBy === ascKey ? " ↑" : sortBy === descKey ? " ↓" : "";
