@@ -64,6 +64,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { profile, roles, signOut, hasAnyRole, hasRole } = useAuth();
   const [pendingCount, setPendingCount] = useState(0);
+  const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
 
   useEffect(() => {
     if (!hasRole("admin")) return;
@@ -85,6 +86,27 @@ export function AppSidebar() {
       supabase.removeChannel(channel);
     };
   }, [hasRole]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await (supabase as any)
+        .from("whatsapp_conversations")
+        .select("unread_count")
+        .gt("unread_count", 0);
+      const total = (data ?? []).reduce((sum: number, row: any) => sum + (row.unread_count || 0), 0);
+      if (!cancelled) setUnreadWhatsApp(total);
+    };
+    load();
+    const channel = supabase
+      .channel(`wa-unread-sidebar-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_conversations" }, load)
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const canAccess = (item: NavItem) => {
     if (item.roles === "all") return true;
@@ -116,16 +138,24 @@ export function AppSidebar() {
           <SidebarGroupLabel>Módulos</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {visibleMain.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end={item.url === "/"} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {visibleMain.map((item) => {
+                const showBadge = item.url === "/whatsapp" && unreadWhatsApp > 0;
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild>
+                      <NavLink to={item.url} end={item.url === "/"} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span className="flex-1">{item.title}</span>}
+                        {showBadge && (
+                          <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px]">
+                            {unreadWhatsApp}
+                          </Badge>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
