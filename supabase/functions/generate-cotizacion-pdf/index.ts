@@ -212,16 +212,14 @@ serve(async (req) => {
       drawTextRight("+52 664 563 4361", rightEdge, rightInfoStartY - 70);
     }
 
-    y -= 44; // more space before "Dirigido a"
+    // Push "Dirigido a" block well below the right-side contact block
+    // (right block ends at rightInfoStartY - 70 = y + 28 - 70 = y - 42)
+    y -= 60;
 
     // ===== DIRIGIDO A =====
     const company = doc.companies as any;
     const contact = doc.contacts as any;
     const clientPhone = contact?.phone || company?.phone || "";
-
-    if (clientPhone) {
-      drawTextRight(`Tel: ${clientPhone}`, rightEdge, y);
-    }
 
     drawText("Dirigido a:", margin, y);
     y -= 14;
@@ -232,8 +230,13 @@ serve(async (req) => {
     const contactName = contact ? `${contact.first_name || ""} ${contact.last_name || ""}`.trim() : "";
     if (contactName) {
       drawText(contactName, margin, y);
+      y -= 14;
     }
-    y -= 35; // extra space before table after contact name
+    if (clientPhone) {
+      drawText(`Tel: ${clientPhone}`, margin, y);
+      y -= 14;
+    }
+    y -= 21; // extra space before table
 
     // ===== PRODUCTS TABLE =====
     addNewPageIfNeeded(60);
