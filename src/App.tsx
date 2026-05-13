@@ -40,6 +40,7 @@ import WhatsAppRules from "@/pages/whatsapp/WhatsAppRules";
 import WhatsAppSettings from "@/pages/whatsapp/WhatsAppSettings";
 import ReportsLanding from "@/pages/reports/ReportsLanding";
 import DailyDeliveryReport from "@/pages/reports/DailyDeliveryReport";
+import DailyActivityReport from "@/pages/reports/DailyActivityReport";
 import SellerPortal from "@/pages/seller/SellerPortal";
 import AutomationsPage from "@/pages/automations/AutomationsPage";
 import AutomationEditorPage from "@/pages/automations/AutomationEditorPage";

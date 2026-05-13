@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
-import { Truck } from "lucide-react";
+import { Truck, FileText } from "lucide-react";
 
 const REPORTS = [
   {
@@ -9,6 +9,12 @@ const REPORTS = [
     description: "Desempeño diario por repartidor: entregas, horas, km y score.",
     url: "/reports/daily-delivery",
     icon: Truck,
+  },
+  {
+    title: "Reporte Diario de Actividades",
+    description: "Resumen de texto para correo: actividades, cotizaciones y prospectos del día.",
+    url: "/reports/daily-activity",
+    icon: FileText,
   },
 ];
 
