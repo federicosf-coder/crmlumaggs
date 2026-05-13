@@ -885,15 +885,15 @@ export default function SellerPortal() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Tarea</TableHead>
-                  <TableHead>Creada</TableHead>
-                  <TableHead>Estatus</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead className="py-1.5">Cliente</TableHead>
+                  <TableHead className="py-1.5">Tarea</TableHead>
+                  <TableHead className="py-1.5">Creada</TableHead>
+                  <TableHead className="py-1.5">Estatus</TableHead>
+                  <TableHead className="text-right py-1.5">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin creadas en el periodo</TableCell></TableRow>}
+                {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-3">Sin creadas en el periodo</TableCell></TableRow>}
                 {paginate(tasksCreadasPeriodo, limCreadas, pageCreadas).map(t => {
                   const venc = t.due_date ? new Date(t.due_date) : null;
                   const isVenc = venc && !t.completed && venc < todayStart;
@@ -901,11 +901,11 @@ export default function SellerPortal() {
                   const statusText = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
                   return (
                     <TableRow key={t.id}>
-                      <TableCell className="font-medium text-sm">{companyMap[t.company_id] || "—"}</TableCell>
-                      <TableCell className="text-sm">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
-                      <TableCell className="text-xs">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
-                      <TableCell><Badge variant="outline" className={statusColor}>{statusText}</Badge></TableCell>
-                      <TableCell className="text-right space-x-1">
+                      <TableCell className="font-medium text-sm py-1.5">{companyMap[t.company_id] || "—"}</TableCell>
+                      <TableCell className="text-sm py-1.5">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
+                      <TableCell className="text-xs py-1.5">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
+                      <TableCell className="py-1.5"><Badge variant="outline" className={statusColor}>{statusText}</Badge></TableCell>
+                      <TableCell className="text-right space-x-1 py-1.5">
                         <Button size="sm" variant="ghost" title="Abrir / Editar" onClick={() => { setSelectedTask(t as CrmTask); setTaskDialogOpen(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
