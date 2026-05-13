@@ -22,12 +22,26 @@ import {
 import { toast } from "@/hooks/use-toast";
 type TrainingStatus = "pendiente" | "enviado" | "aprobado" | "rechazado";
 
+type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
+
+const ROLE_LABELS: Record<AppRole, string> = {
+  admin: "Administrador",
+  manager: "Gerente",
+  sales: "Ventas",
+  delivery: "Entregas",
+  warehouse: "Almacén",
+  customer_service: "Servicio al Cliente",
+  accounting: "Contabilidad",
+};
+
 interface Course {
   id: string;
   nombre: string;
   descripcion: string | null;
   url_externa: string | null;
   plaza_id: string | null;
+  target_role: AppRole | null;
+  excluded_user_ids: string[] | null;
   obligatorio: boolean;
   icon: string | null;
   is_active: boolean;
@@ -56,7 +70,7 @@ const STATUS_META: Record<TrainingStatus, { label: string; cls: string; Icon: an
 };
 
 export default function TrainingPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, roles, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   const isManager = hasRole("manager");
 
@@ -81,8 +95,13 @@ export default function TrainingPage() {
   useEffect(() => { if (user) reload(); /* eslint-disable-next-line */ }, [user]);
 
   const myCourses = useMemo(() => {
-    return courses.filter((c) => c.is_active && (!c.plaza_id || c.plaza_id === profile?.plaza_id));
-  }, [courses, profile]);
+    return courses.filter((c) => {
+      if (!c.is_active) return false;
+      if (c.target_role && !roles.includes(c.target_role as any)) return false;
+      if ((c.excluded_user_ids ?? []).includes(user!.id)) return false;
+      return true;
+    });
+  }, [courses, roles, user]);
 
   const trainingByCourse = useMemo(() => {
     const m = new Map<string, UserTraining>();
@@ -134,7 +153,7 @@ export default function TrainingPage() {
 
         {isAdmin && (
           <TabsContent value="manage" className="mt-4">
-            <CoursesAdmin courses={courses} plazas={plazas} onChange={reload} />
+            <CoursesAdmin courses={courses} onChange={reload} />
           </TabsContent>
         )}
       </Tabs>
