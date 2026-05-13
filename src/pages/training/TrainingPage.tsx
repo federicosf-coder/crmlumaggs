@@ -20,8 +20,6 @@ import {
   ShieldAlert, Plus, Pencil, Trash2, Eye, FileCheck2, FileX2, Download,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { extractDocFilesPath } from "@/lib/storageSignedUrl";
-
 type TrainingStatus = "pendiente" | "enviado" | "aprobado" | "rechazado";
 
 interface Course {
@@ -533,7 +531,6 @@ function ReviewQueue({ isAdmin }: { isAdmin: boolean }) {
   }, [rows.length]);
 
   const openEvidence = async (path: string) => {
-    const p = extractDocFilesPath(path); // bucket-agnostic, returns last segment
     const { data } = await supabase.storage.from("training-evidence").createSignedUrl(path, 3600);
     if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     else toast({ title: "No se pudo abrir el archivo", variant: "destructive" });
