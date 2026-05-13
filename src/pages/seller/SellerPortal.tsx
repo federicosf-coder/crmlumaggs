@@ -826,36 +826,36 @@ export default function SellerPortal() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-10">
+                      <TableHead className="w-10 py-1.5">
                         <Checkbox
                           checked={allChecked ? true : someChecked ? "indeterminate" : false}
                           onCheckedChange={toggleAllTerm}
                           aria-label="Seleccionar todas"
                         />
                       </TableHead>
-                      <TableHead className="w-24">Fecha</TableHead>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>Actividad / Tarea</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
+                      <TableHead className="w-24 py-1.5">Fecha</TableHead>
+                      <TableHead className="py-1.5">Empresa</TableHead>
+                      <TableHead className="py-1.5">Actividad / Tarea</TableHead>
+                      <TableHead className="py-1.5">Tipo</TableHead>
+                      <TableHead className="text-right py-1.5">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {termRows.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Sin terminadas en el periodo</TableCell></TableRow>}
+                    {termRows.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-3">Sin terminadas en el periodo</TableCell></TableRow>}
                     {pageRows.map((r) => (
                       <TableRow key={r.id} data-state={termSelected.has(r.id) ? "selected" : undefined}>
-                        <TableCell>
+                        <TableCell className="py-1.5">
                           <Checkbox
                             checked={termSelected.has(r.id)}
                             onCheckedChange={() => toggleOneTerm(r.id)}
                             aria-label="Seleccionar fila"
                           />
                         </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{fmtCorta(r.fecha)}</TableCell>
-                        <TableCell className="font-medium text-sm">{r.empresa}</TableCell>
-                        <TableCell className="text-sm">{r.actividad}</TableCell>
-                        <TableCell><Badge variant="outline" className="bg-green-100 text-green-800">{r.kind === "task" ? "Tarea" : "Actividad"}</Badge></TableCell>
-                        <TableCell className="text-right space-x-1">
+                        <TableCell className="text-xs whitespace-nowrap py-1.5">{fmtCorta(r.fecha)}</TableCell>
+                        <TableCell className="font-medium text-sm py-1.5">{r.empresa}</TableCell>
+                        <TableCell className="text-sm py-1.5">{r.actividad}</TableCell>
+                        <TableCell className="py-1.5"><Badge variant="outline" className="bg-green-100 text-green-800">{r.kind === "task" ? "Tarea" : "Actividad"}</Badge></TableCell>
+                        <TableCell className="text-right space-x-1 py-1.5">
                           {r.kind === "task" && (
                             <Button size="sm" variant="ghost" title="Abrir / Editar" onClick={() => { setSelectedTask(r.raw as CrmTask); setTaskDialogOpen(true); }}>
                               <Pencil className="h-3.5 w-3.5" />
@@ -885,15 +885,15 @@ export default function SellerPortal() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Tarea</TableHead>
-                  <TableHead>Creada</TableHead>
-                  <TableHead>Estatus</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead className="py-1.5">Cliente</TableHead>
+                  <TableHead className="py-1.5">Tarea</TableHead>
+                  <TableHead className="py-1.5">Creada</TableHead>
+                  <TableHead className="py-1.5">Estatus</TableHead>
+                  <TableHead className="text-right py-1.5">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin creadas en el periodo</TableCell></TableRow>}
+                {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-3">Sin creadas en el periodo</TableCell></TableRow>}
                 {paginate(tasksCreadasPeriodo, limCreadas, pageCreadas).map(t => {
                   const venc = t.due_date ? new Date(t.due_date) : null;
                   const isVenc = venc && !t.completed && venc < todayStart;
@@ -901,11 +901,11 @@ export default function SellerPortal() {
                   const statusText = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
                   return (
                     <TableRow key={t.id}>
-                      <TableCell className="font-medium text-sm">{companyMap[t.company_id] || "—"}</TableCell>
-                      <TableCell className="text-sm">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
-                      <TableCell className="text-xs">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
-                      <TableCell><Badge variant="outline" className={statusColor}>{statusText}</Badge></TableCell>
-                      <TableCell className="text-right space-x-1">
+                      <TableCell className="font-medium text-sm py-1.5">{companyMap[t.company_id] || "—"}</TableCell>
+                      <TableCell className="text-sm py-1.5">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
+                      <TableCell className="text-xs py-1.5">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
+                      <TableCell className="py-1.5"><Badge variant="outline" className={statusColor}>{statusText}</Badge></TableCell>
+                      <TableCell className="text-right space-x-1 py-1.5">
                         <Button size="sm" variant="ghost" title="Abrir / Editar" onClick={() => { setSelectedTask(t as CrmTask); setTaskDialogOpen(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
