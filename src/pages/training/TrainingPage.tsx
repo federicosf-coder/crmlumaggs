@@ -368,7 +368,7 @@ function SubmitEvidenceDialog({
 }
 
 /* ---------------- Admin: courses CRUD ---------------- */
-function CoursesAdmin({ courses, plazas, onChange }: { courses: Course[]; plazas: Plaza[]; onChange: () => void }) {
+function CoursesAdmin({ courses, onChange }: { courses: Course[]; onChange: () => void }) {
   const [editing, setEditing] = useState<Partial<Course> | null>(null);
 
   const remove = async (id: string) => {
@@ -390,7 +390,7 @@ function CoursesAdmin({ courses, plazas, onChange }: { courses: Course[]; plazas
           <TableHeader>
             <TableRow>
               <TableHead className="py-2">Curso</TableHead>
-              <TableHead className="py-2">Plaza</TableHead>
+              <TableHead className="py-2">Rol</TableHead>
               <TableHead className="py-2">Obligatorio</TableHead>
               <TableHead className="py-2">Activo</TableHead>
               <TableHead className="py-2"></TableHead>
@@ -408,7 +408,7 @@ function CoursesAdmin({ courses, plazas, onChange }: { courses: Course[]; plazas
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="py-2 text-sm">{plazas.find((p) => p.id === c.plaza_id)?.nombre || "Todas"}</TableCell>
+                <TableCell className="py-2 text-sm">{c.target_role ? ROLE_LABELS[c.target_role] : "Todos"}</TableCell>
                 <TableCell className="py-2">{c.obligatorio ? <Badge variant="destructive">Sí</Badge> : <span className="text-muted-foreground">No</span>}</TableCell>
                 <TableCell className="py-2">{c.is_active ? <Badge variant="secondary">Activo</Badge> : <Badge variant="outline">Inactivo</Badge>}</TableCell>
                 <TableCell className="py-2 text-right">
@@ -427,7 +427,6 @@ function CoursesAdmin({ courses, plazas, onChange }: { courses: Course[]; plazas
       {editing && (
         <CourseEditor
           initial={editing}
-          plazas={plazas}
           onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); onChange(); }}
         />
@@ -437,10 +436,41 @@ function CoursesAdmin({ courses, plazas, onChange }: { courses: Course[]; plazas
 }
 
 function CourseEditor({
-  initial, plazas, onClose, onSaved,
-}: { initial: Partial<Course>; plazas: Plaza[]; onClose: () => void; onSaved: () => void }) {
+  initial, onClose, onSaved,
+}: { initial: Partial<Course>; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState<Partial<Course>>(initial);
   const [busy, setBusy] = useState(false);
+  const [eligibleUsers, setEligibleUsers] = useState<{ user_id: string; full_name: string | null; email: string | null }[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const excluded = new Set<string>(form.excluded_user_ids ?? []);
+
+  useEffect(() => {
+    (async () => {
+      setLoadingUsers(true);
+      let userIds: string[] | null = null;
+      if (form.target_role) {
+        const { data: ur } = await supabase.from("user_roles").select("user_id").eq("role", form.target_role);
+        userIds = (ur ?? []).map((r: any) => r.user_id);
+        if (userIds.length === 0) { setEligibleUsers([]); setLoadingUsers(false); return; }
+      }
+      let q = supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .eq("approval_status", "aprobado")
+        .eq("is_active", true)
+        .order("full_name");
+      if (userIds) q = q.in("user_id", userIds);
+      const { data } = await q;
+      setEligibleUsers((data as any) ?? []);
+      setLoadingUsers(false);
+    })();
+  }, [form.target_role]);
+
+  const toggleExclude = (userId: string) => {
+    const next = new Set(excluded);
+    if (next.has(userId)) next.delete(userId); else next.add(userId);
+    setForm({ ...form, excluded_user_ids: Array.from(next) });
+  };
 
   const save = async () => {
     if (!form.nombre?.trim()) { toast({ title: "Nombre requerido", variant: "destructive" }); return; }
@@ -449,7 +479,9 @@ function CourseEditor({
       nombre: form.nombre,
       descripcion: form.descripcion ?? null,
       url_externa: form.url_externa ?? null,
-      plaza_id: form.plaza_id || null,
+      plaza_id: null,
+      target_role: form.target_role || null,
+      excluded_user_ids: form.excluded_user_ids ?? [],
       obligatorio: !!form.obligatorio,
       icon: form.icon ?? "🎓",
       is_active: form.is_active ?? true,
@@ -465,7 +497,7 @@ function CourseEditor({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{form.id ? "Editar curso" : "Nuevo curso"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-[80px_1fr] gap-3">
@@ -487,14 +519,58 @@ function CourseEditor({
             <Input placeholder="https://…" value={form.url_externa ?? ""} onChange={(e) => setForm({ ...form, url_externa: e.target.value })} />
           </div>
           <div>
-            <Label>Plaza objetivo</Label>
-            <Select value={form.plaza_id || "all"} onValueChange={(v) => setForm({ ...form, plaza_id: v === "all" ? null : v })}>
+            <Label>Rol objetivo</Label>
+            <Select
+              value={form.target_role || "all"}
+              onValueChange={(v) => setForm({ ...form, target_role: v === "all" ? null : (v as AppRole), excluded_user_ids: [] })}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas las plazas</SelectItem>
-                {plazas.map((p) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
+                <SelectItem value="all">Todos los roles</SelectItem>
+                {(Object.keys(ROLE_LABELS) as AppRole[]).map((r) => (
+                  <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label>Usuarios asignados ({eligibleUsers.length - excluded.size}/{eligibleUsers.length})</Label>
+              <div className="flex gap-2">
+                <button type="button" className="text-xs text-primary hover:underline"
+                  onClick={() => setForm({ ...form, excluded_user_ids: [] })}>
+                  Marcar todos
+                </button>
+                <button type="button" className="text-xs text-muted-foreground hover:underline"
+                  onClick={() => setForm({ ...form, excluded_user_ids: eligibleUsers.map((u) => u.user_id) })}>
+                  Desmarcar todos
+                </button>
+              </div>
+            </div>
+            <div className="border rounded-md max-h-56 overflow-y-auto divide-y">
+              {loadingUsers && <div className="p-3 text-sm text-muted-foreground">Cargando usuarios…</div>}
+              {!loadingUsers && eligibleUsers.length === 0 && (
+                <div className="p-3 text-sm text-muted-foreground">No hay usuarios para el rol seleccionado.</div>
+              )}
+              {eligibleUsers.map((u) => {
+                const checked = !excluded.has(u.user_id);
+                return (
+                  <label key={u.user_id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleExclude(u.user_id)}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm truncate">{u.full_name || u.email}</div>
+                      <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Desmarca a quienes no deban tomar este curso.</p>
           </div>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2"><Switch checked={!!form.obligatorio} onCheckedChange={(v) => setForm({ ...form, obligatorio: v })} /> Obligatorio</label>
