@@ -3441,12 +3441,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           descripcion: string | null
+          excluded_user_ids: string[]
           icon: string | null
           id: string
           is_active: boolean
           nombre: string
           obligatorio: boolean
           plaza_id: string | null
+          target_role: Database["public"]["Enums"]["app_role"] | null
           updated_at: string
           url_externa: string | null
         }
@@ -3454,12 +3456,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
+          excluded_user_ids?: string[]
           icon?: string | null
           id?: string
           is_active?: boolean
           nombre: string
           obligatorio?: boolean
           plaza_id?: string | null
+          target_role?: Database["public"]["Enums"]["app_role"] | null
           updated_at?: string
           url_externa?: string | null
         }
@@ -3467,12 +3471,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
+          excluded_user_ids?: string[]
           icon?: string | null
           id?: string
           is_active?: boolean
           nombre?: string
           obligatorio?: boolean
           plaza_id?: string | null
+          target_role?: Database["public"]["Enums"]["app_role"] | null
           updated_at?: string
           url_externa?: string | null
         }
