@@ -133,14 +133,14 @@ export default function DailyActivityReport() {
 
   // Fetch activities
   const { data: activities = [] } = useQuery<ActivityRow[]>({
-    queryKey: ["daily-activities", selectedSellerId, rangeStart, rangeEnd],
+    queryKey: ["daily-activities", selectedSellerId, start, end],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("crm_activities")
         .select("id, type, title, description, companies(name), contacts(first_name, last_name)")
         .eq("user_id", selectedSellerId)
-        .gte("created_at", rangeStart)
-        .lt("created_at", rangeEnd)
+        .gte("created_at", start)
+        .lt("created_at", end)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return (data || []).map((a: any) => ({
@@ -157,15 +157,15 @@ export default function DailyActivityReport() {
 
   // Fetch completed tasks
   const { data: tasks = [] } = useQuery<TaskRow[]>({
-    queryKey: ["daily-tasks", selectedSellerId, rangeStart, rangeEnd],
+    queryKey: ["daily-tasks", selectedSellerId, start, end],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("crm_tasks")
         .select("id, title, description, companies(name), contacts(first_name, last_name)")
         .eq("user_id", selectedSellerId)
         .eq("completed", true)
-        .gte("completed_at", rangeStart)
-        .lt("completed_at", rangeEnd)
+        .gte("completed_at", start)
+        .lt("completed_at", end)
         .order("completed_at", { ascending: true });
       if (error) throw error;
       return (data || []).map((t: any) => ({
@@ -181,15 +181,15 @@ export default function DailyActivityReport() {
 
   // Fetch cotizaciones
   const { data: quotes = [] } = useQuery<QuoteRow[]>({
-    queryKey: ["daily-quotes", selectedSellerId, rangeStart, rangeEnd],
+    queryKey: ["daily-quotes", selectedSellerId, start, end],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("documentos")
         .select("id, total, companies(name)")
         .eq("created_by", selectedSellerId)
         .eq("tipo_documento", "cotizacion")
-        .gte("created_at", rangeStart)
-        .lt("created_at", rangeEnd)
+        .gte("created_at", start)
+        .lt("created_at", end)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return (data || []).map((d: any) => ({
@@ -203,14 +203,14 @@ export default function DailyActivityReport() {
 
   // Fetch new companies
   const { data: newCompanies = [] } = useQuery<CompanyRow[]>({
-    queryKey: ["daily-companies", selectedSellerId, rangeStart, rangeEnd],
+    queryKey: ["daily-companies", selectedSellerId, start, end],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("companies")
         .select("id, name")
         .eq("created_by", selectedSellerId)
-        .gte("created_at", rangeStart)
-        .lt("created_at", rangeEnd)
+        .gte("created_at", start)
+        .lt("created_at", end)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return (data || []) as CompanyRow[];
@@ -220,14 +220,14 @@ export default function DailyActivityReport() {
 
   // Fetch new contacts
   const { data: newContacts = [] } = useQuery<ContactRow[]>({
-    queryKey: ["daily-contacts", selectedSellerId, rangeStart, rangeEnd],
+    queryKey: ["daily-contacts", selectedSellerId, start, end],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contacts")
         .select("id, first_name, last_name, job_title")
         .eq("created_by", selectedSellerId)
-        .gte("created_at", rangeStart)
-        .lt("created_at", rangeEnd)
+        .gte("created_at", start)
+        .lt("created_at", end)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return (data || []) as ContactRow[];
