@@ -22,12 +22,26 @@ import {
 import { toast } from "@/hooks/use-toast";
 type TrainingStatus = "pendiente" | "enviado" | "aprobado" | "rechazado";
 
+type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
+
+const ROLE_LABELS: Record<AppRole, string> = {
+  admin: "Administrador",
+  manager: "Gerente",
+  sales: "Ventas",
+  delivery: "Entregas",
+  warehouse: "Almacén",
+  customer_service: "Servicio al Cliente",
+  accounting: "Contabilidad",
+};
+
 interface Course {
   id: string;
   nombre: string;
   descripcion: string | null;
   url_externa: string | null;
   plaza_id: string | null;
+  target_role: AppRole | null;
+  excluded_user_ids: string[] | null;
   obligatorio: boolean;
   icon: string | null;
   is_active: boolean;
@@ -56,7 +70,7 @@ const STATUS_META: Record<TrainingStatus, { label: string; cls: string; Icon: an
 };
 
 export default function TrainingPage() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, roles, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   const isManager = hasRole("manager");
 
@@ -81,8 +95,13 @@ export default function TrainingPage() {
   useEffect(() => { if (user) reload(); /* eslint-disable-next-line */ }, [user]);
 
   const myCourses = useMemo(() => {
-    return courses.filter((c) => c.is_active && (!c.plaza_id || c.plaza_id === profile?.plaza_id));
-  }, [courses, profile]);
+    return courses.filter((c) => {
+      if (!c.is_active) return false;
+      if (c.target_role && !roles.includes(c.target_role as any)) return false;
+      if ((c.excluded_user_ids ?? []).includes(user!.id)) return false;
+      return true;
+    });
+  }, [courses, roles, user]);
 
   const trainingByCourse = useMemo(() => {
     const m = new Map<string, UserTraining>();
@@ -134,7 +153,7 @@ export default function TrainingPage() {
 
         {isAdmin && (
           <TabsContent value="manage" className="mt-4">
-            <CoursesAdmin courses={courses} plazas={plazas} onChange={reload} />
+            <CoursesAdmin courses={courses} onChange={reload} />
           </TabsContent>
         )}
       </Tabs>
@@ -349,7 +368,7 @@ function SubmitEvidenceDialog({
 }
 
 /* ---------------- Admin: courses CRUD ---------------- */
-function CoursesAdmin({ courses, plazas, onChange }: { courses: Course[]; plazas: Plaza[]; onChange: () => void }) {
+function CoursesAdmin({ courses, onChange }: { courses: Course[]; onChange: () => void }) {
   const [editing, setEditing] = useState<Partial<Course> | null>(null);
 
   const remove = async (id: string) => {
@@ -371,7 +390,7 @@ function CoursesAdmin({ courses, plazas, onChange }: { courses: Course[]; plazas
           <TableHeader>
             <TableRow>
               <TableHead className="py-2">Curso</TableHead>
-              <TableHead className="py-2">Plaza</TableHead>
+              <TableHead className="py-2">Rol</TableHead>
               <TableHead className="py-2">Obligatorio</TableHead>
               <TableHead className="py-2">Activo</TableHead>
               <TableHead className="py-2"></TableHead>
@@ -389,7 +408,7 @@ function CoursesAdmin({ courses, plazas, onChange }: { courses: Course[]; plazas
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="py-2 text-sm">{plazas.find((p) => p.id === c.plaza_id)?.nombre || "Todas"}</TableCell>
+                <TableCell className="py-2 text-sm">{c.target_role ? ROLE_LABELS[c.target_role] : "Todos"}</TableCell>
                 <TableCell className="py-2">{c.obligatorio ? <Badge variant="destructive">Sí</Badge> : <span className="text-muted-foreground">No</span>}</TableCell>
                 <TableCell className="py-2">{c.is_active ? <Badge variant="secondary">Activo</Badge> : <Badge variant="outline">Inactivo</Badge>}</TableCell>
                 <TableCell className="py-2 text-right">
@@ -408,7 +427,6 @@ function CoursesAdmin({ courses, plazas, onChange }: { courses: Course[]; plazas
       {editing && (
         <CourseEditor
           initial={editing}
-          plazas={plazas}
           onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); onChange(); }}
         />
@@ -418,10 +436,41 @@ function CoursesAdmin({ courses, plazas, onChange }: { courses: Course[]; plazas
 }
 
 function CourseEditor({
-  initial, plazas, onClose, onSaved,
-}: { initial: Partial<Course>; plazas: Plaza[]; onClose: () => void; onSaved: () => void }) {
+  initial, onClose, onSaved,
+}: { initial: Partial<Course>; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState<Partial<Course>>(initial);
   const [busy, setBusy] = useState(false);
+  const [eligibleUsers, setEligibleUsers] = useState<{ user_id: string; full_name: string | null; email: string | null }[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const excluded = new Set<string>(form.excluded_user_ids ?? []);
+
+  useEffect(() => {
+    (async () => {
+      setLoadingUsers(true);
+      let userIds: string[] | null = null;
+      if (form.target_role) {
+        const { data: ur } = await supabase.from("user_roles").select("user_id").eq("role", form.target_role);
+        userIds = (ur ?? []).map((r: any) => r.user_id);
+        if (userIds.length === 0) { setEligibleUsers([]); setLoadingUsers(false); return; }
+      }
+      let q = supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .eq("approval_status", "aprobado")
+        .eq("is_active", true)
+        .order("full_name");
+      if (userIds) q = q.in("user_id", userIds);
+      const { data } = await q;
+      setEligibleUsers((data as any) ?? []);
+      setLoadingUsers(false);
+    })();
+  }, [form.target_role]);
+
+  const toggleExclude = (userId: string) => {
+    const next = new Set(excluded);
+    if (next.has(userId)) next.delete(userId); else next.add(userId);
+    setForm({ ...form, excluded_user_ids: Array.from(next) });
+  };
 
   const save = async () => {
     if (!form.nombre?.trim()) { toast({ title: "Nombre requerido", variant: "destructive" }); return; }
@@ -430,7 +479,9 @@ function CourseEditor({
       nombre: form.nombre,
       descripcion: form.descripcion ?? null,
       url_externa: form.url_externa ?? null,
-      plaza_id: form.plaza_id || null,
+      plaza_id: null,
+      target_role: form.target_role || null,
+      excluded_user_ids: form.excluded_user_ids ?? [],
       obligatorio: !!form.obligatorio,
       icon: form.icon ?? "🎓",
       is_active: form.is_active ?? true,
@@ -446,7 +497,7 @@ function CourseEditor({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{form.id ? "Editar curso" : "Nuevo curso"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-[80px_1fr] gap-3">
@@ -468,14 +519,58 @@ function CourseEditor({
             <Input placeholder="https://…" value={form.url_externa ?? ""} onChange={(e) => setForm({ ...form, url_externa: e.target.value })} />
           </div>
           <div>
-            <Label>Plaza objetivo</Label>
-            <Select value={form.plaza_id || "all"} onValueChange={(v) => setForm({ ...form, plaza_id: v === "all" ? null : v })}>
+            <Label>Rol objetivo</Label>
+            <Select
+              value={form.target_role || "all"}
+              onValueChange={(v) => setForm({ ...form, target_role: v === "all" ? null : (v as AppRole), excluded_user_ids: [] })}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas las plazas</SelectItem>
-                {plazas.map((p) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
+                <SelectItem value="all">Todos los roles</SelectItem>
+                {(Object.keys(ROLE_LABELS) as AppRole[]).map((r) => (
+                  <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label>Usuarios asignados ({eligibleUsers.length - excluded.size}/{eligibleUsers.length})</Label>
+              <div className="flex gap-2">
+                <button type="button" className="text-xs text-primary hover:underline"
+                  onClick={() => setForm({ ...form, excluded_user_ids: [] })}>
+                  Marcar todos
+                </button>
+                <button type="button" className="text-xs text-muted-foreground hover:underline"
+                  onClick={() => setForm({ ...form, excluded_user_ids: eligibleUsers.map((u) => u.user_id) })}>
+                  Desmarcar todos
+                </button>
+              </div>
+            </div>
+            <div className="border rounded-md max-h-56 overflow-y-auto divide-y">
+              {loadingUsers && <div className="p-3 text-sm text-muted-foreground">Cargando usuarios…</div>}
+              {!loadingUsers && eligibleUsers.length === 0 && (
+                <div className="p-3 text-sm text-muted-foreground">No hay usuarios para el rol seleccionado.</div>
+              )}
+              {eligibleUsers.map((u) => {
+                const checked = !excluded.has(u.user_id);
+                return (
+                  <label key={u.user_id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleExclude(u.user_id)}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm truncate">{u.full_name || u.email}</div>
+                      <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Desmarca a quienes no deban tomar este curso.</p>
           </div>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2"><Switch checked={!!form.obligatorio} onCheckedChange={(v) => setForm({ ...form, obligatorio: v })} /> Obligatorio</label>
@@ -631,17 +726,28 @@ function ComplianceDashboard() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [{ data: profs }, { data: courses }, { data: ut }, { data: plazas }] = await Promise.all([
+      const [{ data: profs }, { data: courses }, { data: ut }, { data: plazas }, { data: ur }] = await Promise.all([
         supabase.from("profiles").select("user_id, full_name, email, plaza_id").eq("approval_status", "aprobado").eq("is_active", true),
-        supabase.from("training_courses").select("id, plaza_id, is_active").eq("is_active", true),
+        supabase.from("training_courses").select("id, plaza_id, target_role, excluded_user_ids, is_active").eq("is_active", true),
         supabase.from("user_trainings").select("user_id, course_id, status"),
         supabase.from("plazas").select("id, nombre"),
+        supabase.from("user_roles").select("user_id, role"),
       ]);
       const plazaMap = new Map((plazas ?? []).map((p: any) => [p.id, p.nombre]));
+      const rolesByUser = new Map<string, Set<string>>();
+      (ur ?? []).forEach((r: any) => {
+        if (!rolesByUser.has(r.user_id)) rolesByUser.set(r.user_id, new Set());
+        rolesByUser.get(r.user_id)!.add(r.role);
+      });
       const utMap = new Map<string, TrainingStatus>();
       (ut ?? []).forEach((t: any) => utMap.set(`${t.user_id}:${t.course_id}`, t.status));
       const rows = (profs ?? []).map((p: any) => {
-        const applicable = (courses ?? []).filter((c: any) => !c.plaza_id || c.plaza_id === p.plaza_id);
+        const userRoles = rolesByUser.get(p.user_id) ?? new Set<string>();
+        const applicable = (courses ?? []).filter((c: any) => {
+          if (c.target_role && !userRoles.has(c.target_role)) return false;
+          if ((c.excluded_user_ids ?? []).includes(p.user_id)) return false;
+          return true;
+        });
         const total = applicable.length;
         const aprobados = applicable.filter((c: any) => utMap.get(`${p.user_id}:${c.id}`) === "aprobado").length;
         return { profile: p, total, aprobados, pct: total ? Math.round((aprobados / total) * 100) : 0 };
