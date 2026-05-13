@@ -93,7 +93,7 @@ export default function DailyActivityReport() {
   const [reportText, setReportText] = useState<string>("");
   const [copied, setCopied] = useState(false);
 
-  const { rangeStart, rangeEnd } = useMemo(() => toISORange(date), [date]);
+  const { start, end } = useMemo(() => toISORange(date), [date]);
 
   // Fetch sellers for admin/manager dropdown
   const { data: sellers = [] } = useQuery<SellerOption[]>({
