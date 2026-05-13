@@ -42,6 +42,7 @@ import ReportsLanding from "@/pages/reports/ReportsLanding";
 import DailyDeliveryReport from "@/pages/reports/DailyDeliveryReport";
 import DailyActivityReport from "@/pages/reports/DailyActivityReport";
 import SellerPortal from "@/pages/seller/SellerPortal";
+import TrainingPage from "@/pages/training/TrainingPage";
 import AutomationsPage from "@/pages/automations/AutomationsPage";
 import AutomationEditorPage from "@/pages/automations/AutomationEditorPage";
 
@@ -111,7 +112,7 @@ const App = () => (
             <Route path="/whatsapp/settings" element={<ProtectedRoute><WhatsAppSettings /></ProtectedRoute>} />
             <Route path="/transfers" element={<ProtectedRoute><ModulePlaceholder title="Transferencias de Inventario" description="Gestión de transferencias entre almacenes. Próximamente en Fase 3." /></ProtectedRoute>} />
             
-            <Route path="/training" element={<ProtectedRoute><ModulePlaceholder title="Capacitación" description="Materiales de capacitación y cursos para tu equipo." /></ProtectedRoute>} />
+            <Route path="/training" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><ReportsLanding /></ProtectedRoute>} />
             <Route path="/reports/daily-delivery" element={<ProtectedRoute><DailyDeliveryReport /></ProtectedRoute>} />
             <Route path="/reports/daily-activity" element={<ProtectedRoute><DailyActivityReport /></ProtectedRoute>} />
