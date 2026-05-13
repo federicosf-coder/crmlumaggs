@@ -318,7 +318,6 @@ export default function DailyActivityReport() {
     }
   };
 
-  const totalQuotes = quotes.reduce((sum, q) => sum + q.total, 0);
   const hasData = activities.length > 0 || tasks.length > 0 || quotes.length > 0 || newCompanies.length > 0 || newContacts.length > 0;
 
   return (
