@@ -726,17 +726,28 @@ function ComplianceDashboard() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [{ data: profs }, { data: courses }, { data: ut }, { data: plazas }] = await Promise.all([
+      const [{ data: profs }, { data: courses }, { data: ut }, { data: plazas }, { data: ur }] = await Promise.all([
         supabase.from("profiles").select("user_id, full_name, email, plaza_id").eq("approval_status", "aprobado").eq("is_active", true),
-        supabase.from("training_courses").select("id, plaza_id, is_active").eq("is_active", true),
+        supabase.from("training_courses").select("id, plaza_id, target_role, excluded_user_ids, is_active").eq("is_active", true),
         supabase.from("user_trainings").select("user_id, course_id, status"),
         supabase.from("plazas").select("id, nombre"),
+        supabase.from("user_roles").select("user_id, role"),
       ]);
       const plazaMap = new Map((plazas ?? []).map((p: any) => [p.id, p.nombre]));
+      const rolesByUser = new Map<string, Set<string>>();
+      (ur ?? []).forEach((r: any) => {
+        if (!rolesByUser.has(r.user_id)) rolesByUser.set(r.user_id, new Set());
+        rolesByUser.get(r.user_id)!.add(r.role);
+      });
       const utMap = new Map<string, TrainingStatus>();
       (ut ?? []).forEach((t: any) => utMap.set(`${t.user_id}:${t.course_id}`, t.status));
       const rows = (profs ?? []).map((p: any) => {
-        const applicable = (courses ?? []).filter((c: any) => !c.plaza_id || c.plaza_id === p.plaza_id);
+        const userRoles = rolesByUser.get(p.user_id) ?? new Set<string>();
+        const applicable = (courses ?? []).filter((c: any) => {
+          if (c.target_role && !userRoles.has(c.target_role)) return false;
+          if ((c.excluded_user_ids ?? []).includes(p.user_id)) return false;
+          return true;
+        });
         const total = applicable.length;
         const aprobados = applicable.filter((c: any) => utMap.get(`${p.user_id}:${c.id}`) === "aprobado").length;
         return { profile: p, total, aprobados, pct: total ? Math.round((aprobados / total) * 100) : 0 };
