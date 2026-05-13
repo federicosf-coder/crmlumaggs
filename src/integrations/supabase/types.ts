@@ -3436,6 +3436,56 @@ export type Database = {
         }
         Relationships: []
       }
+      training_courses: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          descripcion: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          nombre: string
+          obligatorio: boolean
+          plaza_id: string | null
+          updated_at: string
+          url_externa: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          nombre: string
+          obligatorio?: boolean
+          plaza_id?: string | null
+          updated_at?: string
+          url_externa?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          obligatorio?: boolean
+          plaza_id?: string | null
+          updated_at?: string
+          url_externa?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_courses_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_feedback: {
         Row: {
           admin_notes: string | null
@@ -3531,6 +3581,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_trainings: {
+        Row: {
+          admin_comentarios: string | null
+          course_id: string
+          created_at: string
+          evidencia_mime: string | null
+          evidencia_path: string | null
+          fecha_realizacion: string | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["training_status"]
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_comentarios?: string | null
+          course_id: string
+          created_at?: string
+          evidencia_mime?: string | null
+          evidencia_path?: string | null
+          fecha_realizacion?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["training_status"]
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_comentarios?: string | null
+          course_id?: string
+          created_at?: string
+          evidencia_mime?: string | null
+          evidencia_path?: string | null
+          fecha_realizacion?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["training_status"]
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_trainings_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vehiculos: {
         Row: {
@@ -4542,6 +4648,7 @@ export type Database = {
         | "entrega_corporativa"
       tipo_negocio_crm: "prospecto" | "expansion" | "recompra" | "otro"
       tipo_pago: "contado" | "credito" | "credito_cescemex" | "credito_directo"
+      training_status: "pendiente" | "enviado" | "aprobado" | "rechazado"
       uso_cfdi:
         | "G01"
         | "G02"
@@ -4865,6 +4972,7 @@ export const Constants = {
       ],
       tipo_negocio_crm: ["prospecto", "expansion", "recompra", "otro"],
       tipo_pago: ["contado", "credito", "credito_cescemex", "credito_directo"],
+      training_status: ["pendiente", "enviado", "aprobado", "rechazado"],
       uso_cfdi: [
         "G01",
         "G02",
