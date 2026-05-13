@@ -504,7 +504,7 @@ function ReviewQueue({ isAdmin }: { isAdmin: boolean }) {
     setLoading(true);
     let q = supabase
       .from("user_trainings")
-      .select("*, course:training_courses(nombre, obligatorio), profile:profiles!user_trainings_user_id_fkey(full_name, email, plaza_id)")
+      .select("*, course:training_courses(nombre, obligatorio)")
       .order("submitted_at", { ascending: false });
     if (statusFilter !== "all") q = q.eq("status", statusFilter);
     const { data } = await q;
