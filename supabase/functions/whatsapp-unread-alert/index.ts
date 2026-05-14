@@ -118,6 +118,10 @@ Deno.serve(async (req) => {
           displayName = conv.wa_profile_name;
         }
         const cleanName = sanitizeName(displayName);
+        // Incluir el teléfono de la conversación para identificar exactamente
+        // cuál es el chat con el mensaje sin leer.
+        const convPhone = conv.wa_phone ? String(conv.wa_phone).replace(/[^\d+]/g, "") : "";
+        const nameWithPhone = convPhone ? `${cleanName} (${convPhone})` : cleanName;
 
         const res = await fetch(
           `https://graph.facebook.com/v21.0/${senderPhoneId}/messages`,
@@ -137,7 +141,7 @@ Deno.serve(async (req) => {
                 components: [
                   {
                     type: "body",
-                    parameters: [{ type: "text", text: cleanName }],
+                    parameters: [{ type: "text", text: nameWithPhone }],
                   },
                 ],
               },
