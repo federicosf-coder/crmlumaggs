@@ -36,9 +36,8 @@ Deno.serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    const PHONE_ID_1 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-    const PHONE_ID_2 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_2");
-    const senderPhoneId = PHONE_ID_1 || PHONE_ID_2;
+    // Identificador de número de teléfono fijo desde el cual se envían las alertas
+    const senderPhoneId = "498690943338066";
 
     if (!TOKEN || !senderPhoneId) {
       return json({ error: "Missing WhatsApp credentials" }, 500);
