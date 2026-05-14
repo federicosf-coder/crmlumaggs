@@ -22,6 +22,19 @@ function normalizePhone(raw: string | null | undefined): string | null {
   return digits;
 }
 
+function sanitizeName(raw: string | null | undefined): string {
+  if (!raw) return "Nuevo Prospecto";
+  // Remove characters not allowed by WhatsApp template params (newlines, tabs, 4+ spaces)
+  let name = String(raw)
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/[^\p{L}\p{N}\s.\-']/gu, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (!name) return "Nuevo Prospecto";
+  if (name.length > 60) name = name.slice(0, 60).trim();
+  return name;
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -70,7 +83,7 @@ Deno.serve(async (req) => {
     // for which we have NOT already alerted about this same inbound batch.
     const { data: pending, error: pendErr } = await admin
       .from("whatsapp_conversations")
-      .select("id, wa_phone, last_inbound_at, unread_alert_sent_at, unread_count")
+      .select("id, wa_phone, wa_profile_name, contact_id, last_inbound_at, unread_alert_sent_at, unread_count")
       .gt("unread_count", 0)
       .lte("last_inbound_at", cutoff)
       .limit(50);
@@ -88,6 +101,24 @@ Deno.serve(async (req) => {
 
     for (const conv of toFire) {
       try {
+        // Resolve display name: contact -> wa_profile_name -> "Nuevo Prospecto"
+        let displayName: string | null = null;
+        if (conv.contact_id) {
+          const { data: contact } = await admin
+            .from("contacts")
+            .select("first_name, last_name")
+            .eq("id", conv.contact_id)
+            .maybeSingle();
+          if (contact) {
+            const full = `${contact.first_name ?? ""} ${contact.last_name ?? ""}`.trim();
+            if (full) displayName = full;
+          }
+        }
+        if (!displayName && conv.wa_profile_name) {
+          displayName = conv.wa_profile_name;
+        }
+        const cleanName = sanitizeName(displayName);
+
         const res = await fetch(
           `https://graph.facebook.com/v21.0/${senderPhoneId}/messages`,
           {
@@ -103,6 +134,12 @@ Deno.serve(async (req) => {
               template: {
                 name: tplName,
                 language: { code: tplLang },
+                components: [
+                  {
+                    type: "body",
+                    parameters: [{ type: "text", text: cleanName }],
+                  },
+                ],
               },
             }),
           },
