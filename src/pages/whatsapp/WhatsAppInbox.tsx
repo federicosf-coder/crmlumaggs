@@ -736,17 +736,23 @@ export default function WhatsAppInbox() {
               Sin conversaciones en esta línea.
             </div>
           ) : (
-            filteredConversations.map((c) => (
+            filteredConversations.map((c) => {
+              const isUnread = c.unread_count > 0;
+              return (
               <button
                 key={c.id}
                 onClick={() => setActiveId(c.id)}
-                className={`w-full text-left p-3 border-b hover:bg-accent transition ${activeId === c.id ? "bg-accent" : ""}`}
+                className={`relative w-full text-left p-3 pl-4 border-b hover:bg-accent transition ${activeId === c.id ? "bg-accent" : ""} ${isUnread ? "bg-destructive/5" : ""}`}
               >
+                {isUnread && (
+                  <span className="absolute left-0 top-0 bottom-0 w-1 bg-destructive" />
+                )}
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium truncate flex-1">
+                  <span className={`text-sm truncate flex-1 flex items-center gap-1.5 ${isUnread ? "font-bold text-foreground" : "font-medium"}`}>
+                    {isUnread && <MessageCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                     {c.wa_profile_name || c.wa_phone}
                   </span>
-                  {c.unread_count > 0 && (
+                  {isUnread && (
                     <span className="shrink-0 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold">
                       {c.unread_count}
                     </span>
@@ -765,9 +771,10 @@ export default function WhatsAppInbox() {
                     </span>
                   ) : null;
                 })()}
-                <div className="text-xs text-muted-foreground truncate">{c.last_message_preview || "—"}</div>
+                <div className={`text-xs truncate ${isUnread ? "text-foreground font-medium" : "text-muted-foreground"}`}>{c.last_message_preview || "—"}</div>
               </button>
-            ))
+              );
+            })
           )}
         </ScrollArea>
       </Card>
