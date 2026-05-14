@@ -185,7 +185,28 @@ export default function DocumentForm() {
           .range(from, to)
       );
     },
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
+
+  // Realtime: refetch companies on INSERT/UPDATE so newly created empresas
+  // aparecen al instante en el selector sin recargar.
+  useEffect(() => {
+    const channel = supabase
+      .channel("documentform-companies-rt")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "companies" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["companies", "documentform-all"] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
   // Note: forma_pago is also fetched but typed as any via spread below
   const { data: contacts = [], refetch: refetchContacts } = useQuery({
     queryKey: ["contacts", form.empresa_id],
@@ -446,9 +467,29 @@ export default function DocumentForm() {
 
   // Quick-add handlers via shared dialogs
   const handleCompanyCreated = async (id: string) => {
-    await refetchCompanies();
+    // Optimistic update: insertar inmediatamente la empresa recién creada
+    // en la caché del selector para que esté disponible al instante,
+    // antes de esperar al refetch / realtime.
+    try {
+      const { data: newCompany } = await supabase
+        .from("companies")
+        .select("id, name, phone, lista_precios, uso_cfdi, metodo_pago, tipo_pago, forma_pago, id_contpaq")
+        .eq("id", id)
+        .maybeSingle();
+      if (newCompany) {
+        qc.setQueryData<any[]>(["companies", "documentform-all"], (prev = []) => {
+          if (prev.some((c: any) => c.id === newCompany.id)) return prev;
+          return [...prev, newCompany].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+        });
+      }
+    } catch (e) {
+      console.warn("[DocumentForm] no se pudo precargar la empresa nueva", e);
+    }
     set("empresa_id", id);
     set("contacto_id", "");
+    // Reconciliar con el servidor en segundo plano
+    qc.invalidateQueries({ queryKey: ["companies"] });
+    refetchCompanies();
   };
 
   const handleContactCreated = async (id: string) => {
