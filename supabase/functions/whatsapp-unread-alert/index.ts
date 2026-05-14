@@ -16,7 +16,10 @@ const corsHeaders = {
 function normalizePhone(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const digits = String(raw).replace(/[^\d]/g, "");
-  return digits || null;
+  if (!digits) return null;
+  // Si viene de 10 dígitos (formato MX local), anteponer 52
+  if (digits.length === 10) return `52${digits}`;
+  return digits;
 }
 
 function json(body: unknown, status = 200) {
