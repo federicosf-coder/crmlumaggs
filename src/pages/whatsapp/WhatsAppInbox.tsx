@@ -425,7 +425,7 @@ export default function WhatsAppInbox() {
     };
     loadMsgs();
     // mark read
-    supabase.from("whatsapp_conversations").update({ unread_count: 0 }).eq("id", activeId).then(() => {});
+    supabase.from("whatsapp_conversations").update({ unread_count: 0, unread_alert_sent_at: null }).eq("id", activeId).then(() => {});
     // contact name
     if (active?.contact_id) {
       supabase
@@ -467,7 +467,7 @@ export default function WhatsAppInbox() {
           // marca como leído inmediato
           supabase
             .from("whatsapp_conversations")
-            .update({ unread_count: 0 })
+            .update({ unread_count: 0, unread_alert_sent_at: null })
             .eq("id", activeId)
             .then(() => {});
         },

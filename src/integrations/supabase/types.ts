@@ -3882,6 +3882,7 @@ export type Database = {
           last_message_preview: string | null
           last_outbound_at: string | null
           status: string
+          unread_alert_sent_at: string | null
           unread_count: number
           updated_at: string
           wa_phone: string
@@ -3898,6 +3899,7 @@ export type Database = {
           last_message_preview?: string | null
           last_outbound_at?: string | null
           status?: string
+          unread_alert_sent_at?: string | null
           unread_count?: number
           updated_at?: string
           wa_phone: string
@@ -3914,6 +3916,7 @@ export type Database = {
           last_message_preview?: string | null
           last_outbound_at?: string | null
           status?: string
+          unread_alert_sent_at?: string | null
           unread_count?: number
           updated_at?: string
           wa_phone?: string
