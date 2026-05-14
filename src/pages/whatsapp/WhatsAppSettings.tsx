@@ -28,6 +28,9 @@ type Settings = {
   away_enabled: boolean;
   notification_delay_minutes: number;
   unassigned_strategy: "notify_admin" | "round_robin" | "notify_team";
+  // Nota: aunque el tipo conserva los valores antiguos para compatibilidad de
+  // datos existentes, la nueva semántica solo distingue entre `notify_admin`
+  // (alertar al admin cuando un mensaje sigue sin leer) y `none` (no hacer nada).
   admin_phone: string | null;
   critical_escalation_enabled: boolean;
   critical_escalation_hours: number;
@@ -266,7 +269,7 @@ export default function WhatsAppSettings() {
         </div>
 
         <div>
-          <Label>Tiempo de espera para notificación</Label>
+          <Label>Tiempo sin leer antes de alertar</Label>
           <Select
             value={String(settings.notification_delay_minutes)}
             onValueChange={(v) => setSettings({ ...settings, notification_delay_minutes: Number(v) })}
@@ -280,23 +283,28 @@ export default function WhatsAppSettings() {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground mt-1">
-            Si el chat no se abre en este tiempo, se envía la alerta encolada.
+            Si una conversación entrante permanece sin leer durante este tiempo,
+            se considera vencida y se dispara la alerta.
           </p>
         </div>
 
         <div>
-          <Label>Gestión de contactos sin asignar</Label>
+          <Label>Monitoreo de Mensajes Sin Leer</Label>
           <Select
             value={settings.unassigned_strategy}
             onValueChange={(v) => setSettings({ ...settings, unassigned_strategy: v as Settings["unassigned_strategy"] })}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="notify_admin">Notificar al Administrador</SelectItem>
-              <SelectItem value="round_robin">Reparto Equitativo (Round Robin)</SelectItem>
-              <SelectItem value="notify_team">Notificar a todo el equipo</SelectItem>
+              <SelectItem value="notify_admin">Notificar al Administrador al expirar tiempo</SelectItem>
+              <SelectItem value="none">No hacer nada</SelectItem>
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Aplica a cualquier mensaje entrante (de contactos conocidos o no).
+            El temporizador se cancela automáticamente si alguien abre o
+            responde la conversación a tiempo.
+          </p>
         </div>
 
         {settings.unassigned_strategy === "notify_admin" && (
@@ -308,7 +316,8 @@ export default function WhatsAppSettings() {
               onChange={(e) => setSettings({ ...settings, admin_phone: e.target.value })}
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Número al que se enviará la alerta cuando llegue un mensaje sin asignar.
+              Número al que se enviará la plantilla de alerta cuando una
+              conversación quede sin leer más del tiempo configurado.
             </p>
           </div>
         )}
