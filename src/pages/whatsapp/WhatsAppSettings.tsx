@@ -311,13 +311,19 @@ export default function WhatsAppSettings() {
           <div>
             <Label>Teléfono del Administrador</Label>
             <Input
-              placeholder="+52 ..."
+              placeholder="521XXXXXXXXXX (formato internacional)"
               value={settings.admin_phone ?? ""}
               onChange={(e) => setSettings({ ...settings, admin_phone: e.target.value })}
             />
             <p className="text-xs text-muted-foreground mt-1">
               Número al que se enviará la plantilla de alerta cuando una
               conversación quede sin leer más del tiempo configurado.
+              <br />
+              <strong>Formato requerido:</strong> incluir código de país sin
+              "+" ni espacios. Ej. para México: <code>5216861234567</code>{" "}
+              (52 = país, 1 = móvil, 10 dígitos del número). Si solo escribes
+              10 dígitos, se asumirá México y se antepondrá 52
+              automáticamente.
             </p>
           </div>
         )}
