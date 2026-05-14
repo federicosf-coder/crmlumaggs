@@ -559,6 +559,10 @@ export default function WhatsAppSettings() {
           )}
         </div>
       </Card>
+
+      <div className="flex justify-end">
+        <Button onClick={save} disabled={saving}>{saving ? "Guardando…" : "Guardar configuración"}</Button>
+      </div>
     </div>
   );
 }
