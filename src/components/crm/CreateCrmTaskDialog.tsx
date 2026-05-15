@@ -457,8 +457,7 @@ export function CreateCrmTaskDialog({
       finalTitle = `[${statusLabel}] ${finalTitle || ""}`.trim();
     }
     try {
-      const created: any = await createTask.mutateAsync({
-        user_id: session.user.id,
+      const payload: any = {
         title: finalTitle,
         description: finalDescription || null,
         due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : null,
@@ -467,13 +466,22 @@ export function CreateCrmTaskDialog({
         contact_id: contactId && contactId !== "none" ? contactId : null,
         company_id: companyId && companyId !== "none" ? companyId : null,
         task_type: taskType || null,
-        parent_task_id: parentTaskId || null,
         parent_category: parentTaskId ? null : parentCategory,
         completed,
         completed_at: completed ? new Date().toISOString() : null,
         task_status: taskStatusValue,
-      } as any);
-      toast({ title: statusLabel ? `Actividad ${statusLabel}` : "Tarea creada" });
+      };
+      let created: any;
+      if (isEditing && editTask) {
+        created = await updateTask.mutateAsync({ id: editTask.id, ...payload } as any);
+      } else {
+        created = await createTask.mutateAsync({
+          user_id: session.user.id,
+          parent_task_id: parentTaskId || null,
+          ...payload,
+        } as any);
+      }
+      toast({ title: statusLabel ? `Actividad ${statusLabel}` : (isEditing ? "Cambios guardados" : "Tarea creada") });
       if (reopenForNew) {
         setRescheduleCtx({
           origenTareaId: created?.id || null,
