@@ -75,6 +75,7 @@ export function CreateCrmTaskDialog({
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [dateOpen, setDateOpen] = useState(false);
   const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState("medium");
   const [dealId, setDealId] = useState(defaultDealId || "");
@@ -876,7 +877,7 @@ export function CreateCrmTaskDialog({
             <div className="space-y-2 col-span-8">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Fecha</div>
               <div className="flex gap-2 min-w-0">
-                <Popover>
+                <Popover open={dateOpen} onOpenChange={setDateOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
@@ -898,7 +899,7 @@ export function CreateCrmTaskDialog({
                     <Calendar
                       mode="single"
                       selected={dueDate ? parseISO(dueDate.slice(0, 10)) : undefined}
-                      onSelect={(d) => setDueDate(d ? format(d, "yyyy-MM-dd") : "")}
+                      onSelect={(d) => { setDueDate(d ? format(d, "yyyy-MM-dd") : ""); if (d) setDateOpen(false); }}
                       initialFocus
                       locale={es}
                       className={cn("p-3 pointer-events-auto font-light")}
