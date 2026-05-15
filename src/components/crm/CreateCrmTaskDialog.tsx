@@ -156,9 +156,16 @@ export function CreateCrmTaskDialog({
       return;
     }
     setSendingEmail(true);
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap">${
-      emailBody.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    }</div>`;
+    const escapedBody = emailBody.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const attachmentsHtml = attachedDocs.length
+      ? `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-family:Arial,sans-serif;font-size:14px;color:#333">
+          <div style="font-weight:600;margin-bottom:10px;color:#111">📎 Documentos adjuntos</div>
+          <ul style="padding-left:18px;margin:0">
+            ${attachedDocs.map((d) => `<li style="margin:4px 0"><a href="${d.url}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline">${d.label.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</a></li>`).join("")}
+          </ul>
+        </div>`
+      : "";
+    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap">${escapedBody}</div>${attachmentsHtml}`;
     const ccList = emailCc.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
     const bccList = emailBcc.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
     if (userEmail) bccList.push(userEmail); // copia al usuario
