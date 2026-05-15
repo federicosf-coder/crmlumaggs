@@ -1081,8 +1081,8 @@ export default function SellerPortal() {
                           aria-label="Seleccionar fila"
                         />
                       </TableCell>
-                      <TableCell className="font-medium text-sm py-1.5">{companyMap[t.company_id] || "—"}</TableCell>
-                      <TableCell className="text-sm py-1.5">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
+                      <TableCell className="font-light text-sm py-1.5 w-[28%]">{companyMap[t.company_id] || "—"}</TableCell>
+                      <TableCell className="font-light text-sm py-1.5 w-[20%]">{t.title}{t.description && <p className="text-xs font-light text-muted-foreground truncate max-w-[220px]">{t.description}</p>}</TableCell>
                       <TableCell className="py-1.5"><Badge variant="outline" className={cn("text-xs", cat.cls)}>{cat.label}</Badge></TableCell>
                       <TableCell className="py-1.5"><span className="inline-flex items-center gap-1 text-xs"><span>{tipoCfg.emoji}</span>{tipoCfg.label}</span></TableCell>
                       <TableCell className="text-xs py-1.5">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
