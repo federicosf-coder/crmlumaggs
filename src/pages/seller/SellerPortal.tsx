@@ -73,6 +73,7 @@ export default function SellerPortal() {
   const [termSelected, setTermSelected] = useState<Set<string>>(new Set());
   const [limCreadas, setLimCreadas] = useState<PageLimit>("10");
   const [pageCreadas, setPageCreadas] = useState(1);
+  const [sortCreadas, setSortCreadas] = useState<{ col: "cliente" | "tarea" | "creada" | "estatus"; dir: "asc" | "desc" }>({ col: "creada", dir: "desc" });
   const [limProspectos, setLimProspectos] = useState<PageLimit>("10");
   const [pageProspectos, setPageProspectos] = useState(1);
   const [limCotizaciones, setLimCotizaciones] = useState<PageLimit>("10");
