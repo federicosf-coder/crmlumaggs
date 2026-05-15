@@ -100,6 +100,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const [deleteSubId, setDeleteSubId] = useState<string | null>(null);
   const [viewSubTask, setViewSubTask] = useState<CrmTask | null>(null);
   const initialized = useRef(false);
+  const timelineSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
     if (task && open) {
