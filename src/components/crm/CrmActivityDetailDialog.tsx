@@ -30,7 +30,11 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
   const { data: companies } = useQuery({
     queryKey: ["companies-picker-act"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").order("name");
+      const { data } = await supabase
+        .from("companies")
+        .select("id, name")
+        .order("name")
+        .limit(5000);
       return data || [];
     },
     enabled: open,
@@ -38,7 +42,12 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
   const { data: contacts } = useQuery({
     queryKey: ["contacts-picker-act"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name").eq("is_active", true).order("first_name");
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name")
+        .eq("is_active", true)
+        .order("first_name")
+        .limit(5000);
       return data || [];
     },
     enabled: open,
@@ -49,7 +58,8 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
       const { data } = await supabase
         .from("crm_deals")
         .select("id, title, company_id, created_at")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(5000);
       return data || [];
     },
     enabled: open,
