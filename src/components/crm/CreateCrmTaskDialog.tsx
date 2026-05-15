@@ -202,55 +202,86 @@ export function CreateCrmTaskDialog({
             <Label>Descripción</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} maxLength={2000} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-12 gap-3">
+            <div className="space-y-2 col-span-7">
               <Label>Fecha</Label>
               <div className="flex gap-2 min-w-0">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className={cn(
-                      "flex-1 min-w-0 justify-start text-left font-normal h-9 px-2 truncate",
-                      !dueDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-                    <span className="truncate">
-                      {dueDate
-                        ? format(parseISO(dueDate.slice(0, 10)), "d MMM yyyy", { locale: es })
-                        : "Selecciona fecha"}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate ? parseISO(dueDate.slice(0, 10)) : undefined}
-                    onSelect={(d) => setDueDate(d ? format(d, "yyyy-MM-dd") : "")}
-                    initialFocus
-                    locale={es}
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "flex-1 min-w-0 justify-start text-left font-light h-9 px-3",
+                        !dueDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 shrink-0 opacity-60" />
+                      <span className="truncate">
+                        {dueDate
+                          ? format(parseISO(dueDate.slice(0, 10)), "EEE d MMM yyyy", { locale: es })
+                          : "Selecciona fecha"}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dueDate ? parseISO(dueDate.slice(0, 10)) : undefined}
+                      onSelect={(d) => setDueDate(d ? format(d, "yyyy-MM-dd") : "")}
+                      initialFocus
+                      locale={es}
+                      className={cn("p-3 pointer-events-auto font-light")}
+                    />
+                  </PopoverContent>
+                </Popover>
                 <Input
                   type="time"
                   value={dueTime}
                   onChange={(e) => setDueTime(e.target.value)}
-                  className="w-[100px] shrink-0 h-9 px-2"
+                  className="w-[88px] shrink-0 h-9 px-2 text-xs font-light"
                 />
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-5">
               <Label>Prioridad</Label>
               <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9">
+                  <SelectValue>
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "inline-block h-2.5 w-2.5 rounded-full",
+                          priority === "low" && "bg-emerald-500",
+                          priority === "medium" && "bg-amber-500",
+                          priority === "high" && "bg-rose-500",
+                        )}
+                      />
+                      <span className="capitalize">
+                        {priority === "low" ? "Baja" : priority === "high" ? "Alta" : "Media"}
+                      </span>
+                    </span>
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Baja</SelectItem>
-                  <SelectItem value="medium">Media</SelectItem>
-                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="low">
+                    <span className="flex items-center gap-2">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                      Baja
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="medium">
+                    <span className="flex items-center gap-2">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" />
+                      Media
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="high">
+                    <span className="flex items-center gap-2">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500" />
+                      Alta
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
