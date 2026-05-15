@@ -700,6 +700,20 @@ export function CreateCrmTaskDialog({
                 </div>
                 <Textarea value={emailBody} onChange={(e) => setEmailBody(e.target.value)} rows={6} maxLength={4000} placeholder="Escribe tu correo..." className="font-light bg-background" />
               </div>
+              <div className="flex flex-col gap-2 pt-1 border-t">
+                <div className="text-[11px] text-muted-foreground font-light pt-2">
+                  <span className="font-medium">Responder a:</span> {userEmail || "—"} · Se enviará una copia a tu correo.
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleSendEmail}
+                  disabled={sendingEmail || !emailTo || !emailSubject || !emailBody.trim()}
+                  className="self-end bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+                >
+                  {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendIcon className="h-4 w-4" />}
+                  Enviar Correo
+                </Button>
+              </div>
             </section>
           )}
           {!isEmail && (
