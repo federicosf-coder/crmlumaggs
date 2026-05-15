@@ -394,6 +394,35 @@ export function CreateCrmTaskDialog({
               />
             )}
           </section>
+          {isVisit && (
+            <section className="space-y-2">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Ubicación de la visita</div>
+              <div className="flex gap-2">
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Dirección, referencia o link de Google Maps"
+                  className="flex-1 text-base font-light"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={captureLocation}
+                  disabled={locating}
+                  title="Capturar ubicación actual"
+                  className="shrink-0 gap-1.5"
+                >
+                  {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
+                  <span className="hidden sm:inline text-xs">Mi ubicación</span>
+                </Button>
+              </div>
+              {location && location.startsWith("http") && (
+                <a href={location} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-light">
+                  <MapPin className="h-3 w-3" /> Abrir en mapa
+                </a>
+              )}
+            </section>
+          )}
           <section className="grid grid-cols-12 gap-3">
             <div className="space-y-2 col-span-8">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Fecha</div>
