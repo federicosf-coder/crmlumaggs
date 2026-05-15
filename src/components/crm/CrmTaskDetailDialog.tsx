@@ -443,32 +443,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
               )}
             </section>
 
-            {/* Tipo de actividad */}
-            <section>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Tipo de actividad</div>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                {ACTION_TASK_TYPES.map(({ key, label, Icon, soft, active }) => {
-                  const sel = taskType === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => handleTaskTypeChange(key)}
-                      title={label}
-                      className={cn(
-                        "flex flex-col items-center justify-center gap-0.5 rounded-md border p-1.5 transition-all",
-                        sel ? active : soft
-                      )}
-                      aria-pressed={sel}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-[10px] font-medium leading-tight">{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
             {/* Línea de tiempo (sólo cabeceras) */}
             {isParent && (
               <section className={cn("rounded-md border p-3", PARENT_CATEGORY_META[parentCategory!].soft)}>
@@ -510,6 +484,32 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                 )}
               </section>
             )}
+
+            {/* Tipo de actividad */}
+            <section>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Tipo de actividad</div>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                {ACTION_TASK_TYPES.map(({ key, label, Icon, soft, active }) => {
+                  const sel = taskType === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleTaskTypeChange(key)}
+                      title={label}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-0.5 rounded-md border p-1.5 transition-all",
+                        sel ? active : soft
+                      )}
+                      aria-pressed={sel}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-[10px] font-medium leading-tight">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
 
             {/* Breadcrumb si es sub-tarea */}
             {task?.parent_task_id && (
