@@ -37,7 +37,7 @@ import {
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
+import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
 import { CrmActivityDetailDialog } from "@/components/crm/CrmActivityDetailDialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -54,7 +54,7 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
 
 type TaskTypeKey = "call" | "email" | "meeting" | "field_visit" | "whatsapp" | "cobranza" | "follow_up" | "note";
 
-import { TASK_TYPE_META } from "@/lib/taskTypes";
+import { TASK_TYPE_META, PARENT_CATEGORY_META, type ParentCategoryKey } from "@/lib/taskTypes";
 
 const TASK_STATUS_BADGE: Record<string, { label: string; className: string }> = {
   planned:     { label: "Planificada",  className: "bg-gray-100 text-gray-700 border-gray-200" },
@@ -223,6 +223,8 @@ export default function CrmItemsPage() {
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleReason, setRescheduleReason] = useState("");
   const [rescheduleSaving, setRescheduleSaving] = useState(false);
+  const [collapsedCats, setCollapsedCats] = useState<Record<string, boolean>>({});
+  const toggleCat = (k: string) => setCollapsedCats((s) => ({ ...s, [k]: !s[k] }));
 
   // ── Modal "¿Qué sigue?" tras finalizar ──
   const [nextStepTarget, setNextStepTarget] = useState<{ task: any | null } | null>(null);
@@ -235,7 +237,7 @@ export default function CrmItemsPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("crm_tasks")
-        .select("id, reschedule_count")
+        .select("id, reschedule_count, parent_category")
         .in("id", taskIds);
       return data || [];
     },
@@ -243,6 +245,20 @@ export default function CrmItemsPage() {
   const rescheduleMap = new Map<string, number>(
     (tasksMeta as any[]).map(t => [t.id, t.reschedule_count || 0])
   );
+  const taskCategoryMap = new Map<string, ParentCategoryKey | null>(
+    (tasksMeta as any[]).map(t => [t.id, (t.parent_category as ParentCategoryKey | null) || null])
+  );
+
+  // Deriva la categoría de un item: usa parent_category del task si existe; si no, infiere por type
+  const getCategoryKey = (it: CrmItemUnified): ParentCategoryKey | "otra" => {
+    if (it.source_table === "crm_tasks") {
+      const cat = taskCategoryMap.get(it.id);
+      if (cat === "seguimiento" || cat === "cobranza") return cat;
+    }
+    if (it.type === "cobranza") return "cobranza";
+    if (it.type === "follow_up") return "seguimiento";
+    return "otra";
+  };
 
   const openReschedule = (it: CrmItemUnified) => {
     const base = it.fecha_vencimiento ? new Date(it.fecha_vencimiento) : addHours(startOfHour(new Date()), 1);
@@ -778,7 +794,11 @@ export default function CrmItemsPage() {
               No hay registros con los filtros actuales.
             </div>
           )}
-          {!isLoading && filteredRows.map((it) => {
+          {!isLoading && filteredRows.length > 0 && (() => {
+            const buckets: Record<string, CrmItemUnified[]> = { seguimiento: [], cobranza: [], otra: [] };
+            filteredRows.forEach((it) => buckets[getCategoryKey(it)].push(it));
+            const order: Array<ParentCategoryKey | "otra"> = ["seguimiento", "cobranza", "otra"];
+            const renderItem = (it: CrmItemUnified) => {
             const cfg = CRM_ITEM_TYPE_CONFIG[it.type] || CRM_ITEM_TYPE_CONFIG.otro;
             const status = STATUS_BADGE[it.status] || STATUS_BADGE.pendiente;
             const overdue = it.status === "pendiente" && it.fecha_vencimiento && new Date(it.fecha_vencimiento) < new Date();
@@ -876,7 +896,34 @@ export default function CrmItemsPage() {
                 </div>
               </div>
             );
-          })}
+            };
+            return order.map((catKey) => {
+              const list = buckets[catKey];
+              if (list.length === 0) return null;
+              const meta = catKey === "otra"
+                ? { label: "Otra", soft: "bg-slate-50 text-slate-700 border-slate-200", Icon: ListChecks, iconColor: "text-slate-500" }
+                : PARENT_CATEGORY_META[catKey];
+              const Icon = (meta as any).Icon;
+              const collapsed = !!collapsedCats[catKey];
+              return (
+                <div key={catKey} className="border-b last:border-b-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleCat(catKey)}
+                    className={cn("w-full flex items-center gap-2 px-4 py-2 text-left bg-gradient-to-r from-violet-50/40 to-blue-50/40 dark:from-violet-950/10 dark:to-blue-950/10 hover:bg-accent/40")}
+                  >
+                    <Icon className={cn("h-4 w-4", (meta as any).iconColor)} />
+                    <span className="text-xs uppercase tracking-wide font-medium text-foreground/80">{(meta as any).label}</span>
+                    <Badge variant="outline" className={cn("text-[10px]", (meta as any).soft)}>{list.length}</Badge>
+                    <span className="ml-auto text-muted-foreground">
+                      {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                    </span>
+                  </button>
+                  {!collapsed && <div className="divide-y">{list.map(renderItem)}</div>}
+                </div>
+              );
+            });
+          })()}
         </div>
 
         {/* Paginación inferior */}
@@ -966,15 +1013,13 @@ export default function CrmItemsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog crear (reusa el existente para no romper nada) */}
-      <CreateCrmActivityTaskDialog
+      {/* Dialog crear: usa el diseño refinado del CRM Task */}
+      <CreateCrmTaskDialog
         open={createOpen}
         onOpenChange={(o) => { setCreateOpen(o); if (!o) setCreatePrefill({}); }}
         defaultCompanyId={createPrefill.defaultCompanyId}
         defaultTaskType={createPrefill.defaultTaskType}
-        defaultDescription={createPrefill.defaultDescription}
-        defaultDate={createPrefill.defaultDate}
-        origenTareaId={createPrefill.origenTareaId}
+        defaultTitle={createPrefill.defaultDescription}
       />
 
       {/* Dialogs editar */}
