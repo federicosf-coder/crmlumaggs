@@ -84,7 +84,7 @@ export default function SellerPortal() {
       .from("crm_pipeline_stages")
       .select("*")
       .eq("pipeline_id", (deal as any).pipeline_id)
-      .order("order_index", { ascending: true });
+      .order("position", { ascending: true });
     setSelectedDeal(deal as unknown as CrmDeal);
     setDealStages((stages || []) as unknown as CrmPipelineStage[]);
     setDealDialogOpen(true);
