@@ -74,7 +74,7 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
   const [editContactId, setEditContactId] = useState("none");
 
   useEffect(() => {
-    if (activity && editing) {
+    if (activity) {
       setEditTitle(activity.title);
       setEditDescription(activity.description || "");
       setEditType(activity.type);
