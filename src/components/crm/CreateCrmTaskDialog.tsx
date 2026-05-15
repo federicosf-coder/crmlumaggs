@@ -395,7 +395,7 @@ export function CreateCrmTaskDialog({
               })}
             </div>
           </section>
-          {!isWhatsApp && (
+          {!isWhatsApp && !isEmail && (
           <section className="space-y-2">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Título *</div>
             <div className="flex gap-2">
@@ -411,6 +411,76 @@ export function CreateCrmTaskDialog({
             </div>
           </section>
           )}
+          {isEmail && (
+            <section className="space-y-3 rounded-lg border bg-muted/30 p-3">
+              {!contactId && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-light text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                  <UserPlus className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>
+                    Selecciona un contacto en <strong>Vincular a Contacto</strong> para usar su correo automáticamente.
+                  </span>
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Para *</Label>
+                  <div className="flex gap-2 text-[11px]">
+                    {!showCc && (
+                      <button type="button" onClick={() => setShowCc(true)} className="text-primary hover:underline">+ CC</button>
+                    )}
+                    {!showBcc && (
+                      <button type="button" onClick={() => setShowBcc(true)} className="text-primary hover:underline">+ CCO</button>
+                    )}
+                  </div>
+                </div>
+                <Input
+                  type="email"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  placeholder={contactId ? (contactEmail || "El contacto no tiene correo — captúralo aquí") : "destinatario@ejemplo.com"}
+                  required
+                  className="font-light h-9"
+                />
+                {contactId && emailTo && emailTo !== contactEmail && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={saveEmailToContact}
+                    disabled={savingContactEmail}
+                    className="h-7 text-xs gap-1.5"
+                  >
+                    {savingContactEmail ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                    Guardar correo en {contactName || "el contacto"}
+                  </Button>
+                )}
+              </div>
+              {showCc && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">CC</Label>
+                  <Input type="text" value={emailCc} onChange={(e) => setEmailCc(e.target.value)} placeholder="cc@ejemplo.com, otro@ejemplo.com" className="font-light h-9" />
+                </div>
+              )}
+              {showBcc && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">CCO</Label>
+                  <Input type="text" value={emailBcc} onChange={(e) => setEmailBcc(e.target.value)} placeholder="cco@ejemplo.com" className="font-light h-9" />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Asunto *</Label>
+                <Input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} placeholder="Asunto del correo" required maxLength={200} className="font-light h-9" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mensaje</Label>
+                  <DictationButton currentText={emailBody} onTranscript={setEmailBody} size="sm" className="h-7 px-2 text-xs gap-1" title="Dictar mensaje" />
+                </div>
+                <Textarea value={emailBody} onChange={(e) => setEmailBody(e.target.value)} rows={6} maxLength={4000} placeholder="Escribe tu correo..." className="font-light bg-background" />
+              </div>
+            </section>
+          )}
+          {!isEmail && (
           <section className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -453,6 +523,7 @@ export function CreateCrmTaskDialog({
               />
             )}
           </section>
+          )}
           {isVisit && (
             <section className="space-y-2">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Ubicación de la visita</div>
