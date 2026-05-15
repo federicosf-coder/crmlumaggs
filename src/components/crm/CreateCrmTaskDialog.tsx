@@ -75,6 +75,7 @@ export function CreateCrmTaskDialog({
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [dateOpen, setDateOpen] = useState(false);
   const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState("medium");
   const [dealId, setDealId] = useState(defaultDealId || "");
