@@ -864,6 +864,49 @@ export function CreateCrmTaskDialog({
                 </div>
                 <Textarea value={emailBody} onChange={(e) => setEmailBody(e.target.value)} rows={6} maxLength={4000} placeholder="Escribe tu correo..." className="font-light bg-background" />
               </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Adjuntos</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (!companyId) {
+                        toast({ title: "Vincula una empresa", description: "Selecciona una empresa para ver sus documentos.", variant: "destructive" });
+                        return;
+                      }
+                      setAttachOpen(true);
+                    }}
+                    className="h-7 text-xs gap-1.5"
+                  >
+                    <Paperclip className="h-3.5 w-3.5" />
+                    Adjuntar documento
+                  </Button>
+                </div>
+                {attachedDocs.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground font-light">
+                    Se enviarán como liga de descarga al final del correo.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {attachedDocs.map((d) => (
+                      <span key={d.id} className="inline-flex items-center gap-1 rounded-full border bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 text-[11px] text-blue-800 dark:text-blue-200">
+                        <FileText className="h-3 w-3" />
+                        {d.label}
+                        <button
+                          type="button"
+                          onClick={() => setAttachedDocs((prev) => prev.filter((x) => x.id !== d.id))}
+                          className="ml-0.5 rounded-full hover:bg-blue-200/60 dark:hover:bg-blue-800/40"
+                          aria-label="Quitar"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="flex flex-col gap-2 pt-1 border-t">
                 <div className="text-[11px] text-muted-foreground font-light pt-2">
                   <span className="font-medium">Responder a:</span> {userEmail || "—"} · Se enviará una copia a tu correo.
