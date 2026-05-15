@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 
 type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
 
@@ -65,6 +66,7 @@ export function AppSidebar() {
   const { profile, roles, signOut, hasAnyRole, hasRole } = useAuth();
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
+  const whatsappAccess = useModuleAccess("whatsapp");
 
   useEffect(() => {
     if (!hasRole("admin")) return;
@@ -114,8 +116,14 @@ export function AppSidebar() {
     return hasAnyRole(item.roles);
   };
 
-  const visibleMain = mainItems.filter(canAccess);
-  const visibleAdmin = adminItems.filter(canAccess);
+  const visibleMain = mainItems.filter(canAccess).filter((item) => {
+    if (item.url === "/whatsapp") return whatsappAccess.canView;
+    return true;
+  });
+  const visibleAdmin = adminItems.filter(canAccess).filter((item) => {
+    if (item.url.startsWith("/whatsapp")) return whatsappAccess.canView;
+    return true;
+  });
 
   return (
     <Sidebar collapsible="icon">

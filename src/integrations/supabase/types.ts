@@ -4524,6 +4524,7 @@ export type Database = {
         | "pedidos"
         | "tareas"
         | "actividades"
+        | "whatsapp"
       app_role:
         | "admin"
         | "manager"
@@ -4837,6 +4838,7 @@ export const Constants = {
         "pedidos",
         "tareas",
         "actividades",
+        "whatsapp",
       ],
       app_role: [
         "admin",

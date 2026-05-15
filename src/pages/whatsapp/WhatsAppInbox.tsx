@@ -28,6 +28,8 @@ import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDia
 import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
 import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
 import { useNavigate } from "react-router-dom";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { Lock as LockIcon } from "lucide-react";
 
 // Descarga un archivo del bucket privado evitando bloqueos del navegador / ad-blockers.
 async function downloadMediaFile(storagePath: string | null | undefined, filename?: string | null) {
@@ -101,6 +103,7 @@ type Conversation = {
   status: string;
   business_phone_number_id: string | null;
   whatsapp_account_id: string | null;
+  assigned_to: string | null;
 };
 
 type Message = {
@@ -137,6 +140,7 @@ function extractTemplateVars(body: string): number {
 
 export default function WhatsAppInbox() {
   const navigate = useNavigate();
+  const access = useModuleAccess("whatsapp");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -346,9 +350,20 @@ export default function WhatsAppInbox() {
   );
   // Conversaciones filtradas por línea seleccionada
   const filteredConversations = useMemo(() => {
-    if (!selectedPhoneId) return conversations;
-    return conversations.filter((c) => c.business_phone_number_id === selectedPhoneId);
-  }, [conversations, selectedPhoneId]);
+    let list = conversations;
+    if (selectedPhoneId) {
+      list = list.filter((c) => c.business_phone_number_id === selectedPhoneId);
+    }
+    if (access.accessLevel === "propio" && access.userId) {
+      list = list.filter((c) => c.assigned_to === access.userId);
+    } else if (access.accessLevel === "equipo") {
+      const allowed = new Set(access.teamMemberIds);
+      list = list.filter((c) => c.assigned_to && allowed.has(c.assigned_to));
+    } else if (access.accessLevel === "ninguno") {
+      list = [];
+    }
+    return list;
+  }, [conversations, selectedPhoneId, access.accessLevel, access.userId, access.teamMemberIds]);
 
   // Realtime global por cuenta seleccionada — refresca el chat activo si llega un
   // mensaje nuevo para esta línea (Maggs o Chevron) aunque no sea la conversación abierta.
@@ -676,6 +691,15 @@ export default function WhatsAppInbox() {
   };
 
   return (
+    access.accessLevel === "ninguno" && !access.isLoading ? (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center gap-3">
+        <LockIcon className="h-10 w-10 text-muted-foreground" />
+        <h2 className="text-xl font-semibold">Acceso Denegado</h2>
+        <p className="text-muted-foreground max-w-md">
+          No tienes permisos para ver el módulo de WhatsApp. Contacta a un administrador si necesitas acceso.
+        </p>
+      </div>
+    ) : (
     <div className="grid grid-cols-12 gap-4 h-[calc(100vh-8rem)] overflow-hidden">
       {/* Conversaciones */}
       <Card className="col-span-3 flex flex-col h-full overflow-hidden">
@@ -1255,5 +1279,6 @@ export default function WhatsAppInbox() {
         </MediaDialogContent>
       </MediaDialog>
     </div>
+    )
   );
 }
