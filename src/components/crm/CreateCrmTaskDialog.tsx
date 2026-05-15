@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { DictationButton } from "@/components/ui/dictation-button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Calendar as CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -196,10 +197,29 @@ export function CreateCrmTaskDialog({
           </div>
           <div className="space-y-2">
             <Label>Título *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Dar seguimiento al cliente" required maxLength={200} />
+            <div className="flex gap-2">
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej: Dar seguimiento al cliente"
+                required
+                maxLength={200}
+                className="flex-1"
+              />
+              <DictationButton currentText={title} onTranscript={setTitle} />
+            </div>
           </div>
           <div className="space-y-2">
-            <Label>Descripción</Label>
+            <div className="flex items-center justify-between">
+              <Label>Descripción</Label>
+              <DictationButton
+                currentText={description}
+                onTranscript={setDescription}
+                size="sm"
+                className="h-7 px-2 text-xs gap-1"
+                title="Dictar descripción"
+              />
+            </div>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} maxLength={2000} />
           </div>
           <div className="grid grid-cols-12 gap-3">
