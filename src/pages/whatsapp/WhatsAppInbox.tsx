@@ -691,6 +691,15 @@ export default function WhatsAppInbox() {
   };
 
   return (
+    access.accessLevel === "ninguno" && !access.isLoading ? (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center gap-3">
+        <LockIcon className="h-10 w-10 text-muted-foreground" />
+        <h2 className="text-xl font-semibold">Acceso Denegado</h2>
+        <p className="text-muted-foreground max-w-md">
+          No tienes permisos para ver el módulo de WhatsApp. Contacta a un administrador si necesitas acceso.
+        </p>
+      </div>
+    ) : (
     <div className="grid grid-cols-12 gap-4 h-[calc(100vh-8rem)] overflow-hidden">
       {/* Conversaciones */}
       <Card className="col-span-3 flex flex-col h-full overflow-hidden">
