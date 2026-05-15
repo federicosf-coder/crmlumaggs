@@ -82,8 +82,11 @@ export function CreateCrmTaskDialog({
       setTitle(defaultTitle);
       setParentCategory(defaultParentCategory);
       setTaskType(defaultTaskType);
+      setDealId(defaultDealId || "");
+      setContactId(defaultContactId || "");
+      setCompanyId(defaultCompanyId || "");
     }
-  }, [open, defaultTitle, defaultParentCategory, defaultTaskType]);
+  }, [open, defaultTitle, defaultParentCategory, defaultTaskType, defaultDealId, defaultContactId, defaultCompanyId]);
 
   // Cuando se abre con un defaultDealId, resolver empresa y contacto principal
   useEffect(() => {
