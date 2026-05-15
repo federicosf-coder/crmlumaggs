@@ -874,12 +874,56 @@ export default function SellerPortal() {
         </Card>
       </div>
 
-      {/* Creadas en periodo */}
-      <Card>
+      {/* Todas las tareas */}
+      {(() => {
+        const fmtCorta = (d: Date | null) => (d ? format(d, "dd/MM/yy") : "—");
+        const allTasksList = tasks as any[];
+        const getSelectedRows = () => allTasksList.filter((t) => selectedTaskIds.has(t.id));
+        const handleCopiar = async () => {
+          const rows = getSelectedRows();
+          if (rows.length === 0) { toast.warning("Selecciona al menos una fila para copiar"); return; }
+          const text = rows.map((t) => {
+            const fecha = t.created_at ? new Date(t.created_at) : null;
+            const empresa = companyMap[t.company_id] || "Sin empresa";
+            return `${fmtCorta(fecha)} | ${empresa} | ${t.title || "Tarea"}`;
+          }).join("\n");
+          try { await navigator.clipboard.writeText(text); toast.success(`Copiadas ${rows.length} líneas`); }
+          catch { toast.error("No se pudo copiar al portapapeles"); }
+        };
+        const handleExportar = () => {
+          const rows = getSelectedRows();
+          if (rows.length === 0) { toast.warning("Selecciona al menos una fila para exportar"); return; }
+          const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
+          const csv = [
+            ["Fecha creada", "Empresa", "Tarea", "Estatus"].map(esc).join(","),
+            ...rows.map((t) => {
+              const fecha = t.created_at ? new Date(t.created_at) : null;
+              const ven = t.due_date ? new Date(t.due_date) : null;
+              const isVenc = ven && !t.completed && ven < todayStart;
+              const status = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
+              return [fmtCorta(fecha), companyMap[t.company_id] || "", t.title || "", status].map(esc).join(",");
+            }),
+          ].join("\n");
+          const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `tareas-${format(new Date(), "yyyy-MM-dd")}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+          toast.success(`Exportadas ${rows.length} líneas`);
+        };
+        return (
+        <Card>
         <CardHeader className="pb-2 gap-2">
           <div className="flex flex-row items-center justify-between gap-2 flex-wrap">
-            <CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle>
-            <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={tasksCreadasPeriodo.length} onPageReset={() => setPageCreadas(1)} />
+            <CardTitle className="text-base">Todas las tareas ({allTasksList.length})</CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">{selectedTaskIds.size} seleccionadas</span>
+              <Button size="sm" variant="outline" onClick={handleCopiar}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar seleccionadas</Button>
+              <Button size="sm" variant="outline" onClick={handleExportar}><Download className="h-3.5 w-3.5 mr-1" /> Exportar seleccionadas</Button>
+              <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={allTasksList.length} onPageReset={() => setPageCreadas(1)} />
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative flex-1 min-w-[200px] max-w-xs">
@@ -911,6 +955,23 @@ export default function SellerPortal() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10 py-1.5">
+                    {(() => {
+                      const visibleIds = allTasksList.map((t) => t.id);
+                      const allSel = visibleIds.length > 0 && visibleIds.every((id) => selectedTaskIds.has(id));
+                      const someSel = !allSel && visibleIds.some((id) => selectedTaskIds.has(id));
+                      return (
+                        <Checkbox
+                          checked={allSel ? true : someSel ? "indeterminate" : false}
+                          onCheckedChange={() => {
+                            if (allSel) setSelectedTaskIds(new Set());
+                            else setSelectedTaskIds(new Set(visibleIds));
+                          }}
+                          aria-label="Seleccionar todas"
+                        />
+                      );
+                    })()}
+                  </TableHead>
                   {([
                     { key: "cliente", label: "Cliente" },
                     { key: "tarea", label: "Tarea" },
@@ -938,7 +999,7 @@ export default function SellerPortal() {
               <TableBody>
                 {(() => {
                   const q = searchCreadas.trim().toLowerCase();
-                  const filtered = tasksCreadasPeriodo.filter((t: any) => {
+                  const filtered = allTasksList.filter((t: any) => {
                     const ven = t.due_date ? new Date(t.due_date) : null;
                     const isVenc = ven && !t.completed && ven < todayStart;
                     const status = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
@@ -950,7 +1011,7 @@ export default function SellerPortal() {
                     }
                     return true;
                   });
-                  if (filtered.length === 0) return <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-3">Sin resultados</TableCell></TableRow>;
+                  if (filtered.length === 0) return <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-3">Sin resultados</TableCell></TableRow>;
                   return paginate([...filtered].sort((a, b) => {
                   const dir = sortCreadas.dir === "asc" ? 1 : -1;
                   const venA = a.due_date ? new Date(a.due_date) : null;
@@ -978,9 +1039,21 @@ export default function SellerPortal() {
                   return (
                     <TableRow
                       key={t.id}
+                      data-state={selectedTaskIds.has(t.id) ? "selected" : undefined}
                       className="cursor-pointer"
                       onClick={() => { setSelectedTask(t as CrmTask); setTaskDialogOpen(true); }}
                     >
+                      <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedTaskIds.has(t.id)}
+                          onCheckedChange={() => {
+                            const ns = new Set(selectedTaskIds);
+                            ns.has(t.id) ? ns.delete(t.id) : ns.add(t.id);
+                            setSelectedTaskIds(ns);
+                          }}
+                          aria-label="Seleccionar fila"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium text-sm py-1.5">{companyMap[t.company_id] || "—"}</TableCell>
                       <TableCell className="text-sm py-1.5">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
                       <TableCell className="text-xs py-1.5">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
@@ -1004,9 +1077,11 @@ export default function SellerPortal() {
               </TableBody>
             </Table>
           </div>
-          <Paginator page={pageCreadas} setPage={setPageCreadas} total={tasksCreadasPeriodo.length} lim={limCreadas} />
+          <Paginator page={pageCreadas} setPage={setPageCreadas} total={allTasksList.length} lim={limCreadas} />
         </CardContent>
-      </Card>
+        </Card>
+        );
+      })()}
 
       {/* Tabs detalle */}
       <Tabs defaultValue="primera_compra">
