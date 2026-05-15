@@ -18,8 +18,16 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   Trash2, Calendar as CalendarIcon, User, FileText, Link2,
-  MessageCircle, Loader2, Check, ChevronLeft, ChevronRight, Plus, Pencil, Mail,
+  MessageCircle, Loader2, Check, ChevronLeft, ChevronRight, Plus, Pencil, Mail, GripVertical,
 } from "lucide-react";
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, useSortable, verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
