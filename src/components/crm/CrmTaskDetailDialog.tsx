@@ -521,27 +521,14 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
               <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
                 <User className="h-4 w-4" /> Asignación
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Asignado a</label>
-                  <SearchableSelect
-                    value={userId || "none"}
-                    onValueChange={handleUserChange}
-                    options={userOptions}
-                    placeholder="Sin asignar"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Fecha vencimiento</label>
-                  <Input
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => handleDueDateChange(e.target.value)}
-                    onFocus={() => setCalendarOpen(true)}
-                    onClick={() => setCalendarOpen(true)}
-                    className={inputCls}
-                  />
-                </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Asignado a</label>
+                <SearchableSelect
+                  value={userId || "none"}
+                  onValueChange={handleUserChange}
+                  options={userOptions}
+                  placeholder="Sin asignar"
+                />
               </div>
               {phone && (
                 <div className="mt-3">
@@ -601,6 +588,17 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
             <Separator />
 
             <section className="space-y-2 text-xs text-muted-foreground">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block font-medium">Fecha vencimiento</label>
+                <Input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => handleDueDateChange(e.target.value)}
+                  onFocus={() => setCalendarOpen(true)}
+                  onClick={() => setCalendarOpen(true)}
+                  className={cn(inputCls, "bg-background")}
+                />
+              </div>
               <div>
                 <span className="font-medium">Creada:</span>{" "}
                 {format(parseISO(task.created_at), "d MMM yyyy, h:mm a", { locale: es })}
