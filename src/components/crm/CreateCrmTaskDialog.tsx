@@ -318,29 +318,31 @@ export function CreateCrmTaskDialog({
               placeholder="Buscar negocio..."
             />
           </div>
-          <div className="space-y-2">
-            <Label>Vincular a Empresa</Label>
-            <SearchableSelect
-              value={companyId || "none"}
-              onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
-              options={[
-                { value: "none", label: "Ninguna" },
-                ...((companies || []).map((c: any) => ({ value: c.id, label: c.name }))),
-              ]}
-              placeholder="Buscar empresa..."
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Vincular a Contacto</Label>
-            <SearchableSelect
-              value={contactId || "none"}
-              onValueChange={(v) => setContactId(v === "none" ? "" : v)}
-              options={[
-                { value: "none", label: "Ninguno" },
-                ...((contacts || []).map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))),
-              ]}
-              placeholder="Buscar contacto..."
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-2 min-w-0">
+              <Label>Vincular a Empresa</Label>
+              <SearchableSelect
+                value={companyId || "none"}
+                onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
+                options={[
+                  { value: "none", label: "Ninguna" },
+                  ...((companies || []).map((c: any) => ({ value: c.id, label: c.name }))),
+                ]}
+                placeholder="Buscar empresa..."
+              />
+            </div>
+            <div className="space-y-2 min-w-0">
+              <Label>Vincular a Contacto</Label>
+              <SearchableSelect
+                value={contactId || "none"}
+                onValueChange={(v) => setContactId(v === "none" ? "" : v)}
+                options={[
+                  { value: "none", label: "Ninguno" },
+                  ...((contacts || []).map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))),
+                ]}
+                placeholder="Buscar contacto..."
+              />
+            </div>
           </div>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
