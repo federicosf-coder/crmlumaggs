@@ -924,9 +924,35 @@ export default function SellerPortal() {
 
       {/* Creadas en periodo */}
       <Card>
-        <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
-          <CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle>
-          <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={tasksCreadasPeriodo.length} onPageReset={() => setPageCreadas(1)} />
+        <CardHeader className="pb-2 gap-2">
+          <div className="flex flex-row items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle>
+            <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={tasksCreadasPeriodo.length} onPageReset={() => setPageCreadas(1)} />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[200px] max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchCreadas}
+                onChange={(e) => { setSearchCreadas(e.target.value); setPageCreadas(1); }}
+                placeholder="Buscar cliente o tarea..."
+                className="pl-8 h-8 text-sm"
+              />
+            </div>
+            <div className="flex gap-1">
+              {(["all", "Pendiente", "Vencida", "Completada"] as const).map(s => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={statusCreadas === s ? "default" : "outline"}
+                  className="h-8"
+                  onClick={() => { setStatusCreadas(s); setPageCreadas(1); }}
+                >
+                  {s === "all" ? "Todos" : s}
+                </Button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
