@@ -37,7 +37,7 @@ import {
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
+import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
 import { CrmActivityDetailDialog } from "@/components/crm/CrmActivityDetailDialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1013,15 +1013,13 @@ export default function CrmItemsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog crear (reusa el existente para no romper nada) */}
-      <CreateCrmActivityTaskDialog
+      {/* Dialog crear: usa el diseño refinado del CRM Task */}
+      <CreateCrmTaskDialog
         open={createOpen}
         onOpenChange={(o) => { setCreateOpen(o); if (!o) setCreatePrefill({}); }}
         defaultCompanyId={createPrefill.defaultCompanyId}
         defaultTaskType={createPrefill.defaultTaskType}
-        defaultDescription={createPrefill.defaultDescription}
-        defaultDate={createPrefill.defaultDate}
-        origenTareaId={createPrefill.origenTareaId}
+        defaultTitle={createPrefill.defaultDescription}
       />
 
       {/* Dialogs editar */}
