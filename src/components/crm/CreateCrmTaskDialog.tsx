@@ -299,6 +299,39 @@ export function CreateCrmTaskDialog({
   const contactEmail = emailContact?.email || emailContact?.comm_email || emailContact?.email2 || emailContact?.comm_email2 || "";
   const contactName = emailContact ? `${emailContact.first_name || ""} ${emailContact.last_name || ""}`.trim() : "";
 
+  // Documentos de la empresa para adjuntar como liga en el correo
+  const { data: companyDocs, isLoading: loadingDocs } = useQuery({
+    queryKey: ["email-attach-docs", companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data } = await supabase
+        .from("documentos")
+        .select("id,tipo_documento,numero_cotizacion,numero_pedido,numero_factura,fecha_documento,total,pdf_url")
+        .eq("empresa_id", companyId)
+        .eq("is_active", true)
+        .not("pdf_url", "is", null)
+        .order("fecha_documento", { ascending: false })
+        .limit(200);
+      return (data || []) as any[];
+    },
+    enabled: open && isEmail && attachOpen && !!companyId,
+  });
+
+  const docLabel = (d: any) => {
+    const tipo = String(d.tipo_documento || "").toUpperCase();
+    const num = d.numero_factura || d.numero_pedido || d.numero_cotizacion || d.id?.slice(0, 6);
+    const fecha = d.fecha_documento ? format(parseISO(d.fecha_documento), "dd/MM/yyyy") : "";
+    return `${tipo} ${num}${fecha ? ` · ${fecha}` : ""}`;
+  };
+
+  const toggleAttachDoc = (d: any) => {
+    setAttachedDocs((prev) => {
+      const exists = prev.find((x) => x.id === d.id);
+      if (exists) return prev.filter((x) => x.id !== d.id);
+      return [...prev, { id: d.id, label: docLabel(d), url: d.pdf_url }];
+    });
+  };
+
   // Pre-llenar Para con email del contacto
   useEffect(() => {
     if (!isEmail) return;
