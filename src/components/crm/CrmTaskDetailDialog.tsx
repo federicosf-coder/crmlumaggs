@@ -589,6 +589,17 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
 
             <section className="space-y-2 text-xs text-muted-foreground">
               <div>
+                <label className="text-xs text-muted-foreground mb-1 block font-medium">Fecha vencimiento</label>
+                <Input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => handleDueDateChange(e.target.value)}
+                  onFocus={() => setCalendarOpen(true)}
+                  onClick={() => setCalendarOpen(true)}
+                  className={cn(inputCls, "bg-background")}
+                />
+              </div>
+              <div>
                 <span className="font-medium">Creada:</span>{" "}
                 {format(parseISO(task.created_at), "d MMM yyyy, h:mm a", { locale: es })}
               </div>
