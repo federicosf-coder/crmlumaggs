@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { CrmTask, useUpdateCrmTask, useDeleteCrmTask } from "@/hooks/useCrmTasks";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   Trash2, Calendar as CalendarIcon, User, FileText, Link2,
-  MessageCircle, Loader2, Check, ChevronLeft, ChevronRight,
+  MessageCircle, Loader2, Check, ChevronLeft, ChevronRight, Plus, Pencil, Mail,
 } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
+import { ContactFormDialog, ContactEditData } from "@/components/ContactFormDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +48,10 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const deleteTask = useDeleteCrmTask();
   const { toast } = useToast();
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [contactFormOpen, setContactFormOpen] = useState(false);
+  const [contactFormEdit, setContactFormEdit] = useState<ContactEditData | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -100,7 +104,12 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const { data: contactsAll } = useQuery({
     queryKey: ["contacts-picker-task"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name, company_id").eq("is_active", true).order("first_name");
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name, email, email2, phone, mobile, whatsapp_phone, tel_emp, job_title, department, company_id, notes, comm_email, comm_email2, comm_whatsapp, comm_cel, comm_tel, comm_tel_emp, sede, plaza_id")
+        .eq("is_active", true)
+        .order("first_name")
+        .limit(5000);
       return data || [];
     },
   });
