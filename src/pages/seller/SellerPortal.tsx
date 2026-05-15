@@ -102,7 +102,7 @@ export default function SellerPortal() {
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [limCreadas, setLimCreadas] = useState<PageLimit>("10");
   const [pageCreadas, setPageCreadas] = useState(1);
-  const [sortCreadas, setSortCreadas] = useState<{ col: "cliente" | "tarea" | "creada" | "estatus"; dir: "asc" | "desc" }>({ col: "creada", dir: "desc" });
+  const [sortCreadas, setSortCreadas] = useState<{ col: "cliente" | "tarea" | "categoria" | "tipo" | "creada" | "estatus"; dir: "asc" | "desc" }>({ col: "creada", dir: "desc" });
   const [statusCreadas, setStatusCreadas] = useState<"all" | "Pendiente" | "Vencida" | "Completada">("all");
   const [searchCreadas, setSearchCreadas] = useState("");
   const [limProspectos, setLimProspectos] = useState<PageLimit>("10");
@@ -222,7 +222,7 @@ export default function SellerPortal() {
       }
 
       // Tasks: traemos del ejecutivo (sin filtro de fecha porque necesitamos vencidas + creadas + completadas en periodo)
-      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
+      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at, task_type, parent_category").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
       if (uIds) tq = tq.in("user_id", uIds);
       const { data: tasksData } = await tq;
 
@@ -994,6 +994,8 @@ export default function SellerPortal() {
                   {([
                     { key: "cliente", label: "Cliente" },
                     { key: "tarea", label: "Tarea" },
+                    { key: "categoria", label: "Categoría" },
+                    { key: "tipo", label: "Tipo" },
                     { key: "creada", label: "Creada" },
                     { key: "estatus", label: "Estatus" },
                   ] as const).map(h => {
@@ -1030,7 +1032,7 @@ export default function SellerPortal() {
                     }
                     return true;
                   });
-                  if (filtered.length === 0) return <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-3">Sin resultados</TableCell></TableRow>;
+                  if (filtered.length === 0) return <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-3">Sin resultados</TableCell></TableRow>;
                   return paginate([...filtered].sort((a, b) => {
                   const dir = sortCreadas.dir === "asc" ? 1 : -1;
                   const venA = a.due_date ? new Date(a.due_date) : null;
@@ -1043,6 +1045,8 @@ export default function SellerPortal() {
                   switch (sortCreadas.col) {
                     case "cliente": av = (companyMap[a.company_id] || "").toLowerCase(); bv = (companyMap[b.company_id] || "").toLowerCase(); break;
                     case "tarea": av = (a.title || "").toLowerCase(); bv = (b.title || "").toLowerCase(); break;
+                    case "categoria": av = (a.parent_category || "otra"); bv = (b.parent_category || "otra"); break;
+                    case "tipo": av = (a.task_type || ""); bv = (b.task_type || ""); break;
                     case "estatus": av = statusA; bv = statusB; break;
                     case "creada":
                     default: av = a.created_at ? new Date(a.created_at).getTime() : 0; bv = b.created_at ? new Date(b.created_at).getTime() : 0; break;
@@ -1053,8 +1057,12 @@ export default function SellerPortal() {
                 }), limCreadas, pageCreadas).map(t => {
                   const venc = t.due_date ? new Date(t.due_date) : null;
                   const isVenc = venc && !t.completed && venc < todayStart;
-                  const statusColor = t.completed ? "bg-green-100 text-green-800" : isVenc ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800";
+                  const statusDot = t.completed ? "bg-green-500" : isVenc ? "bg-red-500" : "bg-yellow-500";
                   const statusText = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
+                  const cat = t.parent_category === "seguimiento" ? { label: "Seguimiento", cls: "bg-blue-50 text-blue-700 border-blue-200" }
+                    : t.parent_category === "cobranza" ? { label: "Cobranza", cls: "bg-amber-50 text-amber-700 border-amber-200" }
+                    : { label: "Otra", cls: "bg-muted text-muted-foreground" };
+                  const tipoCfg = (ACTIVITY_TYPE_CONFIG as any)[t.task_type] || { emoji: "•", label: t.task_type || "—" };
                   return (
                     <TableRow
                       key={t.id}
@@ -1075,8 +1083,15 @@ export default function SellerPortal() {
                       </TableCell>
                       <TableCell className="font-medium text-sm py-1.5">{companyMap[t.company_id] || "—"}</TableCell>
                       <TableCell className="text-sm py-1.5">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
+                      <TableCell className="py-1.5"><Badge variant="outline" className={cn("text-xs", cat.cls)}>{cat.label}</Badge></TableCell>
+                      <TableCell className="py-1.5"><span className="inline-flex items-center gap-1 text-xs"><span>{tipoCfg.emoji}</span>{tipoCfg.label}</span></TableCell>
                       <TableCell className="text-xs py-1.5">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
-                      <TableCell className="py-1.5"><Badge variant="outline" className={statusColor}>{statusText}</Badge></TableCell>
+                      <TableCell className="py-1.5">
+                        <span className="inline-flex items-center gap-1.5 text-xs" title={statusText}>
+                          <span className={cn("h-2.5 w-2.5 rounded-full", statusDot)} />
+                          {statusText}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-right py-1.5" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
