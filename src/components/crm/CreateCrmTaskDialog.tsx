@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreateCrmTask } from "@/hooks/useCrmTasks";
+import { useCreateCrmTask, useUpdateCrmTask, type CrmTask } from "@/hooks/useCrmTasks";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -38,14 +38,19 @@ interface CreateCrmTaskDialogProps {
   defaultTaskType?: TaskTypeKey | null;
   /** Título sugerido. */
   defaultTitle?: string;
+  /** Si se define, el diálogo opera en modo edición sobre esta tarea existente. */
+  editTask?: CrmTask | null;
 }
 
 export function CreateCrmTaskDialog({
   open, onOpenChange, defaultDealId, defaultContactId, defaultCompanyId,
   parentTaskId = null, defaultParentCategory = null, defaultTaskType = null, defaultTitle = "",
+  editTask = null,
 }: CreateCrmTaskDialogProps) {
   const { session } = useAuth();
   const createTask = useCreateCrmTask();
+  const updateTask = useUpdateCrmTask();
+  const isEditing = !!editTask;
   const { toast } = useToast();
 
   const { data: contacts } = useQuery({
