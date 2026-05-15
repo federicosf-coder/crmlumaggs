@@ -907,16 +907,52 @@ export default function SellerPortal() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="py-1.5">Cliente</TableHead>
-                  <TableHead className="py-1.5">Tarea</TableHead>
-                  <TableHead className="py-1.5">Creada</TableHead>
-                  <TableHead className="py-1.5">Estatus</TableHead>
+                  {([
+                    { key: "cliente", label: "Cliente" },
+                    { key: "tarea", label: "Tarea" },
+                    { key: "creada", label: "Creada" },
+                    { key: "estatus", label: "Estatus" },
+                  ] as const).map(h => {
+                    const active = sortCreadas.col === h.key;
+                    const Icon = !active ? ArrowUpDown : sortCreadas.dir === "asc" ? ArrowUp : ArrowDown;
+                    return (
+                      <TableHead key={h.key} className="py-1.5">
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 hover:text-foreground"
+                          onClick={() => setSortCreadas(s => s.col === h.key ? { col: h.key, dir: s.dir === "asc" ? "desc" : "asc" } : { col: h.key, dir: h.key === "creada" ? "desc" : "asc" })}
+                        >
+                          {h.label}
+                          <Icon className={`h-3 w-3 ${active ? "opacity-100" : "opacity-40"}`} />
+                        </button>
+                      </TableHead>
+                    );
+                  })}
                   <TableHead className="text-right py-1.5">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-3">Sin creadas en el periodo</TableCell></TableRow>}
-                {paginate(tasksCreadasPeriodo, limCreadas, pageCreadas).map(t => {
+                {paginate([...tasksCreadasPeriodo].sort((a, b) => {
+                  const dir = sortCreadas.dir === "asc" ? 1 : -1;
+                  const venA = a.due_date ? new Date(a.due_date) : null;
+                  const isVencA = venA && !a.completed && venA < todayStart;
+                  const statusA = a.completed ? "Completada" : isVencA ? "Vencida" : "Pendiente";
+                  const venB = b.due_date ? new Date(b.due_date) : null;
+                  const isVencB = venB && !b.completed && venB < todayStart;
+                  const statusB = b.completed ? "Completada" : isVencB ? "Vencida" : "Pendiente";
+                  let av: any, bv: any;
+                  switch (sortCreadas.col) {
+                    case "cliente": av = (companyMap[a.company_id] || "").toLowerCase(); bv = (companyMap[b.company_id] || "").toLowerCase(); break;
+                    case "tarea": av = (a.title || "").toLowerCase(); bv = (b.title || "").toLowerCase(); break;
+                    case "estatus": av = statusA; bv = statusB; break;
+                    case "creada":
+                    default: av = a.created_at ? new Date(a.created_at).getTime() : 0; bv = b.created_at ? new Date(b.created_at).getTime() : 0; break;
+                  }
+                  if (av < bv) return -1 * dir;
+                  if (av > bv) return 1 * dir;
+                  return 0;
+                }), limCreadas, pageCreadas).map(t => {
                   const venc = t.due_date ? new Date(t.due_date) : null;
                   const isVenc = venc && !t.completed && venc < todayStart;
                   const statusColor = t.completed ? "bg-green-100 text-green-800" : isVenc ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800";
