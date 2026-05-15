@@ -86,7 +86,7 @@ export function CreateCrmTaskDialog({
   const [locating, setLocating] = useState(false);
 
   const isWhatsApp = taskType === "whatsapp";
-  const isVisit = taskType === "visit";
+  const isVisit = taskType === "field_visit";
 
   const captureLocation = () => {
     if (!navigator.geolocation) {
