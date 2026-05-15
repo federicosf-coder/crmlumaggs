@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DictationButton } from "@/components/ui/dictation-button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
@@ -84,9 +84,19 @@ export function CreateCrmTaskDialog({
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [location, setLocation] = useState("");
   const [locating, setLocating] = useState(false);
+  // Email composer state
+  const [emailTo, setEmailTo] = useState("");
+  const [emailCc, setEmailCc] = useState("");
+  const [emailBcc, setEmailBcc] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
+  const [savingContactEmail, setSavingContactEmail] = useState(false);
 
   const isWhatsApp = taskType === "whatsapp";
   const isVisit = taskType === "field_visit";
+  const isEmail = taskType === "email";
 
   const captureLocation = () => {
     if (!navigator.geolocation) {
@@ -127,6 +137,43 @@ export function CreateCrmTaskDialog({
     enabled: open && isWhatsApp && (!!contactId || !!companyId),
   });
 
+  // Resolver email del contacto cuando es tipo Correo
+  const { data: emailContact, refetch: refetchEmailContact } = useQuery({
+    queryKey: ["email-create-task-ctx", contactId],
+    queryFn: async () => {
+      if (!contactId) return null;
+      const { data } = await supabase
+        .from("contacts")
+        .select("first_name,last_name,email,comm_email,email2,comm_email2")
+        .eq("id", contactId)
+        .maybeSingle();
+      return data as any;
+    },
+    enabled: open && isEmail && !!contactId,
+  });
+
+  const contactEmail = emailContact?.email || emailContact?.comm_email || emailContact?.email2 || emailContact?.comm_email2 || "";
+  const contactName = emailContact ? `${emailContact.first_name || ""} ${emailContact.last_name || ""}`.trim() : "";
+
+  // Pre-llenar Para con email del contacto
+  useEffect(() => {
+    if (!isEmail) return;
+    if (contactEmail && !emailTo) setEmailTo(contactEmail);
+  }, [isEmail, contactEmail]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveEmailToContact = async () => {
+    if (!contactId || !emailTo) return;
+    setSavingContactEmail(true);
+    const { error } = await supabase.from("contacts").update({ email: emailTo }).eq("id", contactId);
+    setSavingContactEmail(false);
+    if (error) {
+      toast({ title: "No se pudo guardar el correo", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Correo guardado en el contacto" });
+    refetchEmailContact();
+  };
+
   const waPhone = waContext?.contact?.whatsapp_phone || waContext?.contact?.mobile || waContext?.contact?.phone || waContext?.company?.phone || null;
   const waNormalized = normalizePhoneForWhatsApp(waPhone);
   const waContactName = waContext?.contact ? `${waContext.contact.first_name || ""} ${waContext.contact.last_name || ""}`.trim() : "";
@@ -145,6 +192,8 @@ export function CreateCrmTaskDialog({
     setDueTime("");
     setWhatsappOpen(false);
     setLocation("");
+    setEmailTo(""); setEmailCc(""); setEmailBcc(""); setEmailSubject(""); setEmailBody("");
+    setShowCc(false); setShowBcc(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -180,10 +229,20 @@ export function CreateCrmTaskDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user) return;
-    const finalTitle = isWhatsApp ? (title || buildWhatsAppTitle()) : title;
-    const finalDescription = isVisit && location
+    let finalTitle = isWhatsApp ? (title || buildWhatsAppTitle()) : title;
+    let finalDescription = isVisit && location
       ? `📍 Ubicación: ${location}${description ? `\n\n${description}` : ""}`
       : description;
+    if (isEmail) {
+      finalTitle = emailSubject || `Email${contactName ? ` · ${contactName}` : ""}`;
+      const header = [
+        `Para: ${emailTo || "—"}`,
+        emailCc ? `CC: ${emailCc}` : null,
+        emailBcc ? `CCO: ${emailBcc}` : null,
+        `Asunto: ${emailSubject || "(sin asunto)"}`,
+      ].filter(Boolean).join("\n");
+      finalDescription = `${header}\n\n${emailBody}`;
+    }
     createTask.mutate(
       {
         user_id: session.user.id,
@@ -336,7 +395,7 @@ export function CreateCrmTaskDialog({
               })}
             </div>
           </section>
-          {!isWhatsApp && (
+          {!isWhatsApp && !isEmail && (
           <section className="space-y-2">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Título *</div>
             <div className="flex gap-2">
@@ -352,6 +411,76 @@ export function CreateCrmTaskDialog({
             </div>
           </section>
           )}
+          {isEmail && (
+            <section className="space-y-3 rounded-lg border bg-muted/30 p-3">
+              {!contactId && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-light text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                  <UserPlus className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>
+                    Selecciona un contacto en <strong>Vincular a Contacto</strong> para usar su correo automáticamente.
+                  </span>
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Para *</Label>
+                  <div className="flex gap-2 text-[11px]">
+                    {!showCc && (
+                      <button type="button" onClick={() => setShowCc(true)} className="text-primary hover:underline">+ CC</button>
+                    )}
+                    {!showBcc && (
+                      <button type="button" onClick={() => setShowBcc(true)} className="text-primary hover:underline">+ CCO</button>
+                    )}
+                  </div>
+                </div>
+                <Input
+                  type="email"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  placeholder={contactId ? (contactEmail || "El contacto no tiene correo — captúralo aquí") : "destinatario@ejemplo.com"}
+                  required
+                  className="font-light h-9"
+                />
+                {contactId && emailTo && emailTo !== contactEmail && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={saveEmailToContact}
+                    disabled={savingContactEmail}
+                    className="h-7 text-xs gap-1.5"
+                  >
+                    {savingContactEmail ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                    Guardar correo en {contactName || "el contacto"}
+                  </Button>
+                )}
+              </div>
+              {showCc && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">CC</Label>
+                  <Input type="text" value={emailCc} onChange={(e) => setEmailCc(e.target.value)} placeholder="cc@ejemplo.com, otro@ejemplo.com" className="font-light h-9" />
+                </div>
+              )}
+              {showBcc && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">CCO</Label>
+                  <Input type="text" value={emailBcc} onChange={(e) => setEmailBcc(e.target.value)} placeholder="cco@ejemplo.com" className="font-light h-9" />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Asunto *</Label>
+                <Input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} placeholder="Asunto del correo" required maxLength={200} className="font-light h-9" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mensaje</Label>
+                  <DictationButton currentText={emailBody} onTranscript={setEmailBody} size="sm" className="h-7 px-2 text-xs gap-1" title="Dictar mensaje" />
+                </div>
+                <Textarea value={emailBody} onChange={(e) => setEmailBody(e.target.value)} rows={6} maxLength={4000} placeholder="Escribe tu correo..." className="font-light bg-background" />
+              </div>
+            </section>
+          )}
+          {!isEmail && (
           <section className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -394,6 +523,7 @@ export function CreateCrmTaskDialog({
               />
             )}
           </section>
+          )}
           {isVisit && (
             <section className="space-y-2">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Ubicación de la visita</div>
