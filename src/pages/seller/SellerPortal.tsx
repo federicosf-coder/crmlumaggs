@@ -653,10 +653,34 @@ export default function SellerPortal() {
                 <Calendar mode="single" selected={to} onSelect={(d) => { if (d) setTo(endOfDay(d)); }} className="p-3 pointer-events-auto" />
               </PopoverContent>
             </Popover>
-            <Button variant="ghost" size="sm" onClick={() => { const d = subDays(new Date(), 1); setFrom(startOfDay(d)); setTo(endOfDay(d)); }}>Ayer</Button>
-            <Button variant="ghost" size="sm" onClick={() => { setFrom(startOfDay(new Date())); setTo(endOfDay(new Date())); }}>Hoy</Button>
-            <Button variant="ghost" size="sm" onClick={() => { const d = new Date(); d.setDate(d.getDate() - 7); setFrom(startOfDay(d)); setTo(endOfDay(new Date())); }}>7 días</Button>
-            <Button variant="ghost" size="sm" onClick={() => { const d = new Date(); d.setDate(1); setFrom(startOfDay(d)); setTo(endOfDay(new Date())); }}>Mes</Button>
+            {(() => {
+              const presets = [
+                { key: "ayer", label: "Ayer", apply: () => { const d = subDays(new Date(), 1); setFrom(startOfDay(d)); setTo(endOfDay(d)); } },
+                { key: "hoy", label: "Hoy", apply: () => { setFrom(startOfDay(new Date())); setTo(endOfDay(new Date())); } },
+                { key: "7d", label: "7 días", apply: () => { const d = new Date(); d.setDate(d.getDate() - 7); setFrom(startOfDay(d)); setTo(endOfDay(new Date())); } },
+                { key: "mes", label: "Mes", apply: () => { const d = new Date(); d.setDate(1); setFrom(startOfDay(d)); setTo(endOfDay(new Date())); } },
+              ];
+              const matchRange = (a: Date, b: Date) => from.getTime() === a.getTime() && to.getTime() === b.getTime();
+              const today = new Date();
+              const ranges: Record<string, [Date, Date]> = {
+                ayer: [startOfDay(subDays(today, 1)), endOfDay(subDays(today, 1))],
+                hoy: [startOfDay(today), endOfDay(today)],
+                "7d": [startOfDay((() => { const d = new Date(); d.setDate(d.getDate() - 7); return d; })()), endOfDay(today)],
+                mes: [startOfDay((() => { const d = new Date(); d.setDate(1); return d; })()), endOfDay(today)],
+              };
+              const activeKey = presets.find(p => matchRange(ranges[p.key][0], ranges[p.key][1]))?.key;
+              return presets.map(p => (
+                <Button
+                  key={p.key}
+                  variant={activeKey === p.key ? "default" : "ghost"}
+                  size="sm"
+                  onClick={p.apply}
+                  className={cn(activeKey === p.key && "bg-accent text-accent-foreground hover:bg-accent/90")}
+                >
+                  {p.label}
+                </Button>
+              ));
+            })()}
 
             {isManager && (
               <Select value={ejecutivoId} onValueChange={setEjecutivoId}>
