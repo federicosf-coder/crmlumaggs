@@ -873,7 +873,10 @@ export default function SellerPortal() {
                                 setSelectedTask(r.raw as CrmTask);
                                 setTaskDialogOpen(true);
                               } else {
-                                setSelectedActivity(r.raw);
+                                const a: any = r.raw;
+                                const dealMatch = deals.find((d: any) => d.id === a.deal_id);
+                                const resolvedCompanyId = a.company_id || dealMatch?.company_id || null;
+                                setSelectedActivity({ ...a, company_id: resolvedCompanyId });
                                 setActivityDialogOpen(true);
                               }
                             }}
