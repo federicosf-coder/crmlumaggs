@@ -1116,7 +1116,7 @@ export default function SellerPortal() {
                           <DropdownMenuContent align="end">
                             {!t.completed && <DropdownMenuItem onClick={() => completarTarea(t.id)}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Completar</DropdownMenuItem>}
                             {!t.completed && <DropdownMenuItem onClick={() => reprogramarTarea(t.id)}><Clock className="h-3.5 w-3.5 mr-2" /> Reprogramar</DropdownMenuItem>}
-                            {t.deal_id && <DropdownMenuItem onClick={() => window.open("/crm", "_blank")}><ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir CRM</DropdownMenuItem>}
+                            {t.deal_id && <DropdownMenuItem onClick={() => openDealModal(t.deal_id)}><ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir CRM</DropdownMenuItem>}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
