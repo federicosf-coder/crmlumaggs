@@ -54,7 +54,7 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
 
 type TaskTypeKey = "call" | "email" | "meeting" | "field_visit" | "whatsapp" | "cobranza" | "follow_up" | "note";
 
-import { TASK_TYPE_META } from "@/lib/taskTypes";
+import { TASK_TYPE_META, PARENT_CATEGORY_META, type ParentCategoryKey } from "@/lib/taskTypes";
 
 const TASK_STATUS_BADGE: Record<string, { label: string; className: string }> = {
   planned:     { label: "Planificada",  className: "bg-gray-100 text-gray-700 border-gray-200" },
@@ -235,7 +235,7 @@ export default function CrmItemsPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("crm_tasks")
-        .select("id, reschedule_count")
+        .select("id, reschedule_count, parent_category")
         .in("id", taskIds);
       return data || [];
     },
@@ -243,6 +243,20 @@ export default function CrmItemsPage() {
   const rescheduleMap = new Map<string, number>(
     (tasksMeta as any[]).map(t => [t.id, t.reschedule_count || 0])
   );
+  const taskCategoryMap = new Map<string, ParentCategoryKey | null>(
+    (tasksMeta as any[]).map(t => [t.id, (t.parent_category as ParentCategoryKey | null) || null])
+  );
+
+  // Deriva la categoría de un item: usa parent_category del task si existe; si no, infiere por type
+  const getCategoryKey = (it: CrmItemUnified): ParentCategoryKey | "otra" => {
+    if (it.source_table === "crm_tasks") {
+      const cat = taskCategoryMap.get(it.id);
+      if (cat === "seguimiento" || cat === "cobranza") return cat;
+    }
+    if (it.type === "cobranza") return "cobranza";
+    if (it.type === "follow_up") return "seguimiento";
+    return "otra";
+  };
 
   const openReschedule = (it: CrmItemUnified) => {
     const base = it.fecha_vencimiento ? new Date(it.fecha_vencimiento) : addHours(startOfHour(new Date()), 1);
