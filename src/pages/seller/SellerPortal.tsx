@@ -222,7 +222,7 @@ export default function SellerPortal() {
       }
 
       // Tasks: traemos del ejecutivo (sin filtro de fecha porque necesitamos vencidas + creadas + completadas en periodo)
-      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
+      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at, task_type, parent_category").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
       if (uIds) tq = tq.in("user_id", uIds);
       const { data: tasksData } = await tq;
 
@@ -994,6 +994,8 @@ export default function SellerPortal() {
                   {([
                     { key: "cliente", label: "Cliente" },
                     { key: "tarea", label: "Tarea" },
+                    { key: "categoria", label: "Categoría" },
+                    { key: "tipo", label: "Tipo" },
                     { key: "creada", label: "Creada" },
                     { key: "estatus", label: "Estatus" },
                   ] as const).map(h => {
