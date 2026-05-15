@@ -355,6 +355,40 @@ export function CreateCrmTaskDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user) return;
+    submitWithStatus("default");
+  };
+
+  type ActStatus =
+    | "default"
+    | "programada"
+    | "realizada"
+    | "no_contesto"
+    | "reagendada"
+    | "reprogramada"
+    | "enviado"
+    | "programado_envio";
+
+  const STATUS_LABEL: Record<ActStatus, string> = {
+    default: "",
+    programada: "Programada",
+    realizada: "Realizada",
+    no_contesto: "No contestó",
+    reagendada: "Reagendada",
+    reprogramada: "Reprogramada",
+    enviado: "Enviado",
+    programado_envio: "Programado",
+  };
+
+  const submitWithStatus = (status: ActStatus) => {
+    if (!session?.user) return;
+    const needsDate = status === "programada" || status === "programado_envio";
+    if (needsDate && !dueDate) {
+      toast({ title: "Falta fecha", description: "Selecciona la fecha (y hora) para programar.", variant: "destructive" });
+      return;
+    }
+    const reopenForNew = status === "no_contesto" || status === "reagendada" || status === "reprogramada";
+    const completed = status === "realizada" || status === "enviado" || reopenForNew;
+    const statusLabel = STATUS_LABEL[status];
     let finalTitle = isWhatsApp ? (title || buildWhatsAppTitle()) : title;
     let finalDescription = isVisit && location
       ? `📍 Ubicación: ${location}${description ? `\n\n${description}` : ""}`
@@ -372,6 +406,9 @@ export function CreateCrmTaskDialog({
     if (isCall && callPhone) {
       finalDescription = `📞 Tel: ${callPhone}${description ? `\n\n${description}` : ""}`;
     }
+    if (statusLabel) {
+      finalTitle = `[${statusLabel}] ${finalTitle || ""}`.trim();
+    }
     createTask.mutate(
       {
         user_id: session.user.id,
@@ -385,10 +422,17 @@ export function CreateCrmTaskDialog({
         task_type: taskType || null,
         parent_task_id: parentTaskId || null,
         parent_category: parentTaskId ? null : parentCategory, // sub-tareas no llevan categoría
-      },
+        completed,
+        completed_at: completed ? new Date().toISOString() : null,
+      } as any,
       {
         onSuccess: () => {
-          toast({ title: "Tarea creada" });
+          toast({ title: statusLabel ? `Actividad ${statusLabel}` : "Tarea creada" });
+          if (reopenForNew) {
+            setDueDate(""); setDueTime(""); setTitle("");
+            toast({ title: "Programa la nueva fecha", description: "Captura la nueva fecha/hora y guarda como Programada." });
+            return;
+          }
           onOpenChange(false);
           setTitle(""); setDescription(""); setDueDate(""); setDueTime(""); setPriority("medium");
           setDealId(defaultDealId || ""); setContactId(defaultContactId || ""); setCompanyId(defaultCompanyId || "");
@@ -904,6 +948,32 @@ export function CreateCrmTaskDialog({
               >
                 <MessageCircle className="h-4 w-4 mr-1.5" /> Enviar Local
               </Button>
+              <Button type="button" variant="outline" onClick={() => submitWithStatus("programado_envio")} disabled={createTask.isPending}>
+                <CalendarIcon className="h-4 w-4 mr-1.5" /> Programado
+              </Button>
+            </>
+          ) : isCall ? (
+            <>
+              <Button type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
+              <Button type="button" variant="secondary" onClick={() => submitWithStatus("no_contesto")} disabled={createTask.isPending}>No contestó</Button>
+              <Button type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
+            </>
+          ) : isEmail ? (
+            <>
+              <Button type="button" variant="outline" onClick={() => submitWithStatus("programado_envio")} disabled={createTask.isPending}>Programado</Button>
+              <Button type="button" onClick={() => submitWithStatus("enviado")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Enviado</Button>
+            </>
+          ) : taskType === "meeting" ? (
+            <>
+              <Button type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
+              <Button type="button" variant="secondary" onClick={() => submitWithStatus("reagendada")} disabled={createTask.isPending}>Reagendada</Button>
+              <Button type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
+            </>
+          ) : isVisit ? (
+            <>
+              <Button type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
+              <Button type="button" variant="secondary" onClick={() => submitWithStatus("reprogramada")} disabled={createTask.isPending}>Reprogramada</Button>
+              <Button type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
             </>
           ) : (
             <Button type="submit" disabled={createTask.isPending} onClick={handleSubmit}>
