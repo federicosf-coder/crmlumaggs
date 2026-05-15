@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DictationButton } from "@/components/ui/dictation-button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
@@ -82,8 +82,33 @@ export function CreateCrmTaskDialog({
   const [parentCategory, setParentCategory] = useState<ParentCategoryKey | null>(defaultParentCategory);
   const [taskType, setTaskType] = useState<TaskTypeKey | null>(defaultTaskType);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [location, setLocation] = useState("");
+  const [locating, setLocating] = useState(false);
 
   const isWhatsApp = taskType === "whatsapp";
+  const isVisit = taskType === "field_visit";
+
+  const captureLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Geolocalización no disponible", variant: "destructive" });
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const url = `https://maps.google.com/?q=${latitude},${longitude}`;
+        setLocation(url);
+        setLocating(false);
+        toast({ title: "Ubicación capturada" });
+      },
+      (err) => {
+        setLocating(false);
+        toast({ title: "No se pudo obtener la ubicación", description: err.message, variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   // Resolver teléfono y nombres para envío local / API
   const { data: waContext } = useQuery({
@@ -119,6 +144,7 @@ export function CreateCrmTaskDialog({
     setCompanyId(defaultCompanyId || "");
     setDueTime("");
     setWhatsappOpen(false);
+    setLocation("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -155,11 +181,14 @@ export function CreateCrmTaskDialog({
     e.preventDefault();
     if (!session?.user) return;
     const finalTitle = isWhatsApp ? (title || buildWhatsAppTitle()) : title;
+    const finalDescription = isVisit && location
+      ? `📍 Ubicación: ${location}${description ? `\n\n${description}` : ""}`
+      : description;
     createTask.mutate(
       {
         user_id: session.user.id,
         title: finalTitle,
-        description: description || null,
+        description: finalDescription || null,
         due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : null,
         priority,
         deal_id: dealId && dealId !== "none" ? dealId : null,
@@ -365,6 +394,35 @@ export function CreateCrmTaskDialog({
               />
             )}
           </section>
+          {isVisit && (
+            <section className="space-y-2">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Ubicación de la visita</div>
+              <div className="flex gap-2">
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Dirección, referencia o link de Google Maps"
+                  className="flex-1 text-base font-light"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={captureLocation}
+                  disabled={locating}
+                  title="Capturar ubicación actual"
+                  className="shrink-0 gap-1.5"
+                >
+                  {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
+                  <span className="hidden sm:inline text-xs">Mi ubicación</span>
+                </Button>
+              </div>
+              {location && location.startsWith("http") && (
+                <a href={location} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-light">
+                  <MapPin className="h-3 w-3" /> Abrir en mapa
+                </a>
+              )}
+            </section>
+          )}
           <section className="grid grid-cols-12 gap-3">
             <div className="space-y-2 col-span-8">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Fecha</div>
