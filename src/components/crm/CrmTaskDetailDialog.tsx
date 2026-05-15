@@ -18,8 +18,16 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   Trash2, Calendar as CalendarIcon, User, FileText, Link2,
-  MessageCircle, Loader2, Check, ChevronLeft, ChevronRight, Plus, Pencil, Mail,
+  MessageCircle, Loader2, Check, ChevronLeft, ChevronRight, Plus, Pencil, Mail, GripVertical,
 } from "lucide-react";
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, useSortable, verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
@@ -43,6 +51,14 @@ const PRIORITY_META: Record<string, { label: string; cls: string; dot: string }>
   high: { label: "Alta", cls: "bg-red-100 text-red-700 border-red-300 hover:bg-red-200", dot: "bg-red-500" },
   medium: { label: "Media", cls: "bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200", dot: "bg-yellow-500" },
   low: { label: "Baja", cls: "bg-green-100 text-green-700 border-green-300 hover:bg-green-200", dot: "bg-green-500" },
+};
+
+const TASK_STATUS_META: Record<string, { label: string; cls: string }> = {
+  planned: { label: "Programada", cls: "bg-blue-100 text-blue-800 border-blue-300" },
+  done: { label: "Realizada", cls: "bg-green-100 text-green-800 border-green-300" },
+  no_answered: { label: "No contestó", cls: "bg-gray-100 text-gray-800 border-gray-300" },
+  rescheduled: { label: "Reagendada", cls: "bg-amber-100 text-amber-800 border-amber-300" },
+  reprogrammed: { label: "Reprogramada", cls: "bg-purple-100 text-purple-800 border-purple-300" },
 };
 
 const nextPriority = (p: string) => (p === "high" ? "medium" : p === "medium" ? "low" : "high");
@@ -84,6 +100,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const [deleteSubId, setDeleteSubId] = useState<string | null>(null);
   const [viewSubTask, setViewSubTask] = useState<CrmTask | null>(null);
   const initialized = useRef(false);
+  const timelineSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
     if (task && open) {
@@ -281,6 +298,36 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const isParent = !!parentCategory && !task?.parent_task_id;
   const { data: timeline } = useTaskTimeline(isParent ? task?.id : null);
 
+  const sortedTimeline = useMemo(() => {
+    const list = [...(timeline || [])];
+    list.sort((a: any, b: any) => {
+      const sa = typeof a.sequence_order === "number" ? a.sequence_order : -1;
+      const sb = typeof b.sequence_order === "number" ? b.sequence_order : -1;
+      if (sa !== sb) return sb - sa; // desc
+      const ca = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const cb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return cb - ca;
+    });
+    return list;
+  }, [timeline]);
+
+  const handleTimelineDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = sortedTimeline.findIndex((s) => s.id === active.id);
+    const newIdx = sortedTimeline.findIndex((s) => s.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(sortedTimeline, oldIdx, newIdx);
+    const total = reordered.length;
+    // Display is desc; first displayed gets highest sequence_order
+    await Promise.all(
+      reordered.map((s, i) =>
+        supabase.from("crm_tasks").update({ sequence_order: total - 1 - i }).eq("id", s.id)
+      )
+    );
+    queryClient.invalidateQueries({ queryKey: ["crm_task_timeline", task?.id] });
+  };
+
   const handleDelete = () => {
     if (!task) return;
     deleteTask.mutate(task.id, {
@@ -466,51 +513,24 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                 {(timeline?.length ?? 0) === 0 ? (
                   <p className="text-xs text-muted-foreground">Aún no hay pasos. Agrega el primero.</p>
                 ) : (
-                  <ol className="space-y-1.5">
-                    {timeline!.map((sub, idx) => {
-                      const subType = (sub.task_type as TaskTypeKey) || "note";
-                      const stm = TASK_TYPE_META[subType];
-                      const SIcon = stm.Icon;
-                      const reasonLabel = subType === "meeting" ? "Reagendada"
-                        : subType === "call" ? "No contestó"
-                        : "Reprogramada";
-                      return (
-                        <li key={sub.id} className="flex items-center gap-2 rounded bg-background border px-2 py-1.5 text-xs">
-                          <span className="text-[10px] text-muted-foreground w-4">{idx + 1}.</span>
-                          <SIcon className={cn("h-3.5 w-3.5", stm.iconColor)} />
-                          <span className={cn("flex-1 truncate", sub.completed && "line-through text-muted-foreground")}>{sub.title}</span>
-                          {sub.due_date && (
-                            <span className="text-[10px] text-muted-foreground">
-                              {format(parseISO(sub.due_date), "d MMM", { locale: es })}
-                            </span>
-                          )}
-                          {sub.completed && <Check className="h-3.5 w-3.5 text-green-600" />}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-1.5 text-[10px]"
-                            title="Ver / Editar"
-                            onClick={() => setViewSubTask(sub as CrmTask)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          {!sub.completed && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-1.5 text-[10px]"
-                              title="Marcar terminada"
-                              onClick={() => updateTask.mutate({ id: sub.id, completed: true, completed_at: new Date().toISOString(), task_status: "done" } as any)}
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-1.5 text-[10px]"
-                            title={`Reprogramar (${reasonLabel})`}
-                            onClick={() => {
+                  <DndContext
+                    sensors={timelineSensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleTimelineDragEnd}
+                  >
+                    <SortableContext items={sortedTimeline.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                      <ol className="space-y-1.5">
+                        {sortedTimeline.map((sub, idx) => (
+                          <TimelineSubItem
+                            key={sub.id}
+                            sub={sub}
+                            idx={idx}
+                            onEdit={() => setViewSubTask(sub as CrmTask)}
+                            onComplete={() => updateTask.mutate({ id: sub.id, completed: true, completed_at: new Date().toISOString(), task_status: "done" } as any)}
+                            onDelete={() => setDeleteSubId(sub.id)}
+                            onReschedule={() => {
+                              const subType = (sub.task_type as TaskTypeKey) || "note";
+                              const reasonLabel = subType === "meeting" ? "Reagendada" : subType === "call" ? "No contestó" : "Reprogramada";
                               const newStatus = subType === "meeting" ? "rescheduled" : subType === "call" ? "no_answered" : "reprogrammed";
                               updateTask.mutate({
                                 id: sub.id,
@@ -522,7 +542,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                               setTimelineRescheduleCtx({
                                 origenTareaId: sub.id,
                                 taskType: subType,
-                                parentCategory: parentCategory,
+                                parentCategory,
                                 parentTaskId: task!.id,
                                 dealId: (sub as any).deal_id || dealId || "",
                                 contactId: (sub as any).contact_id || contactId || "",
@@ -534,22 +554,11 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                               });
                               setTimelineRescheduleOpen(true);
                             }}
-                          >
-                            <CalendarIcon className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-1.5 text-[10px] text-red-600 hover:text-red-700"
-                            title="Eliminar"
-                            onClick={() => setDeleteSubId(sub.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </li>
-                      );
-                    })}
-                  </ol>
+                          />
+                        ))}
+                      </ol>
+                    </SortableContext>
+                  </DndContext>
                 )}
               </section>
             )}
@@ -942,5 +951,56 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
         </AlertDialog>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function TimelineSubItem({
+  sub, idx, onEdit, onComplete, onDelete, onReschedule,
+}: {
+  sub: any;
+  idx: number;
+  onEdit: () => void;
+  onComplete: () => void;
+  onDelete: () => void;
+  onReschedule: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sub.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
+  const subType = (sub.task_type as TaskTypeKey) || "note";
+  const stm = TASK_TYPE_META[subType];
+  const SIcon = stm.Icon;
+  const status = sub.task_status || (sub.completed ? "done" : "planned");
+  const sm = TASK_STATUS_META[status] || TASK_STATUS_META.planned;
+  const isDone = status === "done";
+  const reasonLabel = subType === "meeting" ? "Reagendada" : subType === "call" ? "No contestó" : "Reprogramada";
+  return (
+    <li ref={setNodeRef} style={style} className="flex items-center gap-2 rounded bg-background border px-2 py-1.5 text-xs">
+      <button type="button" {...attributes} {...listeners} className="cursor-grab touch-none text-muted-foreground hover:text-foreground" title="Arrastrar para reordenar">
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+      <span className="text-[10px] text-muted-foreground w-4">{idx + 1}.</span>
+      <SIcon className={cn("h-3.5 w-3.5", stm.iconColor)} />
+      <span className={cn("flex-1 truncate", isDone && "line-through text-muted-foreground")}>{(sub.title || "").replace(/^\[[^\]]+\]\s*/, "")}</span>
+      <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", sm.cls)}>{sm.label}</Badge>
+      {sub.due_date && (
+        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+          {format(parseISO(sub.due_date), sub.due_date.length >= 16 ? "d MMM HH:mm" : "d MMM", { locale: es })}
+        </span>
+      )}
+      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title="Ver / Editar" onClick={onEdit}>
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
+      {!isDone && (
+        <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title="Marcar terminada" onClick={onComplete}>
+          <Check className="h-3.5 w-3.5" />
+        </Button>
+      )}
+      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title={`Reprogramar (${reasonLabel})`} onClick={onReschedule}>
+        <CalendarIcon className="h-3.5 w-3.5" />
+      </Button>
+      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-red-600 hover:text-red-700" title="Eliminar" onClick={onDelete}>
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
+    </li>
   );
 }
