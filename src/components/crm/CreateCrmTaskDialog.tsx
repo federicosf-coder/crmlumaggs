@@ -781,44 +781,6 @@ export function CreateCrmTaskDialog({
               </Select>
             </div>
           </section>
-          <section className="space-y-2">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Negocio</div>
-            <SearchableSelect
-              value={dealId || "none"}
-              onValueChange={(v) => setDealId(v === "none" ? "" : v)}
-              options={[
-                { value: "none", label: "Ninguno" },
-                ...((deals || []).map((d: any) => ({ value: d.id, label: d.title }))),
-              ]}
-              placeholder="Buscar negocio..."
-            />
-          </section>
-          <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2 min-w-0">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Empresa</div>
-              <SearchableSelect
-                value={companyId || "none"}
-                onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
-                options={[
-                  { value: "none", label: "Ninguna" },
-                  ...((companies || []).map((c: any) => ({ value: c.id, label: c.name }))),
-                ]}
-                placeholder="Buscar empresa..."
-              />
-            </div>
-            <div className="space-y-2 min-w-0">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Contacto</div>
-              <SearchableSelect
-                value={contactId || "none"}
-                onValueChange={(v) => setContactId(v === "none" ? "" : v)}
-                options={[
-                  { value: "none", label: "Ninguno" },
-                  ...((contacts || []).map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))),
-                ]}
-                placeholder="Buscar contacto..."
-              />
-            </div>
-          </section>
         </form>
         {/* Footer fijo, similar al detalle */}
         <div className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end shrink-0">
