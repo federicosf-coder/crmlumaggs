@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 
 interface DictationButtonProps {
   onTranscript: (text: string) => void;
+  /** Texto actual del campo, al que se concatenará lo dictado. */
+  currentText?: string;
   /** Idioma BCP-47, por defecto es-MX */
   lang?: string;
   className?: string;
@@ -19,6 +21,7 @@ interface DictationButtonProps {
  */
 export function DictationButton({
   onTranscript,
+  currentText = "",
   lang = "es-MX",
   className,
   size = "icon",
@@ -97,10 +100,7 @@ export function DictationButton({
     if (listening) {
       stop();
     } else {
-      // Capturamos el texto actual desde el padre vía un truco: el padre puede
-      // pasar el texto base al hacer click usando data-base-text en el botón.
-      const base = (e.currentTarget as HTMLElement).dataset.baseText || "";
-      baseTextRef.current = base;
+      baseTextRef.current = currentText || "";
       start();
     }
   };
