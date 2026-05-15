@@ -99,9 +99,7 @@ export default function SellerPortal() {
 
   // Límites de visualización + paginación por lista (10 / 25 / 50 / "all")
   type PageLimit = "10" | "25" | "50" | "all";
-  const [limTerminadas, setLimTerminadas] = useState<PageLimit>("10");
-  const [pageTerminadas, setPageTerminadas] = useState(1);
-  const [termSelected, setTermSelected] = useState<Set<string>>(new Set());
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [limCreadas, setLimCreadas] = useState<PageLimit>("10");
   const [pageCreadas, setPageCreadas] = useState(1);
   const [sortCreadas, setSortCreadas] = useState<{ col: "cliente" | "tarea" | "creada" | "estatus"; dir: "asc" | "desc" }>({ col: "creada", dir: "desc" });
