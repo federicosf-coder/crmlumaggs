@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, X, Save, Trash2, Calendar, LinkIcon, Building2, User } from "lucide-react";
+import { Pencil, X, Save, Trash2, Calendar, LinkIcon, Building2, User, Plus } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -26,6 +28,8 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
   const updateActivity = useUpdateCrmActivity();
   const deleteActivity = useDeleteCrmActivity();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   const { data: companies } = useQuery({
     queryKey: ["companies-picker-act"],
@@ -44,7 +48,7 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
     queryFn: async () => {
       const { data } = await supabase
         .from("contacts")
-        .select("id, first_name, last_name")
+        .select("id, first_name, last_name, company_id")
         .eq("is_active", true)
         .order("first_name")
         .limit(5000);
@@ -89,6 +93,11 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
   // Negocios filtrados por empresa seleccionada
   const filteredDeals = (deals || []).filter((d: any) =>
     editCompanyId !== "none" ? d.company_id === editCompanyId : true
+  );
+
+  // Contactos filtrados por empresa seleccionada
+  const filteredContacts = (contacts || []).filter((c: any) =>
+    editCompanyId !== "none" ? c.company_id === editCompanyId : true
   );
 
   // Cuando cambia la empresa, si el negocio actual no pertenece a esa empresa,
@@ -182,13 +191,25 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
               </div>
               <div className="space-y-2">
                 <Label>Contacto</Label>
-                <Select value={editContactId} onValueChange={setEditContactId}>
-                  <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Ninguno</SelectItem>
-                    {contacts?.map((c) => <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={editContactId} onValueChange={setEditContactId}>
+                    <SelectTrigger className="flex-1"><SelectValue placeholder="Ninguno" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Ninguno</SelectItem>
+                      {filteredContacts.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setContactDialogOpen(true)}
+                    disabled={editCompanyId === "none"}
+                    title={editCompanyId === "none" ? "Selecciona una empresa primero" : "Nuevo contacto"}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleSave} disabled={updateActivity.isPending}><Save className="h-4 w-4 mr-1" /> Guardar</Button>
@@ -248,6 +269,15 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
           )}
         </div>
       </DialogContent>
+      <ContactFormDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        defaultCompanyId={editCompanyId !== "none" ? editCompanyId : undefined}
+        onCreated={(newId) => {
+          queryClient.invalidateQueries({ queryKey: ["contacts-picker-act"] });
+          if (newId) setEditContactId(newId);
+        }}
+      />
     </Dialog>
   );
 }
