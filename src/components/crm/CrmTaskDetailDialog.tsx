@@ -973,34 +973,50 @@ function TimelineSubItem({
   const sm = TASK_STATUS_META[status] || TASK_STATUS_META.planned;
   const isDone = status === "done";
   const reasonLabel = subType === "meeting" ? "Reagendada" : subType === "call" ? "No contestó" : "Reprogramada";
+  const description = (sub.description || "").trim();
+  const message = (sub.mensaje_sugerido || "").trim();
   return (
-    <li ref={setNodeRef} style={style} className="flex items-center gap-2 rounded bg-background border px-2 py-1.5 text-xs">
-      <button type="button" {...attributes} {...listeners} className="cursor-grab touch-none text-muted-foreground hover:text-foreground" title="Arrastrar para reordenar">
+    <li ref={setNodeRef} style={style} className="flex items-start gap-2 rounded bg-background border px-2 py-1.5 text-xs">
+      <button type="button" {...attributes} {...listeners} className="cursor-grab touch-none text-muted-foreground hover:text-foreground mt-0.5 shrink-0" title="Arrastrar para reordenar">
         <GripVertical className="h-3.5 w-3.5" />
       </button>
-      <span className="text-[10px] text-muted-foreground w-4">{idx + 1}.</span>
-      <SIcon className={cn("h-3.5 w-3.5", stm.iconColor)} />
-      <span className={cn("flex-1 truncate", isDone && "line-through text-muted-foreground")}>{(sub.title || "").replace(/^\[[^\]]+\]\s*/, "")}</span>
-      <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", sm.cls)}>{sm.label}</Badge>
-      {sub.due_date && (
-        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-          {format(parseISO(sub.due_date), sub.due_date.length >= 16 ? "d MMM HH:mm" : "d MMM", { locale: es })}
-        </span>
-      )}
-      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title="Ver / Editar" onClick={onEdit}>
-        <Pencil className="h-3.5 w-3.5" />
-      </Button>
-      {!isDone && (
-        <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title="Marcar terminada" onClick={onComplete}>
-          <Check className="h-3.5 w-3.5" />
+      <span className="text-[10px] text-muted-foreground w-4 mt-0.5 shrink-0">{idx + 1}.</span>
+      <div className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted", stm.iconColor)} title={stm.label}>
+        <SIcon className="h-3.5 w-3.5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className={cn("flex-1 truncate", isDone && "line-through text-muted-foreground")}>{(sub.title || "").replace(/^\[[^\]]+\]\s*/, "")}</span>
+          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", sm.cls)}>{sm.label}</Badge>
+          {sub.due_date && (
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+              {format(parseISO(sub.due_date), sub.due_date.length >= 16 ? "d MMM HH:mm" : "d MMM", { locale: es })}
+            </span>
+          )}
+        </div>
+        {description && (
+          <div className="mt-0.5 text-[11px] text-muted-foreground font-light line-clamp-2 whitespace-pre-wrap break-words">{description}</div>
+        )}
+        {message && (
+          <div className="mt-0.5 text-[11px] text-foreground/80 font-light italic line-clamp-2 whitespace-pre-wrap break-words">{message}</div>
+        )}
+      </div>
+      <div className="flex items-center shrink-0">
+        <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title="Ver / Editar" onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5" />
         </Button>
-      )}
-      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title={`Reprogramar (${reasonLabel})`} onClick={onReschedule}>
-        <CalendarIcon className="h-3.5 w-3.5" />
-      </Button>
-      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-red-600 hover:text-red-700" title="Eliminar" onClick={onDelete}>
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
+        {!isDone && (
+          <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title="Marcar terminada" onClick={onComplete}>
+            <Check className="h-3.5 w-3.5" />
+          </Button>
+        )}
+        <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title={`Reprogramar (${reasonLabel})`} onClick={onReschedule}>
+          <CalendarIcon className="h-3.5 w-3.5" />
+        </Button>
+        <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-red-600 hover:text-red-700" title="Eliminar" onClick={onDelete}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
     </li>
   );
 }
