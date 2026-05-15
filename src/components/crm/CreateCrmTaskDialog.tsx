@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DictationButton } from "@/components/ui/dictation-button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
@@ -82,8 +82,33 @@ export function CreateCrmTaskDialog({
   const [parentCategory, setParentCategory] = useState<ParentCategoryKey | null>(defaultParentCategory);
   const [taskType, setTaskType] = useState<TaskTypeKey | null>(defaultTaskType);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [location, setLocation] = useState("");
+  const [locating, setLocating] = useState(false);
 
   const isWhatsApp = taskType === "whatsapp";
+  const isVisit = taskType === "visit";
+
+  const captureLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Geolocalización no disponible", variant: "destructive" });
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const url = `https://maps.google.com/?q=${latitude},${longitude}`;
+        setLocation(url);
+        setLocating(false);
+        toast({ title: "Ubicación capturada" });
+      },
+      (err) => {
+        setLocating(false);
+        toast({ title: "No se pudo obtener la ubicación", description: err.message, variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   // Resolver teléfono y nombres para envío local / API
   const { data: waContext } = useQuery({
@@ -119,6 +144,7 @@ export function CreateCrmTaskDialog({
     setCompanyId(defaultCompanyId || "");
     setDueTime("");
     setWhatsappOpen(false);
+    setLocation("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -155,11 +181,14 @@ export function CreateCrmTaskDialog({
     e.preventDefault();
     if (!session?.user) return;
     const finalTitle = isWhatsApp ? (title || buildWhatsAppTitle()) : title;
+    const finalDescription = isVisit && location
+      ? `📍 Ubicación: ${location}${description ? `\n\n${description}` : ""}`
+      : description;
     createTask.mutate(
       {
         user_id: session.user.id,
         title: finalTitle,
-        description: description || null,
+        description: finalDescription || null,
         due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : null,
         priority,
         deal_id: dealId && dealId !== "none" ? dealId : null,
