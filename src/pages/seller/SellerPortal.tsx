@@ -1195,6 +1195,18 @@ export default function SellerPortal() {
         }}
       />
 
+      <CrmActivityDetailDialog
+        activity={selectedActivity}
+        open={activityDialogOpen}
+        onOpenChange={(o) => {
+          setActivityDialogOpen(o);
+          if (!o) {
+            setSelectedActivity(null);
+            fetchData();
+          }
+        }}
+      />
+
     </div>
   );
 }
