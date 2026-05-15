@@ -990,10 +990,17 @@ export default function SellerPortal() {
                       <TableCell className="text-sm py-1.5">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
                       <TableCell className="text-xs py-1.5">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
                       <TableCell className="py-1.5"><Badge variant="outline" className={statusColor}>{statusText}</Badge></TableCell>
-                      <TableCell className="text-right space-x-1 py-1.5" onClick={(e) => e.stopPropagation()}>
-                        {!t.completed && <Button size="sm" variant="ghost" onClick={() => completarTarea(t.id)}><CheckCircle2 className="h-3.5 w-3.5" /></Button>}
-                        {!t.completed && <Button size="sm" variant="ghost" onClick={() => reprogramarTarea(t.id)}><Clock className="h-3.5 w-3.5" /></Button>}
-                        {t.deal_id && <Button size="sm" variant="ghost" onClick={() => window.open("/crm", "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>}
+                      <TableCell className="text-right py-1.5" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost"><MoreHorizontal className="h-3.5 w-3.5" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {!t.completed && <DropdownMenuItem onClick={() => completarTarea(t.id)}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Completar</DropdownMenuItem>}
+                            {!t.completed && <DropdownMenuItem onClick={() => reprogramarTarea(t.id)}><Clock className="h-3.5 w-3.5 mr-2" /> Reprogramar</DropdownMenuItem>}
+                            {t.deal_id && <DropdownMenuItem onClick={() => window.open("/crm", "_blank")}><ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir CRM</DropdownMenuItem>}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
