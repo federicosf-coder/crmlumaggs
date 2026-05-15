@@ -680,6 +680,25 @@ export default function SellerPortal() {
     );
   };
 
+  const PaginatorBar = ({ page, setPage, total, lim, setLim }: { page: number; setPage: (n: number) => void; total: number; lim: PageLimit; setLim: (v: PageLimit) => void }) => {
+    const pages = lim === "all" ? 1 : totalPages(total, lim);
+    const showPager = lim !== "all" && total > 0 && pages > 1;
+    return (
+      <div className="flex items-center justify-between px-3 py-2 border-t text-xs text-muted-foreground gap-2 flex-wrap">
+        <PageSizeSelect value={lim} onChange={setLim} total={total} onPageReset={() => setPage(1)} />
+        {showPager ? (
+          <div className="flex items-center gap-2">
+            <span>Página {page} de {pages}</span>
+            <div className="flex gap-1">
+              <Button size="sm" variant="outline" className="h-7" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button>
+              <Button size="sm" variant="outline" className="h-7" disabled={page >= pages} onClick={() => setPage(page + 1)}>Siguiente</Button>
+            </div>
+          </div>
+        ) : <span />}
+      </div>
+    );
+  };
+
   return (
     <div className="p-4 space-y-4 max-w-[1600px] mx-auto">
       {/* Header */}
@@ -1102,7 +1121,6 @@ export default function SellerPortal() {
           return (
             <TabsContent value={key} key={key}>
               <Card>
-                <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limProspectos} onChange={setLimProspectos} total={rows.length} onPageReset={() => setPageProspectos(1)} /></CardHeader>
                 <CardContent className="p-0 overflow-x-auto"><Table>
                 <TableHeader><TableRow className="h-8"><TableHead className="py-1">Cliente</TableHead><TableHead className="py-1">Tipo</TableHead><TableHead className="py-1">Fecha</TableHead><TableHead className="py-1 text-right">Unid. equiv.</TableHead><TableHead className="py-1"></TableHead></TableRow></TableHeader>
                 <TableBody>
@@ -1123,7 +1141,7 @@ export default function SellerPortal() {
                   })}
                 </TableBody>
               </Table>
-              <Paginator page={pageProspectos} setPage={setPageProspectos} total={rows.length} lim={limProspectos} />
+              <PaginatorBar page={pageProspectos} setPage={setPageProspectos} total={rows.length} lim={limProspectos} setLim={setLimProspectos} />
               </CardContent></Card>
             </TabsContent>
           );
@@ -1136,7 +1154,6 @@ export default function SellerPortal() {
         ].map(({ key, data, lim, setLim, page, setPage }) => (
           <TabsContent value={key} key={key}>
             <Card>
-              <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={lim} onChange={setLim} total={data.length} onPageReset={() => setPage(1)} /></CardHeader>
               <CardContent className="p-0 overflow-x-auto"><Table>
               <TableHeader><TableRow><TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estatus</TableHead><TableHead className="text-right">Importe</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
@@ -1154,14 +1171,13 @@ export default function SellerPortal() {
                 ))}
               </TableBody>
             </Table>
-            <Paginator page={page} setPage={setPage} total={data.length} lim={lim} />
+            <PaginatorBar page={page} setPage={setPage} total={data.length} lim={lim} setLim={setLim} />
             </CardContent></Card>
           </TabsContent>
         ))}
 
         <TabsContent value="cobranza">
           <Card>
-            <CardHeader className="pb-2 flex-row items-center justify-end"><PageSizeSelect value={limCobranza} onChange={setLimCobranza} total={pagos.length} onPageReset={() => setPageCobranza(1)} /></CardHeader>
             <CardContent className="p-0 overflow-x-auto"><Table>
             <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estatus</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="text-right">Aplicado</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
@@ -1178,7 +1194,7 @@ export default function SellerPortal() {
               ))}
             </TableBody>
           </Table>
-          <Paginator page={pageCobranza} setPage={setPageCobranza} total={pagos.length} lim={limCobranza} />
+          <PaginatorBar page={pageCobranza} setPage={setPageCobranza} total={pagos.length} lim={limCobranza} setLim={setLimCobranza} />
           </CardContent></Card>
         </TabsContent>
       </Tabs>
