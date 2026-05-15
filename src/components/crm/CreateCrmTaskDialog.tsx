@@ -78,17 +78,19 @@ export function CreateCrmTaskDialog({
   const [parentCategory, setParentCategory] = useState<ParentCategoryKey | null>(defaultParentCategory);
   const [taskType, setTaskType] = useState<TaskTypeKey | null>(defaultTaskType);
 
+  // Re-inicializa el formulario sólo cuando el diálogo PASA a abierto (no en cada render
+  // donde cambien props o el padre, para no borrar lo que el usuario está escribiendo).
   useEffect(() => {
-    if (open) {
-      setTitle(defaultTitle);
-      setParentCategory(defaultParentCategory);
-      setTaskType(defaultTaskType);
-      setDealId(defaultDealId || "");
-      setContactId(defaultContactId || "");
-      setCompanyId(defaultCompanyId || "");
-      setDueTime("");
-    }
-  }, [open, defaultTitle, defaultParentCategory, defaultTaskType, defaultDealId, defaultContactId, defaultCompanyId]);
+    if (!open) return;
+    setTitle(defaultTitle);
+    setParentCategory(defaultParentCategory);
+    setTaskType(defaultTaskType);
+    setDealId(defaultDealId || "");
+    setContactId(defaultContactId || "");
+    setCompanyId(defaultCompanyId || "");
+    setDueTime("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Cuando se abre con un defaultDealId, resolver empresa y contacto principal
   useEffect(() => {
