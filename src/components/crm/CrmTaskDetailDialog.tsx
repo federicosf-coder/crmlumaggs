@@ -53,6 +53,14 @@ const PRIORITY_META: Record<string, { label: string; cls: string; dot: string }>
   low: { label: "Baja", cls: "bg-green-100 text-green-700 border-green-300 hover:bg-green-200", dot: "bg-green-500" },
 };
 
+const TASK_STATUS_META: Record<string, { label: string; cls: string }> = {
+  planned: { label: "Programada", cls: "bg-blue-100 text-blue-800 border-blue-300" },
+  done: { label: "Realizada", cls: "bg-green-100 text-green-800 border-green-300" },
+  no_answered: { label: "No contestó", cls: "bg-gray-100 text-gray-800 border-gray-300" },
+  rescheduled: { label: "Reagendada", cls: "bg-amber-100 text-amber-800 border-amber-300" },
+  reprogrammed: { label: "Reprogramada", cls: "bg-purple-100 text-purple-800 border-purple-300" },
+};
+
 const nextPriority = (p: string) => (p === "high" ? "medium" : p === "medium" ? "low" : "high");
 
 const inputCls = "w-full border border-transparent hover:border-border focus:border-primary focus-visible:ring-0 transition-colors";
