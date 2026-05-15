@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DictationButton } from "@/components/ui/dictation-button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save, Phone, Copy, Send as SendIcon } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save, Phone, Copy, Send as SendIcon, Paperclip, FileText, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
@@ -105,6 +105,9 @@ export function CreateCrmTaskDialog({
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [rescheduleCtx, setRescheduleCtx] = useState<RescheduleContext | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
+  // Adjuntos (links a documentos de la empresa)
+  const [attachedDocs, setAttachedDocs] = useState<Array<{ id: string; label: string; url: string }>>([]);
+  const [attachOpen, setAttachOpen] = useState(false);
 
   const isWhatsApp = taskType === "whatsapp";
   const isVisit = taskType === "field_visit";
