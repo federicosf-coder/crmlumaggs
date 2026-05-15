@@ -82,6 +82,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const [timelineRescheduleOpen, setTimelineRescheduleOpen] = useState(false);
   const [timelineRescheduleCtx, setTimelineRescheduleCtx] = useState<RescheduleContext | null>(null);
   const [deleteSubId, setDeleteSubId] = useState<string | null>(null);
+  const [viewSubTask, setViewSubTask] = useState<CrmTask | null>(null);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -484,6 +485,15 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                             </span>
                           )}
                           {sub.completed && <Check className="h-3.5 w-3.5 text-green-600" />}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-1.5 text-[10px]"
+                            title="Ver / Editar"
+                            onClick={() => setViewSubTask(sub as CrmTask)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
                           {!sub.completed && (
                             <Button
                               size="sm"
@@ -900,6 +910,13 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
           open={timelineRescheduleOpen}
           onOpenChange={setTimelineRescheduleOpen}
           context={timelineRescheduleCtx}
+        />
+
+        {/* Ver/Editar paso de la línea de tiempo */}
+        <CrmTaskDetailDialog
+          task={viewSubTask}
+          open={!!viewSubTask}
+          onOpenChange={(o) => !o && setViewSubTask(null)}
         />
 
         {/* Confirmar eliminación de paso */}
