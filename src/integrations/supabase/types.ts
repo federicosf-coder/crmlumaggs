@@ -1578,11 +1578,14 @@ export type Database = {
           id: string
           mensaje_sugerido: string | null
           origen_tarea_id: string | null
+          parent_category: string | null
+          parent_task_id: string | null
           priority: string
           programable_entrega: boolean
           recurrence: string
           reschedule_count: number
           reschedule_reason: string | null
+          sequence_order: number | null
           task_status: string
           task_type: string
           title: string
@@ -1603,11 +1606,14 @@ export type Database = {
           id?: string
           mensaje_sugerido?: string | null
           origen_tarea_id?: string | null
+          parent_category?: string | null
+          parent_task_id?: string | null
           priority?: string
           programable_entrega?: boolean
           recurrence?: string
           reschedule_count?: number
           reschedule_reason?: string | null
+          sequence_order?: number | null
           task_status?: string
           task_type?: string
           title: string
@@ -1628,11 +1634,14 @@ export type Database = {
           id?: string
           mensaje_sugerido?: string | null
           origen_tarea_id?: string | null
+          parent_category?: string | null
+          parent_task_id?: string | null
           priority?: string
           programable_entrega?: boolean
           recurrence?: string
           reschedule_count?: number
           reschedule_reason?: string | null
+          sequence_order?: number | null
           task_status?: string
           task_type?: string
           title?: string
@@ -1666,6 +1675,13 @@ export type Database = {
           {
             foreignKeyName: "crm_tasks_origen_tarea_id_fkey"
             columns: ["origen_tarea_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
             isOneToOne: false
             referencedRelation: "crm_tasks"
             referencedColumns: ["id"]
