@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DictationButton } from "@/components/ui/dictation-button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
@@ -84,9 +84,19 @@ export function CreateCrmTaskDialog({
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [location, setLocation] = useState("");
   const [locating, setLocating] = useState(false);
+  // Email composer state
+  const [emailTo, setEmailTo] = useState("");
+  const [emailCc, setEmailCc] = useState("");
+  const [emailBcc, setEmailBcc] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
+  const [savingContactEmail, setSavingContactEmail] = useState(false);
 
   const isWhatsApp = taskType === "whatsapp";
   const isVisit = taskType === "field_visit";
+  const isEmail = taskType === "email";
 
   const captureLocation = () => {
     if (!navigator.geolocation) {
@@ -127,6 +137,43 @@ export function CreateCrmTaskDialog({
     enabled: open && isWhatsApp && (!!contactId || !!companyId),
   });
 
+  // Resolver email del contacto cuando es tipo Correo
+  const { data: emailContact, refetch: refetchEmailContact } = useQuery({
+    queryKey: ["email-create-task-ctx", contactId],
+    queryFn: async () => {
+      if (!contactId) return null;
+      const { data } = await supabase
+        .from("contacts")
+        .select("first_name,last_name,email,comm_email,email2,comm_email2")
+        .eq("id", contactId)
+        .maybeSingle();
+      return data as any;
+    },
+    enabled: open && isEmail && !!contactId,
+  });
+
+  const contactEmail = emailContact?.email || emailContact?.comm_email || emailContact?.email2 || emailContact?.comm_email2 || "";
+  const contactName = emailContact ? `${emailContact.first_name || ""} ${emailContact.last_name || ""}`.trim() : "";
+
+  // Pre-llenar Para con email del contacto
+  useEffect(() => {
+    if (!isEmail) return;
+    if (contactEmail && !emailTo) setEmailTo(contactEmail);
+  }, [isEmail, contactEmail]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveEmailToContact = async () => {
+    if (!contactId || !emailTo) return;
+    setSavingContactEmail(true);
+    const { error } = await supabase.from("contacts").update({ email: emailTo }).eq("id", contactId);
+    setSavingContactEmail(false);
+    if (error) {
+      toast({ title: "No se pudo guardar el correo", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Correo guardado en el contacto" });
+    refetchEmailContact();
+  };
+
   const waPhone = waContext?.contact?.whatsapp_phone || waContext?.contact?.mobile || waContext?.contact?.phone || waContext?.company?.phone || null;
   const waNormalized = normalizePhoneForWhatsApp(waPhone);
   const waContactName = waContext?.contact ? `${waContext.contact.first_name || ""} ${waContext.contact.last_name || ""}`.trim() : "";
@@ -145,6 +192,8 @@ export function CreateCrmTaskDialog({
     setDueTime("");
     setWhatsappOpen(false);
     setLocation("");
+    setEmailTo(""); setEmailCc(""); setEmailBcc(""); setEmailSubject(""); setEmailBody("");
+    setShowCc(false); setShowBcc(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
