@@ -317,18 +317,42 @@ export function CreateCrmTaskDialog({
   // donde cambien props o el padre, para no borrar lo que el usuario está escribiendo).
   useEffect(() => {
     if (!open) return;
-    setTitle(defaultTitle);
-    setParentCategory(defaultParentCategory);
-    setTaskType(defaultTaskType);
-    setDealId(defaultDealId || "");
-    setContactId(defaultContactId || "");
-    setCompanyId(defaultCompanyId || "");
-    setDueTime("");
-    setWhatsappOpen(false);
-    setLocation("");
-    setEmailTo(""); setEmailCc(""); setEmailBcc(""); setEmailSubject(""); setEmailBody("");
-    setShowCc(false); setShowBcc(false);
-    setCallPhone("");
+    if (editTask) {
+      const cleanTitle = (editTask.title || "").replace(/^\[[^\]]+\]\s*/, "");
+      setTitle(cleanTitle);
+      setDescription(editTask.description || "");
+      setParentCategory(((editTask as any).parent_category as ParentCategoryKey) || null);
+      setTaskType(((editTask as any).task_type as TaskTypeKey) || null);
+      setDealId(editTask.deal_id || "");
+      setContactId(editTask.contact_id || "");
+      setCompanyId(editTask.company_id || "");
+      setPriority(editTask.priority || "medium");
+      if (editTask.due_date) {
+        const d = editTask.due_date;
+        setDueDate(d.slice(0, 10));
+        setDueTime(d.length >= 16 ? d.slice(11, 16) : "");
+      } else {
+        setDueDate(""); setDueTime("");
+      }
+      setWhatsappOpen(false);
+      setLocation("");
+      setEmailTo(""); setEmailCc(""); setEmailBcc(""); setEmailSubject(""); setEmailBody("");
+      setShowCc(false); setShowBcc(false);
+      setCallPhone("");
+    } else {
+      setTitle(defaultTitle);
+      setParentCategory(defaultParentCategory);
+      setTaskType(defaultTaskType);
+      setDealId(defaultDealId || "");
+      setContactId(defaultContactId || "");
+      setCompanyId(defaultCompanyId || "");
+      setDueTime("");
+      setWhatsappOpen(false);
+      setLocation("");
+      setEmailTo(""); setEmailCc(""); setEmailBcc(""); setEmailSubject(""); setEmailBody("");
+      setShowCc(false); setShowBcc(false);
+      setCallPhone("");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
