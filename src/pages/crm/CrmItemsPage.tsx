@@ -28,8 +28,7 @@ import {
 import {
   ChevronLeft, ChevronRight, Search, CheckCircle2, RotateCcw, Trash2,
   Plus, Filter, AlertCircle, Calendar, User, Building2, Pencil, CalendarClock,
-  SlidersHorizontal, Phone, Mail, CalendarCheck, Car, MessageCircle, Banknote,
-  RefreshCw, FileText, ChevronDown, ChevronUp, ListChecks,
+  SlidersHorizontal, ChevronDown, ChevronUp, ListChecks,
 } from "lucide-react";
 import {
   format, parseISO, isValid, addHours, startOfHour, startOfDay, endOfDay,
@@ -55,16 +54,7 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
 
 type TaskTypeKey = "call" | "email" | "meeting" | "field_visit" | "whatsapp" | "cobranza" | "follow_up" | "note";
 
-const TASK_TYPE_META: Record<TaskTypeKey, { label: string; Icon: React.ComponentType<{ className?: string }> }> = {
-  call:        { label: "Llamada",     Icon: Phone },
-  email:       { label: "Email",       Icon: Mail },
-  meeting:     { label: "Reunión",     Icon: CalendarCheck },
-  field_visit: { label: "Visita",      Icon: Car },
-  whatsapp:    { label: "WhatsApp",    Icon: MessageCircle },
-  cobranza:    { label: "Cobranza",    Icon: Banknote },
-  follow_up:   { label: "Seguimiento", Icon: RefreshCw },
-  note:        { label: "Nota",        Icon: FileText },
-};
+import { TASK_TYPE_META } from "@/lib/taskTypes";
 
 const TASK_STATUS_BADGE: Record<string, { label: string; className: string }> = {
   planned:     { label: "Planificada",  className: "bg-gray-100 text-gray-700 border-gray-200" },
@@ -542,7 +532,7 @@ export default function CrmItemsPage() {
         <div key={t.id} className="rounded-md border bg-card p-2 hover:bg-accent/30 cursor-pointer"
           onClick={() => setEditTask(t)}>
           <div className="flex items-center gap-1.5 text-xs">
-            <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <Icon className={cn("h-3.5 w-3.5 shrink-0", (meta as any).iconColor || "text-muted-foreground")} />
             <span className="truncate font-medium">{t.title}</span>
           </div>
           {t.due_date && <div className="text-[10px] text-muted-foreground mt-0.5">{fmtTime(t.due_date)}</div>}
@@ -555,7 +545,7 @@ export default function CrmItemsPage() {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <Icon className="h-4 w-4 text-primary" />
+              <Icon className={cn("h-4 w-4", (meta as any).iconColor || "text-primary")} />
               <span className="font-medium truncate">{t.title}</span>
               <Badge variant="outline" className={cn("text-xs", status.className)}>{status.label}</Badge>
               {t.priority && (
@@ -673,7 +663,7 @@ export default function CrmItemsPage() {
                       onClick={() => toggleClientType(k)}
                       className={cn(
                         "flex items-center gap-1 text-xs rounded border px-2 py-1 transition",
-                        sel ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-accent",
+                        sel ? (M as any).active : (M as any).soft,
                       )}
                     >
                       <M.Icon className="h-3 w-3" /> {M.label}

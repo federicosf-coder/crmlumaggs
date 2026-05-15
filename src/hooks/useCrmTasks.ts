@@ -16,6 +16,7 @@ export interface CrmTask {
   priority: string;
   created_at: string;
   updated_at: string;
+  task_type?: string | null;
   mensaje_sugerido?: string | null;
   whatsapp_status?: string | null;
   whatsapp_last_sent_at?: string | null;

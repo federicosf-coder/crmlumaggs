@@ -26,6 +26,7 @@ import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog
 import { ContactFormDialog, ContactEditData } from "@/components/ContactFormDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { TASK_TYPES, TASK_TYPE_META, TaskTypeKey } from "@/lib/taskTypes";
 
 interface CrmTaskDetailDialogProps {
   task: CrmTask | null;
@@ -66,6 +67,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const [contactId, setContactId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [programable, setProgramable] = useState(false);
+  const [taskType, setTaskType] = useState<TaskTypeKey>("follow_up");
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
   const initialized = useRef(false);
@@ -82,6 +84,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
       setContactId(task.contact_id || null);
       setUserId(task.user_id || null);
       setProgramable(!!(task as any).programable_entrega);
+      setTaskType(((task as any).task_type as TaskTypeKey) || "follow_up");
       setCalMonth(task.due_date ? parseISO(task.due_date) : new Date());
       setCalendarOpen(false);
       initialized.current = true;
@@ -244,6 +247,11 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
     triggerSave({ programable_entrega: v });
   };
 
+  const handleTaskTypeChange = (k: TaskTypeKey) => {
+    setTaskType(k);
+    triggerSave({ task_type: k });
+  };
+
   const handleDelete = () => {
     if (!task) return;
     deleteTask.mutate(task.id, {
@@ -331,7 +339,15 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                   <span className={cn("h-1.5 w-1.5 rounded-full mr-1.5", pMeta.dot)} />
                   Prioridad {pMeta.label}
                 </Badge>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">Tarea</Badge>
+                {(() => {
+                  const tm = TASK_TYPE_META[taskType];
+                  const TIcon = tm.Icon;
+                  return (
+                    <Badge variant="outline" className={cn("text-xs gap-1", tm.soft)}>
+                      <TIcon className="h-3 w-3" /> {tm.label}
+                    </Badge>
+                  );
+                })()}
                 <div className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
                   {saveStatus === "saving" && (<><Loader2 className="h-3 w-3 animate-spin" /> Guardando...</>)}
                   {saveStatus === "saved" && (<><Check className="h-3 w-3 text-green-600" /> Guardado</>)}
@@ -345,6 +361,32 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
         <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-0 overflow-hidden">
           {/* Left column */}
           <div className="md:col-span-2 overflow-y-auto p-5 space-y-5 border-r">
+            {/* Tipo de actividad */}
+            <section>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Tipo de actividad</div>
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                {TASK_TYPES.map(({ key, label, Icon, soft, active }) => {
+                  const sel = taskType === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleTaskTypeChange(key)}
+                      title={label}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-0.5 rounded-md border p-1.5 transition-all",
+                        sel ? active : soft
+                      )}
+                      aria-pressed={sel}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-[10px] font-medium leading-tight">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
             {/* Description */}
             <section>
               <div className="flex items-center gap-2 mb-2 text-sm font-medium text-muted-foreground">
