@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { CrmTask, useUpdateCrmTask, useDeleteCrmTask } from "@/hooks/useCrmTasks";
+import { CrmTask, useUpdateCrmTask, useDeleteCrmTask, useTaskTimeline } from "@/hooks/useCrmTasks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -26,7 +26,11 @@ import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog
 import { ContactFormDialog, ContactEditData } from "@/components/ContactFormDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { TASK_TYPES, TASK_TYPE_META, TaskTypeKey } from "@/lib/taskTypes";
+import {
+  TASK_TYPE_META, TaskTypeKey, ACTION_TASK_TYPES,
+  PARENT_CATEGORIES, PARENT_CATEGORY_META, ParentCategoryKey,
+} from "@/lib/taskTypes";
+import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
 
 interface CrmTaskDetailDialogProps {
   task: CrmTask | null;
@@ -68,6 +72,10 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const [userId, setUserId] = useState<string | null>(null);
   const [programable, setProgramable] = useState(false);
   const [taskType, setTaskType] = useState<TaskTypeKey>("follow_up");
+  const [parentCategory, setParentCategory] = useState<ParentCategoryKey | null>(null);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [createSubOpen, setCreateSubOpen] = useState(false);
+  const [createNextOpen, setCreateNextOpen] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
   const initialized = useRef(false);
@@ -84,7 +92,8 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
       setContactId(task.contact_id || null);
       setUserId(task.user_id || null);
       setProgramable(!!(task as any).programable_entrega);
-      setTaskType(((task as any).task_type as TaskTypeKey) || "follow_up");
+      setTaskType(((task as any).task_type as TaskTypeKey) || "note");
+      setParentCategory(((task as any).parent_category as ParentCategoryKey) || null);
       setCalMonth(task.due_date ? parseISO(task.due_date) : new Date());
       setCalendarOpen(false);
       initialized.current = true;
@@ -252,6 +261,21 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
     triggerSave({ task_type: k });
   };
 
+  const handleParentCategoryChange = (k: ParentCategoryKey | null) => {
+    setParentCategory(k);
+    triggerSave({ parent_category: k });
+  };
+
+  const confirmComplete = (alsoCreate: boolean) => {
+    handleCompletedChange(true);
+    setCompleteDialogOpen(false);
+    if (alsoCreate) setCreateNextOpen(true);
+  };
+
+  // Línea de tiempo (sub-tareas) si esta tarea es cabecera
+  const isParent = !!parentCategory && !task?.parent_task_id;
+  const { data: timeline } = useTaskTimeline(isParent ? task?.id : null);
+
   const handleDelete = () => {
     if (!task) return;
     deleteTask.mutate(task.id, {
@@ -314,7 +338,14 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
           <div className="flex items-start gap-3">
             <Checkbox
               checked={completed}
-              onCheckedChange={(v) => handleCompletedChange(!!v)}
+              onCheckedChange={(v) => {
+                if (completed && !v) {
+                  // descompletar directo
+                  handleCompletedChange(false);
+                } else if (!completed && v) {
+                  setCompleteDialogOpen(true);
+                }
+              }}
               className="h-5 w-5 mt-1.5"
             />
             <div className="flex-1 min-w-0">
@@ -348,6 +379,15 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                     </Badge>
                   );
                 })()}
+                {parentCategory && (() => {
+                  const pc = PARENT_CATEGORY_META[parentCategory];
+                  const PIcon = pc.Icon;
+                  return (
+                    <Badge variant="outline" className={cn("text-xs gap-1", pc.active)}>
+                      <PIcon className="h-3 w-3" /> {pc.label}
+                    </Badge>
+                  );
+                })()}
                 <div className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
                   {saveStatus === "saving" && (<><Loader2 className="h-3 w-3 animate-spin" /> Guardando...</>)}
                   {saveStatus === "saved" && (<><Check className="h-3 w-3 text-green-600" /> Guardado</>)}
@@ -361,11 +401,53 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
         <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-0 overflow-hidden">
           {/* Left column */}
           <div className="md:col-span-2 overflow-y-auto p-5 space-y-5 border-r">
+            {/* Categoría (padre): Seguimiento / Cobranza */}
+            <section>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Categoría</div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleParentCategoryChange(null)}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 rounded-md border p-2 text-xs font-medium transition-all",
+                    parentCategory === null
+                      ? "bg-slate-700 text-white border-slate-700"
+                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                  )}
+                  aria-pressed={parentCategory === null}
+                >
+                  Ninguna
+                </button>
+                {PARENT_CATEGORIES.map(({ key, label, Icon, soft, active }) => {
+                  const sel = parentCategory === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleParentCategoryChange(key)}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 rounded-md border p-2 text-sm font-medium transition-all",
+                        sel ? active : soft
+                      )}
+                      aria-pressed={sel}
+                    >
+                      <Icon className="h-4 w-4" /> {label}
+                    </button>
+                  );
+                })}
+              </div>
+              {parentCategory && (
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Esta tarea encabeza una línea de tiempo de {PARENT_CATEGORY_META[parentCategory].label.toLowerCase()}. Agrega pasos abajo.
+                </p>
+              )}
+            </section>
+
             {/* Tipo de actividad */}
             <section>
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Tipo de actividad</div>
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
-                {TASK_TYPES.map(({ key, label, Icon, soft, active }) => {
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                {ACTION_TASK_TYPES.map(({ key, label, Icon, soft, active }) => {
                   const sel = taskType === key;
                   return (
                     <button
@@ -386,6 +468,55 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                 })}
               </div>
             </section>
+
+            {/* Línea de tiempo (sólo cabeceras) */}
+            {isParent && (
+              <section className={cn("rounded-md border p-3", PARENT_CATEGORY_META[parentCategory!].soft)}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-semibold flex items-center gap-1.5">
+                    {(() => {
+                      const PIcon = PARENT_CATEGORY_META[parentCategory!].Icon;
+                      return <PIcon className="h-4 w-4" />;
+                    })()}
+                    Línea de tiempo · {PARENT_CATEGORY_META[parentCategory!].label}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => setCreateSubOpen(true)}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Agregar paso
+                  </Button>
+                </div>
+                {(timeline?.length ?? 0) === 0 ? (
+                  <p className="text-xs text-muted-foreground">Aún no hay pasos. Agrega el primero.</p>
+                ) : (
+                  <ol className="space-y-1.5">
+                    {timeline!.map((sub, idx) => {
+                      const subType = (sub.task_type as TaskTypeKey) || "note";
+                      const stm = TASK_TYPE_META[subType];
+                      const SIcon = stm.Icon;
+                      return (
+                        <li key={sub.id} className="flex items-center gap-2 rounded bg-background border px-2 py-1.5 text-xs">
+                          <span className="text-[10px] text-muted-foreground w-4">{idx + 1}.</span>
+                          <SIcon className={cn("h-3.5 w-3.5", stm.iconColor)} />
+                          <span className={cn("flex-1 truncate", sub.completed && "line-through text-muted-foreground")}>{sub.title}</span>
+                          {sub.due_date && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {format(parseISO(sub.due_date), "d MMM", { locale: es })}
+                            </span>
+                          )}
+                          {sub.completed && <Check className="h-3.5 w-3.5 text-green-600" />}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
+              </section>
+            )}
+
+            {/* Breadcrumb si es sub-tarea */}
+            {task?.parent_task_id && (
+              <section className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                Esta tarea forma parte de una secuencia.
+              </section>
+            )}
 
             {/* Description */}
             <section>
@@ -661,6 +792,48 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
               triggerSave({ contact_id: newId });
             }
           }}
+        />
+
+        {/* Confirmar completado */}
+        <AlertDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Completar tarea?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Marca "{title}" como completada. ¿Quieres además crear una nueva tarea relacionada?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2 sm:gap-2">
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <Button variant="outline" onClick={() => confirmComplete(false)}>Completar</Button>
+              <AlertDialogAction onClick={() => confirmComplete(true)}>Completar y crear nueva</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Crear sub-tarea (paso de la secuencia) */}
+        {isParent && (
+          <CreateCrmTaskDialog
+            open={createSubOpen}
+            onOpenChange={setCreateSubOpen}
+            defaultCompanyId={companyId || undefined}
+            defaultContactId={contactId || undefined}
+            defaultDealId={dealId || undefined}
+            parentTaskId={task.id}
+            defaultTaskType="call"
+          />
+        )}
+
+        {/* Crear "nueva" después de completar */}
+        <CreateCrmTaskDialog
+          open={createNextOpen}
+          onOpenChange={setCreateNextOpen}
+          defaultCompanyId={companyId || undefined}
+          defaultContactId={contactId || undefined}
+          defaultDealId={dealId || undefined}
+          parentTaskId={task.parent_task_id || null}
+          defaultParentCategory={!task.parent_task_id ? parentCategory : null}
+          defaultTaskType={taskType}
         />
       </DialogContent>
     </Dialog>

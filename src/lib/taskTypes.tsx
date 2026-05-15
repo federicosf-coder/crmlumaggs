@@ -4,6 +4,8 @@ export type TaskTypeKey =
   | "call" | "email" | "meeting" | "field_visit"
   | "whatsapp" | "cobranza" | "follow_up" | "note";
 
+export type ParentCategoryKey = "seguimiento" | "cobranza";
+
 export interface TaskTypeMeta {
   key: TaskTypeKey;
   label: string;
@@ -60,3 +62,34 @@ export const TASK_TYPE_LABEL: Record<TaskTypeKey, string> = TASK_TYPES.reduce((a
   acc[t.key] = t.label;
   return acc;
 }, {} as Record<TaskTypeKey, string>);
+
+/** Tipos de acción concretos (sin categorías padre). */
+export const ACTION_TASK_TYPES: TaskTypeMeta[] = TASK_TYPES.filter(
+  (t) => t.key !== "follow_up" && t.key !== "cobranza"
+);
+
+export interface ParentCategoryMeta {
+  key: ParentCategoryKey;
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  soft: string;
+  active: string;
+  iconColor: string;
+}
+
+export const PARENT_CATEGORIES: ParentCategoryMeta[] = [
+  { key: "seguimiento", label: "Seguimiento", Icon: RefreshCw,
+    soft:   "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100",
+    active: "bg-cyan-600 text-white border-cyan-600 hover:bg-cyan-600",
+    iconColor: "text-cyan-600" },
+  { key: "cobranza",    label: "Cobranza",    Icon: Banknote,
+    soft:   "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
+    active: "bg-amber-600 text-white border-amber-600 hover:bg-amber-600",
+    iconColor: "text-amber-600" },
+];
+
+export const PARENT_CATEGORY_META: Record<ParentCategoryKey, ParentCategoryMeta> =
+  PARENT_CATEGORIES.reduce((acc, c) => {
+    acc[c.key] = c;
+    return acc;
+  }, {} as Record<ParentCategoryKey, ParentCategoryMeta>);

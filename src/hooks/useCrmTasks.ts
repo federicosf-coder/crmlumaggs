@@ -17,6 +17,10 @@ export interface CrmTask {
   created_at: string;
   updated_at: string;
   task_type?: string | null;
+  parent_task_id?: string | null;
+  parent_category?: "seguimiento" | "cobranza" | null;
+  sequence_order?: number | null;
+  completed_at?: string | null;
   mensaje_sugerido?: string | null;
   whatsapp_status?: string | null;
   whatsapp_last_sent_at?: string | null;
@@ -89,6 +93,10 @@ export function useCreateCrmTask() {
       company_id?: string | null;
       deal_id?: string | null;
       contact_id?: string | null;
+      task_type?: string | null;
+      parent_task_id?: string | null;
+      parent_category?: "seguimiento" | "cobranza" | null;
+      sequence_order?: number | null;
     }) => {
       const { data, error } = await supabase.from("crm_tasks").insert(task).select().single();
       if (error) throw error;
@@ -118,5 +126,23 @@ export function useDeleteCrmTask() {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["crm_tasks"] }),
+  });
+}
+
+export function useTaskTimeline(parentId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["crm_task_timeline", parentId],
+    queryFn: async () => {
+      if (!parentId) return [] as CrmTask[];
+      const { data, error } = await supabase
+        .from("crm_tasks")
+        .select("*, crm_deals(id, title), contacts(id, first_name, last_name), companies(id, name)")
+        .eq("parent_task_id", parentId)
+        .order("sequence_order", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as unknown as CrmTask[];
+    },
+    enabled: !!parentId,
   });
 }
