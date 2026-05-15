@@ -496,7 +496,7 @@ export function CreateCrmTaskDialog({
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => setWhatsappOpen(true)}
+                onClick={handleSendApi}
                 disabled={!description.trim()}
               >
                 <Send className="h-4 w-4 mr-1.5" /> Enviar por API
@@ -504,7 +504,7 @@ export function CreateCrmTaskDialog({
               <Button
                 type="button"
                 onClick={handleSendLocal}
-                disabled={!description.trim() || !waNormalized}
+                disabled={!description.trim() || !waNormalized || createTask.isPending}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 <MessageCircle className="h-4 w-4 mr-1.5" /> Enviar Local
@@ -533,7 +533,10 @@ export function CreateCrmTaskDialog({
               contact_id: contactId || null,
               deal_id: dealId || null,
             }}
-            onSent={() => onOpenChange(false)}
+            onSent={() => {
+              setWhatsappOpen(false);
+              persistWhatsAppTask("api");
+            }}
           />
         )}
       </DialogContent>
