@@ -565,10 +565,6 @@ export function CreateCrmTaskDialog({
               />
             </div>
           </section>
-                placeholder="Buscar contacto..."
-              />
-            </div>
-          </section>
           {!isWhatsApp && !isEmail && (
           <>
           {isCall && (
