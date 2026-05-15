@@ -99,9 +99,7 @@ export default function SellerPortal() {
 
   // Límites de visualización + paginación por lista (10 / 25 / 50 / "all")
   type PageLimit = "10" | "25" | "50" | "all";
-  const [limTerminadas, setLimTerminadas] = useState<PageLimit>("10");
-  const [pageTerminadas, setPageTerminadas] = useState(1);
-  const [termSelected, setTermSelected] = useState<Set<string>>(new Set());
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [limCreadas, setLimCreadas] = useState<PageLimit>("10");
   const [pageCreadas, setPageCreadas] = useState(1);
   const [sortCreadas, setSortCreadas] = useState<{ col: "cliente" | "tarea" | "creada" | "estatus"; dir: "asc" | "desc" }>({ col: "creada", dir: "desc" });
@@ -876,153 +874,56 @@ export default function SellerPortal() {
         </Card>
       </div>
 
-      {/* Mi día - Terminadas en periodo */}
+      {/* Todas las tareas */}
       {(() => {
-        type TermRow = { id: string; kind: "task" | "activity"; fecha: Date | null; empresa: string; actividad: string; raw: any };
-        const empresaOf = (id?: string | null) => (id && companyMap[id]) || "Sin empresa";
-        const termRows: TermRow[] = [
-          ...tasksCompletadasPeriodo.map((t: any) => ({
-            id: `t-${t.id}`,
-            kind: "task" as const,
-            fecha: t.updated_at ? new Date(t.updated_at) : t.due_date ? new Date(t.due_date) : null,
-            empresa: empresaOf(t.company_id),
-            actividad: t.title || "Tarea",
-            raw: t,
-          })),
-          ...actividades.map((a: any) => {
-            const cfg = (ACTIVITY_TYPE_CONFIG as any)[a.type];
-            return {
-              id: `a-${a.id}`,
-              kind: "activity" as const,
-              fecha: a.activity_date ? new Date(a.activity_date) : a.created_at ? new Date(a.created_at) : null,
-              empresa: empresaOf(a.company_id),
-              actividad: cfg?.label || a.type || "Actividad",
-              raw: a,
-            };
-          }),
-        ].sort((p, q) => (q.fecha?.getTime() || 0) - (p.fecha?.getTime() || 0));
-        const pageRows = paginate(termRows, limTerminadas, pageTerminadas);
-        const allChecked = termRows.length > 0 && termSelected.size === termRows.length;
-        const someChecked = termSelected.size > 0 && !allChecked;
-        const toggleAllTerm = () => {
-          if (allChecked) setTermSelected(new Set());
-          else setTermSelected(new Set(termRows.map((r) => r.id)));
-        };
-        const toggleOneTerm = (id: string) => {
-          const ns = new Set(termSelected);
-          ns.has(id) ? ns.delete(id) : ns.add(id);
-          setTermSelected(ns);
-        };
         const fmtCorta = (d: Date | null) => (d ? format(d, "dd/MM/yy") : "—");
-        const selectedRows = termRows.filter((r) => termSelected.has(r.id));
+        const allTasksList = tasks as any[];
+        const getSelectedRows = () => allTasksList.filter((t) => selectedTaskIds.has(t.id));
         const handleCopiar = async () => {
-          if (selectedRows.length === 0) { toast.warning("Selecciona al menos una fila para copiar"); return; }
-          const text = selectedRows.map((r) => `${fmtCorta(r.fecha)} | ${r.empresa} | ${r.actividad}`).join("\n");
-          try { await navigator.clipboard.writeText(text); toast.success(`Copiadas ${selectedRows.length} líneas`); }
+          const rows = getSelectedRows();
+          if (rows.length === 0) { toast.warning("Selecciona al menos una fila para copiar"); return; }
+          const text = rows.map((t) => {
+            const fecha = t.created_at ? new Date(t.created_at) : null;
+            const empresa = companyMap[t.company_id] || "Sin empresa";
+            return `${fmtCorta(fecha)} | ${empresa} | ${t.title || "Tarea"}`;
+          }).join("\n");
+          try { await navigator.clipboard.writeText(text); toast.success(`Copiadas ${rows.length} líneas`); }
           catch { toast.error("No se pudo copiar al portapapeles"); }
         };
         const handleExportar = () => {
-          if (selectedRows.length === 0) { toast.warning("Selecciona al menos una fila para exportar"); return; }
+          const rows = getSelectedRows();
+          if (rows.length === 0) { toast.warning("Selecciona al menos una fila para exportar"); return; }
           const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
           const csv = [
-            ["Fecha", "Empresa", "Actividad/Tarea"].map(esc).join(","),
-            ...selectedRows.map((r) => [fmtCorta(r.fecha), r.empresa, r.actividad].map(esc).join(",")),
+            ["Fecha creada", "Empresa", "Tarea", "Estatus"].map(esc).join(","),
+            ...rows.map((t) => {
+              const fecha = t.created_at ? new Date(t.created_at) : null;
+              const ven = t.due_date ? new Date(t.due_date) : null;
+              const isVenc = ven && !t.completed && ven < todayStart;
+              const status = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
+              return [fmtCorta(fecha), companyMap[t.company_id] || "", t.title || "", status].map(esc).join(",");
+            }),
           ].join("\n");
           const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `terminadas-${format(new Date(), "yyyy-MM-dd")}.csv`;
+          a.download = `tareas-${format(new Date(), "yyyy-MM-dd")}.csv`;
           a.click();
           URL.revokeObjectURL(url);
-          toast.success(`Exportadas ${selectedRows.length} líneas`);
+          toast.success(`Exportadas ${rows.length} líneas`);
         };
         return (
-          <Card>
-            <CardHeader className="pb-2 flex-row items-center justify-between gap-2 flex-wrap">
-              <CardTitle className="text-base">Mi día - Terminadas en periodo ({termRows.length})</CardTitle>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-muted-foreground">{termSelected.size} seleccionadas</span>
-                <Button size="sm" variant="outline" onClick={handleCopiar}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar seleccionadas</Button>
-                <Button size="sm" variant="outline" onClick={handleExportar}><Download className="h-3.5 w-3.5 mr-1" /> Exportar seleccionadas</Button>
-                <PageSizeSelect value={limTerminadas} onChange={setLimTerminadas} total={termRows.length} onPageReset={() => setPageTerminadas(1)} />
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10 py-1.5">
-                        <Checkbox
-                          checked={allChecked ? true : someChecked ? "indeterminate" : false}
-                          onCheckedChange={toggleAllTerm}
-                          aria-label="Seleccionar todas"
-                        />
-                      </TableHead>
-                      <TableHead className="w-24 py-1.5">Fecha</TableHead>
-                      <TableHead className="py-1.5">Empresa</TableHead>
-                      <TableHead className="py-1.5">Actividad / Tarea</TableHead>
-                      <TableHead className="py-1.5">Tipo</TableHead>
-                      <TableHead className="text-right py-1.5">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {termRows.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-3">Sin terminadas en el periodo</TableCell></TableRow>}
-                    {pageRows.map((r) => {
-                      const openRow = () => {
-                        if (r.kind === "task") {
-                          setSelectedTask(r.raw as CrmTask);
-                          setTaskDialogOpen(true);
-                        } else {
-                          const a: any = r.raw;
-                          const dealMatch = deals.find((d: any) => d.id === a.deal_id);
-                          const resolvedCompanyId = a.company_id || dealMatch?.company_id || null;
-                          setSelectedActivity({ ...a, company_id: resolvedCompanyId });
-                          setActivityDialogOpen(true);
-                        }
-                      };
-                      return (
-                      <TableRow
-                        key={r.id}
-                        data-state={termSelected.has(r.id) ? "selected" : undefined}
-                        className="cursor-pointer"
-                        onClick={openRow}
-                      >
-                        <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={termSelected.has(r.id)}
-                            onCheckedChange={() => toggleOneTerm(r.id)}
-                            aria-label="Seleccionar fila"
-                          />
-                        </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap py-1.5">{fmtCorta(r.fecha)}</TableCell>
-                        <TableCell className="font-medium text-sm py-1.5">{r.empresa}</TableCell>
-                        <TableCell className="text-sm py-1.5">{r.actividad}</TableCell>
-                        <TableCell className="py-1.5"><Badge variant="outline" className="bg-green-100 text-green-800">{r.kind === "task" ? "Tarea" : "Actividad"}</Badge></TableCell>
-                        <TableCell className="text-right space-x-1 py-1.5" onClick={(e) => e.stopPropagation()}>
-                          <Button size="sm" variant="ghost" title="Abrir detalle" onClick={openRow}>
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-              <Paginator page={pageTerminadas} setPage={setPageTerminadas} total={termRows.length} lim={limTerminadas} />
-            </CardContent>
-          </Card>
-        );
-      })()}
-
-      {/* Creadas en periodo */}
-      <Card>
+        <Card>
         <CardHeader className="pb-2 gap-2">
           <div className="flex flex-row items-center justify-between gap-2 flex-wrap">
-            <CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle>
-            <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={tasksCreadasPeriodo.length} onPageReset={() => setPageCreadas(1)} />
+            <CardTitle className="text-base">Todas las tareas ({allTasksList.length})</CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">{selectedTaskIds.size} seleccionadas</span>
+              <Button size="sm" variant="outline" onClick={handleCopiar}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar seleccionadas</Button>
+              <Button size="sm" variant="outline" onClick={handleExportar}><Download className="h-3.5 w-3.5 mr-1" /> Exportar seleccionadas</Button>
+              <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={allTasksList.length} onPageReset={() => setPageCreadas(1)} />
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative flex-1 min-w-[200px] max-w-xs">
@@ -1054,6 +955,23 @@ export default function SellerPortal() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10 py-1.5">
+                    {(() => {
+                      const visibleIds = allTasksList.map((t) => t.id);
+                      const allSel = visibleIds.length > 0 && visibleIds.every((id) => selectedTaskIds.has(id));
+                      const someSel = !allSel && visibleIds.some((id) => selectedTaskIds.has(id));
+                      return (
+                        <Checkbox
+                          checked={allSel ? true : someSel ? "indeterminate" : false}
+                          onCheckedChange={() => {
+                            if (allSel) setSelectedTaskIds(new Set());
+                            else setSelectedTaskIds(new Set(visibleIds));
+                          }}
+                          aria-label="Seleccionar todas"
+                        />
+                      );
+                    })()}
+                  </TableHead>
                   {([
                     { key: "cliente", label: "Cliente" },
                     { key: "tarea", label: "Tarea" },
@@ -1081,7 +999,7 @@ export default function SellerPortal() {
               <TableBody>
                 {(() => {
                   const q = searchCreadas.trim().toLowerCase();
-                  const filtered = tasksCreadasPeriodo.filter((t: any) => {
+                  const filtered = allTasksList.filter((t: any) => {
                     const ven = t.due_date ? new Date(t.due_date) : null;
                     const isVenc = ven && !t.completed && ven < todayStart;
                     const status = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
@@ -1093,7 +1011,7 @@ export default function SellerPortal() {
                     }
                     return true;
                   });
-                  if (filtered.length === 0) return <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-3">Sin resultados</TableCell></TableRow>;
+                  if (filtered.length === 0) return <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-3">Sin resultados</TableCell></TableRow>;
                   return paginate([...filtered].sort((a, b) => {
                   const dir = sortCreadas.dir === "asc" ? 1 : -1;
                   const venA = a.due_date ? new Date(a.due_date) : null;
@@ -1121,9 +1039,21 @@ export default function SellerPortal() {
                   return (
                     <TableRow
                       key={t.id}
+                      data-state={selectedTaskIds.has(t.id) ? "selected" : undefined}
                       className="cursor-pointer"
                       onClick={() => { setSelectedTask(t as CrmTask); setTaskDialogOpen(true); }}
                     >
+                      <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedTaskIds.has(t.id)}
+                          onCheckedChange={() => {
+                            const ns = new Set(selectedTaskIds);
+                            ns.has(t.id) ? ns.delete(t.id) : ns.add(t.id);
+                            setSelectedTaskIds(ns);
+                          }}
+                          aria-label="Seleccionar fila"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium text-sm py-1.5">{companyMap[t.company_id] || "—"}</TableCell>
                       <TableCell className="text-sm py-1.5">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
                       <TableCell className="text-xs py-1.5">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
@@ -1147,9 +1077,11 @@ export default function SellerPortal() {
               </TableBody>
             </Table>
           </div>
-          <Paginator page={pageCreadas} setPage={setPageCreadas} total={tasksCreadasPeriodo.length} lim={limCreadas} />
+          <Paginator page={pageCreadas} setPage={setPageCreadas} total={allTasksList.length} lim={limCreadas} />
         </CardContent>
-      </Card>
+        </Card>
+        );
+      })()}
 
       {/* Tabs detalle */}
       <Tabs defaultValue="primera_compra">
