@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DictationButton } from "@/components/ui/dictation-button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save, Phone, Copy } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save, Phone, Copy, Send as SendIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
@@ -95,11 +95,89 @@ export function CreateCrmTaskDialog({
   const [savingContactEmail, setSavingContactEmail] = useState(false);
   // Call state
   const [callPhone, setCallPhone] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const isWhatsApp = taskType === "whatsapp";
   const isVisit = taskType === "field_visit";
   const isEmail = taskType === "email";
   const isCall = taskType === "call";
+
+  const userEmail = session?.user?.email || "";
+
+  const persistEmailTask = (sentOk: boolean) => {
+    if (!session?.user) return;
+    const subject = emailSubject || "(sin asunto)";
+    const finalTitle = `Email · ${subject}`;
+    const header = [
+      `Para: ${emailTo || "—"}`,
+      emailCc ? `CC: ${emailCc}` : null,
+      emailBcc ? `CCO: ${emailBcc}` : null,
+      `Responder a: ${userEmail}`,
+      `Asunto: ${subject}`,
+      sentOk ? "[Enviado desde la app]" : null,
+    ].filter(Boolean).join("\n");
+    const finalDescription = `${header}\n\n${emailBody}`;
+    createTask.mutate(
+      {
+        user_id: session.user.id,
+        title: finalTitle,
+        description: finalDescription,
+        due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : new Date().toISOString(),
+        priority,
+        deal_id: dealId && dealId !== "none" ? dealId : null,
+        contact_id: contactId && contactId !== "none" ? contactId : null,
+        company_id: companyId && companyId !== "none" ? companyId : null,
+        task_type: "email",
+        parent_task_id: parentTaskId || null,
+        parent_category: parentTaskId ? null : parentCategory,
+        completed: sentOk,
+        completed_at: sentOk ? new Date().toISOString() : null,
+      } as any,
+      { onSuccess: () => onOpenChange(false) }
+    );
+  };
+
+  const handleSendEmail = async () => {
+    if (!session?.user) return;
+    if (!emailTo || !emailSubject || !emailBody.trim()) {
+      toast({ title: "Faltan datos", description: "Completa Para, Asunto y Mensaje.", variant: "destructive" });
+      return;
+    }
+    setSendingEmail(true);
+    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap">${
+      emailBody.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    }</div>`;
+    const ccList = emailCc.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+    const bccList = emailBcc.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+    if (userEmail) bccList.push(userEmail); // copia al usuario
+    try {
+      const { data, error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "raw-html",
+          recipientEmail: emailTo.trim(),
+          idempotencyKey: `crm-email-${session.user.id}-${Date.now()}`,
+          subjectOverride: emailSubject,
+          htmlOverride: html,
+          cc: ccList,
+          bcc: bccList,
+          replyTo: userEmail || undefined,
+          templateData: { __subject: emailSubject, __html: html },
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.success === false) {
+        toast({ title: "No enviado", description: (data as any)?.reason || "Suprimido o rechazado", variant: "destructive" });
+        setSendingEmail(false);
+        return;
+      }
+      toast({ title: "Correo enviado", description: `Se envió a ${emailTo}${userEmail ? ` (con copia a ${userEmail})` : ""}.` });
+      persistEmailTask(true);
+    } catch (e: any) {
+      toast({ title: "Error al enviar", description: e?.message || "Intenta de nuevo", variant: "destructive" });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
 
   // Resolver datos del contacto cuando es Llamada
   const { data: callContact } = useQuery({
