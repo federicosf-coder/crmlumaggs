@@ -532,7 +532,7 @@ export default function CrmItemsPage() {
         <div key={t.id} className="rounded-md border bg-card p-2 hover:bg-accent/30 cursor-pointer"
           onClick={() => setEditTask(t)}>
           <div className="flex items-center gap-1.5 text-xs">
-            <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <Icon className={cn("h-3.5 w-3.5 shrink-0", (meta as any).iconColor || "text-muted-foreground")} />
             <span className="truncate font-medium">{t.title}</span>
           </div>
           {t.due_date && <div className="text-[10px] text-muted-foreground mt-0.5">{fmtTime(t.due_date)}</div>}
