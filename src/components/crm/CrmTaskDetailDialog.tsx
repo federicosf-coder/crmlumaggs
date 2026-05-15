@@ -298,6 +298,36 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const isParent = !!parentCategory && !task?.parent_task_id;
   const { data: timeline } = useTaskTimeline(isParent ? task?.id : null);
 
+  const sortedTimeline = useMemo(() => {
+    const list = [...(timeline || [])];
+    list.sort((a: any, b: any) => {
+      const sa = typeof a.sequence_order === "number" ? a.sequence_order : -1;
+      const sb = typeof b.sequence_order === "number" ? b.sequence_order : -1;
+      if (sa !== sb) return sb - sa; // desc
+      const ca = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const cb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return cb - ca;
+    });
+    return list;
+  }, [timeline]);
+
+  const handleTimelineDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = sortedTimeline.findIndex((s) => s.id === active.id);
+    const newIdx = sortedTimeline.findIndex((s) => s.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(sortedTimeline, oldIdx, newIdx);
+    const total = reordered.length;
+    // Display is desc; first displayed gets highest sequence_order
+    await Promise.all(
+      reordered.map((s, i) =>
+        supabase.from("crm_tasks").update({ sequence_order: total - 1 - i }).eq("id", s.id)
+      )
+    );
+    queryClient.invalidateQueries({ queryKey: ["crm_task_timeline", task?.id] });
+  };
+
   const handleDelete = () => {
     if (!task) return;
     deleteTask.mutate(task.id, {
