@@ -291,6 +291,9 @@ export function CreateCrmTaskDialog({
       ].filter(Boolean).join("\n");
       finalDescription = `${header}\n\n${emailBody}`;
     }
+    if (isCall && callPhone) {
+      finalDescription = `📞 Tel: ${callPhone}${description ? `\n\n${description}` : ""}`;
+    }
     createTask.mutate(
       {
         user_id: session.user.id,
