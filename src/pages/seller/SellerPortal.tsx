@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
+import { CrmActivityDetailDialog } from "@/components/crm/CrmActivityDetailDialog";
 import type { CrmTask } from "@/hooks/useCrmTasks";
 import { ACTIVITY_TYPE_CONFIG } from "@/hooks/useCrmActivities";
 import { Copy } from "lucide-react";
@@ -55,6 +56,8 @@ export default function SellerPortal() {
   const [facturasPorVencer, setFacturasPorVencer] = useState<any[]>([]);
   const [selectedTask, setSelectedTask] = useState<CrmTask | null>(null);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
@@ -861,7 +864,22 @@ export default function SellerPortal() {
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                           )}
-                          {r.raw?.deal_id && <Button size="sm" variant="ghost" onClick={() => window.open("/crm", "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Abrir detalle"
+                            onClick={() => {
+                              if (r.kind === "task") {
+                                setSelectedTask(r.raw as CrmTask);
+                                setTaskDialogOpen(true);
+                              } else {
+                                setSelectedActivity(r.raw);
+                                setActivityDialogOpen(true);
+                              }
+                            }}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
