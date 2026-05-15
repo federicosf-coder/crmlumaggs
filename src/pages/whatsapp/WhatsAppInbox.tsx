@@ -103,6 +103,7 @@ type Conversation = {
   status: string;
   business_phone_number_id: string | null;
   whatsapp_account_id: string | null;
+  assigned_to: string | null;
 };
 
 type Message = {
