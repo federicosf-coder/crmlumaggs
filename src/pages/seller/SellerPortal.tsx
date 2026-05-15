@@ -21,6 +21,9 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
 import { CrmActivityDetailDialog } from "@/components/crm/CrmActivityDetailDialog";
+import { CrmDealDetailSheet } from "@/components/crm/CrmDealDetailSheet";
+import type { CrmDeal } from "@/hooks/useCrmDeals";
+import type { CrmPipelineStage } from "@/hooks/useCrmPipelines";
 import type { CrmTask } from "@/hooks/useCrmTasks";
 import { ACTIVITY_TYPE_CONFIG } from "@/hooks/useCrmActivities";
 import { Copy } from "lucide-react";
@@ -63,6 +66,29 @@ export default function SellerPortal() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
+  const [dealStages, setDealStages] = useState<CrmPipelineStage[]>([]);
+  const [dealDialogOpen, setDealDialogOpen] = useState(false);
+
+  const openDealModal = async (dealId: string) => {
+    const { data: deal, error } = await supabase
+      .from("crm_deals")
+      .select("*")
+      .eq("id", dealId)
+      .maybeSingle();
+    if (error || !deal) {
+      toast.error("No se pudo cargar el negocio");
+      return;
+    }
+    const { data: stages } = await supabase
+      .from("crm_pipeline_stages")
+      .select("*")
+      .eq("pipeline_id", (deal as any).pipeline_id)
+      .order("position", { ascending: true });
+    setSelectedDeal(deal as unknown as CrmDeal);
+    setDealStages((stages || []) as unknown as CrmPipelineStage[]);
+    setDealDialogOpen(true);
+  };
   const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
@@ -1110,7 +1136,7 @@ export default function SellerPortal() {
                           <DropdownMenuContent align="end">
                             {!t.completed && <DropdownMenuItem onClick={() => completarTarea(t.id)}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Completar</DropdownMenuItem>}
                             {!t.completed && <DropdownMenuItem onClick={() => reprogramarTarea(t.id)}><Clock className="h-3.5 w-3.5 mr-2" /> Reprogramar</DropdownMenuItem>}
-                            {t.deal_id && <DropdownMenuItem onClick={() => window.open("/crm", "_blank")}><ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir CRM</DropdownMenuItem>}
+                            {t.deal_id && <DropdownMenuItem onClick={() => openDealModal(t.deal_id)}><ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir CRM</DropdownMenuItem>}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -1389,6 +1415,16 @@ export default function SellerPortal() {
             fetchData();
           }
         }}
+      />
+
+      <CrmDealDetailSheet
+        deal={selectedDeal}
+        open={dealDialogOpen}
+        onOpenChange={(o) => {
+          setDealDialogOpen(o);
+          if (!o) setSelectedDeal(null);
+        }}
+        stages={dealStages}
       />
 
     </div>
