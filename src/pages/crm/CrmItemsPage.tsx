@@ -28,8 +28,7 @@ import {
 import {
   ChevronLeft, ChevronRight, Search, CheckCircle2, RotateCcw, Trash2,
   Plus, Filter, AlertCircle, Calendar, User, Building2, Pencil, CalendarClock,
-  SlidersHorizontal, Phone, Mail, CalendarCheck, Car, MessageCircle, Banknote,
-  RefreshCw, FileText, ChevronDown, ChevronUp, ListChecks,
+  SlidersHorizontal, ChevronDown, ChevronUp, ListChecks,
 } from "lucide-react";
 import {
   format, parseISO, isValid, addHours, startOfHour, startOfDay, endOfDay,
