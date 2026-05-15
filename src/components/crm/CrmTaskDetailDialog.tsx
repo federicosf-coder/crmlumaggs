@@ -405,19 +405,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
             <section>
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Categoría</div>
               <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleParentCategoryChange(null)}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-md border p-2 text-xs font-medium transition-all",
-                    parentCategory === null
-                      ? "bg-slate-700 text-white border-slate-700"
-                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                  )}
-                  aria-pressed={parentCategory === null}
-                >
-                  Ninguna
-                </button>
                 {PARENT_CATEGORIES.map(({ key, label, Icon, soft, active }) => {
                   const sel = parentCategory === key;
                   return (
@@ -435,6 +422,19 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  onClick={() => handleParentCategoryChange(null)}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 rounded-md border p-2 text-xs font-medium transition-all",
+                    parentCategory === null
+                      ? "bg-slate-700 text-white border-slate-700"
+                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                  )}
+                  aria-pressed={parentCategory === null}
+                >
+                  Otra
+                </button>
               </div>
               {parentCategory && (
                 <p className="mt-1.5 text-[11px] text-muted-foreground">
