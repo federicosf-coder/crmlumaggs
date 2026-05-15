@@ -102,7 +102,7 @@ export default function SellerPortal() {
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [limCreadas, setLimCreadas] = useState<PageLimit>("10");
   const [pageCreadas, setPageCreadas] = useState(1);
-  const [sortCreadas, setSortCreadas] = useState<{ col: "cliente" | "tarea" | "creada" | "estatus"; dir: "asc" | "desc" }>({ col: "creada", dir: "desc" });
+  const [sortCreadas, setSortCreadas] = useState<{ col: "cliente" | "tarea" | "categoria" | "tipo" | "creada" | "estatus"; dir: "asc" | "desc" }>({ col: "creada", dir: "desc" });
   const [statusCreadas, setStatusCreadas] = useState<"all" | "Pendiente" | "Vencida" | "Completada">("all");
   const [searchCreadas, setSearchCreadas] = useState("");
   const [limProspectos, setLimProspectos] = useState<PageLimit>("10");
