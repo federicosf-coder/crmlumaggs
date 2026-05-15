@@ -979,7 +979,6 @@ export function CreateCrmTaskDialog({
           ) : isCall ? (
             <>
               <Button size="sm" type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
-              <Button size="sm" type="button" variant="secondary" onClick={() => submitWithStatus("no_contesto")} disabled={createTask.isPending}>No contestó</Button>
               <Button size="sm" type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
             </>
           ) : isEmail ? (
@@ -990,13 +989,11 @@ export function CreateCrmTaskDialog({
           ) : taskType === "meeting" ? (
             <>
               <Button size="sm" type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
-              <Button size="sm" type="button" variant="secondary" onClick={() => submitWithStatus("reagendada")} disabled={createTask.isPending}>Reagendada</Button>
               <Button size="sm" type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
             </>
           ) : isVisit ? (
             <>
               <Button size="sm" type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
-              <Button size="sm" type="button" variant="secondary" onClick={() => submitWithStatus("reprogramada")} disabled={createTask.isPending}>Reprogramada</Button>
               <Button size="sm" type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
             </>
           ) : (
