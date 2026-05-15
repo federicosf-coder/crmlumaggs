@@ -229,10 +229,20 @@ export function CreateCrmTaskDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user) return;
-    const finalTitle = isWhatsApp ? (title || buildWhatsAppTitle()) : title;
-    const finalDescription = isVisit && location
+    let finalTitle = isWhatsApp ? (title || buildWhatsAppTitle()) : title;
+    let finalDescription = isVisit && location
       ? `📍 Ubicación: ${location}${description ? `\n\n${description}` : ""}`
       : description;
+    if (isEmail) {
+      finalTitle = emailSubject || `Email${contactName ? ` · ${contactName}` : ""}`;
+      const header = [
+        `Para: ${emailTo || "—"}`,
+        emailCc ? `CC: ${emailCc}` : null,
+        emailBcc ? `CCO: ${emailBcc}` : null,
+        `Asunto: ${emailSubject || "(sin asunto)"}`,
+      ].filter(Boolean).join("\n");
+      finalDescription = `${header}\n\n${emailBody}`;
+    }
     createTask.mutate(
       {
         user_id: session.user.id,
