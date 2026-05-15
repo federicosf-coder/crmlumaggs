@@ -223,6 +223,8 @@ export default function CrmItemsPage() {
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleReason, setRescheduleReason] = useState("");
   const [rescheduleSaving, setRescheduleSaving] = useState(false);
+  const [collapsedCats, setCollapsedCats] = useState<Record<string, boolean>>({});
+  const toggleCat = (k: string) => setCollapsedCats((s) => ({ ...s, [k]: !s[k] }));
 
   // ── Modal "¿Qué sigue?" tras finalizar ──
   const [nextStepTarget, setNextStepTarget] = useState<{ task: any | null } | null>(null);
