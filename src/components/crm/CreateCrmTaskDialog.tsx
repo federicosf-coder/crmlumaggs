@@ -366,7 +366,8 @@ export function CreateCrmTaskDialog({
     | "reagendada"
     | "reprogramada"
     | "enviado"
-    | "programado_envio";
+    | "programado_envio"
+    | "guardado";
 
   const STATUS_LABEL: Record<ActStatus, string> = {
     default: "",
@@ -377,6 +378,7 @@ export function CreateCrmTaskDialog({
     reprogramada: "Reprogramada",
     enviado: "Enviado",
     programado_envio: "Programado",
+    guardado: "Guardado",
   };
 
   const submitWithStatus = (status: ActStatus) => {
@@ -387,7 +389,7 @@ export function CreateCrmTaskDialog({
       return;
     }
     const reopenForNew = status === "no_contesto" || status === "reagendada" || status === "reprogramada";
-    const completed = status === "realizada" || status === "enviado" || reopenForNew;
+    const completed = status === "realizada" || status === "enviado" || status === "guardado" || reopenForNew;
     const statusLabel = STATUS_LABEL[status];
     let finalTitle = isWhatsApp ? (title || buildWhatsAppTitle()) : title;
     let finalDescription = isVisit && location
@@ -928,55 +930,48 @@ export function CreateCrmTaskDialog({
           </section>
         </form>
         {/* Footer fijo, similar al detalle */}
-        <div className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end shrink-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+        <div className="border-t bg-muted/30 px-4 py-3 flex flex-wrap gap-2 justify-end shrink-0">
+            <Button size="sm" type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           {isWhatsApp ? (
             <>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleSendApi}
-                disabled={!description.trim()}
-              >
-                <Send className="h-4 w-4 mr-1.5" /> Enviar por API
+              <Button size="sm" type="button" variant="outline" onClick={() => submitWithStatus("guardado")} disabled={!description.trim() || createTask.isPending}>
+                <Save className="h-4 w-4 mr-1" /> Guardar
               </Button>
-              <Button
-                type="button"
-                onClick={handleSendLocal}
-                disabled={!description.trim() || !waNormalized || createTask.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                <MessageCircle className="h-4 w-4 mr-1.5" /> Enviar Local
+              <Button size="sm" type="button" variant="outline" onClick={() => submitWithStatus("programado_envio")} disabled={createTask.isPending}>
+                <CalendarIcon className="h-4 w-4 mr-1" /> Programado
               </Button>
-              <Button type="button" variant="outline" onClick={() => submitWithStatus("programado_envio")} disabled={createTask.isPending}>
-                <CalendarIcon className="h-4 w-4 mr-1.5" /> Programado
+              <Button size="sm" type="button" variant="secondary" onClick={handleSendApi} disabled={!description.trim()}>
+                <Send className="h-4 w-4 mr-1" /> API
+              </Button>
+              <Button size="sm" type="button" onClick={handleSendLocal} disabled={!description.trim() || !waNormalized || createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                <MessageCircle className="h-4 w-4 mr-1" /> Local
               </Button>
             </>
           ) : isCall ? (
             <>
-              <Button type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
-              <Button type="button" variant="secondary" onClick={() => submitWithStatus("no_contesto")} disabled={createTask.isPending}>No contestó</Button>
-              <Button type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
+              <Button size="sm" type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
+              <Button size="sm" type="button" variant="secondary" onClick={() => submitWithStatus("no_contesto")} disabled={createTask.isPending}>No contestó</Button>
+              <Button size="sm" type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
             </>
           ) : isEmail ? (
             <>
-              <Button type="button" variant="outline" onClick={() => submitWithStatus("programado_envio")} disabled={createTask.isPending}>Programado</Button>
-              <Button type="button" onClick={() => submitWithStatus("enviado")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Enviado</Button>
+              <Button size="sm" type="button" variant="outline" onClick={() => submitWithStatus("programado_envio")} disabled={createTask.isPending}>Programado</Button>
+              <Button size="sm" type="button" onClick={() => submitWithStatus("enviado")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Enviado</Button>
             </>
           ) : taskType === "meeting" ? (
             <>
-              <Button type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
-              <Button type="button" variant="secondary" onClick={() => submitWithStatus("reagendada")} disabled={createTask.isPending}>Reagendada</Button>
-              <Button type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
+              <Button size="sm" type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
+              <Button size="sm" type="button" variant="secondary" onClick={() => submitWithStatus("reagendada")} disabled={createTask.isPending}>Reagendada</Button>
+              <Button size="sm" type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
             </>
           ) : isVisit ? (
             <>
-              <Button type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
-              <Button type="button" variant="secondary" onClick={() => submitWithStatus("reprogramada")} disabled={createTask.isPending}>Reprogramada</Button>
-              <Button type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
+              <Button size="sm" type="button" variant="outline" onClick={() => submitWithStatus("programada")} disabled={createTask.isPending}>Programada</Button>
+              <Button size="sm" type="button" variant="secondary" onClick={() => submitWithStatus("reprogramada")} disabled={createTask.isPending}>Reprogramada</Button>
+              <Button size="sm" type="button" onClick={() => submitWithStatus("realizada")} disabled={createTask.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">Realizada</Button>
             </>
           ) : (
-            <Button type="submit" disabled={createTask.isPending} onClick={handleSubmit}>
+            <Button size="sm" type="submit" disabled={createTask.isPending} onClick={handleSubmit}>
               {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Actividad / Tarea"}
             </Button>
           )}
