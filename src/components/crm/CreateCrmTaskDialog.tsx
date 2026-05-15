@@ -147,13 +147,6 @@ export function CreateCrmTaskDialog({
             <div className="space-y-1.5">
               <Label>Categoría</Label>
               <div className="grid grid-cols-3 gap-1.5">
-                <button type="button" onClick={() => setParentCategory(null)}
-                  className={cn("rounded-md border p-2 text-xs font-medium transition-colors",
-                    parentCategory === null
-                      ? "bg-slate-700 text-white border-slate-700"
-                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100")}>
-                  Ninguna
-                </button>
                 {PARENT_CATEGORIES.map(({ key, label, Icon, soft, active }) => {
                   const sel = parentCategory === key;
                   return (
@@ -164,6 +157,13 @@ export function CreateCrmTaskDialog({
                     </button>
                   );
                 })}
+                <button type="button" onClick={() => setParentCategory(null)}
+                  className={cn("rounded-md border p-2 text-xs font-medium transition-colors",
+                    parentCategory === null
+                      ? "bg-slate-700 text-white border-slate-700"
+                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100")}>
+                  Otra
+                </button>
               </div>
             </div>
           )}
