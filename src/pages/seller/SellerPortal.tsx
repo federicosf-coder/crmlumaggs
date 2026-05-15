@@ -1032,7 +1032,7 @@ export default function SellerPortal() {
                     }
                     return true;
                   });
-                  if (filtered.length === 0) return <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-3">Sin resultados</TableCell></TableRow>;
+                  if (filtered.length === 0) return <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-3">Sin resultados</TableCell></TableRow>;
                   return paginate([...filtered].sort((a, b) => {
                   const dir = sortCreadas.dir === "asc" ? 1 : -1;
                   const venA = a.due_date ? new Date(a.due_date) : null;
