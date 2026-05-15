@@ -682,13 +682,19 @@ export function CreateCrmTaskDialog({
               </div>
               {showCc && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">CC</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">CC</Label>
+                    <button type="button" onClick={() => { setShowCc(false); setEmailCc(""); }} className="text-xs text-muted-foreground hover:text-destructive hover:underline">− CC</button>
+                  </div>
                   <Input type="text" value={emailCc} onChange={(e) => setEmailCc(e.target.value)} placeholder="cc@ejemplo.com, otro@ejemplo.com" className="font-light h-9" />
                 </div>
               )}
               {showBcc && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">CCO</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">CCO</Label>
+                    <button type="button" onClick={() => { setShowBcc(false); setEmailBcc(""); }} className="text-xs text-muted-foreground hover:text-destructive hover:underline">− CCO</button>
+                  </div>
                   <Input type="text" value={emailBcc} onChange={(e) => setEmailBcc(e.target.value)} placeholder="cco@ejemplo.com" className="font-light h-9" />
                 </div>
               )}
