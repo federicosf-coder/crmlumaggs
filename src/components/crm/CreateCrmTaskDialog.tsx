@@ -150,43 +150,49 @@ export function CreateCrmTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
-          <DialogTitle>{parentTaskId ? "Agregar paso a la secuencia" : "Crear Actividad / Tarea"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6 overflow-y-auto flex-1">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 overflow-hidden">
+        {/* Header con gradiente como el modal de detalle */}
+        <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b shrink-0">
+          <DialogTitle className="text-lg font-semibold tracking-tight">
+            {parentTaskId ? "Agregar paso a la secuencia" : "Crear Actividad / Tarea"}
+          </DialogTitle>
+          <p className="text-xs text-muted-foreground mt-0.5 font-light">
+            Completa los datos para registrar la nueva actividad.
+          </p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-5 px-5 py-5 overflow-y-auto flex-1">
           {!parentTaskId && (
-            <div className="space-y-1.5">
-              <Label>Categoría</Label>
-              <div className="grid grid-cols-3 gap-1.5">
+            <section className="space-y-2">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Categoría</div>
+              <div className="grid grid-cols-3 gap-2">
                 {PARENT_CATEGORIES.map(({ key, label, Icon, soft, active }) => {
                   const sel = parentCategory === key;
                   return (
                     <button key={key} type="button" onClick={() => setParentCategory(key)}
-                      className={cn("rounded-md border p-2 text-xs font-medium transition-colors flex items-center justify-center gap-1.5",
+                      className={cn("flex items-center justify-center gap-1.5 rounded-md border p-2 text-sm font-medium transition-all",
                         sel ? active : soft)}>
-                      <Icon className="h-3.5 w-3.5" /> {label}
+                      <Icon className="h-4 w-4" /> {label}
                     </button>
                   );
                 })}
                 <button type="button" onClick={() => setParentCategory(null)}
-                  className={cn("rounded-md border p-2 text-xs font-medium transition-colors",
+                  className={cn("rounded-md border p-2 text-sm font-medium transition-all",
                     parentCategory === null
                       ? "bg-slate-700 text-white border-slate-700"
                       : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100")}>
                   Otra
                 </button>
               </div>
-            </div>
+            </section>
           )}
-          <div className="space-y-1.5">
-            <Label>Tipo de actividad</Label>
+          <section className="space-y-2">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Tipo de actividad</div>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
               {ACTION_TASK_TYPES.map(({ key, label, Icon, soft, active }) => {
                 const sel = taskType === key;
                 return (
                   <button key={key} type="button" onClick={() => setTaskType(sel ? null : key)} title={label}
-                    className={cn("flex flex-col items-center justify-center gap-0.5 rounded-md border p-1.5 transition-all",
+                    className={cn("flex flex-col items-center justify-center gap-0.5 rounded-md border p-2 transition-all",
                       sel ? active : soft)}>
                     <Icon className="h-4 w-4" />
                     <span className="text-[10px] font-medium leading-tight">{label}</span>
@@ -194,9 +200,9 @@ export function CreateCrmTaskDialog({
                 );
               })}
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Título *</Label>
+          </section>
+          <section className="space-y-2">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Título *</div>
             <div className="flex gap-2">
               <Input
                 value={title}
@@ -204,14 +210,14 @@ export function CreateCrmTaskDialog({
                 placeholder="Ej: Dar seguimiento al cliente"
                 required
                 maxLength={200}
-                className="flex-1"
+                className="flex-1 text-base font-light"
               />
               <DictationButton currentText={title} onTranscript={setTitle} />
             </div>
-          </div>
-          <div className="space-y-2">
+          </section>
+          <section className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Descripción</Label>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Descripción</div>
               <DictationButton
                 currentText={description}
                 onTranscript={setDescription}
@@ -220,11 +226,17 @@ export function CreateCrmTaskDialog({
                 title="Dictar descripción"
               />
             </div>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} maxLength={2000} />
-          </div>
-          <div className="grid grid-cols-12 gap-3">
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              maxLength={2000}
+              className="font-light"
+            />
+          </section>
+          <section className="grid grid-cols-12 gap-3">
             <div className="space-y-2 col-span-8">
-              <Label>Fecha</Label>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Fecha</div>
               <div className="flex gap-2 min-w-0">
                 <Popover>
                   <PopoverTrigger asChild>
@@ -264,17 +276,17 @@ export function CreateCrmTaskDialog({
               </div>
             </div>
             <div className="space-y-2 col-span-4">
-              <Label>Prioridad</Label>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Prioridad</div>
               <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-9 font-light">
                   <SelectValue>
                     <span className="flex items-center gap-2">
                       <span
                         className={cn(
                           "inline-block h-2.5 w-2.5 rounded-full",
-                          priority === "low" && "bg-emerald-500",
-                          priority === "medium" && "bg-amber-500",
-                          priority === "high" && "bg-rose-500",
+                          priority === "low" && "bg-green-500",
+                          priority === "medium" && "bg-yellow-500",
+                          priority === "high" && "bg-red-500",
                         )}
                       />
                       <span className="capitalize">
@@ -286,28 +298,28 @@ export function CreateCrmTaskDialog({
                 <SelectContent>
                   <SelectItem value="low">
                     <span className="flex items-center gap-2">
-                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-500" />
                       Baja
                     </span>
                   </SelectItem>
                   <SelectItem value="medium">
                     <span className="flex items-center gap-2">
-                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" />
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-yellow-500" />
                       Media
                     </span>
                   </SelectItem>
                   <SelectItem value="high">
                     <span className="flex items-center gap-2">
-                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500" />
+                      <span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" />
                       Alta
                     </span>
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Vincular a Negocio</Label>
+          </section>
+          <section className="space-y-2">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Negocio</div>
             <SearchableSelect
               value={dealId || "none"}
               onValueChange={(v) => setDealId(v === "none" ? "" : v)}
@@ -317,10 +329,10 @@ export function CreateCrmTaskDialog({
               ]}
               placeholder="Buscar negocio..."
             />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          </section>
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2 min-w-0">
-              <Label>Vincular a Empresa</Label>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Empresa</div>
               <SearchableSelect
                 value={companyId || "none"}
                 onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
@@ -332,7 +344,7 @@ export function CreateCrmTaskDialog({
               />
             </div>
             <div className="space-y-2 min-w-0">
-              <Label>Vincular a Contacto</Label>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Contacto</div>
               <SearchableSelect
                 value={contactId || "none"}
                 onValueChange={(v) => setContactId(v === "none" ? "" : v)}
@@ -343,14 +355,15 @@ export function CreateCrmTaskDialog({
                 placeholder="Buscar contacto..."
               />
             </div>
-          </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          </section>
+        </form>
+        {/* Footer fijo, similar al detalle */}
+        <div className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end shrink-0">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={createTask.isPending}>
+          <Button type="submit" disabled={createTask.isPending} onClick={handleSubmit}>
               {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Actividad / Tarea"}
             </Button>
-          </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
