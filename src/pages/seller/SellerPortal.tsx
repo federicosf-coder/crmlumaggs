@@ -746,19 +746,6 @@ export default function SellerPortal() {
                     {teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Select
-                  value={ejecutivoId || "all"}
-                  onValueChange={(v) => {
-                    setEjecutivoId(v);
-                    if (v !== "all") setTeamId("all"); // al elegir ejecutivo, equipo => Todos
-                  }}
-                >
-                  <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Ejecutivo" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los ejecutivos</SelectItem>
-                    {ejecutivos.map(e => <SelectItem key={e.user_id} value={e.user_id}>{e.full_name || e.user_id.slice(0, 8)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
               </>
             )}
             <Select value={plazaId} onValueChange={setPlazaId}>
@@ -768,6 +755,21 @@ export default function SellerPortal() {
                 {plazas.map(p => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
               </SelectContent>
             </Select>
+            {isManager && (
+              <Select
+                value={ejecutivoId || "all"}
+                onValueChange={(v) => {
+                  setEjecutivoId(v);
+                  if (v !== "all") setTeamId("all"); // al elegir ejecutivo, equipo => Todos
+                }}
+              >
+                <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Usuario" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los usuarios</SelectItem>
+                  {ejecutivos.map(e => <SelectItem key={e.user_id} value={e.user_id}>{e.full_name || e.user_id.slice(0, 8)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
             {/* Toggles independientes por marca */}
             <div className="flex items-center gap-1 border rounded-md p-0.5">
               <Toggle size="sm" pressed={marcaChevron} onPressedChange={setMarcaChevron} className="data-[state=on]:bg-blue-600 data-[state=on]:text-white">Chevron</Toggle>
