@@ -1417,6 +1417,16 @@ export default function SellerPortal() {
         }}
       />
 
+      <CrmDealDetailSheet
+        deal={selectedDeal}
+        open={dealDialogOpen}
+        onOpenChange={(o) => {
+          setDealDialogOpen(o);
+          if (!o) setSelectedDeal(null);
+        }}
+        stages={dealStages}
+      />
+
     </div>
   );
 }
