@@ -984,8 +984,22 @@ export default function SellerPortal() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-3">Sin creadas en el periodo</TableCell></TableRow>}
-                {paginate([...tasksCreadasPeriodo].sort((a, b) => {
+                {(() => {
+                  const q = searchCreadas.trim().toLowerCase();
+                  const filtered = tasksCreadasPeriodo.filter((t: any) => {
+                    const ven = t.due_date ? new Date(t.due_date) : null;
+                    const isVenc = ven && !t.completed && ven < todayStart;
+                    const status = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
+                    if (statusCreadas !== "all" && status !== statusCreadas) return false;
+                    if (q) {
+                      const cliente = (companyMap[t.company_id] || "").toLowerCase();
+                      const titulo = (t.title || "").toLowerCase();
+                      if (!cliente.includes(q) && !titulo.includes(q)) return false;
+                    }
+                    return true;
+                  });
+                  if (filtered.length === 0) return <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-3">Sin resultados</TableCell></TableRow>;
+                  return paginate([...filtered].sort((a, b) => {
                   const dir = sortCreadas.dir === "asc" ? 1 : -1;
                   const venA = a.due_date ? new Date(a.due_date) : null;
                   const isVencA = venA && !a.completed && venA < todayStart;
@@ -1033,7 +1047,8 @@ export default function SellerPortal() {
                       </TableCell>
                     </TableRow>
                   );
-                })}
+                  });
+                })()}
               </TableBody>
             </Table>
           </div>
