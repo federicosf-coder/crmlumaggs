@@ -387,12 +387,87 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Contacto</label>
-                  <SearchableSelect
-                    value={contactId || "none"}
-                    onValueChange={handleSelectContact}
-                    options={contactOptions}
-                    placeholder="Seleccionar contacto..."
-                  />
+                  <div className="flex items-center gap-1">
+                    <div className="flex-1 min-w-0">
+                      <SearchableSelect
+                        value={contactId || "none"}
+                        onValueChange={handleSelectContact}
+                        options={contactOptions}
+                        placeholder="Seleccionar contacto..."
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-9 w-9 shrink-0"
+                      title="Nuevo contacto"
+                      onClick={() => { setContactFormEdit(null); setContactFormOpen(true); }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-9 w-9 shrink-0"
+                      title="Editar contacto"
+                      disabled={!contactId}
+                      onClick={() => {
+                        const c: any = contactsAll?.find((x: any) => x.id === contactId);
+                        if (!c) return;
+                        setContactFormEdit({
+                          id: c.id,
+                          first_name: c.first_name || "",
+                          last_name: c.last_name || "",
+                          email: c.email ?? null,
+                          email2: c.email2 ?? null,
+                          phone: c.phone ?? null,
+                          mobile: c.mobile ?? null,
+                          whatsapp_phone: c.whatsapp_phone ?? null,
+                          tel_emp: c.tel_emp ?? null,
+                          job_title: c.job_title ?? null,
+                          department: c.department ?? null,
+                          company_id: c.company_id ?? null,
+                          notes: c.notes ?? null,
+                          comm_email: c.comm_email ?? null,
+                          comm_email2: c.comm_email2 ?? null,
+                          comm_whatsapp: c.comm_whatsapp ?? null,
+                          comm_cel: c.comm_cel ?? null,
+                          comm_tel: c.comm_tel ?? null,
+                          comm_tel_emp: c.comm_tel_emp ?? null,
+                          sede: c.sede ?? null,
+                          plaza_id: c.plaza_id ?? null,
+                        });
+                        setContactFormOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {contactId && (() => {
+                    const c: any = contactsAll?.find((x: any) => x.id === contactId);
+                    if (!c) return null;
+                    const wa = c.whatsapp_phone || c.mobile || c.phone;
+                    const em = c.email || c.email2;
+                    if (!wa && !em) return null;
+                    return (
+                      <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground pl-1">
+                        {wa && (
+                          <div className="flex items-center gap-1.5">
+                            <MessageCircle className="h-3 w-3 text-green-600" />
+                            <span>{wa}</span>
+                          </div>
+                        )}
+                        {em && (
+                          <div className="flex items-center gap-1.5">
+                            <Mail className="h-3 w-3 text-blue-600" />
+                            <span className="truncate">{em}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </section>
