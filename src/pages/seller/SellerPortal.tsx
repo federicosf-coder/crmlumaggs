@@ -66,6 +66,9 @@ export default function SellerPortal() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
+  const [dealStages, setDealStages] = useState<CrmPipelineStage[]>([]);
+  const [dealDialogOpen, setDealDialogOpen] = useState(false);
   const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
