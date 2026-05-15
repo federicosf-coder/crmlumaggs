@@ -46,7 +46,10 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
   const { data: deals } = useQuery({
     queryKey: ["crm-deals-picker-act"],
     queryFn: async () => {
-      const { data } = await supabase.from("crm_deals").select("id, title").order("title");
+      const { data } = await supabase
+        .from("crm_deals")
+        .select("id, title, company_id, created_at")
+        .order("created_at", { ascending: false });
       return data || [];
     },
     enabled: open,
@@ -65,20 +68,39 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
       setEditTitle(activity.title);
       setEditDescription(activity.description || "");
       setEditType(activity.type);
-      setEditCompanyId(activity.company_id || "none");
+      // Empresa: usar la del activity, o derivar de la del negocio si no existe
+      const dealMatch = (deals || []).find((d: any) => d.id === activity.deal_id);
+      setEditCompanyId(activity.company_id || dealMatch?.company_id || "none");
       setEditDealId(activity.deal_id || "none");
       setEditContactId(activity.contact_id || "none");
     }
-  }, [activity, editing]);
+  }, [activity, editing, deals]);
+
+  // Negocios filtrados por empresa seleccionada
+  const filteredDeals = (deals || []).filter((d: any) =>
+    editCompanyId !== "none" ? d.company_id === editCompanyId : true
+  );
+
+  // Cuando cambia la empresa, si el negocio actual no pertenece a esa empresa,
+  // selecciona automáticamente el último negocio activo de la empresa.
+  useEffect(() => {
+    if (!editing || editCompanyId === "none") return;
+    const current = (deals || []).find((d: any) => d.id === editDealId);
+    if (current && current.company_id === editCompanyId) return;
+    const latest = (deals || []).find((d: any) => d.company_id === editCompanyId);
+    setEditDealId(latest ? latest.id : "none");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editCompanyId, editing, deals]);
 
   if (!activity) return null;
   const config = ACTIVITY_TYPE_CONFIG[activity.type] || ACTIVITY_TYPE_CONFIG.note;
 
   const handleSave = () => {
+    const finalTitle = editType === "call" ? (editTitle?.trim() || "Llamada") : editTitle;
     updateActivity.mutate(
       {
         id: activity.id,
-        title: editTitle,
+        title: finalTitle,
         description: editDescription || null,
         type: editType,
         company_id: editCompanyId !== "none" ? editCompanyId : null,
@@ -124,7 +146,9 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required /></div>
+              {editType !== "call" && (
+                <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required /></div>
+              )}
               <div className="space-y-2"><Label>Descripción</Label><Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} /></div>
               <div className="space-y-2">
                 <Label>Empresa</Label>
@@ -142,7 +166,7 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
                   <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Ninguno</SelectItem>
-                    {deals?.map((d) => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}
+                    {filteredDeals.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
