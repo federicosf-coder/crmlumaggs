@@ -339,7 +339,15 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                   <span className={cn("h-1.5 w-1.5 rounded-full mr-1.5", pMeta.dot)} />
                   Prioridad {pMeta.label}
                 </Badge>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">Tarea</Badge>
+                {(() => {
+                  const tm = TASK_TYPE_META[taskType];
+                  const TIcon = tm.Icon;
+                  return (
+                    <Badge variant="outline" className={cn("text-xs gap-1", tm.soft)}>
+                      <TIcon className="h-3 w-3" /> {tm.label}
+                    </Badge>
+                  );
+                })()}
                 <div className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
                   {saveStatus === "saving" && (<><Loader2 className="h-3 w-3 animate-spin" /> Guardando...</>)}
                   {saveStatus === "saved" && (<><Check className="h-3 w-3 text-green-600" /> Guardado</>)}
