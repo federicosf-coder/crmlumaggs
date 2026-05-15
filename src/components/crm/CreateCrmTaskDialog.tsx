@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { MessageCircle, Send } from "lucide-react";
 import { normalizePhoneForWhatsApp, openWhatsApp, logWhatsAppActivity } from "@/lib/whatsapp";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
+import { RescheduleActivityDialog, type RescheduleContext } from "@/components/crm/RescheduleActivityDialog";
 
 interface CreateCrmTaskDialogProps {
   open: boolean;
@@ -95,6 +96,8 @@ export function CreateCrmTaskDialog({
   const [savingContactEmail, setSavingContactEmail] = useState(false);
   // Call state
   const [callPhone, setCallPhone] = useState("");
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [rescheduleCtx, setRescheduleCtx] = useState<RescheduleContext | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
 
   const isWhatsApp = taskType === "whatsapp";
@@ -381,7 +384,18 @@ export function CreateCrmTaskDialog({
     guardado: "Guardado",
   };
 
-  const submitWithStatus = (status: ActStatus) => {
+  const STATUS_TO_TASK_STATUS: Partial<Record<ActStatus, string>> = {
+    no_contesto: "no_answered",
+    reagendada: "rescheduled",
+    reprogramada: "reprogrammed",
+    realizada: "done",
+    enviado: "done",
+    guardado: "done",
+    programada: "planned",
+    programado_envio: "planned",
+  };
+
+  const submitWithStatus = async (status: ActStatus) => {
     if (!session?.user) return;
     const needsDate = status === "programada" || status === "programado_envio";
     if (needsDate && !dueDate) {
@@ -391,6 +405,7 @@ export function CreateCrmTaskDialog({
     const reopenForNew = status === "no_contesto" || status === "reagendada" || status === "reprogramada";
     const completed = status === "realizada" || status === "enviado" || status === "guardado" || reopenForNew;
     const statusLabel = STATUS_LABEL[status];
+    const taskStatusValue = STATUS_TO_TASK_STATUS[status] || "planned";
     let finalTitle = isWhatsApp ? (title || buildWhatsAppTitle()) : title;
     let finalDescription = isVisit && location
       ? `📍 Ubicación: ${location}${description ? `\n\n${description}` : ""}`
@@ -411,8 +426,8 @@ export function CreateCrmTaskDialog({
     if (statusLabel) {
       finalTitle = `[${statusLabel}] ${finalTitle || ""}`.trim();
     }
-    createTask.mutate(
-      {
+    try {
+      const created: any = await createTask.mutateAsync({
         user_id: session.user.id,
         title: finalTitle,
         description: finalDescription || null,
@@ -423,25 +438,37 @@ export function CreateCrmTaskDialog({
         company_id: companyId && companyId !== "none" ? companyId : null,
         task_type: taskType || null,
         parent_task_id: parentTaskId || null,
-        parent_category: parentTaskId ? null : parentCategory, // sub-tareas no llevan categoría
+        parent_category: parentTaskId ? null : parentCategory,
         completed,
         completed_at: completed ? new Date().toISOString() : null,
-      } as any,
-      {
-        onSuccess: () => {
-          toast({ title: statusLabel ? `Actividad ${statusLabel}` : "Tarea creada" });
-          if (reopenForNew) {
-            setDueDate(""); setDueTime(""); setTitle("");
-            toast({ title: "Programa la nueva fecha", description: "Captura la nueva fecha/hora y guarda como Programada." });
-            return;
-          }
-          onOpenChange(false);
-          setTitle(""); setDescription(""); setDueDate(""); setDueTime(""); setPriority("medium");
-          setDealId(defaultDealId || ""); setContactId(defaultContactId || ""); setCompanyId(defaultCompanyId || "");
-          setParentCategory(defaultParentCategory); setTaskType(defaultTaskType);
-        },
+        task_status: taskStatusValue,
+      } as any);
+      toast({ title: statusLabel ? `Actividad ${statusLabel}` : "Tarea creada" });
+      if (reopenForNew) {
+        setRescheduleCtx({
+          origenTareaId: created?.id || null,
+          taskType,
+          parentCategory,
+          parentTaskId,
+          dealId,
+          contactId,
+          companyId,
+          baseTitle: title || finalTitle.replace(/^\[[^\]]+\]\s*/, ""),
+          description: finalDescription || null,
+          priority,
+          reasonLabel: statusLabel,
+        });
+        onOpenChange(false);
+        setRescheduleOpen(true);
+        return;
       }
-    );
+      onOpenChange(false);
+      setTitle(""); setDescription(""); setDueDate(""); setDueTime(""); setPriority("medium");
+      setDealId(defaultDealId || ""); setContactId(defaultContactId || ""); setCompanyId(defaultCompanyId || "");
+      setParentCategory(defaultParentCategory); setTaskType(defaultTaskType);
+    } catch (e: any) {
+      toast({ title: "No se pudo guardar", description: e?.message, variant: "destructive" });
+    }
   };
 
   // Crea la tarea de WhatsApp registrando el mensaje y la marca como completada
@@ -518,6 +545,7 @@ export function CreateCrmTaskDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 overflow-hidden">
         {/* Header con gradiente como el modal de detalle */}
@@ -1001,5 +1029,7 @@ export function CreateCrmTaskDialog({
         )}
       </DialogContent>
     </Dialog>
+    <RescheduleActivityDialog open={rescheduleOpen} onOpenChange={setRescheduleOpen} context={rescheduleCtx} />
+    </>
   );
 }
