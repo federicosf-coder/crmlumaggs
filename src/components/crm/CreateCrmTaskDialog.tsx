@@ -450,10 +450,51 @@ export function CreateCrmTaskDialog({
         {/* Footer fijo, similar al detalle */}
         <div className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end shrink-0">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button type="submit" disabled={createTask.isPending} onClick={handleSubmit}>
+          {isWhatsApp ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setWhatsappOpen(true)}
+                disabled={!description.trim()}
+              >
+                <Send className="h-4 w-4 mr-1.5" /> Enviar por API
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSendLocal}
+                disabled={!description.trim() || !waNormalized}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <MessageCircle className="h-4 w-4 mr-1.5" /> Enviar Local
+              </Button>
+            </>
+          ) : (
+            <Button type="submit" disabled={createTask.isPending} onClick={handleSubmit}>
               {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Actividad / Tarea"}
             </Button>
+          )}
         </div>
+        {isWhatsApp && (
+          <WhatsAppActionDialog
+            open={whatsappOpen}
+            onOpenChange={setWhatsappOpen}
+            phone={waPhone}
+            variables={{
+              contacto_nombre: waContactName || null,
+              empresa_nombre: waCompanyName || null,
+              ejecutivo_nombre: null,
+              folio_cotizacion: deals?.find((d: any) => d.id === dealId)?.title || null,
+            }}
+            defaultMessage={description}
+            context={{
+              company_id: companyId || null,
+              contact_id: contactId || null,
+              deal_id: dealId || null,
+            }}
+            onSent={() => onOpenChange(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
