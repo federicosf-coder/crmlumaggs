@@ -846,9 +846,27 @@ export default function SellerPortal() {
                   </TableHeader>
                   <TableBody>
                     {termRows.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-3">Sin terminadas en el periodo</TableCell></TableRow>}
-                    {pageRows.map((r) => (
-                      <TableRow key={r.id} data-state={termSelected.has(r.id) ? "selected" : undefined}>
-                        <TableCell className="py-1.5">
+                    {pageRows.map((r) => {
+                      const openRow = () => {
+                        if (r.kind === "task") {
+                          setSelectedTask(r.raw as CrmTask);
+                          setTaskDialogOpen(true);
+                        } else {
+                          const a: any = r.raw;
+                          const dealMatch = deals.find((d: any) => d.id === a.deal_id);
+                          const resolvedCompanyId = a.company_id || dealMatch?.company_id || null;
+                          setSelectedActivity({ ...a, company_id: resolvedCompanyId });
+                          setActivityDialogOpen(true);
+                        }
+                      };
+                      return (
+                      <TableRow
+                        key={r.id}
+                        data-state={termSelected.has(r.id) ? "selected" : undefined}
+                        className="cursor-pointer"
+                        onClick={openRow}
+                      >
+                        <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             checked={termSelected.has(r.id)}
                             onCheckedChange={() => toggleOneTerm(r.id)}
@@ -859,34 +877,14 @@ export default function SellerPortal() {
                         <TableCell className="font-medium text-sm py-1.5">{r.empresa}</TableCell>
                         <TableCell className="text-sm py-1.5">{r.actividad}</TableCell>
                         <TableCell className="py-1.5"><Badge variant="outline" className="bg-green-100 text-green-800">{r.kind === "task" ? "Tarea" : "Actividad"}</Badge></TableCell>
-                        <TableCell className="text-right space-x-1 py-1.5">
-                          {r.kind === "task" && (
-                            <Button size="sm" variant="ghost" title="Abrir / Editar" onClick={() => { setSelectedTask(r.raw as CrmTask); setTaskDialogOpen(true); }}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Abrir detalle"
-                            onClick={() => {
-                              if (r.kind === "task") {
-                                setSelectedTask(r.raw as CrmTask);
-                                setTaskDialogOpen(true);
-                              } else {
-                                const a: any = r.raw;
-                                const dealMatch = deals.find((d: any) => d.id === a.deal_id);
-                                const resolvedCompanyId = a.company_id || dealMatch?.company_id || null;
-                                setSelectedActivity({ ...a, company_id: resolvedCompanyId });
-                                setActivityDialogOpen(true);
-                              }
-                            }}
-                          >
+                        <TableCell className="text-right space-x-1 py-1.5" onClick={(e) => e.stopPropagation()}>
+                          <Button size="sm" variant="ghost" title="Abrir detalle" onClick={openRow}>
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
