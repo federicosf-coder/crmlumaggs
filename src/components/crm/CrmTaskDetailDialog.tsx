@@ -470,6 +470,9 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                       const subType = (sub.task_type as TaskTypeKey) || "note";
                       const stm = TASK_TYPE_META[subType];
                       const SIcon = stm.Icon;
+                      const reasonLabel = subType === "meeting" ? "Reagendada"
+                        : subType === "call" ? "No contestó"
+                        : "Reprogramada";
                       return (
                         <li key={sub.id} className="flex items-center gap-2 rounded bg-background border px-2 py-1.5 text-xs">
                           <span className="text-[10px] text-muted-foreground w-4">{idx + 1}.</span>
@@ -481,6 +484,58 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                             </span>
                           )}
                           {sub.completed && <Check className="h-3.5 w-3.5 text-green-600" />}
+                          {!sub.completed && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-1.5 text-[10px]"
+                              title="Marcar terminada"
+                              onClick={() => updateTask.mutate({ id: sub.id, completed: true, completed_at: new Date().toISOString(), task_status: "done" } as any)}
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-1.5 text-[10px]"
+                            title={`Reprogramar (${reasonLabel})`}
+                            onClick={() => {
+                              const newStatus = subType === "meeting" ? "rescheduled" : subType === "call" ? "no_answered" : "reprogrammed";
+                              updateTask.mutate({
+                                id: sub.id,
+                                completed: true,
+                                completed_at: new Date().toISOString(),
+                                task_status: newStatus,
+                                title: `[${reasonLabel}] ${(sub.title || "").replace(/^\[[^\]]+\]\s*/, "")}`,
+                              } as any);
+                              setTimelineRescheduleCtx({
+                                origenTareaId: sub.id,
+                                taskType: subType,
+                                parentCategory: parentCategory,
+                                parentTaskId: task!.id,
+                                dealId: (sub as any).deal_id || dealId || "",
+                                contactId: (sub as any).contact_id || contactId || "",
+                                companyId: (sub as any).company_id || companyId || "",
+                                baseTitle: (sub.title || "").replace(/^\[[^\]]+\]\s*/, ""),
+                                description: (sub as any).description || null,
+                                priority: (sub as any).priority || "medium",
+                                reasonLabel,
+                              });
+                              setTimelineRescheduleOpen(true);
+                            }}
+                          >
+                            <CalendarIcon className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-1.5 text-[10px] text-red-600 hover:text-red-700"
+                            title="Eliminar"
+                            onClick={() => setDeleteSubId(sub.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </li>
                       );
                     })}
