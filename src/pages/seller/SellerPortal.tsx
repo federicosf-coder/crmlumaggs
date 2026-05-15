@@ -69,6 +69,26 @@ export default function SellerPortal() {
   const [selectedDeal, setSelectedDeal] = useState<CrmDeal | null>(null);
   const [dealStages, setDealStages] = useState<CrmPipelineStage[]>([]);
   const [dealDialogOpen, setDealDialogOpen] = useState(false);
+
+  const openDealModal = async (dealId: string) => {
+    const { data: deal, error } = await supabase
+      .from("crm_deals")
+      .select("*")
+      .eq("id", dealId)
+      .maybeSingle();
+    if (error || !deal) {
+      toast.error("No se pudo cargar el negocio");
+      return;
+    }
+    const { data: stages } = await supabase
+      .from("crm_pipeline_stages")
+      .select("*")
+      .eq("pipeline_id", (deal as any).pipeline_id)
+      .order("order_index", { ascending: true });
+    setSelectedDeal(deal as unknown as CrmDeal);
+    setDealStages((stages || []) as unknown as CrmPipelineStage[]);
+    setDealDialogOpen(true);
+  };
   const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
