@@ -1,26 +1,79 @@
-## Sí es posible y es un cambio sencillo
+## Resumen
+1. Confirmación al completar tarea desde checkbox (Completar / Completar y Crear Nueva).
+2. Reestructurar tipos: `seguimiento` y `cobranza` como **categorías padre**; los demás (`call`, `email`, `meeting`, `field_visit`, `whatsapp`, `note`) como **tipos de acción hija**. Una tarea puede tener `parent_category` + `task_type`.
+3. Soportar **secuencias / línea de tiempo**: una tarea padre (seguimiento o cobranza) agrupa varias sub-tareas en orden cronológico.
+4. UI: separar visualmente "Seguimiento" y "Cobranza" en una fila superior (selector de categoría) y debajo los tipos de acción.
 
-Actualmente el cálculo suma 30 días naturales a la fecha del documento (6 abril + 30 = 6 mayo). Para que el día del documento cuente como día 1 del crédito (6 abril → vence 5 mayo), basta con sumar **29 días** en lugar de 30 (regla general: `días_credito - 1`).
+---
 
-## Lugares a cambiar
+## Cambios de Base de Datos
 
-1. **`src/pages/documents/DocumentForm.tsx`**
-   - Auto-cálculo al crear factura por `tipo_pago` (línea ~306): cambiar `30` → `29`.
-   - Auto-cálculo del vencimiento por defecto (línea ~280): cambiar `7` → `6` para mantener la misma regla (o dejarlo si solo aplica a facturas con crédito).
+Migración nueva sobre `crm_tasks`:
 
-2. **`src/components/cobranza/FacturasListEmbedded.tsx`**
-   - Función `fechaVencimientoEfectiva` (línea ~95): cambiar `setDate(d.getDate() + 30)` → `+ 29`.
+```sql
+ALTER TABLE public.crm_tasks
+  ADD COLUMN parent_task_id uuid REFERENCES public.crm_tasks(id) ON DELETE CASCADE,
+  ADD COLUMN parent_category text CHECK (parent_category IN ('seguimiento','cobranza')) NULL,
+  ADD COLUMN sequence_order int DEFAULT 0;
 
-3. **Contado**: se queda igual (mismo día = fecha_documento).
+CREATE INDEX idx_crm_tasks_parent ON public.crm_tasks(parent_task_id);
+CREATE INDEX idx_crm_tasks_category ON public.crm_tasks(parent_category);
+```
 
-## Datos existentes
+Reglas:
+- Si `parent_category` está definido (seguimiento/cobranza), la tarea es **cabecera de línea de tiempo**.
+- Sub-tareas tienen `parent_task_id` apuntando a la cabecera y `task_type` con la acción concreta (call, email, etc.).
+- Tareas existentes con `task_type = 'follow_up'` o `'cobranza'` se migran a `parent_category` correspondiente con `task_type = NULL`.
 
-Las facturas ya guardadas en la base tienen `fecha_vencimiento` calculada con la regla anterior (+30). Tengo dos opciones:
+```sql
+UPDATE public.crm_tasks SET parent_category = 'seguimiento', task_type = NULL WHERE task_type = 'follow_up';
+UPDATE public.crm_tasks SET parent_category = 'cobranza',    task_type = NULL WHERE task_type = 'cobranza';
+```
 
-- **A) Solo aplicar la nueva regla a facturas nuevas** y dejar las históricas como están.
-- **B) Recalcular las facturas existentes** con tipo_pago crédito / crédito_cescemex mediante una migración que reste 1 día a `fecha_vencimiento` cuando coincida con `fecha_documento + 30`.
+RLS: hereda las políticas existentes de `crm_tasks` (no requiere cambios).
 
-Antes de implementar necesito confirmar:
+---
 
-1. ¿La regla "el día del documento cuenta como día 1" aplica también al vencimiento por defecto de cotizaciones/pedidos (los 7 días), o solo a facturas a crédito?
-2. ¿Recalculamos las facturas históricas (opción B) o solo aplicamos a nuevas (opción A)?
+## Cambios de Código
+
+### `src/lib/taskTypes.tsx`
+- Separar en dos grupos:
+  - `PARENT_CATEGORIES`: `seguimiento`, `cobranza` (con su color e icono).
+  - `ACTION_TYPES`: `call`, `email`, `meeting`, `field_visit`, `whatsapp`, `note` (sin `follow_up` ni `cobranza`).
+- Helpers: `getCategoryMeta(key)`, `getActionMeta(key)`.
+
+### `src/hooks/useCrmTasks.ts`
+- Añadir `parent_task_id`, `parent_category`, `sequence_order` al tipo `CrmTask`.
+- Nuevo hook `useTaskTimeline(parentId)` que devuelve sub-tareas ordenadas por `sequence_order` / `created_at`.
+
+### `src/components/crm/CrmTaskDetailDialog.tsx`
+- **Fila superior nueva**: selector de **Categoría** (Ninguna / Seguimiento / Cobranza) con dos botones grandes coloreados.
+- **Fila existente** (tipo de actividad): se mantiene pero solo muestra los 6 tipos de acción.
+- Si la tarea tiene `parent_category` (es cabecera): mostrar bloque "Línea de tiempo" con sub-tareas + botón "Agregar paso".
+- Si tiene `parent_task_id`: mostrar breadcrumb "Parte de: <título padre>".
+- **Confirmación al completar desde checkbox**: AlertDialog con dos botones "Completar" y "Completar y crear nueva". El segundo abre `CreateCrmTaskDialog` precargado con misma empresa/contacto/categoría.
+
+### `src/components/crm/CrmTaskItem.tsx`
+- Mismo `AlertDialog` al marcar checkbox.
+- Mostrar badge de categoría padre si aplica.
+
+### `src/components/crm/CreateCrmTaskDialog.tsx` y `CreateCrmActivityTaskDialog.tsx`
+- Aceptar props opcionales: `parentTaskId`, `parentCategory`, valores default para "crear siguiente paso de la secuencia".
+- Selector de categoría arriba + selector de tipo de acción.
+
+### Lugares con `TASK_TYPE_META` (CrmItemsPage, etc.)
+- Mostrar categoría padre además del tipo de acción cuando exista.
+
+---
+
+## Detalles técnicos
+
+- La confirmación usa `AlertDialog` de shadcn (ya disponible).
+- "Crear nueva" reusa `CreateCrmTaskDialog` con mismos `company_id`, `contact_id`, `deal_id`, `parent_category`, `parent_task_id` (si la completada era sub-tarea, la nueva queda en la misma secuencia).
+- Línea de tiempo: render simple vertical con icono coloreado por `task_type`, fecha y estado.
+- No se borra `follow_up`/`cobranza` del enum de `taskTypes.tsx` porque la BD aún puede tener referencias antiguas — se filtran del selector pero `TASK_TYPE_META` los mantiene para retrocompatibilidad de íconos.
+
+---
+
+## Pregunta antes de empezar
+Antes de migrar la BD necesito confirmar dos puntos. ¿Procedo con esta estructura o ajustamos algo?
