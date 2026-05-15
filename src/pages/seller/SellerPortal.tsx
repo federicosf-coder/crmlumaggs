@@ -31,6 +31,7 @@ const fmtNum = (n: number) => new Intl.NumberFormat("es-MX", { maximumFractionDi
 
 type Profile = { user_id: string; full_name: string | null };
 type Plaza = { id: string; nombre: string };
+type Team = { id: string; name: string; user_ids: string[] };
 
 export default function SellerPortal() {
   const { user, profile, hasAnyRole } = useAuth();
@@ -42,12 +43,14 @@ export default function SellerPortal() {
   const [from, setFrom] = useState<Date>(initFrom);
   const [to, setTo] = useState<Date>(initTo);
   const [ejecutivoId, setEjecutivoId] = useState<string>(sp("ejecutivo") || user?.id || "");
+  const [teamId, setTeamId] = useState<string>(sp("equipo") || "all");
   const [plazaId, setPlazaId] = useState<string>(sp("plaza") || "all");
   // Marcas independientes (toggles). Si ninguna está activa, se asume ambas.
   const [marcaChevron, setMarcaChevron] = useState<boolean>(sp("chevron") ? sp("chevron") === "1" : true);
   const [marcaPhillips, setMarcaPhillips] = useState<boolean>(sp("phillips") ? sp("phillips") === "1" : true);
 
   const [ejecutivos, setEjecutivos] = useState<Profile[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [plazas, setPlazas] = useState<Plaza[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -122,11 +125,12 @@ export default function SellerPortal() {
     p.set("from", format(from, "yyyy-MM-dd"));
     p.set("to", format(to, "yyyy-MM-dd"));
     if (ejecutivoId) p.set("ejecutivo", ejecutivoId);
+    if (teamId && teamId !== "all") p.set("equipo", teamId);
     if (plazaId) p.set("plaza", plazaId);
     p.set("chevron", marcaChevron ? "1" : "0");
     p.set("phillips", marcaPhillips ? "1" : "0");
     return p.toString();
-  }, [from, to, ejecutivoId, plazaId, marcaChevron, marcaPhillips]);
+  }, [from, to, ejecutivoId, teamId, plazaId, marcaChevron, marcaPhillips]);
 
   // Load filter options
   useEffect(() => {
@@ -135,6 +139,19 @@ export default function SellerPortal() {
       supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name").then(({ data }) => {
         setEjecutivos((data || []).sort((a: any, b: any) => (a.full_name || "").localeCompare(b.full_name || "", "es")) as any);
       });
+      // Cargar equipos + miembros (sólo gerentes/admins)
+      (async () => {
+        const { data: ts } = await supabase.from("teams").select("id, name").eq("is_active", true).order("name");
+        const tIds = (ts || []).map((t: any) => t.id);
+        const memMap: Record<string, string[]> = {};
+        if (tIds.length) {
+          const { data: mems } = await supabase.from("team_members").select("team_id, user_id").in("team_id", tIds);
+          (mems || []).forEach((m: any) => {
+            (memMap[m.team_id] ||= []).push(m.user_id);
+          });
+        }
+        setTeams((ts || []).map((t: any) => ({ id: t.id, name: t.name, user_ids: memMap[t.id] || [] })));
+      })();
     } else {
       setEjecutivos([{ user_id: user.id, full_name: profile?.full_name || "Yo" }]);
       setEjecutivoId(user.id);
@@ -144,8 +161,20 @@ export default function SellerPortal() {
     });
   }, [user, isManager, profile]);
 
+  // Lista de user_ids efectivos según ejecutivo + equipo. null = sin filtro (Todos).
+  const filterUserIds = useMemo<string[] | null>(() => {
+    if (teamId && teamId !== "all") {
+      const t = teams.find((x) => x.id === teamId);
+      return t ? t.user_ids : [];
+    }
+    if (!ejecutivoId || ejecutivoId === "all") return null;
+    return [ejecutivoId];
+  }, [teamId, teams, ejecutivoId]);
+
   const fetchData = async () => {
-    if (!ejecutivoId) return;
+    if (!ejecutivoId && (!teamId || teamId === "all")) return;
+    // Si seleccionaron equipo pero los miembros aún no cargan, esperar
+    if (teamId !== "all" && filterUserIds === null) return;
     setLoading(true);
     try {
       // Periodo inclusivo: [fromDate, toDateExclusive)
@@ -156,21 +185,37 @@ export default function SellerPortal() {
       const toIso = endOfDay(to).toISOString();
       const todayIso = format(new Date(), "yyyy-MM-dd");
 
+      const uIds = filterUserIds; // null = sin filtro, [] = ninguno, [...] = filtrar
+      const inList = uIds && uIds.length ? `(${uIds.join(",")})` : null;
+      // helper: si hay equipo vacío, no devolver nada
+      if (uIds && uIds.length === 0) {
+        setTasks([]); setDeals([]); setDocs([]); setPagos([]);
+        setFacturasPorVencer([]); setFacturasVencidasAll([]); setActividades([]);
+        setCompanyMap({}); setCompanyPhoneMap({}); setEjecutivoMap({});
+        setCobradoDeVencido(0);
+        setLoading(false);
+        return;
+      }
+
       // Tasks: traemos del ejecutivo (sin filtro de fecha porque necesitamos vencidas + creadas + completadas en periodo)
-      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at").eq("user_id", ejecutivoId).order("due_date", { ascending: true, nullsFirst: false }).limit(500);
+      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
+      if (uIds) tq = tq.in("user_id", uIds);
       const { data: tasksData } = await tq;
 
       // Deals con marca via pipeline join (filtrado por marca y owner)
-      let dq = supabase.from("crm_deals").select("id, title, created_at, company_id, value, stage_id, pipeline_id, pipeline_type, owner_id, tipo_negocio, potencial_unidades, cotizado_unidades, pedido_unidades, facturado_unidades, convertido_a_cliente, crm_pipelines!inner(marca)").eq("owner_id", ejecutivoId).in("crm_pipelines.marca", marcaPipelineList).order("created_at", { ascending: false }).limit(1000);
+      let dq = supabase.from("crm_deals").select("id, title, created_at, company_id, value, stage_id, pipeline_id, pipeline_type, owner_id, tipo_negocio, potencial_unidades, cotizado_unidades, pedido_unidades, facturado_unidades, convertido_a_cliente, crm_pipelines!inner(marca)").in("crm_pipelines.marca", marcaPipelineList).order("created_at", { ascending: false }).limit(1000);
+      if (uIds) dq = dq.in("owner_id", uIds);
       const { data: dealsData } = await dq;
 
       // Documentos en rango (cot/ped/fact). Periodo inclusivo [from, to+1).
-      let docQ = supabase.from("documentos").select("id, tipo_documento, fecha_documento, fecha_vencimiento, total, unidades_equivalentes_total, estatus_cotizacion, estatus_pedido, estatus_factura, empresa_id, plaza_id, ejecutivo_venta_id, created_by, numero_cotizacion, numero_pedido, numero_factura, saldo_pendiente_cobranza, estado_cobranza, empresa_vendedora, created_at").gte("fecha_documento", fromDate).lt("fecha_documento", toExclusive).eq("is_active", true).or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`).in("empresa_vendedora", marcasSeleccionadas as any).limit(2000);
+      let docQ = supabase.from("documentos").select("id, tipo_documento, fecha_documento, fecha_vencimiento, total, unidades_equivalentes_total, estatus_cotizacion, estatus_pedido, estatus_factura, empresa_id, plaza_id, ejecutivo_venta_id, created_by, numero_cotizacion, numero_pedido, numero_factura, saldo_pendiente_cobranza, estado_cobranza, empresa_vendedora, created_at").gte("fecha_documento", fromDate).lt("fecha_documento", toExclusive).eq("is_active", true).in("empresa_vendedora", marcasSeleccionadas as any).limit(2000);
+      if (inList) docQ = docQ.or(`ejecutivo_venta_id.in.${inList},created_by.in.${inList}`);
       if (plazaId !== "all") docQ = docQ.eq("plaza_id", plazaId);
       const { data: docsData } = await docQ;
 
       // Pagos cobrados en rango (periodo inclusivo [from, to+1))
-      let pq = supabase.from("cobranza_pagos").select("id, fecha_pago, monto_total, monto_aplicado, empresa_id, plaza_id, creado_por, estatus_pago, created_at").gte("fecha_pago", fromDate).lt("fecha_pago", toExclusive).eq("creado_por", ejecutivoId).limit(1000);
+      let pq = supabase.from("cobranza_pagos").select("id, fecha_pago, monto_total, monto_aplicado, empresa_id, plaza_id, creado_por, estatus_pago, created_at").gte("fecha_pago", fromDate).lt("fecha_pago", toExclusive).limit(1000);
+      if (uIds) pq = pq.in("creado_por", uIds);
       if (plazaId !== "all") pq = pq.eq("plaza_id", plazaId);
       const { data: pagosData } = await pq;
 
@@ -187,8 +232,8 @@ export default function SellerPortal() {
         .gt("fecha_vencimiento", todayIso)
         .lte("fecha_vencimiento", in30Iso)
         .in("empresa_vendedora", marcasSeleccionadas as any)
-        .or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`)
         .limit(2000);
+      if (inList) fpvQ = fpvQ.or(`ejecutivo_venta_id.in.${inList},created_by.in.${inList}`);
       if (plazaId !== "all") fpvQ = fpvQ.eq("plaza_id", plazaId);
       const { data: fpvRaw } = await fpvQ;
 
@@ -229,8 +274,8 @@ export default function SellerPortal() {
         .neq("estatus_factura", "pagada")
         .lte("fecha_vencimiento", fechaCorte)
         .in("empresa_vendedora", marcasSeleccionadas as any)
-        .or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`)
         .limit(2000);
+      if (inList) venQ = venQ.or(`ejecutivo_venta_id.in.${inList},created_by.in.${inList}`);
       if (plazaId !== "all") venQ = venQ.eq("plaza_id", plazaId);
       const { data: venRaw } = await venQ;
 
@@ -269,8 +314,8 @@ export default function SellerPortal() {
           .neq("estatus_factura", "cancelada")
           .lt("fecha_vencimiento", todayIso)
           .in("empresa_vendedora", marcasSeleccionadas as any)
-          .or(`ejecutivo_venta_id.eq.${ejecutivoId},created_by.eq.${ejecutivoId}`)
           .limit(5000);
+        if (inList) venTodayQ = venTodayQ.or(`ejecutivo_venta_id.in.${inList},created_by.in.${inList}`);
         if (plazaId !== "all") venTodayQ = venTodayQ.eq("plaza_id", plazaId);
         const { data: venTodayDocs } = await venTodayQ;
         const venTodayIds = (venTodayDocs || []).map((d: any) => d.id);
@@ -301,10 +346,10 @@ export default function SellerPortal() {
       let actQ = supabase
         .from("crm_activities")
         .select("id, type, activity_date, created_at, user_id, company_id, deal_id")
-        .eq("user_id", ejecutivoId)
         .gte("activity_date", fromIso)
         .lte("activity_date", toIso)
         .limit(2000);
+      if (uIds) actQ = actQ.in("user_id", uIds);
       const { data: actData } = await actQ;
 
       // Company names
@@ -354,7 +399,7 @@ export default function SellerPortal() {
     }
   };
 
-  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, [ejecutivoId, from, to, plazaId, marcaChevron, marcaPhillips]);
+  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, [ejecutivoId, teamId, filterUserIds, from, to, plazaId, marcaChevron, marcaPhillips]);
 
   // Métricas
   const now = new Date();
