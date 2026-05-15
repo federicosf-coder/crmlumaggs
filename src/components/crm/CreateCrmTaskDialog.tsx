@@ -1151,6 +1151,58 @@ export function CreateCrmTaskDialog({
       </DialogContent>
     </Dialog>
     <RescheduleActivityDialog open={rescheduleOpen} onOpenChange={setRescheduleOpen} context={rescheduleCtx} />
+    <Dialog open={attachOpen} onOpenChange={setAttachOpen}>
+      <DialogContent className="max-w-lg p-0 overflow-hidden">
+        <DialogHeader className="px-5 py-4 bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 border-b">
+          <DialogTitle className="text-base font-light tracking-wide flex items-center gap-2">
+            <Paperclip className="h-4 w-4" />
+            Adjuntar documento de la empresa
+          </DialogTitle>
+        </DialogHeader>
+        <div className="px-5 py-4 max-h-[60vh] overflow-y-auto">
+          {loadingDocs ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" /> Cargando documentos...
+            </div>
+          ) : !companyDocs || companyDocs.length === 0 ? (
+            <p className="text-sm text-muted-foreground font-light text-center py-8">
+              No hay documentos con PDF disponibles para esta empresa.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {companyDocs.map((d: any) => {
+                const checked = !!attachedDocs.find((x) => x.id === d.id);
+                return (
+                  <li key={d.id}>
+                    <label className={cn(
+                      "flex items-center gap-3 p-2.5 rounded-md border cursor-pointer transition-colors",
+                      checked ? "bg-blue-50 dark:bg-blue-950/30 border-blue-300" : "hover:bg-muted/50"
+                    )}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleAttachDoc(d)}
+                        className="h-4 w-4"
+                      />
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-light truncate">{docLabel(d)}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">
+                          {Number(d.total || 0).toLocaleString("es-MX", { style: "currency", currency: "MXN" })}
+                        </div>
+                      </div>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+        <div className="border-t bg-muted/30 px-5 py-3 flex justify-end gap-2">
+          <Button size="sm" variant="outline" onClick={() => setAttachOpen(false)}>Listo</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
