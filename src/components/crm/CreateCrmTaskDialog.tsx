@@ -444,6 +444,60 @@ export function CreateCrmTaskDialog({
             </div>
           </section>
           {!isWhatsApp && !isEmail && (
+          <>
+          {isCall && (
+            <section className="space-y-2 rounded-lg border bg-muted/30 p-3">
+              {!contactId && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-light text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                  <UserPlus className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>Selecciona un contacto en <strong>Vincular a Contacto</strong> para autollenar el teléfono.</span>
+                </div>
+              )}
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-12 sm:col-span-6 space-y-1.5">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Contacto a llamar</Label>
+                  <div className="flex items-center gap-2 h-9 px-3 rounded-md border bg-background font-light text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="truncate">{callContactName || "—"}</span>
+                  </div>
+                </div>
+                <div className="col-span-12 sm:col-span-6 space-y-1.5">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Teléfono usado</Label>
+                  <div className="flex gap-1">
+                    {callPhoneOptions.length > 1 ? (
+                      <Select value={callPhone} onValueChange={setCallPhone}>
+                        <SelectTrigger className="h-9 font-light flex-1 min-w-0">
+                          <SelectValue placeholder="Selecciona teléfono" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {callPhoneOptions.map((o, i) => (
+                            <SelectItem key={`${o.label}-${i}`} value={String(o.value)}>
+                              <span className="font-light">{o.label}: {o.value}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={callPhone}
+                        onChange={(e) => setCallPhone(e.target.value)}
+                        placeholder="Captura el teléfono"
+                        className="font-light h-9 flex-1 min-w-0"
+                      />
+                    )}
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={copyPhone} title="Copiar teléfono" disabled={!callPhone}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" size="icon" className="h-9 w-9 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white" asChild disabled={!callPhone}>
+                      <a href={callPhone ? `tel:${callPhone}` : undefined} title="Llamar">
+                        <Phone className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
           <section className="space-y-2">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Título *</div>
             <div className="flex gap-2">
@@ -458,6 +512,7 @@ export function CreateCrmTaskDialog({
               <DictationButton currentText={title} onTranscript={setTitle} />
             </div>
           </section>
+          </>
           )}
           {isEmail && (
             <section className="space-y-3 rounded-lg border bg-muted/30 p-3">
