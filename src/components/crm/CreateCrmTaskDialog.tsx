@@ -589,7 +589,7 @@ export function CreateCrmTaskDialog({
         {/* Header con gradiente como el modal de detalle */}
         <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b shrink-0">
           <DialogTitle className="text-lg font-semibold tracking-tight">
-            {parentTaskId ? "Agregar paso a la secuencia" : "Crear Actividad / Tarea"}
+            {isEditing ? "Editar actividad" : (parentTaskId ? "Agregar paso a la secuencia" : "Crear Actividad / Tarea")}
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-0.5 font-light">
             Completa los datos para registrar la nueva actividad.
