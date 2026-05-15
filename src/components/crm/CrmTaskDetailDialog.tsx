@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { CrmTask, useUpdateCrmTask, useDeleteCrmTask } from "@/hooks/useCrmTasks";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   Trash2, Calendar as CalendarIcon, User, FileText, Link2,
-  MessageCircle, Loader2, Check, ChevronLeft, ChevronRight,
+  MessageCircle, Loader2, Check, ChevronLeft, ChevronRight, Plus, Pencil, Mail,
 } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
+import { ContactFormDialog, ContactEditData } from "@/components/ContactFormDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +48,10 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const deleteTask = useDeleteCrmTask();
   const { toast } = useToast();
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [contactFormOpen, setContactFormOpen] = useState(false);
+  const [contactFormEdit, setContactFormEdit] = useState<ContactEditData | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -100,7 +104,12 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const { data: contactsAll } = useQuery({
     queryKey: ["contacts-picker-task"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name, company_id").eq("is_active", true).order("first_name");
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name, email, email2, phone, mobile, whatsapp_phone, tel_emp, job_title, department, company_id, notes, comm_email, comm_email2, comm_whatsapp, comm_cel, comm_tel, comm_tel_emp, sede, plaza_id")
+        .eq("is_active", true)
+        .order("first_name")
+        .limit(5000);
       return data || [];
     },
   });
@@ -378,12 +387,87 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Contacto</label>
-                  <SearchableSelect
-                    value={contactId || "none"}
-                    onValueChange={handleSelectContact}
-                    options={contactOptions}
-                    placeholder="Seleccionar contacto..."
-                  />
+                  <div className="flex items-center gap-1">
+                    <div className="flex-1 min-w-0">
+                      <SearchableSelect
+                        value={contactId || "none"}
+                        onValueChange={handleSelectContact}
+                        options={contactOptions}
+                        placeholder="Seleccionar contacto..."
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-9 w-9 shrink-0"
+                      title="Nuevo contacto"
+                      onClick={() => { setContactFormEdit(null); setContactFormOpen(true); }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-9 w-9 shrink-0"
+                      title="Editar contacto"
+                      disabled={!contactId}
+                      onClick={() => {
+                        const c: any = contactsAll?.find((x: any) => x.id === contactId);
+                        if (!c) return;
+                        setContactFormEdit({
+                          id: c.id,
+                          first_name: c.first_name || "",
+                          last_name: c.last_name || "",
+                          email: c.email ?? null,
+                          email2: c.email2 ?? null,
+                          phone: c.phone ?? null,
+                          mobile: c.mobile ?? null,
+                          whatsapp_phone: c.whatsapp_phone ?? null,
+                          tel_emp: c.tel_emp ?? null,
+                          job_title: c.job_title ?? null,
+                          department: c.department ?? null,
+                          company_id: c.company_id ?? null,
+                          notes: c.notes ?? null,
+                          comm_email: c.comm_email ?? null,
+                          comm_email2: c.comm_email2 ?? null,
+                          comm_whatsapp: c.comm_whatsapp ?? null,
+                          comm_cel: c.comm_cel ?? null,
+                          comm_tel: c.comm_tel ?? null,
+                          comm_tel_emp: c.comm_tel_emp ?? null,
+                          sede: c.sede ?? null,
+                          plaza_id: c.plaza_id ?? null,
+                        });
+                        setContactFormOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {contactId && (() => {
+                    const c: any = contactsAll?.find((x: any) => x.id === contactId);
+                    if (!c) return null;
+                    const wa = c.whatsapp_phone || c.mobile || c.phone;
+                    const em = c.email || c.email2;
+                    if (!wa && !em) return null;
+                    return (
+                      <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground pl-1">
+                        {wa && (
+                          <div className="flex items-center gap-1.5">
+                            <MessageCircle className="h-3 w-3 text-green-600" />
+                            <span>{wa}</span>
+                          </div>
+                        )}
+                        {em && (
+                          <div className="flex items-center gap-1.5">
+                            <Mail className="h-3 w-3 text-blue-600" />
+                            <span className="truncate">{em}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </section>
@@ -523,6 +607,20 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
           defaultMessage={task.mensaje_sugerido || undefined}
           context={{ company_id: companyId, contact_id: contactId, deal_id: dealId }}
           onSent={() => updateTask.mutate({ id: task.id, whatsapp_status: "enviado", whatsapp_last_sent_at: new Date().toISOString() })}
+        />
+
+        <ContactFormDialog
+          open={contactFormOpen}
+          onOpenChange={setContactFormOpen}
+          defaultCompanyId={companyId || undefined}
+          editData={contactFormEdit}
+          onCreated={async (newId) => {
+            await queryClient.invalidateQueries({ queryKey: ["contacts-picker-task"] });
+            if (!contactFormEdit) {
+              setContactId(newId);
+              triggerSave({ contact_id: newId });
+            }
+          }}
         />
       </DialogContent>
     </Dialog>
