@@ -388,18 +388,23 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
         {/* Header */}
         <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
           <div className="flex items-start gap-3">
-            <Checkbox
-              checked={completed}
-              onCheckedChange={(v) => {
-                if (completed && !v) {
-                  // descompletar directo
-                  handleCompletedChange(false);
-                } else if (!completed && v) {
-                  setCompleteDialogOpen(true);
-                }
+            <button
+              type="button"
+              onClick={() => {
+                if (completed) handleCompletedChange(false);
+                else setCompleteDialogOpen(true);
               }}
-              className="h-5 w-5 mt-1.5"
-            />
+              className={cn(
+                "mt-1 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors shrink-0",
+                completed
+                  ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700"
+                  : "bg-background text-foreground border-input hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-700"
+              )}
+              title={completed ? "Marcar como pendiente" : "Marcar como completada"}
+            >
+              <Check className="h-3.5 w-3.5" />
+              {completed ? "Completada" : "Marcar completada"}
+            </button>
             <div className="flex-1 min-w-0">
               <DialogTitle asChild>
                 <input
