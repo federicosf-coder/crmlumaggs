@@ -301,7 +301,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
             <div className="space-y-1.5">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Tipo *</Label>
               <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
-                {TASK_TYPES.map(({ key, label, Icon }) => {
+                {TASK_TYPES.map(({ key, label, Icon, soft, active }) => {
                   const selected = taskType === key;
                   return (
                     <button
@@ -311,15 +311,12 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
                       title={label}
                       className={cn(
                         "flex flex-col items-center justify-center gap-0.5 rounded-md border p-1.5 transition-all",
-                        "hover:border-primary/50 hover:bg-accent/50",
-                        selected
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background text-muted-foreground"
+                        selected ? active : soft
                       )}
                       aria-pressed={selected}
                     >
                       <Icon className="h-4 w-4" />
-                      <span className={cn("text-[10px] font-medium leading-tight", selected && "text-primary")}>{label}</span>
+                      <span className="text-[10px] font-medium leading-tight">{label}</span>
                     </button>
                   );
                 })}
