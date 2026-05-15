@@ -203,7 +203,7 @@ export function CreateCrmTaskDialog({
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} maxLength={2000} />
           </div>
           <div className="grid grid-cols-12 gap-3">
-            <div className="space-y-2 col-span-7">
+            <div className="space-y-2 col-span-8">
               <Label>Fecha</Label>
               <div className="flex gap-2 min-w-0">
                 <Popover>
@@ -243,7 +243,7 @@ export function CreateCrmTaskDialog({
                 />
               </div>
             </div>
-            <div className="space-y-2 col-span-5">
+            <div className="space-y-2 col-span-4">
               <Label>Prioridad</Label>
               <Select value={priority} onValueChange={setPriority}>
                 <SelectTrigger className="h-9">
