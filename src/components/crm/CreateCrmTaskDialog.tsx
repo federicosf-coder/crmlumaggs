@@ -205,21 +205,23 @@ export function CreateCrmTaskDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Fecha</Label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 min-w-0">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     type="button"
                     variant="outline"
                     className={cn(
-                      "flex-1 justify-start text-left font-normal h-9",
+                      "flex-1 min-w-0 justify-start text-left font-normal h-9 px-2 truncate",
                       !dueDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate
-                      ? format(parseISO(dueDate.slice(0, 10)), "d MMM yyyy", { locale: es })
-                      : <span>Selecciona fecha</span>}
+                    <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                    <span className="truncate">
+                      {dueDate
+                        ? format(parseISO(dueDate.slice(0, 10)), "d MMM yyyy", { locale: es })
+                        : "Selecciona fecha"}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -237,7 +239,7 @@ export function CreateCrmTaskDialog({
                   type="time"
                   value={dueTime}
                   onChange={(e) => setDueTime(e.target.value)}
-                  className="w-[110px] h-9"
+                  className="w-[100px] shrink-0 h-9 px-2"
                 />
               </div>
             </div>
