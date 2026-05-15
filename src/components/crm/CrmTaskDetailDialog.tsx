@@ -608,6 +608,20 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
           context={{ company_id: companyId, contact_id: contactId, deal_id: dealId }}
           onSent={() => updateTask.mutate({ id: task.id, whatsapp_status: "enviado", whatsapp_last_sent_at: new Date().toISOString() })}
         />
+
+        <ContactFormDialog
+          open={contactFormOpen}
+          onOpenChange={setContactFormOpen}
+          defaultCompanyId={companyId || undefined}
+          editData={contactFormEdit}
+          onCreated={async (newId) => {
+            await queryClient.invalidateQueries({ queryKey: ["contacts-picker-task"] });
+            if (!contactFormEdit) {
+              setContactId(newId);
+              triggerSave({ contact_id: newId });
+            }
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
