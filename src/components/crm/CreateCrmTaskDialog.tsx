@@ -545,6 +545,7 @@ export function CreateCrmTaskDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 overflow-hidden">
         {/* Header con gradiente como el modal de detalle */}
