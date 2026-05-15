@@ -361,6 +361,32 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
         <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-0 overflow-hidden">
           {/* Left column */}
           <div className="md:col-span-2 overflow-y-auto p-5 space-y-5 border-r">
+            {/* Tipo de actividad */}
+            <section>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Tipo de actividad</div>
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                {TASK_TYPES.map(({ key, label, Icon, soft, active }) => {
+                  const sel = taskType === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleTaskTypeChange(key)}
+                      title={label}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-0.5 rounded-md border p-1.5 transition-all",
+                        sel ? active : soft
+                      )}
+                      aria-pressed={sel}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-[10px] font-medium leading-tight">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
             {/* Description */}
             <section>
               <div className="flex items-center gap-2 mb-2 text-sm font-medium text-muted-foreground">
