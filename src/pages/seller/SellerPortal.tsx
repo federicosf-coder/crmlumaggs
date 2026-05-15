@@ -956,15 +956,16 @@ export default function SellerPortal() {
                   const statusColor = t.completed ? "bg-green-100 text-green-800" : isVenc ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800";
                   const statusText = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
                   return (
-                    <TableRow key={t.id}>
+                    <TableRow
+                      key={t.id}
+                      className="cursor-pointer"
+                      onClick={() => { setSelectedTask(t as CrmTask); setTaskDialogOpen(true); }}
+                    >
                       <TableCell className="font-medium text-sm py-1.5">{companyMap[t.company_id] || "—"}</TableCell>
                       <TableCell className="text-sm py-1.5">{t.title}{t.description && <p className="text-xs text-muted-foreground truncate max-w-[300px]">{t.description}</p>}</TableCell>
                       <TableCell className="text-xs py-1.5">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
                       <TableCell className="py-1.5"><Badge variant="outline" className={statusColor}>{statusText}</Badge></TableCell>
-                      <TableCell className="text-right space-x-1 py-1.5">
-                        <Button size="sm" variant="ghost" title="Abrir / Editar" onClick={() => { setSelectedTask(t as CrmTask); setTaskDialogOpen(true); }}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                      <TableCell className="text-right space-x-1 py-1.5" onClick={(e) => e.stopPropagation()}>
                         {!t.completed && <Button size="sm" variant="ghost" onClick={() => completarTarea(t.id)}><CheckCircle2 className="h-3.5 w-3.5" /></Button>}
                         {!t.completed && <Button size="sm" variant="ghost" onClick={() => reprogramarTarea(t.id)}><Clock className="h-3.5 w-3.5" /></Button>}
                         {t.deal_id && <Button size="sm" variant="ghost" onClick={() => window.open("/crm", "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>}
