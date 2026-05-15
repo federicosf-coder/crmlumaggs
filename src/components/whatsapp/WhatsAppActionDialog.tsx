@@ -17,6 +17,8 @@ import {
 import { getAttachmentPublicUrl, isImageMime, listTemplateAttachments } from "@/lib/templates";
 import { Badge } from "@/components/ui/badge";
 import { useResolvedTemplate } from "@/hooks/useResolvedTemplate";
+import { TemplatePickerDialog, WaPickerTemplate } from "@/components/whatsapp/TemplatePickerDialog";
+import { Input } from "@/components/ui/input";
 
 interface Props {
   open: boolean;
@@ -37,6 +39,43 @@ export function WhatsAppActionDialog({
   const { user } = useAuth();
   const [selectedTplId, setSelectedTplId] = useState<string>("custom");
   const [message, setMessage] = useState<string>(defaultMessage || "");
+
+  // ─── Envío por API mediante plantilla aprobada (Meta Cloud) ───
+  const [tplPickerOpen, setTplPickerOpen] = useState(false);
+  const [pickedTpl, setPickedTpl] = useState<{ id: string; name: string; language: string | null; body: string | null; business_phone_number_id: string | null } | null>(null);
+  const [tplVars, setTplVars] = useState<string[]>([]);
+  const [sendingApi, setSendingApi] = useState(false);
+
+  const { data: metaTemplates = [] } = useQuery({
+    queryKey: ["wa-meta-templates-picker"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("whatsapp_templates" as any)
+        .select("id,name,language,status,category,body,business_phone_number_id")
+        .eq("status", "APPROVED");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: open,
+  });
+
+  const pickerTemplates: WaPickerTemplate[] = useMemo(
+    () => metaTemplates.map((t: any) => ({
+      id: t.id, name: t.name, language: t.language, category: t.category, status: t.status, body: t.body,
+    })),
+    [metaTemplates]
+  );
+
+  const expectedVars = useMemo(() => {
+    const body = pickedTpl?.body || "";
+    const matches = body.match(/\{\{\s*(\d+)\s*\}\}/g) || [];
+    let max = 0;
+    for (const m of matches) {
+      const n = parseInt(m.replace(/[^\d]/g, ""), 10);
+      if (!Number.isNaN(n) && n > max) max = n;
+    }
+    return max;
+  }, [pickedTpl]);
 
   const { data: templates } = useQuery({
     queryKey: ["whatsapp-msg-templates", templateType],
@@ -139,16 +178,57 @@ export function WhatsAppActionDialog({
 
   const handleSendApi = async () => {
     if (!normalized) { toast.error("Sin teléfono válido"); return; }
-    const { data, error } = await supabase.functions.invoke("whatsapp-send-message", {
-      body: { to: normalized, message: messageWithLinks },
+    setTplPickerOpen(true);
+  };
+
+  const onPickTemplate = (id: string) => {
+    const tpl = metaTemplates.find((t: any) => t.id === id);
+    if (!tpl) return;
+    setPickedTpl({
+      id: tpl.id, name: tpl.name, language: tpl.language ?? "es_MX",
+      body: tpl.body, business_phone_number_id: tpl.business_phone_number_id ?? null,
     });
-    if (error) { toast.error(error.message); return; }
-    const waMessageId =
-      (data as any)?.wa_message_id ??
-      (data as any)?.messages?.[0]?.id ??
-      null;
+    const body = (tpl.body || "") as string;
+    const matches = body.match(/\{\{\s*(\d+)\s*\}\}/g) || [];
+    let max = 0;
+    for (const m of matches) {
+      const n = parseInt(m.replace(/[^\d]/g, ""), 10);
+      if (!Number.isNaN(n) && n > max) max = n;
+    }
+    // Prefill primera variable con nombre del contacto / empresa si existe
+    const prefill = Array(max).fill("");
+    if (max >= 1) prefill[0] = variables.contacto_nombre || variables.empresa_nombre || "";
+    setTplVars(prefill);
+    setTplPickerOpen(false);
+  };
+
+  const sendApiTemplate = async () => {
+    if (!normalized || !pickedTpl) return;
+    if (expectedVars > 0 && tplVars.slice(0, expectedVars).some((v) => !v?.trim())) {
+      toast.error(`Esta plantilla requiere ${expectedVars} variable(s). Completa todos los campos.`);
+      return;
+    }
+    const components = expectedVars > 0
+      ? [{ type: "body", parameters: tplVars.slice(0, expectedVars).map((v) => ({ type: "text", text: v.trim() })) }]
+      : undefined;
+    setSendingApi(true);
+    const { data, error } = await supabase.functions.invoke("whatsapp-send-message", {
+      body: {
+        to_phone: normalized,
+        kind: "template",
+        template_name: pickedTpl.name,
+        template_language: pickedTpl.language ?? "es_MX",
+        ...(pickedTpl.business_phone_number_id ? { business_phone_number_id: pickedTpl.business_phone_number_id } : {}),
+        ...(components ? { template_components: components } : {}),
+      },
+    });
+    setSendingApi(false);
+    if (error) { toast.error(error.message ?? "No se pudo enviar plantilla"); return; }
+    const waMessageId = (data as any)?.wa_message_id ?? (data as any)?.messages?.[0]?.id ?? null;
     await finishLog("enviado", { channel: "api", wa_message_id: waMessageId });
-    toast.success("Mensaje enviado por API");
+    toast.success("Plantilla enviada por API");
+    setPickedTpl(null);
+    setTplVars([]);
     onOpenChange(false);
   };
 
@@ -247,6 +327,57 @@ export function WhatsAppActionDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <TemplatePickerDialog
+        open={tplPickerOpen}
+        onOpenChange={setTplPickerOpen}
+        templates={pickerTemplates}
+        selectedId={pickedTpl?.id}
+        onSelect={onPickTemplate}
+      />
+
+      <Dialog open={!!pickedTpl} onOpenChange={(o) => { if (!o) { setPickedTpl(null); setTplVars([]); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Send className="h-5 w-5 text-primary" /> Enviar plantilla por API</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm">
+              <div className="font-medium">{pickedTpl?.name}</div>
+              <div className="text-xs text-muted-foreground">{pickedTpl?.language}</div>
+            </div>
+            {pickedTpl?.body && (
+              <div className="rounded-lg bg-[#dcf8c6] dark:bg-emerald-900/40 text-foreground p-3 text-sm whitespace-pre-wrap shadow-sm">
+                {pickedTpl.body}
+              </div>
+            )}
+            {expectedVars > 0 && (
+              <div className="space-y-2">
+                <Label>Variables ({expectedVars})</Label>
+                {Array.from({ length: expectedVars }).map((_, i) => (
+                  <Input
+                    key={i}
+                    placeholder={`{{${i + 1}}}`}
+                    value={tplVars[i] || ""}
+                    onChange={(e) => {
+                      const next = [...tplVars];
+                      next[i] = e.target.value;
+                      setTplVars(next);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Para: {normalized ? `+${normalized}` : "—"}</p>
+          </div>
+          <DialogFooter className="flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setTplPickerOpen(true)}>Cambiar plantilla</Button>
+            <Button onClick={sendApiTemplate} disabled={sendingApi}>
+              <Send className="h-4 w-4 mr-1" /> {sendingApi ? "Enviando…" : "Enviar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
