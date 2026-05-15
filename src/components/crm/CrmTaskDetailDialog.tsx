@@ -26,6 +26,7 @@ import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog
 import { ContactFormDialog, ContactEditData } from "@/components/ContactFormDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { TASK_TYPES, TASK_TYPE_META, TaskTypeKey } from "@/lib/taskTypes";
 
 interface CrmTaskDetailDialogProps {
   task: CrmTask | null;
