@@ -912,6 +912,13 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
           context={timelineRescheduleCtx}
         />
 
+        {/* Ver/Editar paso de la línea de tiempo */}
+        <CrmTaskDetailDialog
+          task={viewSubTask}
+          open={!!viewSubTask}
+          onOpenChange={(o) => !o && setViewSubTask(null)}
+        />
+
         {/* Confirmar eliminación de paso */}
         <AlertDialog open={!!deleteSubId} onOpenChange={(o) => !o && setDeleteSubId(null)}>
           <AlertDialogContent>
