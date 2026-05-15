@@ -241,18 +241,18 @@ export function CreateCrmTaskDialog({
               </Select>
             </div>
           </div>
-          {!defaultDealId && (
-            <div className="space-y-2">
-              <Label>Vincular a Negocio</Label>
-              <Select value={dealId} onValueChange={setDealId}>
-                <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Ninguno</SelectItem>
-                  {deals?.map((d) => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label>Vincular a Negocio</Label>
+            <SearchableSelect
+              value={dealId || "none"}
+              onValueChange={(v) => setDealId(v === "none" ? "" : v)}
+              options={[
+                { value: "none", label: "Ninguno" },
+                ...((deals || []).map((d: any) => ({ value: d.id, label: d.title }))),
+              ]}
+              placeholder="Buscar negocio..."
+            />
+          </div>
           <div className="space-y-2">
             <Label>Vincular a Empresa</Label>
             <SearchableSelect
