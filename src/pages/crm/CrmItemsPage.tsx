@@ -663,7 +663,7 @@ export default function CrmItemsPage() {
                       onClick={() => toggleClientType(k)}
                       className={cn(
                         "flex items-center gap-1 text-xs rounded border px-2 py-1 transition",
-                        sel ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-accent",
+                        sel ? (M as any).active : (M as any).soft,
                       )}
                     >
                       <M.Icon className="h-3 w-3" /> {M.label}
