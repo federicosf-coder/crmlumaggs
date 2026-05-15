@@ -1057,7 +1057,7 @@ export default function SellerPortal() {
                 }), limCreadas, pageCreadas).map(t => {
                   const venc = t.due_date ? new Date(t.due_date) : null;
                   const isVenc = venc && !t.completed && venc < todayStart;
-                  const statusDot = t.completed ? "bg-green-500" : isVenc ? "bg-red-500" : "bg-yellow-500";
+                  const statusCls = t.completed ? "bg-green-100 text-green-800 border-green-300" : isVenc ? "bg-red-100 text-red-800 border-red-300" : "bg-yellow-100 text-yellow-800 border-yellow-300";
                   const statusText = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
                   const cat = t.parent_category === "seguimiento" ? { label: "Seguimiento", cls: "bg-blue-50 text-blue-700 border-blue-200" }
                     : t.parent_category === "cobranza" ? { label: "Cobranza", cls: "bg-amber-50 text-amber-700 border-amber-200" }
@@ -1087,10 +1087,7 @@ export default function SellerPortal() {
                       <TableCell className="py-1.5"><span className="inline-flex items-center gap-1 text-xs"><span>{tipoCfg.emoji}</span>{tipoCfg.label}</span></TableCell>
                       <TableCell className="text-xs py-1.5">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
                       <TableCell className="py-1.5">
-                        <span className="inline-flex items-center gap-1.5 text-xs" title={statusText}>
-                          <span className={cn("h-2.5 w-2.5 rounded-full", statusDot)} />
-                          {statusText}
-                        </span>
+                        <Badge variant="outline" className={cn("text-xs", statusCls)}>{statusText}</Badge>
                       </TableCell>
                       <TableCell className="text-right py-1.5" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
