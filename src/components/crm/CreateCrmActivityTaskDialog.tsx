@@ -13,31 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Loader2, X, Phone, Mail, CalendarCheck, Car, MessageCircle, Banknote, RefreshCw, FileText,
-} from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { format, addHours, startOfHour } from "date-fns";
 import { cn } from "@/lib/utils";
-
-type TaskTypeKey =
-  | "call" | "email" | "meeting" | "field_visit"
-  | "whatsapp" | "cobranza" | "follow_up" | "note";
-
-const TASK_TYPES: { key: TaskTypeKey; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-  { key: "call",        label: "Llamada",     Icon: Phone },
-  { key: "email",       label: "Email",       Icon: Mail },
-  { key: "meeting",     label: "Reunión",     Icon: CalendarCheck },
-  { key: "field_visit", label: "Visita",      Icon: Car },
-  { key: "whatsapp",    label: "WhatsApp",    Icon: MessageCircle },
-  { key: "cobranza",    label: "Cobranza",    Icon: Banknote },
-  { key: "follow_up",   label: "Seguimiento", Icon: RefreshCw },
-  { key: "note",        label: "Nota",        Icon: FileText },
-];
-
-const TASK_TYPE_LABEL: Record<TaskTypeKey, string> = TASK_TYPES.reduce((acc, t) => {
-  acc[t.key] = t.label;
-  return acc;
-}, {} as Record<TaskTypeKey, string>);
+import { TASK_TYPES, TASK_TYPE_LABEL, TaskTypeKey } from "@/lib/taskTypes";
 
 /** Próxima hora redonda (si son las 14:23 → 15:00). */
 function nextRoundHourLocal(): string {
