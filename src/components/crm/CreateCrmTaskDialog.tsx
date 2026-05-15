@@ -70,6 +70,7 @@ export function CreateCrmTaskDialog({
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState("medium");
   const [dealId, setDealId] = useState(defaultDealId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
@@ -85,6 +86,7 @@ export function CreateCrmTaskDialog({
       setDealId(defaultDealId || "");
       setContactId(defaultContactId || "");
       setCompanyId(defaultCompanyId || "");
+      setDueTime("");
     }
   }, [open, defaultTitle, defaultParentCategory, defaultTaskType, defaultDealId, defaultContactId, defaultCompanyId]);
 
@@ -122,7 +124,7 @@ export function CreateCrmTaskDialog({
         user_id: session.user.id,
         title,
         description: description || null,
-        due_date: dueDate || null,
+        due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : null,
         priority,
         deal_id: dealId && dealId !== "none" ? dealId : null,
         contact_id: contactId && contactId !== "none" ? contactId : null,
@@ -135,7 +137,7 @@ export function CreateCrmTaskDialog({
         onSuccess: () => {
           toast({ title: "Tarea creada" });
           onOpenChange(false);
-          setTitle(""); setDescription(""); setDueDate(""); setPriority("medium");
+          setTitle(""); setDescription(""); setDueDate(""); setDueTime(""); setPriority("medium");
           setDealId(defaultDealId || ""); setContactId(defaultContactId || ""); setCompanyId(defaultCompanyId || "");
           setParentCategory(defaultParentCategory); setTaskType(defaultTaskType);
         },
@@ -201,13 +203,14 @@ export function CreateCrmTaskDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Fecha</Label>
+              <div className="flex gap-2">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     type="button"
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal h-9",
+                      "flex-1 justify-start text-left font-normal h-9",
                       !dueDate && "text-muted-foreground"
                     )}
                   >
@@ -228,6 +231,13 @@ export function CreateCrmTaskDialog({
                   />
                 </PopoverContent>
               </Popover>
+                <Input
+                  type="time"
+                  value={dueTime}
+                  onChange={(e) => setDueTime(e.target.value)}
+                  className="w-[110px] h-9"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Prioridad</Label>
