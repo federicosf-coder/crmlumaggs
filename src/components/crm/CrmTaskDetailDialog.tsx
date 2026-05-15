@@ -482,51 +482,24 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                 {(timeline?.length ?? 0) === 0 ? (
                   <p className="text-xs text-muted-foreground">Aún no hay pasos. Agrega el primero.</p>
                 ) : (
-                  <ol className="space-y-1.5">
-                    {timeline!.map((sub, idx) => {
-                      const subType = (sub.task_type as TaskTypeKey) || "note";
-                      const stm = TASK_TYPE_META[subType];
-                      const SIcon = stm.Icon;
-                      const reasonLabel = subType === "meeting" ? "Reagendada"
-                        : subType === "call" ? "No contestó"
-                        : "Reprogramada";
-                      return (
-                        <li key={sub.id} className="flex items-center gap-2 rounded bg-background border px-2 py-1.5 text-xs">
-                          <span className="text-[10px] text-muted-foreground w-4">{idx + 1}.</span>
-                          <SIcon className={cn("h-3.5 w-3.5", stm.iconColor)} />
-                          <span className={cn("flex-1 truncate", sub.completed && "line-through text-muted-foreground")}>{sub.title}</span>
-                          {sub.due_date && (
-                            <span className="text-[10px] text-muted-foreground">
-                              {format(parseISO(sub.due_date), "d MMM", { locale: es })}
-                            </span>
-                          )}
-                          {sub.completed && <Check className="h-3.5 w-3.5 text-green-600" />}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-1.5 text-[10px]"
-                            title="Ver / Editar"
-                            onClick={() => setViewSubTask(sub as CrmTask)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          {!sub.completed && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-1.5 text-[10px]"
-                              title="Marcar terminada"
-                              onClick={() => updateTask.mutate({ id: sub.id, completed: true, completed_at: new Date().toISOString(), task_status: "done" } as any)}
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-1.5 text-[10px]"
-                            title={`Reprogramar (${reasonLabel})`}
-                            onClick={() => {
+                  <DndContext
+                    sensors={timelineSensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleTimelineDragEnd}
+                  >
+                    <SortableContext items={sortedTimeline.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                      <ol className="space-y-1.5">
+                        {sortedTimeline.map((sub, idx) => (
+                          <TimelineSubItem
+                            key={sub.id}
+                            sub={sub}
+                            idx={idx}
+                            onEdit={() => setViewSubTask(sub as CrmTask)}
+                            onComplete={() => updateTask.mutate({ id: sub.id, completed: true, completed_at: new Date().toISOString(), task_status: "done" } as any)}
+                            onDelete={() => setDeleteSubId(sub.id)}
+                            onReschedule={() => {
+                              const subType = (sub.task_type as TaskTypeKey) || "note";
+                              const reasonLabel = subType === "meeting" ? "Reagendada" : subType === "call" ? "No contestó" : "Reprogramada";
                               const newStatus = subType === "meeting" ? "rescheduled" : subType === "call" ? "no_answered" : "reprogrammed";
                               updateTask.mutate({
                                 id: sub.id,
@@ -538,7 +511,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                               setTimelineRescheduleCtx({
                                 origenTareaId: sub.id,
                                 taskType: subType,
-                                parentCategory: parentCategory,
+                                parentCategory,
                                 parentTaskId: task!.id,
                                 dealId: (sub as any).deal_id || dealId || "",
                                 contactId: (sub as any).contact_id || contactId || "",
@@ -550,22 +523,11 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                               });
                               setTimelineRescheduleOpen(true);
                             }}
-                          >
-                            <CalendarIcon className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-1.5 text-[10px] text-red-600 hover:text-red-700"
-                            title="Eliminar"
-                            onClick={() => setDeleteSubId(sub.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </li>
-                      );
-                    })}
-                  </ol>
+                          />
+                        ))}
+                      </ol>
+                    </SortableContext>
+                  </DndContext>
                 )}
               </section>
             )}
