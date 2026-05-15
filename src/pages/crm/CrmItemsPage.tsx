@@ -54,16 +54,7 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
 
 type TaskTypeKey = "call" | "email" | "meeting" | "field_visit" | "whatsapp" | "cobranza" | "follow_up" | "note";
 
-const TASK_TYPE_META: Record<TaskTypeKey, { label: string; Icon: React.ComponentType<{ className?: string }> }> = {
-  call:        { label: "Llamada",     Icon: Phone },
-  email:       { label: "Email",       Icon: Mail },
-  meeting:     { label: "Reunión",     Icon: CalendarCheck },
-  field_visit: { label: "Visita",      Icon: Car },
-  whatsapp:    { label: "WhatsApp",    Icon: MessageCircle },
-  cobranza:    { label: "Cobranza",    Icon: Banknote },
-  follow_up:   { label: "Seguimiento", Icon: RefreshCw },
-  note:        { label: "Nota",        Icon: FileText },
-};
+import { TASK_TYPE_META } from "@/lib/taskTypes";
 
 const TASK_STATUS_BADGE: Record<string, { label: string; className: string }> = {
   planned:     { label: "Planificada",  className: "bg-gray-100 text-gray-700 border-gray-200" },
