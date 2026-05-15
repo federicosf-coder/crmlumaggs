@@ -181,7 +181,40 @@ export function CreateCrmTaskDialog({
     );
   };
 
-  // Enviar por wa.me y registrar la tarea como completada
+  // Crea la tarea de WhatsApp registrando el mensaje y la marca como completada
+  const persistWhatsAppTask = (channel: "wa_me" | "api") => {
+    if (!session?.user) return;
+    const finalTitle = title || buildWhatsAppTitle();
+    const channelLabel = channel === "api" ? "API" : "Local";
+    createTask.mutate(
+      {
+        user_id: session.user.id,
+        title: finalTitle,
+        description: `[${channelLabel}] ${description}`,
+        due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : new Date().toISOString(),
+        priority,
+        deal_id: dealId && dealId !== "none" ? dealId : null,
+        contact_id: contactId && contactId !== "none" ? contactId : null,
+        company_id: companyId && companyId !== "none" ? companyId : null,
+        task_type: taskType || "whatsapp",
+        parent_task_id: parentTaskId || null,
+        parent_category: parentTaskId ? null : parentCategory,
+        completed: true,
+        completed_at: new Date().toISOString(),
+      } as any,
+      {
+        onSuccess: () => {
+          toast({ title: "Mensaje registrado", description: `WhatsApp enviado vía ${channelLabel}.` });
+          onOpenChange(false);
+        },
+        onError: (e: any) => {
+          toast({ title: "No se pudo registrar la tarea", description: e?.message, variant: "destructive" });
+        },
+      }
+    );
+  };
+
+  // Enviar por wa.me (Local) y registrar la tarea
   const handleSendLocal = async () => {
     if (!session?.user) return;
     if (!waNormalized) {
@@ -209,8 +242,16 @@ export function CreateCrmTaskDialog({
     } catch (err) {
       console.warn("[wa] log failed", err);
     }
-    toast({ title: "WhatsApp abierto", description: "Recuerda enviar el mensaje en la app." });
-    onOpenChange(false);
+    persistWhatsAppTask("wa_me");
+  };
+
+  // Abrir el flujo por API (plantillas aprobadas)
+  const handleSendApi = () => {
+    if (!description.trim()) {
+      toast({ title: "Mensaje vacío", description: "Escribe el mensaje o selecciona una plantilla.", variant: "destructive" });
+      return;
+    }
+    setWhatsappOpen(true);
   };
 
   return (
@@ -455,7 +496,7 @@ export function CreateCrmTaskDialog({
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => setWhatsappOpen(true)}
+                onClick={handleSendApi}
                 disabled={!description.trim()}
               >
                 <Send className="h-4 w-4 mr-1.5" /> Enviar por API
@@ -463,7 +504,7 @@ export function CreateCrmTaskDialog({
               <Button
                 type="button"
                 onClick={handleSendLocal}
-                disabled={!description.trim() || !waNormalized}
+                disabled={!description.trim() || !waNormalized || createTask.isPending}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 <MessageCircle className="h-4 w-4 mr-1.5" /> Enviar Local
@@ -492,7 +533,10 @@ export function CreateCrmTaskDialog({
               contact_id: contactId || null,
               deal_id: dealId || null,
             }}
-            onSent={() => onOpenChange(false)}
+            onSent={() => {
+              setWhatsappOpen(false);
+              persistWhatsAppTask("api");
+            }}
           />
         )}
       </DialogContent>
