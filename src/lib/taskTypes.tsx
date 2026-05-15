@@ -63,10 +63,11 @@ export const TASK_TYPE_LABEL: Record<TaskTypeKey, string> = TASK_TYPES.reduce((a
   return acc;
 }, {} as Record<TaskTypeKey, string>);
 
-/** Tipos de acción concretos (sin categorías padre). */
-export const ACTION_TASK_TYPES: TaskTypeMeta[] = TASK_TYPES.filter(
-  (t) => t.key !== "follow_up" && t.key !== "cobranza"
-);
+/** Tipos de acción concretos (sin categorías padre). Orden visual fijo. */
+const ACTION_ORDER: TaskTypeKey[] = ["call", "email", "whatsapp", "meeting", "field_visit", "note"];
+export const ACTION_TASK_TYPES: TaskTypeMeta[] = ACTION_ORDER
+  .map((k) => TASK_TYPES.find((t) => t.key === k))
+  .filter((t): t is TaskTypeMeta => !!t);
 
 export interface ParentCategoryMeta {
   key: ParentCategoryKey;
