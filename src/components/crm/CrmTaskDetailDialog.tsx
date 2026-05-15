@@ -338,7 +338,14 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
           <div className="flex items-start gap-3">
             <Checkbox
               checked={completed}
-              onCheckedChange={(v) => handleCompletedChange(!!v)}
+              onCheckedChange={(v) => {
+                if (completed && !v) {
+                  // descompletar directo
+                  handleCompletedChange(false);
+                } else if (!completed && v) {
+                  setCompleteDialogOpen(true);
+                }
+              }}
               className="h-5 w-5 mt-1.5"
             />
             <div className="flex-1 min-w-0">
@@ -785,6 +792,48 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
               triggerSave({ contact_id: newId });
             }
           }}
+        />
+
+        {/* Confirmar completado */}
+        <AlertDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Completar tarea?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Marca "{title}" como completada. ¿Quieres además crear una nueva tarea relacionada?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2 sm:gap-2">
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <Button variant="outline" onClick={() => confirmComplete(false)}>Completar</Button>
+              <AlertDialogAction onClick={() => confirmComplete(true)}>Completar y crear nueva</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Crear sub-tarea (paso de la secuencia) */}
+        {isParent && (
+          <CreateCrmTaskDialog
+            open={createSubOpen}
+            onOpenChange={setCreateSubOpen}
+            defaultCompanyId={companyId || undefined}
+            defaultContactId={contactId || undefined}
+            defaultDealId={dealId || undefined}
+            parentTaskId={task.id}
+            defaultTaskType="call"
+          />
+        )}
+
+        {/* Crear "nueva" después de completar */}
+        <CreateCrmTaskDialog
+          open={createNextOpen}
+          onOpenChange={setCreateNextOpen}
+          defaultCompanyId={companyId || undefined}
+          defaultContactId={contactId || undefined}
+          defaultDealId={dealId || undefined}
+          parentTaskId={task.parent_task_id || null}
+          defaultParentCategory={!task.parent_task_id ? parentCategory : null}
+          defaultTaskType={taskType}
         />
       </DialogContent>
     </Dialog>
