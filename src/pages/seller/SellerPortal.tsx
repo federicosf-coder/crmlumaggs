@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package, Pencil, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package, Pencil, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Toggle } from "@/components/ui/toggle";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
@@ -75,6 +76,8 @@ export default function SellerPortal() {
   const [limCreadas, setLimCreadas] = useState<PageLimit>("10");
   const [pageCreadas, setPageCreadas] = useState(1);
   const [sortCreadas, setSortCreadas] = useState<{ col: "cliente" | "tarea" | "creada" | "estatus"; dir: "asc" | "desc" }>({ col: "creada", dir: "desc" });
+  const [statusCreadas, setStatusCreadas] = useState<"all" | "Pendiente" | "Vencida" | "Completada">("all");
+  const [searchCreadas, setSearchCreadas] = useState("");
   const [limProspectos, setLimProspectos] = useState<PageLimit>("10");
   const [pageProspectos, setPageProspectos] = useState(1);
   const [limCotizaciones, setLimCotizaciones] = useState<PageLimit>("10");
@@ -921,9 +924,35 @@ export default function SellerPortal() {
 
       {/* Creadas en periodo */}
       <Card>
-        <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
-          <CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle>
-          <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={tasksCreadasPeriodo.length} onPageReset={() => setPageCreadas(1)} />
+        <CardHeader className="pb-2 gap-2">
+          <div className="flex flex-row items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="text-base">Creadas en periodo ({tasksCreadasPeriodo.length})</CardTitle>
+            <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={tasksCreadasPeriodo.length} onPageReset={() => setPageCreadas(1)} />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[200px] max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchCreadas}
+                onChange={(e) => { setSearchCreadas(e.target.value); setPageCreadas(1); }}
+                placeholder="Buscar cliente o tarea..."
+                className="pl-8 h-8 text-sm"
+              />
+            </div>
+            <div className="flex gap-1">
+              {(["all", "Pendiente", "Vencida", "Completada"] as const).map(s => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={statusCreadas === s ? "default" : "outline"}
+                  className="h-8"
+                  onClick={() => { setStatusCreadas(s); setPageCreadas(1); }}
+                >
+                  {s === "all" ? "Todos" : s}
+                </Button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -955,8 +984,22 @@ export default function SellerPortal() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasksCreadasPeriodo.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-3">Sin creadas en el periodo</TableCell></TableRow>}
-                {paginate([...tasksCreadasPeriodo].sort((a, b) => {
+                {(() => {
+                  const q = searchCreadas.trim().toLowerCase();
+                  const filtered = tasksCreadasPeriodo.filter((t: any) => {
+                    const ven = t.due_date ? new Date(t.due_date) : null;
+                    const isVenc = ven && !t.completed && ven < todayStart;
+                    const status = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
+                    if (statusCreadas !== "all" && status !== statusCreadas) return false;
+                    if (q) {
+                      const cliente = (companyMap[t.company_id] || "").toLowerCase();
+                      const titulo = (t.title || "").toLowerCase();
+                      if (!cliente.includes(q) && !titulo.includes(q)) return false;
+                    }
+                    return true;
+                  });
+                  if (filtered.length === 0) return <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-3">Sin resultados</TableCell></TableRow>;
+                  return paginate([...filtered].sort((a, b) => {
                   const dir = sortCreadas.dir === "asc" ? 1 : -1;
                   const venA = a.due_date ? new Date(a.due_date) : null;
                   const isVencA = venA && !a.completed && venA < todayStart;
@@ -1004,7 +1047,8 @@ export default function SellerPortal() {
                       </TableCell>
                     </TableRow>
                   );
-                })}
+                  });
+                })()}
               </TableBody>
             </Table>
           </div>
