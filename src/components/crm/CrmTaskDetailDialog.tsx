@@ -31,6 +31,7 @@ import {
   PARENT_CATEGORIES, PARENT_CATEGORY_META, ParentCategoryKey,
 } from "@/lib/taskTypes";
 import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
+import { RescheduleActivityDialog, type RescheduleContext } from "@/components/crm/RescheduleActivityDialog";
 
 interface CrmTaskDetailDialogProps {
   task: CrmTask | null;
@@ -78,6 +79,9 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const [createNextOpen, setCreateNextOpen] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [timelineRescheduleOpen, setTimelineRescheduleOpen] = useState(false);
+  const [timelineRescheduleCtx, setTimelineRescheduleCtx] = useState<RescheduleContext | null>(null);
+  const [deleteSubId, setDeleteSubId] = useState<string | null>(null);
   const initialized = useRef(false);
 
   useEffect(() => {
