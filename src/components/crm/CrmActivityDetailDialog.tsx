@@ -145,7 +145,9 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required /></div>
+              {editType !== "call" && (
+                <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required /></div>
+              )}
               <div className="space-y-2"><Label>Descripción</Label><Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} /></div>
               <div className="space-y-2">
                 <Label>Empresa</Label>
@@ -163,7 +165,7 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
                   <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Ninguno</SelectItem>
-                    {deals?.map((d) => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}
+                    {filteredDeals.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
