@@ -1,0 +1,2 @@
+ALTER TABLE public.crm_tasks DROP CONSTRAINT IF EXISTS crm_tasks_task_status_check;
+ALTER TABLE public.crm_tasks ADD CONSTRAINT crm_tasks_task_status_check CHECK (task_status = ANY (ARRAY['planned'::text, 'done'::text, 'cancelled'::text, 'rescheduled'::text, 'no_answered'::text, 'reprogrammed'::text]));
