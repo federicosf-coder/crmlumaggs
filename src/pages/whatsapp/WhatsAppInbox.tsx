@@ -1279,5 +1279,6 @@ export default function WhatsAppInbox() {
         </MediaDialogContent>
       </MediaDialog>
     </div>
+    )
   );
 }
