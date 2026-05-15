@@ -366,7 +366,8 @@ export function CreateCrmTaskDialog({
     | "reagendada"
     | "reprogramada"
     | "enviado"
-    | "programado_envio";
+    | "programado_envio"
+    | "guardado";
 
   const STATUS_LABEL: Record<ActStatus, string> = {
     default: "",
@@ -377,6 +378,7 @@ export function CreateCrmTaskDialog({
     reprogramada: "Reprogramada",
     enviado: "Enviado",
     programado_envio: "Programado",
+    guardado: "Guardado",
   };
 
   const submitWithStatus = (status: ActStatus) => {
@@ -387,7 +389,7 @@ export function CreateCrmTaskDialog({
       return;
     }
     const reopenForNew = status === "no_contesto" || status === "reagendada" || status === "reprogramada";
-    const completed = status === "realizada" || status === "enviado" || reopenForNew;
+    const completed = status === "realizada" || status === "enviado" || status === "guardado" || reopenForNew;
     const statusLabel = STATUS_LABEL[status];
     let finalTitle = isWhatsApp ? (title || buildWhatsAppTitle()) : title;
     let finalDescription = isVisit && location
