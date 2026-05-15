@@ -732,12 +732,34 @@ export default function SellerPortal() {
             })()}
 
             {isManager && (
-              <Select value={ejecutivoId} onValueChange={setEjecutivoId}>
-                <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Ejecutivo" /></SelectTrigger>
-                <SelectContent>
-                  {ejecutivos.map(e => <SelectItem key={e.user_id} value={e.user_id}>{e.full_name || e.user_id.slice(0, 8)}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <>
+                <Select
+                  value={teamId}
+                  onValueChange={(v) => {
+                    setTeamId(v);
+                    if (v !== "all") setEjecutivoId("all"); // al elegir equipo, ejecutivo => Todos
+                  }}
+                >
+                  <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Equipo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los equipos</SelectItem>
+                    {teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={ejecutivoId || "all"}
+                  onValueChange={(v) => {
+                    setEjecutivoId(v);
+                    if (v !== "all") setTeamId("all"); // al elegir ejecutivo, equipo => Todos
+                  }}
+                >
+                  <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Ejecutivo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los ejecutivos</SelectItem>
+                    {ejecutivos.map(e => <SelectItem key={e.user_id} value={e.user_id}>{e.full_name || e.user_id.slice(0, 8)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </>
             )}
             <Select value={plazaId} onValueChange={setPlazaId}>
               <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Plaza" /></SelectTrigger>
