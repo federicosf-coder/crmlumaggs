@@ -247,6 +247,11 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
     triggerSave({ programable_entrega: v });
   };
 
+  const handleTaskTypeChange = (k: TaskTypeKey) => {
+    setTaskType(k);
+    triggerSave({ task_type: k });
+  };
+
   const handleDelete = () => {
     if (!task) return;
     deleteTask.mutate(task.id, {
