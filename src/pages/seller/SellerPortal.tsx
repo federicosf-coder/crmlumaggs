@@ -23,6 +23,7 @@ import { CrmActivityDetailDialog } from "@/components/crm/CrmActivityDetailDialo
 import type { CrmTask } from "@/hooks/useCrmTasks";
 import { ACTIVITY_TYPE_CONFIG } from "@/hooks/useCrmActivities";
 import { Copy } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const fmtMoney = (n: number) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(n || 0);
 const fmtNum = (n: number) => new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(n || 0);
