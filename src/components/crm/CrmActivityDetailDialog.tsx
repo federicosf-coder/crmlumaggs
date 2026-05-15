@@ -96,10 +96,11 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
   const config = ACTIVITY_TYPE_CONFIG[activity.type] || ACTIVITY_TYPE_CONFIG.note;
 
   const handleSave = () => {
+    const finalTitle = editType === "call" ? (editTitle?.trim() || "Llamada") : editTitle;
     updateActivity.mutate(
       {
         id: activity.id,
-        title: editTitle,
+        title: finalTitle,
         description: editDescription || null,
         type: editType,
         company_id: editCompanyId !== "none" ? editCompanyId : null,
