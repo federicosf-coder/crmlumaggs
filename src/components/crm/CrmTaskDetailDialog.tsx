@@ -67,6 +67,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const [contactId, setContactId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [programable, setProgramable] = useState(false);
+  const [taskType, setTaskType] = useState<TaskTypeKey>("follow_up");
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
   const initialized = useRef(false);
