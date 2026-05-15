@@ -545,7 +545,7 @@ export default function CrmItemsPage() {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <Icon className="h-4 w-4 text-primary" />
+              <Icon className={cn("h-4 w-4", (meta as any).iconColor || "text-primary")} />
               <span className="font-medium truncate">{t.title}</span>
               <Badge variant="outline" className={cn("text-xs", status.className)}>{status.label}</Badge>
               {t.priority && (
