@@ -794,7 +794,11 @@ export default function CrmItemsPage() {
               No hay registros con los filtros actuales.
             </div>
           )}
-          {!isLoading && filteredRows.map((it) => {
+          {!isLoading && filteredRows.length > 0 && (() => {
+            const buckets: Record<string, CrmItemUnified[]> = { seguimiento: [], cobranza: [], otra: [] };
+            filteredRows.forEach((it) => buckets[getCategoryKey(it)].push(it));
+            const order: Array<ParentCategoryKey | "otra"> = ["seguimiento", "cobranza", "otra"];
+            const renderItem = (it: CrmItemUnified) => {
             const cfg = CRM_ITEM_TYPE_CONFIG[it.type] || CRM_ITEM_TYPE_CONFIG.otro;
             const status = STATUS_BADGE[it.status] || STATUS_BADGE.pendiente;
             const overdue = it.status === "pendiente" && it.fecha_vencimiento && new Date(it.fecha_vencimiento) < new Date();
@@ -892,7 +896,34 @@ export default function CrmItemsPage() {
                 </div>
               </div>
             );
-          })}
+            };
+            return order.map((catKey) => {
+              const list = buckets[catKey];
+              if (list.length === 0) return null;
+              const meta = catKey === "otra"
+                ? { label: "Otra", soft: "bg-slate-50 text-slate-700 border-slate-200", Icon: ListChecks, iconColor: "text-slate-500" }
+                : PARENT_CATEGORY_META[catKey];
+              const Icon = (meta as any).Icon;
+              const collapsed = !!collapsedCats[catKey];
+              return (
+                <div key={catKey} className="border-b last:border-b-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleCat(catKey)}
+                    className={cn("w-full flex items-center gap-2 px-4 py-2 text-left bg-gradient-to-r from-violet-50/40 to-blue-50/40 dark:from-violet-950/10 dark:to-blue-950/10 hover:bg-accent/40")}
+                  >
+                    <Icon className={cn("h-4 w-4", (meta as any).iconColor)} />
+                    <span className="text-xs uppercase tracking-wide font-medium text-foreground/80">{(meta as any).label}</span>
+                    <Badge variant="outline" className={cn("text-[10px]", (meta as any).soft)}>{list.length}</Badge>
+                    <span className="ml-auto text-muted-foreground">
+                      {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                    </span>
+                  </button>
+                  {!collapsed && <div className="divide-y">{list.map(renderItem)}</div>}
+                </div>
+              );
+            });
+          })()}
         </div>
 
         {/* Paginación inferior */}
