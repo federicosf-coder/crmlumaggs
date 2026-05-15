@@ -953,3 +953,54 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
     </Dialog>
   );
 }
+
+function TimelineSubItem({
+  sub, idx, onEdit, onComplete, onDelete, onReschedule,
+}: {
+  sub: any;
+  idx: number;
+  onEdit: () => void;
+  onComplete: () => void;
+  onDelete: () => void;
+  onReschedule: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sub.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
+  const subType = (sub.task_type as TaskTypeKey) || "note";
+  const stm = TASK_TYPE_META[subType];
+  const SIcon = stm.Icon;
+  const status = sub.task_status || (sub.completed ? "done" : "planned");
+  const sm = TASK_STATUS_META[status] || TASK_STATUS_META.planned;
+  const isDone = status === "done";
+  const reasonLabel = subType === "meeting" ? "Reagendada" : subType === "call" ? "No contestó" : "Reprogramada";
+  return (
+    <li ref={setNodeRef} style={style} className="flex items-center gap-2 rounded bg-background border px-2 py-1.5 text-xs">
+      <button type="button" {...attributes} {...listeners} className="cursor-grab touch-none text-muted-foreground hover:text-foreground" title="Arrastrar para reordenar">
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+      <span className="text-[10px] text-muted-foreground w-4">{idx + 1}.</span>
+      <SIcon className={cn("h-3.5 w-3.5", stm.iconColor)} />
+      <span className={cn("flex-1 truncate", isDone && "line-through text-muted-foreground")}>{(sub.title || "").replace(/^\[[^\]]+\]\s*/, "")}</span>
+      <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", sm.cls)}>{sm.label}</Badge>
+      {sub.due_date && (
+        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+          {format(parseISO(sub.due_date), sub.due_date.length >= 16 ? "d MMM HH:mm" : "d MMM", { locale: es })}
+        </span>
+      )}
+      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title="Ver / Editar" onClick={onEdit}>
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
+      {!isDone && (
+        <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title="Marcar terminada" onClick={onComplete}>
+          <Check className="h-3.5 w-3.5" />
+        </Button>
+      )}
+      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" title={`Reprogramar (${reasonLabel})`} onClick={onReschedule}>
+        <CalendarIcon className="h-3.5 w-3.5" />
+      </Button>
+      <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-red-600 hover:text-red-700" title="Eliminar" onClick={onDelete}>
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
+    </li>
+  );
+}
