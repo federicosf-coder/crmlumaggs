@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DictationButton } from "@/components/ui/dictation-button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save, Phone, Copy } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
@@ -93,10 +93,57 @@ export function CreateCrmTaskDialog({
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
   const [savingContactEmail, setSavingContactEmail] = useState(false);
+  // Call state
+  const [callPhone, setCallPhone] = useState("");
 
   const isWhatsApp = taskType === "whatsapp";
   const isVisit = taskType === "field_visit";
   const isEmail = taskType === "email";
+  const isCall = taskType === "call";
+
+  // Resolver datos del contacto cuando es Llamada
+  const { data: callContact } = useQuery({
+    queryKey: ["call-create-task-ctx", contactId],
+    queryFn: async () => {
+      if (!contactId) return null;
+      const { data } = await supabase
+        .from("contacts")
+        .select("first_name,last_name,phone,mobile,whatsapp_phone,tel_emp,comm_tel,comm_tel_emp")
+        .eq("id", contactId)
+        .maybeSingle();
+      return data as any;
+    },
+    enabled: open && isCall && !!contactId,
+  });
+
+  const callContactName = callContact ? `${callContact.first_name || ""} ${callContact.last_name || ""}`.trim() : "";
+  const callPhoneOptions = callContact
+    ? ([
+        { label: "Móvil", value: callContact.mobile },
+        { label: "Principal", value: callContact.phone },
+        { label: "Empresa", value: callContact.tel_emp },
+        { label: "WhatsApp", value: callContact.whatsapp_phone },
+        { label: "Comunicación", value: callContact.comm_tel },
+        { label: "Comm. empresa", value: callContact.comm_tel_emp },
+      ].filter((o) => o.value && String(o.value).trim() !== ""))
+    : [];
+  const callDefaultPhone = callPhoneOptions[0]?.value || "";
+
+  // Pre-llenar teléfono al cambiar contacto / al activar llamada
+  useEffect(() => {
+    if (!isCall) return;
+    if (callDefaultPhone && !callPhone) setCallPhone(String(callDefaultPhone));
+  }, [isCall, callDefaultPhone]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const copyPhone = async () => {
+    if (!callPhone) return;
+    try {
+      await navigator.clipboard.writeText(callPhone);
+      toast({ title: "Teléfono copiado" });
+    } catch {
+      toast({ title: "No se pudo copiar", variant: "destructive" });
+    }
+  };
 
   const captureLocation = () => {
     if (!navigator.geolocation) {
@@ -194,6 +241,7 @@ export function CreateCrmTaskDialog({
     setLocation("");
     setEmailTo(""); setEmailCc(""); setEmailBcc(""); setEmailSubject(""); setEmailBody("");
     setShowCc(false); setShowBcc(false);
+    setCallPhone("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
