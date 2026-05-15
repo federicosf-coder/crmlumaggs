@@ -894,6 +894,35 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
           defaultParentCategory={!task.parent_task_id ? parentCategory : null}
           defaultTaskType={taskType}
         />
+
+        {/* Reprogramar paso de la línea de tiempo */}
+        <RescheduleActivityDialog
+          open={timelineRescheduleOpen}
+          onOpenChange={setTimelineRescheduleOpen}
+          context={timelineRescheduleCtx}
+        />
+
+        {/* Confirmar eliminación de paso */}
+        <AlertDialog open={!!deleteSubId} onOpenChange={(o) => !o && setDeleteSubId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar este paso?</AlertDialogTitle>
+              <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (deleteSubId) deleteTask.mutate(deleteSubId);
+                  setDeleteSubId(null);
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
