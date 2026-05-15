@@ -511,7 +511,13 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                     })()}
                     Línea de tiempo · {PARENT_CATEGORY_META[parentCategory!].label}
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => setCreateSubOpen(true)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCreateSubOpen(true)}
+                    disabled={completed}
+                    title={completed ? "La tarea está completada. Reábrela para agregar pasos." : undefined}
+                  >
                     <Plus className="h-3.5 w-3.5 mr-1" /> Agregar paso
                   </Button>
                 </div>
