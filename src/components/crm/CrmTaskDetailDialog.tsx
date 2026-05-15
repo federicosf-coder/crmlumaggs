@@ -84,6 +84,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
       setContactId(task.contact_id || null);
       setUserId(task.user_id || null);
       setProgramable(!!(task as any).programable_entrega);
+      setTaskType(((task as any).task_type as TaskTypeKey) || "follow_up");
       setCalMonth(task.due_date ? parseISO(task.due_date) : new Date());
       setCalendarOpen(false);
       initialized.current = true;
