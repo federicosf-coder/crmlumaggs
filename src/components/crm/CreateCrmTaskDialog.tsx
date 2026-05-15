@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreateCrmTask } from "@/hooks/useCrmTasks";
+import { useCreateCrmTask, useUpdateCrmTask, type CrmTask } from "@/hooks/useCrmTasks";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -38,14 +38,19 @@ interface CreateCrmTaskDialogProps {
   defaultTaskType?: TaskTypeKey | null;
   /** Título sugerido. */
   defaultTitle?: string;
+  /** Si se define, el diálogo opera en modo edición sobre esta tarea existente. */
+  editTask?: CrmTask | null;
 }
 
 export function CreateCrmTaskDialog({
   open, onOpenChange, defaultDealId, defaultContactId, defaultCompanyId,
   parentTaskId = null, defaultParentCategory = null, defaultTaskType = null, defaultTitle = "",
+  editTask = null,
 }: CreateCrmTaskDialogProps) {
   const { session } = useAuth();
   const createTask = useCreateCrmTask();
+  const updateTask = useUpdateCrmTask();
+  const isEditing = !!editTask;
   const { toast } = useToast();
 
   const { data: contacts } = useQuery({
@@ -312,18 +317,42 @@ export function CreateCrmTaskDialog({
   // donde cambien props o el padre, para no borrar lo que el usuario está escribiendo).
   useEffect(() => {
     if (!open) return;
-    setTitle(defaultTitle);
-    setParentCategory(defaultParentCategory);
-    setTaskType(defaultTaskType);
-    setDealId(defaultDealId || "");
-    setContactId(defaultContactId || "");
-    setCompanyId(defaultCompanyId || "");
-    setDueTime("");
-    setWhatsappOpen(false);
-    setLocation("");
-    setEmailTo(""); setEmailCc(""); setEmailBcc(""); setEmailSubject(""); setEmailBody("");
-    setShowCc(false); setShowBcc(false);
-    setCallPhone("");
+    if (editTask) {
+      const cleanTitle = (editTask.title || "").replace(/^\[[^\]]+\]\s*/, "");
+      setTitle(cleanTitle);
+      setDescription(editTask.description || "");
+      setParentCategory(((editTask as any).parent_category as ParentCategoryKey) || null);
+      setTaskType(((editTask as any).task_type as TaskTypeKey) || null);
+      setDealId(editTask.deal_id || "");
+      setContactId(editTask.contact_id || "");
+      setCompanyId(editTask.company_id || "");
+      setPriority(editTask.priority || "medium");
+      if (editTask.due_date) {
+        const d = editTask.due_date;
+        setDueDate(d.slice(0, 10));
+        setDueTime(d.length >= 16 ? d.slice(11, 16) : "");
+      } else {
+        setDueDate(""); setDueTime("");
+      }
+      setWhatsappOpen(false);
+      setLocation("");
+      setEmailTo(""); setEmailCc(""); setEmailBcc(""); setEmailSubject(""); setEmailBody("");
+      setShowCc(false); setShowBcc(false);
+      setCallPhone("");
+    } else {
+      setTitle(defaultTitle);
+      setParentCategory(defaultParentCategory);
+      setTaskType(defaultTaskType);
+      setDealId(defaultDealId || "");
+      setContactId(defaultContactId || "");
+      setCompanyId(defaultCompanyId || "");
+      setDueTime("");
+      setWhatsappOpen(false);
+      setLocation("");
+      setEmailTo(""); setEmailCc(""); setEmailBcc(""); setEmailSubject(""); setEmailBody("");
+      setShowCc(false); setShowBcc(false);
+      setCallPhone("");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -428,8 +457,7 @@ export function CreateCrmTaskDialog({
       finalTitle = `[${statusLabel}] ${finalTitle || ""}`.trim();
     }
     try {
-      const created: any = await createTask.mutateAsync({
-        user_id: session.user.id,
+      const payload: any = {
         title: finalTitle,
         description: finalDescription || null,
         due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : null,
@@ -438,13 +466,22 @@ export function CreateCrmTaskDialog({
         contact_id: contactId && contactId !== "none" ? contactId : null,
         company_id: companyId && companyId !== "none" ? companyId : null,
         task_type: taskType || null,
-        parent_task_id: parentTaskId || null,
         parent_category: parentTaskId ? null : parentCategory,
         completed,
         completed_at: completed ? new Date().toISOString() : null,
         task_status: taskStatusValue,
-      } as any);
-      toast({ title: statusLabel ? `Actividad ${statusLabel}` : "Tarea creada" });
+      };
+      let created: any;
+      if (isEditing && editTask) {
+        created = await updateTask.mutateAsync({ id: editTask.id, ...payload } as any);
+      } else {
+        created = await createTask.mutateAsync({
+          user_id: session.user.id,
+          parent_task_id: parentTaskId || null,
+          ...payload,
+        } as any);
+      }
+      toast({ title: statusLabel ? `Actividad ${statusLabel}` : (isEditing ? "Cambios guardados" : "Tarea creada") });
       if (reopenForNew) {
         setRescheduleCtx({
           origenTareaId: created?.id || null,
@@ -552,7 +589,7 @@ export function CreateCrmTaskDialog({
         {/* Header con gradiente como el modal de detalle */}
         <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b shrink-0">
           <DialogTitle className="text-lg font-semibold tracking-tight">
-            {parentTaskId ? "Agregar paso a la secuencia" : "Crear Actividad / Tarea"}
+            {isEditing ? "Editar actividad" : (parentTaskId ? "Agregar paso a la secuencia" : "Crear Actividad / Tarea")}
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-0.5 font-light">
             Completa los datos para registrar la nueva actividad.

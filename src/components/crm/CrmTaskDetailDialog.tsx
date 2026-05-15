@@ -913,10 +913,10 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
         />
 
         {/* Ver/Editar paso de la línea de tiempo */}
-        <CrmTaskDetailDialog
-          task={viewSubTask}
+        <CreateCrmTaskDialog
           open={!!viewSubTask}
           onOpenChange={(o) => !o && setViewSubTask(null)}
+          editTask={viewSubTask}
         />
 
         {/* Confirmar eliminación de paso */}
