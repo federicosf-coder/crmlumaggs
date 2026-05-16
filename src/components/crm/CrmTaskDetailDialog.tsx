@@ -624,19 +624,21 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
               </section>
             )}
 
-            {/* Description */}
-            <section>
-              <div className="flex items-center gap-2 mb-2 text-sm font-medium text-muted-foreground">
-                <FileText className="h-4 w-4" /> Descripción
-              </div>
-              <Textarea
-                value={description}
-                onChange={(e) => handleDescChange(e.target.value)}
-                placeholder="Agrega una descripción..."
-                rows={3}
-                className={cn(inputCls, "resize-y min-h-[80px]")}
-              />
-            </section>
+            {/* Description (oculta para email y whatsapp, que tienen su propio cuerpo) */}
+            {taskType !== "email" && taskType !== "whatsapp" && (
+              <section>
+                <div className="flex items-center gap-2 mb-2 text-sm font-medium text-muted-foreground">
+                  <FileText className="h-4 w-4" /> Descripción
+                </div>
+                <Textarea
+                  value={description}
+                  onChange={(e) => handleDescChange(e.target.value)}
+                  placeholder="Agrega una descripción..."
+                  rows={3}
+                  className={cn(inputCls, "resize-y min-h-[80px]")}
+                />
+              </section>
+            )}
 
             {/* Bloques específicos por tipo de actividad (email/whatsapp/llamada/visita) */}
             <TaskActionFields
