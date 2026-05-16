@@ -614,7 +614,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                       .select("*, crm_deals(id, title), contacts(id, first_name, last_name), companies(id, name)")
                       .eq("id", task.parent_task_id!)
                       .maybeSingle();
-                    if (error || !data) { toast.error("No se pudo cargar la tarea principal"); return; }
+                    if (error || !data) { toast({ title: "No se pudo cargar la tarea principal", variant: "destructive" }); return; }
                     setViewSubTask(data as unknown as CrmTask);
                   }}
                 >
