@@ -1066,7 +1066,7 @@ export default function SellerPortal() {
                   return 0;
                 });
                 let ordered: { task: any; isChild: boolean }[];
-                if (groupByParent) {
+                {
                   const byId = new Map<string, any>(sorted.map((t: any) => [t.id, t]));
                   const childrenOf = new Map<string, any[]>();
                   const roots: any[] = [];
@@ -1081,15 +1081,16 @@ export default function SellerPortal() {
                   }
                   ordered = [];
                   for (const r of roots) {
-                    ordered.push({ task: r, isChild: false });
                     const kids = (childrenOf.get(r.id) || []).sort((a, b) =>
                       ((a.sequence_order ?? 0) - (b.sequence_order ?? 0)) ||
                       ((a.created_at ? new Date(a.created_at).getTime() : 0) - (b.created_at ? new Date(b.created_at).getTime() : 0))
                     );
-                    for (const k of kids) ordered.push({ task: k, isChild: true });
+                    (r as any)._childCount = kids.length;
+                    ordered.push({ task: r, isChild: false });
+                    if (kids.length > 0 && expandedParents.has(r.id)) {
+                      for (const k of kids) ordered.push({ task: k, isChild: true });
+                    }
                   }
-                } else {
-                  ordered = sorted.map((t: any) => ({ task: t, isChild: false }));
                 }
                 return paginate(ordered, limCreadas, pageCreadas).map(({ task: t, isChild }) => {
                   const venc = t.due_date ? new Date(t.due_date) : null;
@@ -1100,6 +1101,8 @@ export default function SellerPortal() {
                     : t.parent_category === "cobranza" ? { label: "Cobranza", cls: "bg-amber-50 text-amber-700 border-amber-200" }
                     : { label: "Otra", cls: "bg-muted text-muted-foreground" };
                   const tipoCfg = (ACTIVITY_TYPE_CONFIG as any)[t.task_type] || { emoji: "•", label: t.task_type || "—" };
+                  const childCount = (t as any)._childCount || 0;
+                  const isExpanded = expandedParents.has(t.id);
                   return (
                     <TableRow
                       key={t.id}
@@ -1122,7 +1125,27 @@ export default function SellerPortal() {
                       <TableCell className="font-light text-sm py-1.5 w-[20%]">
                         <span className={cn("inline-flex items-center gap-1", isChild && "pl-5 text-muted-foreground")}>
                           {isChild && <CornerDownRight className="h-3 w-3 shrink-0" />}
-                          {t.title}
+                          {!isChild && childCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedParents(prev => {
+                                  const ns = new Set(prev);
+                                  ns.has(t.id) ? ns.delete(t.id) : ns.add(t.id);
+                                  return ns;
+                                });
+                              }}
+                              className="inline-flex items-center justify-center h-4 w-4 rounded hover:bg-muted shrink-0"
+                              aria-label={isExpanded ? "Colapsar" : "Expandir"}
+                            >
+                              {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                            </button>
+                          )}
+                          <span className={cn(!isChild && childCount > 0 && "font-medium")}>{t.title}</span>
+                          {!isChild && childCount > 0 && (
+                            <span className="text-xs text-muted-foreground">({childCount})</span>
+                          )}
                         </span>
                         {t.description && <p className={cn("text-xs font-light text-muted-foreground truncate max-w-[220px]", isChild && "pl-5")}>{t.description}</p>}
                       </TableCell>
