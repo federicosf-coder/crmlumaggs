@@ -151,7 +151,8 @@ export function TaskActionFields({
     enabled: isWhatsApp && (!!contactId || !!companyId),
   });
   const waPhone = waContext?.contact?.whatsapp_phone || waContext?.contact?.mobile || waContext?.contact?.phone || waContext?.company?.phone || null;
-  const waNormalized = normalizePhoneForWhatsApp(waPhone);
+  const effectiveWaPhone = waPhoneOverride.trim() || waPhone || "";
+  const waNormalized = normalizePhoneForWhatsApp(effectiveWaPhone);
   const waContactName = waContext?.contact ? `${waContext.contact.first_name || ""} ${waContext.contact.last_name || ""}`.trim() : "";
   const waCompanyName = waContext?.company?.name || "";
 
