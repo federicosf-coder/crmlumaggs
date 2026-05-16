@@ -638,6 +638,20 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
               />
             </section>
 
+            {/* Bloques específicos por tipo de actividad (email/whatsapp/llamada/visita) */}
+            <TaskActionFields
+              taskType={taskType}
+              taskId={task?.id}
+              contactId={contactId}
+              companyId={companyId}
+              dealId={dealId}
+              description={description}
+              setDescription={handleDescChange}
+              onSent={() => {
+                if (!completed) handleCompletedChange(true);
+              }}
+            />
+
             <Separator />
 
             {/* Vínculos */}
