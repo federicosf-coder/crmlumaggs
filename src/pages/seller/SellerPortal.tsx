@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package, Pencil, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, Search, Layers, List, CornerDownRight } from "lucide-react";
+import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package, Pencil, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, Search, Layers, List, CornerDownRight, ChevronRight, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,7 +105,7 @@ export default function SellerPortal() {
   const [sortCreadas, setSortCreadas] = useState<{ col: "cliente" | "tarea" | "categoria" | "tipo" | "creada" | "estatus"; dir: "asc" | "desc" }>({ col: "creada", dir: "desc" });
   const [statusCreadas, setStatusCreadas] = useState<"all" | "Pendiente" | "Vencida" | "Completada">("all");
   const [searchCreadas, setSearchCreadas] = useState("");
-  const [groupByParent, setGroupByParent] = useState(false);
+  const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
   const [limProspectos, setLimProspectos] = useState<PageLimit>("10");
   const [pageProspectos, setPageProspectos] = useState(1);
   const [limCotizaciones, setLimCotizaciones] = useState<PageLimit>("10");
@@ -940,9 +940,14 @@ export default function SellerPortal() {
             <CardTitle className="text-base">Todas las tareas ({allTasksList.length})</CardTitle>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-muted-foreground">{selectedTaskIds.size} seleccionadas</span>
-              <Button size="sm" variant={groupByParent ? "default" : "outline"} onClick={() => { setGroupByParent(g => !g); setPageCreadas(1); }}>
-                {groupByParent ? <List className="h-3.5 w-3.5 mr-1" /> : <Layers className="h-3.5 w-3.5 mr-1" />}
-                {groupByParent ? "Ver como lista" : "Agrupar por tarea principal"}
+              <Button size="sm" variant="outline" onClick={() => {
+                const parentIds = allTasksList
+                  .filter((t: any) => allTasksList.some((c: any) => c.parent_task_id === t.id))
+                  .map((t: any) => t.id);
+                const allExpanded = parentIds.length > 0 && parentIds.every(id => expandedParents.has(id));
+                setExpandedParents(allExpanded ? new Set() : new Set(parentIds));
+              }}>
+                <Layers className="h-3.5 w-3.5 mr-1" /> Expandir / colapsar todo
               </Button>
               <Button size="sm" variant="outline" onClick={handleCopiar}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar seleccionadas</Button>
               <Button size="sm" variant="outline" onClick={handleExportar}><Download className="h-3.5 w-3.5 mr-1" /> Exportar seleccionadas</Button>
