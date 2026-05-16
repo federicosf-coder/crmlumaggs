@@ -40,6 +40,7 @@ import {
 } from "@/lib/taskTypes";
 import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
 import { RescheduleActivityDialog, type RescheduleContext } from "@/components/crm/RescheduleActivityDialog";
+import { TaskActionFields } from "@/components/crm/TaskActionFields";
 
 interface CrmTaskDetailDialogProps {
   task: CrmTask | null;
