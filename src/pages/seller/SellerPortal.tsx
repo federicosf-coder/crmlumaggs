@@ -1038,7 +1038,7 @@ export default function SellerPortal() {
                     return true;
                   });
                   if (filtered.length === 0) return <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-3">Sin resultados</TableCell></TableRow>;
-                  return paginate([...filtered].sort((a, b) => {
+                  const sorted = [...filtered].sort((a, b) => {
                   const dir = sortCreadas.dir === "asc" ? 1 : -1;
                   const venA = a.due_date ? new Date(a.due_date) : null;
                   const isVencA = venA && !a.completed && venA < todayStart;
@@ -1059,7 +1059,34 @@ export default function SellerPortal() {
                   if (av < bv) return -1 * dir;
                   if (av > bv) return 1 * dir;
                   return 0;
-                }), limCreadas, pageCreadas).map(t => {
+                });
+                let ordered: { task: any; isChild: boolean }[];
+                if (groupByParent) {
+                  const byId = new Map<string, any>(sorted.map((t: any) => [t.id, t]));
+                  const childrenOf = new Map<string, any[]>();
+                  const roots: any[] = [];
+                  for (const t of sorted) {
+                    const pid = (t as any).parent_task_id;
+                    if (pid && byId.has(pid)) {
+                      if (!childrenOf.has(pid)) childrenOf.set(pid, []);
+                      childrenOf.get(pid)!.push(t);
+                    } else {
+                      roots.push(t);
+                    }
+                  }
+                  ordered = [];
+                  for (const r of roots) {
+                    ordered.push({ task: r, isChild: false });
+                    const kids = (childrenOf.get(r.id) || []).sort((a, b) =>
+                      ((a.sequence_order ?? 0) - (b.sequence_order ?? 0)) ||
+                      ((a.created_at ? new Date(a.created_at).getTime() : 0) - (b.created_at ? new Date(b.created_at).getTime() : 0))
+                    );
+                    for (const k of kids) ordered.push({ task: k, isChild: true });
+                  }
+                } else {
+                  ordered = sorted.map((t: any) => ({ task: t, isChild: false }));
+                }
+                return paginate(ordered, limCreadas, pageCreadas).map(({ task: t, isChild }) => {
                   const venc = t.due_date ? new Date(t.due_date) : null;
                   const isVenc = venc && !t.completed && venc < todayStart;
                   const statusCls = t.completed ? "bg-green-100 text-green-800 border-green-300" : isVenc ? "bg-red-100 text-red-800 border-red-300" : "bg-yellow-100 text-yellow-800 border-yellow-300";
@@ -1072,7 +1099,7 @@ export default function SellerPortal() {
                     <TableRow
                       key={t.id}
                       data-state={selectedTaskIds.has(t.id) ? "selected" : undefined}
-                      className="cursor-pointer"
+                      className={cn("cursor-pointer", isChild && "bg-muted/30")}
                       onClick={() => { setSelectedTask(t as CrmTask); setTaskDialogOpen(true); }}
                     >
                       <TableCell className="py-1.5" onClick={(e) => e.stopPropagation()}>
@@ -1087,7 +1114,13 @@ export default function SellerPortal() {
                         />
                       </TableCell>
                       <TableCell className="font-light text-sm py-1.5 w-[28%]">{companyMap[t.company_id] || "—"}</TableCell>
-                      <TableCell className="font-light text-sm py-1.5 w-[20%]">{t.title}{t.description && <p className="text-xs font-light text-muted-foreground truncate max-w-[220px]">{t.description}</p>}</TableCell>
+                      <TableCell className="font-light text-sm py-1.5 w-[20%]">
+                        <span className={cn("inline-flex items-center gap-1", isChild && "pl-5 text-muted-foreground")}>
+                          {isChild && <CornerDownRight className="h-3 w-3 shrink-0" />}
+                          {t.title}
+                        </span>
+                        {t.description && <p className={cn("text-xs font-light text-muted-foreground truncate max-w-[220px]", isChild && "pl-5")}>{t.description}</p>}
+                      </TableCell>
                       <TableCell className="py-1.5"><Badge variant="outline" className={cn("text-xs", cat.cls)}>{cat.label}</Badge></TableCell>
                       <TableCell className="py-1.5"><span className="inline-flex items-center gap-1 text-xs"><span>{tipoCfg.emoji}</span>{tipoCfg.label}</span></TableCell>
                       <TableCell className="text-xs py-1.5">{t.created_at ? format(new Date(t.created_at), "dd MMM HH:mm", { locale: es }) : "—"}</TableCell>
