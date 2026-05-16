@@ -602,8 +602,24 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
 
             {/* Breadcrumb si es sub-tarea */}
             {task?.parent_task_id && (
-              <section className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                Esta tarea forma parte de una secuencia.
+              <section className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground flex items-center justify-between gap-2 flex-wrap">
+                <span>Esta tarea forma parte de una secuencia.</span>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-xs"
+                  onClick={async () => {
+                    const { data, error } = await supabase
+                      .from("crm_tasks")
+                      .select("*, crm_deals(id, title), contacts(id, first_name, last_name), companies(id, name)")
+                      .eq("id", task.parent_task_id!)
+                      .maybeSingle();
+                    if (error || !data) { toast.error("No se pudo cargar la tarea principal"); return; }
+                    setViewSubTask(data as unknown as CrmTask);
+                  }}
+                >
+                  <ArrowUpRight className="h-3.5 w-3.5 mr-1" /> Ir a la tarea principal
+                </Button>
               </section>
             )}
 
