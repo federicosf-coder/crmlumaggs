@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DictationButton } from "@/components/ui/dictation-button";
 import {
   Loader2, Phone, Copy, Mail, UserPlus, Save, Send as SendIcon, Paperclip,
-  FileText, X, MessageCircle, MapPin, Crosshair, Send,
+  FileText, X, MessageCircle, MapPin, Crosshair, Send, Plus,
 } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { TaskTypeKey } from "@/lib/taskTypes";
@@ -29,10 +30,17 @@ interface TaskActionFieldsProps {
   setDescription: (v: string) => void;
   /** Llamado tras una acción de envío (email enviado, WA enviado, etc.) para que el padre marque la tarea como completada. */
   onSent?: (logLine: string) => void;
+  /** Opciones de contacto para el selector inline (label/value). */
+  contactOptions?: Array<{ label: string; value: string }>;
+  /** Cambiar contacto vinculado desde el bloque de email/whatsapp. */
+  onContactChange?: (contactId: string | null) => void;
+  /** Abrir el diálogo para crear un nuevo contacto. */
+  onOpenNewContact?: () => void;
 }
 
 export function TaskActionFields({
   taskType, taskId, contactId, companyId, description, setDescription, onSent,
+  contactOptions, onContactChange, onOpenNewContact,
 }: TaskActionFieldsProps) {
   const { session } = useAuth();
   const { toast } = useToast();
@@ -65,12 +73,13 @@ export function TaskActionFields({
 
   // ===== WhatsApp state =====
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [waPhoneOverride, setWaPhoneOverride] = useState<string>("");
 
   // Reset al cambiar de tarea
   useEffect(() => {
     setEmailTo(""); setEmailCc(""); setEmailBcc(""); setEmailSubject(""); setEmailBody("");
     setShowCc(false); setShowBcc(false); setAttachedDocs([]); setAttachOpen(false);
-    setCallPhone(""); setLocation("");
+    setCallPhone(""); setLocation(""); setWaPhoneOverride("");
   }, [taskId]);
 
   // ===== Queries =====
