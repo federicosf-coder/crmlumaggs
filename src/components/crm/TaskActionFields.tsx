@@ -292,7 +292,12 @@ export function TaskActionFields({
   return (
     <section className="space-y-3">
       {isCall && (
-        <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+        <div className="rounded-lg border overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 px-4 py-2.5 border-b flex items-center gap-2">
+            <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs uppercase tracking-wide font-semibold text-emerald-900 dark:text-emerald-100">Registro de llamada</span>
+          </div>
+          <div className="space-y-3 p-4 bg-background">
           {!contactId && (
             <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-light text-amber-900 dark:text-amber-200 flex items-start gap-2">
               <UserPlus className="h-4 w-4 mt-0.5 shrink-0" />
@@ -331,11 +336,17 @@ export function TaskActionFields({
               </div>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {isEmail && (
-        <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+        <div className="rounded-lg border overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-4 py-2.5 border-b flex items-center gap-2">
+            <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs uppercase tracking-wide font-semibold text-blue-900 dark:text-blue-100">Redactar correo</span>
+          </div>
+          <div className="space-y-3 p-4 bg-background">
           {!contactId && (
             <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-light text-amber-900 dark:text-amber-200 flex items-start gap-2">
               <UserPlus className="h-4 w-4 mt-0.5 shrink-0" />
@@ -435,11 +446,17 @@ export function TaskActionFields({
               {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendIcon className="h-4 w-4" />} Enviar Correo
             </Button>
           </div>
+          </div>
         </div>
       )}
 
       {isWhatsApp && (
-        <div className="space-y-2">
+        <div className="rounded-lg border overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 px-4 py-2.5 border-b flex items-center gap-2">
+            <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs uppercase tracking-wide font-semibold text-emerald-900 dark:text-emerald-100">Mensaje de WhatsApp</span>
+          </div>
+          <div className="space-y-2 p-4 bg-background">
           <div className="flex items-center justify-between">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mensaje de WhatsApp</Label>
             <DictationButton currentText={description} onTranscript={setDescription} size="sm" className="h-7 px-2 text-xs gap-1" />
@@ -474,12 +491,17 @@ export function TaskActionFields({
             context={{ contact_id: contactId, company_id: companyId }}
             onSent={() => onSent?.(`WhatsApp enviado (API) a +${waNormalized}`)}
           />
+          </div>
         </div>
       )}
 
       {isVisit && (
-        <div className="space-y-2">
-          <Label className="text-xs uppercase tracking-wide text-muted-foreground">Ubicación de la visita</Label>
+        <div className="rounded-lg border overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 px-4 py-2.5 border-b flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <span className="text-xs uppercase tracking-wide font-semibold text-amber-900 dark:text-amber-100">Ubicación de la visita</span>
+          </div>
+          <div className="space-y-2 p-4 bg-background">
           <div className="flex gap-2">
             <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Dirección, referencia o link de Google Maps" className="flex-1 text-base font-light" />
             <Button type="button" variant="outline" onClick={captureLocation} disabled={locating} className="shrink-0 gap-1.5">
@@ -492,6 +514,7 @@ export function TaskActionFields({
               <MapPin className="h-3 w-3" /> Abrir en mapa
             </a>
           )}
+          </div>
         </div>
       )}
     </section>
