@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package, Pencil, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, Search } from "lucide-react";
+import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package, Pencil, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, Search, Layers, List, CornerDownRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,6 +105,7 @@ export default function SellerPortal() {
   const [sortCreadas, setSortCreadas] = useState<{ col: "cliente" | "tarea" | "categoria" | "tipo" | "creada" | "estatus"; dir: "asc" | "desc" }>({ col: "creada", dir: "desc" });
   const [statusCreadas, setStatusCreadas] = useState<"all" | "Pendiente" | "Vencida" | "Completada">("all");
   const [searchCreadas, setSearchCreadas] = useState("");
+  const [groupByParent, setGroupByParent] = useState(false);
   const [limProspectos, setLimProspectos] = useState<PageLimit>("10");
   const [pageProspectos, setPageProspectos] = useState(1);
   const [limCotizaciones, setLimCotizaciones] = useState<PageLimit>("10");
@@ -222,7 +223,7 @@ export default function SellerPortal() {
       }
 
       // Tasks: traemos del ejecutivo (sin filtro de fecha porque necesitamos vencidas + creadas + completadas en periodo)
-      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at, task_type, parent_category").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
+      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at, task_type, parent_category, parent_task_id, sequence_order").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
       if (uIds) tq = tq.in("user_id", uIds);
       const { data: tasksData } = await tq;
 
