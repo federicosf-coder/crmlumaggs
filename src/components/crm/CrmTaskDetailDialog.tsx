@@ -40,6 +40,7 @@ import {
 } from "@/lib/taskTypes";
 import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
 import { RescheduleActivityDialog, type RescheduleContext } from "@/components/crm/RescheduleActivityDialog";
+import { TaskActionFields } from "@/components/crm/TaskActionFields";
 
 interface CrmTaskDetailDialogProps {
   task: CrmTask | null;
@@ -636,6 +637,20 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                 className={cn(inputCls, "resize-y min-h-[80px]")}
               />
             </section>
+
+            {/* Bloques específicos por tipo de actividad (email/whatsapp/llamada/visita) */}
+            <TaskActionFields
+              taskType={taskType}
+              taskId={task?.id}
+              contactId={contactId}
+              companyId={companyId}
+              dealId={dealId}
+              description={description}
+              setDescription={handleDescChange}
+              onSent={() => {
+                if (!completed) handleCompletedChange(true);
+              }}
+            />
 
             <Separator />
 
