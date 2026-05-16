@@ -20,7 +20,6 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CrmTaskDetailDialog } from "@/components/crm/CrmTaskDetailDialog";
-import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
 import { CrmActivityDetailDialog } from "@/components/crm/CrmActivityDetailDialog";
 import { CrmDealDetailSheet } from "@/components/crm/CrmDealDetailSheet";
 import type { CrmDeal } from "@/hooks/useCrmDeals";
@@ -1393,8 +1392,8 @@ export default function SellerPortal() {
       </Card>
 
       <CrmTaskDetailDialog
-        task={selectedTask && !(selectedTask as any).parent_task_id ? selectedTask : null}
-        open={taskDialogOpen && !!selectedTask && !(selectedTask as any).parent_task_id}
+        task={selectedTask}
+        open={taskDialogOpen}
         onOpenChange={(o) => {
           setTaskDialogOpen(o);
           if (!o) {
@@ -1402,18 +1401,6 @@ export default function SellerPortal() {
             fetchData();
           }
         }}
-      />
-
-      <CreateCrmTaskDialog
-        open={taskDialogOpen && !!selectedTask && !!(selectedTask as any).parent_task_id}
-        onOpenChange={(o) => {
-          setTaskDialogOpen(o);
-          if (!o) {
-            setSelectedTask(null);
-            fetchData();
-          }
-        }}
-        editTask={selectedTask && (selectedTask as any).parent_task_id ? (selectedTask as any) : null}
       />
 
       <CrmActivityDetailDialog

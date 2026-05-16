@@ -640,38 +640,38 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
             <Separator />
 
             {/* Vínculos */}
-            <section className="border-l-4 border-blue-400 pl-4">
-              <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
-                <Link2 className="h-4 w-4" /> Vínculos
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Negocio</label>
+            <section>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-2 min-w-0">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Negocio</div>
                   <SearchableSelect
                     value={dealId || "none"}
                     onValueChange={handleSelectDeal}
                     options={dealOptions}
-                    placeholder="Seleccionar negocio..."
+                    placeholder="Buscar negocio..."
+                    className="font-light text-sm"
                   />
                 </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Empresa</label>
+                <div className="space-y-2 min-w-0">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Empresa</div>
                   <SearchableSelect
                     value={companyId || "none"}
                     onValueChange={handleSelectCompany}
                     options={companyOptions}
-                    placeholder="Seleccionar empresa..."
+                    placeholder="Buscar empresa..."
+                    className="font-light text-sm"
                   />
                 </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Contacto</label>
+                <div className="space-y-2 min-w-0">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Contacto</div>
                   <div className="flex items-center gap-1">
                     <div className="flex-1 min-w-0">
                       <SearchableSelect
                         value={contactId || "none"}
                         onValueChange={handleSelectContact}
                         options={contactOptions}
-                        placeholder="Seleccionar contacto..."
+                        placeholder="Buscar contacto..."
+                        className="font-light text-sm"
                       />
                     </div>
                     <Button
