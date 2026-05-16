@@ -652,6 +652,9 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
               onSent={() => {
                 if (!completed) handleCompletedChange(true);
               }}
+              contactOptions={contactOptions}
+              onContactChange={(v) => handleSelectContact(v || "none")}
+              onOpenNewContact={() => { setContactFormEdit(null); setContactFormOpen(true); }}
             />
 
             <Separator />
