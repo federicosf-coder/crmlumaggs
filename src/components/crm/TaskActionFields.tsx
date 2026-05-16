@@ -372,10 +372,25 @@ export function TaskActionFields({
             <span className="text-xs uppercase tracking-wide font-semibold text-blue-900 dark:text-blue-100">Redactar correo</span>
           </div>
           <div className="space-y-3 p-4 bg-background">
-          {!contactId && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-light text-amber-900 dark:text-amber-200 flex items-start gap-2">
-              <UserPlus className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>Selecciona un contacto en <strong>Vincular a Contacto</strong> para usar su correo automáticamente.</span>
+          {(onContactChange && contactOptions) && (
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Contacto</Label>
+              <div className="flex items-center gap-1">
+                <div className="flex-1 min-w-0">
+                  <SearchableSelect
+                    value={contactId || "none"}
+                    onValueChange={(v) => onContactChange(v === "none" ? null : v)}
+                    options={contactOptions}
+                    placeholder="Buscar contacto..."
+                    className="font-light text-sm"
+                  />
+                </div>
+                {onOpenNewContact && (
+                  <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0" title="Nuevo contacto" onClick={onOpenNewContact}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           )}
           <div className="space-y-1.5">
