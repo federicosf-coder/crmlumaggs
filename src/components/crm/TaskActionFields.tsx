@@ -497,6 +497,44 @@ export function TaskActionFields({
             <span className="text-xs uppercase tracking-wide font-semibold text-emerald-900 dark:text-emerald-100">Mensaje de WhatsApp</span>
           </div>
           <div className="space-y-2 p-4 bg-background">
+          {(onContactChange && contactOptions) && (
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Contacto</Label>
+              <div className="flex items-center gap-1">
+                <div className="flex-1 min-w-0">
+                  <SearchableSelect
+                    value={contactId || "none"}
+                    onValueChange={(v) => { onContactChange(v === "none" ? null : v); setWaPhoneOverride(""); }}
+                    options={contactOptions}
+                    placeholder="Buscar contacto..."
+                    className="font-light text-sm"
+                  />
+                </div>
+                {onOpenNewContact && (
+                  <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0" title="Nuevo contacto" onClick={onOpenNewContact}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Teléfono WhatsApp</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={waPhoneOverride || (waPhone ?? "")}
+                onChange={(e) => setWaPhoneOverride(e.target.value)}
+                placeholder="Captura o edita el teléfono"
+                className="font-light h-9 flex-1"
+              />
+              {waNormalized && (
+                <span className="text-[11px] text-muted-foreground font-light shrink-0">+{waNormalized}</span>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground font-light">
+              Contacto: {waContactName || waCompanyName || "—"}
+            </p>
+          </div>
           <div className="flex items-center justify-between">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mensaje de WhatsApp</Label>
             <DictationButton currentText={description} onTranscript={setDescription} size="sm" className="h-7 px-2 text-xs gap-1" />
