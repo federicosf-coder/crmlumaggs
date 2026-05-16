@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DictationButton } from "@/components/ui/dictation-button";
 import {
   Loader2, Phone, Copy, Mail, UserPlus, Save, Send as SendIcon, Paperclip,
-  FileText, X, MessageCircle, MapPin, Crosshair, Send,
+  FileText, X, MessageCircle, MapPin, Crosshair, Send, Plus,
 } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { TaskTypeKey } from "@/lib/taskTypes";
@@ -29,10 +30,17 @@ interface TaskActionFieldsProps {
   setDescription: (v: string) => void;
   /** Llamado tras una acción de envío (email enviado, WA enviado, etc.) para que el padre marque la tarea como completada. */
   onSent?: (logLine: string) => void;
+  /** Opciones de contacto para el selector inline (label/value). */
+  contactOptions?: Array<{ label: string; value: string }>;
+  /** Cambiar contacto vinculado desde el bloque de email/whatsapp. */
+  onContactChange?: (contactId: string | null) => void;
+  /** Abrir el diálogo para crear un nuevo contacto. */
+  onOpenNewContact?: () => void;
 }
 
 export function TaskActionFields({
   taskType, taskId, contactId, companyId, description, setDescription, onSent,
+  contactOptions, onContactChange, onOpenNewContact,
 }: TaskActionFieldsProps) {
   const { session } = useAuth();
   const { toast } = useToast();
@@ -65,12 +73,13 @@ export function TaskActionFields({
 
   // ===== WhatsApp state =====
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [waPhoneOverride, setWaPhoneOverride] = useState<string>("");
 
   // Reset al cambiar de tarea
   useEffect(() => {
     setEmailTo(""); setEmailCc(""); setEmailBcc(""); setEmailSubject(""); setEmailBody("");
     setShowCc(false); setShowBcc(false); setAttachedDocs([]); setAttachOpen(false);
-    setCallPhone(""); setLocation("");
+    setCallPhone(""); setLocation(""); setWaPhoneOverride("");
   }, [taskId]);
 
   // ===== Queries =====
@@ -142,7 +151,8 @@ export function TaskActionFields({
     enabled: isWhatsApp && (!!contactId || !!companyId),
   });
   const waPhone = waContext?.contact?.whatsapp_phone || waContext?.contact?.mobile || waContext?.contact?.phone || waContext?.company?.phone || null;
-  const waNormalized = normalizePhoneForWhatsApp(waPhone);
+  const effectiveWaPhone = waPhoneOverride.trim() || waPhone || "";
+  const waNormalized = normalizePhoneForWhatsApp(effectiveWaPhone);
   const waContactName = waContext?.contact ? `${waContext.contact.first_name || ""} ${waContext.contact.last_name || ""}`.trim() : "";
   const waCompanyName = waContext?.company?.name || "";
 
@@ -298,10 +308,25 @@ export function TaskActionFields({
             <span className="text-xs uppercase tracking-wide font-semibold text-emerald-900 dark:text-emerald-100">Registro de llamada</span>
           </div>
           <div className="space-y-3 p-4 bg-background">
-          {!contactId && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-light text-amber-900 dark:text-amber-200 flex items-start gap-2">
-              <UserPlus className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>Selecciona un contacto en <strong>Vincular a Contacto</strong> para autollenar el teléfono.</span>
+          {(onContactChange && contactOptions) && (
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Contacto</Label>
+              <div className="flex items-center gap-1">
+                <div className="flex-1 min-w-0">
+                  <SearchableSelect
+                    value={contactId || "none"}
+                    onValueChange={(v) => onContactChange(v === "none" ? null : v)}
+                    options={contactOptions}
+                    placeholder="Buscar contacto..."
+                    className="font-light text-sm"
+                  />
+                </div>
+                {onOpenNewContact && (
+                  <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0" title="Nuevo contacto" onClick={onOpenNewContact}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           )}
           <div className="grid grid-cols-12 gap-2">
@@ -347,10 +372,25 @@ export function TaskActionFields({
             <span className="text-xs uppercase tracking-wide font-semibold text-blue-900 dark:text-blue-100">Redactar correo</span>
           </div>
           <div className="space-y-3 p-4 bg-background">
-          {!contactId && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-light text-amber-900 dark:text-amber-200 flex items-start gap-2">
-              <UserPlus className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>Selecciona un contacto en <strong>Vincular a Contacto</strong> para usar su correo automáticamente.</span>
+          {(onContactChange && contactOptions) && (
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Contacto</Label>
+              <div className="flex items-center gap-1">
+                <div className="flex-1 min-w-0">
+                  <SearchableSelect
+                    value={contactId || "none"}
+                    onValueChange={(v) => onContactChange(v === "none" ? null : v)}
+                    options={contactOptions}
+                    placeholder="Buscar contacto..."
+                    className="font-light text-sm"
+                  />
+                </div>
+                {onOpenNewContact && (
+                  <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0" title="Nuevo contacto" onClick={onOpenNewContact}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           )}
           <div className="space-y-1.5">
@@ -457,6 +497,44 @@ export function TaskActionFields({
             <span className="text-xs uppercase tracking-wide font-semibold text-emerald-900 dark:text-emerald-100">Mensaje de WhatsApp</span>
           </div>
           <div className="space-y-2 p-4 bg-background">
+          {(onContactChange && contactOptions) && (
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Contacto</Label>
+              <div className="flex items-center gap-1">
+                <div className="flex-1 min-w-0">
+                  <SearchableSelect
+                    value={contactId || "none"}
+                    onValueChange={(v) => { onContactChange(v === "none" ? null : v); setWaPhoneOverride(""); }}
+                    options={contactOptions}
+                    placeholder="Buscar contacto..."
+                    className="font-light text-sm"
+                  />
+                </div>
+                {onOpenNewContact && (
+                  <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0" title="Nuevo contacto" onClick={onOpenNewContact}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Teléfono WhatsApp</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={waPhoneOverride || (waPhone ?? "")}
+                onChange={(e) => setWaPhoneOverride(e.target.value)}
+                placeholder="Captura o edita el teléfono"
+                className="font-light h-9 flex-1"
+              />
+              {waNormalized && (
+                <span className="text-[11px] text-muted-foreground font-light shrink-0">+{waNormalized}</span>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground font-light">
+              Contacto: {waContactName || waCompanyName || "—"}
+            </p>
+          </div>
           <div className="flex items-center justify-between">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mensaje de WhatsApp</Label>
             <DictationButton currentText={description} onTranscript={setDescription} size="sm" className="h-7 px-2 text-xs gap-1" />
