@@ -940,6 +940,10 @@ export default function SellerPortal() {
             <CardTitle className="text-base">Todas las tareas ({allTasksList.length})</CardTitle>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-muted-foreground">{selectedTaskIds.size} seleccionadas</span>
+              <Button size="sm" variant={groupByParent ? "default" : "outline"} onClick={() => { setGroupByParent(g => !g); setPageCreadas(1); }}>
+                {groupByParent ? <List className="h-3.5 w-3.5 mr-1" /> : <Layers className="h-3.5 w-3.5 mr-1" />}
+                {groupByParent ? "Ver como lista" : "Agrupar por tarea principal"}
+              </Button>
               <Button size="sm" variant="outline" onClick={handleCopiar}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar seleccionadas</Button>
               <Button size="sm" variant="outline" onClick={handleExportar}><Download className="h-3.5 w-3.5 mr-1" /> Exportar seleccionadas</Button>
               <PageSizeSelect value={limCreadas} onChange={setLimCreadas} total={allTasksList.length} onPageReset={() => setPageCreadas(1)} />
