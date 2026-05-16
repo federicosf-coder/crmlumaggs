@@ -856,7 +856,49 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cerrar</Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                if (!task) return;
+                if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+                setSaveStatus("saving");
+                updateTask.mutate(
+                  {
+                    id: task.id,
+                    title,
+                    description: description || null,
+                    due_date: dueDate || null,
+                    priority,
+                    completed,
+                    completed_at: completed ? (task.completed_at || new Date().toISOString()) : null,
+                    deal_id: dealId,
+                    company_id: companyId,
+                    contact_id: contactId,
+                    user_id: userId,
+                    programable_entrega: programable,
+                    task_type: taskType,
+                    parent_category: parentCategory,
+                  } as any,
+                  {
+                    onSuccess: () => {
+                      setSaveStatus("saved");
+                      toast({ title: "Cambios guardados" });
+                      setTimeout(() => setSaveStatus("idle"), 1500);
+                    },
+                    onError: (e: any) => {
+                      setSaveStatus("idle");
+                      toast({ title: "Error al guardar", description: e?.message, variant: "destructive" });
+                    },
+                  }
+                );
+              }}
+              disabled={saveStatus === "saving"}
+            >
+              {saveStatus === "saving" ? (<><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Guardando...</>) : (<><Check className="h-4 w-4 mr-1.5" /> Guardar cambios</>)}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cerrar</Button>
+          </div>
         </div>
 
         <WhatsAppActionDialog
