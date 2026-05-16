@@ -18,7 +18,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   Trash2, Calendar as CalendarIcon, User, FileText, Link2,
-  MessageCircle, Loader2, Check, ChevronLeft, ChevronRight, Plus, Pencil, Mail, GripVertical,
+  MessageCircle, Loader2, Check, ChevronLeft, ChevronRight, Plus, Pencil, Mail, GripVertical, ArrowUpRight,
 } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
