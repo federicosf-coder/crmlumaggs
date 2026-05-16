@@ -445,7 +445,7 @@ export function TaskActionFields({
                 if (!companyId) { toast({ title: "Vincula una empresa", description: "Selecciona una empresa para ver sus documentos.", variant: "destructive" }); return; }
                 setAttachOpen((v) => !v);
               }} className="h-7 text-xs gap-1.5">
-                <Paperclip className="h-3.5 w-3.5" /> Adjuntar documento
+                <Paperclip className="h-3.5 w-3.5" /> {attachOpen ? "Cerrar lista" : "Seleccionar documento"}
               </Button>
             </div>
             {attachOpen && (
