@@ -469,9 +469,9 @@ export function TaskActionFields({
             open={whatsappOpen}
             onOpenChange={setWhatsappOpen}
             phone={waNormalized}
-            message={description}
-            contactId={contactId || undefined}
-            companyId={companyId || undefined}
+            variables={{} as any}
+            defaultMessage={description}
+            context={{ contact_id: contactId, company_id: companyId }}
             onSent={() => onSent?.(`WhatsApp enviado (API) a +${waNormalized}`)}
           />
         </div>
