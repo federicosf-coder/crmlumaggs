@@ -247,6 +247,7 @@ export type Database = {
           id: string
           nombre: string
           orden: number | null
+          parent_id: string | null
           solo_admin: boolean
           updated_at: string
         }
@@ -259,6 +260,7 @@ export type Database = {
           id?: string
           nombre: string
           orden?: number | null
+          parent_id?: string | null
           solo_admin?: boolean
           updated_at?: string
         }
@@ -271,10 +273,19 @@ export type Database = {
           id?: string
           nombre?: string
           orden?: number | null
+          parent_id?: string | null
           solo_admin?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "biblioteca_categorias_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "biblioteca_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       biblioteca_versiones: {
         Row: {
