@@ -52,9 +52,13 @@ function toISODate(v: any): string | null {
   return null
 }
 
-type Kind = 'ine_front' | 'ine_back' | 'ine_full' | 'passport' | 'comprobante_domicilio' | 'csf' | 'acta_constitutiva'
+type Kind =
+  | 'ine_front' | 'ine_back' | 'ine_full' | 'passport'
+  | 'comprobante_domicilio' | 'csf' | 'acta_constitutiva'
+  | 'aval_ine_front' | 'aval_ine_back' | 'aval_ine_full' | 'aval_passport'
+  | 'aval_comprobante_domicilio'
 
-const PROMPTS: Record<Kind, string> = {
+const PROMPTS_BASE: Record<string, string> = {
   ine_front: `Extrae datos de la CARA FRONTAL de la credencial INE/IFE mexicana de la imagen/PDF. Devuelve únicamente JSON con estas llaves (usa null si no aparece):
 {
   "nombre_completo": string|null,
@@ -138,6 +142,20 @@ const PROMPTS: Record<Kind, string> = {
   "objeto_social": string|null,
   "fecha_constitucion": string|null // YYYY-MM-DD
 }`,
+}
+const PROMPTS: Record<Kind, string> = {
+  ine_front: PROMPTS_BASE.ine_front,
+  ine_back: PROMPTS_BASE.ine_back,
+  ine_full: PROMPTS_BASE.ine_full,
+  passport: PROMPTS_BASE.passport,
+  comprobante_domicilio: PROMPTS_BASE.comprobante_domicilio,
+  csf: PROMPTS_BASE.csf,
+  acta_constitutiva: PROMPTS_BASE.acta_constitutiva,
+  aval_ine_front: PROMPTS_BASE.ine_front,
+  aval_ine_back: PROMPTS_BASE.ine_back,
+  aval_ine_full: PROMPTS_BASE.ine_full,
+  aval_passport: PROMPTS_BASE.passport,
+  aval_comprobante_domicilio: PROMPTS_BASE.comprobante_domicilio,
 }
 
 async function callAI(prompt: string, fileB64: string, mime: string) {
@@ -257,6 +275,13 @@ Deno.serve(async (req) => {
       fillIfEmpty('rep_legal_tipo_id', kind === 'passport' ? 'Pasaporte' : 'INE')
       fillIfEmpty('rep_legal_num_id', parsed.numero_identificacion || parsed.cic)
       fillIfEmpty('rep_legal_vencimiento_id', toISODate(parsed.fecha_vencimiento))
+    } else if (kind === 'aval_ine_front' || kind === 'aval_ine_back' || kind === 'aval_ine_full' || kind === 'aval_passport') {
+      fillIfEmpty('aval_nombre', parsed.nombre_completo)
+      fillIfEmpty('aval_direccion', parsed.domicilio)
+    } else if (kind === 'aval_comprobante_domicilio') {
+      // El comprobante del aval también ayuda a llenar dirección/ciudad si faltan
+      fillIfEmpty('aval_direccion', parsed.domicilio)
+      fillIfEmpty('aval_ciudad', parsed.municipio || parsed.ciudad)
     }
 
     if (Object.keys(updates).length > 0) {
