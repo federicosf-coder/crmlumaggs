@@ -173,16 +173,25 @@ export default function CreditoDetail() {
     qc.invalidateQueries({ queryKey: ["credit_request_history", id] });
   };
 
-  const uploadDoc = async (file: File, docTypeId: string | null, displayName?: string) => {
+  const uploadDoc = async (
+    file: File,
+    docTypeId: string | null,
+    displayName?: string,
+    extra?: { fecha_emision?: string | null; fecha_vencimiento?: string | null; metadata?: any },
+  ) => {
     const path = `${id}/${crypto.randomUUID()}_${file.name.replace(/[^\w.\-]+/g, "_")}`;
     const { error: upErr } = await supabase.storage.from("credit-docs").upload(path, file, { contentType: file.type, upsert: false });
     if (upErr) { toast.error("Upload: " + upErr.message); return; }
     const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
     const finalName = (displayName?.trim() ? (displayName.trim().toLowerCase().endsWith(ext.toLowerCase()) ? displayName.trim() : displayName.trim() + ext) : file.name);
-    const { error: insErr } = await supabase.from("credit_request_docs").insert({
+    const payload: any = {
       credit_request_id: id!, doc_type_id: docTypeId, url_archivo: path, nombre_archivo: finalName,
       tipo_archivo: file.type, estado: "recibido", visibilidad: "publica", subido_por: user?.id,
-    });
+    };
+    if (extra?.fecha_emision) payload.fecha_emision = extra.fecha_emision;
+    if (extra?.fecha_vencimiento) payload.fecha_vencimiento = extra.fecha_vencimiento;
+    if (extra?.metadata) payload.metadata = extra.metadata;
+    const { error: insErr } = await supabase.from("credit_request_docs").insert(payload);
     if (insErr) { toast.error(insErr.message); return; }
     toast.success("Documento subido");
     refetchDocs();
@@ -237,7 +246,22 @@ export default function CreditoDetail() {
       if (kind === "csf") docTypeId = matchType((n) => n.includes("csf") || n.includes("situación fiscal"));
       else if (kind === "comprobante_domicilio") docTypeId = matchType((n) => n.includes("comprobante de domicilio") && !n.includes("aval"));
       else if (kind.startsWith("ine") || kind === "passport") docTypeId = matchType((n) => n.startsWith("identificación oficial") && !n.includes("aval"));
-      await uploadDoc(file, docTypeId, label);
+      // Para comprobante: guardar el domicilio extraído en metadata para verificación posterior
+      const meta: any = {};
+      const parsed = (data as any)?.parsed || {};
+      if (kind === "comprobante_domicilio") {
+        meta.domicilio_extraido = parsed.domicilio || null;
+        meta.ciudad_extraida = parsed.municipio || parsed.ciudad || null;
+        meta.cp_extraido = parsed.codigo_postal || null;
+        meta.titular_extraido = parsed.titular || null;
+        meta.proveedor = parsed.proveedor || null;
+        meta.requiere_verificacion = true;
+      }
+      await uploadDoc(file, docTypeId, label, {
+        fecha_emision: (data as any)?.fecha_emision || null,
+        fecha_vencimiento: (data as any)?.fecha_vencimiento || null,
+        metadata: Object.keys(meta).length ? meta : undefined,
+      });
       toast.success(filled > 0 ? `${label}: ${filled} campos autocompletados y archivo guardado` : `${label} guardada (sin campos nuevos)`, { id: "af" });
       qc.invalidateQueries({ queryKey: ["credit_request", id] });
     } catch (e: any) {
