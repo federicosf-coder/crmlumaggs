@@ -246,6 +246,7 @@ export default function CreditoDetail() {
       if (kind === "csf") docTypeId = matchType((n) => n.includes("csf") || n.includes("situación fiscal"));
       else if (kind === "comprobante_domicilio") docTypeId = matchType((n) => n.includes("comprobante de domicilio") && !n.includes("aval"));
       else if (kind.startsWith("ine") || kind === "passport") docTypeId = matchType((n) => n.startsWith("identificación oficial") && !n.includes("aval"));
+      else if (kind === "acta_constitutiva") docTypeId = matchType((n) => n.includes("acta constitutiva"));
       // Para comprobante: guardar el domicilio extraído en metadata para verificación posterior
       const meta: any = {};
       const parsed = (data as any)?.parsed || {};
