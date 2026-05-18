@@ -27,6 +27,8 @@ interface PagoValidacionProps {
   registradoPor?: string
   documentos?: Array<{ tipo: string; numero: string; monto: string }>
   comprobantes?: Array<{ nombre: string; url: string }>
+  destinatarios?: string[]
+  respuestaA?: string
 }
 
 const FORMA_LABEL: Record<string, string> = {
@@ -57,9 +59,12 @@ const PagoValidacionEmail = ({
   registradoPor,
   documentos,
   comprobantes,
+  destinatarios,
+  respuestaA,
 }: PagoValidacionProps) => {
   const validComprobantes = (comprobantes || []).filter((c) => isValidUrl(c?.url))
   const validDocumentos = (documentos || []).filter((d) => d?.tipo || d?.numero)
+  const destUnicos = Array.from(new Set((destinatarios || []).filter((e) => typeof e === 'string' && e)))
 
   return (
     <Html lang="es" dir="ltr">
@@ -75,6 +80,15 @@ const PagoValidacionEmail = ({
             {registradoPor ? ` por ${registradoPor}` : ''}. Solicitamos su
             validación y aplicación correspondiente.
           </Text>
+
+          {(destUnicos.length > 0 || respuestaA) && (
+            <Section style={card}>
+              {destUnicos.length > 0 && (
+                <Row label="Enviado a" value={destUnicos.join(', ')} />
+              )}
+              {respuestaA && <Row label="Responder a" value={respuestaA} />}
+            </Section>
+          )}
 
           <Section style={card}>
             <Row label="Cliente" value={cliente || empresa || '—'} />
