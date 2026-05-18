@@ -21,6 +21,37 @@ const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions'
 const MODEL = 'google/gemini-3-flash-preview'
 
+const MESES: Record<string, string> = {
+  enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06',
+  julio: '07', agosto: '08', septiembre: '09', setiembre: '09', octubre: '10',
+  noviembre: '11', diciembre: '12',
+}
+function toISODate(v: any): string | null {
+  if (v === null || v === undefined) return null
+  const s = String(v).trim()
+  if (!s) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/)
+  if (m) {
+    const d = m[1].padStart(2, '0'), mo = m[2].padStart(2, '0')
+    let y = m[3]; if (y.length === 2) y = (parseInt(y) > 50 ? '19' : '20') + y
+    return `${y}-${mo}-${d}`
+  }
+  m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/)
+  if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`
+  const low = s.toLowerCase().replace(/\./g, '')
+  m = low.match(/(\d{1,2})\s*(?:de\s+)?([a-záéíóú]+)\s*(?:de\s+|del\s+)?(\d{2,4})/)
+  if (m && MESES[m[2]]) {
+    let y = m[3]; if (y.length === 2) y = (parseInt(y) > 50 ? '19' : '20') + y
+    return `${y}-${MESES[m[2]]}-${m[1].padStart(2,'0')}`
+  }
+  m = low.match(/^([a-záéíóú]+)\s+(\d{1,2}),?\s+(\d{4})$/)
+  if (m && MESES[m[1]]) return `${m[3]}-${MESES[m[1]]}-${m[2].padStart(2,'0')}`
+  const d = new Date(s)
+  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10)
+  return null
+}
+
 type Kind = 'ine_front' | 'ine_back' | 'ine_full' | 'passport' | 'comprobante_domicilio' | 'csf'
 
 const PROMPTS: Record<Kind, string> = {
@@ -192,7 +223,7 @@ Deno.serve(async (req) => {
       fillIfEmpty('csf_cp', parsed.codigo_postal)
       fillIfEmpty('csf_domicilio', parsed.domicilio)
       fillIfEmpty('csf_actividad_economica', parsed.actividad_economica)
-      fillIfEmpty('csf_fecha_inicio_operaciones', parsed.fecha_inicio_operaciones)
+      fillIfEmpty('csf_fecha_inicio_operaciones', toISODate(parsed.fecha_inicio_operaciones))
       fillIfEmpty('csf_tipo_persona', parsed.tipo_persona)
       updates.csf_parseado = true
     } else if (kind === 'comprobante_domicilio') {
@@ -201,11 +232,11 @@ Deno.serve(async (req) => {
     } else if (kind === 'ine_front' || kind === 'ine_back' || kind === 'ine_full' || kind === 'passport') {
       fillIfEmpty('rep_legal_nombre', parsed.nombre_completo)
       fillIfEmpty('rep_legal_curp', parsed.curp)
-      fillIfEmpty('rep_legal_fecha_nacimiento', parsed.fecha_nacimiento)
+      fillIfEmpty('rep_legal_fecha_nacimiento', toISODate(parsed.fecha_nacimiento))
       fillIfEmpty('rep_legal_pais_nacimiento', parsed.pais_nacimiento)
       fillIfEmpty('rep_legal_tipo_id', kind === 'passport' ? 'Pasaporte' : 'INE')
       fillIfEmpty('rep_legal_num_id', parsed.numero_identificacion || parsed.cic)
-      fillIfEmpty('rep_legal_vencimiento_id', parsed.fecha_vencimiento)
+      fillIfEmpty('rep_legal_vencimiento_id', toISODate(parsed.fecha_vencimiento))
     }
 
     if (Object.keys(updates).length > 0) {
