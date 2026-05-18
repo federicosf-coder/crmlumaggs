@@ -1193,6 +1193,7 @@ export type Database = {
           aplica_directo: boolean
           aplica_fisica: boolean
           aplica_moral: boolean
+          aplica_si_aval_distinto: boolean
           created_at: string
           descripcion: string | null
           id: string
@@ -1210,6 +1211,7 @@ export type Database = {
           aplica_directo?: boolean
           aplica_fisica?: boolean
           aplica_moral?: boolean
+          aplica_si_aval_distinto?: boolean
           created_at?: string
           descripcion?: string | null
           id?: string
@@ -1227,6 +1229,7 @@ export type Database = {
           aplica_directo?: boolean
           aplica_fisica?: boolean
           aplica_moral?: boolean
+          aplica_si_aval_distinto?: boolean
           created_at?: string
           descripcion?: string | null
           id?: string
@@ -1459,6 +1462,7 @@ export type Database = {
           assigned_cs: string | null
           aval_ciudad: string | null
           aval_direccion: string | null
+          aval_es_distinto: boolean
           aval_nombre: string | null
           aval_regimen_conyugal: string | null
           aval_relacion: string | null
@@ -1545,6 +1549,7 @@ export type Database = {
           assigned_cs?: string | null
           aval_ciudad?: string | null
           aval_direccion?: string | null
+          aval_es_distinto?: boolean
           aval_nombre?: string | null
           aval_regimen_conyugal?: string | null
           aval_relacion?: string | null
@@ -1631,6 +1636,7 @@ export type Database = {
           assigned_cs?: string | null
           aval_ciudad?: string | null
           aval_direccion?: string | null
+          aval_es_distinto?: boolean
           aval_nombre?: string | null
           aval_regimen_conyugal?: string | null
           aval_relacion?: string | null
