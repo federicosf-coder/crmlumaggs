@@ -1547,6 +1547,7 @@ export type Database = {
           rfc: string | null
           telefono: string | null
           tipo: Database["public"]["Enums"]["credito_tipo"] | null
+          tipo_persona: string | null
           ultima_asamblea: string | null
           ultimo_recordatorio_enviado: string | null
           updated_at: string
@@ -1635,6 +1636,7 @@ export type Database = {
           rfc?: string | null
           telefono?: string | null
           tipo?: Database["public"]["Enums"]["credito_tipo"] | null
+          tipo_persona?: string | null
           ultima_asamblea?: string | null
           ultimo_recordatorio_enviado?: string | null
           updated_at?: string
@@ -1723,6 +1725,7 @@ export type Database = {
           rfc?: string | null
           telefono?: string | null
           tipo?: Database["public"]["Enums"]["credito_tipo"] | null
+          tipo_persona?: string | null
           ultima_asamblea?: string | null
           ultimo_recordatorio_enviado?: string | null
           updated_at?: string
