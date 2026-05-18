@@ -34,7 +34,7 @@ export default function CreditoList() {
   const [newCompanyId, setNewCompanyId] = useState("");
   const [newTipo, setNewTipo] = useState<"cescemex" | "directo">("directo");
   const [newMonto, setNewMonto] = useState("");
-  const [newDias, setNewDias] = useState("");
+  const [newDias, setNewDias] = useState("30");
 
   const { data: companies = [] } = useQuery({
     queryKey: ["credito-companies"],
@@ -94,7 +94,7 @@ export default function CreditoList() {
     if (error) { toast.error("No se pudo crear: " + error.message); return; }
     toast.success("Solicitud creada");
     setNewOpen(false);
-    setNewCompanyId(""); setNewMonto(""); setNewDias("");
+    setNewCompanyId(""); setNewMonto(""); setNewDias("30");
     qc.invalidateQueries({ queryKey: ["credit_requests"] });
     navigate(`/credito/${data!.id}`);
   };
@@ -238,7 +238,17 @@ export default function CreditoList() {
           </DialogHeader>
           <div className="px-6 py-5 space-y-4 font-light">
             <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-wide font-medium">Empresa</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] uppercase tracking-wide font-medium">Empresa</Label>
+                <a
+                  href="/directory"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-violet-600 hover:text-violet-700 hover:underline inline-flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" /> Nueva empresa
+                </a>
+              </div>
               <SearchableSelect
                 value={newCompanyId}
                 onValueChange={setNewCompanyId}
