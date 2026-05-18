@@ -1,0 +1,2 @@
+ALTER TABLE public.biblioteca_categorias ADD COLUMN IF NOT EXISTS parent_id uuid REFERENCES public.biblioteca_categorias(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_biblioteca_categorias_parent ON public.biblioteca_categorias(parent_id);
