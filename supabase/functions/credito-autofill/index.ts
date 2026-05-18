@@ -124,6 +124,7 @@ const PROMPTS: Record<Kind, string> = {
   "municipio": string|null,
   "estado": string|null,
   "fecha_inicio_operaciones": string|null,
+  "fecha_emision_documento": string|null, // fecha de emisión/impresión de la constancia, YYYY-MM-DD
   "actividad_economica": string|null,
   "tipo_persona": "fisica"|"moral"|null
 }`,
