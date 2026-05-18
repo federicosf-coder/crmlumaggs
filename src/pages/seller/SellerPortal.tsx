@@ -1319,7 +1319,7 @@ export default function SellerPortal() {
           {/* Tabla unificada (filtrada por bucket activo si lo hay) */}
           {(() => {
             const filtradas = !bucketActivo ? facturasCobranza
-              : bucketActivo === "vencidas" ? facturasCobranza.filter((f: any) => f.dias_vencidos > 0)
+              : bucketActivo === "vencidas" ? facturasCobranza.filter((f: any) => (f.estatus_factura || "").toLowerCase() === "vencida")
               : bucketActivo === "1-5" ? facturasCobranza.filter((f: any) => f.dias_vencidos <= -1 && f.dias_vencidos >= -5)
               : bucketActivo === "6-10" ? facturasCobranza.filter((f: any) => f.dias_vencidos <= -6 && f.dias_vencidos >= -10)
               : bucketActivo === "11-20" ? facturasCobranza.filter((f: any) => f.dias_vencidos <= -11 && f.dias_vencidos >= -20)
