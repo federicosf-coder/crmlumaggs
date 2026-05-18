@@ -15,13 +15,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil } from "lucide-react";
+import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS } from "@/lib/credito";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 
 type Req = any;
+
+const DOC_PALETTE: Record<string, { icon: any; bg: string; border: string; iconBg: string; iconColor: string; btn: string }> = {
+  "Constancia de Situación Fiscal (CSF)": { icon: FileText, bg: "bg-gradient-to-br from-blue-50 to-sky-50", border: "border-blue-200", iconBg: "bg-blue-100", iconColor: "text-blue-700", btn: "border-blue-300 text-blue-700 hover:bg-blue-100" },
+  "Opinión de Cumplimiento SAT (32-D)": { icon: FileCheck, bg: "bg-gradient-to-br from-emerald-50 to-teal-50", border: "border-emerald-200", iconBg: "bg-emerald-100", iconColor: "text-emerald-700", btn: "border-emerald-300 text-emerald-700 hover:bg-emerald-100" },
+  "Identificación oficial": { icon: IdCard, bg: "bg-gradient-to-br from-violet-50 to-purple-50", border: "border-violet-200", iconBg: "bg-violet-100", iconColor: "text-violet-700", btn: "border-violet-300 text-violet-700 hover:bg-violet-100" },
+  "Comprobante de domicilio": { icon: Home, bg: "bg-gradient-to-br from-amber-50 to-yellow-50", border: "border-amber-200", iconBg: "bg-amber-100", iconColor: "text-amber-700", btn: "border-amber-300 text-amber-700 hover:bg-amber-100" },
+  "Acta Constitutiva": { icon: ScrollText, bg: "bg-gradient-to-br from-indigo-50 to-blue-50", border: "border-indigo-200", iconBg: "bg-indigo-100", iconColor: "text-indigo-700", btn: "border-indigo-300 text-indigo-700 hover:bg-indigo-100" },
+  "Poder del Representante Legal": { icon: BookOpen, bg: "bg-gradient-to-br from-rose-50 to-pink-50", border: "border-rose-200", iconBg: "bg-rose-100", iconColor: "text-rose-700", btn: "border-rose-300 text-rose-700 hover:bg-rose-100" },
+  "Fotos del negocio": { icon: Camera, bg: "bg-gradient-to-br from-cyan-50 to-sky-50", border: "border-cyan-200", iconBg: "bg-cyan-100", iconColor: "text-cyan-700", btn: "border-cyan-300 text-cyan-700 hover:bg-cyan-100" },
+  "Croquis Google Maps": { icon: MapPin, bg: "bg-gradient-to-br from-lime-50 to-green-50", border: "border-lime-200", iconBg: "bg-lime-100", iconColor: "text-lime-700", btn: "border-lime-300 text-lime-700 hover:bg-lime-100" },
+  "Estado de cuenta bancario": { icon: Receipt, bg: "bg-gradient-to-br from-orange-50 to-amber-50", border: "border-orange-200", iconBg: "bg-orange-100", iconColor: "text-orange-700", btn: "border-orange-300 text-orange-700 hover:bg-orange-100" },
+  "Registro Público de la Propiedad": { icon: Landmark, bg: "bg-gradient-to-br from-slate-50 to-gray-50", border: "border-slate-300", iconBg: "bg-slate-200", iconColor: "text-slate-700", btn: "border-slate-300 text-slate-700 hover:bg-slate-100" },
+  __default: { icon: Building2, bg: "bg-gradient-to-br from-neutral-50 to-stone-50", border: "border-neutral-200", iconBg: "bg-neutral-100", iconColor: "text-neutral-700", btn: "border-neutral-300 text-neutral-700 hover:bg-neutral-100" },
+};
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -54,6 +68,10 @@ export default function CreditoDetail() {
   const [shareOpen, setShareOpen] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
   const [newCommentVis, setNewCommentVis] = useState<"interna" | "publica">("interna");
+  const [uploadCtx, setUploadCtx] = useState<{ docTypeId: string | null; docTypeName: string } | null>(null);
+  const [uploadName, setUploadName] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   const { data: req, isLoading } = useQuery({
     queryKey: ["credit_request", id],
@@ -150,17 +168,36 @@ export default function CreditoDetail() {
     qc.invalidateQueries({ queryKey: ["credit_request_history", id] });
   };
 
-  const uploadDoc = async (file: File, docTypeId: string | null) => {
+  const uploadDoc = async (file: File, docTypeId: string | null, displayName?: string) => {
     const path = `${id}/${crypto.randomUUID()}_${file.name.replace(/[^\w.\-]+/g, "_")}`;
     const { error: upErr } = await supabase.storage.from("credit-docs").upload(path, file, { contentType: file.type, upsert: false });
     if (upErr) { toast.error("Upload: " + upErr.message); return; }
+    const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+    const finalName = (displayName?.trim() ? (displayName.trim().toLowerCase().endsWith(ext.toLowerCase()) ? displayName.trim() : displayName.trim() + ext) : file.name);
     const { error: insErr } = await supabase.from("credit_request_docs").insert({
-      credit_request_id: id!, doc_type_id: docTypeId, url_archivo: path, nombre_archivo: file.name,
+      credit_request_id: id!, doc_type_id: docTypeId, url_archivo: path, nombre_archivo: finalName,
       tipo_archivo: file.type, estado: "recibido", visibilidad: "publica", subido_por: user?.id,
     });
     if (insErr) { toast.error(insErr.message); return; }
     toast.success("Documento subido");
     refetchDocs();
+  };
+
+  const openUploadDialog = (docTypeId: string | null, docTypeName: string) => {
+    setUploadCtx({ docTypeId, docTypeName });
+    setUploadName(docTypeName === "Otro" ? "" : docTypeName);
+    setUploadFile(null);
+  };
+
+  const confirmUpload = async () => {
+    if (!uploadFile) { toast.error("Selecciona un archivo"); return; }
+    if (!uploadName.trim()) { toast.error("Escribe un nombre para el documento"); return; }
+    setUploadingDoc(true);
+    await uploadDoc(uploadFile, uploadCtx?.docTypeId ?? null, uploadName);
+    setUploadingDoc(false);
+    setUploadCtx(null);
+    setUploadName("");
+    setUploadFile(null);
   };
 
   const openDoc = async (path: string) => {
@@ -438,7 +475,7 @@ export default function CreditoDetail() {
             {docTypes.length === 0 ? (
               <p className="text-muted-foreground text-sm">No hay tipos de documento configurados.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
                 {(docTypes as any[])
                   .filter((dt) => {
                     if (form.tipo === "cescemex" && !dt.aplica_cescemex) return false;
@@ -447,24 +484,36 @@ export default function CreditoDetail() {
                   })
                   .map((dt) => {
                     const items = (docs as any[]).filter((d) => d.doc_type_id === dt.id);
+                    const palette = DOC_PALETTE[dt.nombre] || DOC_PALETTE.__default;
+                    const Icon = palette.icon;
+                    const canAdd = dt.permite_multiples || items.length === 0;
                     return (
-                      <div key={dt.id} className="border rounded-md p-3">
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <div>
-                            <p className="font-medium text-sm">{dt.nombre} {dt.requerido && <span className="text-red-600">*</span>}</p>
-                            {dt.instrucciones_cliente && <p className="text-xs text-muted-foreground">{dt.instrucciones_cliente}</p>}
+                      <div key={dt.id} className={`rounded-lg border ${palette.border} ${palette.bg} p-3 flex flex-col gap-2`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palette.iconBg}`}>
+                              <Icon className={`h-4.5 w-4.5 ${palette.iconColor}`} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm leading-tight">
+                                {dt.nombre} {dt.requerido && <span className="text-red-600">*</span>}
+                                {dt.permite_multiples && (
+                                  <span className="ml-1 text-[10px] text-muted-foreground font-normal">(múltiples)</span>
+                                )}
+                              </p>
+                              {dt.instrucciones_cliente && <p className="text-[11px] text-muted-foreground mt-0.5">{dt.instrucciones_cliente}</p>}
+                            </div>
                           </div>
-                          <label className="cursor-pointer">
-                            <input type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDoc(f, dt.id); e.currentTarget.value = ""; }} />
-                            <span className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border bg-background hover:bg-accent">
-                              <FileUp className="h-3.5 w-3.5" />Subir
-                            </span>
-                          </label>
+                          {canAdd && (
+                            <Button size="sm" variant="outline" className={`h-7 px-2 text-xs ${palette.btn}`} onClick={() => openUploadDialog(dt.id, dt.nombre)}>
+                              <FileUp className="h-3.5 w-3.5 mr-1" />{items.length > 0 ? "Agregar" : "Subir"}
+                            </Button>
+                          )}
                         </div>
                         {items.length > 0 && (
-                          <div className="mt-2 space-y-1">
+                          <div className="space-y-1">
                             {items.map((it: any) => (
-                              <div key={it.id} className="flex items-center justify-between gap-2 text-xs bg-muted/40 rounded px-2 py-1.5">
+                              <div key={it.id} className="flex items-center justify-between gap-2 text-xs bg-white/70 rounded px-2 py-1.5 border border-white">
                                 <button onClick={() => openDoc(it.url_archivo)} className="truncate text-left hover:underline flex-1">{it.nombre_archivo}</button>
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] border ${
                                   it.estado === "recibido" ? "bg-blue-50 text-blue-700 border-blue-200" :
@@ -488,15 +537,21 @@ export default function CreditoDetail() {
             )}
 
             {/* Documentos adicionales (sin tipo) */}
-            <div className="border-t pt-3">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Otros documentos</p>
-              <label className="cursor-pointer inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border bg-background hover:bg-accent">
-                <Plus className="h-3.5 w-3.5" />Adjuntar archivo
-                <input type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDoc(f, null); e.currentTarget.value = ""; }} />
-              </label>
-              <div className="mt-2 space-y-1">
+            <div className="rounded-lg border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-pink-50 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-md bg-fuchsia-100 flex items-center justify-center">
+                    <Paperclip className="h-4 w-4 text-fuchsia-700" />
+                  </div>
+                  <p className="text-sm font-medium">Otros documentos</p>
+                </div>
+                <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-fuchsia-300 text-fuchsia-700 hover:bg-fuchsia-100" onClick={() => openUploadDialog(null, "Otro")}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />Adjuntar archivo
+                </Button>
+              </div>
+              <div className="space-y-1">
                 {(docs as any[]).filter((d) => !d.doc_type_id).map((it: any) => (
-                  <div key={it.id} className="flex items-center justify-between gap-2 text-xs bg-muted/40 rounded px-2 py-1.5">
+                  <div key={it.id} className="flex items-center justify-between gap-2 text-xs bg-white/70 rounded px-2 py-1.5 border border-white">
                     <button onClick={() => openDoc(it.url_archivo)} className="truncate text-left hover:underline flex-1">{it.nombre_archivo}</button>
                     <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => deleteDoc(it.id, it.url_archivo)}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
@@ -666,6 +721,34 @@ export default function CreditoDetail() {
           </div>
           <DialogFooter className="bg-muted/40 px-6 py-3 border-t">
             <Button variant="outline" onClick={() => setShareOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload dialog */}
+      <Dialog open={!!uploadCtx} onOpenChange={(o) => { if (!o) { setUploadCtx(null); setUploadFile(null); setUploadName(""); } }}>
+        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-br from-violet-50 to-blue-50 px-6 py-4 border-b">
+            <DialogTitle className="text-base font-semibold tracking-tight">Subir documento</DialogTitle>
+            <DialogDescription className="text-xs">{uploadCtx?.docTypeName}</DialogDescription>
+          </DialogHeader>
+          <div className="px-6 py-5 space-y-4 font-light">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Nombre del documento</Label>
+              <Input value={uploadName} onChange={(e) => setUploadName(e.target.value)} placeholder="Ej. INE Juan Pérez, Predial 2025..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Archivo</Label>
+              <Input type="file" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
+              {uploadFile && <p className="text-xs text-muted-foreground truncate">{uploadFile.name} · {(uploadFile.size / 1024).toFixed(0)} KB</p>}
+            </div>
+          </div>
+          <DialogFooter className="bg-muted/40 px-6 py-3 border-t">
+            <Button variant="outline" onClick={() => { setUploadCtx(null); setUploadFile(null); setUploadName(""); }}>Cancelar</Button>
+            <Button onClick={confirmUpload} disabled={uploadingDoc || !uploadFile || !uploadName.trim()}>
+              {uploadingDoc ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileUp className="h-4 w-4 mr-2" />}
+              Subir
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

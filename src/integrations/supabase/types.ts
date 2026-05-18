@@ -1199,6 +1199,7 @@ export type Database = {
           instrucciones_cliente: string | null
           is_active: boolean
           nombre: string
+          permite_multiples: boolean
           requerido: boolean
           sort_order: number
           updated_at: string
@@ -1215,6 +1216,7 @@ export type Database = {
           instrucciones_cliente?: string | null
           is_active?: boolean
           nombre: string
+          permite_multiples?: boolean
           requerido?: boolean
           sort_order?: number
           updated_at?: string
@@ -1231,6 +1233,7 @@ export type Database = {
           instrucciones_cliente?: string | null
           is_active?: boolean
           nombre?: string
+          permite_multiples?: boolean
           requerido?: boolean
           sort_order?: number
           updated_at?: string
