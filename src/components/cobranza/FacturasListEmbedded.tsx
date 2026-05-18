@@ -821,7 +821,7 @@ function GroupedByClient({
                   </TableHeader>
                   <TableBody>
                     {g.docs.map((doc: any) => {
-                      const fv = fechaVencimientoEfectiva(doc);
+                      const fv = doc.fecha_vencimiento ?? fechaVencimientoEfectiva(doc);
                       const tp = getTipoPagoInfo(doc.tipo_pago);
                       return (
                         <TableRow key={doc.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onRowClick(doc.id)}>
