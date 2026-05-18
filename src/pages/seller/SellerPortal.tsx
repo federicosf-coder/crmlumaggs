@@ -288,16 +288,13 @@ export default function SellerPortal() {
         .filter((f: any) => Number(f.saldo_pendiente_cobranza) > 0);
       console.log("[FacturasPorVencer]", { recibidas: fpvRaw?.length || 0, conSaldo: fpvData.length });
 
-      // Facturas vencidas (fecha_vencimiento <= max(hoy, fin del periodo))
-      // Excluye canceladas y pagadas. Recalcula saldo real con cobranza_aplicaciones.
-      const fechaCorte = todayIso > toDate ? todayIso : toDate;
+      // Facturas vencidas: fuente única de verdad = estatus_factura = 'vencida'.
+      // Los días vencidos se calculan a partir de fecha_vencimiento del documento.
       let venQ = supabase.from("documentos")
         .select("id, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza, estatus_factura, ejecutivo_venta_id, created_by")
         .eq("tipo_documento", "factura")
         .eq("is_active", true)
-        .neq("estatus_factura", "cancelada")
-        .neq("estatus_factura", "pagada")
-        .lte("fecha_vencimiento", fechaCorte)
+        .eq("estatus_factura", "vencida")
         .in("empresa_vendedora", marcasSeleccionadas as any)
         .limit(2000);
       if (inList) venQ = venQ.or(`ejecutivo_venta_id.in.${inList},created_by.in.${inList}`);
