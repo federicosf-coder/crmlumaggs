@@ -96,6 +96,7 @@ export default function CreditoPortal() {
         "accionistas","escritura_constitutiva","datos_registro","ultima_asamblea","administrador_presidente",
         "datos_bancarios","referencias_comerciales",
         "aval_nombre","aval_direccion","aval_ciudad","aval_relacion","aval_regimen_conyugal",
+        "aval_es_distinto",
         "rep_legal_nombre","rep_legal_curp","rep_legal_rfc",
         "lfpiorpi_beneficiario_controlador","lfpiorpi_tiene_documentacion",
       ];
@@ -258,6 +259,25 @@ export default function CreditoPortal() {
                   </div>
                 </Field>
               </div>
+              <div className="border-t pt-3 space-y-3">
+                <div className="rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900 leading-snug">
+                  <span className="font-medium">Aval / Obligado solidario:</span> En crédito directo siendo Persona Física, el aval debe ser una persona distinta al solicitante. Si eres Persona Moral, el propio representante legal puede ser el aval. Si el aval es otra persona, deberás subir su identificación y comprobante de domicilio.
+                </div>
+                <Field label="¿El aval es una persona distinta al solicitante / representante legal?">
+                  <div className="flex items-center gap-2 h-9">
+                    <Switch checked={!!form.aval_es_distinto} onCheckedChange={(v) => set("aval_es_distinto", v)} />
+                    <span className="text-sm">{form.aval_es_distinto ? "Sí, es otra persona" : "No, es la misma persona"}</span>
+                  </div>
+                </Field>
+                {form.aval_es_distinto && (
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <Field label="Nombre del aval"><Input value={form.aval_nombre || ""} onChange={(e) => set("aval_nombre", e.target.value)} /></Field>
+                    <Field label="Relación"><Input value={form.aval_relacion || ""} onChange={(e) => set("aval_relacion", e.target.value)} /></Field>
+                    <Field label="Dirección"><Input value={form.aval_direccion || ""} onChange={(e) => set("aval_direccion", e.target.value)} /></Field>
+                    <Field label="Ciudad"><Input value={form.aval_ciudad || ""} onChange={(e) => set("aval_ciudad", e.target.value)} /></Field>
+                  </div>
+                )}
+              </div>
               <div className="flex justify-end pt-2">
                 <Button onClick={saveForm} disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
@@ -298,7 +318,9 @@ export default function CreditoPortal() {
               {(data.docTypes as any[]).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No hay documentos solicitados.</p>
               ) : (
-                (data.docTypes as any[]).map((dt) => {
+                (data.docTypes as any[])
+                  .filter((dt) => !(dt.aplica_si_aval_distinto && !form.aval_es_distinto))
+                  .map((dt) => {
                   const items = (data.docs as any[]).filter((d) => d.doc_type_id === dt.id);
                   return (
                     <div key={dt.id} className="border rounded-md p-3">
