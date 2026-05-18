@@ -58,7 +58,7 @@ type Kind =
   | 'aval_ine_front' | 'aval_ine_back' | 'aval_ine_full' | 'aval_passport'
   | 'aval_comprobante_domicilio'
 
-const PROMPTS: Record<Kind, string> = {
+const PROMPTS_BASE: Record<string, string> = {
   ine_front: `Extrae datos de la CARA FRONTAL de la credencial INE/IFE mexicana de la imagen/PDF. Devuelve únicamente JSON con estas llaves (usa null si no aparece):
 {
   "nombre_completo": string|null,
@@ -143,13 +143,20 @@ const PROMPTS: Record<Kind, string> = {
   "fecha_constitucion": string|null // YYYY-MM-DD
 }`,
 }
-
-// Aval kinds reuse the same extraction schemas as the principal
-PROMPTS.aval_ine_front = PROMPTS.ine_front
-PROMPTS.aval_ine_back = PROMPTS.ine_back
-PROMPTS.aval_ine_full = PROMPTS.ine_full
-PROMPTS.aval_passport = PROMPTS.passport
-PROMPTS.aval_comprobante_domicilio = PROMPTS.comprobante_domicilio
+const PROMPTS: Record<Kind, string> = {
+  ine_front: PROMPTS_BASE.ine_front,
+  ine_back: PROMPTS_BASE.ine_back,
+  ine_full: PROMPTS_BASE.ine_full,
+  passport: PROMPTS_BASE.passport,
+  comprobante_domicilio: PROMPTS_BASE.comprobante_domicilio,
+  csf: PROMPTS_BASE.csf,
+  acta_constitutiva: PROMPTS_BASE.acta_constitutiva,
+  aval_ine_front: PROMPTS_BASE.ine_front,
+  aval_ine_back: PROMPTS_BASE.ine_back,
+  aval_ine_full: PROMPTS_BASE.ine_full,
+  aval_passport: PROMPTS_BASE.passport,
+  aval_comprobante_domicilio: PROMPTS_BASE.comprobante_domicilio,
+}
 
 async function callAI(prompt: string, fileB64: string, mime: string) {
   const isPdf = mime === 'application/pdf' || mime.includes('pdf')
