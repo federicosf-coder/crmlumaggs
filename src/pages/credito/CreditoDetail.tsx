@@ -19,6 +19,7 @@ import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS } from "@/lib/credito";
+import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 
 type Req = any;
 
@@ -308,12 +309,56 @@ export default function CreditoDetail() {
               <Field label="Días de crédito"><Input type="number" value={form.dias_credito ?? ""} onChange={(e) => set("dias_credito", e.target.value ? Number(e.target.value) : null)} /></Field>
             </Section>
             <Section title="Domicilio fiscal">
-              <Field label="Domicilio"><Input value={form.domicilio_fiscal || ""} onChange={(e) => set("domicilio_fiscal", e.target.value)} /></Field>
+              <div className="sm:col-span-2">
+                <Field label="Domicilio">
+                  <AddressAutocompleteInput
+                    label=""
+                    showCoords={false}
+                    showLocateButton={false}
+                    placeholder="Buscar dirección en Google Maps..."
+                    value={{
+                      ...emptyAddress,
+                      direccion_completa: form.domicilio_fiscal || "",
+                      ciudad: form.ciudad_fiscal || null,
+                      estado: form.estado_fiscal || null,
+                    }}
+                    onChange={(v: AddressValue) => {
+                      setForm((f: any) => ({
+                        ...f,
+                        domicilio_fiscal: v.direccion_completa || "",
+                        ciudad_fiscal: v.ciudad ?? f.ciudad_fiscal,
+                        estado_fiscal: v.estado ?? f.estado_fiscal,
+                      }));
+                    }}
+                  />
+                </Field>
+              </div>
               <Field label="Ciudad"><Input value={form.ciudad_fiscal || ""} onChange={(e) => set("ciudad_fiscal", e.target.value)} /></Field>
               <Field label="Estado"><Input value={form.estado_fiscal || ""} onChange={(e) => set("estado_fiscal", e.target.value)} /></Field>
             </Section>
             <Section title="Domicilio comercial">
-              <Field label="Domicilio"><Input value={form.domicilio_comercial || ""} onChange={(e) => set("domicilio_comercial", e.target.value)} /></Field>
+              <div className="sm:col-span-2">
+                <Field label="Domicilio">
+                  <AddressAutocompleteInput
+                    label=""
+                    showCoords={false}
+                    showLocateButton={false}
+                    placeholder="Buscar dirección en Google Maps..."
+                    value={{
+                      ...emptyAddress,
+                      direccion_completa: form.domicilio_comercial || "",
+                      ciudad: form.ciudad_comercial || null,
+                    }}
+                    onChange={(v: AddressValue) => {
+                      setForm((f: any) => ({
+                        ...f,
+                        domicilio_comercial: v.direccion_completa || "",
+                        ciudad_comercial: v.ciudad ?? f.ciudad_comercial,
+                      }));
+                    }}
+                  />
+                </Field>
+              </div>
               <Field label="Ciudad"><Input value={form.ciudad_comercial || ""} onChange={(e) => set("ciudad_comercial", e.target.value)} /></Field>
             </Section>
             <Section title="Persona moral">
