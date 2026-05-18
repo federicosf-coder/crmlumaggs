@@ -226,7 +226,15 @@ export default function CreditoDetail() {
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       const filled = Object.keys((data as any)?.updated || {}).length;
-      toast.success(filled > 0 ? `${label}: ${filled} campos autocompletados` : `${label} leída (sin campos nuevos)`, { id: "af" });
+      // También guardar el archivo en la sección Documentos
+      const matchType = (pred: (n: string) => boolean) =>
+        (docTypes || []).find((t: any) => pred((t.nombre || "").toLowerCase()))?.id ?? null;
+      let docTypeId: string | null = null;
+      if (kind === "csf") docTypeId = matchType((n) => n.includes("csf") || n.includes("situación fiscal"));
+      else if (kind === "comprobante_domicilio") docTypeId = matchType((n) => n.includes("comprobante de domicilio") && !n.includes("aval"));
+      else if (kind.startsWith("ine") || kind === "passport") docTypeId = matchType((n) => n.startsWith("identificación oficial") && !n.includes("aval"));
+      await uploadDoc(file, docTypeId, label);
+      toast.success(filled > 0 ? `${label}: ${filled} campos autocompletados y archivo guardado` : `${label} guardada (sin campos nuevos)`, { id: "af" });
       qc.invalidateQueries({ queryKey: ["credit_request", id] });
     } catch (e: any) {
       toast.error(e?.message || `No se pudo leer ${label}`, { id: "af" });
