@@ -105,7 +105,7 @@ function DraggablePoolCard({ item, footerActions, onView }: { item: PoolItem; fo
           <Button
             size="sm"
             variant="outline"
-            className="h-7 w-full text-xs gap-1.5"
+            className="h-7 text-xs gap-1.5 px-3"
             onClick={(e) => { e.stopPropagation(); onView(item); }}
           >
             <FileText className="h-3.5 w-3.5" />
