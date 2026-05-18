@@ -65,6 +65,7 @@ export default function CreditoDetail() {
   const [form, setForm] = useState<Req | null>(null);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("datos");
+  const [formTab, setFormTab] = useState("empresa");
   const [shareOpen, setShareOpen] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
   const [newCommentVis, setNewCommentVis] = useState<"interna" | "publica">("interna");
@@ -497,6 +498,23 @@ export default function CreditoDetail() {
           </Card>
 
           <Card><CardContent className="pt-6 space-y-6">
+            <Tabs value={formTab} onValueChange={setFormTab}>
+              <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-1 h-auto gap-1 border border-blue-100">
+                <TabsTrigger value="empresa" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-blue-700 text-xs sm:text-sm">
+                  <Building2 className="h-3.5 w-3.5 mr-1.5" />Empresa
+                </TabsTrigger>
+                <TabsTrigger value="representacion" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-violet-700 text-xs sm:text-sm">
+                  <IdCard className="h-3.5 w-3.5 mr-1.5" />Representación
+                </TabsTrigger>
+                <TabsTrigger value="financiero" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-emerald-700 text-xs sm:text-sm">
+                  <Landmark className="h-3.5 w-3.5 mr-1.5" />Financiero
+                </TabsTrigger>
+                <TabsTrigger value="cumplimiento" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-amber-700 text-xs sm:text-sm">
+                  <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />Cumplimiento
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="empresa" className="space-y-6 mt-5">
             <Section title="Datos generales">
               <Field label="Razón social"><Input value={form.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} /></Field>
               <Field label="Nombre comercial"><Input value={form.nombre_comercial || ""} onChange={(e) => set("nombre_comercial", e.target.value)} /></Field>
@@ -567,6 +585,44 @@ export default function CreditoDetail() {
               <Field label="Última asamblea"><Input value={form.ultima_asamblea || ""} onChange={(e) => set("ultima_asamblea", e.target.value)} /></Field>
               <Field label="Administrador / Presidente"><Input value={form.administrador_presidente || ""} onChange={(e) => set("administrador_presidente", e.target.value)} /></Field>
             </Section>
+              </TabsContent>
+
+              <TabsContent value="representacion" className="space-y-6 mt-5">
+            <Section title="Representante legal">
+              <Field label="Nombre"><Input value={form.rep_legal_nombre || ""} onChange={(e) => set("rep_legal_nombre", e.target.value)} /></Field>
+              <Field label="CURP"><Input value={form.rep_legal_curp || ""} onChange={(e) => set("rep_legal_curp", e.target.value.toUpperCase())} /></Field>
+              <Field label="RFC"><Input value={form.rep_legal_rfc || ""} onChange={(e) => set("rep_legal_rfc", e.target.value.toUpperCase())} /></Field>
+              <Field label="Tipo ID"><Input value={form.rep_legal_tipo_id || ""} onChange={(e) => set("rep_legal_tipo_id", e.target.value)} /></Field>
+              <Field label="Núm. ID"><Input value={form.rep_legal_num_id || ""} onChange={(e) => set("rep_legal_num_id", e.target.value)} /></Field>
+              <Field label="Vencimiento ID"><Input type="date" value={form.rep_legal_vencimiento_id || ""} onChange={(e) => set("rep_legal_vencimiento_id", e.target.value || null)} /></Field>
+              <Field label="Fecha nacimiento"><Input type="date" value={form.rep_legal_fecha_nacimiento || ""} onChange={(e) => set("rep_legal_fecha_nacimiento", e.target.value || null)} /></Field>
+              <Field label="País nacimiento"><Input value={form.rep_legal_pais_nacimiento || ""} onChange={(e) => set("rep_legal_pais_nacimiento", e.target.value)} /></Field>
+            </Section>
+            <Section title="Aval / Obligado solidario">
+              <div className="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900 leading-snug">
+                <span className="font-medium">Regla:</span> En <span className="font-medium">crédito directo</span> con <span className="font-medium">Persona Física</span>, el aval debe ser una persona <span className="font-medium">distinta</span> al solicitante. Para <span className="font-medium">Persona Moral</span>, el propio representante legal puede fungir como aval. Si el aval es otra persona, se requiere también su identificación oficial y comprobante de domicilio.
+              </div>
+              <div className="sm:col-span-2">
+                <Field label="¿El aval es una persona distinta?">
+                  <div className="flex items-center gap-2 h-9">
+                    <Switch checked={!!form.aval_es_distinto} onCheckedChange={(v) => set("aval_es_distinto", v)} />
+                    <span className="text-sm">{form.aval_es_distinto ? "Sí, es otra persona" : "No, es el mismo representante legal / solicitante"}</span>
+                  </div>
+                </Field>
+              </div>
+              {form.aval_es_distinto && (
+                <>
+                  <Field label="Nombre"><Input value={form.aval_nombre || ""} onChange={(e) => set("aval_nombre", e.target.value)} /></Field>
+                  <Field label="Relación"><Input value={form.aval_relacion || ""} onChange={(e) => set("aval_relacion", e.target.value)} /></Field>
+                  <Field label="Dirección"><Input value={form.aval_direccion || ""} onChange={(e) => set("aval_direccion", e.target.value)} /></Field>
+                  <Field label="Ciudad"><Input value={form.aval_ciudad || ""} onChange={(e) => set("aval_ciudad", e.target.value)} /></Field>
+                  <Field label="Régimen conyugal"><Input value={form.aval_regimen_conyugal || ""} onChange={(e) => set("aval_regimen_conyugal", e.target.value)} /></Field>
+                </>
+              )}
+            </Section>
+              </TabsContent>
+
+              <TabsContent value="financiero" className="space-y-6 mt-5">
             <Repeater
               title="Accionistas"
               value={form.accionistas || []}
@@ -597,38 +653,9 @@ export default function CreditoDetail() {
                 { key: "telefono", label: "Teléfono" },
               ]}
             />
-            <Section title="Aval / Obligado solidario">
-              <div className="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900 leading-snug">
-                <span className="font-medium">Regla:</span> En <span className="font-medium">crédito directo</span> con <span className="font-medium">Persona Física</span>, el aval debe ser una persona <span className="font-medium">distinta</span> al solicitante. Para <span className="font-medium">Persona Moral</span>, el propio representante legal puede fungir como aval. Si el aval es otra persona, se requiere también su identificación oficial y comprobante de domicilio.
-              </div>
-              <div className="sm:col-span-2">
-                <Field label="¿El aval es una persona distinta?">
-                  <div className="flex items-center gap-2 h-9">
-                    <Switch checked={!!form.aval_es_distinto} onCheckedChange={(v) => set("aval_es_distinto", v)} />
-                    <span className="text-sm">{form.aval_es_distinto ? "Sí, es otra persona" : "No, es el mismo representante legal / solicitante"}</span>
-                  </div>
-                </Field>
-              </div>
-              {form.aval_es_distinto && (
-                <>
-                  <Field label="Nombre"><Input value={form.aval_nombre || ""} onChange={(e) => set("aval_nombre", e.target.value)} /></Field>
-                  <Field label="Relación"><Input value={form.aval_relacion || ""} onChange={(e) => set("aval_relacion", e.target.value)} /></Field>
-                  <Field label="Dirección"><Input value={form.aval_direccion || ""} onChange={(e) => set("aval_direccion", e.target.value)} /></Field>
-                  <Field label="Ciudad"><Input value={form.aval_ciudad || ""} onChange={(e) => set("aval_ciudad", e.target.value)} /></Field>
-                  <Field label="Régimen conyugal"><Input value={form.aval_regimen_conyugal || ""} onChange={(e) => set("aval_regimen_conyugal", e.target.value)} /></Field>
-                </>
-              )}
-            </Section>
-            <Section title="Representante legal">
-              <Field label="Nombre"><Input value={form.rep_legal_nombre || ""} onChange={(e) => set("rep_legal_nombre", e.target.value)} /></Field>
-              <Field label="CURP"><Input value={form.rep_legal_curp || ""} onChange={(e) => set("rep_legal_curp", e.target.value.toUpperCase())} /></Field>
-              <Field label="RFC"><Input value={form.rep_legal_rfc || ""} onChange={(e) => set("rep_legal_rfc", e.target.value.toUpperCase())} /></Field>
-              <Field label="Tipo ID"><Input value={form.rep_legal_tipo_id || ""} onChange={(e) => set("rep_legal_tipo_id", e.target.value)} /></Field>
-              <Field label="Núm. ID"><Input value={form.rep_legal_num_id || ""} onChange={(e) => set("rep_legal_num_id", e.target.value)} /></Field>
-              <Field label="Vencimiento ID"><Input type="date" value={form.rep_legal_vencimiento_id || ""} onChange={(e) => set("rep_legal_vencimiento_id", e.target.value || null)} /></Field>
-              <Field label="Fecha nacimiento"><Input type="date" value={form.rep_legal_fecha_nacimiento || ""} onChange={(e) => set("rep_legal_fecha_nacimiento", e.target.value || null)} /></Field>
-              <Field label="País nacimiento"><Input value={form.rep_legal_pais_nacimiento || ""} onChange={(e) => set("rep_legal_pais_nacimiento", e.target.value)} /></Field>
-            </Section>
+              </TabsContent>
+
+              <TabsContent value="cumplimiento" className="space-y-6 mt-5">
             <Section title="LFPIORPI">
               <Field label="¿Beneficiario controlador?">
                 <div className="flex items-center gap-2 h-9">
@@ -645,6 +672,8 @@ export default function CreditoDetail() {
               <Field label="Fecha de firma"><Input type="date" value={form.lfpiorpi_fecha_firma || ""} onChange={(e) => set("lfpiorpi_fecha_firma", e.target.value || null)} /></Field>
               <Field label="Lugar de firma"><Input value={form.lfpiorpi_lugar_firma || ""} onChange={(e) => set("lfpiorpi_lugar_firma", e.target.value)} /></Field>
             </Section>
+              </TabsContent>
+            </Tabs>
           </CardContent></Card>
         </TabsContent>
 
