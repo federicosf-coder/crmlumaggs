@@ -724,6 +724,34 @@ export default function CreditoDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upload dialog */}
+      <Dialog open={!!uploadCtx} onOpenChange={(o) => { if (!o) { setUploadCtx(null); setUploadFile(null); setUploadName(""); } }}>
+        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-br from-violet-50 to-blue-50 px-6 py-4 border-b">
+            <DialogTitle className="text-base font-semibold tracking-tight">Subir documento</DialogTitle>
+            <DialogDescription className="text-xs">{uploadCtx?.docTypeName}</DialogDescription>
+          </DialogHeader>
+          <div className="px-6 py-5 space-y-4 font-light">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Nombre del documento</Label>
+              <Input value={uploadName} onChange={(e) => setUploadName(e.target.value)} placeholder="Ej. INE Juan Pérez, Predial 2025..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Archivo</Label>
+              <Input type="file" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
+              {uploadFile && <p className="text-xs text-muted-foreground truncate">{uploadFile.name} · {(uploadFile.size / 1024).toFixed(0)} KB</p>}
+            </div>
+          </div>
+          <DialogFooter className="bg-muted/40 px-6 py-3 border-t">
+            <Button variant="outline" onClick={() => { setUploadCtx(null); setUploadFile(null); setUploadName(""); }}>Cancelar</Button>
+            <Button onClick={confirmUpload} disabled={uploadingDoc || !uploadFile || !uploadName.trim()}>
+              {uploadingDoc ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileUp className="h-4 w-4 mr-2" />}
+              Subir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
