@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, FileUp, ShieldCheck, Trash2, AlertCircle, CheckCircle2, FileCheck } from "lucide-react";
+import { Loader2, Save, FileUp, ShieldCheck, Trash2, AlertCircle, CheckCircle2, FileCheck, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_FIRMAS, CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR } from "@/lib/credito";
@@ -41,6 +41,7 @@ export default function CreditoPortal() {
   const [data, setData] = useState<any>(null);
   const [form, setForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
+  const [parsingCsf, setParsingCsf] = useState(false);
   const [tab, setTab] = useState("datos");
 
   const load = async () => {
@@ -132,6 +133,29 @@ export default function CreditoPortal() {
       load();
     } catch (e: any) {
       toast.error(e.message);
+    }
+  };
+
+  const parseCsf = async (file: File) => {
+    if (file.size > 15 * 1024 * 1024) { toast.error("El archivo supera 15 MB"); return; }
+    setParsingCsf(true);
+    toast.loading("Leyendo CSF...", { id: "csf" });
+    try {
+      const b64 = await fileToBase64(file);
+      const r = await callPortal("parse_csf", token!, {
+        file_b64: b64, filename: file.name, mime: file.type || "application/pdf",
+      });
+      toast.success(`CSF procesada: ${r?.parsed?.csf_rfc || ""}`, { id: "csf" });
+      load();
+    } catch (e: any) {
+      const msg = e?.message === "csf_no_rfc"
+        ? "No se pudo detectar el RFC. Verifica que sea la CSF original del SAT."
+        : e?.message === "pdf_parse_failed"
+        ? "No se pudo leer el PDF."
+        : (e?.message || "Error al procesar CSF");
+      toast.error(msg, { id: "csf" });
+    } finally {
+      setParsingCsf(false);
     }
   };
 
