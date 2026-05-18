@@ -731,6 +731,22 @@ function ProductosTab() {
               </div>
             ))}
 
+            <div className="md:col-span-2">
+              <Label>Clasificación de Precio</Label>
+              <Select
+                value={form.precio_clasificacion_id || "__none__"}
+                onValueChange={v => set("precio_clasificacion_id", v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger><SelectValue placeholder="Sin clasificación (usa márgenes generales)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin clasificación (márgenes generales)</SelectItem>
+                  {clasificaciones.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="md:col-span-2 border-t pt-3 mt-2">
               <h4 className="font-semibold text-sm mb-3">Precios</h4>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -752,13 +768,35 @@ function ProductosTab() {
             </div>
 
             <div className="md:col-span-2">
-              <Button onClick={() => save.mutate()} disabled={!form.codigo || !form.nombre_producto || save.isPending} className="w-full">
+              <Button onClick={handleSaveClick} disabled={!form.codigo || !form.nombre_producto || save.isPending} className="w-full">
                 {save.isPending ? "Guardando..." : editingId ? "Actualizar Producto" : "Guardar Producto"}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={recalcOpen} onOpenChange={setRecalcOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Actualizar precios?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Deseas actualizar los 8 precios de este producto conforme al costo registrado
+              {form.precio_clasificacion_id
+                ? ` (usando la clasificación "${(clasificaciones.find((c: any) => c.id === form.precio_clasificacion_id) as any)?.nombre || "asignada"}")?`
+                : " (usando los márgenes generales)?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setRecalcOpen(false); save.mutate(undefined); }}>
+              No, guardar sin recalcular
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => { saveWithRecalc(); }}>
+              Sí, actualizar precios
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* View Product Dialog */}
       <Dialog open={!!viewProduct} onOpenChange={(v) => { if (!v) setViewProduct(null); }}>
