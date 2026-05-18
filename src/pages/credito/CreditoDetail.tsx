@@ -323,12 +323,22 @@ export default function CreditoDetail() {
       </Card>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-5 w-full sm:w-auto">
-          <TabsTrigger value="datos">Formulario</TabsTrigger>
-          <TabsTrigger value="docs">Documentos</TabsTrigger>
-          <TabsTrigger value="firmas">Formatos y Firmas</TabsTrigger>
-          <TabsTrigger value="seguimiento">Seguimiento</TabsTrigger>
-          <TabsTrigger value="comentarios">Comentarios</TabsTrigger>
+        <TabsList className="grid grid-cols-5 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
+          <TabsTrigger value="datos" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md text-blue-700">
+            Formulario
+          </TabsTrigger>
+          <TabsTrigger value="docs" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700">
+            Documentos
+          </TabsTrigger>
+          <TabsTrigger value="firmas" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md text-emerald-700">
+            Formatos y Firmas
+          </TabsTrigger>
+          <TabsTrigger value="seguimiento" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md text-amber-700">
+            Seguimiento
+          </TabsTrigger>
+          <TabsTrigger value="comentarios" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-rose-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md text-rose-700">
+            Comentarios
+          </TabsTrigger>
         </TabsList>
 
         {/* ============ FORMULARIO ============ */}
