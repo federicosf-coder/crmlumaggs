@@ -73,8 +73,8 @@ function DraggablePoolCard({ item, footerActions, onView }: { item: PoolItem; fo
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}
-      className={cn("border rounded-lg p-4 cursor-grab active:cursor-grabbing transition-colors", cfg.bg)}>
-      <div className="flex items-start justify-between gap-2">
+      className={cn("border rounded-lg p-3 cursor-grab active:cursor-grabbing transition-colors w-full max-w-full overflow-hidden", cfg.bg)}>
+      <div className="flex items-start justify-between gap-2 min-w-0">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-1">
             {item.type === "tarea" ? <ListChecks className="h-3.5 w-3.5 shrink-0" /> : <Package className="h-3.5 w-3.5 shrink-0" />}
@@ -91,13 +91,13 @@ function DraggablePoolCard({ item, footerActions, onView }: { item: PoolItem; fo
             </p>
           )}
         </div>
-        <div className="text-right shrink-0">
+        <div className="text-right shrink-0 max-w-[110px]">
           {item.unidades != null && item.unidades > 0 && (
             <span className="text-sm font-semibold">
               {new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(item.unidades)} u
             </span>
           )}
-          <Badge variant="outline" className={cn("text-[10px] mt-1 block", cfg.color)}>{cfg.label}</Badge>
+          <Badge variant="outline" className={cn("text-[10px] mt-1 inline-block whitespace-normal leading-tight", cfg.color)}>{cfg.label}</Badge>
         </div>
       </div>
       {onView && item.type === "pedido" && (
