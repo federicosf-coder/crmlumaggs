@@ -837,21 +837,68 @@ export default function CreditoDetail() {
             {docTypes.length === 0 ? (
               <p className="text-muted-foreground text-sm">No hay tipos de documento configurados.</p>
             ) : (
-              <div className="grid sm:grid-cols-2 gap-3">
-                {(docTypes as any[])
-                  .filter((dt) => {
-                    if (form.tipo === "cescemex" && !dt.aplica_cescemex) return false;
-                    if (form.tipo === "directo" && !dt.aplica_directo) return false;
-                    if (dt.aplica_si_aval_distinto && !form.aval_es_distinto) return false;
-                    return true;
-                  })
-                  .map((dt) => {
-                    const items = (docs as any[]).filter((d) => d.doc_type_id === dt.id);
-                    const palette = DOC_PALETTE[dt.nombre] || DOC_PALETTE.__default;
-                    const Icon = palette.icon;
-                    const canAdd = dt.permite_multiples || items.length === 0;
-                    const hasItems = items.length > 0;
-                    return (
+              (() => {
+                const visible = (docTypes as any[]).filter((dt) => {
+                  if (form.tipo === "cescemex" && !dt.aplica_cescemex) return false;
+                  if (form.tipo === "directo" && !dt.aplica_directo) return false;
+                  if (dt.aplica_si_aval_distinto && !form.aval_es_distinto) return false;
+                  return true;
+                });
+                const hasDocs = (dt: any) => (docs as any[]).some((d) => d.doc_type_id === dt.id);
+                const groupFor = (dt: any): { key: string; label: string; color: string } => {
+                  const n = (dt.nombre || "").toLowerCase();
+                  if (dt.aplica_si_aval_distinto || n.includes("aval")) return { key: "aval", label: "Aval / Obligado solidario", color: "rose" };
+                  if (n.includes("csf") || n.includes("situación fiscal") || n.includes("opinión") || n.includes("32-d")) return { key: "fiscal", label: "Documentos fiscales", color: "blue" };
+                  if (n.includes("identificación") || n.includes("pasaporte") || n.includes("ine")) return { key: "identidad", label: "Identidad del representante", color: "violet" };
+                  if (n.includes("comprobante de domicilio")) return { key: "domicilio", label: "Domicilio", color: "amber" };
+                  if (n.includes("acta") || n.includes("poder") || n.includes("registro público")) return { key: "legal", label: "Sociedad y legal", color: "indigo" };
+                  if (n.includes("foto") || n.includes("croquis") || n.includes("maps")) return { key: "negocio", label: "Negocio", color: "cyan" };
+                  if (n.includes("bancario") || n.includes("cuenta")) return { key: "bancario", label: "Bancarios", color: "orange" };
+                  return { key: "otros", label: "Otros", color: "slate" };
+                };
+                const order = ["fiscal", "identidad", "domicilio", "legal", "negocio", "bancario", "aval", "otros"];
+                const groups: Record<string, { label: string; color: string; items: any[] }> = {};
+                for (const dt of visible) {
+                  const g = groupFor(dt);
+                  if (!groups[g.key]) groups[g.key] = { label: g.label, color: g.color, items: [] };
+                  groups[g.key].items.push(dt);
+                }
+                const totalReq = visible.filter((d) => d.requerido).length;
+                const doneReq = visible.filter((d) => d.requerido && hasDocs(d)).length;
+                const pct = totalReq > 0 ? Math.round((doneReq / totalReq) * 100) : 0;
+                return (
+                  <div className="space-y-5">
+                    {/* Progreso global */}
+                    <div className="rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-violet-50 p-3 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-blue-900">Progreso del expediente</span>
+                        <span className="text-blue-700 font-semibold">{doneReq} de {totalReq} requeridos · {pct}%</span>
+                      </div>
+                      <Progress value={pct} className="h-2" />
+                    </div>
+                    {order.filter((k) => groups[k]).map((k) => {
+                      const g = groups[k];
+                      const reqCount = g.items.filter((d) => d.requerido).length;
+                      const reqDone = g.items.filter((d) => d.requerido && hasDocs(d)).length;
+                      const allDone = g.items.every((d) => !d.requerido || hasDocs(d));
+                      return (
+                        <div key={k} className="space-y-2">
+                          <div className="flex items-center justify-between gap-2 border-b pb-1.5">
+                            <h3 className={`text-sm font-semibold uppercase tracking-wide text-${g.color}-700`}>{g.label}</h3>
+                            {reqCount > 0 && (
+                              <span className={`text-[11px] px-2 py-0.5 rounded-full border ${allDone ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
+                                {reqDone}/{reqCount} requeridos
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            {g.items.map((dt) => {
+                              const items = (docs as any[]).filter((d) => d.doc_type_id === dt.id);
+                              const palette = DOC_PALETTE[dt.nombre] || DOC_PALETTE.__default;
+                              const Icon = palette.icon;
+                              const canAdd = dt.permite_multiples || items.length === 0;
+                              const hasItems = items.length > 0;
+                              return (
                       <div key={dt.id} className={`rounded-lg border-2 ${hasItems ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : (dt.requerido ? "border-amber-300 bg-gradient-to-br from-amber-50/60 to-white" : palette.border + " " + palette.bg)} p-3 flex flex-col gap-2 relative`}>
                         <span className={`absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${hasItems ? "bg-emerald-500 text-white border-emerald-600" : (dt.requerido ? "bg-amber-500 text-white border-amber-600" : "bg-slate-200 text-slate-700 border-slate-300")}`}>
                           {hasItems ? (<><Check className="h-2.5 w-2.5" />Subido{items.length > 1 ? ` (${items.length})` : ""}</>) : (dt.requerido ? "Pendiente" : "Opcional")}
@@ -919,9 +966,15 @@ export default function CreditoDetail() {
                           </div>
                         )}
                       </div>
-                    );
-                  })}
-              </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()
             )}
 
             {/* Documentos adicionales (sin tipo) */}
