@@ -95,7 +95,7 @@ const TAB_COLORS: Record<string, { active: string; badge: string; border: string
 };
 
 // Shared capsule color tokens
-import { EMPRESA_STYLES, PLAZA_PALETTE, plazaColor } from "./documentStyles";
+import { EMPRESA_STYLES, plazaColor } from "./documentStyles";
 
 // Tipo de documento (capsule colors mirrored from TAB_COLORS)
 const TIPO_DOC_PILL: Record<string, { cls: string; label: string }> = {
