@@ -94,39 +94,8 @@ const TAB_COLORS: Record<string, { active: string; badge: string; border: string
   entrega_corporativa: { active: "bg-purple-600 text-white hover:bg-purple-700", badge: "bg-purple-100 text-purple-800", border: "border-purple-500" },
 };
 
-// Empresa Vendedora brand styles
-const EMPRESA_STYLES: Record<string, { active: string; idle: string; dot: string; label: string }> = {
-  lumaggs_chevron: {
-    active: "bg-blue-600 text-white border-blue-600 hover:bg-blue-700",
-    idle: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
-    dot: "bg-blue-600",
-    label: "Lumaggs Chevron",
-  },
-  galsa_phillips66: {
-    active: "bg-red-600 text-white border-red-600 hover:bg-red-700",
-    idle: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
-    dot: "bg-red-600",
-    label: "Galsa Phillips 66",
-  },
-};
-
-// Plaza color palette (deterministic by plaza id)
-const PLAZA_PALETTE = [
-  { active: "bg-cyan-600 text-white border-cyan-600 hover:bg-cyan-700", idle: "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100", pill: "bg-cyan-50 text-cyan-700 border-cyan-200", dot: "bg-cyan-500" },
-  { active: "bg-teal-600 text-white border-teal-600 hover:bg-teal-700", idle: "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100", pill: "bg-teal-50 text-teal-700 border-teal-200", dot: "bg-teal-500" },
-  { active: "bg-fuchsia-600 text-white border-fuchsia-600 hover:bg-fuchsia-700", idle: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 hover:bg-fuchsia-100", pill: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200", dot: "bg-fuchsia-500" },
-  { active: "bg-orange-600 text-white border-orange-600 hover:bg-orange-700", idle: "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100", pill: "bg-orange-50 text-orange-700 border-orange-200", dot: "bg-orange-500" },
-  { active: "bg-violet-600 text-white border-violet-600 hover:bg-violet-700", idle: "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100", pill: "bg-violet-50 text-violet-700 border-violet-200", dot: "bg-violet-500" },
-  { active: "bg-rose-600 text-white border-rose-600 hover:bg-rose-700", idle: "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100", pill: "bg-rose-50 text-rose-700 border-rose-200", dot: "bg-rose-500" },
-  { active: "bg-lime-600 text-white border-lime-600 hover:bg-lime-700", idle: "bg-lime-50 text-lime-700 border-lime-200 hover:bg-lime-100", pill: "bg-lime-50 text-lime-700 border-lime-200", dot: "bg-lime-500" },
-  { active: "bg-sky-600 text-white border-sky-600 hover:bg-sky-700", idle: "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100", pill: "bg-sky-50 text-sky-700 border-sky-200", dot: "bg-sky-500" },
-];
-function plazaColor(id: string | null | undefined) {
-  if (!id) return PLAZA_PALETTE[0];
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return PLAZA_PALETTE[h % PLAZA_PALETTE.length];
-}
+// Shared capsule color tokens
+import { EMPRESA_STYLES, plazaColor } from "./documentStyles";
 
 // Tipo de documento (capsule colors mirrored from TAB_COLORS)
 const TIPO_DOC_PILL: Record<string, { cls: string; label: string }> = {

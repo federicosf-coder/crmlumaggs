@@ -28,6 +28,7 @@ import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/com
 import { fireAutomation } from "@/hooks/useFireAutomation";
 import { EntregaCorporativaSection } from "@/components/documentos/EntregaCorporativaSection";
 import { AssignNewDealDialog, type AssignNewDealPrefill } from "@/components/documentos/AssignNewDealDialog";
+import { EMPRESA_STYLES, TIPO_DOC_STYLES, plazaColor } from "./documentStyles";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
 const ESTATUS_PED = [{ v: "confirmado_cliente", l: "Confirmado Cliente" }, { v: "validado_contabilidad", l: "Validado Contabilidad" }, { v: "programado_entrega", l: "Programado Entrega" }, { v: "entregado", l: "Entregado" }, { v: "cancelado", l: "Cancelado" }];
@@ -973,34 +974,63 @@ export default function DocumentForm() {
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label>Empresa Vendedora *</Label>
-            <Select value={form.empresa_vendedora} onValueChange={v => set("empresa_vendedora", v)}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="lumaggs_chevron">Lumaggs Chevron</SelectItem>
-                <SelectItem value="galsa_phillips66">Galsa Phillips 66</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {(["lumaggs_chevron", "galsa_phillips66"] as const).map((v) => {
+                const st = EMPRESA_STYLES[v];
+                const isActive = form.empresa_vendedora === v;
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    disabled={viewMode}
+                    onClick={() => set("empresa_vendedora", v)}
+                    className={`inline-flex items-center h-9 px-4 rounded-full border text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isActive ? st.active + " shadow-sm" : st.idle}`}
+                  >
+                    {st.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div>
             <Label>Tipo de Documento *</Label>
-            <Select value={form.tipo_documento} onValueChange={v => set("tipo_documento", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cotizacion">Cotización</SelectItem>
-                <SelectItem value="pedido">Pedido</SelectItem>
-                <SelectItem value="factura">Factura</SelectItem>
-                <SelectItem value="entrega_corporativa">Entrega Corporativa</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {(["cotizacion", "pedido", "factura", "entrega_corporativa"] as const).map((v) => {
+                const st = TIPO_DOC_STYLES[v];
+                const isActive = form.tipo_documento === v;
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    disabled={viewMode}
+                    onClick={() => set("tipo_documento", v)}
+                    className={`inline-flex items-center h-9 px-4 rounded-full border text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isActive ? st.active + " shadow-sm" : st.idle}`}
+                  >
+                    {st.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div>
             <Label>Plaza *</Label>
-            <SearchableSelect
-              value={form.plaza_id}
-              onValueChange={v => set("plaza_id", v)}
-              placeholder="Seleccionar"
-              options={plazas.map((p: any) => ({ value: p.id, label: p.nombre }))}
-            />
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {plazas.map((p: any) => {
+                const c = plazaColor(p.id);
+                const isActive = form.plaza_id === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    disabled={viewMode}
+                    onClick={() => set("plaza_id", p.id)}
+                    className={`inline-flex items-center h-8 px-3 rounded-full border text-xs font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isActive ? c.active + " shadow-sm" : c.idle}`}
+                  >
+                    {p.nombre}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div>
             <Label>Ejecutivo de Venta</Label>
