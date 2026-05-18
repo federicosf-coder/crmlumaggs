@@ -246,6 +246,7 @@ export default function CreditoDetail() {
       if (kind === "csf") docTypeId = matchType((n) => n.includes("csf") || n.includes("situación fiscal"));
       else if (kind === "comprobante_domicilio") docTypeId = matchType((n) => n.includes("comprobante de domicilio") && !n.includes("aval"));
       else if (kind.startsWith("ine") || kind === "passport") docTypeId = matchType((n) => n.startsWith("identificación oficial") && !n.includes("aval"));
+      else if (kind === "acta_constitutiva") docTypeId = matchType((n) => n.includes("acta constitutiva"));
       // Para comprobante: guardar el domicilio extraído en metadata para verificación posterior
       const meta: any = {};
       const parsed = (data as any)?.parsed || {};
@@ -494,7 +495,7 @@ export default function CreditoDetail() {
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-3 gap-3 pt-1">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
                 {/* CSF */}
                 <div className="rounded-lg border border-blue-200 bg-white p-3 space-y-2">
                   <div className="flex items-center gap-2">
@@ -574,6 +575,24 @@ export default function CreditoDetail() {
                     <span className="inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700">
                       {autofilling === "comprobante_domicilio" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
                       Subir comprobante
+                    </span>
+                  </label>
+                </div>
+
+                {/* Acta Constitutiva */}
+                <div className="rounded-lg border border-indigo-200 bg-white p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <ScrollText className="h-4 w-4 text-indigo-700" />
+                    <p className="text-xs font-medium">Acta Constitutiva</p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Escritura, datos de registro, última asamblea y administrador.</p>
+                  <label className="cursor-pointer block">
+                    <input type="file" accept="application/pdf,image/*" className="hidden"
+                      disabled={autofilling !== null}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "acta_constitutiva", "Acta Constitutiva"); e.currentTarget.value = ""; }} />
+                    <span className="inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-700">
+                      {autofilling === "acta_constitutiva" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                      Subir acta
                     </span>
                   </label>
                 </div>

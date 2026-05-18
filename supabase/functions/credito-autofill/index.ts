@@ -52,7 +52,7 @@ function toISODate(v: any): string | null {
   return null
 }
 
-type Kind = 'ine_front' | 'ine_back' | 'ine_full' | 'passport' | 'comprobante_domicilio' | 'csf'
+type Kind = 'ine_front' | 'ine_back' | 'ine_full' | 'passport' | 'comprobante_domicilio' | 'csf' | 'acta_constitutiva'
 
 const PROMPTS: Record<Kind, string> = {
   ine_front: `Extrae datos de la CARA FRONTAL de la credencial INE/IFE mexicana de la imagen/PDF. Devuelve únicamente JSON con estas llaves (usa null si no aparece):
@@ -127,6 +127,16 @@ const PROMPTS: Record<Kind, string> = {
   "fecha_emision_documento": string|null, // fecha de emisión/impresión de la constancia, YYYY-MM-DD
   "actividad_economica": string|null,
   "tipo_persona": "fisica"|"moral"|null
+}`,
+  acta_constitutiva: `La imagen/PDF es un Acta Constitutiva de una sociedad mercantil mexicana (puede ser muy larga; concéntrate en datos clave del primer testimonio y antecedentes registrales). Devuelve sólo JSON:
+{
+  "escritura_constitutiva": string|null, // número de escritura pública, notario, número de notaría, ciudad y fecha. Ej: "Escritura pública 12,345 de fecha 15/03/2018, Notario Público No. 45 Lic. Juan Pérez, Monterrey, N.L."
+  "datos_registro": string|null, // datos de inscripción en el Registro Público de Comercio: folio mercantil electrónico, fecha de inscripción, ciudad. Ej: "Folio Mercantil Electrónico N-2018012345 del 20/04/2018, RPC Monterrey, N.L."
+  "ultima_asamblea": string|null, // referencia a la última asamblea protocolizada visible (escritura, notario, fecha, asunto). Ej: "Asamblea ordinaria del 12/05/2023, protocolizada en escritura 23,456, Notario 78"
+  "administrador_presidente": string|null, // nombre completo del Administrador Único, Presidente del Consejo o representante legal vigente
+  "razon_social": string|null,
+  "objeto_social": string|null,
+  "fecha_constitucion": string|null // YYYY-MM-DD
 }`,
 }
 
@@ -233,6 +243,12 @@ Deno.serve(async (req) => {
     } else if (kind === 'comprobante_domicilio') {
       // NO autollenar domicilio_comercial: ese viene de la CSF.
       // Se devuelve el domicilio extraído para que la UI lo compare con el de la CSF.
+    } else if (kind === 'acta_constitutiva') {
+      fillIfEmpty('escritura_constitutiva', parsed.escritura_constitutiva)
+      fillIfEmpty('datos_registro', parsed.datos_registro)
+      fillIfEmpty('ultima_asamblea', parsed.ultima_asamblea)
+      fillIfEmpty('administrador_presidente', parsed.administrador_presidente)
+      fillIfEmpty('razon_social', parsed.razon_social)
     } else if (kind === 'ine_front' || kind === 'ine_back' || kind === 'ine_full' || kind === 'passport') {
       fillIfEmpty('rep_legal_nombre', parsed.nombre_completo)
       fillIfEmpty('rep_legal_curp', parsed.curp)
