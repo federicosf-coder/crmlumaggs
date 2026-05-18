@@ -139,7 +139,7 @@ export default function CreditoDetail() {
   const changeEstado = async (nuevo: string) => {
     if (!nuevo || nuevo === form.estado) return;
     const anterior = form.estado;
-    const { error } = await supabase.from("credit_requests").update({ estado: nuevo }).eq("id", id!);
+    const { error } = await supabase.from("credit_requests").update({ estado: nuevo as any }).eq("id", id!);
     if (error) { toast.error("No se pudo cambiar el estado"); return; }
     await supabase.from("credit_request_history").insert({
       credit_request_id: id!, estado_anterior: anterior as any, estado_nuevo: nuevo as any, user_id: user?.id,
