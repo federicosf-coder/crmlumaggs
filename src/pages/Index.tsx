@@ -85,28 +85,28 @@ function ModuleCard({ mod, onClick, featured = false }: { mod: Mod; onClick: () 
     <button
       type="button"
       onClick={onClick}
-      className={`group relative overflow-hidden text-left rounded-2xl border border-border bg-gradient-to-br ${mod.accent.gradient} p-5 transition-all duration-300 ring-0 hover:ring-2 ${mod.accent.ring} hover:-translate-y-0.5 hover:shadow-lg ${featured ? "sm:p-7" : ""}`}
+      className={`group relative overflow-hidden text-left rounded-2xl border border-border bg-gradient-to-br ${mod.accent.gradient} p-3 sm:p-5 transition-all duration-300 ring-0 hover:ring-2 ${mod.accent.ring} hover:-translate-y-0.5 hover:shadow-lg ${featured ? "sm:p-6 lg:p-7" : ""}`}
     >
       {/* Decorative blob */}
       <div className={`pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-20 blur-2xl ${mod.accent.icon.split(" ")[0]}`} />
 
-      <div className="relative flex items-start gap-4">
-        <div className={`shrink-0 flex items-center justify-center rounded-xl shadow-sm ${mod.accent.icon} ${featured ? "h-14 w-14" : "h-11 w-11"}`}>
-          <Icon className={featured ? "h-7 w-7" : "h-5 w-5"} />
+      <div className="relative flex items-start gap-3 sm:gap-4">
+        <div className={`shrink-0 flex items-center justify-center rounded-xl shadow-sm ${mod.accent.icon} ${featured ? "h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14" : "h-9 w-9 sm:h-11 sm:w-11"}`}>
+          <Icon className={featured ? "h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7" : "h-4 w-4 sm:h-5 sm:w-5"} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <h3 className={`font-semibold text-foreground truncate transition-colors ${mod.accent.text} ${featured ? "text-xl" : "text-base"}`}>
+            <h3 className={`font-semibold text-foreground truncate transition-colors ${mod.accent.text} ${featured ? "text-base sm:text-lg lg:text-xl" : "text-sm sm:text-base"}`}>
               {mod.title}
             </h3>
             <ArrowRight className="h-4 w-4 text-muted-foreground/60 shrink-0 transition-all duration-300 group-hover:text-foreground group-hover:translate-x-0.5" />
           </div>
-          <p className={`mt-1 text-muted-foreground leading-snug ${featured ? "text-sm" : "text-xs"}`}>
+          <p className={`mt-1 text-muted-foreground leading-snug ${featured ? "text-xs sm:text-sm" : "text-[11px] sm:text-xs"}`}>
             {mod.description}
           </p>
           {featured && (
-            <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700">
-              <Sparkles className="h-3.5 w-3.5" />
+            <div className="mt-2 sm:mt-3 inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-indigo-700">
+              <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               Recomendado para empezar el día
             </div>
           )}
@@ -122,23 +122,23 @@ export default function Index() {
   const firstName = (profile?.full_name || "Usuario").split(" ")[0];
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-5 sm:space-y-8 pb-10">
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-blue-600 via-indigo-600 to-rose-500 p-6 sm:p-8 text-white shadow-md">
+      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-gradient-to-br from-blue-600 via-indigo-600 to-rose-500 p-4 sm:p-8 text-white shadow-md">
         <div className="absolute inset-0 opacity-30 pointer-events-none" aria-hidden>
           <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/30 blur-3xl" />
           <div className="absolute right-10 -bottom-16 h-56 w-56 rounded-full bg-amber-300/40 blur-3xl" />
           <div className="absolute left-1/3 top-1/2 h-32 w-32 rounded-full bg-emerald-300/30 blur-3xl" />
         </div>
         <div className="relative">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium uppercase tracking-wider backdrop-blur-sm">
-            <Sparkles className="h-3.5 w-3.5" />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-[11px] font-medium uppercase tracking-wider backdrop-blur-sm">
+            <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             LubriManager
           </span>
-          <h1 className="mt-3 text-2xl sm:text-4xl font-bold leading-tight">
+          <h1 className="mt-2 sm:mt-3 text-lg sm:text-4xl font-bold leading-tight">
             Bienvenido, {firstName} 👋
           </h1>
-          <p className="mt-2 max-w-2xl text-sm sm:text-base text-white/85">
+          <p className="mt-1 sm:mt-2 max-w-2xl text-xs sm:text-base text-white/85">
             Plataforma de distribución de lubricantes <span className="font-semibold">Chevron</span> y <span className="font-semibold">Phillips 66</span>. Elige por dónde empezar hoy.
           </p>
         </div>
@@ -153,14 +153,14 @@ export default function Index() {
 
       {/* Groups */}
       {groups.map((g) => (
-        <section key={g.title} className="space-y-3">
+        <section key={g.title} className="space-y-2 sm:space-y-3">
           <div className="flex items-baseline justify-between">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight">{g.title}</h2>
-              <p className="text-xs text-muted-foreground">{g.subtitle}</p>
+              <h2 className="text-base sm:text-lg font-semibold tracking-tight">{g.title}</h2>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">{g.subtitle}</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
             {g.items.map((mod) => (
               <ModuleCard key={mod.url} mod={mod} onClick={() => navigate(mod.url)} />
             ))}
