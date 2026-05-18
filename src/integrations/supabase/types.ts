@@ -174,6 +174,155 @@ export type Database = {
         }
         Relationships: []
       }
+      biblioteca_archivos: {
+        Row: {
+          categoria_id: string | null
+          created_at: string
+          created_by: string
+          current_version_id: string | null
+          descripcion: string | null
+          estado: string
+          etiquetas: string[] | null
+          id: string
+          marca: string | null
+          nombre: string
+          updated_at: string
+          vigencia_desde: string | null
+          vigencia_hasta: string | null
+        }
+        Insert: {
+          categoria_id?: string | null
+          created_at?: string
+          created_by: string
+          current_version_id?: string | null
+          descripcion?: string | null
+          estado?: string
+          etiquetas?: string[] | null
+          id?: string
+          marca?: string | null
+          nombre: string
+          updated_at?: string
+          vigencia_desde?: string | null
+          vigencia_hasta?: string | null
+        }
+        Update: {
+          categoria_id?: string | null
+          created_at?: string
+          created_by?: string
+          current_version_id?: string | null
+          descripcion?: string | null
+          estado?: string
+          etiquetas?: string[] | null
+          id?: string
+          marca?: string | null
+          nombre?: string
+          updated_at?: string
+          vigencia_desde?: string | null
+          vigencia_hasta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biblioteca_archivos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "biblioteca_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_biblioteca_archivos_current_version"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "biblioteca_versiones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      biblioteca_categorias: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          descripcion: string | null
+          icono: string | null
+          id: string
+          nombre: string
+          orden: number | null
+          solo_admin: boolean
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          icono?: string | null
+          id?: string
+          nombre: string
+          orden?: number | null
+          solo_admin?: boolean
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          icono?: string | null
+          id?: string
+          nombre?: string
+          orden?: number | null
+          solo_admin?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      biblioteca_versiones: {
+        Row: {
+          archivo_id: string
+          created_at: string
+          id: string
+          mime_type: string | null
+          nombre_archivo: string
+          notas_cambio: string | null
+          size_bytes: number | null
+          storage_path: string
+          subido_por: string
+          version: number
+        }
+        Insert: {
+          archivo_id: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nombre_archivo: string
+          notas_cambio?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          subido_por: string
+          version: number
+        }
+        Update: {
+          archivo_id?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nombre_archivo?: string
+          notas_cambio?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          subido_por?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biblioteca_versiones_archivo_id_fkey"
+            columns: ["archivo_id"]
+            isOneToOne: false
+            referencedRelation: "biblioteca_archivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_logos: {
         Row: {
           created_at: string | null
@@ -4551,6 +4700,7 @@ export type Database = {
         | "tareas"
         | "actividades"
         | "whatsapp"
+        | "biblioteca"
       app_role:
         | "admin"
         | "manager"
@@ -4865,6 +5015,7 @@ export const Constants = {
         "tareas",
         "actividades",
         "whatsapp",
+        "biblioteca",
       ],
       app_role: [
         "admin",

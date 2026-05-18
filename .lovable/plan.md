@@ -1,79 +1,159 @@
-## Resumen
-1. Confirmación al completar tarea desde checkbox (Completar / Completar y Crear Nueva).
-2. Reestructurar tipos: `seguimiento` y `cobranza` como **categorías padre**; los demás (`call`, `email`, `meeting`, `field_visit`, `whatsapp`, `note`) como **tipos de acción hija**. Una tarea puede tener `parent_category` + `task_type`.
-3. Soportar **secuencias / línea de tiempo**: una tarea padre (seguimiento o cobranza) agrupa varias sub-tareas en orden cronológico.
-4. UI: separar visualmente "Seguimiento" y "Cobranza" en una fila superior (selector de categoría) y debajo los tipos de acción.
+
+# Módulo Biblioteca de Archivos
+
+Un repositorio central de archivos (listas de precio, fichas técnicas, contratos, manuales, materiales comerciales) con organización por carpetas/categorías, versionado, permisos por rol, búsqueda y la opción de enlazar archivos de Google Drive.
+
+Inspirado en cómo lo hacen Pipedrive (Files por entidad), HubSpot (Files & Templates), Monday (Docs/Files), ClickUp (Docs/Hub), Dropbox/Drive (versionado + share links).
 
 ---
 
-## Cambios de Base de Datos
+## 1. Estructura conceptual
 
-Migración nueva sobre `crm_tasks`:
-
-```sql
-ALTER TABLE public.crm_tasks
-  ADD COLUMN parent_task_id uuid REFERENCES public.crm_tasks(id) ON DELETE CASCADE,
-  ADD COLUMN parent_category text CHECK (parent_category IN ('seguimiento','cobranza')) NULL,
-  ADD COLUMN sequence_order int DEFAULT 0;
-
-CREATE INDEX idx_crm_tasks_parent ON public.crm_tasks(parent_task_id);
-CREATE INDEX idx_crm_tasks_category ON public.crm_tasks(parent_category);
+```text
+Biblioteca
+├── Categorías (configurables)
+│   ├── Listas de Precio (Chevron, Phillips 66)
+│   ├── Fichas Técnicas
+│   ├── Contratos
+│   ├── Materiales de Marketing
+│   ├── Manuales / Procedimientos
+│   └── ...
+├── Carpetas anidadas (opcional)
+└── Archivos
+    ├── Versiones (v1, v2, v3 — la última es "vigente")
+    ├── Metadatos (marca, vigencia, etiquetas, descripción)
+    ├── Permisos (quién ve / descarga)
+    └── Enlaces (a Empresa, Contacto, Producto, Negocio CRM)
 ```
 
-Reglas:
-- Si `parent_category` está definido (seguimiento/cobranza), la tarea es **cabecera de línea de tiempo**.
-- Sub-tareas tienen `parent_task_id` apuntando a la cabecera y `task_type` con la acción concreta (call, email, etc.).
-- Tareas existentes con `task_type = 'follow_up'` o `'cobranza'` se migran a `parent_category` correspondiente con `task_type = NULL`.
-
-```sql
-UPDATE public.crm_tasks SET parent_category = 'seguimiento', task_type = NULL WHERE task_type = 'follow_up';
-UPDATE public.crm_tasks SET parent_category = 'cobranza',    task_type = NULL WHERE task_type = 'cobranza';
-```
-
-RLS: hereda las políticas existentes de `crm_tasks` (no requiere cambios).
+Cada archivo puede ser:
+- **Subido** (almacenado en Lovable Cloud Storage)
+- **Enlazado** desde Google Drive (URL + metadatos, sin duplicar el archivo)
 
 ---
 
-## Cambios de Código
+## 2. Funcionalidades clave
 
-### `src/lib/taskTypes.tsx`
-- Separar en dos grupos:
-  - `PARENT_CATEGORIES`: `seguimiento`, `cobranza` (con su color e icono).
-  - `ACTION_TYPES`: `call`, `email`, `meeting`, `field_visit`, `whatsapp`, `note` (sin `follow_up` ni `cobranza`).
-- Helpers: `getCategoryMeta(key)`, `getActionMeta(key)`.
+**Gestión de archivos**
+- Subir arrastrando o seleccionando (un archivo o varios)
+- Reemplazar archivo → crea automáticamente nueva versión (la anterior queda en historial)
+- Marcar versión como "vigente" / "obsoleta"
+- Renombrar, mover entre categorías/carpetas, eliminar (soft delete)
+- Previsualización para PDF, imágenes y Office
 
-### `src/hooks/useCrmTasks.ts`
-- Añadir `parent_task_id`, `parent_category`, `sequence_order` al tipo `CrmTask`.
-- Nuevo hook `useTaskTimeline(parentId)` que devuelve sub-tareas ordenadas por `sequence_order` / `created_at`.
+**Organización**
+- Categorías predefinidas + creación libre por Admin
+- Carpetas anidadas dentro de cada categoría
+- Etiquetas múltiples (ej. `chevron`, `2026`, `industrial`)
+- Atributos opcionales: marca (Chevron/Phillips 66), vigencia (desde/hasta), notas
 
-### `src/components/crm/CrmTaskDetailDialog.tsx`
-- **Fila superior nueva**: selector de **Categoría** (Ninguna / Seguimiento / Cobranza) con dos botones grandes coloreados.
-- **Fila existente** (tipo de actividad): se mantiene pero solo muestra los 6 tipos de acción.
-- Si la tarea tiene `parent_category` (es cabecera): mostrar bloque "Línea de tiempo" con sub-tareas + botón "Agregar paso".
-- Si tiene `parent_task_id`: mostrar breadcrumb "Parte de: <título padre>".
-- **Confirmación al completar desde checkbox**: AlertDialog con dos botones "Completar" y "Completar y crear nueva". El segundo abre `CreateCrmTaskDialog` precargado con misma empresa/contacto/categoría.
+**Búsqueda y filtros**
+- Buscador global por nombre, etiqueta, descripción
+- Filtros: categoría, marca, etiqueta, tipo, fecha, autor, estado (vigente/obsoleto)
+- Vista lista y vista cuadrícula con miniatura
 
-### `src/components/crm/CrmTaskItem.tsx`
-- Mismo `AlertDialog` al marcar checkbox.
-- Mostrar badge de categoría padre si aplica.
+**Vinculación a entidades**
+- Adjuntar archivos a Empresa, Contacto, Producto o Negocio CRM (igual que Pipedrive/HubSpot)
+- Desde la ficha de cada entidad se ve una pestaña "Archivos" con los vinculados
 
-### `src/components/crm/CreateCrmTaskDialog.tsx` y `CreateCrmActivityTaskDialog.tsx`
-- Aceptar props opcionales: `parentTaskId`, `parentCategory`, valores default para "crear siguiente paso de la secuencia".
-- Selector de categoría arriba + selector de tipo de acción.
+**Compartir**
+- Enlace público temporal (con expiración configurable)
+- Enlace interno (requiere login)
+- Botón "Copiar enlace" + opción de enviar por correo
 
-### Lugares con `TASK_TYPE_META` (CrmItemsPage, etc.)
-- Mostrar categoría padre además del tipo de acción cuando exista.
+**Permisos por rol**
+- Acceso al módulo controlado igual que el resto (`todos`/`equipo`/`propio`/`ninguno`)
+- Por archivo: quién puede ver, descargar, editar metadatos, subir nueva versión, eliminar
+- Categorías sensibles (ej. Contratos) restringibles a Admin/Manager
 
----
-
-## Detalles técnicos
-
-- La confirmación usa `AlertDialog` de shadcn (ya disponible).
-- "Crear nueva" reusa `CreateCrmTaskDialog` con mismos `company_id`, `contact_id`, `deal_id`, `parent_category`, `parent_task_id` (si la completada era sub-tarea, la nueva queda en la misma secuencia).
-- Línea de tiempo: render simple vertical con icono coloreado por `task_type`, fecha y estado.
-- No se borra `follow_up`/`cobranza` del enum de `taskTypes.tsx` porque la BD aún puede tener referencias antiguas — se filtran del selector pero `TASK_TYPE_META` los mantiene para retrocompatibilidad de íconos.
+**Auditoría**
+- Bitácora: quién subió, quién descargó, quién reemplazó, quién compartió, cuándo
 
 ---
 
-## Pregunta antes de empezar
-Antes de migrar la BD necesito confirmar dos puntos. ¿Procedo con esta estructura o ajustamos algo?
+## 3. Integración con Google Drive (opcional)
+
+Dos modos disponibles:
+
+**A. Enlazar archivos de Drive (recomendado, simple)**
+- Pegar URL de Google Drive → el sistema valida y guarda el enlace + metadatos (nombre, tipo, miniatura) usando el conector Google Drive de Lovable
+- El archivo vive en Drive; la Biblioteca lo organiza, versiona y comparte
+- Útil cuando ya existe una estructura en Drive
+
+**B. Sincronización (futuro / opcional)**
+- Seleccionar una carpeta de Drive → importar archivos como entradas de Biblioteca
+- Re-sincronización manual o programada
+
+Importante: el conector Google Drive autentica **una sola cuenta** (la del administrador/empresa), no por usuario. Para un caso de uso "cada vendedor con su Drive" se requeriría OAuth por usuario (más complejo, se puede dejar para una segunda fase).
+
+---
+
+## 4. Navegación y UI
+
+- Nuevo ítem en el sidebar: **Biblioteca** (entre "Documentos" y "Tareas y Actividades")
+- Ruta: `/biblioteca`
+- Estructura de páginas:
+  - `/biblioteca` — explorador (sidebar de categorías + grid/lista de archivos + buscador)
+  - `/biblioteca/archivo/:id` — detalle (preview + metadatos + versiones + permisos + bitácora)
+  - `/biblioteca/admin/categorias` — gestión de categorías (Admin)
+- Pestaña "Archivos" en Empresa, Contacto, Producto y Negocio CRM
+- Todos los modales siguen el "Estilo Modal Refinado" del sistema
+
+---
+
+## 5. Detalles técnicos
+
+**Tablas nuevas (Lovable Cloud)**
+- `biblioteca_categorias` (nombre, color, icono, parent_id, orden, restricción de roles)
+- `biblioteca_archivos` (categoria_id, carpeta, nombre, descripción, tipo (`subido`/`drive`), marca, vigencia_desde, vigencia_hasta, etiquetas[], estado, current_version_id, created_by)
+- `biblioteca_versiones` (archivo_id, version, storage_path, drive_url, drive_file_id, size, mime, notas_cambio, subido_por, fecha)
+- `biblioteca_links` (archivo_id, entidad_tipo, entidad_id) — vincula a empresa/contacto/producto/negocio
+- `biblioteca_shares` (archivo_id, token, expira_en, creado_por, descargas) — enlaces públicos
+- `biblioteca_bitacora` (archivo_id, accion, usuario_id, metadata, fecha)
+
+**Storage**
+- Bucket `biblioteca` (privado), políticas RLS por rol
+- Para enlaces públicos: edge function genera URL firmada temporal
+
+**Permisos (RLS)**
+- Reutiliza `app_module` añadiendo `biblioteca`
+- `get_user_module_access(user, 'biblioteca')` con niveles `todos/equipo/propio/ninguno`
+- Categorías marcadas como "solo admin" filtran independientemente
+
+**Conector Google Drive**
+- Se activa al pegar el primer enlace de Drive (pide conectar si aún no está)
+- Edge function `validate-drive-link` resuelve metadatos vía gateway
+
+**Reemplazo / versionado**
+- Botón "Subir nueva versión" en detalle: crea registro en `biblioteca_versiones`, actualiza `current_version_id` del archivo
+- Historial visible con descarga de versiones anteriores
+
+---
+
+## 6. Fases sugeridas
+
+**Fase 1 — MVP**
+- Tablas + RLS + bucket + módulo en sidebar
+- Subida, categorías, búsqueda, vista lista/grid
+- Versionado básico (reemplazar = nueva versión)
+- Permisos por rol
+
+**Fase 2 — Integración y compartir**
+- Enlazar archivos de Google Drive
+- Enlaces públicos con expiración
+- Pestaña "Archivos" en Empresa / Contacto / Producto / Negocio
+- Bitácora
+
+**Fase 3 — Avanzado (opcional)**
+- Importación masiva desde carpeta de Drive
+- Previsualización embebida (PDF.js, imágenes, Office viewer)
+- Notificaciones cuando una lista de precios se actualiza
+
+---
+
+## 7. Decisiones que necesito confirmar
+
+1. ¿Empezamos por el **MVP (Fase 1)** o quieres incluir Google Drive desde el inicio (Fase 1 + 2)?
+2. ¿La pestaña "Archivos" en Empresa / Contacto / Producto / Negocio CRM la quieres desde el inicio o después?
+3. Categorías iniciales propuestas: **Listas de Precio, Fichas Técnicas, Contratos, Marketing, Manuales**. ¿Agregar o quitar alguna?
+4. Para Google Drive: ¿alcanza con **una cuenta corporativa** compartida (más simple) o cada usuario necesita conectar su propio Drive?
