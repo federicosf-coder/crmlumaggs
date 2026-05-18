@@ -809,20 +809,43 @@ export default function CreditoDetail() {
                         {items.length > 0 && (
                           <div className="space-y-1">
                             {items.map((it: any) => (
-                              <div key={it.id} className="flex items-center justify-between gap-2 text-xs bg-white/70 rounded px-2 py-1.5 border border-white">
-                                <button onClick={() => openDoc(it.url_archivo)} className="truncate text-left hover:underline flex-1">{it.nombre_archivo}</button>
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] border ${
-                                  it.estado === "recibido" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                  it.estado === "rechazado" ? "bg-red-50 text-red-700 border-red-200" :
-                                  it.estado === "vencido" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                  "bg-slate-50 text-slate-700 border-slate-200"
-                                }`}>{it.estado}</span>
-                                {it.estado !== "recibido" && (
-                                  <Button size="icon" variant="ghost" className="h-6 w-6" title="Aprobar" onClick={() => setDocEstado(it.id, "recibido")}><Check className="h-3.5 w-3.5" /></Button>
-                                )}
-                                <Button size="icon" variant="ghost" className="h-6 w-6" title="Rechazar" onClick={() => { const m = prompt("Motivo de rechazo:"); if (m) setDocEstado(it.id, "rechazado", m); }}><X className="h-3.5 w-3.5" /></Button>
-                                <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" title="Eliminar" onClick={() => deleteDoc(it.id, it.url_archivo)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                              </div>
+                              (() => {
+                                const vs = vencStatus(it.fecha_vencimiento);
+                                const requiereVerif = it.metadata?.requiere_verificacion;
+                                return (
+                                  <div key={it.id} className="bg-white/70 rounded border border-white px-2 py-1.5 space-y-1">
+                                    <div className="flex items-center justify-between gap-2 text-xs">
+                                      <button onClick={() => openDoc(it.url_archivo)} className="truncate text-left hover:underline flex-1">{it.nombre_archivo}</button>
+                                      <span className={`px-1.5 py-0.5 rounded text-[10px] border ${
+                                        it.estado === "recibido" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                        it.estado === "rechazado" ? "bg-red-50 text-red-700 border-red-200" :
+                                        it.estado === "vencido" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                        "bg-slate-50 text-slate-700 border-slate-200"
+                                      }`}>{it.estado}</span>
+                                      {requiereVerif && (
+                                        <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setVerifyDoc(it)}>
+                                          <AlertTriangle className="h-3 w-3 mr-1" />Verificar
+                                        </Button>
+                                      )}
+                                      {it.estado !== "recibido" && (
+                                        <Button size="icon" variant="ghost" className="h-6 w-6" title="Aprobar" onClick={() => setDocEstado(it.id, "recibido")}><Check className="h-3.5 w-3.5" /></Button>
+                                      )}
+                                      <Button size="icon" variant="ghost" className="h-6 w-6" title="Rechazar" onClick={() => { const m = prompt("Motivo de rechazo:"); if (m) setDocEstado(it.id, "rechazado", m); }}><X className="h-3.5 w-3.5" /></Button>
+                                      <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" title="Eliminar" onClick={() => deleteDoc(it.id, it.url_archivo)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
+                                      <button onClick={() => openEditFecha(it)} className="inline-flex items-center gap-1 hover:text-foreground">
+                                        <CalendarClock className="h-3 w-3" />
+                                        {it.fecha_emision ? `Emitido ${format(new Date(it.fecha_emision + "T00:00:00"), "dd/MM/yyyy")}` : "Sin fecha de emisión"}
+                                      </button>
+                                      {it.fecha_vencimiento && (
+                                        <span>· Vence {format(new Date(it.fecha_vencimiento + "T00:00:00"), "dd/MM/yyyy")}</span>
+                                      )}
+                                      {vs && <span className={`px-1.5 py-0.5 rounded border ${vs.cls}`}>{vs.label}</span>}
+                                    </div>
+                                  </div>
+                                );
+                              })()
                             ))}
                           </div>
                         )}
