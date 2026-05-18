@@ -509,7 +509,16 @@ export default function Cobranza() {
     orden.forEach((b) => acc[b] = { count: 0, monto: 0 });
     lista.forEach((f) => {
       if (Number(f.saldo_pendiente_cobranza) <= 0) return;
-      const lbl = bucketLabel(diasParaVencer(fechaVencimientoEfectiva(f)));
+      // "Vencidas" se determina por estatus_factura (fuente única de verdad).
+      // Los demás buckets usan la fecha_vencimiento almacenada.
+      let lbl: string;
+      if (isVencida(f)) {
+        lbl = "Vencidas";
+      } else {
+        const dias = diasParaVencer(f.fecha_vencimiento ?? null);
+        lbl = bucketLabel(dias);
+        if (lbl === "Vencidas") return; // no clasificada como vencida pero fecha pasada → ignorar
+      }
       if (acc[lbl]) { acc[lbl].count++; acc[lbl].monto += Number(f.saldo_pendiente_cobranza); }
     });
     return orden.map((b) => ({ label: b, ...acc[b] }));
