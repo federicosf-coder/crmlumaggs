@@ -11,7 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2, Save, FileUp, ShieldCheck, Trash2, AlertCircle, CheckCircle2, FileCheck, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { CREDITO_FIRMAS, CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR } from "@/lib/credito";
+import { CREDITO_FIRMAS, CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_PERSONA_OPTIONS } from "@/lib/credito";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 async function callPortal(action: string, token: string, extra: Record<string, any> = {}) {
   const { data, error } = await supabase.functions.invoke("credito-portal", {
@@ -228,6 +229,19 @@ export default function CreditoPortal() {
 
           <TabsContent value="datos" className="mt-4">
             <Card><CardContent className="pt-6 space-y-4">
+              <Field label="Tipo de persona">
+                <Select
+                  value={form.tipo_persona ?? form.csf_tipo_persona ?? "moral"}
+                  onValueChange={(v) => set("tipo_persona", v)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CREDITO_TIPO_PERSONA_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
               <div className="grid sm:grid-cols-2 gap-3">
                 <Field label="Razón social"><Input value={form.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} /></Field>
                 <Field label="Nombre comercial"><Input value={form.nombre_comercial || ""} onChange={(e) => set("nombre_comercial", e.target.value)} /></Field>
