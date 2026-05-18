@@ -1534,6 +1534,7 @@ export type Database = {
           rep_legal_pais_nacimiento: string | null
           rep_legal_rfc: string | null
           rep_legal_tipo_id: string | null
+          rep_legal_vencimiento_id: string | null
           rfc: string | null
           telefono: string | null
           tipo: Database["public"]["Enums"]["credito_tipo"] | null
@@ -1621,6 +1622,7 @@ export type Database = {
           rep_legal_pais_nacimiento?: string | null
           rep_legal_rfc?: string | null
           rep_legal_tipo_id?: string | null
+          rep_legal_vencimiento_id?: string | null
           rfc?: string | null
           telefono?: string | null
           tipo?: Database["public"]["Enums"]["credito_tipo"] | null
@@ -1708,6 +1710,7 @@ export type Database = {
           rep_legal_pais_nacimiento?: string | null
           rep_legal_rfc?: string | null
           rep_legal_tipo_id?: string | null
+          rep_legal_vencimiento_id?: string | null
           rfc?: string | null
           telefono?: string | null
           tipo?: Database["public"]["Enums"]["credito_tipo"] | null
