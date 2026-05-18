@@ -273,8 +273,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
         if (Number(d.saldo_pendiente_cobranza || 0) <= 0) return false;
       }
       if (prefilter === "vencidas") {
-        const dd = diasParaVencer(fechaVencimientoEfectiva(d));
-        if (dd === null || dd >= 0) return false;
+        if ((d.estatus_factura || "").toLowerCase() !== "vencida") return false;
       } else if (prefilter === "credito_directo") {
         const tp = (d.tipo_pago || "").toLowerCase();
         if (!(tp.includes("directo") || tp === "credito" || (tp.includes("credito") && !tp.includes("cescemex")))) return false;
@@ -283,8 +282,13 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
         if (!tp.includes("cescemex")) return false;
       }
       if (daysBucket) {
-        const dd = diasParaVencer(fechaVencimientoEfectiva(d));
-        if (!inDaysBucket(dd, daysBucket)) return false;
+        if (daysBucket === "vencidas") {
+          if ((d.estatus_factura || "").toLowerCase() !== "vencida") return false;
+        } else {
+          // Para los demás buckets usamos la fecha_vencimiento almacenada como referencia.
+          const dd = diasParaVencer(d.fecha_vencimiento ?? null);
+          if (!inDaysBucket(dd, daysBucket)) return false;
+        }
       }
       return true;
     });
