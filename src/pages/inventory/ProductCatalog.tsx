@@ -480,9 +480,9 @@ function ProductosTab() {
   };
 
   const save = useMutation({
-    mutationFn: async () => {
-      const payload: any = { ...form };
-      for (const k of ["presentacion_id", "marca_id", "aplicacion_id", "uso_id", "formula_id", "viscosidad_id", "categoria_id", "linea_id"]) {
+    mutationFn: async (overrides?: Record<string, number>) => {
+      const payload: any = { ...form, ...(overrides || {}) };
+      for (const k of ["presentacion_id", "marca_id", "aplicacion_id", "uso_id", "formula_id", "viscosidad_id", "categoria_id", "linea_id", "precio_clasificacion_id"]) {
         if (!payload[k]) payload[k] = null;
       }
       if (editingId) {
@@ -498,10 +498,39 @@ function ProductosTab() {
       setOpen(false);
       setForm(emptyProduct);
       setEditingId(null);
+      setRecalcOpen(false);
       toast.success(editingId ? "Producto actualizado" : "Producto creado");
     },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const handleSaveClick = () => {
+    if (Number(form.costo_actual ?? 0) > 0) setRecalcOpen(true);
+    else save.mutate(undefined);
+  };
+
+  const saveWithRecalc = async () => {
+    try {
+      const costo = Number(form.costo_actual ?? 0);
+      let margins: any = null;
+      if (form.precio_clasificacion_id) {
+        margins = clasificaciones.find((c: any) => c.id === form.precio_clasificacion_id) || null;
+      }
+      if (!margins) {
+        const { data, error } = await supabase
+          .from("precio_config_global").select("*").limit(1).maybeSingle();
+        if (error) throw error;
+        margins = data;
+      }
+      const marginRecord: Record<string, number> = {};
+      for (const lvl of MARGIN_LEVELS) marginRecord[lvl.key] = Number(margins?.[lvl.key] ?? 0);
+      const newPrices = computePricesFromCost(costo, marginRecord);
+      setForm(prev => ({ ...prev, ...newPrices } as any));
+      save.mutate(newPrices);
+    } catch (e: any) {
+      toast.error("Error al recalcular precios: " + e.message);
+    }
+  };
 
   const selectedPres = presentaciones.find(p => p.id === form.presentacion_id);
 
