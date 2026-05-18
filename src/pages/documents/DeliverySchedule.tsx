@@ -82,7 +82,7 @@ function DraggablePoolCard({ item, footerActions, onView }: { item: PoolItem; fo
           </div>
           <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
           {item.fecha_documento && (
-            <p className="text-xs text-muted-foreground mt-0.5">📅 {format(new Date(item.fecha_documento + "T12:00:00"), "dd MMM yyyy", { locale: es })}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">📅 {format(new Date(item.fecha_documento + "T12:00:00"), "dd MMM yyyy", { locale: es })}</p>
           )}
           {item.address && (
             <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 min-w-0">
@@ -98,20 +98,21 @@ function DraggablePoolCard({ item, footerActions, onView }: { item: PoolItem; fo
             </span>
           )}
           <Badge variant="outline" className={cn("text-[10px] mt-1 block", cfg.color)}>{cfg.label}</Badge>
-          {onView && item.type === "pedido" && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 mt-1"
-              title="Ver documento origen"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onView(item); }}
-            >
-              <Eye className="h-3.5 w-3.5" />
-            </Button>
-          )}
         </div>
       </div>
+      {onView && item.type === "pedido" && (
+        <div className="mt-2 pt-2 border-t border-border/50" onPointerDown={(e) => e.stopPropagation()}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 w-full text-xs gap-1.5"
+            onClick={(e) => { e.stopPropagation(); onView(item); }}
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Ir al Pedido
+          </Button>
+        </div>
+      )}
       {footerActions && (
         <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-2" onPointerDown={(e) => e.stopPropagation()}>
           {footerActions}
