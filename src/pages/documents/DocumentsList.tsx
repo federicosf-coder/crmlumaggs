@@ -1147,7 +1147,15 @@ export default function DocumentsList() {
                         )}
                         {tipoFilter === "factura" && isColVisible("plaza") && (
                           <TableCell className="hidden md:table-cell">
-                            {(doc.plazas as any)?.nombre || "-"}
+                            {(doc.plazas as any)?.nombre ? (() => {
+                              const c = plazaColor(doc.plaza_id);
+                              return (
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${c.pill}`}>
+                                  <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+                                  {(doc.plazas as any).nombre}
+                                </span>
+                              );
+                            })() : <span className="text-muted-foreground">-</span>}
                           </TableCell>
                         )}
                         {isColVisible("fecha") && (
