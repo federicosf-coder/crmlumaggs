@@ -46,6 +46,10 @@ import TrainingPage from "@/pages/training/TrainingPage";
 import AutomationsPage from "@/pages/automations/AutomationsPage";
 import AutomationEditorPage from "@/pages/automations/AutomationEditorPage";
 import Biblioteca from "@/pages/biblioteca/Biblioteca";
+import CreditoList from "@/pages/credito/CreditoList";
+import CreditoDetail from "@/pages/credito/CreditoDetail";
+import CreditoConfiguracion from "@/pages/credito/CreditoConfiguracion";
+import CreditoPortal from "@/pages/credito/CreditoPortal";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +82,7 @@ const App = () => (
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
+            <Route path="/portal/credito/:token" element={<CreditoPortal />} />
 
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -122,6 +127,9 @@ const App = () => (
             <Route path="/automations/new" element={<ProtectedRoute><AutomationEditorPage /></ProtectedRoute>} />
             <Route path="/automations/:id/edit" element={<ProtectedRoute><AutomationEditorPage /></ProtectedRoute>} />
             <Route path="/biblioteca" element={<ProtectedRoute><Biblioteca /></ProtectedRoute>} />
+            <Route path="/credito" element={<ProtectedRoute><CreditoList /></ProtectedRoute>} />
+            <Route path="/credito/configuracion" element={<ProtectedRoute><CreditoConfiguracion /></ProtectedRoute>} />
+            <Route path="/credito/:id" element={<ProtectedRoute><CreditoDetail /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
