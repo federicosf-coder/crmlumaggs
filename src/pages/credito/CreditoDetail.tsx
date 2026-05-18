@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip } from "lucide-react";
+import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS } from "@/lib/credito";
@@ -72,6 +72,7 @@ export default function CreditoDetail() {
   const [uploadName, setUploadName] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [autofilling, setAutofilling] = useState<string | null>(null);
 
   const { data: req, isLoading } = useQuery({
     queryKey: ["credit_request", id],
@@ -198,6 +199,40 @@ export default function CreditoDetail() {
     setUploadCtx(null);
     setUploadName("");
     setUploadFile(null);
+  };
+
+  const fileToB64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => {
+        const s = String(r.result || "");
+        const i = s.indexOf(",");
+        resolve(i >= 0 ? s.slice(i + 1) : s);
+      };
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(file);
+    });
+
+  const autofillFromFile = async (file: File, kind: string, label: string) => {
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) { toast.error("El archivo supera 15 MB"); return; }
+    setAutofilling(kind);
+    toast.loading(`Leyendo ${label}...`, { id: "af" });
+    try {
+      const b64 = await fileToB64(file);
+      const { data, error } = await supabase.functions.invoke("credito-autofill", {
+        body: { request_id: id, kind, file_b64: b64, mime: file.type || "image/jpeg" },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const filled = Object.keys((data as any)?.updated || {}).length;
+      toast.success(filled > 0 ? `${label}: ${filled} campos autocompletados` : `${label} leída (sin campos nuevos)`, { id: "af" });
+      qc.invalidateQueries({ queryKey: ["credit_request", id] });
+    } catch (e: any) {
+      toast.error(e?.message || `No se pudo leer ${label}`, { id: "af" });
+    } finally {
+      setAutofilling(null);
+    }
   };
 
   const openDoc = async (path: string) => {
