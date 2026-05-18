@@ -1,159 +1,75 @@
+# Plan — Módulo "Solicitudes de Crédito"
 
-# Módulo Biblioteca de Archivos
-
-Un repositorio central de archivos (listas de precio, fichas técnicas, contratos, manuales, materiales comerciales) con organización por carpetas/categorías, versionado, permisos por rol, búsqueda y la opción de enlazar archivos de Google Drive.
-
-Inspirado en cómo lo hacen Pipedrive (Files por entidad), HubSpot (Files & Templates), Monday (Docs/Files), ClickUp (Docs/Hub), Dropbox/Drive (versionado + share links).
+Por tamaño del entregable (8 tablas nuevas, RLS, storage, módulo interno con 5 pestañas, portal público con OTP y parseo de CSF), lo entrego en **3 fases incrementales**. Cada fase es funcional por sí sola y puede revisarse antes de continuar.
 
 ---
 
-## 1. Estructura conceptual
+## Fase 1 — Base de datos, Storage, navegación y catálogo
 
-```text
-Biblioteca
-├── Categorías (configurables)
-│   ├── Listas de Precio (Chevron, Phillips 66)
-│   ├── Fichas Técnicas
-│   ├── Contratos
-│   ├── Materiales de Marketing
-│   ├── Manuales / Procedimientos
-│   └── ...
-├── Carpetas anidadas (opcional)
-└── Archivos
-    ├── Versiones (v1, v2, v3 — la última es "vigente")
-    ├── Metadatos (marca, vigencia, etiquetas, descripción)
-    ├── Permisos (quién ve / descarga)
-    └── Enlaces (a Empresa, Contacto, Producto, Negocio CRM)
-```
+**Migración única** con:
+- 4 enums: `credito_tipo`, `credito_estado`, `credito_doc_estado`, `credito_visibilidad`.
+- 8 tablas: `credit_requests`, `credit_request_parties`, `credit_doc_types`, `credit_request_docs`, `credit_request_comments`, `credit_request_history`, `credit_client_sessions` + columnas tal cual el spec.
+- Función `generate_credito_folio()` + trigger `BEFORE INSERT`.
+- Función `credit_request_completeness(req_id uuid)` que devuelve `{form_pct, docs_pct, sigs_pct, …}`.
+- Triggers `update_updated_at_column()` en las 3 tablas indicadas.
+- 6 índices definidos.
+- RLS exactamente como en sección 1m (incluye lectura anónima por token).
+- Seed de 11 `credit_doc_types`.
+- Seed `role_module_permissions` para módulo `credito`.
 
-Cada archivo puede ser:
-- **Subido** (almacenado en Lovable Cloud Storage)
-- **Enlazado** desde Google Drive (URL + metadatos, sin duplicar el archivo)
+**Storage**: bucket privado `credit-docs` con RLS:
+- Lectura/escritura para roles internos autenticados.
+- Insert para anónimos sólo si el path comienza con un `credit_request_id` cuyo `client_token` (en `credit_requests` o `credit_request_parties`) fue validado vía RPC `validate_credit_token(token, request_id)`.
 
----
+**Enum `app_module`**: agregar valor `credito`. **(Esto técnicamente es una alteración de enum, no de tabla — pediré confirmación si la validación del agente lo bloquea.)**
 
-## 2. Funcionalidades clave
+**Frontend Fase 1**:
+- Item en `AppSidebar` "Solicitudes de Crédito" (icon `FileCheck`) visible para admin/manager/sales/customer_service/accounting.
+- Rutas vacías `/credito`, `/credito/:id`, `/credito/configuracion`, `/portal/credito/:token` registradas (con placeholders).
+- Página `/credito/configuracion` completa: tabla de `credit_doc_types` con toggles inline, drag-to-reorder, drawer de edición y "+ Nuevo".
 
-**Gestión de archivos**
-- Subir arrastrando o seleccionando (un archivo o varios)
-- Reemplazar archivo → crea automáticamente nueva versión (la anterior queda en historial)
-- Marcar versión como "vigente" / "obsoleta"
-- Renombrar, mover entre categorías/carpetas, eliminar (soft delete)
-- Previsualización para PDF, imágenes y Office
-
-**Organización**
-- Categorías predefinidas + creación libre por Admin
-- Carpetas anidadas dentro de cada categoría
-- Etiquetas múltiples (ej. `chevron`, `2026`, `industrial`)
-- Atributos opcionales: marca (Chevron/Phillips 66), vigencia (desde/hasta), notas
-
-**Búsqueda y filtros**
-- Buscador global por nombre, etiqueta, descripción
-- Filtros: categoría, marca, etiqueta, tipo, fecha, autor, estado (vigente/obsoleto)
-- Vista lista y vista cuadrícula con miniatura
-
-**Vinculación a entidades**
-- Adjuntar archivos a Empresa, Contacto, Producto o Negocio CRM (igual que Pipedrive/HubSpot)
-- Desde la ficha de cada entidad se ve una pestaña "Archivos" con los vinculados
-
-**Compartir**
-- Enlace público temporal (con expiración configurable)
-- Enlace interno (requiere login)
-- Botón "Copiar enlace" + opción de enviar por correo
-
-**Permisos por rol**
-- Acceso al módulo controlado igual que el resto (`todos`/`equipo`/`propio`/`ninguno`)
-- Por archivo: quién puede ver, descargar, editar metadatos, subir nueva versión, eliminar
-- Categorías sensibles (ej. Contratos) restringibles a Admin/Manager
-
-**Auditoría**
-- Bitácora: quién subió, quién descargó, quién reemplazó, quién compartió, cuándo
+Entrega Fase 1 = base sólida + admin de catálogo. Sin lógica de workflow aún.
 
 ---
 
-## 3. Integración con Google Drive (opcional)
+## Fase 2 — Módulo interno `/credito` y `/credito/:id`
 
-Dos modos disponibles:
-
-**A. Enlazar archivos de Drive (recomendado, simple)**
-- Pegar URL de Google Drive → el sistema valida y guarda el enlace + metadatos (nombre, tipo, miniatura) usando el conector Google Drive de Lovable
-- El archivo vive en Drive; la Biblioteca lo organiza, versiona y comparte
-- Útil cuando ya existe una estructura en Drive
-
-**B. Sincronización (futuro / opcional)**
-- Seleccionar una carpeta de Drive → importar archivos como entradas de Biblioteca
-- Re-sincronización manual o programada
-
-Importante: el conector Google Drive autentica **una sola cuenta** (la del administrador/empresa), no por usuario. Para un caso de uso "cada vendedor con su Drive" se requeriría OAuth por usuario (más complejo, se puede dejar para una segunda fase).
+- **Lista** con filtros (estado, tipo, búsqueda folio/empresa/RFC, "Solo mis solicitudes"), columnas incluyendo 3 mini-barras de progreso desde `credit_request_completeness`, badge "Recordatorio" según regla de 3 días.
+- **Drawer "Nueva Solicitud"**: select de empresas, tipo, fecha límite, contacto principal, monto, días. Crea request + party principal + history.
+- **Detalle `/credito/:id` con header global** (folio, empresa, badges, 3 progress bars, botones Copiar link / Enviar recordatorio / kebab).
+- **Tab 1 Formulario**: 7 secciones acordeón, autosave debounced 1.5s, banner si `csf_parseado`, resaltado azul en campos auto-llenados, "Guardar formulario" manual.
+- **Tab 2 Documentos**: sección cliente (cards con aprobar/rechazar inline), sección interna (uploads `visibilidad='interna'`), sección partes adicionales.
+- **Tab 3 Formatos y Firmas**: 5 tarjetas con modal full-screen por documento. Cada plantilla con sustitución `{{var}}` desde el request. Validación de campos previo a firmar. Persistencia en `firma_*_fecha`/`firma_*_nombre`.
+- **Tab 4 Seguimiento**: stepper visual, panel de acciones contextual por estado (todos los casos del spec: borrador → activo, incl. lista 69, branch Cescemex/Directo, dirección, jurídico, contratos), panel de partes adicionales con agregar/reenviar, timeline desde `credit_request_history`. Botón global "⛔ Rechazar".
+- **Tab 5 Comentarios**: lista descendente, nuevo comentario con toggle interna/pública.
+- **Edge function `credit-send-portal`**: envía correo a `client_email` + todas las parties usando `send-transactional-email` y nuevas plantillas React Email: `credit-portal-invitation` y `credit-portal-reminder` (incluye lista de docs pendientes, firmas faltantes, `fecha_limite`). Botón "Enviar recordatorio" actualiza `ultimo_recordatorio_enviado` y `recordatorio_count`.
 
 ---
 
-## 4. Navegación y UI
+## Fase 3 — Portal público `/portal/credito/:token`
 
-- Nuevo ítem en el sidebar: **Biblioteca** (entre "Documentos" y "Tareas y Actividades")
-- Ruta: `/biblioteca`
-- Estructura de páginas:
-  - `/biblioteca` — explorador (sidebar de categorías + grid/lista de archivos + buscador)
-  - `/biblioteca/archivo/:id` — detalle (preview + metadatos + versiones + permisos + bitácora)
-  - `/biblioteca/admin/categorias` — gestión de categorías (Admin)
-- Pestaña "Archivos" en Empresa, Contacto, Producto y Negocio CRM
-- Todos los modales siguen el "Estilo Modal Refinado" del sistema
-
----
-
-## 5. Detalles técnicos
-
-**Tablas nuevas (Lovable Cloud)**
-- `biblioteca_categorias` (nombre, color, icono, parent_id, orden, restricción de roles)
-- `biblioteca_archivos` (categoria_id, carpeta, nombre, descripción, tipo (`subido`/`drive`), marca, vigencia_desde, vigencia_hasta, etiquetas[], estado, current_version_id, created_by)
-- `biblioteca_versiones` (archivo_id, version, storage_path, drive_url, drive_file_id, size, mime, notas_cambio, subido_por, fecha)
-- `biblioteca_links` (archivo_id, entidad_tipo, entidad_id) — vincula a empresa/contacto/producto/negocio
-- `biblioteca_shares` (archivo_id, token, expira_en, creado_por, descargas) — enlaces públicos
-- `biblioteca_bitacora` (archivo_id, accion, usuario_id, metadata, fecha)
-
-**Storage**
-- Bucket `biblioteca` (privado), políticas RLS por rol
-- Para enlaces públicos: edge function genera URL firmada temporal
-
-**Permisos (RLS)**
-- Reutiliza `app_module` añadiendo `biblioteca`
-- `get_user_module_access(user, 'biblioteca')` con niveles `todos/equipo/propio/ninguno`
-- Categorías marcadas como "solo admin" filtran independientemente
-
-**Conector Google Drive**
-- Se activa al pegar el primer enlace de Drive (pide conectar si aún no está)
-- Edge function `validate-drive-link` resuelve metadatos vía gateway
-
-**Reemplazo / versionado**
-- Botón "Subir nueva versión" en detalle: crea registro en `biblioteca_versiones`, actualiza `current_version_id` del archivo
-- Historial visible con descarga de versiones anteriores
+- **Acceso OTP**: landing → email → genera código de 6 dígitos en `credit_client_sessions` (15 min TTL) → envía vía plantilla `credit-portal-otp` → 6 inputs auto-advance → marca `verified` → guarda sesión en `localStorage` (24h).
+- Edge function `credit-portal-auth` (verify_jwt=false) con acciones `request_otp` y `verify_otp` (resuelve token contra `credit_requests` y `credit_request_parties`).
+- Edge function `credit-portal-data` que devuelve datos del request + parties + docs aplicables + comentarios públicos a partir de `{token, email}` validados.
+- Edge function `credit-portal-save` para autosave de formulario y `credit-portal-sign` para firmas (valida token + email cada vez).
+- Edge function `credit-portal-upload` que genera URL firmada de upload al bucket `credit-docs` bajo path validado.
+- **UI mobile-first**: header sticky con barra de 4 segmentos, secciones: Tu información (acordeón con contadores y banner CSF), Documentos requeridos (cards grandes, vigencia, upload tap-target 64px, reemplazo, rechazo con motivo), Documentos a firmar (overlay full-screen con scroll-to-bottom + checkbox + nombre, sustitución `{{var}}` con `[pendiente]` en naranja para faltantes), Mensajes del equipo (solo públicos), Estado de tu solicitud.
+- **Parseo CSF en cliente**: pdf.js vía CDN dentro del componente de upload. Regex spec exacto. POST a edge `credit-portal-parse-csf` que aplica `UPDATE` a campos `csf_*` + auto-fill (`razon_social`, `rfc`, `domicilio_fiscal`, etc.) y devuelve resumen para mostrar la tarjeta "✅ Detectamos tus datos".
 
 ---
 
-## 6. Fases sugeridas
+## Notas técnicas y guardrails
 
-**Fase 1 — MVP**
-- Tablas + RLS + bucket + módulo en sidebar
-- Subida, categorías, búsqueda, vista lista/grid
-- Versionado básico (reemplazar = nueva versión)
-- Permisos por rol
-
-**Fase 2 — Integración y compartir**
-- Enlazar archivos de Google Drive
-- Enlaces públicos con expiración
-- Pestaña "Archivos" en Empresa / Contacto / Producto / Negocio
-- Bitácora
-
-**Fase 3 — Avanzado (opcional)**
-- Importación masiva desde carpeta de Drive
-- Previsualización embebida (PDF.js, imágenes, Office viewer)
-- Notificaciones cuando una lista de precios se actualiza
+- Todos los formularios/modales usan **Estilo Modal Refinado** (regla del proyecto).
+- Map de colores de badge tal cual spec.
+- Idioma 100% español, formatos DD/MM/YYYY y MXN.
+- Sin paquetes nuevos: pdf.js sólo vía CDN en portal.
+- No se modifican tablas/rutas/navegación existentes.
+- Permisos en queries del lado cliente usan `module_owner_allows(user, 'credito', created_by)` para `sales` (acceso `propio`).
+- Historial: cada transición de estado se inserta en `credit_request_history` desde un helper compartido en frontend (no trigger, para capturar `nota` libre del usuario).
 
 ---
 
-## 7. Decisiones que necesito confirmar
+## Confirmación
 
-1. ¿Empezamos por el **MVP (Fase 1)** o quieres incluir Google Drive desde el inicio (Fase 1 + 2)?
-2. ¿La pestaña "Archivos" en Empresa / Contacto / Producto / Negocio CRM la quieres desde el inicio o después?
-3. Categorías iniciales propuestas: **Listas de Precio, Fichas Técnicas, Contratos, Marketing, Manuales**. ¿Agregar o quitar alguna?
-4. Para Google Drive: ¿alcanza con **una cuenta corporativa** compartida (más simple) o cada usuario necesita conectar su propio Drive?
+¿Apruebas el plan? Si dices "sí", arranco con **Fase 1 (migración + storage + sidebar + `/credito/configuracion`)**. Cuando la valides, sigo con Fase 2 y luego Fase 3. Si prefieres otro orden o quieres ajustar el alcance de alguna fase, dímelo.
