@@ -269,6 +269,32 @@ export default function CreditoPortal() {
 
           <TabsContent value="docs" className="mt-4">
             <Card><CardContent className="pt-6 space-y-3">
+              {/* CSF autocompletar */}
+              <div className="border-2 border-dashed rounded-md p-3 bg-violet-50/40">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex-1 min-w-[200px]">
+                    <p className="font-medium text-sm flex items-center gap-2">
+                      <Wand2 className="h-4 w-4 text-violet-600" />
+                      Constancia de Situación Fiscal (autocompletar)
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Sube tu CSF en PDF y completaremos automáticamente RFC, razón social, régimen, domicilio fiscal y más.
+                    </p>
+                    {data.request.csf_parseado && (
+                      <p className="text-[11px] mt-1 text-emerald-700 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        CSF ya procesada · RFC {data.request.csf_rfc}
+                      </p>
+                    )}
+                  </div>
+                  <label className="cursor-pointer inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border bg-violet-600 text-white hover:bg-violet-700">
+                    {parsingCsf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                    Subir CSF
+                    <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={parsingCsf}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) parseCsf(f); e.currentTarget.value = ""; }} />
+                  </label>
+                </div>
+              </div>
               {(data.docTypes as any[]).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No hay documentos solicitados.</p>
               ) : (
