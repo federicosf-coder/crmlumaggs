@@ -18,6 +18,11 @@ import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, 
 import { Filter } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
+import PreciosConfigTab, { MARGIN_LEVELS, computePricesFromCost } from "./PreciosConfigTab";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
 
