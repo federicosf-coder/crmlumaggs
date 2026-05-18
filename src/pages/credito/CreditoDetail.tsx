@@ -856,8 +856,7 @@ export default function CreditoDetail() {
                         <span className={`absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${hasItems ? "bg-emerald-500 text-white border-emerald-600" : (dt.requerido ? "bg-amber-500 text-white border-amber-600" : "bg-slate-200 text-slate-700 border-slate-300")}`}>
                           {hasItems ? (<><Check className="h-2.5 w-2.5" />Subido{items.length > 1 ? ` (${items.length})` : ""}</>) : (dt.requerido ? "Pendiente" : "Opcional")}
                         </span>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-start gap-2.5 min-w-0">
+                        <div className="flex items-start gap-2.5 min-w-0 pr-20">
                             <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palette.iconBg}`}>
                               <Icon className={`h-4.5 w-4.5 ${palette.iconColor}`} />
                             </div>
@@ -870,13 +869,12 @@ export default function CreditoDetail() {
                               </p>
                               {dt.instrucciones_cliente && <p className="text-[11px] text-muted-foreground mt-0.5">{dt.instrucciones_cliente}</p>}
                             </div>
-                          </div>
-                          {canAdd && (
-                            <Button size="sm" variant="outline" className={`h-7 px-2 text-xs ${palette.btn}`} onClick={() => openUploadDialog(dt.id, dt.nombre)}>
-                              <FileUp className="h-3.5 w-3.5 mr-1" />{items.length > 0 ? "Agregar" : "Subir"}
-                            </Button>
-                          )}
                         </div>
+                        {canAdd && (
+                          <Button size="sm" variant="outline" className={`h-7 px-2 text-xs w-full ${palette.btn}`} onClick={() => openUploadDialog(dt.id, dt.nombre)}>
+                            <FileUp className="h-3.5 w-3.5 mr-1" />{items.length > 0 ? "Agregar otro" : "Subir documento"}
+                          </Button>
+                        )}
                         {items.length > 0 && (
                           <div className="space-y-1">
                             {items.map((it: any) => (
