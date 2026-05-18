@@ -422,11 +422,26 @@ function ProductosTab() {
     codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
     is_active: true,
     marca_id: "", aplicacion_id: "", uso_id: "", formula_id: "", viscosidad_id: "", categoria_id: "", linea_id: "",
+    precio_clasificacion_id: "",
     costo_actual: 0, precio_base_uf1: 0, precio_uf2: 0, precio_uf3: 0, precio_uf4: 0,
     precio_r1: 0, precio_r2: 0, precio_r3: 0, precio_r4: 0, precio_lista_galper: 0,
   };
   const [form, setForm] = useState(emptyProduct);
   const set = (k: string, v: any) => setForm(prev => ({ ...prev, [k]: v }));
+
+  const { data: clasificaciones = [] } = useQuery({
+    queryKey: ["precio_clasificaciones_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("precio_clasificaciones")
+        .select("*")
+        .eq("activo", true)
+        .order("nombre");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const [recalcOpen, setRecalcOpen] = useState(false);
 
   const openCreate = () => {
     setEditingId(null);
