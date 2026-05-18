@@ -24,6 +24,8 @@ interface PagoConfirmationProps {
   documentos?: Array<{ tipo: string; numero: string; monto: string }>
   comprobantes?: Array<{ nombre: string; url: string }>
   registradoPor?: string
+  destinatarios?: string[]
+  respuestaA?: string
 }
 
 const PagoConfirmationEmail = ({
@@ -35,7 +37,11 @@ const PagoConfirmationEmail = ({
   documentos,
   comprobantes,
   registradoPor,
-}: PagoConfirmationProps) => (
+  destinatarios,
+  respuestaA,
+}: PagoConfirmationProps) => {
+  const destUnicos = Array.from(new Set((destinatarios || []).filter((e) => typeof e === 'string' && e)))
+  return (
   <Html lang="es" dir="ltr">
     <Head />
     <Preview>
@@ -48,6 +54,15 @@ const PagoConfirmationEmail = ({
           Se ha registrado un nuevo pago en {SITE_NAME}
           {registradoPor ? ` por ${registradoPor}` : ''}.
         </Text>
+
+        {(destUnicos.length > 0 || respuestaA) && (
+          <Section style={card}>
+            {destUnicos.length > 0 && (
+              <Row label="Enviado a" value={destUnicos.join(', ')} />
+            )}
+            {respuestaA && <Row label="Responder a" value={respuestaA} />}
+          </Section>
+        )}
 
         <Section style={card}>
           <Row label="Empresa" value={empresa || '—'} />
