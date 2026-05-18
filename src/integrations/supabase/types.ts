@@ -3478,6 +3478,102 @@ export type Database = {
         }
         Relationships: []
       }
+      precio_clasificaciones: {
+        Row: {
+          activo: boolean
+          created_at: string
+          descripcion: string | null
+          id: string
+          margen_r1: number
+          margen_r2: number
+          margen_r3: number
+          margen_r4: number
+          margen_uf1: number
+          margen_uf2: number
+          margen_uf3: number
+          margen_uf4: number
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          margen_r1?: number
+          margen_r2?: number
+          margen_r3?: number
+          margen_r4?: number
+          margen_uf1?: number
+          margen_uf2?: number
+          margen_uf3?: number
+          margen_uf4?: number
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          margen_r1?: number
+          margen_r2?: number
+          margen_r3?: number
+          margen_r4?: number
+          margen_uf1?: number
+          margen_uf2?: number
+          margen_uf3?: number
+          margen_uf4?: number
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      precio_config_global: {
+        Row: {
+          created_at: string
+          id: string
+          is_singleton: boolean
+          margen_r1: number
+          margen_r2: number
+          margen_r3: number
+          margen_r4: number
+          margen_uf1: number
+          margen_uf2: number
+          margen_uf3: number
+          margen_uf4: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_singleton?: boolean
+          margen_r1?: number
+          margen_r2?: number
+          margen_r3?: number
+          margen_r4?: number
+          margen_uf1?: number
+          margen_uf2?: number
+          margen_uf3?: number
+          margen_uf4?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_singleton?: boolean
+          margen_r1?: number
+          margen_r2?: number
+          margen_r3?: number
+          margen_r4?: number
+          margen_uf1?: number
+          margen_uf2?: number
+          margen_uf3?: number
+          margen_uf4?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       presentaciones: {
         Row: {
           created_at: string
@@ -3556,6 +3652,7 @@ export type Database = {
           marca_id: string | null
           nombre_producto: string
           precio_base_uf1: number
+          precio_clasificacion_id: string | null
           precio_lista_galper: number
           precio_r1: number
           precio_r2: number
@@ -3584,6 +3681,7 @@ export type Database = {
           marca_id?: string | null
           nombre_producto: string
           precio_base_uf1?: number
+          precio_clasificacion_id?: string | null
           precio_lista_galper?: number
           precio_r1?: number
           precio_r2?: number
@@ -3612,6 +3710,7 @@ export type Database = {
           marca_id?: string | null
           nombre_producto?: string
           precio_base_uf1?: number
+          precio_clasificacion_id?: string | null
           precio_lista_galper?: number
           precio_r1?: number
           precio_r2?: number
@@ -3659,6 +3758,13 @@ export type Database = {
             columns: ["marca_id"]
             isOneToOne: false
             referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_precio_clasificacion_id_fkey"
+            columns: ["precio_clasificacion_id"]
+            isOneToOne: false
+            referencedRelation: "precio_clasificaciones"
             referencedColumns: ["id"]
           },
           {
