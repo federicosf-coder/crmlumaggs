@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, FileUp, ShieldCheck, Trash2, AlertCircle, CheckCircle2, FileCheck } from "lucide-react";
+import { Loader2, Save, FileUp, ShieldCheck, Trash2, AlertCircle, CheckCircle2, FileCheck, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_FIRMAS, CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR } from "@/lib/credito";
@@ -41,6 +41,7 @@ export default function CreditoPortal() {
   const [data, setData] = useState<any>(null);
   const [form, setForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
+  const [parsingCsf, setParsingCsf] = useState(false);
   const [tab, setTab] = useState("datos");
 
   const load = async () => {
@@ -132,6 +133,29 @@ export default function CreditoPortal() {
       load();
     } catch (e: any) {
       toast.error(e.message);
+    }
+  };
+
+  const parseCsf = async (file: File) => {
+    if (file.size > 15 * 1024 * 1024) { toast.error("El archivo supera 15 MB"); return; }
+    setParsingCsf(true);
+    toast.loading("Leyendo CSF...", { id: "csf" });
+    try {
+      const b64 = await fileToBase64(file);
+      const r = await callPortal("parse_csf", token!, {
+        file_b64: b64, filename: file.name, mime: file.type || "application/pdf",
+      });
+      toast.success(`CSF procesada: ${r?.parsed?.csf_rfc || ""}`, { id: "csf" });
+      load();
+    } catch (e: any) {
+      const msg = e?.message === "csf_no_rfc"
+        ? "No se pudo detectar el RFC. Verifica que sea la CSF original del SAT."
+        : e?.message === "pdf_parse_failed"
+        ? "No se pudo leer el PDF."
+        : (e?.message || "Error al procesar CSF");
+      toast.error(msg, { id: "csf" });
+    } finally {
+      setParsingCsf(false);
     }
   };
 
@@ -245,6 +269,32 @@ export default function CreditoPortal() {
 
           <TabsContent value="docs" className="mt-4">
             <Card><CardContent className="pt-6 space-y-3">
+              {/* CSF autocompletar */}
+              <div className="border-2 border-dashed rounded-md p-3 bg-violet-50/40">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex-1 min-w-[200px]">
+                    <p className="font-medium text-sm flex items-center gap-2">
+                      <Wand2 className="h-4 w-4 text-violet-600" />
+                      Constancia de Situación Fiscal (autocompletar)
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Sube tu CSF en PDF y completaremos automáticamente RFC, razón social, régimen, domicilio fiscal y más.
+                    </p>
+                    {data.request.csf_parseado && (
+                      <p className="text-[11px] mt-1 text-emerald-700 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        CSF ya procesada · RFC {data.request.csf_rfc}
+                      </p>
+                    )}
+                  </div>
+                  <label className="cursor-pointer inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border bg-violet-600 text-white hover:bg-violet-700">
+                    {parsingCsf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                    Subir CSF
+                    <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={parsingCsf}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) parseCsf(f); e.currentTarget.value = ""; }} />
+                  </label>
+                </div>
+              </div>
               {(data.docTypes as any[]).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No hay documentos solicitados.</p>
               ) : (
