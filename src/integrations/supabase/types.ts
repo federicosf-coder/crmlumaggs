@@ -4469,6 +4469,16 @@ export type Database = {
         }[]
       }
       recalc_deal_units: { Args: { p_deal_id: string }; Returns: undefined }
+      recalc_estatus_factura_batch: { Args: never; Returns: number }
+      recalc_estatus_factura_value: {
+        Args: {
+          p_estatus_actual: string
+          p_fecha_vencimiento: string
+          p_saldo: number
+          p_total: number
+        }
+        Returns: string
+      }
       recalc_recompra_deals_for_doc: {
         Args: {
           p_empresa_id: string
