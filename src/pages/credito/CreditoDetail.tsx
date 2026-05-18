@@ -845,22 +845,32 @@ export default function CreditoDetail() {
                   return true;
                 });
                 const hasDocs = (dt: any) => (docs as any[]).some((d) => d.doc_type_id === dt.id);
-                const groupFor = (dt: any): { key: string; label: string; color: string } => {
+                const GROUP_COLOR: Record<string, string> = {
+                  fiscal: "text-blue-700",
+                  identidad: "text-violet-700",
+                  domicilio: "text-amber-700",
+                  legal: "text-indigo-700",
+                  negocio: "text-cyan-700",
+                  bancario: "text-orange-700",
+                  aval: "text-rose-700",
+                  otros: "text-slate-700",
+                };
+                const groupFor = (dt: any): { key: string; label: string } => {
                   const n = (dt.nombre || "").toLowerCase();
-                  if (dt.aplica_si_aval_distinto || n.includes("aval")) return { key: "aval", label: "Aval / Obligado solidario", color: "rose" };
-                  if (n.includes("csf") || n.includes("situación fiscal") || n.includes("opinión") || n.includes("32-d")) return { key: "fiscal", label: "Documentos fiscales", color: "blue" };
-                  if (n.includes("identificación") || n.includes("pasaporte") || n.includes("ine")) return { key: "identidad", label: "Identidad del representante", color: "violet" };
-                  if (n.includes("comprobante de domicilio")) return { key: "domicilio", label: "Domicilio", color: "amber" };
-                  if (n.includes("acta") || n.includes("poder") || n.includes("registro público")) return { key: "legal", label: "Sociedad y legal", color: "indigo" };
-                  if (n.includes("foto") || n.includes("croquis") || n.includes("maps")) return { key: "negocio", label: "Negocio", color: "cyan" };
-                  if (n.includes("bancario") || n.includes("cuenta")) return { key: "bancario", label: "Bancarios", color: "orange" };
-                  return { key: "otros", label: "Otros", color: "slate" };
+                  if (dt.aplica_si_aval_distinto || n.includes("aval")) return { key: "aval", label: "Aval / Obligado solidario" };
+                  if (n.includes("csf") || n.includes("situación fiscal") || n.includes("opinión") || n.includes("32-d")) return { key: "fiscal", label: "Documentos fiscales" };
+                  if (n.includes("identificación") || n.includes("pasaporte") || n.includes("ine")) return { key: "identidad", label: "Identidad del representante" };
+                  if (n.includes("comprobante de domicilio")) return { key: "domicilio", label: "Domicilio" };
+                  if (n.includes("acta") || n.includes("poder") || n.includes("registro público")) return { key: "legal", label: "Sociedad y legal" };
+                  if (n.includes("foto") || n.includes("croquis") || n.includes("maps")) return { key: "negocio", label: "Negocio" };
+                  if (n.includes("bancario") || n.includes("cuenta")) return { key: "bancario", label: "Bancarios" };
+                  return { key: "otros", label: "Otros" };
                 };
                 const order = ["fiscal", "identidad", "domicilio", "legal", "negocio", "bancario", "aval", "otros"];
-                const groups: Record<string, { label: string; color: string; items: any[] }> = {};
+                const groups: Record<string, { label: string; items: any[] }> = {};
                 for (const dt of visible) {
                   const g = groupFor(dt);
-                  if (!groups[g.key]) groups[g.key] = { label: g.label, color: g.color, items: [] };
+                  if (!groups[g.key]) groups[g.key] = { label: g.label, items: [] };
                   groups[g.key].items.push(dt);
                 }
                 const totalReq = visible.filter((d) => d.requerido).length;
@@ -884,7 +894,7 @@ export default function CreditoDetail() {
                       return (
                         <div key={k} className="space-y-2">
                           <div className="flex items-center justify-between gap-2 border-b pb-1.5">
-                            <h3 className={`text-sm font-semibold uppercase tracking-wide text-${g.color}-700`}>{g.label}</h3>
+                            <h3 className={`text-sm font-semibold uppercase tracking-wide ${GROUP_COLOR[k] || "text-slate-700"}`}>{g.label}</h3>
                             {reqCount > 0 && (
                               <span className={`text-[11px] px-2 py-0.5 rounded-full border ${allDone ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
                                 {reqDone}/{reqCount} requeridos
