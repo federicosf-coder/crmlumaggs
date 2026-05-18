@@ -616,10 +616,10 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                         {isColVisible("cliente") && <TableCell>{(doc.companies as any)?.name || "-"}</TableCell>}
                         {isColVisible("ejecutivo") && <TableCell className="hidden sm:table-cell">{getEjecutivoName(doc.ejecutivo_venta_id)}</TableCell>}
                         {isColVisible("plaza") && <TableCell className="hidden md:table-cell">{(doc.plazas as any)?.nombre || "-"}</TableCell>}
-                        {isColVisible("fecha") && <TableCell className="whitespace-nowrap">{format(new Date(doc.fecha_documento), "dd/MM/yyyy")}</TableCell>}
+                        {isColVisible("fecha") && <TableCell className="whitespace-nowrap">{format(new Date(doc.fecha_documento + "T12:00:00"), "dd/MM/yyyy")}</TableCell>}
                         {isColVisible("fecha_vencimiento") && (
                           <TableCell className="whitespace-nowrap">
-                            {fv ? format(new Date(fv), "dd/MM/yyyy") : "-"}
+                            {fv ? format(new Date(fv + "T12:00:00"), "dd/MM/yyyy") : "-"}
                           </TableCell>
                         )}
                         {isColVisible("tipo_pago") && (() => {
@@ -826,8 +826,8 @@ function GroupedByClient({
                       return (
                         <TableRow key={doc.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onRowClick(doc.id)}>
                           <TableCell className="font-medium whitespace-nowrap">{doc.numero_factura || "-"}</TableCell>
-                          <TableCell className="whitespace-nowrap">{format(new Date(doc.fecha_documento), "dd/MM/yyyy")}</TableCell>
-                          <TableCell className="whitespace-nowrap">{fv ? format(new Date(fv), "dd/MM/yyyy") : "-"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{format(new Date(doc.fecha_documento + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="whitespace-nowrap">{fv ? format(new Date(fv + "T12:00:00"), "dd/MM/yyyy") : "-"}</TableCell>
                           <TableCell>
                             {tp.cls ? (
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${tp.cls}`}>{tp.label}</span>
