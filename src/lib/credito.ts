@@ -47,9 +47,19 @@ export const CREDITO_ESTADO_COLOR: Record<string, string> = {
 };
 
 export const CREDITO_FIRMAS = [
-  { key: "solicitud",        label: "Solicitud de crédito",  fechaCol: "firma_solicitud_fecha",        nombreCol: "firma_solicitud_nombre" },
-  { key: "buro",             label: "Autorización Buró",     fechaCol: "firma_buro_fecha",             nombreCol: "firma_buro_nombre" },
-  { key: "confidencialidad", label: "Confidencialidad",      fechaCol: "firma_confidencialidad_fecha", nombreCol: "firma_confidencialidad_nombre" },
-  { key: "subsistencia",     label: "Subsistencia",          fechaCol: "firma_subsistencia_fecha",     nombreCol: "firma_subsistencia_nombre" },
-  { key: "lfpiorpi",         label: "LFPIORPI",              fechaCol: "firma_lfpiorpi_fecha",         nombreCol: "firma_lfpiorpi_nombre" },
+  { key: "solicitud",        label: "Solicitud de crédito",  fechaCol: "firma_solicitud_fecha",        nombreCol: "firma_solicitud_nombre",        personaMoralOnly: false },
+  { key: "buro",             label: "Autorización Buró",     fechaCol: "firma_buro_fecha",             nombreCol: "firma_buro_nombre",             personaMoralOnly: false },
+  { key: "confidencialidad", label: "Confidencialidad",      fechaCol: "firma_confidencialidad_fecha", nombreCol: "firma_confidencialidad_nombre", personaMoralOnly: false },
+  { key: "subsistencia",     label: "Subsistencia de poderes", fechaCol: "firma_subsistencia_fecha",   nombreCol: "firma_subsistencia_nombre",     personaMoralOnly: true },
+  { key: "lfpiorpi",         label: "LFPIORPI",              fechaCol: "firma_lfpiorpi_fecha",         nombreCol: "firma_lfpiorpi_nombre",         personaMoralOnly: false },
 ] as const;
+
+export const CREDITO_TIPO_PERSONA_OPTIONS = [
+  { value: "moral",  label: "Persona Moral" },
+  { value: "fisica", label: "Persona Física" },
+];
+
+export const CREDITO_TIPO_PERSONA_LABEL: Record<string, string> = {
+  moral: "Persona Moral",
+  fisica: "Persona Física",
+};
