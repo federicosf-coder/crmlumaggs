@@ -517,6 +517,9 @@ export default function CreditoDetail() {
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-blue-700" />
                     <p className="text-xs font-medium">Constancia de Situación Fiscal</p>
+                    {docsForKind("csf").length > 0 && (
+                      <span className="ml-auto inline-flex items-center gap-0.5 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded"><Check className="h-2.5 w-2.5" />Subido</span>
+                    )}
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-snug">RFC, razón social, domicilio fiscal, régimen, código postal.</p>
                   <label className="cursor-pointer block">
@@ -525,9 +528,14 @@ export default function CreditoDetail() {
                       onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "csf", "CSF"); e.currentTarget.value = ""; }} />
                     <span className="inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">
                       {autofilling === "csf" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
-                      Subir CSF
+                      {docsForKind("csf").length > 0 ? "Reemplazar CSF" : "Subir CSF"}
                     </span>
                   </label>
+                  {docsForKind("csf").map((it) => (
+                    <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-blue-700 hover:underline truncate w-full">
+                      <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                    </button>
+                  ))}
                 </div>
 
                 {/* INE / Pasaporte */}
@@ -535,6 +543,9 @@ export default function CreditoDetail() {
                   <div className="flex items-center gap-2">
                     <IdCard className="h-4 w-4 text-violet-700" />
                     <p className="text-xs font-medium">INE / Pasaporte del Representante</p>
+                    {docsForKind("ine_front").length > 0 && (
+                      <span className="ml-auto inline-flex items-center gap-0.5 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded"><Check className="h-2.5 w-2.5" />Subido</span>
+                    )}
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-snug">Nombre, CURP, número, fecha de nacimiento y vencimiento.</p>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -575,6 +586,11 @@ export default function CreditoDetail() {
                       </span>
                     </label>
                   </div>
+                  {docsForKind("ine_front").map((it) => (
+                    <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate w-full">
+                      <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                    </button>
+                  ))}
                 </div>
 
                 {/* Comprobante */}
@@ -582,6 +598,9 @@ export default function CreditoDetail() {
                   <div className="flex items-center gap-2">
                     <Home className="h-4 w-4 text-amber-700" />
                     <p className="text-xs font-medium">Comprobante de domicilio</p>
+                    {docsForKind("comprobante_domicilio").length > 0 && (
+                      <span className="ml-auto inline-flex items-center gap-0.5 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded"><Check className="h-2.5 w-2.5" />Subido</span>
+                    )}
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-snug">Domicilio comercial, ciudad y código postal.</p>
                   <label className="cursor-pointer block">
@@ -590,9 +609,14 @@ export default function CreditoDetail() {
                       onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "comprobante_domicilio", "Comprobante"); e.currentTarget.value = ""; }} />
                     <span className="inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700">
                       {autofilling === "comprobante_domicilio" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
-                      Subir comprobante
+                      {docsForKind("comprobante_domicilio").length > 0 ? "Reemplazar comprobante" : "Subir comprobante"}
                     </span>
                   </label>
+                  {docsForKind("comprobante_domicilio").map((it) => (
+                    <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate w-full">
+                      <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                    </button>
+                  ))}
                 </div>
 
                 {/* Acta Constitutiva */}
@@ -600,6 +624,9 @@ export default function CreditoDetail() {
                   <div className="flex items-center gap-2">
                     <ScrollText className="h-4 w-4 text-indigo-700" />
                     <p className="text-xs font-medium">Acta Constitutiva</p>
+                    {docsForKind("acta_constitutiva").length > 0 && (
+                      <span className="ml-auto inline-flex items-center gap-0.5 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded"><Check className="h-2.5 w-2.5" />Subido</span>
+                    )}
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-snug">Escritura, datos de registro, última asamblea y administrador.</p>
                   <label className="cursor-pointer block">
@@ -608,9 +635,14 @@ export default function CreditoDetail() {
                       onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "acta_constitutiva", "Acta Constitutiva"); e.currentTarget.value = ""; }} />
                     <span className="inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-700">
                       {autofilling === "acta_constitutiva" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
-                      Subir acta
+                      {docsForKind("acta_constitutiva").length > 0 ? "Reemplazar acta" : "Subir acta"}
                     </span>
                   </label>
+                  {docsForKind("acta_constitutiva").map((it) => (
+                    <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-indigo-700 hover:underline truncate w-full">
+                      <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
               <p className="text-[10px] text-muted-foreground pt-1">
