@@ -378,6 +378,116 @@ export default function CreditoDetail() {
 
         {/* ============ FORMULARIO ============ */}
         <TabsContent value="datos" className="space-y-6 mt-4">
+          {/* Autocompletar con documentos (opcional) */}
+          <Card className="border-violet-200 bg-gradient-to-br from-violet-50 via-white to-blue-50">
+            <CardContent className="pt-5 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="h-9 w-9 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                  <Wand2 className="h-5 w-5 text-violet-700" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold flex items-center gap-1.5">
+                    Autocompletar con documentos
+                    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded">
+                      <Sparkles className="h-3 w-3" /> Opcional
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Sube los documentos del solicitante y se autocompletarán los datos posibles del formulario. Es opcional pero ahorra mucha captura.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-3 pt-1">
+                {/* CSF */}
+                <div className="rounded-lg border border-blue-200 bg-white p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-700" />
+                    <p className="text-xs font-medium">Constancia de Situación Fiscal</p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-snug">RFC, razón social, domicilio fiscal, régimen, código postal.</p>
+                  <label className="cursor-pointer block">
+                    <input type="file" accept="application/pdf,image/*" className="hidden"
+                      disabled={autofilling !== null}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "csf", "CSF"); e.currentTarget.value = ""; }} />
+                    <span className="inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                      {autofilling === "csf" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                      Subir CSF
+                    </span>
+                  </label>
+                </div>
+
+                {/* INE / Pasaporte */}
+                <div className="rounded-lg border border-violet-200 bg-white p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <IdCard className="h-4 w-4 text-violet-700" />
+                    <p className="text-xs font-medium">INE / Pasaporte del Representante</p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Nombre, CURP, número, fecha de nacimiento y vencimiento.</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <label className="cursor-pointer">
+                      <input type="file" accept="image/*,application/pdf" className="hidden"
+                        disabled={autofilling !== null}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "ine_front", "INE frente"); e.currentTarget.value = ""; }} />
+                      <span className="inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border border-violet-300 text-violet-700 hover:bg-violet-50">
+                        {autofilling === "ine_front" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+                        Frente
+                      </span>
+                    </label>
+                    <label className="cursor-pointer">
+                      <input type="file" accept="image/*,application/pdf" className="hidden"
+                        disabled={autofilling !== null}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "ine_back", "INE reverso"); e.currentTarget.value = ""; }} />
+                      <span className="inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border border-violet-300 text-violet-700 hover:bg-violet-50">
+                        {autofilling === "ine_back" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+                        Reverso
+                      </span>
+                    </label>
+                    <label className="cursor-pointer">
+                      <input type="file" accept="application/pdf,image/*" className="hidden"
+                        disabled={autofilling !== null}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "ine_full", "INE completa"); e.currentTarget.value = ""; }} />
+                      <span className="inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border border-violet-300 text-violet-700 hover:bg-violet-50">
+                        {autofilling === "ine_full" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}
+                        PDF INE
+                      </span>
+                    </label>
+                    <label className="cursor-pointer">
+                      <input type="file" accept="image/*,application/pdf" className="hidden"
+                        disabled={autofilling !== null}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "passport", "Pasaporte"); e.currentTarget.value = ""; }} />
+                      <span className="inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border border-violet-300 text-violet-700 hover:bg-violet-50">
+                        {autofilling === "passport" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}
+                        Pasaporte
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Comprobante */}
+                <div className="rounded-lg border border-amber-200 bg-white p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Home className="h-4 w-4 text-amber-700" />
+                    <p className="text-xs font-medium">Comprobante de domicilio</p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Domicilio comercial, ciudad y código postal.</p>
+                  <label className="cursor-pointer block">
+                    <input type="file" accept="application/pdf,image/*" className="hidden"
+                      disabled={autofilling !== null}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "comprobante_domicilio", "Comprobante"); e.currentTarget.value = ""; }} />
+                    <span className="inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700">
+                      {autofilling === "comprobante_domicilio" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                      Subir comprobante
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground pt-1">
+                Solo se llenarán los campos que estén vacíos; los datos ya capturados no se sobrescriben.
+              </p>
+            </CardContent>
+          </Card>
+
           <Card><CardContent className="pt-6 space-y-6">
             <Section title="Datos generales">
               <Field label="Razón social"><Input value={form.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} /></Field>
@@ -507,6 +617,7 @@ export default function CreditoDetail() {
               <Field label="RFC"><Input value={form.rep_legal_rfc || ""} onChange={(e) => set("rep_legal_rfc", e.target.value.toUpperCase())} /></Field>
               <Field label="Tipo ID"><Input value={form.rep_legal_tipo_id || ""} onChange={(e) => set("rep_legal_tipo_id", e.target.value)} /></Field>
               <Field label="Núm. ID"><Input value={form.rep_legal_num_id || ""} onChange={(e) => set("rep_legal_num_id", e.target.value)} /></Field>
+              <Field label="Vencimiento ID"><Input type="date" value={form.rep_legal_vencimiento_id || ""} onChange={(e) => set("rep_legal_vencimiento_id", e.target.value || null)} /></Field>
               <Field label="Fecha nacimiento"><Input type="date" value={form.rep_legal_fecha_nacimiento || ""} onChange={(e) => set("rep_legal_fecha_nacimiento", e.target.value || null)} /></Field>
               <Field label="País nacimiento"><Input value={form.rep_legal_pais_nacimiento || ""} onChange={(e) => set("rep_legal_pais_nacimiento", e.target.value)} /></Field>
             </Section>
