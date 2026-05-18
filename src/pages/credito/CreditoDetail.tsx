@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil } from "lucide-react";
+import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS } from "@/lib/credito";
@@ -54,6 +54,10 @@ export default function CreditoDetail() {
   const [shareOpen, setShareOpen] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
   const [newCommentVis, setNewCommentVis] = useState<"interna" | "publica">("interna");
+  const [uploadCtx, setUploadCtx] = useState<{ docTypeId: string | null; docTypeName: string } | null>(null);
+  const [uploadName, setUploadName] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   const { data: req, isLoading } = useQuery({
     queryKey: ["credit_request", id],
@@ -150,17 +154,36 @@ export default function CreditoDetail() {
     qc.invalidateQueries({ queryKey: ["credit_request_history", id] });
   };
 
-  const uploadDoc = async (file: File, docTypeId: string | null) => {
+  const uploadDoc = async (file: File, docTypeId: string | null, displayName?: string) => {
     const path = `${id}/${crypto.randomUUID()}_${file.name.replace(/[^\w.\-]+/g, "_")}`;
     const { error: upErr } = await supabase.storage.from("credit-docs").upload(path, file, { contentType: file.type, upsert: false });
     if (upErr) { toast.error("Upload: " + upErr.message); return; }
+    const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+    const finalName = (displayName?.trim() ? (displayName.trim().toLowerCase().endsWith(ext.toLowerCase()) ? displayName.trim() : displayName.trim() + ext) : file.name);
     const { error: insErr } = await supabase.from("credit_request_docs").insert({
-      credit_request_id: id!, doc_type_id: docTypeId, url_archivo: path, nombre_archivo: file.name,
+      credit_request_id: id!, doc_type_id: docTypeId, url_archivo: path, nombre_archivo: finalName,
       tipo_archivo: file.type, estado: "recibido", visibilidad: "publica", subido_por: user?.id,
     });
     if (insErr) { toast.error(insErr.message); return; }
     toast.success("Documento subido");
     refetchDocs();
+  };
+
+  const openUploadDialog = (docTypeId: string | null, docTypeName: string) => {
+    setUploadCtx({ docTypeId, docTypeName });
+    setUploadName(docTypeName === "Otro" ? "" : docTypeName);
+    setUploadFile(null);
+  };
+
+  const confirmUpload = async () => {
+    if (!uploadFile) { toast.error("Selecciona un archivo"); return; }
+    if (!uploadName.trim()) { toast.error("Escribe un nombre para el documento"); return; }
+    setUploadingDoc(true);
+    await uploadDoc(uploadFile, uploadCtx?.docTypeId ?? null, uploadName);
+    setUploadingDoc(false);
+    setUploadCtx(null);
+    setUploadName("");
+    setUploadFile(null);
   };
 
   const openDoc = async (path: string) => {
