@@ -198,6 +198,8 @@ export function EnviarConfirmacionPagoDialog({
               documentos,
               comprobantes,
               registradoPor,
+              destinatarios: [toAddr, ...ccAddrs],
+              respuestaA: replyTo || undefined,
               ...(extraTemplateData || {}),
             },
           },
