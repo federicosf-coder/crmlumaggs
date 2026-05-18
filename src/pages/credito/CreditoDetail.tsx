@@ -445,11 +445,26 @@ export default function CreditoDetail() {
               ]}
             />
             <Section title="Aval / Obligado solidario">
-              <Field label="Nombre"><Input value={form.aval_nombre || ""} onChange={(e) => set("aval_nombre", e.target.value)} /></Field>
-              <Field label="Relación"><Input value={form.aval_relacion || ""} onChange={(e) => set("aval_relacion", e.target.value)} /></Field>
-              <Field label="Dirección"><Input value={form.aval_direccion || ""} onChange={(e) => set("aval_direccion", e.target.value)} /></Field>
-              <Field label="Ciudad"><Input value={form.aval_ciudad || ""} onChange={(e) => set("aval_ciudad", e.target.value)} /></Field>
-              <Field label="Régimen conyugal"><Input value={form.aval_regimen_conyugal || ""} onChange={(e) => set("aval_regimen_conyugal", e.target.value)} /></Field>
+              <div className="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900 leading-snug">
+                <span className="font-medium">Regla:</span> En <span className="font-medium">crédito directo</span> con <span className="font-medium">Persona Física</span>, el aval debe ser una persona <span className="font-medium">distinta</span> al solicitante. Para <span className="font-medium">Persona Moral</span>, el propio representante legal puede fungir como aval. Si el aval es otra persona, se requiere también su identificación oficial y comprobante de domicilio.
+              </div>
+              <div className="sm:col-span-2">
+                <Field label="¿El aval es una persona distinta?">
+                  <div className="flex items-center gap-2 h-9">
+                    <Switch checked={!!form.aval_es_distinto} onCheckedChange={(v) => set("aval_es_distinto", v)} />
+                    <span className="text-sm">{form.aval_es_distinto ? "Sí, es otra persona" : "No, es el mismo representante legal / solicitante"}</span>
+                  </div>
+                </Field>
+              </div>
+              {form.aval_es_distinto && (
+                <>
+                  <Field label="Nombre"><Input value={form.aval_nombre || ""} onChange={(e) => set("aval_nombre", e.target.value)} /></Field>
+                  <Field label="Relación"><Input value={form.aval_relacion || ""} onChange={(e) => set("aval_relacion", e.target.value)} /></Field>
+                  <Field label="Dirección"><Input value={form.aval_direccion || ""} onChange={(e) => set("aval_direccion", e.target.value)} /></Field>
+                  <Field label="Ciudad"><Input value={form.aval_ciudad || ""} onChange={(e) => set("aval_ciudad", e.target.value)} /></Field>
+                  <Field label="Régimen conyugal"><Input value={form.aval_regimen_conyugal || ""} onChange={(e) => set("aval_regimen_conyugal", e.target.value)} /></Field>
+                </>
+              )}
             </Section>
             <Section title="Representante legal">
               <Field label="Nombre"><Input value={form.rep_legal_nombre || ""} onChange={(e) => set("rep_legal_nombre", e.target.value)} /></Field>
@@ -490,6 +505,7 @@ export default function CreditoDetail() {
                   .filter((dt) => {
                     if (form.tipo === "cescemex" && !dt.aplica_cescemex) return false;
                     if (form.tipo === "directo" && !dt.aplica_directo) return false;
+                    if (dt.aplica_si_aval_distinto && !form.aval_es_distinto) return false;
                     return true;
                   })
                   .map((dt) => {
