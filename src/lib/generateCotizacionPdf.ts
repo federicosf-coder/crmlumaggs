@@ -25,8 +25,8 @@ export async function downloadCotizacionPdf(documentoId: string, onStatusChange?
 
     // Fetch metadata for filename
     const { data: doc } = await supabase
-      .from("documents")
-      .select("folio, fecha_documento, created_at, companies(name, razon_social)")
+      .from("documentos")
+      .select("numero_cotizacion, fecha_documento, created_at, companies(name, razon_social)")
       .eq("id", documentoId)
       .maybeSingle();
 
@@ -40,10 +40,11 @@ export async function downloadCotizacionPdf(documentoId: string, onStatusChange?
     const blob = data instanceof Blob ? data : new Blob([data], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const clientRaw = (doc?.companies as any)?.name || (doc?.companies as any)?.razon_social || "Cliente";
+    const docAny = doc as any;
+    const clientRaw = docAny?.companies?.name || docAny?.companies?.razon_social || "Cliente";
     const cliente = sanitizeForFilename(clientRaw) || "Cliente";
-    const folio = (doc?.folio || documentoId.slice(0, 8)).toString().replace(/[^A-Za-z0-9-]+/g, "");
-    const fechaStr = doc?.fecha_documento || doc?.created_at;
+    const folio = (docAny?.numero_cotizacion || documentoId.slice(0, 8)).toString().replace(/[^A-Za-z0-9-]+/g, "");
+    const fechaStr = docAny?.fecha_documento || docAny?.created_at;
     const fecha = fechaStr ? shortDate(new Date(fechaStr)) : shortDate(new Date());
     a.href = url;
     a.download = `Cotizacion-${cliente}-${folio}-${fecha}.pdf`;
