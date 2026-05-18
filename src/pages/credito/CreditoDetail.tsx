@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS } from "@/lib/credito";
+import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS, CREDITO_TIPO_PERSONA_OPTIONS } from "@/lib/credito";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 
 type Req = any;
@@ -670,6 +670,21 @@ export default function CreditoDetail() {
 
               <TabsContent value="empresa" className="space-y-6 mt-5">
             <Section title="Datos generales">
+              <div className="sm:col-span-2">
+                <Field label="Tipo de persona">
+                  <Select
+                    value={form.tipo_persona ?? form.csf_tipo_persona ?? "moral"}
+                    onValueChange={(v) => set("tipo_persona", v)}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CREDITO_TIPO_PERSONA_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
               <Field label="Razón social"><Input value={form.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} /></Field>
               <Field label="Nombre comercial"><Input value={form.nombre_comercial || ""} onChange={(e) => set("nombre_comercial", e.target.value)} /></Field>
               <Field label="RFC"><Input value={form.rfc || ""} onChange={(e) => set("rfc", e.target.value.toUpperCase())} /></Field>
@@ -733,12 +748,14 @@ export default function CreditoDetail() {
               </div>
               <Field label="Ciudad"><Input value={form.ciudad_comercial || ""} onChange={(e) => set("ciudad_comercial", e.target.value)} /></Field>
             </Section>
-            <Section title="Persona moral">
-              <Field label="Escritura constitutiva"><Input value={form.escritura_constitutiva || ""} onChange={(e) => set("escritura_constitutiva", e.target.value)} /></Field>
-              <Field label="Datos de registro"><Input value={form.datos_registro || ""} onChange={(e) => set("datos_registro", e.target.value)} /></Field>
-              <Field label="Última asamblea"><Input value={form.ultima_asamblea || ""} onChange={(e) => set("ultima_asamblea", e.target.value)} /></Field>
-              <Field label="Administrador / Presidente"><Input value={form.administrador_presidente || ""} onChange={(e) => set("administrador_presidente", e.target.value)} /></Field>
-            </Section>
+            {(form.tipo_persona ?? form.csf_tipo_persona ?? "moral") === "moral" && (
+              <Section title="Persona moral">
+                <Field label="Escritura constitutiva"><Input value={form.escritura_constitutiva || ""} onChange={(e) => set("escritura_constitutiva", e.target.value)} /></Field>
+                <Field label="Datos de registro"><Input value={form.datos_registro || ""} onChange={(e) => set("datos_registro", e.target.value)} /></Field>
+                <Field label="Última asamblea"><Input value={form.ultima_asamblea || ""} onChange={(e) => set("ultima_asamblea", e.target.value)} /></Field>
+                <Field label="Administrador / Presidente"><Input value={form.administrador_presidente || ""} onChange={(e) => set("administrador_presidente", e.target.value)} /></Field>
+              </Section>
+            )}
               </TabsContent>
 
               <TabsContent value="representacion" className="space-y-6 mt-5">
@@ -842,6 +859,9 @@ export default function CreditoDetail() {
                   if (form.tipo === "cescemex" && !dt.aplica_cescemex) return false;
                   if (form.tipo === "directo" && !dt.aplica_directo) return false;
                   if (dt.aplica_si_aval_distinto && !form.aval_es_distinto) return false;
+                  const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
+                  if (tp === "moral" && dt.aplica_moral === false) return false;
+                  if (tp === "fisica" && dt.aplica_fisica === false) return false;
                   return true;
                 });
                 const hasDocs = (dt: any) => (docs as any[]).some((d) => d.doc_type_id === dt.id);
@@ -1015,7 +1035,10 @@ export default function CreditoDetail() {
         {/* ============ FIRMAS ============ */}
         <TabsContent value="firmas" className="space-y-4 mt-4">
           <Card><CardContent className="pt-6 space-y-3">
-            {CREDITO_FIRMAS.map((f) => {
+            {CREDITO_FIRMAS.filter((f) => {
+              const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
+              return !(f.personaMoralOnly && tp !== "moral");
+            }).map((f) => {
               const fecha = (form as any)[f.fechaCol];
               const nombre = (form as any)[f.nombreCol];
               return (

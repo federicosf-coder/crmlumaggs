@@ -37,6 +37,7 @@ async function resolveToken(token: string): Promise<{ requestId: string; partyId
 }
 
 const FORM_FIELDS = [
+  'tipo_persona',
   'razon_social','nombre_comercial','rfc','telefono','correo_contacto',
   'domicilio_fiscal','ciudad_fiscal','estado_fiscal','antiguedad',
   'domicilio_comercial','ciudad_comercial','giro_comercial',
