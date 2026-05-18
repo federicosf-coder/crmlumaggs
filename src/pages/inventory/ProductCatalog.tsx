@@ -18,6 +18,11 @@ import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, 
 import { Filter } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
+import PreciosConfigTab, { MARGIN_LEVELS, computePricesFromCost } from "./PreciosConfigTab";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
 
@@ -417,11 +422,26 @@ function ProductosTab() {
     codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
     is_active: true,
     marca_id: "", aplicacion_id: "", uso_id: "", formula_id: "", viscosidad_id: "", categoria_id: "", linea_id: "",
+    precio_clasificacion_id: "",
     costo_actual: 0, precio_base_uf1: 0, precio_uf2: 0, precio_uf3: 0, precio_uf4: 0,
     precio_r1: 0, precio_r2: 0, precio_r3: 0, precio_r4: 0, precio_lista_galper: 0,
   };
   const [form, setForm] = useState(emptyProduct);
   const set = (k: string, v: any) => setForm(prev => ({ ...prev, [k]: v }));
+
+  const { data: clasificaciones = [] } = useQuery({
+    queryKey: ["precio_clasificaciones_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("precio_clasificaciones")
+        .select("*")
+        .eq("activo", true)
+        .order("nombre");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const [recalcOpen, setRecalcOpen] = useState(false);
 
   const openCreate = () => {
     setEditingId(null);
@@ -444,6 +464,7 @@ function ProductosTab() {
       viscosidad_id: p.viscosidad_id || "",
       categoria_id: p.categoria_id || "",
       linea_id: p.linea_id || "",
+      precio_clasificacion_id: p.precio_clasificacion_id || "",
       costo_actual: p.costo_actual ?? 0,
       precio_base_uf1: p.precio_base_uf1 ?? 0,
       precio_uf2: p.precio_uf2 ?? 0,
@@ -459,9 +480,9 @@ function ProductosTab() {
   };
 
   const save = useMutation({
-    mutationFn: async () => {
-      const payload: any = { ...form };
-      for (const k of ["presentacion_id", "marca_id", "aplicacion_id", "uso_id", "formula_id", "viscosidad_id", "categoria_id", "linea_id"]) {
+    mutationFn: async (overrides?: Record<string, number>) => {
+      const payload: any = { ...form, ...(overrides || {}) };
+      for (const k of ["presentacion_id", "marca_id", "aplicacion_id", "uso_id", "formula_id", "viscosidad_id", "categoria_id", "linea_id", "precio_clasificacion_id"]) {
         if (!payload[k]) payload[k] = null;
       }
       if (editingId) {
@@ -477,10 +498,39 @@ function ProductosTab() {
       setOpen(false);
       setForm(emptyProduct);
       setEditingId(null);
+      setRecalcOpen(false);
       toast.success(editingId ? "Producto actualizado" : "Producto creado");
     },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const handleSaveClick = () => {
+    if (Number(form.costo_actual ?? 0) > 0) setRecalcOpen(true);
+    else save.mutate(undefined);
+  };
+
+  const saveWithRecalc = async () => {
+    try {
+      const costo = Number(form.costo_actual ?? 0);
+      let margins: any = null;
+      if (form.precio_clasificacion_id) {
+        margins = clasificaciones.find((c: any) => c.id === form.precio_clasificacion_id) || null;
+      }
+      if (!margins) {
+        const { data, error } = await supabase
+          .from("precio_config_global").select("*").limit(1).maybeSingle();
+        if (error) throw error;
+        margins = data;
+      }
+      const marginRecord: Record<string, number> = {};
+      for (const lvl of MARGIN_LEVELS) marginRecord[lvl.key] = Number(margins?.[lvl.key] ?? 0);
+      const newPrices = computePricesFromCost(costo, marginRecord);
+      setForm(prev => ({ ...prev, ...newPrices } as any));
+      save.mutate(newPrices);
+    } catch (e: any) {
+      toast.error("Error al recalcular precios: " + e.message);
+    }
+  };
 
   const selectedPres = presentaciones.find(p => p.id === form.presentacion_id);
 
@@ -681,6 +731,22 @@ function ProductosTab() {
               </div>
             ))}
 
+            <div className="md:col-span-2">
+              <Label>Clasificación de Precio</Label>
+              <Select
+                value={form.precio_clasificacion_id || "__none__"}
+                onValueChange={v => set("precio_clasificacion_id", v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger><SelectValue placeholder="Sin clasificación (usa márgenes generales)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin clasificación (márgenes generales)</SelectItem>
+                  {clasificaciones.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="md:col-span-2 border-t pt-3 mt-2">
               <h4 className="font-semibold text-sm mb-3">Precios</h4>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -702,13 +768,35 @@ function ProductosTab() {
             </div>
 
             <div className="md:col-span-2">
-              <Button onClick={() => save.mutate()} disabled={!form.codigo || !form.nombre_producto || save.isPending} className="w-full">
+              <Button onClick={handleSaveClick} disabled={!form.codigo || !form.nombre_producto || save.isPending} className="w-full">
                 {save.isPending ? "Guardando..." : editingId ? "Actualizar Producto" : "Guardar Producto"}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={recalcOpen} onOpenChange={setRecalcOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Actualizar precios?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Deseas actualizar los 8 precios de este producto conforme al costo registrado
+              {form.precio_clasificacion_id
+                ? ` (usando la clasificación "${(clasificaciones.find((c: any) => c.id === form.precio_clasificacion_id) as any)?.nombre || "asignada"}")?`
+                : " (usando los márgenes generales)?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setRecalcOpen(false); save.mutate(undefined); }}>
+              No, guardar sin recalcular
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => { saveWithRecalc(); }}>
+              Sí, actualizar precios
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* View Product Dialog */}
       <Dialog open={!!viewProduct} onOpenChange={(v) => { if (!v) setViewProduct(null); }}>
@@ -778,6 +866,8 @@ function ProductosTab() {
 
 // ─── Main Page ───────────────────────────────────────────────
 export default function ProductCatalog() {
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
   return (
     <div className="space-y-6">
       <div>
@@ -789,10 +879,12 @@ export default function ProductCatalog() {
           <TabsTrigger value="productos">Productos</TabsTrigger>
           <TabsTrigger value="presentaciones">Presentaciones</TabsTrigger>
           <TabsTrigger value="opciones">Opciones</TabsTrigger>
+          {isAdmin && <TabsTrigger value="precios">Configuración de Precios</TabsTrigger>}
         </TabsList>
         <TabsContent value="productos" className="min-h-[580px] overflow-y-auto"><ProductosTab /></TabsContent>
         <TabsContent value="presentaciones" className="min-h-[580px] overflow-y-auto"><PresentacionesTab /></TabsContent>
         <TabsContent value="opciones" className="min-h-[580px] overflow-y-auto"><OptionsTab /></TabsContent>
+        {isAdmin && <TabsContent value="precios" className="min-h-[580px] overflow-y-auto"><PreciosConfigTab /></TabsContent>}
       </Tabs>
     </div>
   );
