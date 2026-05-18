@@ -461,7 +461,7 @@ export default function CreditoDetail() {
             {docTypes.length === 0 ? (
               <p className="text-muted-foreground text-sm">No hay tipos de documento configurados.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
                 {(docTypes as any[])
                   .filter((dt) => {
                     if (form.tipo === "cescemex" && !dt.aplica_cescemex) return false;
@@ -470,24 +470,36 @@ export default function CreditoDetail() {
                   })
                   .map((dt) => {
                     const items = (docs as any[]).filter((d) => d.doc_type_id === dt.id);
+                    const palette = DOC_PALETTE[dt.nombre] || DOC_PALETTE.__default;
+                    const Icon = palette.icon;
+                    const canAdd = dt.permite_multiples || items.length === 0;
                     return (
-                      <div key={dt.id} className="border rounded-md p-3">
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <div>
-                            <p className="font-medium text-sm">{dt.nombre} {dt.requerido && <span className="text-red-600">*</span>}</p>
-                            {dt.instrucciones_cliente && <p className="text-xs text-muted-foreground">{dt.instrucciones_cliente}</p>}
+                      <div key={dt.id} className={`rounded-lg border ${palette.border} ${palette.bg} p-3 flex flex-col gap-2`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palette.iconBg}`}>
+                              <Icon className={`h-4.5 w-4.5 ${palette.iconColor}`} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm leading-tight">
+                                {dt.nombre} {dt.requerido && <span className="text-red-600">*</span>}
+                                {dt.permite_multiples && (
+                                  <span className="ml-1 text-[10px] text-muted-foreground font-normal">(múltiples)</span>
+                                )}
+                              </p>
+                              {dt.instrucciones_cliente && <p className="text-[11px] text-muted-foreground mt-0.5">{dt.instrucciones_cliente}</p>}
+                            </div>
                           </div>
-                          <label className="cursor-pointer">
-                            <input type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDoc(f, dt.id); e.currentTarget.value = ""; }} />
-                            <span className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border bg-background hover:bg-accent">
-                              <FileUp className="h-3.5 w-3.5" />Subir
-                            </span>
-                          </label>
+                          {canAdd && (
+                            <Button size="sm" variant="outline" className={`h-7 px-2 text-xs ${palette.btn}`} onClick={() => openUploadDialog(dt.id, dt.nombre)}>
+                              <FileUp className="h-3.5 w-3.5 mr-1" />{items.length > 0 ? "Agregar" : "Subir"}
+                            </Button>
+                          )}
                         </div>
                         {items.length > 0 && (
-                          <div className="mt-2 space-y-1">
+                          <div className="space-y-1">
                             {items.map((it: any) => (
-                              <div key={it.id} className="flex items-center justify-between gap-2 text-xs bg-muted/40 rounded px-2 py-1.5">
+                              <div key={it.id} className="flex items-center justify-between gap-2 text-xs bg-white/70 rounded px-2 py-1.5 border border-white">
                                 <button onClick={() => openDoc(it.url_archivo)} className="truncate text-left hover:underline flex-1">{it.nombre_archivo}</button>
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] border ${
                                   it.estado === "recibido" ? "bg-blue-50 text-blue-700 border-blue-200" :
@@ -511,15 +523,21 @@ export default function CreditoDetail() {
             )}
 
             {/* Documentos adicionales (sin tipo) */}
-            <div className="border-t pt-3">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Otros documentos</p>
-              <label className="cursor-pointer inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border bg-background hover:bg-accent">
-                <Plus className="h-3.5 w-3.5" />Adjuntar archivo
-                <input type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDoc(f, null); e.currentTarget.value = ""; }} />
-              </label>
-              <div className="mt-2 space-y-1">
+            <div className="rounded-lg border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-pink-50 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-md bg-fuchsia-100 flex items-center justify-center">
+                    <Paperclip className="h-4 w-4 text-fuchsia-700" />
+                  </div>
+                  <p className="text-sm font-medium">Otros documentos</p>
+                </div>
+                <Button size="sm" variant="outline" className="h-7 px-2 text-xs border-fuchsia-300 text-fuchsia-700 hover:bg-fuchsia-100" onClick={() => openUploadDialog(null, "Otro")}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />Adjuntar archivo
+                </Button>
+              </div>
+              <div className="space-y-1">
                 {(docs as any[]).filter((d) => !d.doc_type_id).map((it: any) => (
-                  <div key={it.id} className="flex items-center justify-between gap-2 text-xs bg-muted/40 rounded px-2 py-1.5">
+                  <div key={it.id} className="flex items-center justify-between gap-2 text-xs bg-white/70 rounded px-2 py-1.5 border border-white">
                     <button onClick={() => openDoc(it.url_archivo)} className="truncate text-left hover:underline flex-1">{it.nombre_archivo}</button>
                     <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => deleteDoc(it.id, it.url_archivo)}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
