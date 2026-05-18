@@ -180,6 +180,41 @@ function getTipoPagoInfo(valor: any): { label: string; cls: string } {
   return { label: "-", cls: "" };
 }
 
+// Capsule styles for status keys used in dropdowns
+const STATUS_PILL_MAP: Record<string, string> = {
+  borrador: "bg-slate-100 text-slate-700 border-slate-300",
+  impresa: "bg-blue-50 text-blue-700 border-blue-200",
+  enviada: "bg-sky-50 text-sky-700 border-sky-200",
+  aceptada: "bg-green-50 text-green-700 border-green-200",
+  rechazada: "bg-red-50 text-red-700 border-red-200",
+  vencida: "bg-red-50 text-red-700 border-red-200",
+  confirmado_cliente: "bg-blue-50 text-blue-700 border-blue-200",
+  espera_autorizacion_precio: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  precio_autorizado: "bg-teal-50 text-teal-700 border-teal-200",
+  validado_contabilidad: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  programado_entrega: "bg-purple-50 text-purple-700 border-purple-200",
+  entregado: "bg-green-50 text-green-700 border-green-200",
+  cancelado: "bg-red-50 text-red-700 border-red-200",
+  pendiente: "bg-slate-100 text-slate-700 border-slate-300",
+  pagada: "bg-green-50 text-green-700 border-green-200",
+  parcial: "bg-amber-50 text-amber-700 border-amber-200",
+  vigente: "bg-blue-50 text-blue-700 border-blue-200",
+  cancelada: "bg-red-50 text-red-700 border-red-200",
+  solicitada: "bg-slate-100 text-slate-700 border-slate-300",
+  programada: "bg-amber-50 text-amber-700 border-amber-200",
+  entregada: "bg-green-50 text-green-700 border-green-200",
+  acuse_enviado: "bg-blue-50 text-blue-700 border-blue-200",
+};
+const NEUTRAL_PILL = "bg-slate-100 text-slate-700 border-slate-300";
+function Pill({ cls, children }: { cls: string; children: React.ReactNode }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${cls.split(" ").find(c => c.startsWith("text-"))?.replace("text-", "bg-") || "bg-slate-500"}`} />
+      {children}
+    </span>
+  );
+}
+
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -910,10 +945,10 @@ export default function DocumentsList() {
                         <Select value={tipoPagoFilter} onValueChange={setTipoPagoFilter}>
                           <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">Todos</SelectItem>
-                            <SelectItem value="contado">Contado</SelectItem>
-                            <SelectItem value="directo">Crédito Directo</SelectItem>
-                            <SelectItem value="cescemex">Crédito Cescemex</SelectItem>
+                            <SelectItem value="all"><Pill cls={NEUTRAL_PILL}>Todos</Pill></SelectItem>
+                            <SelectItem value="contado"><Pill cls="bg-blue-50 text-blue-700 border-blue-200">Contado</Pill></SelectItem>
+                            <SelectItem value="directo"><Pill cls="bg-purple-50 text-purple-700 border-purple-200">Crédito Directo</Pill></SelectItem>
+                            <SelectItem value="cescemex"><Pill cls="bg-amber-50 text-amber-700 border-amber-200">Crédito Cescemex</Pill></SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -931,9 +966,9 @@ export default function DocumentsList() {
                           <Select value={estatusCotFilter} onValueChange={setEstatusCotFilter}>
                             <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="all">Todos</SelectItem>
+                              <SelectItem value="all"><Pill cls={NEUTRAL_PILL}>Todos</Pill></SelectItem>
                               {Object.entries(ESTATUS_COT_LABELS).map(([v, l]) => (
-                                <SelectItem key={v} value={v}>{l}</SelectItem>
+                                <SelectItem key={v} value={v}><Pill cls={STATUS_PILL_MAP[v] || NEUTRAL_PILL}>{l}</Pill></SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -945,12 +980,12 @@ export default function DocumentsList() {
                           <Select value={estatusPedFilter} onValueChange={setEstatusPedFilter}>
                             <SelectTrigger className="h-8 w-48"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="all">Todos</SelectItem>
-                              <SelectItem value="confirmado_cliente">Confirmado cliente</SelectItem>
-                              <SelectItem value="validado_contabilidad">Validado contabilidad</SelectItem>
-                              <SelectItem value="programado_entrega">Programado entrega</SelectItem>
-                              <SelectItem value="entregado">Entregado</SelectItem>
-                              <SelectItem value="cancelado">Cancelado</SelectItem>
+                              <SelectItem value="all"><Pill cls={NEUTRAL_PILL}>Todos</Pill></SelectItem>
+                              <SelectItem value="confirmado_cliente"><Pill cls={STATUS_PILL_MAP.confirmado_cliente}>Confirmado cliente</Pill></SelectItem>
+                              <SelectItem value="validado_contabilidad"><Pill cls={STATUS_PILL_MAP.validado_contabilidad}>Validado contabilidad</Pill></SelectItem>
+                              <SelectItem value="programado_entrega"><Pill cls={STATUS_PILL_MAP.programado_entrega}>Programado entrega</Pill></SelectItem>
+                              <SelectItem value="entregado"><Pill cls={STATUS_PILL_MAP.entregado}>Entregado</Pill></SelectItem>
+                              <SelectItem value="cancelado"><Pill cls={STATUS_PILL_MAP.cancelado}>Cancelado</Pill></SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -962,12 +997,12 @@ export default function DocumentsList() {
                             <Select value={estatusFacFilter} onValueChange={setEstatusFacFilter}>
                               <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="all">Todos</SelectItem>
-                                <SelectItem value="vigente">Vigente</SelectItem>
-                                <SelectItem value="parcial">Parcial</SelectItem>
-                                <SelectItem value="pagada">Pagada</SelectItem>
-                                <SelectItem value="vencida">Vencida</SelectItem>
-                                <SelectItem value="cancelada">Cancelada</SelectItem>
+                                <SelectItem value="all"><Pill cls={NEUTRAL_PILL}>Todos</Pill></SelectItem>
+                                <SelectItem value="vigente"><Pill cls={STATUS_PILL_MAP.vigente}>Vigente</Pill></SelectItem>
+                                <SelectItem value="parcial"><Pill cls={STATUS_PILL_MAP.parcial}>Parcial</Pill></SelectItem>
+                                <SelectItem value="pagada"><Pill cls={STATUS_PILL_MAP.pagada}>Pagada</Pill></SelectItem>
+                                <SelectItem value="vencida"><Pill cls={STATUS_PILL_MAP.vencida}>Vencida</Pill></SelectItem>
+                                <SelectItem value="cancelada"><Pill cls={STATUS_PILL_MAP.cancelada}>Cancelada</Pill></SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -976,12 +1011,12 @@ export default function DocumentsList() {
                             <Select value={estatusCobFilter} onValueChange={setEstatusCobFilter}>
                               <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="all">Todos</SelectItem>
-                                <SelectItem value="pendiente">Pendiente</SelectItem>
-                                <SelectItem value="parcial">Parcial</SelectItem>
-                                <SelectItem value="pagada">Pagada</SelectItem>
-                                <SelectItem value="vencida">Vencida</SelectItem>
-                                <SelectItem value="cancelada">Cancelada</SelectItem>
+                                <SelectItem value="all"><Pill cls={NEUTRAL_PILL}>Todos</Pill></SelectItem>
+                                <SelectItem value="pendiente"><Pill cls={STATUS_PILL_MAP.pendiente}>Pendiente</Pill></SelectItem>
+                                <SelectItem value="parcial"><Pill cls={STATUS_PILL_MAP.parcial}>Parcial</Pill></SelectItem>
+                                <SelectItem value="pagada"><Pill cls={STATUS_PILL_MAP.pagada}>Pagada</Pill></SelectItem>
+                                <SelectItem value="vencida"><Pill cls={STATUS_PILL_MAP.vencida}>Vencida</Pill></SelectItem>
+                                <SelectItem value="cancelada"><Pill cls={STATUS_PILL_MAP.cancelada}>Cancelada</Pill></SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
