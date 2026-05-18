@@ -316,6 +316,22 @@ export default function CreditoDetail() {
     setEditFechaValue(doc.fecha_emision || "");
   };
 
+  // Resolve docType id given an autofill "kind"
+  const docTypeIdForKind = (kind: string): string | null => {
+    const find = (pred: (n: string) => boolean) =>
+      (docTypes as any[]).find((t) => pred((t.nombre || "").toLowerCase()))?.id ?? null;
+    if (kind === "csf") return find((n) => n.includes("csf") || n.includes("situación fiscal"));
+    if (kind === "comprobante_domicilio") return find((n) => n.includes("comprobante de domicilio") && !n.includes("aval"));
+    if (kind.startsWith("ine") || kind === "passport") return find((n) => n.startsWith("identificación oficial") && !n.includes("aval"));
+    if (kind === "acta_constitutiva") return find((n) => n.includes("acta constitutiva"));
+    return null;
+  };
+  const docsForKind = (kind: string): any[] => {
+    const tid = docTypeIdForKind(kind);
+    if (!tid) return [];
+    return (docs as any[]).filter((d) => d.doc_type_id === tid);
+  };
+
   const saveEditFecha = async () => {
     if (!editFechaDoc) return;
     const dt = (docTypes as any[]).find((t) => t.id === editFechaDoc.doc_type_id);
