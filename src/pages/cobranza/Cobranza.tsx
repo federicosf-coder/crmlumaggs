@@ -912,7 +912,7 @@ export default function Cobranza() {
               icon={AlertTriangle}
               variant="destructive"
               valueBlack
-              onClick={() => { setFacturasPrefilter("credito_directo"); setActiveTab("facturas"); }}
+              onClick={() => setBucketSel({ label: "Vencidas", scope: "credito" })}
             />
             <DetailedKpiCard
               title="Vencido Crédito Cescemex"
@@ -921,7 +921,7 @@ export default function Cobranza() {
               icon={AlertTriangle}
               variant="destructive"
               valueBlack
-              onClick={() => { setFacturasPrefilter("credito_cescemex"); setActiveTab("facturas"); }}
+              onClick={() => setBucketSel({ label: "Vencidas", scope: "credito_cescemex" })}
             />
           </div>
 
