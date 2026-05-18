@@ -41,7 +41,7 @@ serve(async (req) => {
     // Fetch document
     const { data: doc, error: docErr } = await sb
       .from("documentos")
-      .select("*, companies(name, razon_social, address, city, state, zip_code, phone, email), contacts(first_name, last_name, email, phone)")
+      .select("*, companies(name, razon_social, address, city, state, zip_code, phone, email), contacts(first_name, last_name, email, phone, whatsapp_phone)")
       .eq("id", documento_id)
       .single();
     if (docErr || !doc) throw new Error("Documento no encontrado");
@@ -219,7 +219,7 @@ serve(async (req) => {
     // ===== DIRIGIDO A =====
     const company = doc.companies as any;
     const contact = doc.contacts as any;
-    const clientPhone = contact?.phone || company?.phone || "";
+    const clientWhatsapp = contact?.whatsapp_phone || "";
 
     drawText("Dirigido a:", margin, y);
     y -= 14;
@@ -232,8 +232,8 @@ serve(async (req) => {
       drawText(contactName, margin, y);
       y -= 14;
     }
-    if (clientPhone) {
-      drawText(`Tel: ${clientPhone}`, margin, y);
+    if (clientWhatsapp) {
+      drawText(`WhatsApp: ${clientWhatsapp}`, margin, y);
       y -= 14;
     }
     y -= 21; // extra space before table
