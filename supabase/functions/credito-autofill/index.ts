@@ -218,6 +218,9 @@ Deno.serve(async (req) => {
       fillIfEmpty('domicilio_fiscal', parsed.domicilio)
       fillIfEmpty('ciudad_fiscal', parsed.municipio || parsed.ciudad)
       fillIfEmpty('estado_fiscal', parsed.estado)
+      // El domicilio comercial se toma de la CSF; el comprobante sólo lo verifica
+      fillIfEmpty('domicilio_comercial', parsed.domicilio)
+      fillIfEmpty('ciudad_comercial', parsed.municipio || parsed.ciudad)
       fillIfEmpty('csf_rfc', parsed.rfc)
       fillIfEmpty('csf_razon_social', parsed.razon_social || parsed.nombre_completo)
       fillIfEmpty('csf_regimen_fiscal', parsed.regimen_fiscal)
@@ -228,8 +231,8 @@ Deno.serve(async (req) => {
       fillIfEmpty('csf_tipo_persona', parsed.tipo_persona)
       updates.csf_parseado = true
     } else if (kind === 'comprobante_domicilio') {
-      fillIfEmpty('domicilio_comercial', parsed.domicilio)
-      fillIfEmpty('ciudad_comercial', parsed.municipio || parsed.ciudad)
+      // NO autollenar domicilio_comercial: ese viene de la CSF.
+      // Se devuelve el domicilio extraído para que la UI lo compare con el de la CSF.
     } else if (kind === 'ine_front' || kind === 'ine_back' || kind === 'ine_full' || kind === 'passport') {
       fillIfEmpty('rep_legal_nombre', parsed.nombre_completo)
       fillIfEmpty('rep_legal_curp', parsed.curp)
@@ -245,7 +248,21 @@ Deno.serve(async (req) => {
       if (error) return json({ error: error.message }, 500)
     }
 
-    return json({ ok: true, parsed, updated: updates })
+    // Compute document validity dates for storage on the uploaded file record
+    const fechaEmision = toISODate(parsed.fecha_emision_documento || parsed.fecha_emision)
+    let fechaVencimiento: string | null = null
+    if (fechaEmision) {
+      const base = new Date(fechaEmision + 'T00:00:00Z')
+      if (kind === 'csf') {
+        base.setUTCDate(base.getUTCDate() + 60)
+        fechaVencimiento = base.toISOString().slice(0, 10)
+      } else if (kind === 'comprobante_domicilio') {
+        base.setUTCDate(base.getUTCDate() + 90)
+        fechaVencimiento = base.toISOString().slice(0, 10)
+      }
+    }
+
+    return json({ ok: true, parsed, updated: updates, fecha_emision: fechaEmision, fecha_vencimiento: fechaVencimiento })
   } catch (e: any) {
     console.error('credito-autofill error', e)
     return json({ error: e?.message || 'server_error' }, 500)
