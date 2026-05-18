@@ -284,6 +284,66 @@ export default function CreditoDetail() {
     refetchDocs();
   };
 
+  // Compute fecha_vencimiento from fecha_emision and doc_type rules
+  const computeVencimiento = (emision: string | null, dt: any | null): string | null => {
+    if (!emision || !dt) return null;
+    if (dt.validez_tipo === "fin_mes_emision") {
+      const d = new Date(emision + "T00:00:00Z");
+      const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
+      return end.toISOString().slice(0, 10);
+    }
+    if (dt.vigencia_dias) {
+      const d = new Date(emision + "T00:00:00Z");
+      d.setUTCDate(d.getUTCDate() + Number(dt.vigencia_dias));
+      return d.toISOString().slice(0, 10);
+    }
+    return null;
+  };
+
+  const vencStatus = (venc: string | null) => {
+    if (!venc) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const v = new Date(venc + "T00:00:00");
+    const days = Math.round((v.getTime() - today.getTime()) / 86400000);
+    if (days < 0) return { label: "Vencido", days, cls: "bg-red-50 text-red-700 border-red-200" };
+    if (days <= 7) return { label: `Vence en ${days}d`, days, cls: "bg-amber-50 text-amber-700 border-amber-200" };
+    return { label: `Vigente (${days}d)`, days, cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+  };
+
+  const openEditFecha = (doc: any) => {
+    setEditFechaDoc(doc);
+    setEditFechaValue(doc.fecha_emision || "");
+  };
+
+  const saveEditFecha = async () => {
+    if (!editFechaDoc) return;
+    const dt = (docTypes as any[]).find((t) => t.id === editFechaDoc.doc_type_id);
+    const vencimiento = computeVencimiento(editFechaValue || null, dt);
+    const { error } = await supabase.from("credit_request_docs").update({
+      fecha_emision: editFechaValue || null,
+      fecha_vencimiento: vencimiento,
+    }).eq("id", editFechaDoc.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Fechas actualizadas");
+    setEditFechaDoc(null);
+    refetchDocs();
+  };
+
+  const approveVerificacion = async () => {
+    if (!verifyDoc) return;
+    const meta = { ...(verifyDoc.metadata || {}), requiere_verificacion: false, verificado_por: user?.id, verificado_fecha: new Date().toISOString() };
+    const { error } = await supabase.from("credit_request_docs").update({
+      metadata: meta,
+      estado: "recibido",
+      aprobado_por: user?.id,
+      aprobado_fecha: new Date().toISOString(),
+    }).eq("id", verifyDoc.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Comprobante verificado y aprobado");
+    setVerifyDoc(null);
+    refetchDocs();
+  };
+
   const deleteDoc = async (docId: string, path: string | null) => {
     if (!confirm("¿Eliminar este documento?")) return;
     if (path) await supabase.storage.from("credit-docs").remove([path]);
