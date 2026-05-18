@@ -464,6 +464,7 @@ function ProductosTab() {
       viscosidad_id: p.viscosidad_id || "",
       categoria_id: p.categoria_id || "",
       linea_id: p.linea_id || "",
+      precio_clasificacion_id: p.precio_clasificacion_id || "",
       costo_actual: p.costo_actual ?? 0,
       precio_base_uf1: p.precio_base_uf1 ?? 0,
       precio_uf2: p.precio_uf2 ?? 0,
