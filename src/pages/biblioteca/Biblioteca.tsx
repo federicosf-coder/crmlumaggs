@@ -10,7 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
   Search, Upload, FileText, Folder, DollarSign, FileSignature,
-  Megaphone, BookOpen, Download, History, Trash2, Pencil, Plus,
+  Megaphone, BookOpen, Download, History, Trash2, Pencil, Settings,
+  ChevronRight, ChevronDown,
 } from "lucide-react";
 import { ArchivoFormDialog } from "@/components/biblioteca/ArchivoFormDialog";
 import { ArchivoVersionesDialog } from "@/components/biblioteca/ArchivoVersionesDialog";
@@ -24,6 +25,7 @@ type Categoria = {
   icono: string | null;
   orden: number | null;
   solo_admin: boolean;
+  parent_id?: string | null;
 };
 
 type Archivo = {
@@ -72,6 +74,7 @@ export default function Biblioteca() {
   const [versionesOf, setVersionesOf] = useState<Archivo | null>(null);
   const [catsManagerOpen, setCatsManagerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const isAdmin = hasRole("admin");
   const isManager = hasRole("manager");
@@ -113,6 +116,62 @@ export default function Biblioteca() {
     });
     return m;
   }, [archivos]);
+
+  const raices = useMemo(() => categorias.filter((c) => !c.parent_id), [categorias]);
+  const hijosDe = (id: string) => categorias.filter((c) => c.parent_id === id);
+
+  const toggleExpand = (id: string) => {
+    setExpanded((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
+
+  const renderCatRow = (c: Categoria, depth = 0) => {
+    const Icon = ICONS[c.icono || "Folder"] || Folder;
+    const hijos = hijosDe(c.id);
+    const isOpen = expanded.has(c.id);
+    return (
+      <div key={c.id}>
+        <div
+          className={`w-full flex items-center gap-1 px-2 py-2 rounded-md text-sm transition-colors ${
+            selectedCat === c.id ? "bg-accent font-medium" : "hover:bg-accent/50"
+          }`}
+          style={{ paddingLeft: 8 + depth * 14 }}
+        >
+          {hijos.length > 0 ? (
+            <button
+              onClick={() => toggleExpand(c.id)}
+              className="p-0.5 hover:bg-accent rounded shrink-0"
+              title={isOpen ? "Colapsar" : "Expandir"}
+            >
+              {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            </button>
+          ) : (
+            <span className="w-4 shrink-0" />
+          )}
+          <button
+            onClick={() => setSelectedCat(c.id)}
+            className="flex items-center gap-2 flex-1 min-w-0 text-left"
+          >
+            <Icon className="h-4 w-4 shrink-0" style={{ color: c.color || undefined }} />
+            <span className="flex-1 truncate">{c.nombre}</span>
+            <span className="text-xs text-muted-foreground">{countByCat.get(c.id) || 0}</span>
+            {c.solo_admin && (
+              <Badge variant="outline" className="text-[9px] px-1 py-0">
+                A
+              </Badge>
+            )}
+          </button>
+        </div>
+        {isOpen && hijos.length > 0 && (
+          <div className="mt-0.5 space-y-0.5">{hijos.map((h) => renderCatRow(h, depth + 1))}</div>
+        )}
+      </div>
+    );
+  };
 
   const handleDownload = async (arch: Archivo) => {
     if (!arch.current_version_id) {
@@ -181,8 +240,14 @@ export default function Biblioteca() {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">Categorías</h3>
             {isAdmin && (
-              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setCatsManagerOpen(true)}>
-                <Plus className="h-3.5 w-3.5" />
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2"
+                onClick={() => setCatsManagerOpen(true)}
+                title="Gestionar categorías"
+              >
+                <Settings className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>
@@ -199,23 +264,7 @@ export default function Biblioteca() {
               <span className="flex-1 text-left">Todos</span>
               <span className="text-xs text-muted-foreground">{archivos.length}</span>
             </button>
-            {categorias.map((c) => {
-              const Icon = ICONS[c.icono || "Folder"] || Folder;
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => setSelectedCat(c.id)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-                    selectedCat === c.id ? "bg-accent font-medium" : "hover:bg-accent/50"
-                  }`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" style={{ color: c.color || undefined }} />
-                  <span className="flex-1 text-left truncate">{c.nombre}</span>
-                  <span className="text-xs text-muted-foreground">{countByCat.get(c.id) || 0}</span>
-                  {c.solo_admin && <Badge variant="outline" className="text-[9px] px-1 py-0">A</Badge>}
-                </button>
-              );
-            })}
+            {raices.map((c) => renderCatRow(c))}
           </div>
         </ScrollArea>
       </Card>
