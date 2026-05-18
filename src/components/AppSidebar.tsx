@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Users, ShoppingCart, FileText, Package, Truck,
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
-  Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet, Upload,
+  Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet,
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
   Briefcase, Zap, FolderOpen,
   FileCheck,
@@ -28,6 +28,7 @@ interface NavItem {
   url: string;
   icon: React.ElementType;
   roles: AppRole[] | "all";
+  group?: "whatsapp";
 }
 
 const mainItems: NavItem[] = [
@@ -40,7 +41,6 @@ const mainItems: NavItem[] = [
   { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
   { title: "Biblioteca", url: "/biblioteca", icon: FolderOpen, roles: "all" },
   { title: "Solicitudes de Crédito", url: "/credito", icon: FileCheck, roles: ["admin", "manager", "sales", "customer_service", "accounting"] },
-  { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle, roles: "all" },
   { title: "Catálogo de Productos", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
   { title: "Entregas", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
   { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
@@ -55,11 +55,14 @@ const adminItems: NavItem[] = [
   { title: "Equipos", url: "/admin/teams", icon: Settings, roles: ["admin", "manager"] },
   { title: "Catálogos", url: "/admin/catalogs", icon: Database, roles: ["admin", "manager"] },
   { title: "Plantillas", url: "/admin/templates", icon: FileStack, roles: ["admin", "manager", "sales"] },
-  { title: "Importar Noloco", url: "/admin/import-noloco", icon: Upload, roles: ["admin"] },
-  { title: "WhatsApp · Campañas", url: "/whatsapp/campaigns", icon: Megaphone, roles: ["admin", "manager"] },
-  { title: "WhatsApp · Plantillas", url: "/whatsapp/templates", icon: FileBadge, roles: ["admin", "manager"] },
-  { title: "WhatsApp · Bot", url: "/whatsapp/rules", icon: Bot, roles: ["admin", "manager"] },
-  { title: "WhatsApp · Configuración", url: "/whatsapp/settings", icon: Settings, roles: ["admin", "manager"] },
+];
+
+const whatsappItems: NavItem[] = [
+  { title: "Conversaciones", url: "/whatsapp", icon: MessageCircle, roles: "all", group: "whatsapp" },
+  { title: "Campañas", url: "/whatsapp/campaigns", icon: Megaphone, roles: ["admin", "manager"], group: "whatsapp" },
+  { title: "Plantillas", url: "/whatsapp/templates", icon: FileBadge, roles: ["admin", "manager"], group: "whatsapp" },
+  { title: "Bot", url: "/whatsapp/rules", icon: Bot, roles: ["admin", "manager"], group: "whatsapp" },
+  { title: "Configuración", url: "/whatsapp/settings", icon: Settings, roles: ["admin", "manager"], group: "whatsapp" },
 ];
 
 export function AppSidebar() {
@@ -119,14 +122,9 @@ export function AppSidebar() {
     return hasAnyRole(item.roles);
   };
 
-  const visibleMain = mainItems.filter(canAccess).filter((item) => {
-    if (item.url === "/whatsapp") return whatsappAccess.canView;
-    return true;
-  });
-  const visibleAdmin = adminItems.filter(canAccess).filter((item) => {
-    if (item.url.startsWith("/whatsapp")) return whatsappAccess.canView;
-    return true;
-  });
+  const visibleMain = mainItems.filter(canAccess);
+  const visibleAdmin = adminItems.filter(canAccess);
+  const visibleWhatsApp = whatsappItems.filter(canAccess).filter(() => whatsappAccess.canView);
 
   return (
     <Sidebar collapsible="icon">
@@ -187,6 +185,37 @@ export function AppSidebar() {
                           {showBadge && (
                             <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px]">
                               {pendingCount}
+                            </Badge>
+                          )}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {visibleWhatsApp.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center gap-1.5">
+              <MessageCircle className="h-3.5 w-3.5 text-emerald-600" />
+              WhatsApp
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {visibleWhatsApp.map((item) => {
+                  const showBadge = item.url === "/whatsapp" && unreadWhatsApp > 0;
+                  return (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={item.url} end={item.url === "/whatsapp"} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {!collapsed && <span className="flex-1">{item.title}</span>}
+                          {showBadge && (
+                            <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px]">
+                              {unreadWhatsApp}
                             </Badge>
                           )}
                         </NavLink>
