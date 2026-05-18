@@ -247,6 +247,8 @@ export default function CreditoDetail() {
       else if (kind === "comprobante_domicilio") docTypeId = matchType((n) => n.includes("comprobante de domicilio") && !n.includes("aval"));
       else if (kind.startsWith("ine") || kind === "passport") docTypeId = matchType((n) => n.startsWith("identificación oficial") && !n.includes("aval"));
       else if (kind === "acta_constitutiva") docTypeId = matchType((n) => n.includes("acta constitutiva"));
+      else if (kind === "aval_comprobante_domicilio") docTypeId = matchType((n) => n.includes("comprobante de domicilio") && n.includes("aval"));
+      else if (kind.startsWith("aval_ine") || kind === "aval_passport") docTypeId = matchType((n) => n.includes("identificación") && n.includes("aval"));
       // Para comprobante: guardar el domicilio extraído en metadata para verificación posterior
       const meta: any = {};
       const parsed = (data as any)?.parsed || {};
@@ -324,6 +326,8 @@ export default function CreditoDetail() {
     if (kind === "comprobante_domicilio") return find((n) => n.includes("comprobante de domicilio") && !n.includes("aval"));
     if (kind.startsWith("ine") || kind === "passport") return find((n) => n.startsWith("identificación oficial") && !n.includes("aval"));
     if (kind === "acta_constitutiva") return find((n) => n.includes("acta constitutiva"));
+    if (kind === "aval_comprobante_domicilio") return find((n) => n.includes("comprobante de domicilio") && n.includes("aval"));
+    if (kind.startsWith("aval_ine") || kind === "aval_passport") return find((n) => n.includes("identificación") && n.includes("aval"));
     return null;
   };
   const docsForKind = (kind: string): any[] => {
