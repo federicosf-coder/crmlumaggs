@@ -820,9 +820,8 @@ export default function DocumentsList() {
                 key={emp.value}
                 type="button"
                 onClick={() => setFilter("empresa", emp.value)}
-                className={`inline-flex items-center gap-2 h-9 px-4 rounded-full border text-sm font-medium transition-all ${isActive ? st.active + " shadow-sm" : st.idle}`}
+                className={`inline-flex items-center h-9 px-4 rounded-full border text-sm font-medium transition-all ${isActive ? st.active + " shadow-sm" : st.idle}`}
               >
-                <span className={`h-2 w-2 rounded-full ${isActive ? "bg-white" : st.dot}`} />
                 {emp.label}
               </button>
             );
@@ -846,9 +845,8 @@ export default function DocumentsList() {
                 key={tipo.value}
                 type="button"
                 onClick={() => setFilter("tipo", tipo.value)}
-                className={`inline-flex items-center gap-2 h-9 px-4 rounded-full border text-sm font-medium transition-all ${isActive ? colors.active + " shadow-sm border-transparent" : `${colors.badge} border-transparent hover:opacity-80`}`}
+                className={`inline-flex items-center h-9 px-4 rounded-full border text-sm font-medium transition-all ${isActive ? colors.active + " shadow-sm border-transparent" : `${colors.badge} border-transparent hover:opacity-80`}`}
               >
-                <span className={`h-2 w-2 rounded-full ${isActive ? "bg-white/90" : "bg-current opacity-60"}`} />
                 {tipo.label}
               </button>
             );
@@ -882,9 +880,8 @@ export default function DocumentsList() {
                 key={p.id}
                 type="button"
                 onClick={() => setFilter("plaza", p.id)}
-                className={`inline-flex items-center gap-1.5 h-7 px-3 rounded-full border text-xs font-medium transition-all ${isActive ? c.active : c.idle}`}
+                className={`inline-flex items-center h-7 px-3 rounded-full border text-xs font-medium transition-all ${isActive ? c.active : c.idle}`}
               >
-                <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-white" : c.dot}`} />
                 {p.nombre}
               </button>
             );
