@@ -866,6 +866,8 @@ function ProductosTab() {
 
 // ─── Main Page ───────────────────────────────────────────────
 export default function ProductCatalog() {
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
   return (
     <div className="space-y-6">
       <div>
@@ -877,10 +879,12 @@ export default function ProductCatalog() {
           <TabsTrigger value="productos">Productos</TabsTrigger>
           <TabsTrigger value="presentaciones">Presentaciones</TabsTrigger>
           <TabsTrigger value="opciones">Opciones</TabsTrigger>
+          {isAdmin && <TabsTrigger value="precios">Configuración de Precios</TabsTrigger>}
         </TabsList>
         <TabsContent value="productos" className="min-h-[580px] overflow-y-auto"><ProductosTab /></TabsContent>
         <TabsContent value="presentaciones" className="min-h-[580px] overflow-y-auto"><PresentacionesTab /></TabsContent>
         <TabsContent value="opciones" className="min-h-[580px] overflow-y-auto"><OptionsTab /></TabsContent>
+        {isAdmin && <TabsContent value="precios" className="min-h-[580px] overflow-y-auto"><PreciosConfigTab /></TabsContent>}
       </Tabs>
     </div>
   );
