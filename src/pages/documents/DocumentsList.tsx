@@ -777,14 +777,21 @@ export default function DocumentsList() {
           { value: "lumaggs_chevron", label: "Lumaggs Chevron" },
           { value: "galsa_phillips66", label: "Galsa Phillips 66" },
         ].map((emp) => (
-          <Button
-            key={emp.value}
-            variant={empresaFilter === emp.value ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilter("empresa", emp.value)}
-          >
-            {emp.label}
-          </Button>
+          (() => {
+            const st = EMPRESA_STYLES[emp.value];
+            const isActive = empresaFilter === emp.value;
+            return (
+              <button
+                key={emp.value}
+                type="button"
+                onClick={() => setFilter("empresa", emp.value)}
+                className={`inline-flex items-center gap-2 h-9 px-4 rounded-full border text-sm font-medium transition-all ${isActive ? st.active + " shadow-sm" : st.idle}`}
+              >
+                <span className={`h-2 w-2 rounded-full ${isActive ? "bg-white" : st.dot}`} />
+                {emp.label}
+              </button>
+            );
+          })()
         ))}
       </div>
 
@@ -800,15 +807,15 @@ export default function DocumentsList() {
             const isActive = tipoFilter === tipo.value;
             const colors = TAB_COLORS[tipo.value];
             return (
-              <Button
+              <button
                 key={tipo.value}
-                size="sm"
-                className={`transition-all duration-150 ${isActive ? colors.active : "bg-background text-foreground border border-input hover:bg-accent"}`}
-                variant={isActive ? "default" : "outline"}
+                type="button"
                 onClick={() => setFilter("tipo", tipo.value)}
+                className={`inline-flex items-center gap-2 h-9 px-4 rounded-full border text-sm font-medium transition-all ${isActive ? colors.active + " shadow-sm border-transparent" : `${colors.badge} border-transparent hover:opacity-80`}`}
               >
+                <span className={`h-2 w-2 rounded-full ${isActive ? "bg-white/90" : "bg-current opacity-60"}`} />
                 {tipo.label}
-              </Button>
+              </button>
             );
           })}
         </div>
@@ -825,25 +832,28 @@ export default function DocumentsList() {
       {/* Plaza filter buttons */}
       {plazas.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
-          <Button
-            size="sm"
-            variant={plazaFilter === "all" ? "default" : "outline"}
-            className="h-7 px-2.5 text-xs"
+          <button
+            type="button"
             onClick={() => setFilter("plaza", "all")}
+            className={`inline-flex items-center gap-1.5 h-7 px-3 rounded-full border text-xs font-medium transition-all ${plazaFilter === "all" ? "bg-slate-800 text-white border-slate-800" : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"}`}
           >
             Todas
-          </Button>
-          {plazas.map((p: any) => (
-            <Button
-              key={p.id}
-              size="sm"
-              variant={plazaFilter === p.id ? "default" : "outline"}
-              className="h-7 px-2.5 text-xs"
-              onClick={() => setFilter("plaza", p.id)}
-            >
-              {p.nombre}
-            </Button>
-          ))}
+          </button>
+          {plazas.map((p: any) => {
+            const c = plazaColor(p.id);
+            const isActive = plazaFilter === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setFilter("plaza", p.id)}
+                className={`inline-flex items-center gap-1.5 h-7 px-3 rounded-full border text-xs font-medium transition-all ${isActive ? c.active : c.idle}`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-white" : c.dot}`} />
+                {p.nombre}
+              </button>
+            );
+          })}
         </div>
       )}
 
