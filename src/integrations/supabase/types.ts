@@ -1139,6 +1139,583 @@ export type Database = {
           },
         ]
       }
+      credit_client_sessions: {
+        Row: {
+          created_at: string
+          credit_request_id: string
+          email: string
+          id: string
+          otp_code: string
+          otp_expires_at: string
+          party_id: string | null
+          verified: boolean
+        }
+        Insert: {
+          created_at?: string
+          credit_request_id: string
+          email: string
+          id?: string
+          otp_code: string
+          otp_expires_at: string
+          party_id?: string | null
+          verified?: boolean
+        }
+        Update: {
+          created_at?: string
+          credit_request_id?: string
+          email?: string
+          id?: string
+          otp_code?: string
+          otp_expires_at?: string
+          party_id?: string | null
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_client_sessions_credit_request_id_fkey"
+            columns: ["credit_request_id"]
+            isOneToOne: false
+            referencedRelation: "credit_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_client_sessions_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "credit_request_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_doc_types: {
+        Row: {
+          aplica_cescemex: boolean
+          aplica_directo: boolean
+          aplica_fisica: boolean
+          aplica_moral: boolean
+          created_at: string
+          descripcion: string | null
+          id: string
+          instrucciones_cliente: string | null
+          is_active: boolean
+          nombre: string
+          requerido: boolean
+          sort_order: number
+          updated_at: string
+          vigencia_dias: number | null
+        }
+        Insert: {
+          aplica_cescemex?: boolean
+          aplica_directo?: boolean
+          aplica_fisica?: boolean
+          aplica_moral?: boolean
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          instrucciones_cliente?: string | null
+          is_active?: boolean
+          nombre: string
+          requerido?: boolean
+          sort_order?: number
+          updated_at?: string
+          vigencia_dias?: number | null
+        }
+        Update: {
+          aplica_cescemex?: boolean
+          aplica_directo?: boolean
+          aplica_fisica?: boolean
+          aplica_moral?: boolean
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          instrucciones_cliente?: string | null
+          is_active?: boolean
+          nombre?: string
+          requerido?: boolean
+          sort_order?: number
+          updated_at?: string
+          vigencia_dias?: number | null
+        }
+        Relationships: []
+      }
+      credit_request_comments: {
+        Row: {
+          contenido: string
+          created_at: string
+          credit_request_id: string
+          id: string
+          party_id: string | null
+          user_id: string | null
+          visibilidad: Database["public"]["Enums"]["credito_visibilidad"]
+        }
+        Insert: {
+          contenido: string
+          created_at?: string
+          credit_request_id: string
+          id?: string
+          party_id?: string | null
+          user_id?: string | null
+          visibilidad?: Database["public"]["Enums"]["credito_visibilidad"]
+        }
+        Update: {
+          contenido?: string
+          created_at?: string
+          credit_request_id?: string
+          id?: string
+          party_id?: string | null
+          user_id?: string | null
+          visibilidad?: Database["public"]["Enums"]["credito_visibilidad"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_request_comments_credit_request_id_fkey"
+            columns: ["credit_request_id"]
+            isOneToOne: false
+            referencedRelation: "credit_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_request_comments_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "credit_request_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_request_docs: {
+        Row: {
+          aprobado_fecha: string | null
+          aprobado_por: string | null
+          created_at: string
+          credit_request_id: string
+          doc_type_id: string | null
+          estado: Database["public"]["Enums"]["credito_doc_estado"]
+          fecha_vencimiento: string | null
+          id: string
+          nombre_archivo: string | null
+          nombre_personalizado: string | null
+          notas_rechazo: string | null
+          party_id: string | null
+          subido_por: string | null
+          subido_por_cliente: boolean
+          tipo_archivo: string | null
+          updated_at: string
+          url_archivo: string | null
+          visibilidad: Database["public"]["Enums"]["credito_visibilidad"]
+        }
+        Insert: {
+          aprobado_fecha?: string | null
+          aprobado_por?: string | null
+          created_at?: string
+          credit_request_id: string
+          doc_type_id?: string | null
+          estado?: Database["public"]["Enums"]["credito_doc_estado"]
+          fecha_vencimiento?: string | null
+          id?: string
+          nombre_archivo?: string | null
+          nombre_personalizado?: string | null
+          notas_rechazo?: string | null
+          party_id?: string | null
+          subido_por?: string | null
+          subido_por_cliente?: boolean
+          tipo_archivo?: string | null
+          updated_at?: string
+          url_archivo?: string | null
+          visibilidad?: Database["public"]["Enums"]["credito_visibilidad"]
+        }
+        Update: {
+          aprobado_fecha?: string | null
+          aprobado_por?: string | null
+          created_at?: string
+          credit_request_id?: string
+          doc_type_id?: string | null
+          estado?: Database["public"]["Enums"]["credito_doc_estado"]
+          fecha_vencimiento?: string | null
+          id?: string
+          nombre_archivo?: string | null
+          nombre_personalizado?: string | null
+          notas_rechazo?: string | null
+          party_id?: string | null
+          subido_por?: string | null
+          subido_por_cliente?: boolean
+          tipo_archivo?: string | null
+          updated_at?: string
+          url_archivo?: string | null
+          visibilidad?: Database["public"]["Enums"]["credito_visibilidad"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_request_docs_credit_request_id_fkey"
+            columns: ["credit_request_id"]
+            isOneToOne: false
+            referencedRelation: "credit_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_request_docs_doc_type_id_fkey"
+            columns: ["doc_type_id"]
+            isOneToOne: false
+            referencedRelation: "credit_doc_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_request_docs_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "credit_request_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_request_history: {
+        Row: {
+          created_at: string
+          credit_request_id: string
+          estado_anterior: Database["public"]["Enums"]["credito_estado"] | null
+          estado_nuevo: Database["public"]["Enums"]["credito_estado"]
+          id: string
+          nota: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credit_request_id: string
+          estado_anterior?: Database["public"]["Enums"]["credito_estado"] | null
+          estado_nuevo: Database["public"]["Enums"]["credito_estado"]
+          id?: string
+          nota?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credit_request_id?: string
+          estado_anterior?: Database["public"]["Enums"]["credito_estado"] | null
+          estado_nuevo?: Database["public"]["Enums"]["credito_estado"]
+          id?: string
+          nota?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_request_history_credit_request_id_fkey"
+            columns: ["credit_request_id"]
+            isOneToOne: false
+            referencedRelation: "credit_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_request_parties: {
+        Row: {
+          client_token: string
+          created_at: string
+          credit_request_id: string
+          email: string
+          id: string
+          nombre: string
+          rol_descripcion: string | null
+          ultimo_acceso: string | null
+        }
+        Insert: {
+          client_token?: string
+          created_at?: string
+          credit_request_id: string
+          email: string
+          id?: string
+          nombre: string
+          rol_descripcion?: string | null
+          ultimo_acceso?: string | null
+        }
+        Update: {
+          client_token?: string
+          created_at?: string
+          credit_request_id?: string
+          email?: string
+          id?: string
+          nombre?: string
+          rol_descripcion?: string | null
+          ultimo_acceso?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_request_parties_credit_request_id_fkey"
+            columns: ["credit_request_id"]
+            isOneToOne: false
+            referencedRelation: "credit_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_requests: {
+        Row: {
+          accionistas: Json
+          administrador_presidente: string | null
+          antiguedad: string | null
+          assigned_credito: string | null
+          assigned_cs: string | null
+          aval_ciudad: string | null
+          aval_direccion: string | null
+          aval_nombre: string | null
+          aval_regimen_conyugal: string | null
+          aval_relacion: string | null
+          cescemex_fecha: string | null
+          cescemex_resultado: string | null
+          ciudad_comercial: string | null
+          ciudad_fiscal: string | null
+          client_email: string | null
+          client_nombre_contacto: string | null
+          client_token: string
+          company_id: string
+          correo_contacto: string | null
+          created_at: string
+          created_by: string | null
+          csf_actividad_economica: string | null
+          csf_cp: string | null
+          csf_domicilio: string | null
+          csf_fecha_inicio_operaciones: string | null
+          csf_parseado: boolean
+          csf_razon_social: string | null
+          csf_regimen_fiscal: string | null
+          csf_rfc: string | null
+          csf_tipo_persona: string | null
+          datos_bancarios: Json
+          datos_registro: string | null
+          dias_credito: number | null
+          direccion_aprobo: boolean
+          direccion_aprobo_fecha: string | null
+          direccion_aprobo_por: string | null
+          domicilio_comercial: string | null
+          domicilio_fiscal: string | null
+          escritura_constitutiva: string | null
+          estado: Database["public"]["Enums"]["credito_estado"]
+          estado_fiscal: string | null
+          fecha_activacion: string | null
+          fecha_contrato_enviado: string | null
+          fecha_contrato_firmado: string | null
+          fecha_limite: string | null
+          firma_buro_fecha: string | null
+          firma_buro_nombre: string | null
+          firma_confidencialidad_fecha: string | null
+          firma_confidencialidad_nombre: string | null
+          firma_lfpiorpi_fecha: string | null
+          firma_lfpiorpi_nombre: string | null
+          firma_solicitud_fecha: string | null
+          firma_solicitud_nombre: string | null
+          firma_subsistencia_fecha: string | null
+          firma_subsistencia_nombre: string | null
+          folio: string | null
+          giro_comercial: string | null
+          id: string
+          lfpiorpi_beneficiario_controlador: boolean | null
+          lfpiorpi_fecha_firma: string | null
+          lfpiorpi_lugar_firma: string | null
+          lfpiorpi_tiene_documentacion: boolean | null
+          lista_69_fecha: string | null
+          lista_69_ok: boolean | null
+          lista_69_por: string | null
+          monto_solicitado: number | null
+          motivo_rechazo: string | null
+          nombre_comercial: string | null
+          razon_social: string | null
+          recordatorio_count: number
+          referencias_comerciales: Json
+          rep_legal_curp: string | null
+          rep_legal_fecha_nacimiento: string | null
+          rep_legal_nombre: string | null
+          rep_legal_num_id: string | null
+          rep_legal_pais_nacimiento: string | null
+          rep_legal_rfc: string | null
+          rep_legal_tipo_id: string | null
+          rfc: string | null
+          telefono: string | null
+          tipo: Database["public"]["Enums"]["credito_tipo"] | null
+          ultima_asamblea: string | null
+          ultimo_recordatorio_enviado: string | null
+          updated_at: string
+        }
+        Insert: {
+          accionistas?: Json
+          administrador_presidente?: string | null
+          antiguedad?: string | null
+          assigned_credito?: string | null
+          assigned_cs?: string | null
+          aval_ciudad?: string | null
+          aval_direccion?: string | null
+          aval_nombre?: string | null
+          aval_regimen_conyugal?: string | null
+          aval_relacion?: string | null
+          cescemex_fecha?: string | null
+          cescemex_resultado?: string | null
+          ciudad_comercial?: string | null
+          ciudad_fiscal?: string | null
+          client_email?: string | null
+          client_nombre_contacto?: string | null
+          client_token?: string
+          company_id: string
+          correo_contacto?: string | null
+          created_at?: string
+          created_by?: string | null
+          csf_actividad_economica?: string | null
+          csf_cp?: string | null
+          csf_domicilio?: string | null
+          csf_fecha_inicio_operaciones?: string | null
+          csf_parseado?: boolean
+          csf_razon_social?: string | null
+          csf_regimen_fiscal?: string | null
+          csf_rfc?: string | null
+          csf_tipo_persona?: string | null
+          datos_bancarios?: Json
+          datos_registro?: string | null
+          dias_credito?: number | null
+          direccion_aprobo?: boolean
+          direccion_aprobo_fecha?: string | null
+          direccion_aprobo_por?: string | null
+          domicilio_comercial?: string | null
+          domicilio_fiscal?: string | null
+          escritura_constitutiva?: string | null
+          estado?: Database["public"]["Enums"]["credito_estado"]
+          estado_fiscal?: string | null
+          fecha_activacion?: string | null
+          fecha_contrato_enviado?: string | null
+          fecha_contrato_firmado?: string | null
+          fecha_limite?: string | null
+          firma_buro_fecha?: string | null
+          firma_buro_nombre?: string | null
+          firma_confidencialidad_fecha?: string | null
+          firma_confidencialidad_nombre?: string | null
+          firma_lfpiorpi_fecha?: string | null
+          firma_lfpiorpi_nombre?: string | null
+          firma_solicitud_fecha?: string | null
+          firma_solicitud_nombre?: string | null
+          firma_subsistencia_fecha?: string | null
+          firma_subsistencia_nombre?: string | null
+          folio?: string | null
+          giro_comercial?: string | null
+          id?: string
+          lfpiorpi_beneficiario_controlador?: boolean | null
+          lfpiorpi_fecha_firma?: string | null
+          lfpiorpi_lugar_firma?: string | null
+          lfpiorpi_tiene_documentacion?: boolean | null
+          lista_69_fecha?: string | null
+          lista_69_ok?: boolean | null
+          lista_69_por?: string | null
+          monto_solicitado?: number | null
+          motivo_rechazo?: string | null
+          nombre_comercial?: string | null
+          razon_social?: string | null
+          recordatorio_count?: number
+          referencias_comerciales?: Json
+          rep_legal_curp?: string | null
+          rep_legal_fecha_nacimiento?: string | null
+          rep_legal_nombre?: string | null
+          rep_legal_num_id?: string | null
+          rep_legal_pais_nacimiento?: string | null
+          rep_legal_rfc?: string | null
+          rep_legal_tipo_id?: string | null
+          rfc?: string | null
+          telefono?: string | null
+          tipo?: Database["public"]["Enums"]["credito_tipo"] | null
+          ultima_asamblea?: string | null
+          ultimo_recordatorio_enviado?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accionistas?: Json
+          administrador_presidente?: string | null
+          antiguedad?: string | null
+          assigned_credito?: string | null
+          assigned_cs?: string | null
+          aval_ciudad?: string | null
+          aval_direccion?: string | null
+          aval_nombre?: string | null
+          aval_regimen_conyugal?: string | null
+          aval_relacion?: string | null
+          cescemex_fecha?: string | null
+          cescemex_resultado?: string | null
+          ciudad_comercial?: string | null
+          ciudad_fiscal?: string | null
+          client_email?: string | null
+          client_nombre_contacto?: string | null
+          client_token?: string
+          company_id?: string
+          correo_contacto?: string | null
+          created_at?: string
+          created_by?: string | null
+          csf_actividad_economica?: string | null
+          csf_cp?: string | null
+          csf_domicilio?: string | null
+          csf_fecha_inicio_operaciones?: string | null
+          csf_parseado?: boolean
+          csf_razon_social?: string | null
+          csf_regimen_fiscal?: string | null
+          csf_rfc?: string | null
+          csf_tipo_persona?: string | null
+          datos_bancarios?: Json
+          datos_registro?: string | null
+          dias_credito?: number | null
+          direccion_aprobo?: boolean
+          direccion_aprobo_fecha?: string | null
+          direccion_aprobo_por?: string | null
+          domicilio_comercial?: string | null
+          domicilio_fiscal?: string | null
+          escritura_constitutiva?: string | null
+          estado?: Database["public"]["Enums"]["credito_estado"]
+          estado_fiscal?: string | null
+          fecha_activacion?: string | null
+          fecha_contrato_enviado?: string | null
+          fecha_contrato_firmado?: string | null
+          fecha_limite?: string | null
+          firma_buro_fecha?: string | null
+          firma_buro_nombre?: string | null
+          firma_confidencialidad_fecha?: string | null
+          firma_confidencialidad_nombre?: string | null
+          firma_lfpiorpi_fecha?: string | null
+          firma_lfpiorpi_nombre?: string | null
+          firma_solicitud_fecha?: string | null
+          firma_solicitud_nombre?: string | null
+          firma_subsistencia_fecha?: string | null
+          firma_subsistencia_nombre?: string | null
+          folio?: string | null
+          giro_comercial?: string | null
+          id?: string
+          lfpiorpi_beneficiario_controlador?: boolean | null
+          lfpiorpi_fecha_firma?: string | null
+          lfpiorpi_lugar_firma?: string | null
+          lfpiorpi_tiene_documentacion?: boolean | null
+          lista_69_fecha?: string | null
+          lista_69_ok?: boolean | null
+          lista_69_por?: string | null
+          monto_solicitado?: number | null
+          motivo_rechazo?: string | null
+          nombre_comercial?: string | null
+          razon_social?: string | null
+          recordatorio_count?: number
+          referencias_comerciales?: Json
+          rep_legal_curp?: string | null
+          rep_legal_fecha_nacimiento?: string | null
+          rep_legal_nombre?: string | null
+          rep_legal_num_id?: string | null
+          rep_legal_pais_nacimiento?: string | null
+          rep_legal_rfc?: string | null
+          rep_legal_tipo_id?: string | null
+          rfc?: string | null
+          telefono?: string | null
+          tipo?: Database["public"]["Enums"]["credito_tipo"] | null
+          ultima_asamblea?: string | null
+          ultimo_recordatorio_enviado?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_activities: {
         Row: {
           activity_date: string
@@ -4535,6 +5112,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      credit_request_completeness: { Args: { req_id: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -4688,6 +5266,7 @@ export type Database = {
         Returns: boolean
       }
       user_related_counts: { Args: { _user_id: string }; Returns: Json }
+      validate_credit_token: { Args: { _token: string }; Returns: string }
     }
     Enums: {
       access_level: "todos" | "equipo" | "propio" | "ninguno"
@@ -4729,6 +5308,24 @@ export type Database = {
         | "seguimiento_3"
         | "vencida"
         | "sin_actividad"
+      credito_doc_estado: "pendiente" | "recibido" | "rechazado" | "vencido"
+      credito_estado:
+        | "borrador"
+        | "portal_enviado"
+        | "llenando_formulario"
+        | "en_revision_cs"
+        | "en_credito_cobranza"
+        | "revision_lista_69"
+        | "en_cescemex"
+        | "en_direccion"
+        | "en_juridico"
+        | "contrato_enviado"
+        | "contrato_firmado"
+        | "activo"
+        | "rechazado"
+        | "cancelado"
+      credito_tipo: "cescemex" | "directo"
+      credito_visibilidad: "publica" | "interna"
       crm_item_kind: "tarea" | "actividad"
       crm_item_priority: "baja" | "media" | "alta" | "urgente"
       crm_item_status:
@@ -5048,6 +5645,25 @@ export const Constants = {
         "vencida",
         "sin_actividad",
       ],
+      credito_doc_estado: ["pendiente", "recibido", "rechazado", "vencido"],
+      credito_estado: [
+        "borrador",
+        "portal_enviado",
+        "llenando_formulario",
+        "en_revision_cs",
+        "en_credito_cobranza",
+        "revision_lista_69",
+        "en_cescemex",
+        "en_direccion",
+        "en_juridico",
+        "contrato_enviado",
+        "contrato_firmado",
+        "activo",
+        "rechazado",
+        "cancelado",
+      ],
+      credito_tipo: ["cescemex", "directo"],
+      credito_visibilidad: ["publica", "interna"],
       crm_item_kind: ["tarea", "actividad"],
       crm_item_priority: ["baja", "media", "alta", "urgente"],
       crm_item_status: [
