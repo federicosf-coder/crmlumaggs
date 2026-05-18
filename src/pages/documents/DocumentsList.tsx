@@ -180,6 +180,41 @@ function getTipoPagoInfo(valor: any): { label: string; cls: string } {
   return { label: "-", cls: "" };
 }
 
+// Capsule styles for status keys used in dropdowns
+const STATUS_PILL_MAP: Record<string, string> = {
+  borrador: "bg-slate-100 text-slate-700 border-slate-300",
+  impresa: "bg-blue-50 text-blue-700 border-blue-200",
+  enviada: "bg-sky-50 text-sky-700 border-sky-200",
+  aceptada: "bg-green-50 text-green-700 border-green-200",
+  rechazada: "bg-red-50 text-red-700 border-red-200",
+  vencida: "bg-red-50 text-red-700 border-red-200",
+  confirmado_cliente: "bg-blue-50 text-blue-700 border-blue-200",
+  espera_autorizacion_precio: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  precio_autorizado: "bg-teal-50 text-teal-700 border-teal-200",
+  validado_contabilidad: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  programado_entrega: "bg-purple-50 text-purple-700 border-purple-200",
+  entregado: "bg-green-50 text-green-700 border-green-200",
+  cancelado: "bg-red-50 text-red-700 border-red-200",
+  pendiente: "bg-slate-100 text-slate-700 border-slate-300",
+  pagada: "bg-green-50 text-green-700 border-green-200",
+  parcial: "bg-amber-50 text-amber-700 border-amber-200",
+  vigente: "bg-blue-50 text-blue-700 border-blue-200",
+  cancelada: "bg-red-50 text-red-700 border-red-200",
+  solicitada: "bg-slate-100 text-slate-700 border-slate-300",
+  programada: "bg-amber-50 text-amber-700 border-amber-200",
+  entregada: "bg-green-50 text-green-700 border-green-200",
+  acuse_enviado: "bg-blue-50 text-blue-700 border-blue-200",
+};
+const NEUTRAL_PILL = "bg-slate-100 text-slate-700 border-slate-300";
+function Pill({ cls, children }: { cls: string; children: React.ReactNode }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${cls.split(" ").find(c => c.startsWith("text-"))?.replace("text-", "bg-") || "bg-slate-500"}`} />
+      {children}
+    </span>
+  );
+}
+
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
