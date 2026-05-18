@@ -125,7 +125,8 @@ const PagoConfirmationEmail = ({
       </Container>
     </Body>
   </Html>
-)
+  )
+}
 
 const Row = ({
   label,
