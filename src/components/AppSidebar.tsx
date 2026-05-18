@@ -5,6 +5,7 @@ import {
   Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet, Upload,
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
   Briefcase, Zap, FolderOpen,
+  FileCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -38,6 +39,7 @@ const mainItems: NavItem[] = [
   { title: "Cobranza", url: "/cobranza", icon: Wallet, roles: ["admin", "manager", "accounting"] },
   { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
   { title: "Biblioteca", url: "/biblioteca", icon: FolderOpen, roles: "all" },
+  { title: "Solicitudes de Crédito", url: "/credito", icon: FileCheck, roles: ["admin", "manager", "sales", "customer_service", "accounting"] },
   { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle, roles: "all" },
   { title: "Catálogo de Productos", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
   { title: "Entregas", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
