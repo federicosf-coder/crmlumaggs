@@ -218,6 +218,63 @@ Deno.serve(async (req) => {
       return json({ url: signed.signedUrl })
     }
 
+    if (action === 'parse_csf') {
+      const filename = String(body.filename || 'csf.pdf').replace(/[^\w.\-]+/g, '_')
+      const mime = String(body.mime || 'application/pdf')
+      const b64 = String(body.file_b64 || '')
+      if (!b64) return json({ error: 'missing_file' }, 400)
+      const bytes = b64ToBytes(b64)
+      if (bytes.length > 15 * 1024 * 1024) return json({ error: 'file_too_large' }, 400)
+      let parsed: any
+      try {
+        const text = await extractPdfText(bytes)
+        parsed = parseCsfText(text)
+      } catch (e: any) {
+        return json({ error: 'pdf_parse_failed', detail: e?.message }, 400)
+      }
+      if (!parsed.csf_rfc) return json({ error: 'csf_no_rfc', parsed }, 400)
+      // Upload original PDF for audit
+      const path = `${ctx.requestId}/${crypto.randomUUID()}_${filename}`
+      const { error: upErr } = await supabase.storage.from('credit-docs')
+        .upload(path, bytes, { contentType: mime, upsert: false })
+      if (upErr) return json({ error: upErr.message }, 500)
+      await supabase.from('credit_request_docs').insert({
+        credit_request_id: ctx.requestId,
+        doc_type_id: null,
+        party_id: ctx.partyId,
+        nombre_personalizado: 'Constancia de Situación Fiscal (autocompletada)',
+        url_archivo: path,
+        nombre_archivo: filename,
+        tipo_archivo: mime,
+        estado: 'recibido',
+        visibilidad: 'publica',
+        subido_por_cliente: true,
+      })
+      // Save CSF fields + autocompletar campos vacíos de la solicitud
+      const { data: cur } = await supabase.from('credit_requests')
+        .select('rfc,razon_social,domicilio_fiscal,ciudad_fiscal,estado_fiscal')
+        .eq('id', ctx.requestId).maybeSingle()
+      const updates: Record<string, any> = {
+        csf_rfc: parsed.csf_rfc,
+        csf_razon_social: parsed.csf_razon_social,
+        csf_regimen_fiscal: parsed.csf_regimen_fiscal,
+        csf_cp: parsed.csf_cp,
+        csf_domicilio: parsed.csf_domicilio,
+        csf_actividad_economica: parsed.csf_actividad_economica,
+        csf_fecha_inicio_operaciones: parsed.csf_fecha_inicio_operaciones,
+        csf_tipo_persona: parsed.csf_tipo_persona,
+        csf_parseado: true,
+      }
+      if (cur && !cur.rfc && parsed.csf_rfc) updates.rfc = parsed.csf_rfc
+      if (cur && !cur.razon_social && parsed.csf_razon_social) updates.razon_social = parsed.csf_razon_social
+      if (cur && !cur.domicilio_fiscal && parsed.csf_domicilio) updates.domicilio_fiscal = parsed.csf_domicilio
+      if (cur && !cur.ciudad_fiscal && parsed._municipio) updates.ciudad_fiscal = parsed._municipio
+      if (cur && !cur.estado_fiscal && parsed._entidad) updates.estado_fiscal = parsed._entidad
+      const { error: updErr } = await supabase.from('credit_requests').update(updates).eq('id', ctx.requestId)
+      if (updErr) return json({ error: updErr.message }, 500)
+      return json({ ok: true, parsed })
+    }
+
     return json({ error: 'unknown_action' }, 400)
   } catch (e: any) {
     console.error('credito-portal error', e)
