@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles } from "lucide-react";
+import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS } from "@/lib/credito";
@@ -74,6 +74,9 @@ export default function CreditoDetail() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [autofilling, setAutofilling] = useState<string | null>(null);
+  const [editFechaDoc, setEditFechaDoc] = useState<any | null>(null);
+  const [editFechaValue, setEditFechaValue] = useState<string>("");
+  const [verifyDoc, setVerifyDoc] = useState<any | null>(null);
 
   const { data: req, isLoading } = useQuery({
     queryKey: ["credit_request", id],
@@ -170,16 +173,25 @@ export default function CreditoDetail() {
     qc.invalidateQueries({ queryKey: ["credit_request_history", id] });
   };
 
-  const uploadDoc = async (file: File, docTypeId: string | null, displayName?: string) => {
+  const uploadDoc = async (
+    file: File,
+    docTypeId: string | null,
+    displayName?: string,
+    extra?: { fecha_emision?: string | null; fecha_vencimiento?: string | null; metadata?: any },
+  ) => {
     const path = `${id}/${crypto.randomUUID()}_${file.name.replace(/[^\w.\-]+/g, "_")}`;
     const { error: upErr } = await supabase.storage.from("credit-docs").upload(path, file, { contentType: file.type, upsert: false });
     if (upErr) { toast.error("Upload: " + upErr.message); return; }
     const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
     const finalName = (displayName?.trim() ? (displayName.trim().toLowerCase().endsWith(ext.toLowerCase()) ? displayName.trim() : displayName.trim() + ext) : file.name);
-    const { error: insErr } = await supabase.from("credit_request_docs").insert({
+    const payload: any = {
       credit_request_id: id!, doc_type_id: docTypeId, url_archivo: path, nombre_archivo: finalName,
       tipo_archivo: file.type, estado: "recibido", visibilidad: "publica", subido_por: user?.id,
-    });
+    };
+    if (extra?.fecha_emision) payload.fecha_emision = extra.fecha_emision;
+    if (extra?.fecha_vencimiento) payload.fecha_vencimiento = extra.fecha_vencimiento;
+    if (extra?.metadata) payload.metadata = extra.metadata;
+    const { error: insErr } = await supabase.from("credit_request_docs").insert(payload);
     if (insErr) { toast.error(insErr.message); return; }
     toast.success("Documento subido");
     refetchDocs();
@@ -234,7 +246,22 @@ export default function CreditoDetail() {
       if (kind === "csf") docTypeId = matchType((n) => n.includes("csf") || n.includes("situación fiscal"));
       else if (kind === "comprobante_domicilio") docTypeId = matchType((n) => n.includes("comprobante de domicilio") && !n.includes("aval"));
       else if (kind.startsWith("ine") || kind === "passport") docTypeId = matchType((n) => n.startsWith("identificación oficial") && !n.includes("aval"));
-      await uploadDoc(file, docTypeId, label);
+      // Para comprobante: guardar el domicilio extraído en metadata para verificación posterior
+      const meta: any = {};
+      const parsed = (data as any)?.parsed || {};
+      if (kind === "comprobante_domicilio") {
+        meta.domicilio_extraido = parsed.domicilio || null;
+        meta.ciudad_extraida = parsed.municipio || parsed.ciudad || null;
+        meta.cp_extraido = parsed.codigo_postal || null;
+        meta.titular_extraido = parsed.titular || null;
+        meta.proveedor = parsed.proveedor || null;
+        meta.requiere_verificacion = true;
+      }
+      await uploadDoc(file, docTypeId, label, {
+        fecha_emision: (data as any)?.fecha_emision || null,
+        fecha_vencimiento: (data as any)?.fecha_vencimiento || null,
+        metadata: Object.keys(meta).length ? meta : undefined,
+      });
       toast.success(filled > 0 ? `${label}: ${filled} campos autocompletados y archivo guardado` : `${label} guardada (sin campos nuevos)`, { id: "af" });
       qc.invalidateQueries({ queryKey: ["credit_request", id] });
     } catch (e: any) {
@@ -254,6 +281,66 @@ export default function CreditoDetail() {
     if (notas !== undefined) payload.notas_rechazo = notas;
     const { error } = await supabase.from("credit_request_docs").update(payload).eq("id", docId);
     if (error) { toast.error(error.message); return; }
+    refetchDocs();
+  };
+
+  // Compute fecha_vencimiento from fecha_emision and doc_type rules
+  const computeVencimiento = (emision: string | null, dt: any | null): string | null => {
+    if (!emision || !dt) return null;
+    if (dt.validez_tipo === "fin_mes_emision") {
+      const d = new Date(emision + "T00:00:00Z");
+      const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
+      return end.toISOString().slice(0, 10);
+    }
+    if (dt.vigencia_dias) {
+      const d = new Date(emision + "T00:00:00Z");
+      d.setUTCDate(d.getUTCDate() + Number(dt.vigencia_dias));
+      return d.toISOString().slice(0, 10);
+    }
+    return null;
+  };
+
+  const vencStatus = (venc: string | null) => {
+    if (!venc) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const v = new Date(venc + "T00:00:00");
+    const days = Math.round((v.getTime() - today.getTime()) / 86400000);
+    if (days < 0) return { label: "Vencido", days, cls: "bg-red-50 text-red-700 border-red-200" };
+    if (days <= 7) return { label: `Vence en ${days}d`, days, cls: "bg-amber-50 text-amber-700 border-amber-200" };
+    return { label: `Vigente (${days}d)`, days, cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+  };
+
+  const openEditFecha = (doc: any) => {
+    setEditFechaDoc(doc);
+    setEditFechaValue(doc.fecha_emision || "");
+  };
+
+  const saveEditFecha = async () => {
+    if (!editFechaDoc) return;
+    const dt = (docTypes as any[]).find((t) => t.id === editFechaDoc.doc_type_id);
+    const vencimiento = computeVencimiento(editFechaValue || null, dt);
+    const { error } = await supabase.from("credit_request_docs").update({
+      fecha_emision: editFechaValue || null,
+      fecha_vencimiento: vencimiento,
+    }).eq("id", editFechaDoc.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Fechas actualizadas");
+    setEditFechaDoc(null);
+    refetchDocs();
+  };
+
+  const approveVerificacion = async () => {
+    if (!verifyDoc) return;
+    const meta = { ...(verifyDoc.metadata || {}), requiere_verificacion: false, verificado_por: user?.id, verificado_fecha: new Date().toISOString() };
+    const { error } = await supabase.from("credit_request_docs").update({
+      metadata: meta,
+      estado: "recibido",
+      aprobado_por: user?.id,
+      aprobado_fecha: new Date().toISOString(),
+    }).eq("id", verifyDoc.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Comprobante verificado y aprobado");
+    setVerifyDoc(null);
     refetchDocs();
   };
 
@@ -722,20 +809,43 @@ export default function CreditoDetail() {
                         {items.length > 0 && (
                           <div className="space-y-1">
                             {items.map((it: any) => (
-                              <div key={it.id} className="flex items-center justify-between gap-2 text-xs bg-white/70 rounded px-2 py-1.5 border border-white">
-                                <button onClick={() => openDoc(it.url_archivo)} className="truncate text-left hover:underline flex-1">{it.nombre_archivo}</button>
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] border ${
-                                  it.estado === "recibido" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                  it.estado === "rechazado" ? "bg-red-50 text-red-700 border-red-200" :
-                                  it.estado === "vencido" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                  "bg-slate-50 text-slate-700 border-slate-200"
-                                }`}>{it.estado}</span>
-                                {it.estado !== "recibido" && (
-                                  <Button size="icon" variant="ghost" className="h-6 w-6" title="Aprobar" onClick={() => setDocEstado(it.id, "recibido")}><Check className="h-3.5 w-3.5" /></Button>
-                                )}
-                                <Button size="icon" variant="ghost" className="h-6 w-6" title="Rechazar" onClick={() => { const m = prompt("Motivo de rechazo:"); if (m) setDocEstado(it.id, "rechazado", m); }}><X className="h-3.5 w-3.5" /></Button>
-                                <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" title="Eliminar" onClick={() => deleteDoc(it.id, it.url_archivo)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                              </div>
+                              (() => {
+                                const vs = vencStatus(it.fecha_vencimiento);
+                                const requiereVerif = it.metadata?.requiere_verificacion;
+                                return (
+                                  <div key={it.id} className="bg-white/70 rounded border border-white px-2 py-1.5 space-y-1">
+                                    <div className="flex items-center justify-between gap-2 text-xs">
+                                      <button onClick={() => openDoc(it.url_archivo)} className="truncate text-left hover:underline flex-1">{it.nombre_archivo}</button>
+                                      <span className={`px-1.5 py-0.5 rounded text-[10px] border ${
+                                        it.estado === "recibido" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                        it.estado === "rechazado" ? "bg-red-50 text-red-700 border-red-200" :
+                                        it.estado === "vencido" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                        "bg-slate-50 text-slate-700 border-slate-200"
+                                      }`}>{it.estado}</span>
+                                      {requiereVerif && (
+                                        <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setVerifyDoc(it)}>
+                                          <AlertTriangle className="h-3 w-3 mr-1" />Verificar
+                                        </Button>
+                                      )}
+                                      {it.estado !== "recibido" && (
+                                        <Button size="icon" variant="ghost" className="h-6 w-6" title="Aprobar" onClick={() => setDocEstado(it.id, "recibido")}><Check className="h-3.5 w-3.5" /></Button>
+                                      )}
+                                      <Button size="icon" variant="ghost" className="h-6 w-6" title="Rechazar" onClick={() => { const m = prompt("Motivo de rechazo:"); if (m) setDocEstado(it.id, "rechazado", m); }}><X className="h-3.5 w-3.5" /></Button>
+                                      <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" title="Eliminar" onClick={() => deleteDoc(it.id, it.url_archivo)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
+                                      <button onClick={() => openEditFecha(it)} className="inline-flex items-center gap-1 hover:text-foreground">
+                                        <CalendarClock className="h-3 w-3" />
+                                        {it.fecha_emision ? `Emitido ${format(new Date(it.fecha_emision + "T00:00:00"), "dd/MM/yyyy")}` : "Sin fecha de emisión"}
+                                      </button>
+                                      {it.fecha_vencimiento && (
+                                        <span>· Vence {format(new Date(it.fecha_vencimiento + "T00:00:00"), "dd/MM/yyyy")}</span>
+                                      )}
+                                      {vs && <span className={`px-1.5 py-0.5 rounded border ${vs.cls}`}>{vs.label}</span>}
+                                    </div>
+                                  </div>
+                                );
+                              })()
                             ))}
                           </div>
                         )}
@@ -957,6 +1067,85 @@ export default function CreditoDetail() {
             <Button onClick={confirmUpload} disabled={uploadingDoc || !uploadFile || !uploadName.trim()}>
               {uploadingDoc ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileUp className="h-4 w-4 mr-2" />}
               Subir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit fecha emisión dialog */}
+      <Dialog open={!!editFechaDoc} onOpenChange={(o) => { if (!o) setEditFechaDoc(null); }}>
+        <DialogContent className="sm:max-w-sm p-0 gap-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-br from-violet-50 to-blue-50 px-5 py-4 border-b">
+            <DialogTitle className="text-base font-semibold tracking-tight">Fecha de emisión</DialogTitle>
+            <DialogDescription className="text-xs">{editFechaDoc?.nombre_archivo}</DialogDescription>
+          </DialogHeader>
+          <div className="px-5 py-5 space-y-3 font-light">
+            <Field label="Fecha de emisión del documento">
+              <Input type="date" value={editFechaValue} onChange={(e) => setEditFechaValue(e.target.value)} />
+            </Field>
+            {(() => {
+              const dt = (docTypes as any[]).find((t) => t.id === editFechaDoc?.doc_type_id);
+              const venc = computeVencimiento(editFechaValue || null, dt);
+              if (!dt) return null;
+              return (
+                <p className="text-[11px] text-muted-foreground">
+                  Validez: {dt.validez_tipo === "fin_mes_emision" ? "hasta el último día del mes de emisión" : (dt.vigencia_dias ? `${dt.vigencia_dias} días desde la emisión` : "sin caducidad configurada")}
+                  {venc && ` · Vencerá el ${format(new Date(venc + "T00:00:00"), "dd/MM/yyyy")}`}
+                </p>
+              );
+            })()}
+          </div>
+          <DialogFooter className="bg-muted/40 px-5 py-3 border-t">
+            <Button variant="outline" onClick={() => setEditFechaDoc(null)}>Cancelar</Button>
+            <Button onClick={saveEditFecha}><Save className="h-4 w-4 mr-2" />Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Verify comprobante dialog */}
+      <Dialog open={!!verifyDoc} onOpenChange={(o) => { if (!o) setVerifyDoc(null); }}>
+        <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-br from-amber-50 to-yellow-50 px-5 py-4 border-b">
+            <DialogTitle className="text-base font-semibold tracking-tight flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-700" />Verificar comprobante de domicilio
+            </DialogTitle>
+            <DialogDescription className="text-xs">Compara el domicilio extraído del comprobante con el domicilio comercial de la CSF. Pueden existir ligeras variaciones.</DialogDescription>
+          </DialogHeader>
+          <div className="px-5 py-5 space-y-4 font-light">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="rounded-md border border-blue-200 bg-blue-50/50 p-3 space-y-1">
+                <p className="text-[10px] uppercase tracking-wide text-blue-700 font-medium">Domicilio comercial (CSF)</p>
+                <p className="text-sm">{form.domicilio_comercial || <span className="text-muted-foreground italic">No capturado</span>}</p>
+                {form.ciudad_comercial && <p className="text-xs text-muted-foreground">{form.ciudad_comercial}</p>}
+              </div>
+              <div className="rounded-md border border-amber-200 bg-amber-50/50 p-3 space-y-1">
+                <p className="text-[10px] uppercase tracking-wide text-amber-700 font-medium">Extraído del comprobante</p>
+                <p className="text-sm">{verifyDoc?.metadata?.domicilio_extraido || <span className="text-muted-foreground italic">No detectado</span>}</p>
+                <div className="text-xs text-muted-foreground space-x-2">
+                  {verifyDoc?.metadata?.ciudad_extraida && <span>{verifyDoc.metadata.ciudad_extraida}</span>}
+                  {verifyDoc?.metadata?.cp_extraido && <span>· CP {verifyDoc.metadata.cp_extraido}</span>}
+                </div>
+                {verifyDoc?.metadata?.titular_extraido && (
+                  <p className="text-[11px] text-muted-foreground">Titular: {verifyDoc.metadata.titular_extraido}</p>
+                )}
+                {verifyDoc?.metadata?.proveedor && (
+                  <p className="text-[11px] text-muted-foreground">Proveedor: {verifyDoc.metadata.proveedor}</p>
+                )}
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Si las direcciones coinciden razonablemente (mismas calle, colonia y CP), apruébalo. Si no, rechaza el documento e indica al cliente subir uno correcto.
+            </p>
+          </div>
+          <DialogFooter className="bg-muted/40 px-5 py-3 border-t gap-2">
+            <Button variant="outline" onClick={() => setVerifyDoc(null)}>Cerrar</Button>
+            <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50" onClick={() => {
+              const m = prompt("Motivo de rechazo:"); if (!m) return;
+              setDocEstado(verifyDoc.id, "rechazado", m);
+              setVerifyDoc(null);
+            }}><X className="h-4 w-4 mr-1" />Rechazar</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={approveVerificacion}>
+              <Check className="h-4 w-4 mr-1" />Aprobar coincidencia
             </Button>
           </DialogFooter>
         </DialogContent>

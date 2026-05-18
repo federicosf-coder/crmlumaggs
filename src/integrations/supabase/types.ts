@@ -1204,6 +1204,7 @@ export type Database = {
           requerido: boolean
           sort_order: number
           updated_at: string
+          validez_tipo: string
           vigencia_dias: number | null
         }
         Insert: {
@@ -1222,6 +1223,7 @@ export type Database = {
           requerido?: boolean
           sort_order?: number
           updated_at?: string
+          validez_tipo?: string
           vigencia_dias?: number | null
         }
         Update: {
@@ -1240,6 +1242,7 @@ export type Database = {
           requerido?: boolean
           sort_order?: number
           updated_at?: string
+          validez_tipo?: string
           vigencia_dias?: number | null
         }
         Relationships: []
@@ -1297,8 +1300,10 @@ export type Database = {
           credit_request_id: string
           doc_type_id: string | null
           estado: Database["public"]["Enums"]["credito_doc_estado"]
+          fecha_emision: string | null
           fecha_vencimiento: string | null
           id: string
+          metadata: Json
           nombre_archivo: string | null
           nombre_personalizado: string | null
           notas_rechazo: string | null
@@ -1317,8 +1322,10 @@ export type Database = {
           credit_request_id: string
           doc_type_id?: string | null
           estado?: Database["public"]["Enums"]["credito_doc_estado"]
+          fecha_emision?: string | null
           fecha_vencimiento?: string | null
           id?: string
+          metadata?: Json
           nombre_archivo?: string | null
           nombre_personalizado?: string | null
           notas_rechazo?: string | null
@@ -1337,8 +1344,10 @@ export type Database = {
           credit_request_id?: string
           doc_type_id?: string | null
           estado?: Database["public"]["Enums"]["credito_doc_estado"]
+          fecha_emision?: string | null
           fecha_vencimiento?: string | null
           id?: string
+          metadata?: Json
           nombre_archivo?: string | null
           nombre_personalizado?: string | null
           notas_rechazo?: string | null
