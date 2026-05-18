@@ -3,6 +3,9 @@ project_id = "pagkrffyrhnkyahtipqz"
 [functions.process-email-queue]
 verify_jwt = true
 
+[functions.credito-portal]
+verify_jwt = false
+
 [functions.send-transactional-email]
 verify_jwt = false
 
