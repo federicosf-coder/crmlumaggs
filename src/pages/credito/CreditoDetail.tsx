@@ -1071,6 +1071,85 @@ export default function CreditoDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit fecha emisión dialog */}
+      <Dialog open={!!editFechaDoc} onOpenChange={(o) => { if (!o) setEditFechaDoc(null); }}>
+        <DialogContent className="sm:max-w-sm p-0 gap-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-br from-violet-50 to-blue-50 px-5 py-4 border-b">
+            <DialogTitle className="text-base font-semibold tracking-tight">Fecha de emisión</DialogTitle>
+            <DialogDescription className="text-xs">{editFechaDoc?.nombre_archivo}</DialogDescription>
+          </DialogHeader>
+          <div className="px-5 py-5 space-y-3 font-light">
+            <Field label="Fecha de emisión del documento">
+              <Input type="date" value={editFechaValue} onChange={(e) => setEditFechaValue(e.target.value)} />
+            </Field>
+            {(() => {
+              const dt = (docTypes as any[]).find((t) => t.id === editFechaDoc?.doc_type_id);
+              const venc = computeVencimiento(editFechaValue || null, dt);
+              if (!dt) return null;
+              return (
+                <p className="text-[11px] text-muted-foreground">
+                  Validez: {dt.validez_tipo === "fin_mes_emision" ? "hasta el último día del mes de emisión" : (dt.vigencia_dias ? `${dt.vigencia_dias} días desde la emisión` : "sin caducidad configurada")}
+                  {venc && ` · Vencerá el ${format(new Date(venc + "T00:00:00"), "dd/MM/yyyy")}`}
+                </p>
+              );
+            })()}
+          </div>
+          <DialogFooter className="bg-muted/40 px-5 py-3 border-t">
+            <Button variant="outline" onClick={() => setEditFechaDoc(null)}>Cancelar</Button>
+            <Button onClick={saveEditFecha}><Save className="h-4 w-4 mr-2" />Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Verify comprobante dialog */}
+      <Dialog open={!!verifyDoc} onOpenChange={(o) => { if (!o) setVerifyDoc(null); }}>
+        <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-br from-amber-50 to-yellow-50 px-5 py-4 border-b">
+            <DialogTitle className="text-base font-semibold tracking-tight flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-700" />Verificar comprobante de domicilio
+            </DialogTitle>
+            <DialogDescription className="text-xs">Compara el domicilio extraído del comprobante con el domicilio comercial de la CSF. Pueden existir ligeras variaciones.</DialogDescription>
+          </DialogHeader>
+          <div className="px-5 py-5 space-y-4 font-light">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="rounded-md border border-blue-200 bg-blue-50/50 p-3 space-y-1">
+                <p className="text-[10px] uppercase tracking-wide text-blue-700 font-medium">Domicilio comercial (CSF)</p>
+                <p className="text-sm">{form.domicilio_comercial || <span className="text-muted-foreground italic">No capturado</span>}</p>
+                {form.ciudad_comercial && <p className="text-xs text-muted-foreground">{form.ciudad_comercial}</p>}
+              </div>
+              <div className="rounded-md border border-amber-200 bg-amber-50/50 p-3 space-y-1">
+                <p className="text-[10px] uppercase tracking-wide text-amber-700 font-medium">Extraído del comprobante</p>
+                <p className="text-sm">{verifyDoc?.metadata?.domicilio_extraido || <span className="text-muted-foreground italic">No detectado</span>}</p>
+                <div className="text-xs text-muted-foreground space-x-2">
+                  {verifyDoc?.metadata?.ciudad_extraida && <span>{verifyDoc.metadata.ciudad_extraida}</span>}
+                  {verifyDoc?.metadata?.cp_extraido && <span>· CP {verifyDoc.metadata.cp_extraido}</span>}
+                </div>
+                {verifyDoc?.metadata?.titular_extraido && (
+                  <p className="text-[11px] text-muted-foreground">Titular: {verifyDoc.metadata.titular_extraido}</p>
+                )}
+                {verifyDoc?.metadata?.proveedor && (
+                  <p className="text-[11px] text-muted-foreground">Proveedor: {verifyDoc.metadata.proveedor}</p>
+                )}
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Si las direcciones coinciden razonablemente (mismas calle, colonia y CP), apruébalo. Si no, rechaza el documento e indica al cliente subir uno correcto.
+            </p>
+          </div>
+          <DialogFooter className="bg-muted/40 px-5 py-3 border-t gap-2">
+            <Button variant="outline" onClick={() => setVerifyDoc(null)}>Cerrar</Button>
+            <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50" onClick={() => {
+              const m = prompt("Motivo de rechazo:"); if (!m) return;
+              setDocEstado(verifyDoc.id, "rechazado", m);
+              setVerifyDoc(null);
+            }}><X className="h-4 w-4 mr-1" />Rechazar</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={approveVerificacion}>
+              <Check className="h-4 w-4 mr-1" />Aprobar coincidencia
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
