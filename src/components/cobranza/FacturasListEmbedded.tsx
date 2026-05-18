@@ -593,7 +593,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                 </TableHeader>
                 <TableBody>
                   {pagedDocs.map((doc: any) => {
-                    const fv = fechaVencimientoEfectiva(doc);
+                    const fv = doc.fecha_vencimiento ?? fechaVencimientoEfectiva(doc);
                     return (
                       <TableRow
                         key={doc.id}
