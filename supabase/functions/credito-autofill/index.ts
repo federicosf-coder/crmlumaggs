@@ -174,7 +174,8 @@ Deno.serve(async (req) => {
     const updates: Record<string, any> = {}
     const fillIfEmpty = (col: string, val: any) => {
       if (val === null || val === undefined || val === '') return
-      if (cur && (cur as any)[col] === null || (cur as any)[col] === '' || (cur as any)[col] === undefined) {
+      const existing = cur ? (cur as any)[col] : null
+      if (existing === null || existing === '' || existing === undefined) {
         updates[col] = val
       }
     }
