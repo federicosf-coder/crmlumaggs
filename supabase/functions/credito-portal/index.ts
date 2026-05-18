@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { extractText, getDocumentProxy } from 'npm:unpdf@0.12.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,6 +63,60 @@ function b64ToBytes(b64: string): Uint8Array {
   const out = new Uint8Array(bin.length)
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
   return out
+}
+
+// ---- CSF (Constancia de Situación Fiscal) parser ----
+function norm(s: string) {
+  return s.replace(/\u00A0/g, ' ').replace(/[ \t]+/g, ' ').replace(/\r/g, '').trim()
+}
+function pick(text: string, re: RegExp): string | null {
+  const m = text.match(re); return m && m[1] ? norm(m[1]) : null
+}
+function parseCsfText(raw: string) {
+  const t = raw.replace(/\u00A0/g, ' ')
+  // RFC: 12 (moral) or 13 (fisica) alphanumeric
+  const rfc = pick(t, /\bRFC\s*:?\s*([A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3})\b/i)
+  const razon =
+    pick(t, /Denominaci[oó]n\s*\/?\s*Raz[oó]n\s+Social\s*:?\s*([^\n]+?)(?=\s*(?:R[eé]gimen|Nombre|R\.F\.C|Fecha\b))/i) ||
+    pick(t, /Nombre\s*\(s\)\s*:?\s*([^\n]+?)(?=\s*(?:Primer|Apellido|R\.F\.C|R[eé]gimen|Fecha))/i)
+  const regimen = pick(t, /R[eé]gimen\s*:?\s*([^\n]+?)(?=\s*(?:Fecha|Estatus|$))/i)
+  const cp = pick(t, /C[oó]digo\s+Postal\s*:?\s*(\d{5})/i)
+  const fechaIni = pick(t, /Fecha\s+de\s+inicio\s+de\s+operaciones\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i)
+  const actividad = pick(t, /Actividad\s+Econ[oó]mica\s*[:\n]+\s*([^\n]+)/i)
+  // Build domicilio from common fields
+  const calle = pick(t, /Nombre\s+de\s+(?:la\s+)?[Vv]ialidad\s*:?\s*([^\n]+?)(?=\s*(?:N[uú]mero|Colonia|C[oó]digo))/i)
+  const numExt = pick(t, /N[uú]mero\s+Exterior\s*:?\s*([^\n]+?)(?=\s*(?:N[uú]mero\s+Interior|Colonia|C[oó]digo))/i)
+  const numInt = pick(t, /N[uú]mero\s+Interior\s*:?\s*([^\n]+?)(?=\s*(?:Colonia|C[oó]digo))/i)
+  const colonia = pick(t, /(?:Nombre\s+de\s+(?:la\s+)?)?Colonia\s*:?\s*([^\n]+?)(?=\s*(?:Municipio|Delegaci[oó]n|C[oó]digo|Entidad))/i)
+  const municipio = pick(t, /(?:Municipio|Delegaci[oó]n)\s*(?:\/Delegaci[oó]n)?\s*:?\s*([^\n]+?)(?=\s*(?:Entidad|C[oó]digo))/i)
+  const entidad = pick(t, /Entidad\s+Federativa\s*:?\s*([^\n]+?)(?=\s*(?:Entre\b|C[oó]digo|Tel[eé]fono|$))/i)
+  const domParts = [calle, numExt ? `#${numExt}` : null, numInt ? `Int. ${numInt}` : null, colonia ? `Col. ${colonia}` : null]
+    .filter(Boolean).join(' ')
+  // Tipo de persona: RFC 12 → moral, 13 → física
+  const tipoPersona = rfc ? (rfc.length === 12 ? 'moral' : 'fisica') : null
+  // Parse date dd/mm/yyyy → ISO
+  let fechaIso: string | null = null
+  if (fechaIni) {
+    const [d, m, y] = fechaIni.split('/')
+    if (d && m && y) fechaIso = `${y}-${m}-${d}`
+  }
+  return {
+    csf_rfc: rfc,
+    csf_razon_social: razon,
+    csf_regimen_fiscal: regimen,
+    csf_cp: cp,
+    csf_domicilio: domParts || null,
+    csf_actividad_economica: actividad,
+    csf_fecha_inicio_operaciones: fechaIso,
+    csf_tipo_persona: tipoPersona,
+    _municipio: municipio,
+    _entidad: entidad,
+  }
+}
+async function extractPdfText(bytes: Uint8Array): Promise<string> {
+  const pdf = await getDocumentProxy(bytes)
+  const { text } = await extractText(pdf, { mergePages: true })
+  return Array.isArray(text) ? text.join('\n') : String(text || '')
 }
 
 Deno.serve(async (req) => {
