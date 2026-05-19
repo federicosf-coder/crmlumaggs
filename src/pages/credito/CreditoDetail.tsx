@@ -937,6 +937,7 @@ export default function CreditoDetail() {
                       <p className="text-[10px] text-muted-foreground pt-1">
                         Solo se llenarán los campos que estén vacíos; los datos ya capturados no se sobrescriben.
                       </p>
+                      </>)}
                     </CardContent>
                   </Card>
                 );
