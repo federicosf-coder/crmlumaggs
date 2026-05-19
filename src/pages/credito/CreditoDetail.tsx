@@ -503,10 +503,9 @@ export default function CreditoDetail() {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Monto: {form.monto_solicitado ? `$${Number(form.monto_solicitado).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : "—"}
-                {form.dias_credito ? ` · ${form.dias_credito} días` : ""}
-              </p>
+              {company?.razon_social && company.razon_social !== company.name && (
+                <p className="text-xs text-muted-foreground mt-1">{company.razon_social}</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={sendToPortal}>
