@@ -493,8 +493,6 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
 }
 
 // ─── Main Page ───────────────────────────────────────────────
-export default function DeliverySchedule() {
-
 function PedidoFooterActions({ item }: { item: any }) {
   const [open, setOpen] = useState<null | "mapa" | "editar" | "entrega">(null);
   const title = open === "mapa" ? "Mapa" : open === "editar" ? "Editar pedido" : "Entrega";
