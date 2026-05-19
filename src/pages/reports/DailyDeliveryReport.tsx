@@ -40,13 +40,14 @@ type RowData = {
 };
 
 type RutaDetail = {
-  ruta_id: string;
+  entrega_id: string;
   fecha_entrega: string;
+  fecha_real: string | null;
   plaza_nombre: string;
-  repartidores: string;
-  entregas: number;
-  horas: number;
+  repartidor_nombre: string;
+  cliente: string;
   km: number;
+  minutos: number;
 };
 
 const ALL = "__ALL__";
@@ -114,8 +115,29 @@ export default function DailyDeliveryReport() {
 
       const { data: entregas } = await supabase
         .from("entregas_programadas")
-        .select("ruta_id, fecha_entrega_real")
+        .select("id, ruta_id, repartidor_id, fecha_entrega, fecha_entrega_real, km_desde_anterior, tiempo_real_min, documento_id")
         .in("ruta_id", rutaIds);
+
+      const docIds = Array.from(new Set((entregas || []).map((e) => e.documento_id).filter(Boolean)));
+      let empresaByDoc = new Map<string, string>();
+      if (docIds.length > 0) {
+        const { data: docs } = await supabase
+          .from("documentos")
+          .select("id, empresa_id")
+          .in("id", docIds);
+        const empIds = Array.from(new Set((docs || []).map((d) => d.empresa_id).filter(Boolean)));
+        const empNames = new Map<string, string>();
+        if (empIds.length > 0) {
+          const { data: emps } = await supabase
+            .from("empresas")
+            .select("id, nombre_comercial, razon_social")
+            .in("id", empIds);
+          (emps || []).forEach((e: any) => empNames.set(e.id, e.nombre_comercial || e.razon_social || "—"));
+        }
+        (docs || []).forEach((d: any) => {
+          empresaByDoc.set(d.id, empNames.get(d.empresa_id) || "—");
+        });
+      }
 
       const deliveredByRuta = new Map<string, number>();
       (entregas || []).forEach((e) => {
@@ -162,19 +184,6 @@ export default function DailyDeliveryReport() {
         const entregasCount = deliveredByRuta.get(r.id) || 0;
         const share = 1 / drivers.size;
 
-        const matchesFilter = repartidorId === ALL || drivers.has(repartidorId);
-        if (matchesFilter) {
-          details.push({
-            ruta_id: r.id,
-            fecha_entrega: r.fecha_entrega,
-            plaza_nombre: plazaNames.get(r.plaza_id) || "—",
-            repartidores: Array.from(drivers).map((d) => repNames.get(d) || "—").join(", "),
-            entregas: entregasCount,
-            horas,
-            km,
-          });
-        }
-
         for (const did of drivers) {
           if (repartidorId !== ALL && did !== repartidorId) continue;
           const row = ensure(did, r.plaza_id);
@@ -185,7 +194,27 @@ export default function DailyDeliveryReport() {
         }
       }
 
-      details.sort((a, b) => a.fecha_entrega.localeCompare(b.fecha_entrega));
+      const rutaById = new Map((rutas || []).map((r) => [r.id, r]));
+      for (const e of entregas || []) {
+        const r = rutaById.get(e.ruta_id);
+        if (!r) continue;
+        if (repartidorId !== ALL && e.repartidor_id !== repartidorId) continue;
+        details.push({
+          entrega_id: e.id,
+          fecha_entrega: r.fecha_entrega,
+          fecha_real: e.fecha_entrega_real,
+          plaza_nombre: plazaNames.get(r.plaza_id) || "—",
+          repartidor_nombre: repNames.get(e.repartidor_id) || "—",
+          cliente: empresaByDoc.get(e.documento_id) || "—",
+          km: Number(e.km_desde_anterior || 0),
+          minutos: Number(e.tiempo_real_min || 0),
+        });
+      }
+      details.sort((a, b) => {
+        const ka = a.fecha_real || a.fecha_entrega;
+        const kb = b.fecha_real || b.fecha_entrega;
+        return ka.localeCompare(kb);
+      });
       return { rows: Array.from(agg.values()), details };
     },
     enabled: !!dateFromStr && !!dateToStr,
