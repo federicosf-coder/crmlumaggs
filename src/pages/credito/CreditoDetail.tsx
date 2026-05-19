@@ -367,6 +367,7 @@ function BeneficiarioControladorSteps({
                   uploadDoc={uploadDoc}
                   openDoc={openDoc}
                   docs={docs}
+                  creditId={creditId}
                 />
               )}
               {bcTipo === "moral" && (
