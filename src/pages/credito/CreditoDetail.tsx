@@ -225,7 +225,7 @@ function BeneficiarioControladorSteps({
                 <RadioGroupItem value="si" id="bc-existe-si" className="mt-0.5" />
                 <div className="space-y-0.5">
                   <p className="text-sm font-medium">Sí existe</p>
-                  <p className="text-xs text-muted-foreground">Hay una persona física que controla o se beneficia de esta operación</p>
+                  <p className="text-xs text-muted-foreground">Hay una persona física o persona moral que controla o se beneficia de esta operación</p>
                 </div>
               </label>
               <label
