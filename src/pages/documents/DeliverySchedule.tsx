@@ -252,9 +252,28 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
       {!hasCoords && (
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <Badge variant="outline" className="text-[10px] gap-1 border-amber-400 text-amber-700 bg-amber-50">
-              <AlertTriangle className="h-3 w-3" /> Sin ubicación
-            </Badge>
+            {(() => {
+              const hasAddr = !!(item?.address || item?.raw?.direccion_envio);
+              if (geocoding) {
+                return (
+                  <Badge variant="outline" className="text-[10px] gap-1 border-blue-300 text-blue-700 bg-blue-50">
+                    <MapPin className="h-3 w-3 animate-pulse" /> Calculando ubicación…
+                  </Badge>
+                );
+              }
+              if (hasAddr) {
+                return (
+                  <Badge variant="outline" className="text-[10px] gap-1 border-blue-300 text-blue-700 bg-blue-50">
+                    <MapPin className="h-3 w-3" /> Ubicación pendiente de calcular
+                  </Badge>
+                );
+              }
+              return (
+                <Badge variant="outline" className="text-[10px] gap-1 border-amber-400 text-amber-700 bg-amber-50">
+                  <AlertTriangle className="h-3 w-3" /> Sin dirección de envío
+                </Badge>
+              );
+            })()}
             <div className="flex items-center gap-1">
               <Button
                 size="sm"
