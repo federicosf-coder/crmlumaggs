@@ -2172,6 +2172,21 @@ export default function CreditoDetail() {
               de ellas.
             </p>
 
+            <section className="space-y-1.5 rounded-md border border-violet-100 bg-violet-50/50 p-3">
+              <h4 className="text-[11px] uppercase tracking-wide font-medium text-violet-900">¿Por qué se solicita?</h4>
+              <p>
+                El <strong>artículo 17 de la LFPIORPI</strong> incluye como Actividad Vulnerable:
+              </p>
+              <blockquote className="border-l-2 border-violet-300 pl-3 italic text-muted-foreground">
+                "La comercialización o distribución de hidrocarburos, petrolíferos o petroquímicos."
+              </blockquote>
+              <p>
+                Los combustibles (gasolina, diésel, turbosina) son <strong>petrolíferos</strong> conforme
+                a la <strong>Ley de Hidrocarburos</strong>. Si la empresa matriz comercializa combustibles,
+                cae directamente en esta categoría y está obligada a identificar a su Beneficiario Controlador.
+              </p>
+            </section>
+
             <section className="space-y-1.5">
               <h4 className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Base legal</h4>
               <p>
