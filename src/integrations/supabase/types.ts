@@ -1483,6 +1483,7 @@ export type Database = {
           client_nombre_contacto: string | null
           client_token: string
           company_id: string
+          contact_id: string | null
           correo_contacto: string | null
           created_at: string
           created_by: string | null
@@ -1545,6 +1546,7 @@ export type Database = {
           rep_legal_tipo_id: string | null
           rep_legal_vencimiento_id: string | null
           rfc: string | null
+          short_code: string | null
           telefono: string | null
           tipo: Database["public"]["Enums"]["credito_tipo"] | null
           tipo_persona: string | null
@@ -1572,6 +1574,7 @@ export type Database = {
           client_nombre_contacto?: string | null
           client_token?: string
           company_id: string
+          contact_id?: string | null
           correo_contacto?: string | null
           created_at?: string
           created_by?: string | null
@@ -1634,6 +1637,7 @@ export type Database = {
           rep_legal_tipo_id?: string | null
           rep_legal_vencimiento_id?: string | null
           rfc?: string | null
+          short_code?: string | null
           telefono?: string | null
           tipo?: Database["public"]["Enums"]["credito_tipo"] | null
           tipo_persona?: string | null
@@ -1661,6 +1665,7 @@ export type Database = {
           client_nombre_contacto?: string | null
           client_token?: string
           company_id?: string
+          contact_id?: string | null
           correo_contacto?: string | null
           created_at?: string
           created_by?: string | null
@@ -1723,6 +1728,7 @@ export type Database = {
           rep_legal_tipo_id?: string | null
           rep_legal_vencimiento_id?: string | null
           rfc?: string | null
+          short_code?: string | null
           telefono?: string | null
           tipo?: Database["public"]["Enums"]["credito_tipo"] | null
           tipo_persona?: string | null
@@ -1736,6 +1742,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_requests_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
@@ -5267,6 +5280,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      generate_credit_short_code: { Args: never; Returns: string }
       get_admin_emails: {
         Args: never
         Returns: {
@@ -5383,6 +5397,7 @@ export type Database = {
       }
       recompute_pago_balance: { Args: { _pago_id: string }; Returns: undefined }
       repair_whatsapp_account_links: { Args: never; Returns: Json }
+      resolve_credit_short_code: { Args: { code: string }; Returns: string }
       resolve_documento_negocio: {
         Args: {
           _contacto_id: string
