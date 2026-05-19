@@ -1130,6 +1130,10 @@ export default function DeliverySchedule() {
       setDeliverDialog(false);
       refetchEntregas();
       refetchPool();
+      // Recalcular km y tiempos de la ruta con la información real tras marcar entregado
+      if (container && container !== "pool") {
+        await recalcRouteDistances(container);
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
