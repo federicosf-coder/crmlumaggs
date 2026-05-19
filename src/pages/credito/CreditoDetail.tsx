@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock, Briefcase, Phone, Mail, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock, Briefcase, Phone, Mail, ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS, CREDITO_TIPO_PERSONA_OPTIONS } from "@/lib/credito";
@@ -83,6 +83,7 @@ export default function CreditoDetail() {
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [autofillCollapsed, setAutofillCollapsed] = useState(true);
+  const [bcInfoOpen, setBcInfoOpen] = useState(false);
   const [editFechaValue, setEditFechaValue] = useState<string>("");
   const [verifyDoc, setVerifyDoc] = useState<any | null>(null);
 
@@ -1186,9 +1187,19 @@ export default function CreditoDetail() {
               <TabsContent value="cumplimiento" className="space-y-6 mt-5">
             <Section title="LFPIORPI">
               <Field label="¿Beneficiario controlador?">
-                <div className="flex items-center gap-2 h-9">
+                <div className="flex items-center gap-2 h-9 flex-wrap">
                   <Switch checked={!!form.lfpiorpi_beneficiario_controlador} onCheckedChange={(v) => set("lfpiorpi_beneficiario_controlador", v)} />
                   <span className="text-sm">{form.lfpiorpi_beneficiario_controlador ? "Sí" : "No"}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-[11px] gap-1 border-violet-300 text-violet-700 hover:bg-violet-50"
+                    onClick={() => setBcInfoOpen(true)}
+                  >
+                    <HelpCircle className="h-3.5 w-3.5" />
+                    Conoce más
+                  </Button>
                 </div>
               </Field>
               <Field label="¿Tiene documentación?">
