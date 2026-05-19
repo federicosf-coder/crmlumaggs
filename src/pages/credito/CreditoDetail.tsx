@@ -1188,23 +1188,14 @@ export default function CreditoDetail() {
               </TabsContent>
 
               <TabsContent value="cumplimiento" className="space-y-6 mt-5">
+            <BeneficiarioControladorSteps
+              form={form}
+              set={set}
+              creditId={id!}
+              onSavedBc={() => qc.invalidateQueries({ queryKey: ["credit_request", id] })}
+              onOpenInfo={() => setBcInfoOpen(true)}
+            />
             <Section title="LFPIORPI">
-              <Field label="¿Beneficiario controlador?">
-                <div className="flex items-center gap-2 h-9 flex-wrap">
-                  <Switch checked={!!form.lfpiorpi_beneficiario_controlador} onCheckedChange={(v) => set("lfpiorpi_beneficiario_controlador", v)} />
-                  <span className="text-sm">{form.lfpiorpi_beneficiario_controlador ? "Sí" : "No"}</span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-[11px] gap-1 border-violet-300 text-violet-700 hover:bg-violet-50"
-                    onClick={() => setBcInfoOpen(true)}
-                  >
-                    <HelpCircle className="h-3.5 w-3.5" />
-                    Conoce más
-                  </Button>
-                </div>
-              </Field>
               <Field label="¿Tiene documentación?">
                 <div className="flex items-center gap-2 h-9">
                   <Switch checked={!!form.lfpiorpi_tiene_documentacion} onCheckedChange={(v) => set("lfpiorpi_tiene_documentacion", v)} />
