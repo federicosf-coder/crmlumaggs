@@ -416,7 +416,7 @@ export default function DeliverySchedule() {
     queryFn: async () => {
       const { data } = await supabase
         .from("rutas_entrega")
-        .select("*, plazas(nombre)")
+        .select("*, plazas(nombre, lat, lng)")
         .order("fecha_entrega", { ascending: true });
       return data || [];
     },
