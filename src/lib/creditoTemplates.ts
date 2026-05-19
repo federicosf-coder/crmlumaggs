@@ -59,7 +59,16 @@ function entidadNombreLargo(empresa: string | null | undefined): string {
 export function buildTokens(form: any, company: any = {}): Record<string, string> {
   const bc = form?.bc_data || {};
   const referencias = Array.isArray(form?.referencias_comerciales) ? form.referencias_comerciales : [];
-  const banco = form?.datos_bancarios || {};
+  const bancosRaw = form?.datos_bancarios;
+  const bancos: any[] = Array.isArray(bancosRaw)
+    ? bancosRaw
+    : (bancosRaw && typeof bancosRaw === "object" ? [bancosRaw] : []);
+  const primerBanco: any = bancos[0] || {};
+  const bancosHtml = bancos.length
+    ? `<table class="grid"><thead><tr><th>Banco</th><th>Cuenta / CLABE</th><th>Sucursal</th></tr></thead><tbody>${bancos
+        .map((b: any) => `<tr><td>${b?.banco ?? ""}</td><td>${b?.cuenta ?? b?.clabe ?? ""}</td><td>${b?.sucursal ?? ""}</td></tr>`)
+        .join("")}</tbody></table>`
+    : '<p class="muted">Sin cuentas bancarias capturadas.</p>';
   const tipo = form?.tipo_persona || form?.csf_tipo_persona || "moral";
 
   const refsHtml = referencias.length
@@ -82,9 +91,10 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
     giro_comercial: form?.giro_comercial || form?.csf_actividad_economica || "",
     monto_credito: fmtMoney(form?.monto_solicitado),
     dias_credito: form?.dias_credito != null ? String(form.dias_credito) : "",
-    banco_nombre: banco?.banco || "",
-    banco_cuenta: banco?.cuenta || "",
-    banco_clabe: banco?.clabe || "",
+    banco_nombre: primerBanco?.banco || "",
+    banco_cuenta: primerBanco?.cuenta || "",
+    banco_clabe: primerBanco?.clabe || primerBanco?.cuenta || "",
+    datos_bancarios_html: bancosHtml,
     referencias_comerciales_html: refsHtml,
     aval_nombre: form?.aval_nombre || "",
     aval_direccion: form?.aval_direccion || "",
