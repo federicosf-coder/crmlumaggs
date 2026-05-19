@@ -169,11 +169,38 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
   const [showCoords, setShowCoords] = useState(false);
   const [lat, setLat] = useState<string>("");
   const [lng, setLng] = useState<string>("");
+  const [geocoding, setGeocoding] = useState(false);
+  const { ready: gmapsReady } = useGoogleMaps();
 
   useEffect(() => {
     setReal(entrega.tiempo_real_min != null ? String(entrega.tiempo_real_min) : "");
     setKmManual(km != null ? String(km) : "");
   }, [entrega.tiempo_real_min, km]);
+
+  const geocodeFromAddress = async () => {
+    const addr = item?.address || item?.raw?.direccion_envio;
+    if (!addr) { toast.error("El pedido no tiene dirección de envío"); return; }
+    if (!gmapsReady || !(window as any).google?.maps) { toast.error("Google Maps aún no está listo"); return; }
+    try {
+      setGeocoding(true);
+      const geocoder = new (window as any).google.maps.Geocoder();
+      const res: any = await new Promise((resolve, reject) => {
+        geocoder.geocode({ address: addr, region: "mx" }, (results: any, status: any) => {
+          if (status === "OK" && results?.[0]) resolve(results[0]);
+          else reject(new Error(`Geocoder: ${status}`));
+        });
+      });
+      const loc = res.geometry?.location;
+      const la = typeof loc?.lat === "function" ? loc.lat() : loc?.lat;
+      const ln = typeof loc?.lng === "function" ? loc.lng() : loc?.lng;
+      if (la == null || ln == null) throw new Error("Sin coordenadas en el resultado");
+      onSaveDocCoords?.(item.id, Number(la), Number(ln));
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo calcular la ubicación");
+    } finally {
+      setGeocoding(false);
+    }
+  };
 
   return (
     <div className="mt-1 ml-0 rounded-md border bg-muted/30 px-2 py-1.5 text-[11px] space-y-1" onPointerDown={(e) => e.stopPropagation()}>
