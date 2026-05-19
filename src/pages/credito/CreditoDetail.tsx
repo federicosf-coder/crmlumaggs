@@ -1179,6 +1179,7 @@ export default function CreditoDetail() {
                 { key: "contacto", label: "Contacto" },
                 { key: "telefono", label: "Teléfono" },
               ]}
+              minRequired={3}
             />
               </TabsContent>
 
@@ -1683,13 +1684,16 @@ export default function CreditoDetail() {
 }
 
 // Generic JSONB array editor
-function Repeater({ title, value, onChange, fields }: {
+function Repeater({ title, value, onChange, fields, minRequired }: {
   title: string;
   value: any[];
   onChange: (v: any[]) => void;
   fields: { key: string; label: string; type?: string }[];
+  minRequired?: number;
 }) {
   const list = Array.isArray(value) ? value : [];
+  const faltan = minRequired ? Math.max(0, minRequired - list.length) : 0;
+  const cumple = !minRequired || list.length >= minRequired;
   const update = (i: number, k: string, v: any) => {
     const next = list.slice();
     next[i] = { ...next[i], [k]: v };
@@ -1700,7 +1704,16 @@ function Repeater({ title, value, onChange, fields }: {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">{title}</p>
+        <div className="space-y-0.5">
+          <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">{title}</p>
+          {minRequired ? (
+            <p className={`text-[11px] ${cumple ? "text-emerald-700" : "text-amber-700"}`}>
+              {cumple
+                ? `Mínimo cumplido (${list.length}/${minRequired}).`
+                : `Mínimo ${minRequired} requeridas — faltan ${faltan} (${list.length}/${minRequired}).`}
+            </p>
+          ) : null}
+        </div>
         <Button size="sm" variant="outline" onClick={add}><Plus className="h-3 w-3 mr-1" />Agregar</Button>
       </div>
       {list.length === 0 ? (
