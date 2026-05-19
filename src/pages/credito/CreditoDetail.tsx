@@ -397,6 +397,37 @@ function BcField({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
+function BcDomicilioField({ bcData, setBc, label }: { bcData: any; setBc: (k: string, v: any) => void; label: string }) {
+  const value = {
+    direccion_completa: bcData?.domicilio || "",
+    latitud: bcData?.domicilio_lat ?? null,
+    longitud: bcData?.domicilio_lng ?? null,
+    ciudad: bcData?.domicilio_ciudad ?? null,
+    estado: bcData?.domicilio_estado ?? null,
+    pais: bcData?.domicilio_pais ?? null,
+    codigo_postal: bcData?.domicilio_cp ?? null,
+    codigo_google: bcData?.domicilio_place_id ?? null,
+  };
+  return (
+    <AddressAutocompleteInput
+      label={label}
+      value={value}
+      showCoords={false}
+      showLocateButton
+      onChange={(v) => {
+        setBc("domicilio", v.direccion_completa);
+        setBc("domicilio_lat", v.latitud);
+        setBc("domicilio_lng", v.longitud);
+        setBc("domicilio_ciudad", v.ciudad);
+        setBc("domicilio_estado", v.estado);
+        setBc("domicilio_pais", v.pais);
+        setBc("domicilio_cp", v.codigo_postal);
+        setBc("domicilio_place_id", v.codigo_google);
+      }}
+    />
+  );
+}
+
 function BcDocUploader({
   docKey,
   label,
