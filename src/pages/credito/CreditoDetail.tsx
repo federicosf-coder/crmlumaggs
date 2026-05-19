@@ -87,7 +87,7 @@ export default function CreditoDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("credit_requests")
-        .select("*, companies(name, razon_social)")
+        .select("*, companies(id, name, razon_social, industrias, plaza_id)")
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
@@ -97,6 +97,30 @@ export default function CreditoDetail() {
   });
 
   useEffect(() => { if (req) setForm(req); }, [req]);
+
+  const companyId = (req?.companies as any)?.id || (req as any)?.company_id || null;
+
+  const { data: plazas = [] } = useQuery({
+    queryKey: ["plazas-credito"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plazas").select("id, nombre").order("nombre");
+      return data || [];
+    },
+  });
+
+  const { data: companyContacts = [] } = useQuery({
+    queryKey: ["credit-company-contacts", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name, job_title, email, phone, mobile, whatsapp_phone")
+        .eq("company_id", companyId)
+        .eq("is_active", true)
+        .order("first_name");
+      return data || [];
+    },
+  });
 
   const { data: docTypes = [] } = useQuery({
     queryKey: ["credit_doc_types_active"],
