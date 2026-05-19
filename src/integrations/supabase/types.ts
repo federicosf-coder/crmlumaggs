@@ -1618,6 +1618,7 @@ export type Database = {
           short_code: string | null
           solicita_galsa: boolean
           solicita_lumaggs: boolean
+          sync_correo_contacto: boolean
           telefono: string | null
           tipo: Database["public"]["Enums"]["credito_tipo"] | null
           tipo_persona: string | null
@@ -1732,6 +1733,7 @@ export type Database = {
           short_code?: string | null
           solicita_galsa?: boolean
           solicita_lumaggs?: boolean
+          sync_correo_contacto?: boolean
           telefono?: string | null
           tipo?: Database["public"]["Enums"]["credito_tipo"] | null
           tipo_persona?: string | null
@@ -1846,6 +1848,7 @@ export type Database = {
           short_code?: string | null
           solicita_galsa?: boolean
           solicita_lumaggs?: boolean
+          sync_correo_contacto?: boolean
           telefono?: string | null
           tipo?: Database["public"]["Enums"]["credito_tipo"] | null
           tipo_persona?: string | null

@@ -1726,7 +1726,48 @@ export default function CreditoDetail() {
               <Field label="Nombre comercial"><Input value={form.nombre_comercial || ""} onChange={(e) => set("nombre_comercial", e.target.value)} /></Field>
               <Field label="RFC"><Input value={form.rfc || ""} onChange={(e) => set("rfc", e.target.value.toUpperCase())} /></Field>
               <Field label="Teléfono"><Input value={form.telefono || ""} onChange={(e) => set("telefono", e.target.value)} /></Field>
-              <Field label="Correo de contacto"><Input value={form.correo_contacto || ""} onChange={(e) => set("correo_contacto", e.target.value)} /></Field>
+              <Field label="Correo de contacto">
+                {(() => {
+                  const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+                  const syncContact = form.sync_correo_contacto === true;
+                  return (
+                    <div className="space-y-1">
+                      <div className="flex gap-1">
+                        <Input
+                          value={form.correo_contacto || ""}
+                          onChange={(e) => set("correo_contacto", e.target.value)}
+                          onBlur={async (e) => {
+                            const val = e.target.value.trim();
+                            if (syncContact && cc && val && val !== (cc.email || "")) {
+                              const { error } = await supabase.from("contacts").update({ email: val }).eq("id", cc.id);
+                              if (error) toast.error("No se pudo actualizar el contacto");
+                              else { toast.success("Correo actualizado también en el contacto"); qc.invalidateQueries({ queryKey: ["company_contacts", companyId] }); }
+                            }
+                          }}
+                        />
+                        {cc?.email && (
+                          <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs whitespace-nowrap"
+                            onClick={() => { set("correo_contacto", cc.email); supabase.from("credit_requests").update({ correo_contacto: cc.email }).eq("id", id!); }}
+                            title={`Jalar de ${cc.first_name || ""} ${cc.last_name || ""}`.trim()}
+                          >
+                            Jalar del contacto
+                          </Button>
+                        )}
+                      </div>
+                      {cc && (
+                        <label className="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-muted-foreground">
+                          <Switch
+                            checked={syncContact}
+                            onCheckedChange={(v) => { set("sync_correo_contacto", v); supabase.from("credit_requests").update({ sync_correo_contacto: v }).eq("id", id!); }}
+                            className="scale-75"
+                          />
+                          <span>Al editar, actualizar también el contacto</span>
+                        </label>
+                      )}
+                    </div>
+                  );
+                })()}
+              </Field>
               <Field label="Antigüedad"><Input value={form.antiguedad || ""} onChange={(e) => set("antiguedad", e.target.value)} /></Field>
             </Section>
             <Section title="Domicilio fiscal">
