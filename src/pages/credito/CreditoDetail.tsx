@@ -1749,8 +1749,8 @@ export default function CreditoDetail() {
                         onBlur={async (e) => {
                           const val = e.target.value.trim();
                           if (syncContact && cc && val && val !== contactTel) {
-                            const field = cc.whatsapp_phone ? "whatsapp_phone" : (cc.mobile ? "mobile" : "phone");
-                            const { error } = await supabase.from("contacts").update({ [field]: val }).eq("id", cc.id);
+                            const field: "whatsapp_phone" | "mobile" | "phone" = cc.whatsapp_phone ? "whatsapp_phone" : (cc.mobile ? "mobile" : "phone");
+                            const { error } = await (supabase as any).from("contacts").update({ [field]: val }).eq("id", cc.id);
                             if (error) toast.error("No se pudo actualizar el contacto");
                             else { toast.success("Teléfono actualizado también en el contacto"); qc.invalidateQueries({ queryKey: ["credit-company-contacts", companyId] }); }
                           }
