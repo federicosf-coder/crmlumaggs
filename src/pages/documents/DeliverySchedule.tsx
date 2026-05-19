@@ -581,6 +581,68 @@ export default function DeliverySchedule() {
     return null;
   };
 
+  // Recalcula km_desde_anterior y tiempo_estimado_min para todas las entregas de una ruta,
+  // usando coordenadas del documento y la plaza de origen. Solo sobrescribe cuando hay coords;
+  // si faltan, conserva los valores manuales existentes.
+  const recalcRouteDistances = async (rutaId: string) => {
+    const ruta = allRutas.find((r: any) => r.id === rutaId);
+    const { data: entregas } = await supabase
+      .from("entregas_programadas")
+      .select("id, documento_id, orden_ruta, km_desde_anterior, tiempo_estimado_min, documentos(direccion_envio_lat, direccion_envio_lng)")
+      .eq("ruta_id", rutaId)
+      .order("orden_ruta");
+    if (!entregas) return;
+    let prevLat: number | null = ruta?.plazas?.lat != null ? Number(ruta.plazas.lat) : null;
+    let prevLng: number | null = ruta?.plazas?.lng != null ? Number(ruta.plazas.lng) : null;
+    for (const e of entregas as any[]) {
+      const doc = (e as any).documentos;
+      const cLat = doc?.direccion_envio_lat != null ? Number(doc.direccion_envio_lat) : null;
+      const cLng = doc?.direccion_envio_lng != null ? Number(doc.direccion_envio_lng) : null;
+      if (prevLat != null && prevLng != null && cLat != null && cLng != null) {
+        const km = Number(haversineKm(prevLat, prevLng, cLat, cLng).toFixed(2));
+        const min = minutesFromKm(km);
+        if (e.km_desde_anterior !== km || e.tiempo_estimado_min !== min) {
+          await supabase.from("entregas_programadas")
+            .update({ km_desde_anterior: km, tiempo_estimado_min: min })
+            .eq("id", e.id);
+        }
+      }
+      // Avanzar el ancla solo cuando hay coords del punto actual
+      if (cLat != null && cLng != null) { prevLat = cLat; prevLng = cLng; }
+    }
+    refetchEntregas();
+  };
+
+  // Guarda tiempo real (minutos) de una entrega
+  const saveTiempoReal = async (rutaId: string, docId: string, minutes: number | null) => {
+    const { error } = await supabase.from("entregas_programadas")
+      .update({ tiempo_real_min: minutes })
+      .eq("ruta_id", rutaId).eq("documento_id", docId);
+    if (error) { toast.error(error.message); return; }
+    refetchEntregas();
+  };
+
+  // Guarda km capturados manualmente (cuando faltan coordenadas)
+  const saveKmManual = async (rutaId: string, docId: string, km: number | null) => {
+    const tiempoEstimado = km != null && km > 0 ? minutesFromKm(km) : null;
+    const { error } = await supabase.from("entregas_programadas")
+      .update({ km_desde_anterior: km, tiempo_estimado_min: tiempoEstimado })
+      .eq("ruta_id", rutaId).eq("documento_id", docId);
+    if (error) { toast.error(error.message); return; }
+    refetchEntregas();
+  };
+
+  // Guarda coordenadas del documento de envío (captura manual de lat/lng)
+  const saveDocCoords = async (rutaId: string, docId: string, lat: number, lng: number) => {
+    const { error } = await supabase.from("documentos")
+      .update({ direccion_envio_lat: lat, direccion_envio_lng: lng })
+      .eq("id", docId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Coordenadas guardadas");
+    await refetchEntregas();
+    await recalcRouteDistances(rutaId);
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const item = poolItems.find(i => i.id === active.id) ||
