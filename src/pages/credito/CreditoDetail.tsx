@@ -2001,7 +2001,7 @@ export default function CreditoDetail() {
                                     onCheckedChange={togglePoderEnActa}
                                     className="scale-75"
                                   />
-                                  <span>Poder en Acta</span>
+                                  <span>No Requerido</span>
                                 </label>
                               )}
                             </div>
