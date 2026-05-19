@@ -1476,7 +1476,9 @@ export type Database = {
           aval_regimen_conyugal: string | null
           aval_relacion: string | null
           bc_confirmacion_no_existe: boolean
+          bc_data: Json
           bc_es_representante_legal: boolean | null
+          bc_tipo_persona: string | null
           cescemex_fecha: string | null
           cescemex_resultado: string | null
           ciudad_comercial: string | null
@@ -1569,7 +1571,9 @@ export type Database = {
           aval_regimen_conyugal?: string | null
           aval_relacion?: string | null
           bc_confirmacion_no_existe?: boolean
+          bc_data?: Json
           bc_es_representante_legal?: boolean | null
+          bc_tipo_persona?: string | null
           cescemex_fecha?: string | null
           cescemex_resultado?: string | null
           ciudad_comercial?: string | null
@@ -1662,7 +1666,9 @@ export type Database = {
           aval_regimen_conyugal?: string | null
           aval_relacion?: string | null
           bc_confirmacion_no_existe?: boolean
+          bc_data?: Json
           bc_es_representante_legal?: boolean | null
+          bc_tipo_persona?: string | null
           cescemex_fecha?: string | null
           cescemex_resultado?: string | null
           ciudad_comercial?: string | null
