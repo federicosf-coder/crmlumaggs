@@ -476,20 +476,20 @@ export default function CreditoDetail() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="grid grid-cols-5 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
-          <TabsTrigger value="datos" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md text-blue-700 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0">
+          <TabsTrigger value="datos" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md text-blue-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
             Formulario
           </TabsTrigger>
-          <TabsTrigger value="docs" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0">
+          <TabsTrigger value="docs" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
             Documentos
           </TabsTrigger>
-          <TabsTrigger value="firmas" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md text-emerald-700 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0">
-            <span className="sm:hidden">Firmas</span><span className="hidden sm:inline">Formatos y Firmas</span>
+          <TabsTrigger value="firmas" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md text-emerald-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
+            <span className="sm:hidden">Formatos<br/>y Firmas</span><span className="hidden sm:inline">Formatos y Firmas</span>
           </TabsTrigger>
-          <TabsTrigger value="seguimiento" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md text-amber-700 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0">
+          <TabsTrigger value="seguimiento" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md text-amber-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
             Seguimiento
           </TabsTrigger>
-          <TabsTrigger value="comentarios" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-rose-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md text-rose-700 text-[10px] sm:text-sm px-1 sm:px-3 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0">
-            <span className="sm:hidden">Notas</span><span className="hidden sm:inline">Comentarios</span>
+          <TabsTrigger value="comentarios" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-rose-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md text-rose-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
+            Comentarios
           </TabsTrigger>
         </TabsList>
 
@@ -658,17 +658,17 @@ export default function CreditoDetail() {
           <Card><CardContent className="pt-6 space-y-6">
             <Tabs value={formTab} onValueChange={setFormTab}>
               <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-1 h-auto gap-1 border border-blue-100">
-                <TabsTrigger value="empresa" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-blue-700 text-xs sm:text-sm">
-                  <Building2 className="h-3.5 w-3.5 mr-1.5" />Empresa
+                <TabsTrigger value="empresa" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-blue-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
+                  <Building2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Empresa</span>
                 </TabsTrigger>
-                <TabsTrigger value="representacion" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-violet-700 text-xs sm:text-sm">
-                  <IdCard className="h-3.5 w-3.5 mr-1.5" />Representación
+                <TabsTrigger value="representacion" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-violet-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
+                  <IdCard className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Representación</span>
                 </TabsTrigger>
-                <TabsTrigger value="financiero" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-emerald-700 text-xs sm:text-sm">
-                  <Landmark className="h-3.5 w-3.5 mr-1.5" />Financiero
+                <TabsTrigger value="financiero" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-emerald-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
+                  <Landmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Financiero</span>
                 </TabsTrigger>
-                <TabsTrigger value="cumplimiento" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-amber-700 text-xs sm:text-sm">
-                  <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />Cumplimiento
+                <TabsTrigger value="cumplimiento" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-amber-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
+                  <ShieldCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Cumplimiento</span>
                 </TabsTrigger>
               </TabsList>
 
