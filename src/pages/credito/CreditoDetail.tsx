@@ -376,6 +376,7 @@ function BeneficiarioControladorSteps({
                   uploadDoc={uploadDoc}
                   openDoc={openDoc}
                   docs={docs}
+                  creditId={creditId}
                 />
               )}
             </div>
@@ -488,7 +489,86 @@ function BcPersonaFisicaForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
   );
 }
 
-function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
+function BcRlIneUploader({
+  creditId,
+  setBc,
+  uploadDoc,
+  openDoc,
+  docs,
+}: {
+  creditId: string;
+  setBc: (k: string, v: any) => void;
+  uploadDoc: (file: File, docTypeId: string | null, displayName?: string, extra?: any) => Promise<void>;
+  openDoc: (path: string) => void;
+  docs: any[];
+}) {
+  const [busy, setBusy] = useState(false);
+  const items = (docs || []).filter((d: any) => d?.metadata?.bc_doc === "bc_pm_rl_ine");
+  const onChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.currentTarget.value = "";
+    if (!f) return;
+    if (f.size > 15 * 1024 * 1024) { toast.error("El archivo supera 15 MB"); return; }
+    setBusy(true);
+    toast.loading("Leyendo Identificación del Representante Legal...", { id: "bcrl-ine" });
+    try {
+      const b64: string = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => { const s = String(r.result || ""); const i = s.indexOf(","); resolve(i >= 0 ? s.slice(i + 1) : s); };
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(f);
+      });
+      const { data, error } = await supabase.functions.invoke("credito-autofill", {
+        body: { request_id: creditId, kind: "ine_full", file_b64: b64, mime: f.type || "image/jpeg" },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const parsed: any = (data as any)?.parsed || {};
+      let filled = 0;
+      if (parsed.nombre_completo) { setBc("rl_nombre", parsed.nombre_completo); filled++; }
+      if (parsed.curp) { setBc("rl_curp", String(parsed.curp).toUpperCase()); filled++; }
+      if (parsed.rfc) { setBc("rl_rfc", String(parsed.rfc).toUpperCase()); filled++; }
+      await uploadDoc(f, null, "BC - Identificación Representante Legal", {
+        metadata: { bc_doc: "bc_pm_rl_ine", bc_doc_label: "Identificación Representante Legal" },
+      });
+      toast.success(filled > 0 ? `Identificación leída: ${filled} campos autocompletados` : "Identificación guardada (sin campos nuevos)", { id: "bcrl-ine" });
+    } catch (err: any) {
+      toast.error(err?.message || "No se pudo leer la Identificación", { id: "bcrl-ine" });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="rounded-md border border-violet-200 bg-violet-50/40 p-2.5 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs font-medium">Identificación oficial del Representante Legal</p>
+          <p className="text-[10px] text-muted-foreground">Sube INE o Pasaporte y se extraerán Nombre, CURP y RFC automáticamente.</p>
+        </div>
+        <label className="inline-flex shrink-0">
+          <input type="file" className="hidden" onChange={onChange} disabled={busy} accept="image/*,application/pdf" />
+          <span className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md border border-violet-300 text-violet-700 hover:bg-violet-100 text-[11px] cursor-pointer">
+            {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+            {items.length > 0 ? "Subir otra" : "Subir y extraer"}
+          </span>
+        </label>
+      </div>
+      {items.length > 0 && (
+        <ul className="space-y-1">
+          {items.map((it: any) => (
+            <li key={it.id} className="flex items-center justify-between gap-2 text-[11px]">
+              <button type="button" onClick={() => openDoc(it.url_archivo)} className="truncate text-violet-700 hover:underline text-left" title={it.nombre_archivo}>
+                <Paperclip className="h-3 w-3 inline mr-1" />{it.nombre_archivo}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs, creditId }: any) {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -518,6 +598,7 @@ function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
 
       <div className="space-y-3">
         <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Representante legal</p>
+        <BcRlIneUploader creditId={creditId} setBc={setBc} uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
         <div className="grid sm:grid-cols-3 gap-3">
           <BcField label="Nombre"><Input value={bcData.rl_nombre || ""} onChange={(e) => setBc("rl_nombre", e.target.value)} /></BcField>
           <BcField label="CURP"><Input value={bcData.rl_curp || ""} onChange={(e) => setBc("rl_curp", e.target.value.toUpperCase())} /></BcField>
