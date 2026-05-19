@@ -1944,10 +1944,15 @@ export default function CreditoDetail() {
               <p className="text-muted-foreground text-sm">No hay tipos de documento configurados.</p>
             ) : (
               (() => {
-                const poderEnActa = form.poder_en_acta_constitutiva !== false;
+                const poderRequerido = form.poder_representante_requerido === true;
+                const registroRequerido = form.registro_publico_requerido === true;
+                const isOptInDoc = (nombre: string) =>
+                  nombre === "Poder del Representante Legal" ||
+                  nombre === "Registro Público de la Propiedad";
                 const isRequerido = (dt: any) => {
                   if (!dt.requerido) return false;
-                  if (dt.nombre === "Poder del Representante Legal" && poderEnActa) return false;
+                  if (dt.nombre === "Poder del Representante Legal") return poderRequerido;
+                  if (dt.nombre === "Registro Público de la Propiedad") return registroRequerido;
                   return true;
                 };
                 const visible = (docTypes as any[]).filter((dt) => {
@@ -1991,11 +1996,16 @@ export default function CreditoDetail() {
                 const totalReq = visible.filter((d) => isRequerido(d)).length;
                 const doneReq = visible.filter((d) => isRequerido(d) && hasDocs(d)).length;
                 const pct = totalReq > 0 ? Math.round((doneReq / totalReq) * 100) : 0;
-                const togglePoderEnActa = async () => {
-                  const nuevo = !poderEnActa;
-                  set("poder_en_acta_constitutiva", nuevo);
-                  await supabase.from("credit_requests").update({ poder_en_acta_constitutiva: nuevo }).eq("id", id!);
-                  toast.success(nuevo ? "Poder del Representante Legal marcado como incluido en Acta Constitutiva" : "Poder del Representante Legal marcado como requerido por separado");
+                const toggleDocRequerido = async (nombre: string) => {
+                  const col =
+                    nombre === "Poder del Representante Legal"
+                      ? "poder_representante_requerido"
+                      : "registro_publico_requerido";
+                  const actual = (form as any)[col] === true;
+                  const nuevo = !actual;
+                  set(col as any, nuevo);
+                  await (supabase as any).from("credit_requests").update({ [col]: nuevo }).eq("id", id!);
+                  toast.success(nuevo ? `${nombre} marcado como requerido` : `${nombre} marcado como no requerido`);
                 };
                 return (
                   <div className="space-y-5">
@@ -2018,16 +2028,6 @@ export default function CreditoDetail() {
                           <div className="flex items-center justify-between gap-2 border-b pb-1.5">
                             <div className="flex items-center gap-2">
                               <h3 className={`text-sm font-semibold uppercase tracking-wide ${GROUP_COLOR[k] || "text-slate-700"}`}>{g.label}</h3>
-                              {isLegalGroup && (
-                                <label className="inline-flex items-center gap-1.5 cursor-pointer rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700 hover:bg-indigo-100 transition-colors">
-                                  <Switch
-                                    checked={poderEnActa}
-                                    onCheckedChange={togglePoderEnActa}
-                                    className="scale-75"
-                                  />
-                                  <span>No Requerido</span>
-                                </label>
-                              )}
                             </div>
                             {reqCount > 0 && (
                               <span className={`text-[11px] px-2 py-0.5 rounded-full border ${allDone ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
@@ -2059,6 +2059,16 @@ export default function CreditoDetail() {
                                 )}
                               </p>
                               {dt.instrucciones_cliente && <p className="text-[11px] text-muted-foreground mt-0.5">{dt.instrucciones_cliente}</p>}
+                              {isOptInDoc(dt.nombre) && (
+                                <label className="mt-1.5 inline-flex items-center gap-1.5 cursor-pointer rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700 hover:bg-indigo-100 transition-colors">
+                                  <Switch
+                                    checked={dt.nombre === "Poder del Representante Legal" ? poderRequerido : registroRequerido}
+                                    onCheckedChange={() => toggleDocRequerido(dt.nombre)}
+                                    className="scale-75"
+                                  />
+                                  <span>Requerido</span>
+                                </label>
+                              )}
                             </div>
                         </div>
                         {canAdd && (
