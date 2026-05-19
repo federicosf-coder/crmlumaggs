@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, Truck, Clock, Route as RouteIcon, ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -267,7 +267,31 @@ export default function DailyDeliveryReport() {
       <div className="container mx-auto p-4 space-y-4">
         {/* Filters */}
         <Card>
-          <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {(() => {
+                const today = new Date();
+                const presets = [
+                  { key: "ayer", label: "Ayer", from: startOfDay(subDays(today, 1)), to: endOfDay(subDays(today, 1)) },
+                  { key: "hoy", label: "Hoy", from: startOfDay(today), to: endOfDay(today) },
+                  { key: "semana", label: "Semana", from: startOfWeek(today, { weekStartsOn: 1 }), to: endOfDay(today) },
+                  { key: "mes", label: "Mes", from: startOfMonth(today), to: endOfDay(today) },
+                ];
+                const isSameDay = (a: Date, b: Date) => format(a, "yyyy-MM-dd") === format(b, "yyyy-MM-dd");
+                const activeKey = presets.find((p) => isSameDay(p.from, dateFrom) && isSameDay(p.to, dateTo))?.key;
+                return presets.map((p) => (
+                  <Button
+                    key={p.key}
+                    size="sm"
+                    variant={activeKey === p.key ? "default" : "outline"}
+                    onClick={() => { setDateFrom(p.from); setDateTo(p.to); }}
+                  >
+                    {p.label}
+                  </Button>
+                ));
+              })()}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <Label className="mb-1 block">Desde *</Label>
               <Popover>
@@ -319,6 +343,7 @@ export default function DailyDeliveryReport() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
             </div>
           </CardContent>
         </Card>
