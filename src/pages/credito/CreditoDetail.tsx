@@ -1894,18 +1894,6 @@ export default function CreditoDetail() {
             />
               </TabsContent>
 
-              <TabsContent value="cumplimiento" className="space-y-6 mt-5">
-            <BeneficiarioControladorSteps
-              form={form}
-              set={set}
-              creditId={id!}
-              onSavedBc={() => qc.invalidateQueries({ queryKey: ["credit_request", id] })}
-              onOpenInfo={() => setBcInfoOpen(true)}
-              uploadDoc={uploadDoc}
-              openDoc={openDoc}
-              docs={docs as any[]}
-            />
-              </TabsContent>
             </Tabs>
           </CardContent></Card>
         </TabsContent>
