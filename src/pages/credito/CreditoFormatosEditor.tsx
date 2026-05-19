@@ -34,7 +34,7 @@ const TOKENS_DISPONIBLES = [
   "razon_social", "nombre_comercial", "rfc", "telefono", "correo",
   "domicilio_fiscal", "ciudad", "estado", "antiguedad", "domicilio_comercial",
   "giro_comercial", "monto_credito", "dias_credito",
-  "banco_nombre", "banco_cuenta", "banco_clabe", "referencias_comerciales_html",
+  "banco_nombre", "banco_cuenta", "banco_clabe", "datos_bancarios_html", "referencias_comerciales_html",
   "aval_nombre", "aval_direccion", "aval_ciudad", "aval_relacion", "aval_regimen",
   "tipo_persona_label", "rep_legal_nombre", "rep_legal_curp", "rep_legal_rfc",
   "rep_legal_fecha_nac", "rep_legal_pais_nac", "rep_legal_id_tipo", "rep_legal_id_num",
