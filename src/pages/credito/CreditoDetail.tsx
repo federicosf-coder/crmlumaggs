@@ -817,93 +817,112 @@ export default function CreditoDetail() {
               </div>
               {form.aval_es_distinto && (
                 <>
+                  {(() => {
+                    const palIne = DOC_PALETTE["Identificación oficial"];
+                    const palDom = DOC_PALETTE["Comprobante de domicilio"];
+                    const hasIne = docsForKind("aval_ine_front").length > 0;
+                    const hasDom = docsForKind("aval_comprobante_domicilio").length > 0;
+                    const cardCls = (has: boolean, p: any) =>
+                      `rounded-lg border-2 ${has ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : `${p.border} ${p.bg}`} p-3 flex flex-col gap-2 relative`;
+                    const badge = (has: boolean) =>
+                      `absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${has ? "bg-emerald-500 text-white border-emerald-600" : "bg-slate-200 text-slate-700 border-slate-300"}`;
+                    return (
+                      <div className="sm:col-span-2 grid sm:grid-cols-2 gap-3">
+                        {/* INE / Pasaporte del Aval */}
+                        <div className={cardCls(hasIne, palIne)}>
+                          <span className={badge(hasIne)}>
+                            {hasIne ? (<><Check className="h-2.5 w-2.5" />Subido</>) : "Opcional"}
+                          </span>
+                          <div className="flex items-start gap-2.5 min-w-0 pr-20">
+                            <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palIne.iconBg}`}>
+                              <IdCard className={`h-4 w-4 ${palIne.iconColor}`} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm leading-tight">INE / Pasaporte del Aval</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">Autocompleta nombre y dirección del aval.</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <label className="cursor-pointer">
+                              <input type="file" accept="image/*,application/pdf" className="hidden"
+                                disabled={autofilling !== null}
+                                onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "aval_ine_front", "INE Aval frente"); e.currentTarget.value = ""; }} />
+                              <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                {autofilling === "aval_ine_front" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+                                Frente
+                              </span>
+                            </label>
+                            <label className="cursor-pointer">
+                              <input type="file" accept="image/*,application/pdf" className="hidden"
+                                disabled={autofilling !== null}
+                                onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "aval_ine_back", "INE Aval reverso"); e.currentTarget.value = ""; }} />
+                              <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                {autofilling === "aval_ine_back" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+                                Reverso
+                              </span>
+                            </label>
+                            <label className="cursor-pointer">
+                              <input type="file" accept="application/pdf,image/*" className="hidden"
+                                disabled={autofilling !== null}
+                                onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "aval_ine_full", "INE Aval completa"); e.currentTarget.value = ""; }} />
+                              <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                {autofilling === "aval_ine_full" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}
+                                PDF INE
+                              </span>
+                            </label>
+                            <label className="cursor-pointer">
+                              <input type="file" accept="image/*,application/pdf" className="hidden"
+                                disabled={autofilling !== null}
+                                onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "aval_passport", "Pasaporte Aval"); e.currentTarget.value = ""; }} />
+                              <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                {autofilling === "aval_passport" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}
+                                Pasaporte
+                              </span>
+                            </label>
+                          </div>
+                          {docsForKind("aval_ine_front").map((it) => (
+                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate w-full">
+                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                            </button>
+                          ))}
+                        </div>
+                        {/* Comprobante de domicilio del Aval */}
+                        <div className={cardCls(hasDom, palDom)}>
+                          <span className={badge(hasDom)}>
+                            {hasDom ? (<><Check className="h-2.5 w-2.5" />Subido</>) : "Opcional"}
+                          </span>
+                          <div className="flex items-start gap-2.5 min-w-0 pr-20">
+                            <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palDom.iconBg}`}>
+                              <Home className={`h-4 w-4 ${palDom.iconColor}`} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm leading-tight">Comprobante de domicilio del Aval</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">Autocompleta dirección y ciudad del aval.</p>
+                            </div>
+                          </div>
+                          <label className="cursor-pointer block">
+                            <input type="file" accept="application/pdf,image/*" className="hidden"
+                              disabled={autofilling !== null}
+                              onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "aval_comprobante_domicilio", "Comprobante Aval"); e.currentTarget.value = ""; }} />
+                            <span className={`inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md border bg-white ${palDom.btn}`}>
+                              {autofilling === "aval_comprobante_domicilio" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                              {hasDom ? "Reemplazar comprobante" : "Subir comprobante"}
+                            </span>
+                          </label>
+                          {docsForKind("aval_comprobante_domicilio").map((it) => (
+                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate w-full">
+                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <Field label="Nombre"><Input value={form.aval_nombre || ""} onChange={(e) => set("aval_nombre", e.target.value)} /></Field>
                   <Field label="Relación"><Input value={form.aval_relacion || ""} onChange={(e) => set("aval_relacion", e.target.value)} /></Field>
                   <Field label="Dirección"><Input value={form.aval_direccion || ""} onChange={(e) => set("aval_direccion", e.target.value)} /></Field>
                   <Field label="Ciudad"><Input value={form.aval_ciudad || ""} onChange={(e) => set("aval_ciudad", e.target.value)} /></Field>
                   <Field label="Régimen conyugal"><Input value={form.aval_regimen_conyugal || ""} onChange={(e) => set("aval_regimen_conyugal", e.target.value)} /></Field>
-                  <div className="sm:col-span-2 grid sm:grid-cols-2 gap-3 pt-2">
-                    {/* INE / Pasaporte del Aval */}
-                    <div className="rounded-lg border border-violet-200 bg-violet-50/40 p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <IdCard className="h-4 w-4 text-violet-700" />
-                        <p className="text-xs font-medium">INE / Pasaporte del Aval</p>
-                        {docsForKind("aval_ine_front").length > 0 && (
-                          <span className="ml-auto inline-flex items-center gap-0.5 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded"><Check className="h-2.5 w-2.5" />Subido</span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground leading-snug">Autocompleta nombre y dirección del aval.</p>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <label className="cursor-pointer">
-                          <input type="file" accept="image/*,application/pdf" className="hidden"
-                            disabled={autofilling !== null}
-                            onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "aval_ine_front", "INE Aval frente"); e.currentTarget.value = ""; }} />
-                          <span className="inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border border-violet-300 text-violet-700 hover:bg-violet-100 bg-white">
-                            {autofilling === "aval_ine_front" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
-                            Frente
-                          </span>
-                        </label>
-                        <label className="cursor-pointer">
-                          <input type="file" accept="image/*,application/pdf" className="hidden"
-                            disabled={autofilling !== null}
-                            onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "aval_ine_back", "INE Aval reverso"); e.currentTarget.value = ""; }} />
-                          <span className="inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border border-violet-300 text-violet-700 hover:bg-violet-100 bg-white">
-                            {autofilling === "aval_ine_back" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
-                            Reverso
-                          </span>
-                        </label>
-                        <label className="cursor-pointer">
-                          <input type="file" accept="application/pdf,image/*" className="hidden"
-                            disabled={autofilling !== null}
-                            onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "aval_ine_full", "INE Aval completa"); e.currentTarget.value = ""; }} />
-                          <span className="inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border border-violet-300 text-violet-700 hover:bg-violet-100 bg-white">
-                            {autofilling === "aval_ine_full" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}
-                            PDF INE
-                          </span>
-                        </label>
-                        <label className="cursor-pointer">
-                          <input type="file" accept="image/*,application/pdf" className="hidden"
-                            disabled={autofilling !== null}
-                            onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "aval_passport", "Pasaporte Aval"); e.currentTarget.value = ""; }} />
-                          <span className="inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border border-violet-300 text-violet-700 hover:bg-violet-100 bg-white">
-                            {autofilling === "aval_passport" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}
-                            Pasaporte
-                          </span>
-                        </label>
-                      </div>
-                      {docsForKind("aval_ine_front").map((it) => (
-                        <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate w-full">
-                          <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Comprobante de domicilio del Aval */}
-                    <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Home className="h-4 w-4 text-amber-700" />
-                        <p className="text-xs font-medium">Comprobante de domicilio del Aval</p>
-                        {docsForKind("aval_comprobante_domicilio").length > 0 && (
-                          <span className="ml-auto inline-flex items-center gap-0.5 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded"><Check className="h-2.5 w-2.5" />Subido</span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground leading-snug">Autocompleta dirección y ciudad del aval.</p>
-                      <label className="cursor-pointer block">
-                        <input type="file" accept="application/pdf,image/*" className="hidden"
-                          disabled={autofilling !== null}
-                          onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "aval_comprobante_domicilio", "Comprobante Aval"); e.currentTarget.value = ""; }} />
-                        <span className="inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700">
-                          {autofilling === "aval_comprobante_domicilio" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
-                          {docsForKind("aval_comprobante_domicilio").length > 0 ? "Reemplazar comprobante" : "Subir comprobante"}
-                        </span>
-                      </label>
-                      {docsForKind("aval_comprobante_domicilio").map((it) => (
-                        <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate w-full">
-                          <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </>
               )}
             </Section>
