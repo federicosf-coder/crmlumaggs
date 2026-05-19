@@ -151,7 +151,7 @@ function OverlayCard({ item }: { item: PoolItem }) {
 }
 
 // ─── Route Drop Column ───────────────────────────────────────
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute, onSaveTiempoReal, onSaveKmManual, onSaveDocCoords }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -164,6 +164,9 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onToggleCerrada: (ruta: any) => void;
   onStartRoute: (ruta: any) => void;
   onFinishRoute: (ruta: any) => void;
+  onSaveTiempoReal?: (docId: string, minutes: number | null) => void;
+  onSaveKmManual?: (docId: string, km: number | null) => void;
+  onSaveDocCoords?: (docId: string, lat: number, lng: number) => void;
 }) {
   const navigate = useNavigate();
   const cerrada = !!ruta.cerrada;
@@ -173,6 +176,11 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
     const rep = repartidoresAll.find((r: any) => r.id === rr.repartidor_id);
     return rep?.nombre || "?";
   });
+
+  // Resumen de ruta a partir de los entregas attached
+  const totalKm = items.reduce((s, it: any) => s + (Number(it.entrega?.km_desde_anterior) || 0), 0);
+  const totalEstMin = items.reduce((s, it: any) => s + (Number(it.entrega?.tiempo_estimado_min) || 0), 0);
+  const totalRealMin = items.reduce((s, it: any) => s + (Number(it.entrega?.tiempo_real_min) || 0), 0);
 
   return (
     <div ref={setNodeRef}
