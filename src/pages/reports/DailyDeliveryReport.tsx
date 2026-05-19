@@ -41,6 +41,8 @@ type RowData = {
 
 type RutaDetail = {
   entrega_id: string;
+  ruta_id: string;
+  repartidor_id: string;
   fecha_entrega: string;
   fecha_real: string | null;
   plaza_nombre: string;
@@ -201,6 +203,8 @@ export default function DailyDeliveryReport() {
         if (repartidorId !== ALL && e.repartidor_id !== repartidorId) continue;
         details.push({
           entrega_id: e.id,
+          ruta_id: e.ruta_id,
+          repartidor_id: e.repartidor_id,
           fecha_entrega: r.fecha_entrega,
           fecha_real: e.fecha_entrega_real,
           plaza_nombre: plazaNames.get(r.plaza_id) || "—",
@@ -223,43 +227,46 @@ export default function DailyDeliveryReport() {
   const rows = queryData?.rows ?? [];
   const details = queryData?.details ?? [];
 
-  // Aggregate per driver (sum across plazas if applicable) for the comparison chart
+  // Aggregate per driver from actual deliveries
   const perDriver = useMemo(() => {
-    const m = new Map<string, RowData>();
-    rows.forEach((r) => {
-      const ex = m.get(r.repartidor_id);
+    const m = new Map<string, { repartidor_id: string; repartidor_nombre: string; total_entregas: number; total_horas: number; total_km: number; rutas: Set<string> }>();
+    details.forEach((d) => {
+      let ex = m.get(d.repartidor_id);
       if (!ex) {
-        m.set(r.repartidor_id, { ...r });
-      } else {
-        ex.total_entregas += r.total_entregas;
-        ex.total_horas += r.total_horas;
-        ex.total_km += r.total_km;
-        ex.total_rutas += r.total_rutas;
+        ex = { repartidor_id: d.repartidor_id, repartidor_nombre: d.repartidor_nombre, total_entregas: 0, total_horas: 0, total_km: 0, rutas: new Set() };
+        m.set(d.repartidor_id, ex);
       }
+      ex.total_entregas += 1;
+      ex.total_horas += (d.minutos || 0) / 60;
+      ex.total_km += d.km || 0;
+      if (d.ruta_id) ex.rutas.add(d.ruta_id);
     });
-    return Array.from(m.values()).sort((a, b) => b.total_entregas - a.total_entregas);
-  }, [rows]);
+    return Array.from(m.values())
+      .map((r) => ({ ...r, total_rutas: r.rutas.size }))
+      .sort((a, b) => b.total_entregas - a.total_entregas);
+  }, [details]);
 
   const chartData = useMemo(
     () =>
       perDriver.map((r) => ({
         name: r.repartidor_nombre,
-        Entregas: Number(r.total_entregas.toFixed(1)),
+        Entregas: Number(r.total_entregas.toFixed(0)),
         Horas: Number(r.total_horas.toFixed(2)),
         Km: Number(r.total_km.toFixed(1)),
-        Rutas: Number(r.total_rutas.toFixed(1)),
+        Rutas: r.total_rutas,
       })),
     [perDriver],
   );
 
   const totals = useMemo(() => {
+    const rutas = new Set(details.map((d) => d.ruta_id).filter(Boolean));
     return {
-      tEntregas: rows.reduce((a, r) => a + r.total_entregas, 0),
-      tHoras: rows.reduce((a, r) => a + r.total_horas, 0),
-      tKm: rows.reduce((a, r) => a + r.total_km, 0),
-      tRutas: rows.reduce((a, r) => a + r.total_rutas, 0),
+      tEntregas: details.length,
+      tHoras: details.reduce((a, d) => a + (d.minutos || 0) / 60, 0),
+      tKm: details.reduce((a, d) => a + (d.km || 0), 0),
+      tRutas: rutas.size,
     };
-  }, [rows]);
+  }, [details]);
 
   return (
     <>
