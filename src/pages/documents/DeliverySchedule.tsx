@@ -688,6 +688,7 @@ export default function DeliverySchedule() {
             .eq("documento_id", reordered[i].id)
             .eq("ruta_id", activeContainer);
         }
+        await recalcRouteDistances(activeContainer);
       }
       return;
     }
@@ -740,6 +741,7 @@ export default function DeliverySchedule() {
 
       refetchPool();
       refetchEntregas();
+      await recalcRouteDistances(ruta.id);
       return;
     }
 
@@ -758,6 +760,7 @@ export default function DeliverySchedule() {
       toast.success("Pedido devuelto al pool");
       refetchPool();
       refetchEntregas();
+      await recalcRouteDistances(activeContainer);
       return;
     }
 
@@ -783,6 +786,8 @@ export default function DeliverySchedule() {
 
       toast.success("Pedido movido a otra ruta");
       refetchEntregas();
+      await recalcRouteDistances(activeContainer);
+      await recalcRouteDistances(newRuta.id);
       return;
     }
   };
