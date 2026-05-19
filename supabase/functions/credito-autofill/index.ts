@@ -55,6 +55,7 @@ function toISODate(v: any): string | null {
 type Kind =
   | 'ine_front' | 'ine_back' | 'ine_full' | 'passport'
   | 'comprobante_domicilio' | 'csf' | 'acta_constitutiva'
+  | 'curp' | 'poderes'
   | 'aval_ine_front' | 'aval_ine_back' | 'aval_ine_full' | 'aval_passport'
   | 'aval_comprobante_domicilio'
 
@@ -142,6 +143,23 @@ const PROMPTS_BASE: Record<string, string> = {
   "objeto_social": string|null,
   "fecha_constitucion": string|null // YYYY-MM-DD
 }`,
+  curp: `La imagen/PDF es una Constancia de CURP (Clave Única de Registro de Población) emitida por RENAPO/SEGOB. Extrae sólo JSON:
+{
+  "curp": string|null,
+  "nombre_completo": string|null,
+  "fecha_nacimiento": string|null, // YYYY-MM-DD
+  "sexo": "H"|"M"|null,
+  "pais_nacimiento": string|null,
+  "nacionalidad": string|null
+}`,
+  poderes: `La imagen/PDF es un instrumento notarial de Poderes del Representante Legal (puede ser parte de un acta o documento independiente). Devuelve sólo JSON:
+{
+  "rl_nombre": string|null, // nombre completo del apoderado / representante legal
+  "rl_curp": string|null,
+  "rl_rfc": string|null,
+  "escritura_constitutiva": string|null, // número y fecha de escritura del poder, notario
+  "tipo_poder": string|null // ej: "Poder general para actos de administración"
+}`,
 }
 const PROMPTS: Record<Kind, string> = {
   ine_front: PROMPTS_BASE.ine_front,
@@ -151,6 +169,8 @@ const PROMPTS: Record<Kind, string> = {
   comprobante_domicilio: PROMPTS_BASE.comprobante_domicilio,
   csf: PROMPTS_BASE.csf,
   acta_constitutiva: PROMPTS_BASE.acta_constitutiva,
+  curp: PROMPTS_BASE.curp,
+  poderes: PROMPTS_BASE.poderes,
   aval_ine_front: PROMPTS_BASE.ine_front,
   aval_ine_back: PROMPTS_BASE.ine_back,
   aval_ine_full: PROMPTS_BASE.ine_full,
@@ -228,6 +248,12 @@ Deno.serve(async (req) => {
     if (!requestId) return json({ error: 'unauthorized' }, 401)
 
     const parsed = await callAI(PROMPTS[kind], fileB64, mime)
+
+    // Modo solo-extracción: no escribir en credit_requests (usado por sub-formularios como BC).
+    const skipDbUpdate = body.skip_db_update === true
+    if (skipDbUpdate) {
+      return json({ ok: true, parsed, updated: {}, fecha_emision: null, fecha_vencimiento: null })
+    }
 
     // Compute suggested updates to credit_requests, only filling missing fields.
     const { data: cur } = await supabase.from('credit_requests').select('*').eq('id', requestId).maybeSingle()
