@@ -61,8 +61,8 @@ export default function DailyDeliveryReport() {
   const { profile } = useAuth();
   const [dateFrom, setDateFrom] = useState<Date>(new Date());
   const [dateTo, setDateTo] = useState<Date>(new Date());
-  const [plazaId, setPlazaId] = useState<string>(ALL);
-  const [repartidorId, setRepartidorId] = useState<string>(ALL);
+  const [plazaIds, setPlazaIds] = useState<string[]>([]);
+  const [repartidorIds, setRepartidorIds] = useState<string[]>([]);
   const [defaulted, setDefaulted] = useState(false);
 
   const { data: plazas = [] } = useQuery<Plaza[]>({
@@ -87,7 +87,7 @@ export default function DailyDeliveryReport() {
   useEffect(() => {
     if (!defaulted && profile?.plaza_id && plazas.length > 0) {
       const found = plazas.find((p) => p.id === profile.plaza_id);
-      if (found) setPlazaId(found.id);
+      if (found) setPlazaIds([found.id]);
       setDefaulted(true);
     }
   }, [profile?.plaza_id, plazas, defaulted]);
@@ -96,15 +96,14 @@ export default function DailyDeliveryReport() {
   const dateToStr = format(dateTo, "yyyy-MM-dd");
 
   const { data: queryData, isLoading } = useQuery<{ rows: RowData[]; details: RutaDetail[] }>({
-    queryKey: ["daily-delivery-report", dateFromStr, dateToStr, plazaId, repartidorId],
+    queryKey: ["daily-delivery-report", dateFromStr, dateToStr, plazaIds.join(","), repartidorIds.join(",")],
     queryFn: async () => {
       let q = supabase
         .from("rutas_entrega")
         .select("id, fecha_entrega, plaza_id, repartidor_id, ruta_started_at, ruta_finished_at, km_recorridos")
         .gte("fecha_entrega", dateFromStr)
         .lte("fecha_entrega", dateToStr);
-      if (plazaId !== ALL) q = q.eq("plaza_id", plazaId);
-      if (repartidorId !== ALL) q = q.eq("repartidor_id", repartidorId);
+      if (plazaIds.length > 0) q = q.in("plaza_id", plazaIds);
       const { data: rutas, error } = await q;
       if (error) throw error;
       const rutaIds = (rutas || []).map((r) => r.id);
@@ -187,7 +186,7 @@ export default function DailyDeliveryReport() {
         const share = 1 / drivers.size;
 
         for (const did of drivers) {
-          if (repartidorId !== ALL && did !== repartidorId) continue;
+          if (repartidorIds.length > 0 && !repartidorIds.includes(did)) continue;
           const row = ensure(did, r.plaza_id);
           row.total_entregas += entregasCount * share;
           row.total_horas += horas * share;
@@ -200,7 +199,7 @@ export default function DailyDeliveryReport() {
       for (const e of entregas || []) {
         const r = rutaById.get(e.ruta_id);
         if (!r) continue;
-        if (repartidorId !== ALL && e.repartidor_id !== repartidorId) continue;
+        if (repartidorIds.length > 0 && !repartidorIds.includes(e.repartidor_id)) continue;
         details.push({
           entrega_id: e.id,
           ruta_id: e.ruta_id,
