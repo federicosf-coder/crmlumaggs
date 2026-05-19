@@ -310,7 +310,7 @@ function BeneficiarioControladorSteps({
                 >
                   <RadioGroupItem value="no" id="bc-rl-no" className="mt-0.5" />
                   <div className="space-y-0.5">
-                    <p className="text-sm font-medium">No, es otra persona</p>
+                    <p className="text-sm font-medium">No, es otra persona o empresa</p>
                     <p className="text-xs text-muted-foreground">Se llenará el formulario con datos distintos</p>
                   </div>
                 </label>
