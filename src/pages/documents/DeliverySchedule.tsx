@@ -21,6 +21,7 @@ import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
   ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon, FileText, Play, Flag, Eye,
+  Route as RouteIcon, Clock, Timer, AlertTriangle, Save,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -36,6 +37,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { DeliveryMapView } from "@/components/documents/DeliveryMapView";
+import { haversineKm, minutesFromKm, formatHm, ROUTE_AVG_SPEED_KMH } from "@/lib/geo";
 
 // ─── Status config ───────────────────────────────────────────
 const POOL_STATUSES = ["confirmado_cliente", "espera_autorizacion_precio", "precio_autorizado", "validado_contabilidad"] as const;
