@@ -1600,9 +1600,11 @@ export type Database = {
           motivo_rechazo: string | null
           nombre_comercial: string | null
           poder_en_acta_constitutiva: boolean | null
+          poder_representante_requerido: boolean
           razon_social: string | null
           recordatorio_count: number
           referencias_comerciales: Json
+          registro_publico_requerido: boolean
           rep_legal_curp: string | null
           rep_legal_fecha_nacimiento: string | null
           rep_legal_nombre: string | null
@@ -1711,9 +1713,11 @@ export type Database = {
           motivo_rechazo?: string | null
           nombre_comercial?: string | null
           poder_en_acta_constitutiva?: boolean | null
+          poder_representante_requerido?: boolean
           razon_social?: string | null
           recordatorio_count?: number
           referencias_comerciales?: Json
+          registro_publico_requerido?: boolean
           rep_legal_curp?: string | null
           rep_legal_fecha_nacimiento?: string | null
           rep_legal_nombre?: string | null
@@ -1822,9 +1826,11 @@ export type Database = {
           motivo_rechazo?: string | null
           nombre_comercial?: string | null
           poder_en_acta_constitutiva?: boolean | null
+          poder_representante_requerido?: boolean
           razon_social?: string | null
           recordatorio_count?: number
           referencias_comerciales?: Json
+          registro_publico_requerido?: boolean
           rep_legal_curp?: string | null
           rep_legal_fecha_nacimiento?: string | null
           rep_legal_nombre?: string | null
