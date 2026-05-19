@@ -817,6 +817,16 @@ export default function CreditoDetail() {
     supabase.from("credit_requests").update({ telefono: tel }).eq("id", id);
   }, [companyContacts, form?.contact_id, form?.telefono, id]);
 
+  // Auto-jalar nombre comercial de la empresa vinculada si el campo está vacío
+  useEffect(() => {
+    if (!id) return;
+    if (form?.nombre_comercial && String(form.nombre_comercial).trim() !== "") return;
+    const compName = (req?.companies as any)?.name;
+    if (!compName) return;
+    set("nombre_comercial", compName);
+    supabase.from("credit_requests").update({ nombre_comercial: compName }).eq("id", id);
+  }, [req, form?.nombre_comercial, id]);
+
   const { data: docTypes = [] } = useQuery({
     queryKey: ["credit_doc_types_active"],
     queryFn: async () => {
