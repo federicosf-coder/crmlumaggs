@@ -128,11 +128,11 @@ export default function DailyDeliveryReport() {
         const empIds = Array.from(new Set((docs || []).map((d) => d.empresa_id).filter(Boolean)));
         const empNames = new Map<string, string>();
         if (empIds.length > 0) {
-          const { data: emps } = await supabase
-            .from("empresas")
-            .select("id, nombre_comercial, razon_social")
+        const { data: emps } = await supabase
+            .from("companies")
+            .select("id, name, razon_social")
             .in("id", empIds);
-          (emps || []).forEach((e: any) => empNames.set(e.id, e.nombre_comercial || e.razon_social || "—"));
+          (emps || []).forEach((e: any) => empNames.set(e.id, e.name || e.razon_social || "—"));
         }
         (docs || []).forEach((d: any) => {
           empresaByDoc.set(d.id, empNames.get(d.empresa_id) || "—");
@@ -375,23 +375,27 @@ export default function DailyDeliveryReport() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fecha</TableHead>
+                    <TableHead>Fecha entrega</TableHead>
                     <TableHead>Plaza</TableHead>
-                    <TableHead>Repartidor(es)</TableHead>
-                    <TableHead className="text-right">Entregas</TableHead>
-                    <TableHead className="text-right">Horas</TableHead>
+                    <TableHead>Repartidor</TableHead>
+                    <TableHead>Cliente</TableHead>
                     <TableHead className="text-right">Km</TableHead>
+                    <TableHead className="text-right">Minutos</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {details.map((d) => (
-                    <TableRow key={d.ruta_id}>
-                      <TableCell>{format(new Date(d.fecha_entrega + "T00:00:00"), "dd MMM yyyy", { locale: es })}</TableCell>
+                    <TableRow key={d.entrega_id}>
+                      <TableCell>
+                        {d.fecha_real
+                          ? format(new Date(d.fecha_real), "dd MMM yyyy HH:mm", { locale: es })
+                          : format(new Date(d.fecha_entrega + "T00:00:00"), "dd MMM yyyy", { locale: es })}
+                      </TableCell>
                       <TableCell>{d.plaza_nombre}</TableCell>
-                      <TableCell className="font-medium">{d.repartidores}</TableCell>
-                      <TableCell className="text-right">{fmt(d.entregas, 0)}</TableCell>
-                      <TableCell className="text-right">{fmt(d.horas, 2)}</TableCell>
+                      <TableCell>{d.repartidor_nombre}</TableCell>
+                      <TableCell className="font-medium">{d.cliente}</TableCell>
                       <TableCell className="text-right">{fmt(d.km, 1)}</TableCell>
+                      <TableCell className="text-right">{fmt(d.minutos, 0)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
