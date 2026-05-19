@@ -1249,6 +1249,31 @@ export default function CreditoDetail() {
 
           {/* Progress */}
           {completeness && (
+            (() => {
+              // Recalcular docs requeridos descontando los opt-in apagados
+              const poderReq = form.poder_representante_requerido === true;
+              const registroReq = form.registro_publico_requerido === true;
+              const estadoReq = form.estado_cuenta_requerido === true;
+              const optInOff = (n: string) =>
+                (n === "Poder del Representante Legal" && !poderReq) ||
+                (n === "Registro Público de la Propiedad" && !registroReq) ||
+                (n === "Estado de cuenta bancario" && !estadoReq);
+              const visibleDocTypes = (docTypes as any[]).filter((dt) => {
+                if (form.tipo === "cescemex" && !dt.aplica_cescemex) return false;
+                if (form.tipo === "directo" && !dt.aplica_directo) return false;
+                if (dt.aplica_si_aval_distinto && !form.aval_es_distinto) return false;
+                const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
+                if (tp === "moral" && dt.aplica_moral === false) return false;
+                if (tp === "fisica" && dt.aplica_fisica === false) return false;
+                return true;
+              });
+              const requeridosLocal = visibleDocTypes.filter((dt) => dt.requerido && !optInOff(dt.nombre));
+              const totalDocs = requeridosLocal.length;
+              const recibidosDocs = requeridosLocal.filter((dt) =>
+                (docs as any[]).some((d) => d.doc_type_id === dt.id)
+              ).length;
+              const docsPct = totalDocs > 0 ? Math.round((recibidosDocs / totalDocs) * 100) : 0;
+              return (
             <div className="grid grid-cols-3 gap-3 pt-4">
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Formulario</p>
@@ -1257,8 +1282,8 @@ export default function CreditoDetail() {
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Documentos</p>
-                <Progress value={completeness.docs_pct || 0} className="h-2 mt-1" />
-                <p className="text-xs mt-0.5">{completeness.docs_received}/{completeness.docs_required}</p>
+                <Progress value={docsPct} className="h-2 mt-1" />
+                <p className="text-xs mt-0.5">{recibidosDocs}/{totalDocs}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Firmas</p>
@@ -1266,6 +1291,8 @@ export default function CreditoDetail() {
                 <p className="text-xs mt-0.5">{completeness.sigs_done}/{completeness.sigs_required}</p>
               </div>
             </div>
+              );
+            })()
           )}
         </CardHeader>
       </Card>
