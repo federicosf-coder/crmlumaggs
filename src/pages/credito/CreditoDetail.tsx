@@ -518,8 +518,8 @@ export default function CreditoDetail() {
                 const palIne  = DOC_PALETTE["Identificación oficial"];
                 const palDom  = DOC_PALETTE["Comprobante de domicilio"];
                 const palActa = DOC_PALETTE["Acta Constitutiva"];
-                const cardCls = (has: boolean, p: any) =>
-                  `rounded-lg border-2 ${has ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : `${p.border} ${p.bg}`} p-3 flex flex-col gap-2 relative`;
+                 const cardCls = (has: boolean, p: any) =>
+                   `rounded-lg border-2 ${has ? "border-emerald-300" : p.border} bg-transparent p-3 flex flex-col gap-2 relative`;
                 const badge = (has: boolean) =>
                   `absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${has ? "bg-emerald-500 text-white border-emerald-600" : "bg-slate-200 text-slate-700 border-slate-300"}`;
                 const hasCsf  = docsForKind("csf").length > 0;
@@ -557,7 +557,6 @@ export default function CreditoDetail() {
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-sm leading-tight">Constancia de Situación Fiscal</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">RFC, razón social, domicilio fiscal, régimen, CP.</p>
                             </div>
                           </div>
                           <label className="cursor-pointer block">
@@ -586,7 +585,6 @@ export default function CreditoDetail() {
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-sm leading-tight">INE / Pasaporte del Representante</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">Nombre, CURP, número, fecha de nacimiento y vencimiento.</p>
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-1.5">
@@ -644,7 +642,6 @@ export default function CreditoDetail() {
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-sm leading-tight">Comprobante de domicilio</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">Domicilio comercial, ciudad y código postal.</p>
                             </div>
                           </div>
                           <label className="cursor-pointer block">
@@ -674,7 +671,6 @@ export default function CreditoDetail() {
                               </div>
                               <div className="min-w-0">
                                 <p className="font-medium text-sm leading-tight">Acta Constitutiva</p>
-                                <p className="text-[11px] text-muted-foreground mt-0.5">Escritura, datos de registro, última asamblea y administrador.</p>
                               </div>
                             </div>
                             <label className="cursor-pointer block">
@@ -822,8 +818,8 @@ export default function CreditoDetail() {
                     const palDom = DOC_PALETTE["Comprobante de domicilio"];
                     const hasIne = docsForKind("aval_ine_front").length > 0;
                     const hasDom = docsForKind("aval_comprobante_domicilio").length > 0;
-                    const cardCls = (has: boolean, p: any) =>
-                      `rounded-lg border-2 ${has ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : `${p.border} ${p.bg}`} p-3 flex flex-col gap-2 relative`;
+                     const cardCls = (has: boolean, p: any) =>
+                       `rounded-lg border-2 ${has ? "border-emerald-300" : p.border} bg-transparent p-3 flex flex-col gap-2 relative`;
                     const badge = (has: boolean) =>
                       `absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${has ? "bg-emerald-500 text-white border-emerald-600" : "bg-slate-200 text-slate-700 border-slate-300"}`;
                     return (
@@ -839,7 +835,6 @@ export default function CreditoDetail() {
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-sm leading-tight">INE / Pasaporte del Aval</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">Autocompleta nombre y dirección del aval.</p>
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-1.5">
@@ -897,7 +892,6 @@ export default function CreditoDetail() {
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-sm leading-tight">Comprobante de domicilio del Aval</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">Autocompleta dirección y ciudad del aval.</p>
                             </div>
                           </div>
                           <label className="cursor-pointer block">
