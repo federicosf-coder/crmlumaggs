@@ -3384,10 +3384,13 @@ export type Database = {
           fecha_entrega: string
           fecha_entrega_real: string | null
           id: string
+          km_desde_anterior: number | null
           notas: string | null
           orden_ruta: number
           repartidor_id: string
           ruta_id: string | null
+          tiempo_estimado_min: number | null
+          tiempo_real_min: number | null
           updated_at: string
           vehiculo_id: string
         }
@@ -3400,10 +3403,13 @@ export type Database = {
           fecha_entrega: string
           fecha_entrega_real?: string | null
           id?: string
+          km_desde_anterior?: number | null
           notas?: string | null
           orden_ruta?: number
           repartidor_id: string
           ruta_id?: string | null
+          tiempo_estimado_min?: number | null
+          tiempo_real_min?: number | null
           updated_at?: string
           vehiculo_id: string
         }
@@ -3416,10 +3422,13 @@ export type Database = {
           fecha_entrega?: string
           fecha_entrega_real?: string | null
           id?: string
+          km_desde_anterior?: number | null
           notas?: string | null
           orden_ruta?: number
           repartidor_id?: string
           ruta_id?: string | null
+          tiempo_estimado_min?: number | null
+          tiempo_real_min?: number | null
           updated_at?: string
           vehiculo_id?: string
         }
@@ -3483,6 +3492,8 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          lat: number | null
+          lng: number | null
           nombre: string
           updated_at: string
         }
@@ -3490,6 +3501,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          lat?: number | null
+          lng?: number | null
           nombre: string
           updated_at?: string
         }
@@ -3497,6 +3510,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          lat?: number | null
+          lng?: number | null
           nombre?: string
           updated_at?: string
         }
