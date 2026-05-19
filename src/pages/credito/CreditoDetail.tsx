@@ -2019,9 +2019,9 @@ export default function CreditoDetail() {
                               const canAdd = dt.permite_multiples || items.length === 0;
                               const hasItems = items.length > 0;
                               return (
-                      <div key={dt.id} className={`rounded-lg border-2 ${hasItems ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : (dt.requerido ? "border-amber-300 bg-gradient-to-br from-amber-50/60 to-white" : palette.border + " " + palette.bg)} p-3 flex flex-col gap-2 relative`}>
-                        <span className={`absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${hasItems ? "bg-emerald-500 text-white border-emerald-600" : (dt.requerido ? "bg-amber-500 text-white border-amber-600" : "bg-slate-200 text-slate-700 border-slate-300")}`}>
-                          {hasItems ? (<><Check className="h-2.5 w-2.5" />Subido{items.length > 1 ? ` (${items.length})` : ""}</>) : (dt.requerido ? "Pendiente" : "Opcional")}
+                      <div key={dt.id} className={`rounded-lg border-2 ${hasItems ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : (isRequerido(dt) ? "border-amber-300 bg-gradient-to-br from-amber-50/60 to-white" : palette.border + " " + palette.bg)} p-3 flex flex-col gap-2 relative`}>
+                        <span className={`absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${hasItems ? "bg-emerald-500 text-white border-emerald-600" : (isRequerido(dt) ? "bg-amber-500 text-white border-amber-600" : "bg-slate-200 text-slate-700 border-slate-300")}`}>
+                          {hasItems ? (<><Check className="h-2.5 w-2.5" />Subido{items.length > 1 ? ` (${items.length})` : ""}</>) : (isRequerido(dt) ? "Pendiente" : "Opcional")}
                         </span>
                         <div className="flex items-start gap-2.5 min-w-0 pr-20">
                             <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palette.iconBg}`}>
@@ -2029,7 +2029,7 @@ export default function CreditoDetail() {
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-sm leading-tight">
-                                {dt.nombre} {dt.requerido && <span className="text-red-600">*</span>}
+                                {dt.nombre} {isRequerido(dt) && <span className="text-red-600">*</span>}
                                 {dt.permite_multiples && (
                                   <span className="ml-1 text-[10px] text-muted-foreground font-normal">(múltiples)</span>
                                 )}
