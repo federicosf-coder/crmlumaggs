@@ -1187,6 +1187,54 @@ export type Database = {
           },
         ]
       }
+      credit_doc_templates: {
+        Row: {
+          activo: boolean
+          contenido_html: string
+          created_at: string
+          entidad: string
+          footer_html: string | null
+          header_html: string | null
+          id: string
+          key: string
+          margenes: Json
+          nombre: string
+          pagina_tamano: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activo?: boolean
+          contenido_html?: string
+          created_at?: string
+          entidad?: string
+          footer_html?: string | null
+          header_html?: string | null
+          id?: string
+          key: string
+          margenes?: Json
+          nombre: string
+          pagina_tamano?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activo?: boolean
+          contenido_html?: string
+          created_at?: string
+          entidad?: string
+          footer_html?: string | null
+          header_html?: string | null
+          id?: string
+          key?: string
+          margenes?: Json
+          nombre?: string
+          pagina_tamano?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       credit_doc_types: {
         Row: {
           aplica_cescemex: boolean
@@ -1515,14 +1563,19 @@ export type Database = {
           fecha_contrato_enviado: string | null
           fecha_contrato_firmado: string | null
           fecha_limite: string | null
+          firma_buro_doc_id: string | null
           firma_buro_fecha: string | null
           firma_buro_nombre: string | null
+          firma_confidencialidad_doc_id: string | null
           firma_confidencialidad_fecha: string | null
           firma_confidencialidad_nombre: string | null
+          firma_lfpiorpi_doc_id: string | null
           firma_lfpiorpi_fecha: string | null
           firma_lfpiorpi_nombre: string | null
+          firma_solicitud_doc_id: string | null
           firma_solicitud_fecha: string | null
           firma_solicitud_nombre: string | null
+          firma_subsistencia_doc_id: string | null
           firma_subsistencia_fecha: string | null
           firma_subsistencia_nombre: string | null
           folio: string | null
@@ -1610,14 +1663,19 @@ export type Database = {
           fecha_contrato_enviado?: string | null
           fecha_contrato_firmado?: string | null
           fecha_limite?: string | null
+          firma_buro_doc_id?: string | null
           firma_buro_fecha?: string | null
           firma_buro_nombre?: string | null
+          firma_confidencialidad_doc_id?: string | null
           firma_confidencialidad_fecha?: string | null
           firma_confidencialidad_nombre?: string | null
+          firma_lfpiorpi_doc_id?: string | null
           firma_lfpiorpi_fecha?: string | null
           firma_lfpiorpi_nombre?: string | null
+          firma_solicitud_doc_id?: string | null
           firma_solicitud_fecha?: string | null
           firma_solicitud_nombre?: string | null
+          firma_subsistencia_doc_id?: string | null
           firma_subsistencia_fecha?: string | null
           firma_subsistencia_nombre?: string | null
           folio?: string | null
@@ -1705,14 +1763,19 @@ export type Database = {
           fecha_contrato_enviado?: string | null
           fecha_contrato_firmado?: string | null
           fecha_limite?: string | null
+          firma_buro_doc_id?: string | null
           firma_buro_fecha?: string | null
           firma_buro_nombre?: string | null
+          firma_confidencialidad_doc_id?: string | null
           firma_confidencialidad_fecha?: string | null
           firma_confidencialidad_nombre?: string | null
+          firma_lfpiorpi_doc_id?: string | null
           firma_lfpiorpi_fecha?: string | null
           firma_lfpiorpi_nombre?: string | null
+          firma_solicitud_doc_id?: string | null
           firma_solicitud_fecha?: string | null
           firma_solicitud_nombre?: string | null
+          firma_subsistencia_doc_id?: string | null
           firma_subsistencia_fecha?: string | null
           firma_subsistencia_nombre?: string | null
           folio?: string | null
@@ -1761,6 +1824,41 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_requests_firma_buro_doc_id_fkey"
+            columns: ["firma_buro_doc_id"]
+            isOneToOne: false
+            referencedRelation: "credit_request_docs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_requests_firma_confidencialidad_doc_id_fkey"
+            columns: ["firma_confidencialidad_doc_id"]
+            isOneToOne: false
+            referencedRelation: "credit_request_docs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_requests_firma_lfpiorpi_doc_id_fkey"
+            columns: ["firma_lfpiorpi_doc_id"]
+            isOneToOne: false
+            referencedRelation: "credit_request_docs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_requests_firma_solicitud_doc_id_fkey"
+            columns: ["firma_solicitud_doc_id"]
+            isOneToOne: false
+            referencedRelation: "credit_request_docs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_requests_firma_subsistencia_doc_id_fkey"
+            columns: ["firma_subsistencia_doc_id"]
+            isOneToOne: false
+            referencedRelation: "credit_request_docs"
             referencedColumns: ["id"]
           },
         ]
