@@ -541,6 +541,138 @@ export default function CreditoDetail() {
         </CardHeader>
       </Card>
 
+      {/* Información rápida — sincronizada con Directorio */}
+      <Card>
+        <CardHeader className="pb-2 bg-gradient-to-br from-violet-50 to-blue-50 border-b">
+          <CardTitle className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">
+            Información rápida
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* Tipo de Persona */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de persona</Label>
+              <Select
+                value={form.tipo_persona ?? form.csf_tipo_persona ?? "moral"}
+                onValueChange={async (v) => {
+                  set("tipo_persona", v);
+                  await supabase.from("credit_requests").update({ tipo_persona: v }).eq("id", id!);
+                }}
+              >
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CREDITO_TIPO_PERSONA_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Monto solicitado */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Monto solicitado</Label>
+              <Input
+                type="number"
+                className="h-9"
+                placeholder="0.00"
+                value={form.monto_solicitado ?? ""}
+                onChange={(e) => set("monto_solicitado", e.target.value ? Number(e.target.value) : null)}
+                onBlur={async (e) => {
+                  const v = e.target.value ? Number(e.target.value) : null;
+                  await supabase.from("credit_requests").update({ monto_solicitado: v }).eq("id", id!);
+                }}
+              />
+            </div>
+
+            {/* Días de crédito */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Días de crédito</Label>
+              <Input
+                type="number"
+                className="h-9"
+                placeholder="30"
+                value={form.dias_credito ?? ""}
+                onChange={(e) => set("dias_credito", e.target.value ? Number(e.target.value) : null)}
+                onBlur={async (e) => {
+                  const v = e.target.value ? Number(e.target.value) : null;
+                  await supabase.from("credit_requests").update({ dias_credito: v }).eq("id", id!);
+                }}
+              />
+            </div>
+
+            {/* Plaza (sincronizada con la Empresa del directorio) */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Plaza</Label>
+              <Select
+                value={company.plaza_id || ""}
+                onValueChange={(v) => updateCompany({ plaza_id: v || null })}
+              >
+                <SelectTrigger className="h-9"><SelectValue placeholder="Sin plaza" /></SelectTrigger>
+                <SelectContent>
+                  {(plazas as any[]).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Contacto para seguimiento */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Contacto para seguimiento</Label>
+              <SearchableSelect
+                value={form.contact_id || ""}
+                onValueChange={setContact}
+                options={(companyContacts as any[]).map((c) => ({
+                  value: c.id,
+                  label: `${c.first_name || ""} ${c.last_name || ""}`.trim() + (c.job_title ? ` — ${c.job_title}` : ""),
+                }))}
+                placeholder="Seleccionar contacto..."
+              />
+              {form.contact_id && (() => {
+                const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+                if (!cc) return null;
+                const phone = cc.whatsapp_phone || cc.mobile || cc.phone;
+                return (
+                  <div className="text-[11px] text-muted-foreground space-x-3 pt-0.5">
+                    {cc.email && <span><Mail className="inline h-3 w-3 mr-0.5" />{cc.email}</span>}
+                    {phone && <span><Phone className="inline h-3 w-3 mr-0.5" />{phone}</span>}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Giro Comercial (Industrias, multi) — sincronizado con la Empresa */}
+            <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground inline-flex items-center gap-1">
+                <Briefcase className="h-3 w-3" /> Giro comercial (Industrias)
+              </Label>
+              <div className="flex flex-wrap gap-1 min-h-[28px]">
+                {companyIndustrias.length === 0 && (
+                  <span className="text-xs text-muted-foreground">Sin industrias asignadas.</span>
+                )}
+                {companyIndustrias.map((i) => (
+                  <Badge key={i} variant="secondary" className="text-xs gap-1">
+                    {i}
+                    <button type="button" onClick={() => removeIndustria(i)} className="hover:text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <Select value="" onValueChange={addIndustria}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Agregar industria..." /></SelectTrigger>
+                <SelectContent>
+                  {INDUSTRIAS_OPTIONS.filter((o) => !companyIndustrias.includes(o)).map((o) => (
+                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="grid grid-cols-5 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
           <TabsTrigger value="docs" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
