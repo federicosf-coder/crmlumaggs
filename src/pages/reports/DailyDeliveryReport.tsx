@@ -61,8 +61,8 @@ export default function DailyDeliveryReport() {
   const { profile } = useAuth();
   const [dateFrom, setDateFrom] = useState<Date>(new Date());
   const [dateTo, setDateTo] = useState<Date>(new Date());
-  const [plazaId, setPlazaId] = useState<string>(ALL);
-  const [repartidorId, setRepartidorId] = useState<string>(ALL);
+  const [plazaIds, setPlazaIds] = useState<string[]>([]);
+  const [repartidorIds, setRepartidorIds] = useState<string[]>([]);
   const [defaulted, setDefaulted] = useState(false);
 
   const { data: plazas = [] } = useQuery<Plaza[]>({
@@ -87,7 +87,7 @@ export default function DailyDeliveryReport() {
   useEffect(() => {
     if (!defaulted && profile?.plaza_id && plazas.length > 0) {
       const found = plazas.find((p) => p.id === profile.plaza_id);
-      if (found) setPlazaId(found.id);
+      if (found) setPlazaIds([found.id]);
       setDefaulted(true);
     }
   }, [profile?.plaza_id, plazas, defaulted]);
@@ -96,15 +96,14 @@ export default function DailyDeliveryReport() {
   const dateToStr = format(dateTo, "yyyy-MM-dd");
 
   const { data: queryData, isLoading } = useQuery<{ rows: RowData[]; details: RutaDetail[] }>({
-    queryKey: ["daily-delivery-report", dateFromStr, dateToStr, plazaId, repartidorId],
+    queryKey: ["daily-delivery-report", dateFromStr, dateToStr, plazaIds.join(","), repartidorIds.join(",")],
     queryFn: async () => {
       let q = supabase
         .from("rutas_entrega")
         .select("id, fecha_entrega, plaza_id, repartidor_id, ruta_started_at, ruta_finished_at, km_recorridos")
         .gte("fecha_entrega", dateFromStr)
         .lte("fecha_entrega", dateToStr);
-      if (plazaId !== ALL) q = q.eq("plaza_id", plazaId);
-      if (repartidorId !== ALL) q = q.eq("repartidor_id", repartidorId);
+      if (plazaIds.length > 0) q = q.in("plaza_id", plazaIds);
       const { data: rutas, error } = await q;
       if (error) throw error;
       const rutaIds = (rutas || []).map((r) => r.id);
@@ -187,7 +186,7 @@ export default function DailyDeliveryReport() {
         const share = 1 / drivers.size;
 
         for (const did of drivers) {
-          if (repartidorId !== ALL && did !== repartidorId) continue;
+          if (repartidorIds.length > 0 && !repartidorIds.includes(did)) continue;
           const row = ensure(did, r.plaza_id);
           row.total_entregas += entregasCount * share;
           row.total_horas += horas * share;
@@ -200,7 +199,7 @@ export default function DailyDeliveryReport() {
       for (const e of entregas || []) {
         const r = rutaById.get(e.ruta_id);
         if (!r) continue;
-        if (repartidorId !== ALL && e.repartidor_id !== repartidorId) continue;
+        if (repartidorIds.length > 0 && !repartidorIds.includes(e.repartidor_id)) continue;
         details.push({
           entrega_id: e.id,
           ruta_id: e.ruta_id,
@@ -327,30 +326,84 @@ export default function DailyDeliveryReport() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div>
-              <Label className="mb-1 block">Plaza</Label>
-              <Select value={plazaId} onValueChange={setPlazaId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>Todas las plazas</SelectItem>
-                  {plazas.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
-            <div>
-              <Label className="mb-1 block">Repartidor</Label>
-              <Select value={repartidorId} onValueChange={setRepartidorId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>Todos los repartidores</SelectItem>
-                  {repartidores.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label className="block">Plazas</Label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPlazaIds([])}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs border transition-colors",
+                    plazaIds.length === 0
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-muted border-input"
+                  )}
+                >
+                  Todas
+                </button>
+                {plazas.map((p) => {
+                  const active = plazaIds.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() =>
+                        setPlazaIds((prev) =>
+                          prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id]
+                        )
+                      }
+                      className={cn(
+                        "px-3 py-1 rounded-full text-xs border transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background hover:bg-muted border-input"
+                      )}
+                    >
+                      {p.nombre}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+            <div className="space-y-2">
+              <Label className="block">Repartidores</Label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRepartidorIds([])}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs border transition-colors",
+                    repartidorIds.length === 0
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-muted border-input"
+                  )}
+                >
+                  Todos
+                </button>
+                {repartidores.map((r) => {
+                  const active = repartidorIds.includes(r.id);
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() =>
+                        setRepartidorIds((prev) =>
+                          prev.includes(r.id) ? prev.filter((x) => x !== r.id) : [...prev, r.id]
+                        )
+                      }
+                      className={cn(
+                        "px-3 py-1 rounded-full text-xs border transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background hover:bg-muted border-input"
+                      )}
+                    >
+                      {r.nombre}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>
