@@ -211,7 +211,7 @@ function BeneficiarioControladorSteps({
         <CollapsibleContent className="transition-all duration-200 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
           <div className="px-3 pb-3 pt-1 space-y-3 border-t">
             <p className="text-xs text-muted-foreground">
-              Conforme al Art. 18 LFPIORPI es necesario identificar si existe un Beneficiario Controlador en esta operación.
+              Conforme al Art. 18 de la Ley de Beneficiario Controlador es necesario identificar si existe un Beneficiario Controlador en esta operación.
             </p>
             <RadioGroup
               value={bcExiste === null ? "" : bcExiste ? "si" : "no"}
