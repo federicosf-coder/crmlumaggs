@@ -38,6 +38,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { DeliveryMapView } from "@/components/documents/DeliveryMapView";
 import { haversineKm, minutesFromKm, formatHm, ROUTE_AVG_SPEED_KMH } from "@/lib/geo";
+import { useGoogleMaps } from "@/hooks/useGoogleMaps";
 
 // ─── Status config ───────────────────────────────────────────
 const POOL_STATUSES = ["confirmado_cliente", "espera_autorizacion_precio", "precio_autorizado", "validado_contabilidad"] as const;
