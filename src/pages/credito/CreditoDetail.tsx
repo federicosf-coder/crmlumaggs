@@ -426,7 +426,47 @@ export default function CreditoDetail() {
     qc.invalidateQueries({ queryKey: ["credit_request", id] });
   };
 
-  const portalUrl = `${window.location.origin}/portal/credito/${form.client_token}`;
+  const portalUrl = form.short_code
+    ? `${window.location.origin}/p/${form.short_code}`
+    : `${window.location.origin}/portal/credito/${form.client_token}`;
+
+  const updateCompany = async (patch: any) => {
+    if (!companyId) return;
+    const { error } = await supabase.from("companies").update(patch).eq("id", companyId);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["credit_request", id] });
+  };
+
+  const company = (form.companies || {}) as any;
+  const companyIndustrias: string[] = company.industrias || [];
+  const removeIndustria = async (val: string) => {
+    await updateCompany({ industrias: companyIndustrias.filter((i) => i !== val) });
+  };
+  const addIndustria = async (val: string) => {
+    if (!val || companyIndustrias.includes(val)) return;
+    await updateCompany({ industrias: [...companyIndustrias, val] });
+    // mantener compatibilidad con credit_requests.giro_comercial
+    const joined = [...companyIndustrias, val].join(", ");
+    set("giro_comercial", joined);
+    await supabase.from("credit_requests").update({ giro_comercial: joined }).eq("id", id!);
+  };
+
+  const setContact = async (contactId: string) => {
+    const cc = (companyContacts as any[]).find((c) => c.id === contactId);
+    set("contact_id", contactId);
+    const upd: any = { contact_id: contactId };
+    if (cc) {
+      const fullName = `${cc.first_name || ""} ${cc.last_name || ""}`.trim();
+      if (cc.email && !form.correo_contacto) { upd.correo_contacto = cc.email; set("correo_contacto", cc.email); }
+      if ((cc.whatsapp_phone || cc.mobile || cc.phone) && !form.telefono) {
+        const t = cc.whatsapp_phone || cc.mobile || cc.phone;
+        upd.telefono = t; set("telefono", t);
+      }
+      if (fullName && !form.client_nombre_contacto) { upd.client_nombre_contacto = fullName; set("client_nombre_contacto", fullName); }
+    }
+    await supabase.from("credit_requests").update(upd).eq("id", id!);
+    qc.invalidateQueries({ queryKey: ["credit_request", id] });
+  };
 
   const sendToPortal = async () => {
     if (form.estado === "borrador") {
