@@ -1331,7 +1331,7 @@ export default function CreditoDetail() {
                             set(e.flagCol as any, checked);
                             const upd: any = { [e.flagCol]: checked };
                             if (!checked) { upd[e.montoCol] = null; set(e.montoCol as any, null); }
-                            await supabase.from("credit_requests").update(upd).eq("id", id!);
+                            await (supabase as any).from("credit_requests").update(upd).eq("id", id!);
                           }}
                         />
                       </div>
