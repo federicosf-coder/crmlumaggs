@@ -1440,7 +1440,7 @@ export default function CreditoDetail() {
         <TabsContent value="datos" className="space-y-6 mt-4">
           <Card><CardContent className="pt-6 space-y-6">
             <Tabs value={formTab} onValueChange={setFormTab}>
-              <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-1 h-auto gap-1 border border-blue-100">
+              <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-1 h-auto gap-1 border border-blue-100">
                 <TabsTrigger value="empresa" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-blue-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
                   <Building2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Empresa</span>
                 </TabsTrigger>
@@ -1449,9 +1449,6 @@ export default function CreditoDetail() {
                 </TabsTrigger>
                 <TabsTrigger value="financiero" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-emerald-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
                   <Landmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Financiero</span>
-                </TabsTrigger>
-                <TabsTrigger value="cumplimiento" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-amber-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
-                  <ShieldCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Cumplimiento</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -1897,18 +1894,6 @@ export default function CreditoDetail() {
             />
               </TabsContent>
 
-              <TabsContent value="cumplimiento" className="space-y-6 mt-5">
-            <BeneficiarioControladorSteps
-              form={form}
-              set={set}
-              creditId={id!}
-              onSavedBc={() => qc.invalidateQueries({ queryKey: ["credit_request", id] })}
-              onOpenInfo={() => setBcInfoOpen(true)}
-              uploadDoc={uploadDoc}
-              openDoc={openDoc}
-              docs={docs as any[]}
-            />
-              </TabsContent>
             </Tabs>
           </CardContent></Card>
         </TabsContent>
