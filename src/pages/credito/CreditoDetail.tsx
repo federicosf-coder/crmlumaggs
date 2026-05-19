@@ -63,6 +63,247 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function BcStepHeader({ open, title, badge }: { open: boolean; title: string; badge: { label: string; variant: "pending" | "ok" | "muted" } }) {
+  const badgeCls =
+    badge.variant === "ok"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      : badge.variant === "pending"
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : "bg-slate-100 text-slate-600 border-slate-200";
+  return (
+    <div className="flex items-center justify-between w-full gap-3 px-3 py-2.5 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
+      <div className="flex items-center gap-2 min-w-0">
+        <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 ${open ? "rotate-0" : "-rotate-90"}`} />
+        <span className="text-sm font-medium truncate">{title}</span>
+      </div>
+      <span className={`text-[11px] px-2 py-0.5 rounded-full border ${badgeCls} shrink-0`}>{badge.label}</span>
+    </div>
+  );
+}
+
+function BeneficiarioControladorSteps({
+  form,
+  set,
+  creditId,
+  onSavedBc,
+  onOpenInfo,
+}: {
+  form: any;
+  set: (k: string, v: any) => void;
+  creditId: string;
+  onSavedBc: () => void;
+  onOpenInfo: () => void;
+}) {
+  const bcExiste: boolean | null =
+    form.lfpiorpi_beneficiario_controlador == null ? null : !!form.lfpiorpi_beneficiario_controlador;
+  const bcConfirmado = !!form.bc_confirmacion_no_existe;
+  const rlIsBc: boolean | null =
+    form.bc_es_representante_legal == null ? null : !!form.bc_es_representante_legal;
+
+  // Default-open Paso 1 cuando es indeterminado.
+  const [step1Open, setStep1Open] = useState<boolean>(bcExiste === null);
+  const [step2Open, setStep2Open] = useState<boolean>(bcExiste === true && rlIsBc === null);
+  const [savingBc, setSavingBc] = useState(false);
+
+  // Sincroniza estado de apertura cuando cambian los datos cargados.
+  useEffect(() => {
+    setStep1Open(bcExiste === null);
+  }, [bcExiste]);
+  useEffect(() => {
+    if (bcExiste === true) setStep2Open(rlIsBc === null);
+    else setStep2Open(false);
+  }, [bcExiste, rlIsBc]);
+
+  const step1Badge = useMemo(() => {
+    if (bcExiste === null) return { label: "Pendiente", variant: "pending" as const };
+    if (bcExiste === false) {
+      return bcConfirmado
+        ? { label: "No aplica", variant: "muted" as const }
+        : { label: "No existe", variant: "pending" as const };
+    }
+    return { label: "Sí existe", variant: "ok" as const };
+  }, [bcExiste, bcConfirmado]);
+
+  const step2Badge = useMemo(() => {
+    if (rlIsBc === null) return { label: "Pendiente", variant: "pending" as const };
+    return rlIsBc
+      ? { label: "Es el Representante Legal", variant: "ok" as const }
+      : { label: "Es otra persona", variant: "ok" as const };
+  }, [rlIsBc]);
+
+  const setExiste = (v: boolean) => {
+    set("lfpiorpi_beneficiario_controlador", v);
+    if (!v) {
+      set("bc_es_representante_legal", null);
+    } else {
+      set("bc_confirmacion_no_existe", false);
+    }
+  };
+
+  const saveNoExiste = async () => {
+    setSavingBc(true);
+    const { error } = await supabase
+      .from("credit_requests")
+      .update({
+        lfpiorpi_beneficiario_controlador: false,
+        bc_confirmacion_no_existe: true,
+        bc_es_representante_legal: null,
+      })
+      .eq("id", creditId);
+    setSavingBc(false);
+    if (error) { toast.error("No se pudo guardar: " + error.message); return; }
+    toast.success("Guardado: no existe Beneficiario Controlador");
+    set("bc_confirmacion_no_existe", true);
+    setStep1Open(false);
+    onSavedBc();
+  };
+
+  const setRlIsBc = (v: boolean) => {
+    set("bc_es_representante_legal", v);
+    // Auto-colapsa Paso 2 al elegir; Paso 3 (no implementado en este alcance) tomará el foco.
+    setStep2Open(false);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">
+          Beneficiario Controlador
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 text-[11px] gap-1 border-violet-300 text-violet-700 hover:bg-violet-50"
+          onClick={onOpenInfo}
+        >
+          <HelpCircle className="h-3.5 w-3.5" />
+          Conoce más
+        </Button>
+      </div>
+
+      {/* Paso 1 */}
+      <Collapsible open={step1Open} onOpenChange={setStep1Open} className="rounded-lg border bg-card transition-all duration-200">
+        <CollapsibleTrigger asChild>
+          <button type="button" className="w-full text-left">
+            <BcStepHeader open={step1Open} title="Beneficiario Controlador" badge={step1Badge} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="transition-all duration-200 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+          <div className="px-3 pb-3 pt-1 space-y-3 border-t">
+            <p className="text-xs text-muted-foreground">
+              Conforme al Art. 18 LFPIORPI es necesario identificar si existe un Beneficiario Controlador en esta operación.
+            </p>
+            <RadioGroup
+              value={bcExiste === null ? "" : bcExiste ? "si" : "no"}
+              onValueChange={(v) => setExiste(v === "si")}
+              className="gap-2"
+            >
+              <label
+                htmlFor="bc-existe-si"
+                className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted/40 transition-colors ${bcExiste === true ? "border-violet-300 bg-violet-50/40" : ""}`}
+              >
+                <RadioGroupItem value="si" id="bc-existe-si" className="mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">Sí existe</p>
+                  <p className="text-xs text-muted-foreground">Hay una persona física que controla o se beneficia de esta operación</p>
+                </div>
+              </label>
+              <label
+                htmlFor="bc-existe-no"
+                className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted/40 transition-colors ${bcExiste === false ? "border-violet-300 bg-violet-50/40" : ""}`}
+              >
+                <RadioGroupItem value="no" id="bc-existe-no" className="mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">No existe</p>
+                  <p className="text-xs text-muted-foreground">La operación no tiene Beneficiario Controlador identificable</p>
+                </div>
+              </label>
+            </RadioGroup>
+
+            {bcExiste === false && (
+              <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <Checkbox
+                    id="bc-confirma"
+                    checked={bcConfirmado}
+                    onCheckedChange={(v) => set("bc_confirmacion_no_existe", !!v)}
+                    className="mt-0.5"
+                  />
+                  <span className="text-xs">
+                    Confirmo bajo protesta de decir verdad que no existe Beneficiario Controlador
+                  </span>
+                </label>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={!bcConfirmado || savingBc}
+                    onClick={saveNoExiste}
+                  >
+                    {savingBc ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                    Guardar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Paso 2 */}
+      {bcExiste === true && (
+        <Collapsible open={step2Open} onOpenChange={setStep2Open} className="rounded-lg border bg-card transition-all duration-200">
+          <CollapsibleTrigger asChild>
+            <button type="button" className="w-full text-left">
+              <BcStepHeader open={step2Open} title="Representante Legal como BC" badge={step2Badge} />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="transition-all duration-200 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+            <div className="px-3 pb-3 pt-1 space-y-3 border-t">
+              <p className="text-xs text-muted-foreground">
+                ¿El Representante Legal de la solicitud es también el Beneficiario Controlador?
+              </p>
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Representante Legal</p>
+                <p className="truncate">
+                  {[form.rep_legal_nombre || "—", form.rep_legal_rfc || "—", form.rep_legal_curp || "—"].join(" · ")}
+                </p>
+              </div>
+              <RadioGroup
+                value={rlIsBc === null ? "" : rlIsBc ? "si" : "no"}
+                onValueChange={(v) => setRlIsBc(v === "si")}
+                className="gap-2"
+              >
+                <label
+                  htmlFor="bc-rl-si"
+                  className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted/40 transition-colors ${rlIsBc === true ? "border-violet-300 bg-violet-50/40" : ""}`}
+                >
+                  <RadioGroupItem value="si" id="bc-rl-si" className="mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">Sí, es el mismo</p>
+                    <p className="text-xs text-muted-foreground">Se usarán sus datos para prellenar el formulario</p>
+                  </div>
+                </label>
+                <label
+                  htmlFor="bc-rl-no"
+                  className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted/40 transition-colors ${rlIsBc === false ? "border-violet-300 bg-violet-50/40" : ""}`}
+                >
+                  <RadioGroupItem value="no" id="bc-rl-no" className="mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">No, es otra persona</p>
+                    <p className="text-xs text-muted-foreground">Se llenará el formulario con datos distintos</p>
+                  </div>
+                </label>
+              </RadioGroup>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+    </div>
+  );
+}
+
 export default function CreditoDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, hasAnyRole } = useAuth();
