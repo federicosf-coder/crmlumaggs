@@ -397,6 +397,37 @@ function BcField({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
+function BcDomicilioField({ bcData, setBc, label }: { bcData: any; setBc: (k: string, v: any) => void; label: string }) {
+  const value = {
+    direccion_completa: bcData?.domicilio || "",
+    latitud: bcData?.domicilio_lat ?? null,
+    longitud: bcData?.domicilio_lng ?? null,
+    ciudad: bcData?.domicilio_ciudad ?? null,
+    estado: bcData?.domicilio_estado ?? null,
+    pais: bcData?.domicilio_pais ?? null,
+    codigo_postal: bcData?.domicilio_cp ?? null,
+    codigo_google: bcData?.domicilio_place_id ?? null,
+  };
+  return (
+    <AddressAutocompleteInput
+      label={label}
+      value={value}
+      showCoords={false}
+      showLocateButton
+      onChange={(v) => {
+        setBc("domicilio", v.direccion_completa);
+        setBc("domicilio_lat", v.latitud);
+        setBc("domicilio_lng", v.longitud);
+        setBc("domicilio_ciudad", v.ciudad);
+        setBc("domicilio_estado", v.estado);
+        setBc("domicilio_pais", v.pais);
+        setBc("domicilio_cp", v.codigo_postal);
+        setBc("domicilio_place_id", v.codigo_google);
+      }}
+    />
+  );
+}
+
 function BcDocUploader({
   docKey,
   label,
@@ -548,9 +579,7 @@ function BcPersonaFisicaForm({ bcData, setBc, uploadDoc, openDoc, docs, creditId
           <BcField label="Teléfono"><Input value={bcData.telefono || ""} onChange={(e) => setBc("telefono", e.target.value)} /></BcField>
           <BcField label="Correo"><Input type="email" value={bcData.correo || ""} onChange={(e) => setBc("correo", e.target.value)} /></BcField>
         </div>
-        <BcField label="Domicilio completo">
-          <Textarea rows={2} value={bcData.domicilio || ""} onChange={(e) => setBc("domicilio", e.target.value)} />
-        </BcField>
+        <BcDomicilioField bcData={bcData} setBc={setBc} label="Domicilio completo" />
         <div className="grid sm:grid-cols-2 gap-3">
           <BcField label="Tipo de identificación oficial"><Input placeholder="INE, Pasaporte..." value={bcData.id_tipo || ""} onChange={(e) => setBc("id_tipo", e.target.value)} /></BcField>
           <BcField label="Número de identificación"><Input value={bcData.id_numero || ""} onChange={(e) => setBc("id_numero", e.target.value)} /></BcField>
@@ -694,9 +723,7 @@ function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs, creditId 
           <BcField label="Teléfono"><Input value={bcData.telefono || ""} onChange={(e) => setBc("telefono", e.target.value)} /></BcField>
           <BcField label="Correo"><Input type="email" value={bcData.correo || ""} onChange={(e) => setBc("correo", e.target.value)} /></BcField>
         </div>
-        <BcField label="Domicilio">
-          <Textarea rows={2} value={bcData.domicilio || ""} onChange={(e) => setBc("domicilio", e.target.value)} />
-        </BcField>
+        <BcDomicilioField bcData={bcData} setBc={setBc} label="Domicilio" />
       </div>
 
       <div className="space-y-3">
