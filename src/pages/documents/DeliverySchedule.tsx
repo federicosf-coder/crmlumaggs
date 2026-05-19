@@ -21,6 +21,7 @@ import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
   ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon, FileText, Play, Flag, Eye,
+  Route as RouteIcon, Clock, Timer, AlertTriangle, Save,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -36,6 +37,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { DeliveryMapView } from "@/components/documents/DeliveryMapView";
+import { haversineKm, minutesFromKm, formatHm, ROUTE_AVG_SPEED_KMH } from "@/lib/geo";
 
 // ─── Status config ───────────────────────────────────────────
 const POOL_STATUSES = ["confirmado_cliente", "espera_autorizacion_precio", "precio_autorizado", "validado_contabilidad"] as const;
@@ -149,7 +151,92 @@ function OverlayCard({ item }: { item: PoolItem }) {
 }
 
 // ─── Route Drop Column ───────────────────────────────────────
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute }: {
+// Pequeña fila bajo cada entrega con km / tiempo estimado / tiempo real y
+// captura manual de coordenadas cuando el documento no las tiene.
+function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDocCoords }: {
+  item: any;
+  onSaveTiempoReal?: (docId: string, minutes: number | null) => void;
+  onSaveKmManual?: (docId: string, km: number | null) => void;
+  onSaveDocCoords?: (docId: string, lat: number, lng: number) => void;
+}) {
+  const entrega = item?.entrega || {};
+  const hasCoords = item?.lat != null && item?.lng != null;
+  const km = entrega.km_desde_anterior != null ? Number(entrega.km_desde_anterior) : null;
+  const estMin = entrega.tiempo_estimado_min != null ? Number(entrega.tiempo_estimado_min) : null;
+  const [real, setReal] = useState<string>(entrega.tiempo_real_min != null ? String(entrega.tiempo_real_min) : "");
+  const [kmManual, setKmManual] = useState<string>(km != null ? String(km) : "");
+  const [showCoords, setShowCoords] = useState(false);
+  const [lat, setLat] = useState<string>("");
+  const [lng, setLng] = useState<string>("");
+
+  useEffect(() => {
+    setReal(entrega.tiempo_real_min != null ? String(entrega.tiempo_real_min) : "");
+    setKmManual(km != null ? String(km) : "");
+  }, [entrega.tiempo_real_min, km]);
+
+  return (
+    <div className="mt-1 ml-0 rounded-md border bg-muted/30 px-2 py-1.5 text-[11px] space-y-1" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="grid grid-cols-3 gap-2 items-end">
+        <div>
+          <Label className="text-[10px] text-muted-foreground">Km recorridos</Label>
+          {hasCoords ? (
+            <div className="font-semibold">{km != null ? `${km.toFixed(2)} km` : "—"}</div>
+          ) : (
+            <Input
+              type="number" step="any"
+              className="h-7 text-xs"
+              value={kmManual}
+              onChange={(e) => setKmManual(e.target.value)}
+              onBlur={() => onSaveKmManual?.(item.id, kmManual === "" ? null : Number(kmManual))}
+              placeholder="Manual"
+            />
+          )}
+        </div>
+        <div>
+          <Label className="text-[10px] text-muted-foreground">T. estimado</Label>
+          <div className="font-semibold">{estMin != null ? `${estMin} min` : "—"}</div>
+        </div>
+        <div>
+          <Label className="text-[10px] text-muted-foreground">T. real (min)</Label>
+          <Input
+            type="number" min="0"
+            className="h-7 text-xs"
+            value={real}
+            onChange={(e) => setReal(e.target.value)}
+            onBlur={() => onSaveTiempoReal?.(item.id, real === "" ? null : Number(real))}
+          />
+        </div>
+      </div>
+      {!hasCoords && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <Badge variant="outline" className="text-[10px] gap-1 border-amber-400 text-amber-700 bg-amber-50">
+              <AlertTriangle className="h-3 w-3" /> Sin ubicación — captura manual
+            </Badge>
+            <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => setShowCoords(v => !v)}>
+              {showCoords ? "Cerrar" : "Capturar coordenadas"}
+            </Button>
+          </div>
+          {showCoords && (
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-1 items-end">
+              <Input type="number" step="any" placeholder="Lat" className="h-7 text-xs" value={lat} onChange={(e) => setLat(e.target.value)} />
+              <Input type="number" step="any" placeholder="Lng" className="h-7 text-xs" value={lng} onChange={(e) => setLng(e.target.value)} />
+              <Button
+                size="sm" className="h-7 text-[10px] px-2"
+                disabled={!lat || !lng}
+                onClick={() => { onSaveDocCoords?.(item.id, Number(lat), Number(lng)); setShowCoords(false); }}
+              >
+                <Save className="h-3 w-3 mr-1" />Guardar
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute, onSaveTiempoReal, onSaveKmManual, onSaveDocCoords }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -162,6 +249,9 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onToggleCerrada: (ruta: any) => void;
   onStartRoute: (ruta: any) => void;
   onFinishRoute: (ruta: any) => void;
+  onSaveTiempoReal?: (docId: string, minutes: number | null) => void;
+  onSaveKmManual?: (docId: string, km: number | null) => void;
+  onSaveDocCoords?: (docId: string, lat: number, lng: number) => void;
 }) {
   const navigate = useNavigate();
   const cerrada = !!ruta.cerrada;
@@ -171,6 +261,11 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
     const rep = repartidoresAll.find((r: any) => r.id === rr.repartidor_id);
     return rep?.nombre || "?";
   });
+
+  // Resumen de ruta a partir de los entregas attached
+  const totalKm = items.reduce((s, it: any) => s + (Number(it.entrega?.km_desde_anterior) || 0), 0);
+  const totalEstMin = items.reduce((s, it: any) => s + (Number(it.entrega?.tiempo_estimado_min) || 0), 0);
+  const totalRealMin = items.reduce((s, it: any) => s + (Number(it.entrega?.tiempo_real_min) || 0), 0);
 
   return (
     <div ref={setNodeRef}
@@ -239,6 +334,25 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
         </Button>
       </div>
 
+      {/* Resumen de ruta: km y tiempos */}
+      <div className="rounded-md border bg-muted/40 px-2 py-1.5 mb-2 space-y-0.5 text-[11px]">
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-muted-foreground"><RouteIcon className="h-3 w-3" />Total km estimados</span>
+          <span className="font-semibold">{totalKm.toFixed(1)} km</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-muted-foreground"><Clock className="h-3 w-3" />Tiempo estimado</span>
+          <span className="font-semibold">{formatHm(totalEstMin)} h</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-muted-foreground"><Timer className="h-3 w-3" />Tiempo real acumulado</span>
+          <span className="font-semibold">{formatHm(totalRealMin)} h</span>
+        </div>
+        {ruta?.plazas && (ruta.plazas.lat == null || ruta.plazas.lng == null) && (
+          <p className="text-[10px] text-amber-700 flex items-center gap-1 pt-0.5"><AlertTriangle className="h-3 w-3" />Plaza sin coordenadas: la primera entrega no calcula km automáticos.</p>
+        )}
+      </div>
+
       {/* Items */}
       <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-2 flex-1 min-h-[80px]">
@@ -300,6 +414,12 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                       </>
                     ) : undefined
                   }
+                />
+                <DeliveryTrackingRow
+                  item={item as any}
+                  onSaveTiempoReal={onSaveTiempoReal}
+                  onSaveKmManual={onSaveKmManual}
+                  onSaveDocCoords={onSaveDocCoords}
                 />
               </div>
             </div>
@@ -414,7 +534,7 @@ export default function DeliverySchedule() {
     queryFn: async () => {
       const { data } = await supabase
         .from("rutas_entrega")
-        .select("*, plazas(nombre)")
+        .select("*, plazas(nombre, lat, lng)")
         .order("fecha_entrega", { ascending: true });
       return data || [];
     },
@@ -511,6 +631,10 @@ export default function DeliverySchedule() {
           plaza_id: doc?.plaza_id || undefined,
           fecha_documento: doc?.fecha_documento || undefined,
           raw: doc,
+          // Tracking de distancia / tiempo (consumido por RouteDropColumn)
+          entrega: e,
+          lat: doc?.direccion_envio_lat ?? null,
+          lng: doc?.direccion_envio_lng ?? null,
         };
       });
     }
@@ -575,6 +699,68 @@ export default function DeliverySchedule() {
     return null;
   };
 
+  // Recalcula km_desde_anterior y tiempo_estimado_min para todas las entregas de una ruta,
+  // usando coordenadas del documento y la plaza de origen. Solo sobrescribe cuando hay coords;
+  // si faltan, conserva los valores manuales existentes.
+  const recalcRouteDistances = async (rutaId: string) => {
+    const ruta = allRutas.find((r: any) => r.id === rutaId);
+    const { data: entregas } = await supabase
+      .from("entregas_programadas")
+      .select("id, documento_id, orden_ruta, km_desde_anterior, tiempo_estimado_min, documentos(direccion_envio_lat, direccion_envio_lng)")
+      .eq("ruta_id", rutaId)
+      .order("orden_ruta");
+    if (!entregas) return;
+    let prevLat: number | null = ruta?.plazas?.lat != null ? Number(ruta.plazas.lat) : null;
+    let prevLng: number | null = ruta?.plazas?.lng != null ? Number(ruta.plazas.lng) : null;
+    for (const e of entregas as any[]) {
+      const doc = (e as any).documentos;
+      const cLat = doc?.direccion_envio_lat != null ? Number(doc.direccion_envio_lat) : null;
+      const cLng = doc?.direccion_envio_lng != null ? Number(doc.direccion_envio_lng) : null;
+      if (prevLat != null && prevLng != null && cLat != null && cLng != null) {
+        const km = Number(haversineKm(prevLat, prevLng, cLat, cLng).toFixed(2));
+        const min = minutesFromKm(km);
+        if (e.km_desde_anterior !== km || e.tiempo_estimado_min !== min) {
+          await supabase.from("entregas_programadas")
+            .update({ km_desde_anterior: km, tiempo_estimado_min: min })
+            .eq("id", e.id);
+        }
+      }
+      // Avanzar el ancla solo cuando hay coords del punto actual
+      if (cLat != null && cLng != null) { prevLat = cLat; prevLng = cLng; }
+    }
+    refetchEntregas();
+  };
+
+  // Guarda tiempo real (minutos) de una entrega
+  const saveTiempoReal = async (rutaId: string, docId: string, minutes: number | null) => {
+    const { error } = await supabase.from("entregas_programadas")
+      .update({ tiempo_real_min: minutes })
+      .eq("ruta_id", rutaId).eq("documento_id", docId);
+    if (error) { toast.error(error.message); return; }
+    refetchEntregas();
+  };
+
+  // Guarda km capturados manualmente (cuando faltan coordenadas)
+  const saveKmManual = async (rutaId: string, docId: string, km: number | null) => {
+    const tiempoEstimado = km != null && km > 0 ? minutesFromKm(km) : null;
+    const { error } = await supabase.from("entregas_programadas")
+      .update({ km_desde_anterior: km, tiempo_estimado_min: tiempoEstimado })
+      .eq("ruta_id", rutaId).eq("documento_id", docId);
+    if (error) { toast.error(error.message); return; }
+    refetchEntregas();
+  };
+
+  // Guarda coordenadas del documento de envío (captura manual de lat/lng)
+  const saveDocCoords = async (rutaId: string, docId: string, lat: number, lng: number) => {
+    const { error } = await supabase.from("documentos")
+      .update({ direccion_envio_lat: lat, direccion_envio_lng: lng })
+      .eq("id", docId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Coordenadas guardadas");
+    await refetchEntregas();
+    await recalcRouteDistances(rutaId);
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const item = poolItems.find(i => i.id === active.id) ||
@@ -620,6 +806,7 @@ export default function DeliverySchedule() {
             .eq("documento_id", reordered[i].id)
             .eq("ruta_id", activeContainer);
         }
+        await recalcRouteDistances(activeContainer);
       }
       return;
     }
@@ -672,6 +859,7 @@ export default function DeliverySchedule() {
 
       refetchPool();
       refetchEntregas();
+      await recalcRouteDistances(ruta.id);
       return;
     }
 
@@ -690,6 +878,7 @@ export default function DeliverySchedule() {
       toast.success("Pedido devuelto al pool");
       refetchPool();
       refetchEntregas();
+      await recalcRouteDistances(activeContainer);
       return;
     }
 
@@ -715,6 +904,8 @@ export default function DeliverySchedule() {
 
       toast.success("Pedido movido a otra ruta");
       refetchEntregas();
+      await recalcRouteDistances(activeContainer);
+      await recalcRouteDistances(newRuta.id);
       return;
     }
   };
@@ -1146,6 +1337,9 @@ export default function DeliverySchedule() {
                                   onToggleCerrada={toggleRutaCerrada}
                                   onStartRoute={handleStartRoute}
                                   onFinishRoute={handleFinishRoute}
+                                  onSaveTiempoReal={(docId, min) => saveTiempoReal(ruta.id, docId, min)}
+                                  onSaveKmManual={(docId, km) => saveKmManual(ruta.id, docId, km)}
+                                  onSaveDocCoords={(docId, lat, lng) => saveDocCoords(ruta.id, docId, lat, lng)}
                                 />
                               ))}
                             </div>
