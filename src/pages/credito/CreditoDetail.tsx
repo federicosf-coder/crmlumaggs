@@ -1736,7 +1736,40 @@ export default function CreditoDetail() {
               <Field label="Razón social"><Input value={form.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} /></Field>
               <Field label="Nombre comercial"><Input value={form.nombre_comercial || ""} onChange={(e) => set("nombre_comercial", e.target.value)} /></Field>
               <Field label="RFC"><Input value={form.rfc || ""} onChange={(e) => set("rfc", e.target.value.toUpperCase())} /></Field>
-              <Field label="Teléfono"><Input value={form.telefono || ""} onChange={(e) => set("telefono", e.target.value)} /></Field>
+              <Field label="Teléfono">
+                {(() => {
+                  const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+                  const syncContact = form.sync_telefono_contacto === true;
+                  const contactTel = cc?.whatsapp_phone || cc?.mobile || cc?.phone || "";
+                  return (
+                    <div className="space-y-1">
+                      <Input
+                        value={form.telefono || ""}
+                        onChange={(e) => set("telefono", e.target.value)}
+                        onBlur={async (e) => {
+                          const val = e.target.value.trim();
+                          if (syncContact && cc && val && val !== contactTel) {
+                            const field = cc.whatsapp_phone ? "whatsapp_phone" : (cc.mobile ? "mobile" : "phone");
+                            const { error } = await supabase.from("contacts").update({ [field]: val }).eq("id", cc.id);
+                            if (error) toast.error("No se pudo actualizar el contacto");
+                            else { toast.success("Teléfono actualizado también en el contacto"); qc.invalidateQueries({ queryKey: ["credit-company-contacts", companyId] }); }
+                          }
+                        }}
+                      />
+                      {cc && (
+                        <label className="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-muted-foreground">
+                          <Switch
+                            checked={syncContact}
+                            onCheckedChange={(v) => { set("sync_telefono_contacto", v); supabase.from("credit_requests").update({ sync_telefono_contacto: v }).eq("id", id!); }}
+                            className="scale-75"
+                          />
+                          <span>Al editar, actualizar también el contacto</span>
+                        </label>
+                      )}
+                    </div>
+                  );
+                })()}
+              </Field>
               <Field label="Correo de contacto">
                 {(() => {
                   const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
