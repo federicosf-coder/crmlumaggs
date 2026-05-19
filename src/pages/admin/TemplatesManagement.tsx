@@ -11,14 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Copy, Power, Search, FileText, MessageCircle, Paperclip, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, Power, Search, FileText, MessageCircle, Paperclip, Eye, FileSignature } from "lucide-react";
 import { CATEGORY_LABELS, Template, TemplateCategory, TemplateType } from "@/lib/templates";
 import { TemplateFormDialog } from "@/components/templates/TemplateFormDialog";
 import { TemplatePreviewDialog } from "@/components/templates/TemplatePreviewDialog";
+import CreditoFormatosEditor from "@/pages/credito/CreditoFormatosEditor";
 
 export default function TemplatesManagement() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"all" | TemplateType>("all");
+  const [tab, setTab] = useState<"all" | TemplateType | "credito">("all");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<"all" | TemplateCategory>("all");
   const [editing, setEditing] = useState<Template | null>(null);
@@ -105,11 +106,18 @@ export default function TemplatesManagement() {
               <TabsTrigger value="all">Todas</TabsTrigger>
               <TabsTrigger value="email"><FileText className="h-3.5 w-3.5 mr-1" /> Email</TabsTrigger>
               <TabsTrigger value="whatsapp"><MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp (locales)</TabsTrigger>
+              <TabsTrigger value="credito"><FileSignature className="h-3.5 w-3.5 mr-1" /> Formatos de crédito</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nueva plantilla</Button>
+          {tab !== "credito" && (
+            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nueva plantilla</Button>
+          )}
         </div>
 
+        {tab === "credito" ? (
+          <CreditoFormatosEditor />
+        ) : (
+        <>
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -175,6 +183,8 @@ export default function TemplatesManagement() {
             </TableBody>
           </Table>
         </Card>
+        </>
+        )}
       </div>
 
       <TemplateFormDialog open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} onSaved={refetch} />

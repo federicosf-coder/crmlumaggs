@@ -14,7 +14,6 @@ import { Plus, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CreditoFormatosEditor from "./CreditoFormatosEditor";
 
 interface DocType {
   id: string;
@@ -121,7 +120,7 @@ export default function CreditoConfiguracion() {
         <div>
           <h1 className="text-2xl font-semibold">Configuración de crédito</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Administra los documentos requeridos y los formatos imprimibles del expediente.
+            Administra los documentos requeridos del expediente. Los formatos imprimibles se editan en Administración → Plantillas → Formatos de crédito.
           </p>
         </div>
       </div>
@@ -129,7 +128,6 @@ export default function CreditoConfiguracion() {
       <Tabs defaultValue="docs" className="space-y-4">
         <TabsList>
           <TabsTrigger value="docs">Documentos requeridos</TabsTrigger>
-          <TabsTrigger value="formatos">Formatos imprimibles</TabsTrigger>
         </TabsList>
 
         <TabsContent value="docs" className="space-y-4">
@@ -202,10 +200,6 @@ export default function CreditoConfiguracion() {
           )}
         </CardContent>
       </Card>
-        </TabsContent>
-
-        <TabsContent value="formatos">
-          <CreditoFormatosEditor />
         </TabsContent>
       </Tabs>
 
