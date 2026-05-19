@@ -237,13 +237,26 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
       </div>
       {!hasCoords && (
         <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <Badge variant="outline" className="text-[10px] gap-1 border-amber-400 text-amber-700 bg-amber-50">
-              <AlertTriangle className="h-3 w-3" /> Sin ubicación — captura manual
+              <AlertTriangle className="h-3 w-3" /> Sin ubicación
             </Badge>
-            <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => setShowCoords(v => !v)}>
-              {showCoords ? "Cerrar" : "Capturar coordenadas"}
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 text-[10px] px-2 border-blue-300 text-blue-700 hover:bg-blue-50"
+                disabled={geocoding || !gmapsReady || !(item?.address || item?.raw?.direccion_envio)}
+                onClick={geocodeFromAddress}
+                title="Calcular ubicación desde la dirección del pedido"
+              >
+                <MapPin className="h-3 w-3 mr-1" />
+                {geocoding ? "Calculando..." : "Calcular desde dirección"}
+              </Button>
+              <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => setShowCoords(v => !v)}>
+                {showCoords ? "Cerrar" : "Manual"}
+              </Button>
+            </div>
           </div>
           {showCoords && (
             <div className="grid grid-cols-[1fr_1fr_auto] gap-1 items-end">
