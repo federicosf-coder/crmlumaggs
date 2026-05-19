@@ -1337,7 +1337,7 @@ export default function CreditoDetail() {
                       </div>
                       <Input
                         type="number"
-                        className="h-8"
+                        className="h-8 text-right"
                         placeholder="Monto solicitado"
                         disabled={!activo}
                         value={monto ?? ""}
