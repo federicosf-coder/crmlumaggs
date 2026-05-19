@@ -451,46 +451,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                   item={item}
                   footerActions={
                     item.type === "pedido" ? (
-                      <>
-                        {item.address && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="h-11 sm:h-8 px-3 gap-1.5 shadow"
-                            title="Abrir mapa"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address!)}`, "_blank");
-                            }}
-                          >
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-xs">Mapa</span>
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="h-11 sm:h-8 px-3 gap-1.5 shadow"
-                          title="Ver / editar pedido"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => { e.stopPropagation(); window.open(`/documents/${item.id}/edit`, "_blank"); }}
-                        >
-                          <FileText className="h-4 w-4" />
-                          <span className="text-xs">Editar</span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="default"
-                          className="h-11 sm:h-8 px-3 gap-1.5 shadow"
-                          title="Abrir entrega"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => { e.stopPropagation(); window.open(`/delivery/entrega/${item.id}`, "_blank"); }}
-                        >
-                          <ClipboardCheck className="h-4 w-4" />
-                          <span className="text-xs">Entrega</span>
-                        </Button>
-                      </>
+                      <PedidoFooterActions item={item} />
                     ) : undefined
                   }
                 />
