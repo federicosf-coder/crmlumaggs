@@ -479,30 +479,72 @@ export default function EntregaDetalle() {
 
   const saveAddress = async () => {
     if (!id || !documento) return;
-    if (!newAddress.trim()) {
-      toast.error("La dirección no puede estar vacía");
+    const addrText = newAddress.trim();
+    let latToSave = newLat;
+    let lngToSave = newLng;
+    let addrToSave = addrText;
+
+    if (!addrToSave && latToSave == null && lngToSave == null) {
+      toast.error("Captura una dirección o coordenadas");
       return;
     }
+
+    // Autocompletar la pieza faltante usando el geocoder de Google Maps.
+    const g = (window as any).google;
+    if (gmapsReady && g?.maps) {
+      try {
+        const geocoder = new g.maps.Geocoder();
+        // Caso 1: hay dirección pero faltan coordenadas → forward geocoding
+        if (addrToSave && (latToSave == null || lngToSave == null)) {
+          const res: any = await new Promise((resolve, reject) => {
+            geocoder.geocode({ address: addrToSave, region: "mx" }, (results: any, status: any) => {
+              if (status === "OK" && results?.[0]) resolve(results[0]);
+              else reject(new Error(`Geocoder: ${status}`));
+            });
+          });
+          const loc = res.geometry?.location;
+          latToSave = typeof loc?.lat === "function" ? loc.lat() : loc?.lat;
+          lngToSave = typeof loc?.lng === "function" ? loc.lng() : loc?.lng;
+        }
+        // Caso 2: hay coordenadas pero falta dirección → reverse geocoding
+        else if (!addrToSave && latToSave != null && lngToSave != null) {
+          const res: any = await new Promise((resolve, reject) => {
+            geocoder.geocode({ location: { lat: Number(latToSave), lng: Number(lngToSave) } }, (results: any, status: any) => {
+              if (status === "OK" && results?.[0]) resolve(results[0]);
+              else reject(new Error(`Geocoder: ${status}`));
+            });
+          });
+          addrToSave = res.formatted_address || `${latToSave}, ${lngToSave}`;
+        }
+      } catch (e: any) {
+        toast.error(e?.message || "No se pudo completar la dirección/coordenadas automáticamente");
+        return;
+      }
+    } else if (!addrToSave || latToSave == null || lngToSave == null) {
+      toast.error("Google Maps no está listo para calcular la información faltante");
+      return;
+    }
+
     setSavingAddr(true);
     try {
-      const updates: any = { direccion_envio: newAddress.trim() };
-      if (newLat !== null) updates.direccion_envio_lat = newLat;
-      if (newLng !== null) updates.direccion_envio_lng = newLng;
+      const updates: any = { direccion_envio: addrToSave };
+      if (latToSave !== null) updates.direccion_envio_lat = latToSave;
+      if (lngToSave !== null) updates.direccion_envio_lng = lngToSave;
       // Nombre: respect manual edits; only auto-fill if empty
       const currentNombre = (documento as any).direccion_envio_nombre || "";
       if (editNombreTouched) {
         updates.direccion_envio_nombre = editNombre.trim();
       } else if (!currentNombre) {
-        updates.direccion_envio_nombre = buildDefaultNombre(newAddress, newCity);
+        updates.direccion_envio_nombre = buildDefaultNombre(addrToSave, newCity);
       }
       const { error } = await supabase.from("documentos").update(updates).eq("id", id);
       if (error) throw error;
       await supabase.from("documento_direccion_bitacora").insert({
         documento_id: id,
         direccion_anterior: documento.direccion_envio,
-        direccion_nueva: newAddress.trim(),
-        latitud: newLat,
-        longitud: newLng,
+        direccion_nueva: addrToSave,
+        latitud: latToSave,
+        longitud: lngToSave,
         origen: origenCambio,
         usuario_id: user?.id,
       });
