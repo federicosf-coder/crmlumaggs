@@ -49,6 +49,7 @@ export default function EntregaDetalle() {
   const [origenCambio, setOrigenCambio] = useState<"manual" | "ubicacion_actual">("manual");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [savingAddr, setSavingAddr] = useState(false);
+  const { ready: gmapsReady } = useGoogleMaps();
   const [gettingLocation, setGettingLocation] = useState(false);
   const [notas, setNotas] = useState("");
   const [savingNotas, setSavingNotas] = useState(false);
