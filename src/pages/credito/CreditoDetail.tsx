@@ -1136,7 +1136,7 @@ export default function CreditoDetail() {
     refetchDocs();
   };
 
-  const clearFirma = async (key: typeof CREDITO_FIRMAS[number]) => {
+  const clearFirma = async (key: { fechaCol: string; nombreCol: string }) => {
     if (!confirm("¿Limpiar esta firma?")) return;
     const docIdCol = `${key.fechaCol.replace("_fecha", "")}_doc_id`;
     const upd: any = { [key.fechaCol]: null, [key.nombreCol]: null, [docIdCol]: null };
