@@ -1920,6 +1920,12 @@ export default function CreditoDetail() {
               <p className="text-muted-foreground text-sm">No hay tipos de documento configurados.</p>
             ) : (
               (() => {
+                const poderEnActa = !!form.poder_en_acta_constitutiva;
+                const isRequerido = (dt: any) => {
+                  if (!dt.requerido) return false;
+                  if (dt.nombre === "Poder del Representante Legal" && poderEnActa) return false;
+                  return true;
+                };
                 const visible = (docTypes as any[]).filter((dt) => {
                   if (form.tipo === "cescemex" && !dt.aplica_cescemex) return false;
                   if (form.tipo === "directo" && !dt.aplica_directo) return false;
@@ -1958,9 +1964,15 @@ export default function CreditoDetail() {
                   if (!groups[g.key]) groups[g.key] = { label: g.label, items: [] };
                   groups[g.key].items.push(dt);
                 }
-                const totalReq = visible.filter((d) => d.requerido).length;
-                const doneReq = visible.filter((d) => d.requerido && hasDocs(d)).length;
+                const totalReq = visible.filter((d) => isRequerido(d)).length;
+                const doneReq = visible.filter((d) => isRequerido(d) && hasDocs(d)).length;
                 const pct = totalReq > 0 ? Math.round((doneReq / totalReq) * 100) : 0;
+                const togglePoderEnActa = async () => {
+                  const nuevo = !poderEnActa;
+                  set("poder_en_acta_constitutiva", nuevo);
+                  await supabase.from("credit_requests").update({ poder_en_acta_constitutiva: nuevo }).eq("id", id!);
+                  toast.success(nuevo ? "Poder del Representante Legal marcado como incluido en Acta Constitutiva" : "Poder del Representante Legal marcado como requerido por separado");
+                };
                 return (
                   <div className="space-y-5">
                     {/* Progreso global */}
@@ -1973,13 +1985,26 @@ export default function CreditoDetail() {
                     </div>
                     {order.filter((k) => groups[k]).map((k) => {
                       const g = groups[k];
-                      const reqCount = g.items.filter((d) => d.requerido).length;
-                      const reqDone = g.items.filter((d) => d.requerido && hasDocs(d)).length;
-                      const allDone = g.items.every((d) => !d.requerido || hasDocs(d));
+                      const isLegalGroup = k === "legal";
+                      const reqCount = g.items.filter((d) => isRequerido(d)).length;
+                      const reqDone = g.items.filter((d) => isRequerido(d) && hasDocs(d)).length;
+                      const allDone = g.items.every((d) => !isRequerido(d) || hasDocs(d));
                       return (
                         <div key={k} className="space-y-2">
                           <div className="flex items-center justify-between gap-2 border-b pb-1.5">
-                            <h3 className={`text-sm font-semibold uppercase tracking-wide ${GROUP_COLOR[k] || "text-slate-700"}`}>{g.label}</h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className={`text-sm font-semibold uppercase tracking-wide ${GROUP_COLOR[k] || "text-slate-700"}`}>{g.label}</h3>
+                              {isLegalGroup && (
+                                <label className="inline-flex items-center gap-1.5 cursor-pointer rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700 hover:bg-indigo-100 transition-colors">
+                                  <Switch
+                                    checked={poderEnActa}
+                                    onCheckedChange={togglePoderEnActa}
+                                    className="scale-75"
+                                  />
+                                  <span>Poder en Acta</span>
+                                </label>
+                              )}
+                            </div>
                             {reqCount > 0 && (
                               <span className={`text-[11px] px-2 py-0.5 rounded-full border ${allDone ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
                                 {reqDone}/{reqCount} requeridos
@@ -1994,9 +2019,9 @@ export default function CreditoDetail() {
                               const canAdd = dt.permite_multiples || items.length === 0;
                               const hasItems = items.length > 0;
                               return (
-                      <div key={dt.id} className={`rounded-lg border-2 ${hasItems ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : (dt.requerido ? "border-amber-300 bg-gradient-to-br from-amber-50/60 to-white" : palette.border + " " + palette.bg)} p-3 flex flex-col gap-2 relative`}>
-                        <span className={`absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${hasItems ? "bg-emerald-500 text-white border-emerald-600" : (dt.requerido ? "bg-amber-500 text-white border-amber-600" : "bg-slate-200 text-slate-700 border-slate-300")}`}>
-                          {hasItems ? (<><Check className="h-2.5 w-2.5" />Subido{items.length > 1 ? ` (${items.length})` : ""}</>) : (dt.requerido ? "Pendiente" : "Opcional")}
+                      <div key={dt.id} className={`rounded-lg border-2 ${hasItems ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : (isRequerido(dt) ? "border-amber-300 bg-gradient-to-br from-amber-50/60 to-white" : palette.border + " " + palette.bg)} p-3 flex flex-col gap-2 relative`}>
+                        <span className={`absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${hasItems ? "bg-emerald-500 text-white border-emerald-600" : (isRequerido(dt) ? "bg-amber-500 text-white border-amber-600" : "bg-slate-200 text-slate-700 border-slate-300")}`}>
+                          {hasItems ? (<><Check className="h-2.5 w-2.5" />Subido{items.length > 1 ? ` (${items.length})` : ""}</>) : (isRequerido(dt) ? "Pendiente" : "Opcional")}
                         </span>
                         <div className="flex items-start gap-2.5 min-w-0 pr-20">
                             <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palette.iconBg}`}>
@@ -2004,7 +2029,7 @@ export default function CreditoDetail() {
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-sm leading-tight">
-                                {dt.nombre} {dt.requerido && <span className="text-red-600">*</span>}
+                                {dt.nombre} {isRequerido(dt) && <span className="text-red-600">*</span>}
                                 {dt.permite_multiples && (
                                   <span className="ml-1 text-[10px] text-muted-foreground font-normal">(múltiples)</span>
                                 )}
