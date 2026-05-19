@@ -402,12 +402,18 @@ function BcDocUploader({
   uploadDoc,
   openDoc,
   docs,
+  creditId,
+  autofillKind,
+  onParsed,
 }: {
   docKey: string;
   label: string;
   uploadDoc: (file: File, docTypeId: string | null, displayName?: string, extra?: any) => Promise<void>;
   openDoc: (path: string) => void;
   docs: any[];
+  creditId?: string;
+  autofillKind?: string;
+  onParsed?: (parsed: any) => number;
 }) {
   const [uploading, setUploading] = useState(false);
   const items = (docs || []).filter((d: any) => d?.metadata?.bc_doc === docKey);
@@ -415,19 +421,45 @@ function BcDocUploader({
     const f = e.target.files?.[0];
     e.currentTarget.value = "";
     if (!f) return;
+    if (f.size > 15 * 1024 * 1024) { toast.error("El archivo supera 15 MB"); return; }
     setUploading(true);
-    await uploadDoc(f, null, `BC - ${label}`, { metadata: { bc_doc: docKey, bc_doc_label: label } });
-    setUploading(false);
+    try {
+      if (autofillKind && creditId && onParsed) {
+        const tid = `bcdoc-${docKey}`;
+        toast.loading(`Leyendo ${label}...`, { id: tid });
+        try {
+          const b64: string = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => { const s = String(r.result || ""); const i = s.indexOf(","); resolve(i >= 0 ? s.slice(i + 1) : s); };
+            r.onerror = () => reject(r.error);
+            r.readAsDataURL(f);
+          });
+          const { data, error } = await supabase.functions.invoke("credito-autofill", {
+            body: { request_id: creditId, kind: autofillKind, file_b64: b64, mime: f.type || "image/jpeg", skip_db_update: true },
+          });
+          if (error) throw error;
+          if ((data as any)?.error) throw new Error((data as any).error);
+          const parsed: any = (data as any)?.parsed || {};
+          const filled = onParsed(parsed) || 0;
+          toast.success(filled > 0 ? `${label}: ${filled} campos autocompletados` : `${label} guardado (sin campos nuevos)`, { id: tid });
+        } catch (err: any) {
+          toast.error(err?.message || `No se pudo leer ${label}`, { id: tid });
+        }
+      }
+      await uploadDoc(f, null, `BC - ${label}`, { metadata: { bc_doc: docKey, bc_doc_label: label } });
+    } finally {
+      setUploading(false);
+    }
   };
   return (
     <div className="rounded-md border bg-muted/20 p-2.5 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-medium">{label}</p>
         <label className="inline-flex">
-          <input type="file" className="hidden" onChange={onChange} disabled={uploading} />
+          <input type="file" className="hidden" onChange={onChange} disabled={uploading} accept="image/*,application/pdf" />
           <span className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md border border-violet-300 text-violet-700 hover:bg-violet-50 text-[11px] cursor-pointer">
-            {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}
-            {items.length > 0 ? "Agregar otro" : "Subir"}
+            {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : (autofillKind ? <Wand2 className="h-3 w-3" /> : <FileUp className="h-3 w-3" />)}
+            {items.length > 0 ? (autofillKind ? "Subir y extraer otro" : "Agregar otro") : (autofillKind ? "Subir y extraer" : "Subir")}
           </span>
         </label>
       </div>
@@ -452,16 +484,54 @@ function BcDocUploader({
   );
 }
 
-function BcPersonaFisicaForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
+function BcPersonaFisicaForm({ bcData, setBc, uploadDoc, openDoc, docs, creditId }: any) {
+  const setIfEmpty = (key: string, val: any) => {
+    if (val === null || val === undefined || val === "") return 0;
+    if (bcData?.[key]) return 0;
+    setBc(key, val);
+    return 1;
+  };
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Documentos</p>
         <div className="grid sm:grid-cols-2 gap-2">
-          <BcDocUploader docKey="bc_pf_id" label="Identificación oficial" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pf_curp" label="CURP" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pf_csf" label="Cédula fiscal (CSF)" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pf_domicilio" label="Comprobante de domicilio" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pf_id" label="Identificación oficial" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs}
+            creditId={creditId} autofillKind="ine_full"
+            onParsed={(p) => {
+              let n = 0;
+              n += setIfEmpty("nombre", p.nombre_completo);
+              n += setIfEmpty("curp", p.curp ? String(p.curp).toUpperCase() : null);
+              n += setIfEmpty("fecha_nacimiento", p.fecha_nacimiento);
+              n += setIfEmpty("pais_nacimiento", p.pais_nacimiento);
+              n += setIfEmpty("nacionalidad", p.nacionalidad);
+              n += setIfEmpty("id_tipo", p.tipo_documento === "pasaporte" ? "Pasaporte" : "INE");
+              n += setIfEmpty("id_numero", p.numero_identificacion || p.cic);
+              return n;
+            }} />
+          <BcDocUploader docKey="bc_pf_curp" label="CURP" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs}
+            creditId={creditId} autofillKind="curp"
+            onParsed={(p) => {
+              let n = 0;
+              n += setIfEmpty("curp", p.curp ? String(p.curp).toUpperCase() : null);
+              n += setIfEmpty("nombre", p.nombre_completo);
+              n += setIfEmpty("fecha_nacimiento", p.fecha_nacimiento);
+              n += setIfEmpty("pais_nacimiento", p.pais_nacimiento);
+              n += setIfEmpty("nacionalidad", p.nacionalidad);
+              return n;
+            }} />
+          <BcDocUploader docKey="bc_pf_csf" label="Cédula fiscal (CSF)" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs}
+            creditId={creditId} autofillKind="csf"
+            onParsed={(p) => {
+              let n = 0;
+              n += setIfEmpty("rfc", p.rfc ? String(p.rfc).toUpperCase() : null);
+              n += setIfEmpty("nombre", p.nombre_completo || p.razon_social);
+              n += setIfEmpty("domicilio", p.domicilio);
+              return n;
+            }} />
+          <BcDocUploader docKey="bc_pf_domicilio" label="Comprobante de domicilio" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs}
+            creditId={creditId} autofillKind="comprobante_domicilio"
+            onParsed={(p) => setIfEmpty("domicilio", p.domicilio)} />
         </div>
       </div>
 
@@ -569,15 +639,47 @@ function BcRlIneUploader({
 }
 
 function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs, creditId }: any) {
+  const setIfEmpty = (key: string, val: any) => {
+    if (val === null || val === undefined || val === "") return 0;
+    if (bcData?.[key]) return 0;
+    setBc(key, val);
+    return 1;
+  };
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Documentos</p>
         <div className="grid sm:grid-cols-2 gap-2">
-          <BcDocUploader docKey="bc_pm_acta" label="Acta constitutiva" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pm_csf" label="Cédula fiscal (CSF)" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pm_domicilio" label="Comprobante de domicilio" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pm_poderes" label="Poderes del representante legal" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pm_acta" label="Acta constitutiva" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs}
+            creditId={creditId} autofillKind="acta_constitutiva"
+            onParsed={(p) => {
+              let n = 0;
+              n += setIfEmpty("razon_social", p.razon_social);
+              n += setIfEmpty("fecha_constitucion", p.fecha_constitucion);
+              n += setIfEmpty("rl_nombre", p.administrador_presidente);
+              return n;
+            }} />
+          <BcDocUploader docKey="bc_pm_csf" label="Cédula fiscal (CSF)" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs}
+            creditId={creditId} autofillKind="csf"
+            onParsed={(p) => {
+              let n = 0;
+              n += setIfEmpty("razon_social", p.razon_social || p.nombre_completo);
+              n += setIfEmpty("rfc", p.rfc ? String(p.rfc).toUpperCase() : null);
+              n += setIfEmpty("domicilio", p.domicilio);
+              return n;
+            }} />
+          <BcDocUploader docKey="bc_pm_domicilio" label="Comprobante de domicilio" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs}
+            creditId={creditId} autofillKind="comprobante_domicilio"
+            onParsed={(p) => setIfEmpty("domicilio", p.domicilio)} />
+          <BcDocUploader docKey="bc_pm_poderes" label="Poderes del representante legal" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs}
+            creditId={creditId} autofillKind="poderes"
+            onParsed={(p) => {
+              let n = 0;
+              n += setIfEmpty("rl_nombre", p.rl_nombre);
+              n += setIfEmpty("rl_curp", p.rl_curp ? String(p.rl_curp).toUpperCase() : null);
+              n += setIfEmpty("rl_rfc", p.rl_rfc ? String(p.rl_rfc).toUpperCase() : null);
+              return n;
+            }} />
         </div>
       </div>
 
