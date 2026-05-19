@@ -106,11 +106,18 @@ export default function TemplatesManagement() {
               <TabsTrigger value="all">Todas</TabsTrigger>
               <TabsTrigger value="email"><FileText className="h-3.5 w-3.5 mr-1" /> Email</TabsTrigger>
               <TabsTrigger value="whatsapp"><MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp (locales)</TabsTrigger>
+              <TabsTrigger value="credito"><FileSignature className="h-3.5 w-3.5 mr-1" /> Formatos de crédito</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nueva plantilla</Button>
+          {tab !== "credito" && (
+            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nueva plantilla</Button>
+          )}
         </div>
 
+        {tab === "credito" ? (
+          <CreditoFormatosEditor />
+        ) : (
+        <>
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -176,6 +183,8 @@ export default function TemplatesManagement() {
             </TableBody>
           </Table>
         </Card>
+        </>
+        )}
       </div>
 
       <TemplateFormDialog open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} onSaved={refetch} />
