@@ -780,27 +780,41 @@ export default function DeliverySchedule() {
     const ruta = allRutas.find((r: any) => r.id === rutaId);
     const { data: entregas } = await supabase
       .from("entregas_programadas")
-      .select("id, documento_id, orden_ruta, km_desde_anterior, tiempo_estimado_min, documentos(direccion_envio_lat, direccion_envio_lng)")
+      .select("id, documento_id, orden_ruta, km_desde_anterior, tiempo_estimado_min, tiempo_real_min, fecha_entrega_real, documentos(direccion_envio_lat, direccion_envio_lng)")
       .eq("ruta_id", rutaId)
       .order("orden_ruta");
     if (!entregas) return;
     let prevLat: number | null = ruta?.plazas?.lat != null ? Number(ruta.plazas.lat) : null;
     let prevLng: number | null = ruta?.plazas?.lng != null ? Number(ruta.plazas.lng) : null;
+    // Ancla temporal para tiempo_real_min: inicia en la salida de plaza (ruta_started_at).
+    // Si no se ha iniciado la ruta, no se puede calcular el tiempo real automáticamente.
+    let prevTs: number | null = ruta?.ruta_started_at ? new Date(ruta.ruta_started_at).getTime() : null;
     for (const e of entregas as any[]) {
       const doc = (e as any).documentos;
       const cLat = doc?.direccion_envio_lat != null ? Number(doc.direccion_envio_lat) : null;
       const cLng = doc?.direccion_envio_lng != null ? Number(doc.direccion_envio_lng) : null;
+      const updates: any = {};
       if (prevLat != null && prevLng != null && cLat != null && cLng != null) {
         const km = Number(haversineKm(prevLat, prevLng, cLat, cLng).toFixed(2));
         const min = minutesFromKm(km);
-        if (e.km_desde_anterior !== km || e.tiempo_estimado_min !== min) {
-          await supabase.from("entregas_programadas")
-            .update({ km_desde_anterior: km, tiempo_estimado_min: min })
-            .eq("id", e.id);
-        }
+        if (e.km_desde_anterior !== km) updates.km_desde_anterior = km;
+        if (e.tiempo_estimado_min !== min) updates.tiempo_estimado_min = min;
+      }
+      // Tiempo real automático = (hora de entrega real de esta parada) - (hora de la parada anterior, o salida de plaza)
+      if (e.fecha_entrega_real && prevTs != null) {
+        const curTs = new Date(e.fecha_entrega_real).getTime();
+        const realMin = Math.max(0, Math.round((curTs - prevTs) / 60000));
+        if (e.tiempo_real_min !== realMin) updates.tiempo_real_min = realMin;
+      }
+      if (Object.keys(updates).length > 0) {
+        await supabase.from("entregas_programadas").update(updates).eq("id", e.id);
       }
       // Avanzar el ancla solo cuando hay coords del punto actual
       if (cLat != null && cLng != null) { prevLat = cLat; prevLng = cLng; }
+      // Avanzar el ancla de tiempo solo cuando esta parada ya tiene hora real de entrega
+      if (e.fecha_entrega_real) {
+        prevTs = new Date(e.fecha_entrega_real).getTime();
+      }
     }
     refetchEntregas();
   };
