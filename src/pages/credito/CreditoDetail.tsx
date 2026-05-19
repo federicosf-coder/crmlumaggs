@@ -319,6 +319,212 @@ function BeneficiarioControladorSteps({
           </CollapsibleContent>
         </Collapsible>
       )}
+
+      {/* Paso 3 - Datos del BC (cuando es otra persona/empresa) */}
+      {bcExiste === true && rlIsBc === false && (
+        <Collapsible open={step3Open} onOpenChange={setStep3Open} className="rounded-lg border bg-card transition-all duration-200">
+          <CollapsibleTrigger asChild>
+            <button type="button" className="w-full text-left">
+              <BcStepHeader open={step3Open} title="Datos del Beneficiario Controlador" badge={step3Badge} />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="transition-all duration-200 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+            <div className="px-3 pb-3 pt-1 space-y-4 border-t">
+              <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">
+                Tipo de Beneficiario Controlador
+              </p>
+              <RadioGroup
+                value={bcTipo ?? ""}
+                onValueChange={(v) => set("bc_tipo_persona", v)}
+                className="grid sm:grid-cols-2 gap-2"
+              >
+                <label
+                  htmlFor="bc-tipo-fisica"
+                  className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted/40 transition-colors ${bcTipo === "fisica" ? "border-violet-300 bg-violet-50/40" : ""}`}
+                >
+                  <RadioGroupItem value="fisica" id="bc-tipo-fisica" className="mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">Persona física</p>
+                    <p className="text-xs text-muted-foreground">Individuo (Anexo 3)</p>
+                  </div>
+                </label>
+                <label
+                  htmlFor="bc-tipo-moral"
+                  className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted/40 transition-colors ${bcTipo === "moral" ? "border-violet-300 bg-violet-50/40" : ""}`}
+                >
+                  <RadioGroupItem value="moral" id="bc-tipo-moral" className="mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">Persona moral</p>
+                    <p className="text-xs text-muted-foreground">Empresa / entidad (Anexo 4)</p>
+                  </div>
+                </label>
+              </RadioGroup>
+
+              {bcTipo === "fisica" && (
+                <BcPersonaFisicaForm
+                  bcData={bcData}
+                  setBc={setBc}
+                  uploadDoc={uploadDoc}
+                  openDoc={openDoc}
+                  docs={docs}
+                />
+              )}
+              {bcTipo === "moral" && (
+                <BcPersonaMoralForm
+                  bcData={bcData}
+                  setBc={setBc}
+                  uploadDoc={uploadDoc}
+                  openDoc={openDoc}
+                  docs={docs}
+                />
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+    </div>
+  );
+}
+
+function BcField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function BcDocUploader({
+  docKey,
+  label,
+  uploadDoc,
+  openDoc,
+  docs,
+}: {
+  docKey: string;
+  label: string;
+  uploadDoc: (file: File, docTypeId: string | null, displayName?: string, extra?: any) => Promise<void>;
+  openDoc: (path: string) => void;
+  docs: any[];
+}) {
+  const [uploading, setUploading] = useState(false);
+  const items = (docs || []).filter((d: any) => d?.metadata?.bc_doc === docKey);
+  const onChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.currentTarget.value = "";
+    if (!f) return;
+    setUploading(true);
+    await uploadDoc(f, null, `BC - ${label}`, { metadata: { bc_doc: docKey, bc_doc_label: label } });
+    setUploading(false);
+  };
+  return (
+    <div className="rounded-md border bg-muted/20 p-2.5 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium">{label}</p>
+        <label className="inline-flex">
+          <input type="file" className="hidden" onChange={onChange} disabled={uploading} />
+          <span className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md border border-violet-300 text-violet-700 hover:bg-violet-50 text-[11px] cursor-pointer">
+            {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}
+            {items.length > 0 ? "Agregar otro" : "Subir"}
+          </span>
+        </label>
+      </div>
+      {items.length > 0 && (
+        <ul className="space-y-1">
+          {items.map((it: any) => (
+            <li key={it.id} className="flex items-center justify-between gap-2 text-[11px]">
+              <button
+                type="button"
+                onClick={() => openDoc(it.url_archivo)}
+                className="truncate text-violet-700 hover:underline text-left"
+                title={it.nombre_archivo}
+              >
+                <Paperclip className="h-3 w-3 inline mr-1" />
+                {it.nombre_archivo}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function BcPersonaFisicaForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Datos personales (Anexo 3)</p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <BcField label="Nombre completo"><Input value={bcData.nombre || ""} onChange={(e) => setBc("nombre", e.target.value)} /></BcField>
+          <BcField label="Fecha de nacimiento"><Input type="date" value={bcData.fecha_nacimiento || ""} onChange={(e) => setBc("fecha_nacimiento", e.target.value)} /></BcField>
+          <BcField label="País de nacimiento"><Input value={bcData.pais_nacimiento || ""} onChange={(e) => setBc("pais_nacimiento", e.target.value)} /></BcField>
+          <BcField label="Nacionalidad"><Input value={bcData.nacionalidad || ""} onChange={(e) => setBc("nacionalidad", e.target.value)} /></BcField>
+          <BcField label="CURP"><Input value={bcData.curp || ""} onChange={(e) => setBc("curp", e.target.value.toUpperCase())} /></BcField>
+          <BcField label="RFC"><Input value={bcData.rfc || ""} onChange={(e) => setBc("rfc", e.target.value.toUpperCase())} /></BcField>
+          <BcField label="Teléfono"><Input value={bcData.telefono || ""} onChange={(e) => setBc("telefono", e.target.value)} /></BcField>
+          <BcField label="Correo"><Input type="email" value={bcData.correo || ""} onChange={(e) => setBc("correo", e.target.value)} /></BcField>
+        </div>
+        <BcField label="Domicilio completo">
+          <Textarea rows={2} value={bcData.domicilio || ""} onChange={(e) => setBc("domicilio", e.target.value)} />
+        </BcField>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <BcField label="Tipo de identificación oficial"><Input placeholder="INE, Pasaporte..." value={bcData.id_tipo || ""} onChange={(e) => setBc("id_tipo", e.target.value)} /></BcField>
+          <BcField label="Número de identificación"><Input value={bcData.id_numero || ""} onChange={(e) => setBc("id_numero", e.target.value)} /></BcField>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Documentos</p>
+        <div className="grid sm:grid-cols-2 gap-2">
+          <BcDocUploader docKey="bc_pf_id" label="Identificación oficial" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pf_curp" label="CURP" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pf_csf" label="Cédula fiscal (CSF)" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pf_domicilio" label="Comprobante de domicilio" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Datos de la empresa (Anexo 4)</p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <BcField label="Razón social"><Input value={bcData.razon_social || ""} onChange={(e) => setBc("razon_social", e.target.value)} /></BcField>
+          <BcField label="RFC"><Input value={bcData.rfc || ""} onChange={(e) => setBc("rfc", e.target.value.toUpperCase())} /></BcField>
+          <BcField label="Fecha de constitución"><Input type="date" value={bcData.fecha_constitucion || ""} onChange={(e) => setBc("fecha_constitucion", e.target.value)} /></BcField>
+          <BcField label="País"><Input value={bcData.pais || ""} onChange={(e) => setBc("pais", e.target.value)} /></BcField>
+          <BcField label="Teléfono"><Input value={bcData.telefono || ""} onChange={(e) => setBc("telefono", e.target.value)} /></BcField>
+          <BcField label="Correo"><Input type="email" value={bcData.correo || ""} onChange={(e) => setBc("correo", e.target.value)} /></BcField>
+        </div>
+        <BcField label="Domicilio">
+          <Textarea rows={2} value={bcData.domicilio || ""} onChange={(e) => setBc("domicilio", e.target.value)} />
+        </BcField>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Representante legal</p>
+        <div className="grid sm:grid-cols-3 gap-3">
+          <BcField label="Nombre"><Input value={bcData.rl_nombre || ""} onChange={(e) => setBc("rl_nombre", e.target.value)} /></BcField>
+          <BcField label="CURP"><Input value={bcData.rl_curp || ""} onChange={(e) => setBc("rl_curp", e.target.value.toUpperCase())} /></BcField>
+          <BcField label="RFC"><Input value={bcData.rl_rfc || ""} onChange={(e) => setBc("rl_rfc", e.target.value.toUpperCase())} /></BcField>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Documentos</p>
+        <div className="grid sm:grid-cols-2 gap-2">
+          <BcDocUploader docKey="bc_pm_acta" label="Acta constitutiva" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pm_csf" label="Cédula fiscal (CSF)" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pm_domicilio" label="Comprobante de domicilio" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pm_poderes" label="Poderes del representante legal" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pm_constancia_bc" label="Constancia de Beneficiario Controlador" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -1454,6 +1660,9 @@ export default function CreditoDetail() {
               creditId={id!}
               onSavedBc={() => qc.invalidateQueries({ queryKey: ["credit_request", id] })}
               onOpenInfo={() => setBcInfoOpen(true)}
+              uploadDoc={uploadDoc}
+              openDoc={openDoc}
+              docs={docs as any[]}
             />
             <Section title="LFPIORPI">
               <Field label="¿Tiene documentación?">
