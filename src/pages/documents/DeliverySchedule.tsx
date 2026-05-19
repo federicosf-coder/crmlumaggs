@@ -249,6 +249,25 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
         </Button>
       </div>
 
+      {/* Resumen de ruta: km y tiempos */}
+      <div className="rounded-md border bg-muted/40 px-2 py-1.5 mb-2 space-y-0.5 text-[11px]">
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-muted-foreground"><RouteIcon className="h-3 w-3" />Total km estimados</span>
+          <span className="font-semibold">{totalKm.toFixed(1)} km</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-muted-foreground"><Clock className="h-3 w-3" />Tiempo estimado</span>
+          <span className="font-semibold">{formatHm(totalEstMin)} h</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-muted-foreground"><Timer className="h-3 w-3" />Tiempo real acumulado</span>
+          <span className="font-semibold">{formatHm(totalRealMin)} h</span>
+        </div>
+        {ruta?.plazas && (ruta.plazas.lat == null || ruta.plazas.lng == null) && (
+          <p className="text-[10px] text-amber-700 flex items-center gap-1 pt-0.5"><AlertTriangle className="h-3 w-3" />Plaza sin coordenadas: la primera entrega no calcula km automáticos.</p>
+        )}
+      </div>
+
       {/* Items */}
       <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-2 flex-1 min-h-[80px]">
@@ -310,6 +329,12 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
                       </>
                     ) : undefined
                   }
+                />
+                <DeliveryTrackingRow
+                  item={item as any}
+                  onSaveTiempoReal={onSaveTiempoReal}
+                  onSaveKmManual={onSaveKmManual}
+                  onSaveDocCoords={onSaveDocCoords}
                 />
               </div>
             </div>
