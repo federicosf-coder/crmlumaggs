@@ -51,6 +51,7 @@ import CreditoDetail from "@/pages/credito/CreditoDetail";
 import CreditoConfiguracion from "@/pages/credito/CreditoConfiguracion";
 import CreditoPortal from "@/pages/credito/CreditoPortal";
 import CreditoShortRedirect from "@/pages/credito/CreditoShortRedirect";
+import CreditoImprimir from "@/pages/credito/CreditoImprimir";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,7 @@ const App = () => (
             <Route path="/unsubscribe" element={<Unsubscribe />} />
             <Route path="/portal/credito/:token" element={<CreditoPortal />} />
             <Route path="/p/:code" element={<CreditoShortRedirect />} />
+            <Route path="/credito/:id/imprimir/:firmaKey" element={<CreditoImprimir />} />
 
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

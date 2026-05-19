@@ -18,7 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock, Briefcase, Phone, Mail, ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
+import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock, Briefcase, Phone, Mail, ChevronDown, ChevronUp, HelpCircle, Printer, Upload, PenSquare } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS, CREDITO_TIPO_PERSONA_OPTIONS } from "@/lib/credito";
@@ -963,19 +963,53 @@ export default function CreditoDetail() {
     setNewCommentText(""); refetchComments();
   };
 
-  const markFirma = async (key: typeof CREDITO_FIRMAS[number]) => {
-    const nombre = prompt(`Nombre de quien firma ${key.label}:`, form[key.nombreCol] || "");
-    if (!nombre) return;
-    const upd: any = { [key.fechaCol]: new Date().toISOString(), [key.nombreCol]: nombre };
+  const openFirmaPdf = (key: typeof CREDITO_FIRMAS[number]) => {
+    window.open(`/credito/${id}/imprimir/${key.key}`, "_blank", "noopener");
+  };
+
+  const uploadFirmaDoc = async (key: typeof CREDITO_FIRMAS[number], file: File) => {
+    const nombre =
+      prompt(`Nombre de quien firmó "${key.label}":`, (form as any)[key.nombreCol] || "") || "";
+    if (!nombre.trim()) { toast.error("Captura el nombre del firmante"); return; }
+    const path = `${id}/${crypto.randomUUID()}_${file.name.replace(/[^\w.\-]+/g, "_")}`;
+    const { error: upErr } = await supabase.storage.from("credit-docs").upload(path, file, {
+      contentType: file.type, upsert: false,
+    });
+    if (upErr) { toast.error("Upload: " + upErr.message); return; }
+    const docPayload: any = {
+      credit_request_id: id!,
+      doc_type_id: null,
+      url_archivo: path,
+      nombre_archivo: file.name,
+      tipo_archivo: file.type,
+      estado: "recibido",
+      visibilidad: "publica",
+      subido_por: user?.id,
+      metadata: { firma_key: key.key, firma_label: key.label },
+    };
+    const { data: docRow, error: insErr } = await supabase
+      .from("credit_request_docs")
+      .insert(docPayload)
+      .select("id")
+      .single();
+    if (insErr || !docRow) { toast.error(insErr?.message || "Error al registrar"); return; }
+    const docIdCol = `${key.fechaCol.replace("_fecha", "")}_doc_id`;
+    const upd: any = {
+      [key.fechaCol]: new Date().toISOString(),
+      [key.nombreCol]: nombre.trim(),
+      [docIdCol]: docRow.id,
+    };
     const { error } = await supabase.from("credit_requests").update(upd).eq("id", id!);
     if (error) { toast.error(error.message); return; }
-    toast.success("Firma registrada");
+    toast.success(`${key.label}: firma registrada y archivo guardado`);
     qc.invalidateQueries({ queryKey: ["credit_request", id] });
+    refetchDocs();
   };
 
   const clearFirma = async (key: typeof CREDITO_FIRMAS[number]) => {
     if (!confirm("¿Limpiar esta firma?")) return;
-    const upd: any = { [key.fechaCol]: null, [key.nombreCol]: null };
+    const docIdCol = `${key.fechaCol.replace("_fecha", "")}_doc_id`;
+    const upd: any = { [key.fechaCol]: null, [key.nombreCol]: null, [docIdCol]: null };
     await supabase.from("credit_requests").update(upd).eq("id", id!);
     qc.invalidateQueries({ queryKey: ["credit_request", id] });
   };
@@ -1942,31 +1976,70 @@ export default function CreditoDetail() {
             }).map((f) => {
               const fecha = (form as any)[f.fechaCol];
               const nombre = (form as any)[f.nombreCol];
+              const docIdCol = `${f.fechaCol.replace("_fecha", "")}_doc_id`;
+              const docId = (form as any)[docIdCol];
+              const doc = (docs as any[] | undefined)?.find((d) => d.id === docId);
               return (
-                <div key={f.key} className="flex items-center justify-between gap-2 border rounded-md p-3">
-                  <div className="flex items-center gap-3">
-                    <ShieldCheck className={`h-5 w-5 ${fecha ? "text-emerald-600" : "text-muted-foreground/40"}`} />
-                    <div>
+                <div key={f.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border rounded-md p-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <ShieldCheck className={`h-5 w-5 mt-0.5 ${fecha ? "text-emerald-600" : "text-muted-foreground/40"}`} />
+                    <div className="min-w-0">
                       <p className="font-medium text-sm">{f.label}</p>
                       {fecha ? (
-                        <p className="text-xs text-muted-foreground">{nombre} · {format(new Date(fecha), "dd/MM/yyyy HH:mm")}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {nombre} · {format(new Date(fecha), "dd/MM/yyyy HH:mm")}
+                          {doc?.url_archivo && (
+                            <>
+                              {" · "}
+                              <button
+                                type="button"
+                                className="text-emerald-700 hover:underline"
+                                onClick={() => openDoc(doc.url_archivo)}
+                              >
+                                Ver documento firmado
+                              </button>
+                            </>
+                          )}
+                        </p>
                       ) : (
                         <p className="text-xs text-muted-foreground">Pendiente de firmar</p>
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    {fecha ? (
-                      <Button size="sm" variant="ghost" onClick={() => clearFirma(f)}><X className="h-4 w-4" /></Button>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => markFirma(f)}><Pencil className="h-4 w-4 mr-1" />Registrar firma</Button>
+                  <div className="flex flex-wrap gap-1.5 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => openFirmaPdf(f)}>
+                      <Printer className="h-4 w-4 mr-1" />Generar PDF
+                    </Button>
+                    <Button size="sm" variant="outline" asChild>
+                      <label className="cursor-pointer">
+                        <Upload className="h-4 w-4 mr-1" />
+                        {fecha ? "Reemplazar firmado" : "Subir firmado"}
+                        <input
+                          type="file"
+                          accept="application/pdf,image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.currentTarget.value = "";
+                            if (file) await uploadFirmaDoc(f, file);
+                          }}
+                        />
+                      </label>
+                    </Button>
+                    <Button size="sm" variant="ghost" disabled title="Próximamente">
+                      <PenSquare className="h-4 w-4 mr-1" />Firmar en línea
+                    </Button>
+                    {fecha && (
+                      <Button size="sm" variant="ghost" onClick={() => clearFirma(f)} title="Limpiar">
+                        <X className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
                 </div>
               );
             })}
             <p className="text-xs text-muted-foreground pt-2">
-              Las firmas también pueden ser registradas por el cliente desde el portal.
+              Genera el PDF, imprime y firma físicamente, luego sube el documento escaneado. La firma en línea estará disponible próximamente.
             </p>
           </CardContent></Card>
         </TabsContent>
