@@ -1744,16 +1744,6 @@ export default function CreditoDetail() {
               openDoc={openDoc}
               docs={docs as any[]}
             />
-            <Section title="LFPIORPI">
-              <Field label="¿Tiene documentación?">
-                <div className="flex items-center gap-2 h-9">
-                  <Switch checked={!!form.lfpiorpi_tiene_documentacion} onCheckedChange={(v) => set("lfpiorpi_tiene_documentacion", v)} />
-                  <span className="text-sm">{form.lfpiorpi_tiene_documentacion ? "Sí" : "No"}</span>
-                </div>
-              </Field>
-              <Field label="Fecha de firma"><Input type="date" value={form.lfpiorpi_fecha_firma || ""} onChange={(e) => set("lfpiorpi_fecha_firma", e.target.value || null)} /></Field>
-              <Field label="Lugar de firma"><Input value={form.lfpiorpi_lugar_firma || ""} onChange={(e) => set("lfpiorpi_lugar_firma", e.target.value)} /></Field>
-            </Section>
               </TabsContent>
             </Tabs>
           </CardContent></Card>
