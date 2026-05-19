@@ -1946,13 +1946,22 @@ export default function CreditoDetail() {
               (() => {
                 const poderRequerido = form.poder_representante_requerido === true;
                 const registroRequerido = form.registro_publico_requerido === true;
-                const isOptInDoc = (nombre: string) =>
-                  nombre === "Poder del Representante Legal" ||
-                  nombre === "Registro Público de la Propiedad";
+                const estadoCuentaRequerido = form.estado_cuenta_requerido === true;
+                const OPT_IN_DOC_COLS: Record<string, string> = {
+                  "Poder del Representante Legal": "poder_representante_requerido",
+                  "Registro Público de la Propiedad": "registro_publico_requerido",
+                  "Estado de cuenta bancario": "estado_cuenta_requerido",
+                };
+                const isOptInDoc = (nombre: string) => nombre in OPT_IN_DOC_COLS;
+                const optInChecked = (nombre: string) => {
+                  if (nombre === "Poder del Representante Legal") return poderRequerido;
+                  if (nombre === "Registro Público de la Propiedad") return registroRequerido;
+                  if (nombre === "Estado de cuenta bancario") return estadoCuentaRequerido;
+                  return false;
+                };
                 const isRequerido = (dt: any) => {
                   if (!dt.requerido) return false;
-                  if (dt.nombre === "Poder del Representante Legal") return poderRequerido;
-                  if (dt.nombre === "Registro Público de la Propiedad") return registroRequerido;
+                  if (isOptInDoc(dt.nombre)) return optInChecked(dt.nombre);
                   return true;
                 };
                 const visible = (docTypes as any[]).filter((dt) => {
@@ -1997,10 +2006,8 @@ export default function CreditoDetail() {
                 const doneReq = visible.filter((d) => isRequerido(d) && hasDocs(d)).length;
                 const pct = totalReq > 0 ? Math.round((doneReq / totalReq) * 100) : 0;
                 const toggleDocRequerido = async (nombre: string) => {
-                  const col =
-                    nombre === "Poder del Representante Legal"
-                      ? "poder_representante_requerido"
-                      : "registro_publico_requerido";
+                  const col = OPT_IN_DOC_COLS[nombre];
+                  if (!col) return;
                   const actual = (form as any)[col] === true;
                   const nuevo = !actual;
                   set(col as any, nuevo);
@@ -2062,7 +2069,7 @@ export default function CreditoDetail() {
                               {isOptInDoc(dt.nombre) && (
                                 <label className="mt-1.5 inline-flex items-center gap-1.5 cursor-pointer rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700 hover:bg-indigo-100 transition-colors">
                                   <Switch
-                                    checked={dt.nombre === "Poder del Representante Legal" ? poderRequerido : registroRequerido}
+                                    checked={optInChecked(dt.nombre)}
                                     onCheckedChange={() => toggleDocRequerido(dt.nombre)}
                                     className="scale-75"
                                   />
