@@ -211,7 +211,7 @@ function BeneficiarioControladorSteps({
         <CollapsibleContent className="transition-all duration-200 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
           <div className="px-3 pb-3 pt-1 space-y-3 border-t">
             <p className="text-xs text-muted-foreground">
-              Conforme al Art. 18 LFPIORPI es necesario identificar si existe un Beneficiario Controlador en esta operación.
+              Conforme al Art. 18 de la Ley de Beneficiario Controlador es necesario identificar si existe un Beneficiario Controlador en esta operación.
             </p>
             <RadioGroup
               value={bcExiste === null ? "" : bcExiste ? "si" : "no"}
@@ -2245,7 +2245,7 @@ export default function CreditoDetail() {
             <section className="space-y-1.5 rounded-md border border-violet-100 bg-violet-50/50 p-3">
               <h4 className="text-[11px] uppercase tracking-wide font-medium text-violet-900">¿Por qué se solicita?</h4>
               <p>
-                El <strong>artículo 17 de la LFPIORPI</strong> incluye como Actividad Vulnerable:
+                El <strong>artículo 17 de la Ley de Beneficiario Controlador</strong> incluye como Actividad Vulnerable:
               </p>
               <blockquote className="border-l-2 border-violet-300 pl-3 italic text-muted-foreground">
                 "La comercialización o distribución de hidrocarburos, petrolíferos o petroquímicos."
