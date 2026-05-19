@@ -806,6 +806,17 @@ export default function CreditoDetail() {
     },
   });
 
+  // Auto-jalar teléfono del contacto vinculado si el campo está vacío
+  useEffect(() => {
+    if (!id || !form?.contact_id) return;
+    if (form.telefono && String(form.telefono).trim() !== "") return;
+    const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+    const tel = cc?.whatsapp_phone || cc?.mobile || cc?.phone;
+    if (!tel) return;
+    set("telefono", tel);
+    supabase.from("credit_requests").update({ telefono: tel }).eq("id", id);
+  }, [companyContacts, form?.contact_id, form?.telefono, id]);
+
   const { data: docTypes = [] } = useQuery({
     queryKey: ["credit_doc_types_active"],
     queryFn: async () => {
