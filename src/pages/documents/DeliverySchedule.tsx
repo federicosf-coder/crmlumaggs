@@ -494,6 +494,82 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
 
 // ─── Main Page ───────────────────────────────────────────────
 export default function DeliverySchedule() {
+
+function PedidoFooterActions({ item }: { item: any }) {
+  const [open, setOpen] = useState<null | "mapa" | "editar" | "entrega">(null);
+  const title = open === "mapa" ? "Mapa" : open === "editar" ? "Editar pedido" : "Entrega";
+  const src =
+    open === "mapa"
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address || "")}`
+      : open === "editar"
+      ? `/documents/${item.id}/edit`
+      : open === "entrega"
+      ? `/delivery/entrega/${item.id}`
+      : "";
+  return (
+    <>
+      {item.address && (
+        <Button
+          size="sm"
+          variant="secondary"
+          className="h-11 sm:h-8 px-3 gap-1.5 shadow"
+          title="Abrir mapa"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); setOpen("mapa"); }}
+        >
+          <MapPin className="h-4 w-4" />
+          <span className="text-xs">Mapa</span>
+        </Button>
+      )}
+      <Button
+        size="sm"
+        variant="secondary"
+        className="h-11 sm:h-8 px-3 gap-1.5 shadow"
+        title="Ver / editar pedido"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); setOpen("editar"); }}
+      >
+        <FileText className="h-4 w-4" />
+        <span className="text-xs">Editar</span>
+      </Button>
+      <Button
+        size="sm"
+        variant="default"
+        className="h-11 sm:h-8 px-3 gap-1.5 shadow"
+        title="Abrir entrega"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); setOpen("entrega"); }}
+      >
+        <ClipboardCheck className="h-4 w-4" />
+        <span className="text-xs">Entrega</span>
+      </Button>
+      <Dialog open={open !== null} onOpenChange={(v) => !v && setOpen(null)}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[85vh] p-0 flex flex-col">
+          <DialogHeader className="px-4 py-3 border-b shrink-0">
+            <DialogTitle className="flex items-center justify-between gap-2">
+              <span>{title}</span>
+              {src && (
+                <a
+                  href={src}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                >
+                  Abrir en pestaña
+                </a>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {src && (
+            <iframe src={src} title={title} className="flex-1 w-full border-0" />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+export default function DeliverySchedule() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
