@@ -87,22 +87,33 @@ function BeneficiarioControladorSteps({
   creditId,
   onSavedBc,
   onOpenInfo,
+  uploadDoc,
+  openDoc,
+  docs,
 }: {
   form: any;
   set: (k: string, v: any) => void;
   creditId: string;
   onSavedBc: () => void;
   onOpenInfo: () => void;
+  uploadDoc: (file: File, docTypeId: string | null, displayName?: string, extra?: any) => Promise<void>;
+  openDoc: (path: string) => void;
+  docs: any[];
 }) {
   const bcExiste: boolean | null =
     form.lfpiorpi_beneficiario_controlador == null ? null : !!form.lfpiorpi_beneficiario_controlador;
   const bcConfirmado = !!form.bc_confirmacion_no_existe;
   const rlIsBc: boolean | null =
     form.bc_es_representante_legal == null ? null : !!form.bc_es_representante_legal;
+  const bcTipo: "fisica" | "moral" | null =
+    form.bc_tipo_persona === "fisica" || form.bc_tipo_persona === "moral" ? form.bc_tipo_persona : null;
+  const bcData: any = form.bc_data && typeof form.bc_data === "object" ? form.bc_data : {};
+  const setBc = (k: string, v: any) => set("bc_data", { ...bcData, [k]: v });
 
   // Default-open Paso 1 cuando es indeterminado.
   const [step1Open, setStep1Open] = useState<boolean>(bcExiste === null);
   const [step2Open, setStep2Open] = useState<boolean>(bcExiste === true && rlIsBc === null);
+  const [step3Open, setStep3Open] = useState<boolean>(bcExiste === true && rlIsBc === false);
   const [savingBc, setSavingBc] = useState(false);
 
   // Sincroniza estado de apertura cuando cambian los datos cargados.
@@ -112,6 +123,9 @@ function BeneficiarioControladorSteps({
   useEffect(() => {
     if (bcExiste === true) setStep2Open(rlIsBc === null);
     else setStep2Open(false);
+  }, [bcExiste, rlIsBc]);
+  useEffect(() => {
+    setStep3Open(bcExiste === true && rlIsBc === false);
   }, [bcExiste, rlIsBc]);
 
   const step1Badge = useMemo(() => {
@@ -130,6 +144,11 @@ function BeneficiarioControladorSteps({
       ? { label: "Es el Representante Legal", variant: "ok" as const }
       : { label: "Es otra persona", variant: "ok" as const };
   }, [rlIsBc]);
+
+  const step3Badge = useMemo(() => {
+    if (bcTipo === null) return { label: "Pendiente", variant: "pending" as const };
+    return { label: bcTipo === "fisica" ? "Persona física" : "Persona moral", variant: "ok" as const };
+  }, [bcTipo]);
 
   const setExiste = (v: boolean) => {
     set("lfpiorpi_beneficiario_controlador", v);
