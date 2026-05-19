@@ -498,7 +498,6 @@ function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
           <BcDocUploader docKey="bc_pm_csf" label="Cédula fiscal (CSF)" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
           <BcDocUploader docKey="bc_pm_domicilio" label="Comprobante de domicilio" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
           <BcDocUploader docKey="bc_pm_poderes" label="Poderes del representante legal" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pm_constancia_bc" label="Constancia de Beneficiario Controlador" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
         </div>
       </div>
 
