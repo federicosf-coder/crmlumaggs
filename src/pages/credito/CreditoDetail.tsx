@@ -24,6 +24,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Badge } from "@/components/ui/badge";
 import { INDUSTRIAS_OPTIONS } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
+import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 
 type Req = any;
 
@@ -80,6 +81,7 @@ export default function CreditoDetail() {
   const [autofilling, setAutofilling] = useState<string | null>(null);
   const [editFechaDoc, setEditFechaDoc] = useState<any | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [editFechaValue, setEditFechaValue] = useState<string>("");
   const [verifyDoc, setVerifyDoc] = useState<any | null>(null);
 
@@ -494,6 +496,17 @@ export default function CreditoDetail() {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-xl">{(form.companies as any)?.name || "Sin cliente"}</CardTitle>
+                {companyId && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setCompanyDialogOpen(true)}
+                    title="Editar empresa"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
                 <span className="font-mono text-xs text-muted-foreground">{form.folio}</span>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${c}`}>
                   {CREDITO_ESTADO_LABEL[form.estado] || form.estado}
@@ -1638,6 +1651,14 @@ export default function CreditoDetail() {
         onCreated={async (newId) => {
           await qc.invalidateQueries({ queryKey: ["credit-company-contacts", companyId] });
           setContact(newId);
+        }}
+      />
+      <CompanyFormDialog
+        open={companyDialogOpen}
+        onOpenChange={setCompanyDialogOpen}
+        editData={companyId ? ({ id: companyId, ...company } as any) : null}
+        onCreated={() => {
+          qc.invalidateQueries({ queryKey: ["credit_request", id] });
         }}
       />
     </div>
