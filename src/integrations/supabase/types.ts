@@ -1574,6 +1574,12 @@ export type Database = {
           firma_lfpiorpi_nombre: string | null
           firma_solicitud_doc_id: string | null
           firma_solicitud_fecha: string | null
+          firma_solicitud_galsa_doc_id: string | null
+          firma_solicitud_galsa_fecha: string | null
+          firma_solicitud_galsa_nombre: string | null
+          firma_solicitud_lumaggs_doc_id: string | null
+          firma_solicitud_lumaggs_fecha: string | null
+          firma_solicitud_lumaggs_nombre: string | null
           firma_solicitud_nombre: string | null
           firma_subsistencia_doc_id: string | null
           firma_subsistencia_fecha: string | null
@@ -1589,6 +1595,8 @@ export type Database = {
           lista_69_ok: boolean | null
           lista_69_por: string | null
           monto_solicitado: number | null
+          monto_solicitado_galsa: number | null
+          monto_solicitado_lumaggs: number | null
           motivo_rechazo: string | null
           nombre_comercial: string | null
           poder_en_acta_constitutiva: boolean | null
@@ -1605,6 +1613,8 @@ export type Database = {
           rep_legal_vencimiento_id: string | null
           rfc: string | null
           short_code: string | null
+          solicita_galsa: boolean
+          solicita_lumaggs: boolean
           telefono: string | null
           tipo: Database["public"]["Enums"]["credito_tipo"] | null
           tipo_persona: string | null
@@ -1675,6 +1685,12 @@ export type Database = {
           firma_lfpiorpi_nombre?: string | null
           firma_solicitud_doc_id?: string | null
           firma_solicitud_fecha?: string | null
+          firma_solicitud_galsa_doc_id?: string | null
+          firma_solicitud_galsa_fecha?: string | null
+          firma_solicitud_galsa_nombre?: string | null
+          firma_solicitud_lumaggs_doc_id?: string | null
+          firma_solicitud_lumaggs_fecha?: string | null
+          firma_solicitud_lumaggs_nombre?: string | null
           firma_solicitud_nombre?: string | null
           firma_subsistencia_doc_id?: string | null
           firma_subsistencia_fecha?: string | null
@@ -1690,6 +1706,8 @@ export type Database = {
           lista_69_ok?: boolean | null
           lista_69_por?: string | null
           monto_solicitado?: number | null
+          monto_solicitado_galsa?: number | null
+          monto_solicitado_lumaggs?: number | null
           motivo_rechazo?: string | null
           nombre_comercial?: string | null
           poder_en_acta_constitutiva?: boolean | null
@@ -1706,6 +1724,8 @@ export type Database = {
           rep_legal_vencimiento_id?: string | null
           rfc?: string | null
           short_code?: string | null
+          solicita_galsa?: boolean
+          solicita_lumaggs?: boolean
           telefono?: string | null
           tipo?: Database["public"]["Enums"]["credito_tipo"] | null
           tipo_persona?: string | null
@@ -1776,6 +1796,12 @@ export type Database = {
           firma_lfpiorpi_nombre?: string | null
           firma_solicitud_doc_id?: string | null
           firma_solicitud_fecha?: string | null
+          firma_solicitud_galsa_doc_id?: string | null
+          firma_solicitud_galsa_fecha?: string | null
+          firma_solicitud_galsa_nombre?: string | null
+          firma_solicitud_lumaggs_doc_id?: string | null
+          firma_solicitud_lumaggs_fecha?: string | null
+          firma_solicitud_lumaggs_nombre?: string | null
           firma_solicitud_nombre?: string | null
           firma_subsistencia_doc_id?: string | null
           firma_subsistencia_fecha?: string | null
@@ -1791,6 +1817,8 @@ export type Database = {
           lista_69_ok?: boolean | null
           lista_69_por?: string | null
           monto_solicitado?: number | null
+          monto_solicitado_galsa?: number | null
+          monto_solicitado_lumaggs?: number | null
           motivo_rechazo?: string | null
           nombre_comercial?: string | null
           poder_en_acta_constitutiva?: boolean | null
@@ -1807,6 +1835,8 @@ export type Database = {
           rep_legal_vencimiento_id?: string | null
           rfc?: string | null
           short_code?: string | null
+          solicita_galsa?: boolean
+          solicita_lumaggs?: boolean
           telefono?: string | null
           tipo?: Database["public"]["Enums"]["credito_tipo"] | null
           tipo_persona?: string | null

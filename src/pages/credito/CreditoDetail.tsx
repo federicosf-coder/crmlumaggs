@@ -1093,11 +1093,11 @@ export default function CreditoDetail() {
     setNewCommentText(""); refetchComments();
   };
 
-  const openFirmaPdf = (key: typeof CREDITO_FIRMAS[number]) => {
+  const openFirmaPdf = (key: { key: string }) => {
     window.open(`/credito/${id}/imprimir/${key.key}`, "_blank", "noopener");
   };
 
-  const uploadFirmaDoc = async (key: typeof CREDITO_FIRMAS[number], file: File) => {
+  const uploadFirmaDoc = async (key: { key: string; label: string; fechaCol: string; nombreCol: string }, file: File) => {
     const nombre =
       prompt(`Nombre de quien firmó "${key.label}":`, (form as any)[key.nombreCol] || "") || "";
     if (!nombre.trim()) { toast.error("Captura el nombre del firmante"); return; }
@@ -1136,7 +1136,7 @@ export default function CreditoDetail() {
     refetchDocs();
   };
 
-  const clearFirma = async (key: typeof CREDITO_FIRMAS[number]) => {
+  const clearFirma = async (key: { fechaCol: string; nombreCol: string }) => {
     if (!confirm("¿Limpiar esta firma?")) return;
     const docIdCol = `${key.fechaCol.replace("_fecha", "")}_doc_id`;
     const upd: any = { [key.fechaCol]: null, [key.nombreCol]: null, [docIdCol]: null };
@@ -1298,20 +1298,59 @@ export default function CreditoDetail() {
               </Select>
             </div>
 
-            {/* Monto solicitado */}
-            <div className="space-y-1">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Monto solicitado</Label>
-              <Input
-                type="number"
-                className="h-9"
-                placeholder="0.00"
-                value={form.monto_solicitado ?? ""}
-                onChange={(e) => set("monto_solicitado", e.target.value ? Number(e.target.value) : null)}
-                onBlur={async (e) => {
-                  const v = e.target.value ? Number(e.target.value) : null;
-                  await supabase.from("credit_requests").update({ monto_solicitado: v }).eq("id", id!);
-                }}
-              />
+            {/* Empresas solicitantes (Lumaggs / Galsa) con su monto */}
+            <div className="space-y-1 sm:col-span-2 lg:col-span-2">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Crédito solicitado por empresa
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {([
+                  { key: "lumaggs", label: "Lumaggs (Chevron)", flagCol: "solicita_lumaggs", montoCol: "monto_solicitado_lumaggs" },
+                  { key: "galsa",   label: "Galsa (Phillips 66)", flagCol: "solicita_galsa",   montoCol: "monto_solicitado_galsa" },
+                ] as const).map((e) => {
+                  const activo = !!(form as any)[e.flagCol];
+                  const monto = (form as any)[e.montoCol];
+                  return (
+                    <div
+                      key={e.key}
+                      className={`rounded-md border p-2 flex flex-col gap-1.5 transition-colors ${
+                        activo ? "border-violet-300 bg-violet-50/60" : "border-slate-200 bg-slate-50/60"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium">{e.label}</span>
+                        <Switch
+                          checked={activo}
+                          onCheckedChange={async (checked) => {
+                            const otroFlag = e.key === "lumaggs" ? "solicita_galsa" : "solicita_lumaggs";
+                            const otroActivo = !!(form as any)[otroFlag];
+                            if (!checked && !otroActivo) {
+                              toast.error("Debe haber al menos una empresa activa");
+                              return;
+                            }
+                            set(e.flagCol as any, checked);
+                            const upd: any = { [e.flagCol]: checked };
+                            if (!checked) { upd[e.montoCol] = null; set(e.montoCol as any, null); }
+                            await (supabase as any).from("credit_requests").update(upd).eq("id", id!);
+                          }}
+                        />
+                      </div>
+                      <Input
+                        type="number"
+                        className="h-8"
+                        placeholder="Monto solicitado"
+                        disabled={!activo}
+                        value={monto ?? ""}
+                        onChange={(ev) => set(e.montoCol as any, ev.target.value ? Number(ev.target.value) : null)}
+                        onBlur={async (ev) => {
+                          const v = ev.target.value ? Number(ev.target.value) : null;
+                          await (supabase as any).from("credit_requests").update({ [e.montoCol]: v }).eq("id", id!);
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Días de crédito */}
@@ -2110,11 +2149,34 @@ export default function CreditoDetail() {
         {/* ============ FIRMAS ============ */}
         <TabsContent value="firmas" className="space-y-4 mt-4">
           <Card><CardContent className="pt-6 space-y-3">
-            {CREDITO_FIRMAS.filter((f) => {
-              if (f.key === "lfpiorpi") return false;
+            {(() => {
               const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
-              return !(f.personaMoralOnly && tp !== "moral");
-            }).map((f) => {
+              const base = CREDITO_FIRMAS.filter((f) => {
+                if (f.key === "lfpiorpi") return false;
+                if (f.key === "solicitud") return false; // se reemplaza por entrada por empresa
+                return !(f.personaMoralOnly && tp !== "moral");
+              });
+              const solicitudEntries: any[] = [];
+              if ((form as any).solicita_lumaggs) {
+                solicitudEntries.push({
+                  key: "solicitud-lumaggs",
+                  label: "Solicitud de crédito · Lumaggs (Chevron)",
+                  fechaCol: "firma_solicitud_lumaggs_fecha",
+                  nombreCol: "firma_solicitud_lumaggs_nombre",
+                  personaMoralOnly: false,
+                });
+              }
+              if ((form as any).solicita_galsa) {
+                solicitudEntries.push({
+                  key: "solicitud-galsa",
+                  label: "Solicitud de crédito · Galsa (Phillips 66)",
+                  fechaCol: "firma_solicitud_galsa_fecha",
+                  nombreCol: "firma_solicitud_galsa_nombre",
+                  personaMoralOnly: false,
+                });
+              }
+              return [...solicitudEntries, ...base];
+            })().map((f) => {
               const fecha = (form as any)[f.fechaCol];
               const nombre = (form as any)[f.nombreCol];
               const docIdCol = `${f.fechaCol.replace("_fecha", "")}_doc_id`;
