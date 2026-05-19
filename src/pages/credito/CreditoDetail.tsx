@@ -1920,6 +1920,12 @@ export default function CreditoDetail() {
               <p className="text-muted-foreground text-sm">No hay tipos de documento configurados.</p>
             ) : (
               (() => {
+                const poderEnActa = !!form.poder_en_acta_constitutiva;
+                const isRequerido = (dt: any) => {
+                  if (!dt.requerido) return false;
+                  if (dt.nombre === "Poder del Representante Legal" && poderEnActa) return false;
+                  return true;
+                };
                 const visible = (docTypes as any[]).filter((dt) => {
                   if (form.tipo === "cescemex" && !dt.aplica_cescemex) return false;
                   if (form.tipo === "directo" && !dt.aplica_directo) return false;
@@ -1958,9 +1964,15 @@ export default function CreditoDetail() {
                   if (!groups[g.key]) groups[g.key] = { label: g.label, items: [] };
                   groups[g.key].items.push(dt);
                 }
-                const totalReq = visible.filter((d) => d.requerido).length;
-                const doneReq = visible.filter((d) => d.requerido && hasDocs(d)).length;
+                const totalReq = visible.filter((d) => isRequerido(d)).length;
+                const doneReq = visible.filter((d) => isRequerido(d) && hasDocs(d)).length;
                 const pct = totalReq > 0 ? Math.round((doneReq / totalReq) * 100) : 0;
+                const togglePoderEnActa = async () => {
+                  const nuevo = !poderEnActa;
+                  set("poder_en_acta_constitutiva", nuevo);
+                  await supabase.from("credit_requests").update({ poder_en_acta_constitutiva: nuevo }).eq("id", id!);
+                  toast.success(nuevo ? "Poder del Representante Legal marcado como incluido en Acta Constitutiva" : "Poder del Representante Legal marcado como requerido por separado");
+                };
                 return (
                   <div className="space-y-5">
                     {/* Progreso global */}
