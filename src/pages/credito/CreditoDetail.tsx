@@ -2149,11 +2149,34 @@ export default function CreditoDetail() {
         {/* ============ FIRMAS ============ */}
         <TabsContent value="firmas" className="space-y-4 mt-4">
           <Card><CardContent className="pt-6 space-y-3">
-            {CREDITO_FIRMAS.filter((f) => {
-              if (f.key === "lfpiorpi") return false;
+            {(() => {
               const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
-              return !(f.personaMoralOnly && tp !== "moral");
-            }).map((f) => {
+              const base = CREDITO_FIRMAS.filter((f) => {
+                if (f.key === "lfpiorpi") return false;
+                if (f.key === "solicitud") return false; // se reemplaza por entrada por empresa
+                return !(f.personaMoralOnly && tp !== "moral");
+              });
+              const solicitudEntries: any[] = [];
+              if ((form as any).solicita_lumaggs) {
+                solicitudEntries.push({
+                  key: "solicitud-lumaggs",
+                  label: "Solicitud de crédito · Lumaggs (Chevron)",
+                  fechaCol: "firma_solicitud_lumaggs_fecha",
+                  nombreCol: "firma_solicitud_lumaggs_nombre",
+                  personaMoralOnly: false,
+                });
+              }
+              if ((form as any).solicita_galsa) {
+                solicitudEntries.push({
+                  key: "solicitud-galsa",
+                  label: "Solicitud de crédito · Galsa (Phillips 66)",
+                  fechaCol: "firma_solicitud_galsa_fecha",
+                  nombreCol: "firma_solicitud_galsa_nombre",
+                  personaMoralOnly: false,
+                });
+              }
+              return [...solicitudEntries, ...base];
+            })().map((f) => {
               const fecha = (form as any)[f.fechaCol];
               const nombre = (form as any)[f.nombreCol];
               const docIdCol = `${f.fechaCol.replace("_fecha", "")}_doc_id`;
