@@ -963,19 +963,53 @@ export default function CreditoDetail() {
     setNewCommentText(""); refetchComments();
   };
 
-  const markFirma = async (key: typeof CREDITO_FIRMAS[number]) => {
-    const nombre = prompt(`Nombre de quien firma ${key.label}:`, form[key.nombreCol] || "");
-    if (!nombre) return;
-    const upd: any = { [key.fechaCol]: new Date().toISOString(), [key.nombreCol]: nombre };
+  const openFirmaPdf = (key: typeof CREDITO_FIRMAS[number]) => {
+    window.open(`/credito/${id}/imprimir/${key.key}`, "_blank", "noopener");
+  };
+
+  const uploadFirmaDoc = async (key: typeof CREDITO_FIRMAS[number], file: File) => {
+    const nombre =
+      prompt(`Nombre de quien firmó "${key.label}":`, (form as any)[key.nombreCol] || "") || "";
+    if (!nombre.trim()) { toast.error("Captura el nombre del firmante"); return; }
+    const path = `${id}/${crypto.randomUUID()}_${file.name.replace(/[^\w.\-]+/g, "_")}`;
+    const { error: upErr } = await supabase.storage.from("credit-docs").upload(path, file, {
+      contentType: file.type, upsert: false,
+    });
+    if (upErr) { toast.error("Upload: " + upErr.message); return; }
+    const docPayload: any = {
+      credit_request_id: id!,
+      doc_type_id: null,
+      url_archivo: path,
+      nombre_archivo: file.name,
+      tipo_archivo: file.type,
+      estado: "recibido",
+      visibilidad: "publica",
+      subido_por: user?.id,
+      metadata: { firma_key: key.key, firma_label: key.label },
+    };
+    const { data: docRow, error: insErr } = await supabase
+      .from("credit_request_docs")
+      .insert(docPayload)
+      .select("id")
+      .single();
+    if (insErr || !docRow) { toast.error(insErr?.message || "Error al registrar"); return; }
+    const docIdCol = `${key.fechaCol.replace("_fecha", "")}_doc_id`;
+    const upd: any = {
+      [key.fechaCol]: new Date().toISOString(),
+      [key.nombreCol]: nombre.trim(),
+      [docIdCol]: docRow.id,
+    };
     const { error } = await supabase.from("credit_requests").update(upd).eq("id", id!);
     if (error) { toast.error(error.message); return; }
-    toast.success("Firma registrada");
+    toast.success(`${key.label}: firma registrada y archivo guardado`);
     qc.invalidateQueries({ queryKey: ["credit_request", id] });
+    refetchDocs();
   };
 
   const clearFirma = async (key: typeof CREDITO_FIRMAS[number]) => {
     if (!confirm("¿Limpiar esta firma?")) return;
-    const upd: any = { [key.fechaCol]: null, [key.nombreCol]: null };
+    const docIdCol = `${key.fechaCol.replace("_fecha", "")}_doc_id`;
+    const upd: any = { [key.fechaCol]: null, [key.nombreCol]: null, [docIdCol]: null };
     await supabase.from("credit_requests").update(upd).eq("id", id!);
     qc.invalidateQueries({ queryKey: ["credit_request", id] });
   };
