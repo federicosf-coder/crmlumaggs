@@ -7,6 +7,22 @@ export type ResolvedLocation = {
   placeId?: string | null;
 };
 
+type GeocodeResult = {
+  formatted_address?: string;
+  place_id?: string;
+  geometry?: {
+    location?: { lat?: number | (() => number); lng?: number | (() => number) };
+  };
+};
+
+type GeocoderStatus = string;
+type Geocoder = {
+  geocode: (
+    request: { address?: string; region?: string; location?: { lat: number; lng: number } },
+    callback: (results: GeocodeResult[] | null, status: GeocoderStatus) => void,
+  ) => void;
+};
+
 export function isGoogleMapsUrl(value: string | null | undefined): boolean {
   if (!value) return false;
   try {
@@ -49,20 +65,20 @@ async function resolveGoogleMapsLink(url: string): Promise<string> {
   return data?.finalUrl || url;
 }
 
-async function getGeocoder(): Promise<any> {
-  const g = (window as any).google;
+async function getGeocoder(): Promise<Geocoder> {
+  const g = window.google;
   if (!g?.maps) throw new Error("Google Maps no está listo");
   if (g.maps.importLibrary) {
     try { await g.maps.importLibrary("geocoding"); } catch { /* fallback legacy */ }
   }
   if (!g.maps.Geocoder) throw new Error("Google Maps no cargó el geocodificador");
-  return new g.maps.Geocoder();
+  return new g.maps.Geocoder() as Geocoder;
 }
 
 export async function reverseGeocodeCoords(lat: number, lng: number): Promise<ResolvedLocation> {
   const geocoder = await getGeocoder();
-  const result: any = await new Promise((resolve, reject) => {
-    geocoder.geocode({ location: { lat: Number(lat), lng: Number(lng) } }, (results: any, status: string) => {
+  const result = await new Promise<GeocodeResult>((resolve, reject) => {
+    geocoder.geocode({ location: { lat: Number(lat), lng: Number(lng) } }, (results, status) => {
       if (status === "OK" && results?.[0]) resolve(results[0]);
       else reject(new Error(`Geocoder: ${status}`));
     });
@@ -87,8 +103,8 @@ export async function geocodeAddressInput(input: string): Promise<ResolvedLocati
   }
 
   const geocoder = await getGeocoder();
-  const result: any = await new Promise((resolve, reject) => {
-    geocoder.geocode({ address, region: "mx" }, (results: any, status: string) => {
+  const result = await new Promise<GeocodeResult>((resolve, reject) => {
+    geocoder.geocode({ address, region: "mx" }, (results, status) => {
       if (status === "OK" && results?.[0]) resolve(results[0]);
       else reject(new Error(`Geocoder: ${status}`));
     });
