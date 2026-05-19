@@ -230,6 +230,9 @@ export default function CreditoFormatosEditor() {
           )}
           <SheetFooter className="mt-6 bg-muted/30 -mx-6 -mb-6 px-6 py-4 border-t">
             <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>Cancelar</Button>
+            <Button variant="secondary" onClick={() => editing && setPreview(editing)} disabled={saving}>
+              <Eye className="h-4 w-4 mr-1" /> Vista previa
+            </Button>
             <Button onClick={save} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Guardar formato
