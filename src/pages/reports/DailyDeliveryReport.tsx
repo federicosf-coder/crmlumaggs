@@ -2,11 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, Truck, Clock, Route as RouteIcon, Gauge, BarChart3, Trophy } from "lucide-react";
+import { CalendarIcon, Truck, Clock, Route as RouteIcon, ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -15,6 +14,16 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageBanner } from "@/components/PageBanner";
 import { cn } from "@/lib/utils";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 type Plaza = { id: string; nombre: string };
 type Repartidor = { id: string; nombre: string };
@@ -27,30 +36,28 @@ type RowData = {
   total_entregas: number;
   total_horas: number;
   total_km: number;
+  total_rutas: number;
+};
+
+type RutaDetail = {
+  ruta_id: string;
+  fecha_entrega: string;
+  plaza_nombre: string;
+  repartidores: string;
+  entregas: number;
+  horas: number;
+  km: number;
 };
 
 const ALL = "__ALL__";
-
-function scoreFor(entregasHora: number, kmEntrega: number): number {
-  // Simple weighted score: more entregas/hora = better; lower km/entrega = better.
-  // Normalize against soft thresholds.
-  const eff = Math.min(entregasHora / 3, 1) * 60; // 3 entregas/hora => 60 pts
-  const route = (kmEntrega > 0 ? Math.max(0, 1 - Math.min(kmEntrega / 30, 1)) : 0.5) * 40; // <= ~30 km/entrega
-  return Math.round(eff + route);
-}
-
-function scoreColor(score: number): { label: string; className: string } {
-  if (score >= 70) return { label: "Alto", className: "bg-green-600 text-white hover:bg-green-700" };
-  if (score >= 40) return { label: "Medio", className: "bg-yellow-500 text-black hover:bg-yellow-600" };
-  return { label: "Bajo", className: "bg-red-600 text-white hover:bg-red-700" };
-}
 
 const fmt = (n: number, d = 2) =>
   new Intl.NumberFormat("es-MX", { minimumFractionDigits: d, maximumFractionDigits: d }).format(n || 0);
 
 export default function DailyDeliveryReport() {
   const { profile } = useAuth();
-  const [date, setDate] = useState<Date>(new Date());
+  const [dateFrom, setDateFrom] = useState<Date>(new Date());
+  const [dateTo, setDateTo] = useState<Date>(new Date());
   const [plazaId, setPlazaId] = useState<string>(ALL);
   const [repartidorId, setRepartidorId] = useState<string>(ALL);
   const [defaulted, setDefaulted] = useState(false);
@@ -82,30 +89,29 @@ export default function DailyDeliveryReport() {
     }
   }, [profile?.plaza_id, plazas, defaulted]);
 
-  const dateStr = format(date, "yyyy-MM-dd");
+  const dateFromStr = format(dateFrom, "yyyy-MM-dd");
+  const dateToStr = format(dateTo, "yyyy-MM-dd");
 
-  const { data: rows = [], isLoading } = useQuery<RowData[]>({
-    queryKey: ["daily-delivery-report", dateStr, plazaId, repartidorId],
+  const { data: queryData, isLoading } = useQuery<{ rows: RowData[]; details: RutaDetail[] }>({
+    queryKey: ["daily-delivery-report", dateFromStr, dateToStr, plazaId, repartidorId],
     queryFn: async () => {
-      // Load routes for the day (with optional filters)
       let q = supabase
         .from("rutas_entrega")
         .select("id, fecha_entrega, plaza_id, repartidor_id, ruta_started_at, ruta_finished_at, km_recorridos")
-        .eq("fecha_entrega", dateStr);
+        .gte("fecha_entrega", dateFromStr)
+        .lte("fecha_entrega", dateToStr);
       if (plazaId !== ALL) q = q.eq("plaza_id", plazaId);
       if (repartidorId !== ALL) q = q.eq("repartidor_id", repartidorId);
       const { data: rutas, error } = await q;
       if (error) throw error;
       const rutaIds = (rutas || []).map((r) => r.id);
-      if (rutaIds.length === 0) return [];
+      if (rutaIds.length === 0) return { rows: [], details: [] };
 
-      // Co-drivers (extra) per route
       const { data: extras } = await supabase
         .from("ruta_repartidores")
         .select("ruta_id, repartidor_id")
         .in("ruta_id", rutaIds);
 
-      // Delivered counts per route
       const { data: entregas } = await supabase
         .from("entregas_programadas")
         .select("ruta_id, fecha_entrega_real")
@@ -120,7 +126,6 @@ export default function DailyDeliveryReport() {
       const repNames = new Map(repartidores.map((r) => [r.id, r.nombre]));
       const plazaNames = new Map(plazas.map((p) => [p.id, p.nombre]));
 
-      // Build per-driver aggregates. A driver = primary + extras of ruta_repartidores.
       const agg = new Map<string, RowData>();
       const ensure = (rid: string, pid: string): RowData => {
         const key = `${rid}__${pid}`;
@@ -134,11 +139,14 @@ export default function DailyDeliveryReport() {
             total_entregas: 0,
             total_horas: 0,
             total_km: 0,
+            total_rutas: 0,
           };
           agg.set(key, row);
         }
         return row;
       };
+
+      const details: RutaDetail[] = [];
 
       for (const r of rutas || []) {
         const drivers = new Set<string>();
@@ -154,55 +162,75 @@ export default function DailyDeliveryReport() {
         const entregasCount = deliveredByRuta.get(r.id) || 0;
         const share = 1 / drivers.size;
 
+        const matchesFilter = repartidorId === ALL || drivers.has(repartidorId);
+        if (matchesFilter) {
+          details.push({
+            ruta_id: r.id,
+            fecha_entrega: r.fecha_entrega,
+            plaza_nombre: plazaNames.get(r.plaza_id) || "—",
+            repartidores: Array.from(drivers).map((d) => repNames.get(d) || "—").join(", "),
+            entregas: entregasCount,
+            horas,
+            km,
+          });
+        }
+
         for (const did of drivers) {
-          // optional repartidor filter: skip drivers not matching when filter is set
           if (repartidorId !== ALL && did !== repartidorId) continue;
           const row = ensure(did, r.plaza_id);
           row.total_entregas += entregasCount * share;
           row.total_horas += horas * share;
           row.total_km += km * share;
+          row.total_rutas += share;
         }
       }
 
-      return Array.from(agg.values());
+      details.sort((a, b) => a.fecha_entrega.localeCompare(b.fecha_entrega));
+      return { rows: Array.from(agg.values()), details };
     },
-    enabled: !!dateStr,
+    enabled: !!dateFromStr && !!dateToStr,
   });
 
-  const enriched = useMemo(() => {
-    return rows
-      .map((r) => {
-        const entregasHora = r.total_horas > 0 ? r.total_entregas / r.total_horas : 0;
-        const kmEntrega = r.total_entregas > 0 ? r.total_km / r.total_entregas : 0;
-        const score = scoreFor(entregasHora, kmEntrega);
-        return { ...r, entregasHora, kmEntrega, score };
-      })
-      .sort((a, b) => b.score - a.score);
+  const rows = queryData?.rows ?? [];
+  const details = queryData?.details ?? [];
+
+  // Aggregate per driver (sum across plazas if applicable) for the comparison chart
+  const perDriver = useMemo(() => {
+    const m = new Map<string, RowData>();
+    rows.forEach((r) => {
+      const ex = m.get(r.repartidor_id);
+      if (!ex) {
+        m.set(r.repartidor_id, { ...r });
+      } else {
+        ex.total_entregas += r.total_entregas;
+        ex.total_horas += r.total_horas;
+        ex.total_km += r.total_km;
+        ex.total_rutas += r.total_rutas;
+      }
+    });
+    return Array.from(m.values()).sort((a, b) => b.total_entregas - a.total_entregas);
   }, [rows]);
 
-  // Group by Plaza → Driver (keep score order within plaza)
-  const grouped = useMemo(() => {
-    const map = new Map<string, { plaza_nombre: string; rows: typeof enriched }>();
-    enriched.forEach((r) => {
-      const k = r.plaza_id;
-      if (!map.has(k)) map.set(k, { plaza_nombre: r.plaza_nombre, rows: [] });
-      map.get(k)!.rows.push(r);
-    });
-    return Array.from(map.entries()).map(([plaza_id, v]) => ({ plaza_id, ...v }));
-  }, [enriched]);
+  const chartData = useMemo(
+    () =>
+      perDriver.map((r) => ({
+        name: r.repartidor_nombre,
+        Entregas: Number(r.total_entregas.toFixed(1)),
+        Horas: Number(r.total_horas.toFixed(2)),
+        Km: Number(r.total_km.toFixed(1)),
+        Rutas: Number(r.total_rutas.toFixed(1)),
+      })),
+    [perDriver],
+  );
 
   const totals = useMemo(() => {
-    const tEntregas = enriched.reduce((a, r) => a + r.total_entregas, 0);
-    const tHoras = enriched.reduce((a, r) => a + r.total_horas, 0);
-    const tKm = enriched.reduce((a, r) => a + r.total_km, 0);
     return {
-      tEntregas,
-      tHoras,
-      tKm,
-      entregasHora: tHoras > 0 ? tEntregas / tHoras : 0,
-      kmEntrega: tEntregas > 0 ? tKm / tEntregas : 0,
+      tEntregas: rows.reduce((a, r) => a + r.total_entregas, 0),
+      tHoras: rows.reduce((a, r) => a + r.total_horas, 0),
+      tKm: rows.reduce((a, r) => a + r.total_km, 0),
+      tRutas: rows.reduce((a, r) => a + r.total_rutas, 0),
     };
-  }, [enriched]);
+  }, [rows]);
 
   return (
     <>
@@ -210,18 +238,32 @@ export default function DailyDeliveryReport() {
       <div className="container mx-auto p-4 space-y-4">
         {/* Filters */}
         <Card>
-          <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <Label className="mb-1 block">Fecha *</Label>
+              <Label className="mb-1 block">Desde *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(date, "PPP", { locale: es })}
+                    {format(dateFrom, "PPP", { locale: es })}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={date} onSelect={(d) => d && setDate(d)} initialFocus />
+                  <Calendar mode="single" selected={dateFrom} onSelect={(d) => d && setDateFrom(d)} initialFocus />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div>
+              <Label className="mb-1 block">Hasta *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(dateTo, "PPP", { locale: es })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={dateTo} onSelect={(d) => d && setDateTo(d)} initialFocus />
                 </PopoverContent>
               </Popover>
             </div>
@@ -253,90 +295,81 @@ export default function DailyDeliveryReport() {
         </Card>
 
         {/* Header KPI cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KpiCard icon={<Truck className="h-5 w-5" />} label="Total Entregas" value={fmt(totals.tEntregas, 0)} className="bg-blue-600 text-white" />
           <KpiCard icon={<Clock className="h-5 w-5" />} label="Total Horas" value={fmt(totals.tHoras, 2)} className="bg-purple-600 text-white" />
           <KpiCard icon={<RouteIcon className="h-5 w-5" />} label="Total Km" value={fmt(totals.tKm, 1)} className="bg-orange-500 text-white" />
-          <KpiCard icon={<Gauge className="h-5 w-5" />} label="Entregas / Hora" value={fmt(totals.entregasHora, 2)} className="bg-card text-foreground border" />
-          <KpiCard icon={<BarChart3 className="h-5 w-5" />} label="Km / Entrega" value={fmt(totals.kmEntrega, 2)} className="bg-card text-foreground border" />
+          <KpiCard icon={<ListChecks className="h-5 w-5" />} label="Total Rutas" value={fmt(totals.tRutas, 0)} className="bg-emerald-600 text-white" />
         </div>
 
-        {/* Ranking */}
+        {/* Comparativo Repartidores */}
         <Card>
-          <CardHeader className="flex flex-row items-center gap-2 pb-3">
-            <Trophy className="h-5 w-5 text-yellow-500" />
-            <CardTitle className="text-base">Ranking por Score</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Comparativo por Repartidor</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <p className="text-sm text-muted-foreground">Cargando...</p>
-            ) : enriched.length === 0 ? (
+            ) : chartData.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sin datos para los filtros seleccionados.</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                {enriched.slice(0, 6).map((r, idx) => {
-                  const sc = scoreColor(r.score);
-                  return (
-                    <div key={r.repartidor_id + r.plaza_id} className="flex items-center justify-between border rounded-md p-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-bold text-muted-foreground">#{idx + 1}</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{r.repartidor_nombre}</p>
-                          <p className="text-xs text-muted-foreground truncate">{r.plaza_nombre}</p>
-                        </div>
-                      </div>
-                      <Badge className={cn(sc.className, "shrink-0")}>{r.score}</Badge>
-                    </div>
-                  );
-                })}
+              <div className="h-80 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="Entregas" fill="hsl(217 91% 60%)" />
+                    <Bar dataKey="Horas" fill="hsl(262 83% 58%)" />
+                    <Bar dataKey="Km" fill="hsl(25 95% 53%)" />
+                    <Bar dataKey="Rutas" fill="hsl(160 84% 39%)" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Grouped tables */}
-        {grouped.map((g) => (
-          <Card key={g.plaza_id}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Plaza: {g.plaza_nombre}</CardTitle>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
+        {/* Desglose por ruta — orden ascendente por fecha */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Desglose por Ruta</CardTitle>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Cargando...</p>
+            ) : details.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin rutas para los filtros seleccionados.</p>
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Repartidor</TableHead>
+                    <TableHead>Fecha</TableHead>
                     <TableHead>Plaza</TableHead>
-                    <TableHead className="text-right">Total Entregas</TableHead>
-                    <TableHead className="text-right">Horas Totales</TableHead>
-                    <TableHead className="text-right">Km Totales</TableHead>
-                    <TableHead className="text-right">Entregas / Hora</TableHead>
-                    <TableHead className="text-right">Km / Entrega</TableHead>
-                    <TableHead className="text-center">Score</TableHead>
+                    <TableHead>Repartidor(es)</TableHead>
+                    <TableHead className="text-right">Entregas</TableHead>
+                    <TableHead className="text-right">Horas</TableHead>
+                    <TableHead className="text-right">Km</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {g.rows.map((r) => {
-                    const sc = scoreColor(r.score);
-                    return (
-                      <TableRow key={r.repartidor_id + r.plaza_id}>
-                        <TableCell className="font-medium">{r.repartidor_nombre}</TableCell>
-                        <TableCell>{r.plaza_nombre}</TableCell>
-                        <TableCell className="text-right">{fmt(r.total_entregas, 1)}</TableCell>
-                        <TableCell className="text-right">{fmt(r.total_horas, 2)}</TableCell>
-                        <TableCell className="text-right">{fmt(r.total_km, 1)}</TableCell>
-                        <TableCell className="text-right">{fmt(r.entregasHora, 2)}</TableCell>
-                        <TableCell className="text-right">{fmt(r.kmEntrega, 2)}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge className={sc.className}>{r.score} · {sc.label}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {details.map((d) => (
+                    <TableRow key={d.ruta_id}>
+                      <TableCell>{format(new Date(d.fecha_entrega + "T00:00:00"), "dd MMM yyyy", { locale: es })}</TableCell>
+                      <TableCell>{d.plaza_nombre}</TableCell>
+                      <TableCell className="font-medium">{d.repartidores}</TableCell>
+                      <TableCell className="text-right">{fmt(d.entregas, 0)}</TableCell>
+                      <TableCell className="text-right">{fmt(d.horas, 2)}</TableCell>
+                      <TableCell className="text-right">{fmt(d.km, 1)}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        ))}
+            )}
+          </CardContent>
+        </Card>
       </div>
     </>
   );
