@@ -1558,6 +1558,7 @@ export type Database = {
           domicilio_fiscal: string | null
           escritura_constitutiva: string | null
           estado: Database["public"]["Enums"]["credito_estado"]
+          estado_cuenta_requerido: boolean
           estado_fiscal: string | null
           fecha_activacion: string | null
           fecha_contrato_enviado: string | null
@@ -1671,6 +1672,7 @@ export type Database = {
           domicilio_fiscal?: string | null
           escritura_constitutiva?: string | null
           estado?: Database["public"]["Enums"]["credito_estado"]
+          estado_cuenta_requerido?: boolean
           estado_fiscal?: string | null
           fecha_activacion?: string | null
           fecha_contrato_enviado?: string | null
@@ -1784,6 +1786,7 @@ export type Database = {
           domicilio_fiscal?: string | null
           escritura_constitutiva?: string | null
           estado?: Database["public"]["Enums"]["credito_estado"]
+          estado_cuenta_requerido?: boolean
           estado_fiscal?: string | null
           fecha_activacion?: string | null
           fecha_contrato_enviado?: string | null
