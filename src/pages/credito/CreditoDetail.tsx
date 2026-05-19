@@ -632,6 +632,34 @@ export default function CreditoDetail() {
               </Select>
             </div>
 
+            {/* Giro Comercial (Industrias, multi) — sincronizado con la Empresa */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground inline-flex items-center gap-1">
+                <Briefcase className="h-3 w-3" /> Giro comercial (Industrias)
+              </Label>
+              <div className="flex flex-wrap gap-1 min-h-[28px]">
+                {companyIndustrias.length === 0 && (
+                  <span className="text-xs text-muted-foreground">Sin industrias asignadas.</span>
+                )}
+                {companyIndustrias.map((i) => (
+                  <Badge key={i} variant="secondary" className="text-xs gap-1">
+                    {i}
+                    <button type="button" onClick={() => removeIndustria(i)} className="hover:text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <Select value="" onValueChange={addIndustria}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Agregar industria..." /></SelectTrigger>
+                <SelectContent>
+                  {INDUSTRIAS_OPTIONS.filter((o) => !companyIndustrias.includes(o)).map((o) => (
+                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Contacto para seguimiento */}
             <div className="space-y-1">
               <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Contacto para seguimiento</Label>
@@ -670,34 +698,6 @@ export default function CreditoDetail() {
                   </div>
                 );
               })()}
-            </div>
-
-            {/* Giro Comercial (Industrias, multi) — sincronizado con la Empresa */}
-            <div className="space-y-1 sm:col-span-2 lg:col-span-3">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground inline-flex items-center gap-1">
-                <Briefcase className="h-3 w-3" /> Giro comercial (Industrias)
-              </Label>
-              <div className="flex flex-wrap gap-1 min-h-[28px]">
-                {companyIndustrias.length === 0 && (
-                  <span className="text-xs text-muted-foreground">Sin industrias asignadas.</span>
-                )}
-                {companyIndustrias.map((i) => (
-                  <Badge key={i} variant="secondary" className="text-xs gap-1">
-                    {i}
-                    <button type="button" onClick={() => removeIndustria(i)} className="hover:text-destructive">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-              <Select value="" onValueChange={addIndustria}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Agregar industria..." /></SelectTrigger>
-                <SelectContent>
-                  {INDUSTRIAS_OPTIONS.filter((o) => !companyIndustrias.includes(o)).map((o) => (
-                    <SelectItem key={o} value={o}>{o}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardContent>
