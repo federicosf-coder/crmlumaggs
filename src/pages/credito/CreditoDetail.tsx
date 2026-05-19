@@ -185,7 +185,7 @@ function BeneficiarioControladorSteps({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center" style={{ gap: "3mm" }}>
         <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">
           Beneficiario Controlador
         </p>
