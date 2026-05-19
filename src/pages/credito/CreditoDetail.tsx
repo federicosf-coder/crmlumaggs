@@ -1985,13 +1985,26 @@ export default function CreditoDetail() {
                     </div>
                     {order.filter((k) => groups[k]).map((k) => {
                       const g = groups[k];
-                      const reqCount = g.items.filter((d) => d.requerido).length;
-                      const reqDone = g.items.filter((d) => d.requerido && hasDocs(d)).length;
-                      const allDone = g.items.every((d) => !d.requerido || hasDocs(d));
+                      const isLegalGroup = k === "legal";
+                      const reqCount = g.items.filter((d) => isRequerido(d)).length;
+                      const reqDone = g.items.filter((d) => isRequerido(d) && hasDocs(d)).length;
+                      const allDone = g.items.every((d) => !isRequerido(d) || hasDocs(d));
                       return (
                         <div key={k} className="space-y-2">
                           <div className="flex items-center justify-between gap-2 border-b pb-1.5">
-                            <h3 className={`text-sm font-semibold uppercase tracking-wide ${GROUP_COLOR[k] || "text-slate-700"}`}>{g.label}</h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className={`text-sm font-semibold uppercase tracking-wide ${GROUP_COLOR[k] || "text-slate-700"}`}>{g.label}</h3>
+                              {isLegalGroup && (
+                                <label className="inline-flex items-center gap-1.5 cursor-pointer rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700 hover:bg-indigo-100 transition-colors">
+                                  <Switch
+                                    checked={poderEnActa}
+                                    onCheckedChange={togglePoderEnActa}
+                                    className="scale-75"
+                                  />
+                                  <span>Poder en Acta</span>
+                                </label>
+                              )}
+                            </div>
                             {reqCount > 0 && (
                               <span className={`text-[11px] px-2 py-0.5 rounded-full border ${allDone ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
                                 {reqDone}/{reqCount} requeridos
