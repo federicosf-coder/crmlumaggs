@@ -51,7 +51,7 @@ export const CREDITO_FIRMAS = [
   { key: "buro",             label: "Autorización Buró",     fechaCol: "firma_buro_fecha",             nombreCol: "firma_buro_nombre",             personaMoralOnly: false },
   { key: "confidencialidad", label: "Confidencialidad",      fechaCol: "firma_confidencialidad_fecha", nombreCol: "firma_confidencialidad_nombre", personaMoralOnly: false },
   { key: "subsistencia",     label: "Subsistencia de poderes", fechaCol: "firma_subsistencia_fecha",   nombreCol: "firma_subsistencia_nombre",     personaMoralOnly: true },
-  { key: "lfpiorpi",         label: "LFPIORPI",              fechaCol: "firma_lfpiorpi_fecha",         nombreCol: "firma_lfpiorpi_nombre",         personaMoralOnly: false },
+  { key: "lfpiorpi",         label: "Beneficiario Controlador", fechaCol: "firma_lfpiorpi_fecha",      nombreCol: "firma_lfpiorpi_nombre",         personaMoralOnly: false, templateKey: "bc" },
 ] as const;
 
 export const CREDITO_TIPO_PERSONA_OPTIONS = [
