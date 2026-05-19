@@ -2111,6 +2111,7 @@ export default function CreditoDetail() {
         <TabsContent value="firmas" className="space-y-4 mt-4">
           <Card><CardContent className="pt-6 space-y-3">
             {CREDITO_FIRMAS.filter((f) => {
+              if (f.key === "lfpiorpi") return false;
               const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
               return !(f.personaMoralOnly && tp !== "moral");
             }).map((f) => {
