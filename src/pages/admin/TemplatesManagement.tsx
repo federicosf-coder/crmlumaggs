@@ -11,14 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Copy, Power, Search, FileText, MessageCircle, Paperclip, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, Power, Search, FileText, MessageCircle, Paperclip, Eye, FileSignature } from "lucide-react";
 import { CATEGORY_LABELS, Template, TemplateCategory, TemplateType } from "@/lib/templates";
 import { TemplateFormDialog } from "@/components/templates/TemplateFormDialog";
 import { TemplatePreviewDialog } from "@/components/templates/TemplatePreviewDialog";
+import CreditoFormatosEditor from "@/pages/credito/CreditoFormatosEditor";
 
 export default function TemplatesManagement() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"all" | TemplateType>("all");
+  const [tab, setTab] = useState<"all" | TemplateType | "credito">("all");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<"all" | TemplateCategory>("all");
   const [editing, setEditing] = useState<Template | null>(null);
