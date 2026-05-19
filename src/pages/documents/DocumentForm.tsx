@@ -590,7 +590,9 @@ export default function DocumentForm() {
     try {
       // resolve address text from selected address
       const selectedAddr = addresses.find((a: any) => a.id === form.direccion_envio);
-      const direccionText = selectedAddr ? `${selectedAddr.calle}${selectedAddr.ciudad ? ', ' + selectedAddr.ciudad : ''}${selectedAddr.estado ? ', ' + selectedAddr.estado : ''}${selectedAddr.codigo_postal ? ' C.P. ' + selectedAddr.codigo_postal : ''}` : (form.direccion_envio || null);
+      const direccionText = selectedAddr
+        ? (selectedAddr.direccion_completa || `${selectedAddr.calle}${selectedAddr.ciudad ? ', ' + selectedAddr.ciudad : ''}${selectedAddr.estado ? ', ' + selectedAddr.estado : ''}${selectedAddr.codigo_postal ? ' C.P. ' + selectedAddr.codigo_postal : ''}`)
+        : (form.direccion_envio || null);
 
       // Doble validación defensiva: plaza_id nunca debe llegar vacío al guardar
       if (!form.plaza_id) {
@@ -623,6 +625,9 @@ export default function DocumentForm() {
         numero_oc_cliente: form.numero_oc_cliente || null,
         fecha_oc_cliente: form.tipo_documento === "entrega_corporativa" ? (form.fecha_oc_cliente || null) : null,
         direccion_envio: direccionText,
+        direccion_envio_lat: selectedAddr?.coordenadas_lat ?? null,
+        direccion_envio_lng: selectedAddr?.coordenadas_lng ?? null,
+        direccion_envio_nombre: selectedAddr?.nombre ?? null,
         cotizacion_original_id: form.cotizacion_original_id || null,
         tipo_pago: form.tipo_pago || null,
         uso_cfdi: form.uso_cfdi || null,
