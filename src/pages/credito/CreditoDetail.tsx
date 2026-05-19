@@ -454,6 +454,16 @@ function BcDocUploader({
 function BcPersonaFisicaForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
   return (
     <div className="space-y-4">
+      <div className="space-y-2">
+        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Documentos</p>
+        <div className="grid sm:grid-cols-2 gap-2">
+          <BcDocUploader docKey="bc_pf_id" label="Identificación oficial" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pf_curp" label="CURP" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pf_csf" label="Cédula fiscal (CSF)" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pf_domicilio" label="Comprobante de domicilio" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+        </div>
+      </div>
+
       <div className="space-y-3">
         <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Datos personales (Anexo 3)</p>
         <div className="grid sm:grid-cols-2 gap-3">
@@ -474,16 +484,6 @@ function BcPersonaFisicaForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
           <BcField label="Número de identificación"><Input value={bcData.id_numero || ""} onChange={(e) => setBc("id_numero", e.target.value)} /></BcField>
         </div>
       </div>
-
-      <div className="space-y-2">
-        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Documentos</p>
-        <div className="grid sm:grid-cols-2 gap-2">
-          <BcDocUploader docKey="bc_pf_id" label="Identificación oficial" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pf_curp" label="CURP" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pf_csf" label="Cédula fiscal (CSF)" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pf_domicilio" label="Comprobante de domicilio" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-        </div>
-      </div>
     </div>
   );
 }
@@ -491,6 +491,17 @@ function BcPersonaFisicaForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
 function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
   return (
     <div className="space-y-4">
+      <div className="space-y-2">
+        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Documentos</p>
+        <div className="grid sm:grid-cols-2 gap-2">
+          <BcDocUploader docKey="bc_pm_acta" label="Acta constitutiva" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pm_csf" label="Cédula fiscal (CSF)" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pm_domicilio" label="Comprobante de domicilio" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pm_poderes" label="Poderes del representante legal" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+          <BcDocUploader docKey="bc_pm_constancia_bc" label="Constancia de Beneficiario Controlador" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
+        </div>
+      </div>
+
       <div className="space-y-3">
         <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Datos de la empresa (Anexo 4)</p>
         <div className="grid sm:grid-cols-2 gap-3">
@@ -512,17 +523,6 @@ function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs }: any) {
           <BcField label="Nombre"><Input value={bcData.rl_nombre || ""} onChange={(e) => setBc("rl_nombre", e.target.value)} /></BcField>
           <BcField label="CURP"><Input value={bcData.rl_curp || ""} onChange={(e) => setBc("rl_curp", e.target.value.toUpperCase())} /></BcField>
           <BcField label="RFC"><Input value={bcData.rl_rfc || ""} onChange={(e) => setBc("rl_rfc", e.target.value.toUpperCase())} /></BcField>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Documentos</p>
-        <div className="grid sm:grid-cols-2 gap-2">
-          <BcDocUploader docKey="bc_pm_acta" label="Acta constitutiva" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pm_csf" label="Cédula fiscal (CSF)" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pm_domicilio" label="Comprobante de domicilio" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pm_poderes" label="Poderes del representante legal" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
-          <BcDocUploader docKey="bc_pm_constancia_bc" label="Constancia de Beneficiario Controlador" uploadDoc={uploadDoc} openDoc={openDoc} docs={docs} />
         </div>
       </div>
     </div>
