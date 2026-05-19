@@ -13,6 +13,8 @@ import { BackButton } from "@/components/BackButton";
 import { Plus, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CreditoFormatosEditor from "./CreditoFormatosEditor";
 
 interface DocType {
   id: string;
@@ -117,17 +119,26 @@ export default function CreditoConfiguracion() {
       <BackButton fallback="/credito" />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Catálogo de documentos requeridos</h1>
+          <h1 className="text-2xl font-semibold">Configuración de crédito</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Configura qué documentos pide el sistema en cada solicitud de crédito.
+            Administra los documentos requeridos y los formatos imprimibles del expediente.
           </p>
         </div>
-        <Button onClick={() => setEditing(empty)}>
-          <Plus className="h-4 w-4 mr-2" /> Nuevo tipo
-        </Button>
       </div>
 
-      <Card>
+      <Tabs defaultValue="docs" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="docs">Documentos requeridos</TabsTrigger>
+          <TabsTrigger value="formatos">Formatos imprimibles</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="docs" className="space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => setEditing(empty)}>
+              <Plus className="h-4 w-4 mr-2" /> Nuevo tipo
+            </Button>
+          </div>
+          <Card>
         <CardHeader>
           <CardTitle className="text-base">Tipos de documento</CardTitle>
         </CardHeader>
@@ -191,6 +202,12 @@ export default function CreditoConfiguracion() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="formatos">
+          <CreditoFormatosEditor />
+        </TabsContent>
+      </Tabs>
 
       <Sheet open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
