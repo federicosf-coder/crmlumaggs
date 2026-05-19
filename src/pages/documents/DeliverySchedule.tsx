@@ -289,7 +289,21 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
               <Button
                 size="sm" className="h-7 text-[10px] px-2"
                 disabled={!lat || !lng}
-                onClick={() => { onSaveDocCoords?.(item.id, Number(lat), Number(lng)); setShowCoords(false); }}
+                onClick={async () => {
+                  const la = Number(lat);
+                  const ln = Number(lng);
+                  if (!Number.isFinite(la) || !Number.isFinite(ln)) { toast.error("Coordenadas inválidas"); return; }
+                  setGeocoding(true);
+                  try {
+                    const result = gmapsReady ? await reverseGeocodeCoords(la, ln) : { lat: la, lng: ln, formattedAddress: null };
+                    await onSaveDocCoords?.(item.id, result.lat, result.lng, result.formattedAddress);
+                    setShowCoords(false);
+                  } catch (e: any) {
+                    toast.error(e?.message || "No se pudo calcular la dirección");
+                  } finally {
+                    setGeocoding(false);
+                  }
+                }}
               >
                 <Save className="h-3 w-3 mr-1" />Guardar
               </Button>
