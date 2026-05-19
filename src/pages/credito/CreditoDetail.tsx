@@ -1631,6 +1631,15 @@ export default function CreditoDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ContactFormDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        defaultCompanyId={companyId || undefined}
+        onCreated={async (newId) => {
+          await qc.invalidateQueries({ queryKey: ["credit-company-contacts", companyId] });
+          setContact(newId);
+        }}
+      />
     </div>
   );
 }
