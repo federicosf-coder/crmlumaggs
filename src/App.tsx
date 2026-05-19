@@ -50,6 +50,7 @@ import CreditoList from "@/pages/credito/CreditoList";
 import CreditoDetail from "@/pages/credito/CreditoDetail";
 import CreditoConfiguracion from "@/pages/credito/CreditoConfiguracion";
 import CreditoPortal from "@/pages/credito/CreditoPortal";
+import CreditoShortRedirect from "@/pages/credito/CreditoShortRedirect";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
             <Route path="/portal/credito/:token" element={<CreditoPortal />} />
+            <Route path="/p/:code" element={<CreditoShortRedirect />} />
 
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

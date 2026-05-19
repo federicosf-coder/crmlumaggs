@@ -15,11 +15,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock } from "lucide-react";
+import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock, Briefcase, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS, CREDITO_TIPO_PERSONA_OPTIONS } from "@/lib/credito";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Badge } from "@/components/ui/badge";
+import { INDUSTRIAS_OPTIONS } from "@/components/CompanyFormDialog";
 
 type Req = any;
 
@@ -83,7 +86,7 @@ export default function CreditoDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("credit_requests")
-        .select("*, companies(name, razon_social)")
+        .select("*, companies(id, name, razon_social, industrias, plaza_id)")
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
@@ -93,6 +96,30 @@ export default function CreditoDetail() {
   });
 
   useEffect(() => { if (req) setForm(req); }, [req]);
+
+  const companyId = (req?.companies as any)?.id || (req as any)?.company_id || null;
+
+  const { data: plazas = [] } = useQuery({
+    queryKey: ["plazas-credito"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plazas").select("id, nombre").order("nombre");
+      return data || [];
+    },
+  });
+
+  const { data: companyContacts = [] } = useQuery({
+    queryKey: ["credit-company-contacts", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name, job_title, email, phone, mobile, whatsapp_phone")
+        .eq("company_id", companyId)
+        .eq("is_active", true)
+        .order("first_name");
+      return data || [];
+    },
+  });
 
   const { data: docTypes = [] } = useQuery({
     queryKey: ["credit_doc_types_active"],
@@ -398,7 +425,47 @@ export default function CreditoDetail() {
     qc.invalidateQueries({ queryKey: ["credit_request", id] });
   };
 
-  const portalUrl = `${window.location.origin}/portal/credito/${form.client_token}`;
+  const portalUrl = form.short_code
+    ? `${window.location.origin}/p/${form.short_code}`
+    : `${window.location.origin}/portal/credito/${form.client_token}`;
+
+  const updateCompany = async (patch: any) => {
+    if (!companyId) return;
+    const { error } = await supabase.from("companies").update(patch).eq("id", companyId);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["credit_request", id] });
+  };
+
+  const company = (form.companies || {}) as any;
+  const companyIndustrias: string[] = company.industrias || [];
+  const removeIndustria = async (val: string) => {
+    await updateCompany({ industrias: companyIndustrias.filter((i) => i !== val) });
+  };
+  const addIndustria = async (val: string) => {
+    if (!val || companyIndustrias.includes(val)) return;
+    await updateCompany({ industrias: [...companyIndustrias, val] });
+    // mantener compatibilidad con credit_requests.giro_comercial
+    const joined = [...companyIndustrias, val].join(", ");
+    set("giro_comercial", joined);
+    await supabase.from("credit_requests").update({ giro_comercial: joined }).eq("id", id!);
+  };
+
+  const setContact = async (contactId: string) => {
+    const cc = (companyContacts as any[]).find((c) => c.id === contactId);
+    set("contact_id", contactId);
+    const upd: any = { contact_id: contactId };
+    if (cc) {
+      const fullName = `${cc.first_name || ""} ${cc.last_name || ""}`.trim();
+      if (cc.email && !form.correo_contacto) { upd.correo_contacto = cc.email; set("correo_contacto", cc.email); }
+      if ((cc.whatsapp_phone || cc.mobile || cc.phone) && !form.telefono) {
+        const t = cc.whatsapp_phone || cc.mobile || cc.phone;
+        upd.telefono = t; set("telefono", t);
+      }
+      if (fullName && !form.client_nombre_contacto) { upd.client_nombre_contacto = fullName; set("client_nombre_contacto", fullName); }
+    }
+    await supabase.from("credit_requests").update(upd).eq("id", id!);
+    qc.invalidateQueries({ queryKey: ["credit_request", id] });
+  };
 
   const sendToPortal = async () => {
     if (form.estado === "borrador") {
@@ -435,10 +502,9 @@ export default function CreditoDetail() {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Monto: {form.monto_solicitado ? `$${Number(form.monto_solicitado).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : "—"}
-                {form.dias_credito ? ` · ${form.dias_credito} días` : ""}
-              </p>
+              {company?.razon_social && company.razon_social !== company.name && (
+                <p className="text-xs text-muted-foreground mt-1">{company.razon_social}</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={sendToPortal}>
@@ -472,6 +538,138 @@ export default function CreditoDetail() {
             </div>
           )}
         </CardHeader>
+      </Card>
+
+      {/* Información rápida — sincronizada con Directorio */}
+      <Card>
+        <CardHeader className="pb-2 bg-gradient-to-br from-violet-50 to-blue-50 border-b">
+          <CardTitle className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">
+            Información rápida
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* Tipo de Persona */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de persona</Label>
+              <Select
+                value={form.tipo_persona ?? form.csf_tipo_persona ?? "moral"}
+                onValueChange={async (v) => {
+                  set("tipo_persona", v);
+                  await supabase.from("credit_requests").update({ tipo_persona: v }).eq("id", id!);
+                }}
+              >
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CREDITO_TIPO_PERSONA_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Monto solicitado */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Monto solicitado</Label>
+              <Input
+                type="number"
+                className="h-9"
+                placeholder="0.00"
+                value={form.monto_solicitado ?? ""}
+                onChange={(e) => set("monto_solicitado", e.target.value ? Number(e.target.value) : null)}
+                onBlur={async (e) => {
+                  const v = e.target.value ? Number(e.target.value) : null;
+                  await supabase.from("credit_requests").update({ monto_solicitado: v }).eq("id", id!);
+                }}
+              />
+            </div>
+
+            {/* Días de crédito */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Días de crédito</Label>
+              <Input
+                type="number"
+                className="h-9"
+                placeholder="30"
+                value={form.dias_credito ?? ""}
+                onChange={(e) => set("dias_credito", e.target.value ? Number(e.target.value) : null)}
+                onBlur={async (e) => {
+                  const v = e.target.value ? Number(e.target.value) : null;
+                  await supabase.from("credit_requests").update({ dias_credito: v }).eq("id", id!);
+                }}
+              />
+            </div>
+
+            {/* Plaza (sincronizada con la Empresa del directorio) */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Plaza</Label>
+              <Select
+                value={company.plaza_id || ""}
+                onValueChange={(v) => updateCompany({ plaza_id: v || null })}
+              >
+                <SelectTrigger className="h-9"><SelectValue placeholder="Sin plaza" /></SelectTrigger>
+                <SelectContent>
+                  {(plazas as any[]).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Contacto para seguimiento */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Contacto para seguimiento</Label>
+              <SearchableSelect
+                value={form.contact_id || ""}
+                onValueChange={setContact}
+                options={(companyContacts as any[]).map((c) => ({
+                  value: c.id,
+                  label: `${c.first_name || ""} ${c.last_name || ""}`.trim() + (c.job_title ? ` — ${c.job_title}` : ""),
+                }))}
+                placeholder="Seleccionar contacto..."
+              />
+              {form.contact_id && (() => {
+                const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+                if (!cc) return null;
+                const phone = cc.whatsapp_phone || cc.mobile || cc.phone;
+                return (
+                  <div className="text-[11px] text-muted-foreground space-x-3 pt-0.5">
+                    {cc.email && <span><Mail className="inline h-3 w-3 mr-0.5" />{cc.email}</span>}
+                    {phone && <span><Phone className="inline h-3 w-3 mr-0.5" />{phone}</span>}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Giro Comercial (Industrias, multi) — sincronizado con la Empresa */}
+            <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground inline-flex items-center gap-1">
+                <Briefcase className="h-3 w-3" /> Giro comercial (Industrias)
+              </Label>
+              <div className="flex flex-wrap gap-1 min-h-[28px]">
+                {companyIndustrias.length === 0 && (
+                  <span className="text-xs text-muted-foreground">Sin industrias asignadas.</span>
+                )}
+                {companyIndustrias.map((i) => (
+                  <Badge key={i} variant="secondary" className="text-xs gap-1">
+                    {i}
+                    <button type="button" onClick={() => removeIndustria(i)} className="hover:text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <Select value="" onValueChange={addIndustria}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Agregar industria..." /></SelectTrigger>
+                <SelectContent>
+                  {INDUSTRIAS_OPTIONS.filter((o) => !companyIndustrias.includes(o)).map((o) => (
+                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -700,30 +898,12 @@ export default function CreditoDetail() {
 
               <TabsContent value="empresa" className="space-y-6 mt-5">
             <Section title="Datos generales">
-              <div className="sm:col-span-2">
-                <Field label="Tipo de persona">
-                  <Select
-                    value={form.tipo_persona ?? form.csf_tipo_persona ?? "moral"}
-                    onValueChange={(v) => set("tipo_persona", v)}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {CREDITO_TIPO_PERSONA_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
               <Field label="Razón social"><Input value={form.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} /></Field>
               <Field label="Nombre comercial"><Input value={form.nombre_comercial || ""} onChange={(e) => set("nombre_comercial", e.target.value)} /></Field>
               <Field label="RFC"><Input value={form.rfc || ""} onChange={(e) => set("rfc", e.target.value.toUpperCase())} /></Field>
               <Field label="Teléfono"><Input value={form.telefono || ""} onChange={(e) => set("telefono", e.target.value)} /></Field>
               <Field label="Correo de contacto"><Input value={form.correo_contacto || ""} onChange={(e) => set("correo_contacto", e.target.value)} /></Field>
               <Field label="Antigüedad"><Input value={form.antiguedad || ""} onChange={(e) => set("antiguedad", e.target.value)} /></Field>
-              <Field label="Giro comercial"><Input value={form.giro_comercial || ""} onChange={(e) => set("giro_comercial", e.target.value)} /></Field>
-              <Field label="Monto solicitado"><Input type="number" value={form.monto_solicitado ?? ""} onChange={(e) => set("monto_solicitado", e.target.value ? Number(e.target.value) : null)} /></Field>
-              <Field label="Días de crédito"><Input type="number" value={form.dias_credito ?? ""} onChange={(e) => set("dias_credito", e.target.value ? Number(e.target.value) : null)} /></Field>
             </Section>
             <Section title="Domicilio fiscal">
               <div className="sm:col-span-2">
