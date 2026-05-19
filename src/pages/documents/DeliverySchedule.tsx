@@ -39,6 +39,7 @@ import { AddressDisplay } from "@/components/AddressDisplay";
 import { DeliveryMapView } from "@/components/documents/DeliveryMapView";
 import { haversineKm, minutesFromKm, formatHm, ROUTE_AVG_SPEED_KMH } from "@/lib/geo";
 import { useGoogleMaps } from "@/hooks/useGoogleMaps";
+import { geocodeAddressInput, reverseGeocodeCoords } from "@/lib/googleMapsGeocoding";
 
 // ─── Status config ───────────────────────────────────────────
 const POOL_STATUSES = ["confirmado_cliente", "espera_autorizacion_precio", "precio_autorizado", "validado_contabilidad"] as const;
@@ -158,7 +159,7 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
   item: any;
   onSaveTiempoReal?: (docId: string, minutes: number | null) => void;
   onSaveKmManual?: (docId: string, km: number | null) => void;
-  onSaveDocCoords?: (docId: string, lat: number, lng: number) => void;
+  onSaveDocCoords?: (docId: string, lat: number, lng: number, address?: string | null) => void | Promise<void>;
 }) {
   const entrega = item?.entrega || {};
   const hasCoords = item?.lat != null && item?.lng != null;
@@ -183,18 +184,8 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
     if (!gmapsReady || !(window as any).google?.maps) { toast.error("Google Maps aún no está listo"); return; }
     try {
       setGeocoding(true);
-      const geocoder = new (window as any).google.maps.Geocoder();
-      const res: any = await new Promise((resolve, reject) => {
-        geocoder.geocode({ address: addr, region: "mx" }, (results: any, status: any) => {
-          if (status === "OK" && results?.[0]) resolve(results[0]);
-          else reject(new Error(`Geocoder: ${status}`));
-        });
-      });
-      const loc = res.geometry?.location;
-      const la = typeof loc?.lat === "function" ? loc.lat() : loc?.lat;
-      const ln = typeof loc?.lng === "function" ? loc.lng() : loc?.lng;
-      if (la == null || ln == null) throw new Error("Sin coordenadas en el resultado");
-      onSaveDocCoords?.(item.id, Number(la), Number(ln));
+      const result = await geocodeAddressInput(addr);
+      await onSaveDocCoords?.(item.id, result.lat, result.lng, result.formattedAddress);
     } catch (e: any) {
       toast.error(e?.message || "No se pudo calcular la ubicación");
     } finally {
@@ -208,13 +199,13 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
   const autoGeocodedRef = useRef<string | null>(null);
   useEffect(() => {
     const addr = item?.address || item?.raw?.direccion_envio;
-    if (!addr || !gmapsReady || geocoding) return;
+    if (!addr || hasCoords || !gmapsReady || geocoding) return;
     const key = `${item?.id}::${addr}`;
     if (autoGeocodedRef.current === key) return;
     autoGeocodedRef.current = key;
     geocodeFromAddress();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gmapsReady, item?.id, item?.address, item?.raw?.direccion_envio]);
+  }, [gmapsReady, hasCoords, item?.id, item?.address, item?.raw?.direccion_envio]);
 
   return (
     <div className="mt-1 ml-0 rounded-md border bg-muted/30 px-2 py-1.5 text-[11px] space-y-1" onPointerDown={(e) => e.stopPropagation()}>
@@ -298,7 +289,21 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
               <Button
                 size="sm" className="h-7 text-[10px] px-2"
                 disabled={!lat || !lng}
-                onClick={() => { onSaveDocCoords?.(item.id, Number(lat), Number(lng)); setShowCoords(false); }}
+                onClick={async () => {
+                  const la = Number(lat);
+                  const ln = Number(lng);
+                  if (!Number.isFinite(la) || !Number.isFinite(ln)) { toast.error("Coordenadas inválidas"); return; }
+                  setGeocoding(true);
+                  try {
+                    const result = gmapsReady ? await reverseGeocodeCoords(la, ln) : { lat: la, lng: ln, formattedAddress: null };
+                    await onSaveDocCoords?.(item.id, result.lat, result.lng, result.formattedAddress);
+                    setShowCoords(false);
+                  } catch (e: any) {
+                    toast.error(e?.message || "No se pudo calcular la dirección");
+                  } finally {
+                    setGeocoding(false);
+                  }
+                }}
               >
                 <Save className="h-3 w-3 mr-1" />Guardar
               </Button>
@@ -325,7 +330,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onFinishRoute: (ruta: any) => void;
   onSaveTiempoReal?: (docId: string, minutes: number | null) => void;
   onSaveKmManual?: (docId: string, km: number | null) => void;
-  onSaveDocCoords?: (docId: string, lat: number, lng: number) => void;
+  onSaveDocCoords?: (docId: string, lat: number, lng: number, address?: string | null) => void | Promise<void>;
 }) {
   const navigate = useNavigate();
   const cerrada = !!ruta.cerrada;
@@ -838,10 +843,13 @@ export default function DeliverySchedule() {
     refetchEntregas();
   };
 
-  // Guarda coordenadas del documento de envío (captura manual de lat/lng)
-  const saveDocCoords = async (rutaId: string, docId: string, lat: number, lng: number) => {
+  // Guarda coordenadas del documento de envío y, si viene de coordenadas/Google Maps,
+  // también normaliza la dirección para que futuros cálculos no dependan del link corto.
+  const saveDocCoords = async (rutaId: string, docId: string, lat: number, lng: number, address?: string | null) => {
+    const updates: any = { direccion_envio_lat: lat, direccion_envio_lng: lng };
+    if (address?.trim()) updates.direccion_envio = address.trim();
     const { error } = await supabase.from("documentos")
-      .update({ direccion_envio_lat: lat, direccion_envio_lng: lng })
+      .update(updates)
       .eq("id", docId);
     if (error) { toast.error(error.message); return; }
     toast.success("Coordenadas guardadas");
@@ -1431,7 +1439,7 @@ export default function DeliverySchedule() {
                                   onFinishRoute={handleFinishRoute}
                                   onSaveTiempoReal={(docId, min) => saveTiempoReal(ruta.id, docId, min)}
                                   onSaveKmManual={(docId, km) => saveKmManual(ruta.id, docId, km)}
-                                  onSaveDocCoords={(docId, lat, lng) => saveDocCoords(ruta.id, docId, lat, lng)}
+                                  onSaveDocCoords={(docId, lat, lng, address) => saveDocCoords(ruta.id, docId, lat, lng, address)}
                                 />
                               ))}
                             </div>

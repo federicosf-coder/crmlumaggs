@@ -590,7 +590,9 @@ export default function DocumentForm() {
     try {
       // resolve address text from selected address
       const selectedAddr = addresses.find((a: any) => a.id === form.direccion_envio);
-      const direccionText = selectedAddr ? `${selectedAddr.calle}${selectedAddr.ciudad ? ', ' + selectedAddr.ciudad : ''}${selectedAddr.estado ? ', ' + selectedAddr.estado : ''}${selectedAddr.codigo_postal ? ' C.P. ' + selectedAddr.codigo_postal : ''}` : (form.direccion_envio || null);
+      const direccionText = selectedAddr
+        ? (selectedAddr.direccion_completa || `${selectedAddr.calle}${selectedAddr.ciudad ? ', ' + selectedAddr.ciudad : ''}${selectedAddr.estado ? ', ' + selectedAddr.estado : ''}${selectedAddr.codigo_postal ? ' C.P. ' + selectedAddr.codigo_postal : ''}`)
+        : (form.direccion_envio || null);
 
       // Doble validación defensiva: plaza_id nunca debe llegar vacío al guardar
       if (!form.plaza_id) {
@@ -630,6 +632,11 @@ export default function DocumentForm() {
         forma_pago: form.forma_pago || null,
         fecha_entrega_programada: (form.tipo_documento === "pedido" || form.tipo_documento === "entrega_corporativa") ? (form.fecha_entrega_programada || null) : null,
       };
+      if (selectedAddr) {
+        docData.direccion_envio_lat = selectedAddr.coordenadas_lat ?? null;
+        docData.direccion_envio_lng = selectedAddr.coordenadas_lng ?? null;
+        docData.direccion_envio_nombre = selectedAddr.nombre ?? null;
+      }
 
       // Validación de visibilidad: avisar si falta algún campo crítico que
       // hace que el documento no aparezca en la lista del usuario.
