@@ -23,6 +23,7 @@ import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/com
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Badge } from "@/components/ui/badge";
 import { INDUSTRIAS_OPTIONS } from "@/components/CompanyFormDialog";
+import { ContactFormDialog } from "@/components/ContactFormDialog";
 
 type Req = any;
 
@@ -78,6 +79,7 @@ export default function CreditoDetail() {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [autofilling, setAutofilling] = useState<string | null>(null);
   const [editFechaDoc, setEditFechaDoc] = useState<any | null>(null);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [editFechaValue, setEditFechaValue] = useState<string>("");
   const [verifyDoc, setVerifyDoc] = useState<any | null>(null);
 
@@ -619,15 +621,30 @@ export default function CreditoDetail() {
             {/* Contacto para seguimiento */}
             <div className="space-y-1">
               <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Contacto para seguimiento</Label>
-              <SearchableSelect
-                value={form.contact_id || ""}
-                onValueChange={setContact}
-                options={(companyContacts as any[]).map((c) => ({
-                  value: c.id,
-                  label: `${c.first_name || ""} ${c.last_name || ""}`.trim() + (c.job_title ? ` — ${c.job_title}` : ""),
-                }))}
-                placeholder="Seleccionar contacto..."
-              />
+              <div className="flex gap-1">
+                <div className="flex-1">
+                  <SearchableSelect
+                    value={form.contact_id || ""}
+                    onValueChange={setContact}
+                    options={(companyContacts as any[]).map((c) => ({
+                      value: c.id,
+                      label: `${c.first_name || ""} ${c.last_name || ""}`.trim() + (c.job_title ? ` — ${c.job_title}` : ""),
+                    }))}
+                    placeholder="Seleccionar contacto..."
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  disabled={!companyId}
+                  title={companyId ? "Agregar contacto a la empresa" : "Primero vincula una empresa"}
+                  onClick={() => setContactDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               {form.contact_id && (() => {
                 const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
                 if (!cc) return null;
@@ -1614,6 +1631,15 @@ export default function CreditoDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ContactFormDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        defaultCompanyId={companyId || undefined}
+        onCreated={async (newId) => {
+          await qc.invalidateQueries({ queryKey: ["credit-company-contacts", companyId] });
+          setContact(newId);
+        }}
+      />
     </div>
   );
 }
