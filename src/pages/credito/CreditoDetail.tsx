@@ -1093,11 +1093,11 @@ export default function CreditoDetail() {
     setNewCommentText(""); refetchComments();
   };
 
-  const openFirmaPdf = (key: typeof CREDITO_FIRMAS[number]) => {
+  const openFirmaPdf = (key: { key: string }) => {
     window.open(`/credito/${id}/imprimir/${key.key}`, "_blank", "noopener");
   };
 
-  const uploadFirmaDoc = async (key: typeof CREDITO_FIRMAS[number], file: File) => {
+  const uploadFirmaDoc = async (key: { key: string; label: string; fechaCol: string; nombreCol: string }, file: File) => {
     const nombre =
       prompt(`Nombre de quien firmó "${key.label}":`, (form as any)[key.nombreCol] || "") || "";
     if (!nombre.trim()) { toast.error("Captura el nombre del firmante"); return; }
