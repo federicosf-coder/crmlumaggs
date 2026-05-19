@@ -151,6 +151,91 @@ function OverlayCard({ item }: { item: PoolItem }) {
 }
 
 // ─── Route Drop Column ───────────────────────────────────────
+// Pequeña fila bajo cada entrega con km / tiempo estimado / tiempo real y
+// captura manual de coordenadas cuando el documento no las tiene.
+function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDocCoords }: {
+  item: any;
+  onSaveTiempoReal?: (docId: string, minutes: number | null) => void;
+  onSaveKmManual?: (docId: string, km: number | null) => void;
+  onSaveDocCoords?: (docId: string, lat: number, lng: number) => void;
+}) {
+  const entrega = item?.entrega || {};
+  const hasCoords = item?.lat != null && item?.lng != null;
+  const km = entrega.km_desde_anterior != null ? Number(entrega.km_desde_anterior) : null;
+  const estMin = entrega.tiempo_estimado_min != null ? Number(entrega.tiempo_estimado_min) : null;
+  const [real, setReal] = useState<string>(entrega.tiempo_real_min != null ? String(entrega.tiempo_real_min) : "");
+  const [kmManual, setKmManual] = useState<string>(km != null ? String(km) : "");
+  const [showCoords, setShowCoords] = useState(false);
+  const [lat, setLat] = useState<string>("");
+  const [lng, setLng] = useState<string>("");
+
+  useEffect(() => {
+    setReal(entrega.tiempo_real_min != null ? String(entrega.tiempo_real_min) : "");
+    setKmManual(km != null ? String(km) : "");
+  }, [entrega.tiempo_real_min, km]);
+
+  return (
+    <div className="mt-1 ml-0 rounded-md border bg-muted/30 px-2 py-1.5 text-[11px] space-y-1" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="grid grid-cols-3 gap-2 items-end">
+        <div>
+          <Label className="text-[10px] text-muted-foreground">Km recorridos</Label>
+          {hasCoords ? (
+            <div className="font-semibold">{km != null ? `${km.toFixed(2)} km` : "—"}</div>
+          ) : (
+            <Input
+              type="number" step="any"
+              className="h-7 text-xs"
+              value={kmManual}
+              onChange={(e) => setKmManual(e.target.value)}
+              onBlur={() => onSaveKmManual?.(item.id, kmManual === "" ? null : Number(kmManual))}
+              placeholder="Manual"
+            />
+          )}
+        </div>
+        <div>
+          <Label className="text-[10px] text-muted-foreground">T. estimado</Label>
+          <div className="font-semibold">{estMin != null ? `${estMin} min` : "—"}</div>
+        </div>
+        <div>
+          <Label className="text-[10px] text-muted-foreground">T. real (min)</Label>
+          <Input
+            type="number" min="0"
+            className="h-7 text-xs"
+            value={real}
+            onChange={(e) => setReal(e.target.value)}
+            onBlur={() => onSaveTiempoReal?.(item.id, real === "" ? null : Number(real))}
+          />
+        </div>
+      </div>
+      {!hasCoords && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <Badge variant="outline" className="text-[10px] gap-1 border-amber-400 text-amber-700 bg-amber-50">
+              <AlertTriangle className="h-3 w-3" /> Sin ubicación — captura manual
+            </Badge>
+            <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => setShowCoords(v => !v)}>
+              {showCoords ? "Cerrar" : "Capturar coordenadas"}
+            </Button>
+          </div>
+          {showCoords && (
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-1 items-end">
+              <Input type="number" step="any" placeholder="Lat" className="h-7 text-xs" value={lat} onChange={(e) => setLat(e.target.value)} />
+              <Input type="number" step="any" placeholder="Lng" className="h-7 text-xs" value={lng} onChange={(e) => setLng(e.target.value)} />
+              <Button
+                size="sm" className="h-7 text-[10px] px-2"
+                disabled={!lat || !lng}
+                onClick={() => { onSaveDocCoords?.(item.id, Number(lat), Number(lng)); setShowCoords(false); }}
+              >
+                <Save className="h-3 w-3 mr-1" />Guardar
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute, onSaveTiempoReal, onSaveKmManual, onSaveDocCoords }: {
   ruta: any;
   items: PoolItem[];
