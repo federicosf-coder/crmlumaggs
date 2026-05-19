@@ -326,30 +326,84 @@ export default function DailyDeliveryReport() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div>
-              <Label className="mb-1 block">Plaza</Label>
-              <Select value={plazaId} onValueChange={setPlazaId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>Todas las plazas</SelectItem>
-                  {plazas.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
-            <div>
-              <Label className="mb-1 block">Repartidor</Label>
-              <Select value={repartidorId} onValueChange={setRepartidorId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>Todos los repartidores</SelectItem>
-                  {repartidores.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label className="block">Plazas</Label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPlazaIds([])}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs border transition-colors",
+                    plazaIds.length === 0
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-muted border-input"
+                  )}
+                >
+                  Todas
+                </button>
+                {plazas.map((p) => {
+                  const active = plazaIds.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() =>
+                        setPlazaIds((prev) =>
+                          prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id]
+                        )
+                      }
+                      className={cn(
+                        "px-3 py-1 rounded-full text-xs border transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background hover:bg-muted border-input"
+                      )}
+                    >
+                      {p.nombre}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+            <div className="space-y-2">
+              <Label className="block">Repartidores</Label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRepartidorIds([])}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs border transition-colors",
+                    repartidorIds.length === 0
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-muted border-input"
+                  )}
+                >
+                  Todos
+                </button>
+                {repartidores.map((r) => {
+                  const active = repartidorIds.includes(r.id);
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() =>
+                        setRepartidorIds((prev) =>
+                          prev.includes(r.id) ? prev.filter((x) => x !== r.id) : [...prev, r.id]
+                        )
+                      }
+                      className={cn(
+                        "px-3 py-1 rounded-full text-xs border transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background hover:bg-muted border-input"
+                      )}
+                    >
+                      {r.nombre}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>
