@@ -625,9 +625,6 @@ export default function DocumentForm() {
         numero_oc_cliente: form.numero_oc_cliente || null,
         fecha_oc_cliente: form.tipo_documento === "entrega_corporativa" ? (form.fecha_oc_cliente || null) : null,
         direccion_envio: direccionText,
-        direccion_envio_lat: selectedAddr?.coordenadas_lat ?? null,
-        direccion_envio_lng: selectedAddr?.coordenadas_lng ?? null,
-        direccion_envio_nombre: selectedAddr?.nombre ?? null,
         cotizacion_original_id: form.cotizacion_original_id || null,
         tipo_pago: form.tipo_pago || null,
         uso_cfdi: form.uso_cfdi || null,
@@ -635,6 +632,11 @@ export default function DocumentForm() {
         forma_pago: form.forma_pago || null,
         fecha_entrega_programada: (form.tipo_documento === "pedido" || form.tipo_documento === "entrega_corporativa") ? (form.fecha_entrega_programada || null) : null,
       };
+      if (selectedAddr) {
+        docData.direccion_envio_lat = selectedAddr.coordenadas_lat ?? null;
+        docData.direccion_envio_lng = selectedAddr.coordenadas_lng ?? null;
+        docData.direccion_envio_nombre = selectedAddr.nombre ?? null;
+      }
 
       // Validación de visibilidad: avisar si falta algún campo crítico que
       // hace que el documento no aparezca en la lista del usuario.
