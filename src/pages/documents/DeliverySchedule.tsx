@@ -316,7 +316,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onFinishRoute: (ruta: any) => void;
   onSaveTiempoReal?: (docId: string, minutes: number | null) => void;
   onSaveKmManual?: (docId: string, km: number | null) => void;
-  onSaveDocCoords?: (docId: string, lat: number, lng: number) => void;
+  onSaveDocCoords?: (docId: string, lat: number, lng: number, address?: string | null) => void | Promise<void>;
 }) {
   const navigate = useNavigate();
   const cerrada = !!ruta.cerrada;
@@ -829,10 +829,13 @@ export default function DeliverySchedule() {
     refetchEntregas();
   };
 
-  // Guarda coordenadas del documento de envío (captura manual de lat/lng)
-  const saveDocCoords = async (rutaId: string, docId: string, lat: number, lng: number) => {
+  // Guarda coordenadas del documento de envío y, si viene de coordenadas/Google Maps,
+  // también normaliza la dirección para que futuros cálculos no dependan del link corto.
+  const saveDocCoords = async (rutaId: string, docId: string, lat: number, lng: number, address?: string | null) => {
+    const updates: any = { direccion_envio_lat: lat, direccion_envio_lng: lng };
+    if (address?.trim()) updates.direccion_envio = address.trim();
     const { error } = await supabase.from("documentos")
-      .update({ direccion_envio_lat: lat, direccion_envio_lng: lng })
+      .update(updates)
       .eq("id", docId);
     if (error) { toast.error(error.message); return; }
     toast.success("Coordenadas guardadas");
@@ -1422,7 +1425,7 @@ export default function DeliverySchedule() {
                                   onFinishRoute={handleFinishRoute}
                                   onSaveTiempoReal={(docId, min) => saveTiempoReal(ruta.id, docId, min)}
                                   onSaveKmManual={(docId, km) => saveKmManual(ruta.id, docId, km)}
-                                  onSaveDocCoords={(docId, lat, lng) => saveDocCoords(ruta.id, docId, lat, lng)}
+                                  onSaveDocCoords={(docId, lat, lng, address) => saveDocCoords(ruta.id, docId, lat, lng, address)}
                                 />
                               ))}
                             </div>
