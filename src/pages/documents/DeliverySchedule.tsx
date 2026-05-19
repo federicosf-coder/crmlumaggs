@@ -202,6 +202,19 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
     }
   };
 
+  // Auto-geocode: si hay dirección registrada pero no coordenadas, calcula automáticamente
+  // una sola vez por (documento + dirección) cuando Google Maps esté listo.
+  const autoGeocodedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const addr = item?.address || item?.raw?.direccion_envio;
+    if (hasCoords || !addr || !gmapsReady || geocoding) return;
+    const key = `${item?.id}::${addr}`;
+    if (autoGeocodedRef.current === key) return;
+    autoGeocodedRef.current = key;
+    geocodeFromAddress();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gmapsReady, hasCoords, item?.id, item?.address, item?.raw?.direccion_envio]);
+
   return (
     <div className="mt-1 ml-0 rounded-md border bg-muted/30 px-2 py-1.5 text-[11px] space-y-1" onPointerDown={(e) => e.stopPropagation()}>
       <div className="grid grid-cols-3 gap-2 items-end">
