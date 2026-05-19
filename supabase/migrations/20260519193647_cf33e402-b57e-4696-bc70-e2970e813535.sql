@@ -1,0 +1,1 @@
+ALTER TABLE public.credit_requests ADD COLUMN poder_en_acta_constitutiva BOOLEAN DEFAULT FALSE;
