@@ -1344,7 +1344,7 @@ export default function CreditoDetail() {
                         onChange={(ev) => set(e.montoCol as any, ev.target.value ? Number(ev.target.value) : null)}
                         onBlur={async (ev) => {
                           const v = ev.target.value ? Number(ev.target.value) : null;
-                          await supabase.from("credit_requests").update({ [e.montoCol]: v }).eq("id", id!);
+                          await (supabase as any).from("credit_requests").update({ [e.montoCol]: v }).eq("id", id!);
                         }}
                       />
                     </div>
