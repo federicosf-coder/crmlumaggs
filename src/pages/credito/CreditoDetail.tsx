@@ -548,9 +548,7 @@ function BcPersonaFisicaForm({ bcData, setBc, uploadDoc, openDoc, docs, creditId
           <BcField label="Teléfono"><Input value={bcData.telefono || ""} onChange={(e) => setBc("telefono", e.target.value)} /></BcField>
           <BcField label="Correo"><Input type="email" value={bcData.correo || ""} onChange={(e) => setBc("correo", e.target.value)} /></BcField>
         </div>
-        <BcField label="Domicilio completo">
-          <Textarea rows={2} value={bcData.domicilio || ""} onChange={(e) => setBc("domicilio", e.target.value)} />
-        </BcField>
+        <BcDomicilioField bcData={bcData} setBc={setBc} label="Domicilio completo" />
         <div className="grid sm:grid-cols-2 gap-3">
           <BcField label="Tipo de identificación oficial"><Input placeholder="INE, Pasaporte..." value={bcData.id_tipo || ""} onChange={(e) => setBc("id_tipo", e.target.value)} /></BcField>
           <BcField label="Número de identificación"><Input value={bcData.id_numero || ""} onChange={(e) => setBc("id_numero", e.target.value)} /></BcField>
@@ -694,9 +692,7 @@ function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs, creditId 
           <BcField label="Teléfono"><Input value={bcData.telefono || ""} onChange={(e) => setBc("telefono", e.target.value)} /></BcField>
           <BcField label="Correo"><Input type="email" value={bcData.correo || ""} onChange={(e) => setBc("correo", e.target.value)} /></BcField>
         </div>
-        <BcField label="Domicilio">
-          <Textarea rows={2} value={bcData.domicilio || ""} onChange={(e) => setBc("domicilio", e.target.value)} />
-        </BcField>
+        <BcDomicilioField bcData={bcData} setBc={setBc} label="Domicilio" />
       </div>
 
       <div className="space-y-3">
