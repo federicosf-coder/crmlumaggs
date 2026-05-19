@@ -23,11 +23,36 @@ export default function CreditoImprimir() {
         if (e1 || !form) throw new Error(e1?.message || "Crédito no encontrado");
 
         const company = (form as any).companies || {};
-        const tplKey: TemplateKey | null = templateKeyForFirma(firmaKey || "", form);
+
+        // firmaKey puede ser "solicitud-lumaggs" o "solicitud-galsa" → extraer entidad
+        let baseFirmaKey = firmaKey || "";
+        let entidadOverride: "lumaggs" | "galsa" | null = null;
+        if (baseFirmaKey.startsWith("solicitud-")) {
+          const suf = baseFirmaKey.slice("solicitud-".length);
+          if (suf === "lumaggs" || suf === "galsa") entidadOverride = suf;
+          baseFirmaKey = "solicitud";
+        }
+
+        const tplKey: TemplateKey | null = templateKeyForFirma(baseFirmaKey, form);
         if (!tplKey) throw new Error("Formato no disponible para esta firma");
 
-        const empresaVendedora = company?.empresa_vendedora as string | undefined;
-        const entidad = (empresaVendedora || "").toLowerCase().includes("galsa") ? "galsa" : "lumaggs";
+        let entidad: "lumaggs" | "galsa";
+        if (entidadOverride) {
+          entidad = entidadOverride;
+        } else {
+          const empresaVendedora = company?.empresa_vendedora as string | undefined;
+          entidad = (empresaVendedora || "").toLowerCase().includes("galsa") ? "galsa" : "lumaggs";
+        }
+
+        // Si se imprime una solicitud específica por empresa, usa su monto en los tokens
+        const formForTokens: any = { ...form };
+        if (entidadOverride) {
+          const montoEntidad = entidadOverride === "lumaggs"
+            ? (form as any).monto_solicitado_lumaggs
+            : (form as any).monto_solicitado_galsa;
+          if (montoEntidad != null) formForTokens.monto_solicitado = montoEntidad;
+        }
+        const companyForTokens: any = { ...company, empresa_vendedora: entidad };
 
         const { data: tpls, error: e2 } = await (supabase as any)
           .from("credit_doc_templates")
@@ -41,7 +66,7 @@ export default function CreditoImprimir() {
           (tpls || [])[0];
         if (!tpl) throw new Error("No hay formato configurado");
 
-        const tokens = buildTokens(form, company);
+        const tokens = buildTokens(formForTokens, companyForTokens);
         const body = renderTemplate(tpl.contenido_html || "", tokens);
         const header = renderTemplate(tpl.header_html || "", tokens);
         const footer = renderTemplate(tpl.footer_html || "", tokens);
