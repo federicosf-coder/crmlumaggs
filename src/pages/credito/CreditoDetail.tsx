@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock, Briefcase, Phone, Mail } from "lucide-react";
+import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock, Briefcase, Phone, Mail, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS, CREDITO_TIPO_PERSONA_OPTIONS } from "@/lib/credito";
@@ -82,6 +82,7 @@ export default function CreditoDetail() {
   const [editFechaDoc, setEditFechaDoc] = useState<any | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [autofillCollapsed, setAutofillCollapsed] = useState(true);
   const [editFechaValue, setEditFechaValue] = useState<string>("");
   const [verifyDoc, setVerifyDoc] = useState<any | null>(null);
 
@@ -761,7 +762,7 @@ export default function CreditoDetail() {
                         <div className="h-9 w-9 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
                           <Wand2 className="h-5 w-5 text-violet-700" />
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold flex items-center gap-1.5">
                             Autocompletar con documentos
                             <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded">
@@ -772,7 +773,22 @@ export default function CreditoDetail() {
                             Sube los documentos del solicitante y se autocompletarán los datos posibles del formulario. Es opcional pero ahorra mucha captura.
                           </p>
                         </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 shrink-0 border-violet-300 text-violet-700 hover:bg-violet-100"
+                          onClick={() => setAutofillCollapsed(v => !v)}
+                          title={autofillCollapsed ? "Mostrar documentos" : "Ocultar documentos"}
+                        >
+                          {autofillCollapsed ? (
+                            <><ChevronDown className="h-3.5 w-3.5 mr-1" />Mostrar</>
+                          ) : (
+                            <><ChevronUp className="h-3.5 w-3.5 mr-1" />Ocultar</>
+                          )}
+                        </Button>
                       </div>
+                      {!autofillCollapsed && (<>
                       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
                         {/* CSF */}
                         <div className={cardCls(hasCsf, palCsf)}>
