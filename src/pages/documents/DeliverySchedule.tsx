@@ -513,6 +513,10 @@ export default function DeliverySchedule() {
           plaza_id: doc?.plaza_id || undefined,
           fecha_documento: doc?.fecha_documento || undefined,
           raw: doc,
+          // Tracking de distancia / tiempo (consumido por RouteDropColumn)
+          entrega: e,
+          lat: doc?.direccion_envio_lat ?? null,
+          lng: doc?.direccion_envio_lng ?? null,
         };
       });
     }
