@@ -1,0 +1,2 @@
+UPDATE public.credit_requests SET poder_en_acta_constitutiva = TRUE WHERE poder_en_acta_constitutiva IS NULL;
+ALTER TABLE public.credit_requests ALTER COLUMN poder_en_acta_constitutiva SET DEFAULT TRUE;

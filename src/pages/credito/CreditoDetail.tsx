@@ -1920,7 +1920,7 @@ export default function CreditoDetail() {
               <p className="text-muted-foreground text-sm">No hay tipos de documento configurados.</p>
             ) : (
               (() => {
-                const poderEnActa = !!form.poder_en_acta_constitutiva;
+                const poderEnActa = form.poder_en_acta_constitutiva !== false;
                 const isRequerido = (dt: any) => {
                   if (!dt.requerido) return false;
                   if (dt.nombre === "Poder del Representante Legal" && poderEnActa) return false;
@@ -2001,7 +2001,7 @@ export default function CreditoDetail() {
                                     onCheckedChange={togglePoderEnActa}
                                     className="scale-75"
                                   />
-                                  <span>Poder en Acta</span>
+                                  <span>No Requerido</span>
                                 </label>
                               )}
                             </div>
