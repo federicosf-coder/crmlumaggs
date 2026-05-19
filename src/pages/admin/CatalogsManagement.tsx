@@ -38,26 +38,53 @@ function PlazasTab() {
   });
   const [open, setOpen] = useState(false);
   const [nombre, setNombre] = useState("");
+  const [newLat, setNewLat] = useState<string>("");
+  const [newLng, setNewLng] = useState<string>("");
   const [editItem, setEditItem] = useState<any>(null);
   const [editNombre, setEditNombre] = useState("");
   const [editActive, setEditActive] = useState(true);
+  const [editLat, setEditLat] = useState<string>("");
+  const [editLng, setEditLng] = useState<string>("");
 
   const add = useMutation({
-    mutationFn: async () => { const { error } = await supabase.from("plazas").insert({ nombre }); if (error) throw error; },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["plazas_all"] }); qc.invalidateQueries({ queryKey: ["plazas"] }); setOpen(false); setNombre(""); toast.success("Plaza creada"); },
+    mutationFn: async () => {
+      const payload: any = { nombre };
+      if (newLat !== "") payload.lat = Number(newLat);
+      if (newLng !== "") payload.lng = Number(newLng);
+      const { error } = await supabase.from("plazas").insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["plazas_all"] });
+      qc.invalidateQueries({ queryKey: ["plazas"] });
+      setOpen(false); setNombre(""); setNewLat(""); setNewLng("");
+      toast.success("Plaza creada");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
   const update = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("plazas").update({ nombre: editNombre, is_active: editActive }).eq("id", editItem.id);
+      const payload: any = {
+        nombre: editNombre,
+        is_active: editActive,
+        lat: editLat === "" ? null : Number(editLat),
+        lng: editLng === "" ? null : Number(editLng),
+      };
+      const { error } = await supabase.from("plazas").update(payload).eq("id", editItem.id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["plazas_all"] }); qc.invalidateQueries({ queryKey: ["plazas"] }); setEditItem(null); toast.success("Plaza actualizada"); },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const openEdit = (item: any) => { setEditItem(item); setEditNombre(item.nombre); setEditActive(item.is_active); };
+  const openEdit = (item: any) => {
+    setEditItem(item);
+    setEditNombre(item.nombre);
+    setEditActive(item.is_active);
+    setEditLat(item.lat != null ? String(item.lat) : "");
+    setEditLng(item.lng != null ? String(item.lng) : "");
+  };
 
   return (
     <Card>
@@ -69,6 +96,11 @@ function PlazasTab() {
             <DialogHeader><DialogTitle>Nueva Plaza</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Nombre</Label><Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Monterrey" /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Latitud (punto de partida)</Label><Input type="number" step="any" value={newLat} onChange={e => setNewLat(e.target.value)} placeholder="25.6866" /></div>
+                <div><Label>Longitud (punto de partida)</Label><Input type="number" step="any" value={newLng} onChange={e => setNewLng(e.target.value)} placeholder="-100.3161" /></div>
+              </div>
+              <p className="text-xs text-muted-foreground">Estas coordenadas se usan como punto de partida para calcular kilómetros de ruta.</p>
               <Button onClick={() => add.mutate()} disabled={!nombre || add.isPending}>{add.isPending ? "Guardando..." : "Guardar"}</Button>
             </div>
           </DialogContent>
@@ -77,16 +109,19 @@ function PlazasTab() {
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
           <Table>
-            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Coordenadas</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
             <TableBody>
               {items.map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.nombre}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {p.lat != null && p.lng != null ? `${Number(p.lat).toFixed(4)}, ${Number(p.lng).toFixed(4)}` : "—"}
+                  </TableCell>
                   <TableCell><Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Sí" : "No"}</Badge></TableCell>
                   <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               ))}
-              {items.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sin plazas</TableCell></TableRow>}
+              {items.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin plazas</TableCell></TableRow>}
             </TableBody>
           </Table>
         )}
@@ -96,6 +131,11 @@ function PlazasTab() {
           <DialogHeader><DialogTitle>Editar Plaza</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Nombre</Label><Input value={editNombre} onChange={e => setEditNombre(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Latitud (punto de partida)</Label><Input type="number" step="any" value={editLat} onChange={e => setEditLat(e.target.value)} placeholder="25.6866" /></div>
+              <div><Label>Longitud (punto de partida)</Label><Input type="number" step="any" value={editLng} onChange={e => setEditLng(e.target.value)} placeholder="-100.3161" /></div>
+            </div>
+            <p className="text-xs text-muted-foreground">Estas coordenadas se usan como punto de partida para calcular kilómetros de ruta.</p>
             <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
           </div>
           <DialogFooter><Button onClick={() => update.mutate()} disabled={!editNombre || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
