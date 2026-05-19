@@ -1690,6 +1690,72 @@ export default function CreditoDetail() {
           qc.invalidateQueries({ queryKey: ["credit_request", id] });
         }}
       />
+      <Dialog open={bcInfoOpen} onOpenChange={setBcInfoOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0">
+          <DialogHeader className="px-6 py-4 bg-gradient-to-br from-violet-50 to-blue-50 border-b">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <ShieldCheck className="h-5 w-5 text-violet-700" />
+              Beneficiario Controlador en México (SAT)
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Información de referencia sobre el concepto y obligaciones aplicables.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-6 py-5 space-y-5 text-sm font-light leading-relaxed">
+            <p>
+              El <strong>beneficiario controlador</strong> es la persona física que,
+              de manera directa o indirecta, ejerce control sobre una persona moral,
+              fideicomiso u otra figura jurídica, o que se beneficia económicamente
+              de ellas.
+            </p>
+
+            <section className="space-y-1.5">
+              <h4 className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Base legal</h4>
+              <p>
+                Surge de las reformas al <strong>Código Fiscal de la Federación (CFF)</strong>,
+                artículos <strong>32-B Ter</strong>, <strong>32-B Quáter</strong> y <strong>32-B Quinquies</strong>,
+                vigentes desde enero de 2022, en cumplimiento de estándares internacionales
+                del <strong>GAFI</strong> (Grupo de Acción Financiera Internacional).
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h4 className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">¿Quién es considerado beneficiario controlador?</h4>
+              <p>Se considera como tal a quien cumpla alguno de estos criterios:</p>
+
+              <div className="rounded-md border border-violet-100 bg-violet-50/50 p-3 space-y-1.5">
+                <p className="font-medium text-violet-900">Por control directo o indirecto</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Posee el <strong>25% o más</strong> de acciones, partes sociales o derechos de voto.</li>
+                  <li>Ejerce control sobre la administración, estrategia o políticas de la entidad.</li>
+                  <li>Obtiene el <strong>25% o más</strong> de los beneficios o rendimientos.</li>
+                </ul>
+              </div>
+
+              <div className="rounded-md border border-blue-100 bg-blue-50/50 p-3 space-y-1.5">
+                <p className="font-medium text-blue-900">Por control de hecho</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Toma decisiones clave aunque no aparezca formalmente en documentos.</li>
+                  <li>Es el <em>"dueño real"</em> detrás de la estructura jurídica.</li>
+                </ul>
+              </div>
+            </section>
+
+            <section className="space-y-2">
+              <h4 className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">Obligaciones para personas morales y figuras jurídicas</h4>
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Identificar a su(s) beneficiario(s) controlador(es).</li>
+                <li>Obtener y conservar información actualizada (nombre, RFC, CURP, domicilio, participación, etc.).</li>
+                <li>Proporcionar la información al <strong>SAT</strong> cuando sea requerida.</li>
+                <li>Actualizar los datos ante cualquier cambio.</li>
+              </ol>
+            </section>
+          </div>
+          <DialogFooter className="px-6 py-3 bg-muted/40 border-t">
+            <Button variant="outline" onClick={() => setBcInfoOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
