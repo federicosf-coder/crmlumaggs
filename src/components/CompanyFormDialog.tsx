@@ -627,17 +627,22 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) reset(); onOpenChange(v); }}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{isEdit ? "Editar Empresa" : "Nueva Empresa"}</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isEdit && (
-            <div className="sticky top-0 z-10 -mx-6 -mt-2 px-6 py-2 bg-background/95 backdrop-blur border-b flex items-center justify-between gap-3">
-              <AutosaveIndicator status={autosave.status} />
-              <Button type="submit" size="sm" disabled={saving || form.plaza_ids.length === 0}>
-                {saving ? "Guardando..." : "Guardar cambios"}
-              </Button>
-            </div>
-          )}
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0 flex flex-col overflow-hidden">
+        {/* Header refinado con gradiente */}
+        <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle className="text-lg font-semibold tracking-tight">
+              {isEdit ? "Editar Empresa" : "Nueva Empresa"}
+            </DialogTitle>
+            {isEdit && <AutosaveIndicator status={autosave.status} />}
+          </div>
+          <p className="text-xs text-muted-foreground font-light mt-0.5">
+            {isEdit ? "Actualiza los datos comerciales y fiscales." : "Captura los datos para registrar una nueva empresa."}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 font-light">
           {isEdit && editData?.id && <CompanyUnitsHeader companyId={editData.id} />}
           <Tabs defaultValue="general">
             <TabsList className="w-full">
@@ -993,10 +998,16 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
               </div>
             </TabsContent>
           </Tabs>
-
-          <Button type="submit" className="w-full" disabled={saving || form.plaza_ids.length === 0}>
-            {saving ? "Guardando..." : isEdit ? "Guardar Cambios" : "Crear Empresa"}
-          </Button>
+          </div>
+          {/* Footer fijo */}
+          <div className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end shrink-0">
+            <Button type="button" variant="outline" onClick={() => { reset(); onOpenChange(false); }}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={saving || form.plaza_ids.length === 0}>
+              {saving ? "Guardando..." : isEdit ? "Guardar Cambios" : "Crear Empresa"}
+            </Button>
+          </div>
         </form>
         <ContactFormDialog
           open={contactDialogOpen}
