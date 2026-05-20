@@ -884,12 +884,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        window.open(
-                          `/directory/addresses?empresa=${editData?.id}&nuevo=1`,
-                          "_blank"
-                        );
-                      }}
+                      onClick={() => { setEditingAddress(null); setAddressDialogOpen(true); }}
                     >
                       <Plus className="h-3 w-3 mr-1" /> Agregar dirección
                     </Button>
