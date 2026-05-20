@@ -16,8 +16,11 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, MapPin, Upload, FileText, Image as ImageIcon, Trash2, Check,
-  Navigation, Pencil, Loader2, ExternalLink, Clock,
+  Navigation, Pencil, Loader2, ExternalLink, Clock, Calendar as CalendarIcon,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
