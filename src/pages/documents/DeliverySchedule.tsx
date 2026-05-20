@@ -1394,6 +1394,8 @@ export default function DeliverySchedule() {
                 vehiculos={vehiculos as any}
                 plazas={plazas as any}
                 selectedPlaza={selectedPlaza}
+                repartidores={repartidoresAll as any}
+                rutaRepartidores={allRutaRepartidores as any}
               />
             </div>
           ) : (
