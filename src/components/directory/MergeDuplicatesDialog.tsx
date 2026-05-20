@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle, Merge, Search } from "lucide-react";
+import { fetchAllRows } from "@/lib/supabasePagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -102,11 +103,9 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
         out.sort((a, b) => b.rows.length - a.rows.length);
         setGroups(out);
       } else {
-        const { data, error } = await supabase
-          .from("contacts")
-          .select("id, first_name, last_name, email, phone, mobile, company_id, companies(name)");
-        if (error) throw error;
-        const rows = (data || []) as any[];
+        const rows = await fetchAllRows<any>((from, to) =>
+          supabase.from("contacts").select("id, first_name, last_name, email, phone, mobile, company_id, companies(name)").range(from, to)
+        );
         const buckets = new Map<string, { reason: string; rows: Row[] }>();
         const push = (key: string, reason: string, r: any) => {
           if (!key) return;
