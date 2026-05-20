@@ -33,7 +33,7 @@ function loadScript(apiKey: string): Promise<void> {
     }
     const s = document.createElement("script");
     s.id = "google-maps-script";
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&loading=async`;
     s.async = true;
     s.defer = true;
     s.onload = () => resolve();
