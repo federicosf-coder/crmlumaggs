@@ -15,7 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, ExternalLink } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { AddressDisplay } from "@/components/AddressDisplay";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
@@ -248,6 +250,35 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
     },
     enabled: !!editData?.id && open,
   });
+
+  // Direcciones vinculadas a la empresa (para pestaña Direcciones)
+  const { data: companyAddresses = [] } = useQuery({
+    queryKey: ["company_addresses_form", editData?.id],
+    queryFn: async () => {
+      if (!editData?.id) return [];
+      const { data } = await supabase
+        .from("direcciones_empresa")
+        .select("id, nombre, tipo, tipos, calle, ciudad, estado, codigo_postal, direccion_completa, referencia, coordenadas_lat, coordenadas_lng")
+        .eq("empresa_id", editData.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!editData?.id && open,
+  });
+
+  const { data: tiposDireccionCatalog = [] } = useQuery({
+    queryKey: ["tipos_direccion_catalog_form"],
+    queryFn: async () => {
+      const { data } = await (supabase.from as any)("tipos_direccion")
+        .select("clave, etiqueta")
+        .eq("is_active", true);
+      return (data || []) as { clave: string; etiqueta: string }[];
+    },
+    enabled: open,
+  });
+  const labelTipoDireccion = (clave: string) =>
+    tiposDireccionCatalog.find((t) => t.clave === clave)?.etiqueta || clave;
 
   // Contactos disponibles para vincular al crear empresa (sin company_id o seleccionados)
   const { data: pendingContactsData = [], refetch: refetchPendingContacts } = useQuery({
@@ -608,6 +639,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
           <Tabs defaultValue="general">
             <TabsList className="w-full">
               <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
+              {isEdit && <TabsTrigger value="direcciones" className="flex-1">Direcciones</TabsTrigger>}
               <TabsTrigger value="clasificacion" className="flex-1">Clasificación</TabsTrigger>
               <TabsTrigger value="facturacion" className="flex-1">Detalles Facturación</TabsTrigger>
               <TabsTrigger value="decision" className="flex-1">Proceso Decisión</TabsTrigger>
@@ -837,6 +869,79 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 <Textarea value={form.notes} onChange={e => setAndSchedule("notes", e.target.value)} onBlur={e => autosave.saveNow("notes", e.target.value)} rows={3} placeholder="Notas internas sobre la empresa..." />
               </div>
             </TabsContent>
+
+            {isEdit && (
+              <TabsContent value="direcciones" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
+                <div className="rounded-lg border p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <MapPin className="h-3.5 w-3.5" /> Direcciones de envío relacionadas
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        window.open(
+                          `/directory/addresses?empresa=${editData?.id}&nuevo=1`,
+                          "_blank"
+                        );
+                      }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Agregar dirección
+                    </Button>
+                  </div>
+                  {companyAddresses.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Sin direcciones vinculadas.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {companyAddresses.map((a: any) => {
+                        const tipos = (a.tipos && a.tipos.length ? a.tipos : [a.tipo]).filter(Boolean);
+                        return (
+                          <div key={a.id} className="rounded border bg-muted/30 px-3 py-2 text-sm space-y-1">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="font-medium truncate">{a.nombre || a.direccion_completa || a.calle}</div>
+                              <div className="flex items-center gap-1">
+                                <div className="flex flex-wrap gap-1">
+                                  {tipos.map((t: string) => (
+                                    <Badge key={t} variant="outline" className="text-xs">{labelTipoDireccion(t)}</Badge>
+                                  ))}
+                                </div>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() =>
+                                    window.open(
+                                      `/directory/addresses?empresa=${editData?.id}&direccion=${a.id}`,
+                                      "_blank"
+                                    )
+                                  }
+                                  title="Abrir dirección"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              <AddressDisplay
+                                address={a.direccion_completa || a.calle}
+                                lat={a.coordenadas_lat}
+                                lng={a.coordenadas_lng}
+                              />
+                            </div>
+                            {a.referencia && (
+                              <p className="text-xs text-muted-foreground italic">Ref: {a.referencia}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            )}
 
             <TabsContent value="clasificacion" className="space-y-4 mt-4 min-h-[580px] overflow-y-auto">
               {/* Industrias as searchable chips */}
