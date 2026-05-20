@@ -22,6 +22,7 @@ import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { CompanyAddressDialog } from "@/components/directory/CompanyAddressDialog";
+import { useIndustriasCatalog } from "@/hooks/useIndustriasCatalog";
 
 // LADAs MX de 2 dígitos: formato +52 LL DDDD DDDD; resto: +52 LLL DDD DDDD.
 const TWO_DIGIT_LADAS = new Set(["33", "55", "56", "81"]);
@@ -195,6 +196,7 @@ const emptyForm = {
 export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: Props) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const { data: industriasCatalog = [] } = useIndustriasCatalog();
   const [form, setForm] = useState({ ...emptyForm });
   const isEdit = !!editData?.id;
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
@@ -958,7 +960,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {form.industrias.map(ind => (
                     <Badge key={ind} variant="secondary" className="gap-1 text-xs">
-                      {ind}
+                      {industriasCatalog.find(c => c.clave === ind)?.etiqueta || ind}
                       <X className="h-3 w-3 cursor-pointer" onClick={() => toggleIndustria(ind)} />
                     </Badge>
                   ))}
@@ -966,9 +968,11 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 <Select value="" onValueChange={v => { if (v && !form.industrias.includes(v)) toggleIndustria(v); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Agregar industria..." /></SelectTrigger>
                   <SelectContent>
-                    {INDUSTRIAS_OPTIONS.filter(o => !form.industrias.includes(o)).map(o => (
-                      <SelectItem key={o} value={o}>{o}</SelectItem>
-                    ))}
+                    {industriasCatalog
+                      .filter(o => !form.industrias.includes(o.clave))
+                      .map(o => (
+                        <SelectItem key={o.clave} value={o.clave}>{o.etiqueta}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

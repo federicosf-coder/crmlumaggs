@@ -3667,6 +3667,36 @@ export type Database = {
           },
         ]
       }
+      industrias_catalog: {
+        Row: {
+          clave: string
+          created_at: string
+          etiqueta: string
+          id: string
+          is_active: boolean
+          ordering: number
+          updated_at: string
+        }
+        Insert: {
+          clave: string
+          created_at?: string
+          etiqueta: string
+          id?: string
+          is_active?: boolean
+          ordering?: number
+          updated_at?: string
+        }
+        Update: {
+          clave?: string
+          created_at?: string
+          etiqueta?: string
+          id?: string
+          is_active?: boolean
+          ordering?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       intereses_giro: {
         Row: {
           created_at: string

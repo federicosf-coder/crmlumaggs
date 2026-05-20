@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText, Building2, Truck, User, Mail } from "lucide-react";
+import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText, Building2, Truck, User, Mail, Factory, Search, Settings2 } from "lucide-react";
 import { EmailGroupsTab } from "@/components/admin/EmailGroupsTab";
 import { SystemSettingsTab } from "@/components/admin/SystemSettingsTab";
 
@@ -1578,42 +1577,343 @@ function TiposDireccionTab() {
   );
 }
 
+// ─── Industrias Tab ──────────────────────────────────────────
+function IndustriasTab() {
+  const qc = useQueryClient();
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ["industrias_catalog_admin"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)("industrias_catalog")
+        .select("*")
+        .order("ordering", { ascending: true })
+        .order("etiqueta", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const [open, setOpen] = useState(false);
+  const [clave, setClave] = useState("");
+  const [etiqueta, setEtiqueta] = useState("");
+  const [editItem, setEditItem] = useState<any>(null);
+  const [editClave, setEditClave] = useState("");
+  const [editEtiqueta, setEditEtiqueta] = useState("");
+  const [editActive, setEditActive] = useState(true);
+  const [filter, setFilter] = useState("");
+
+  const create = useMutation({
+    mutationFn: async () => {
+      const claveFinal = clave.trim() || etiqueta.trim();
+      const { error } = await (supabase.from as any)("industrias_catalog").insert({
+        clave: claveFinal,
+        etiqueta: etiqueta.trim(),
+        ordering: (items.length + 1) * 10,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["industrias_catalog_admin"] });
+      qc.invalidateQueries({ queryKey: ["industrias_catalog"] });
+      setOpen(false); setClave(""); setEtiqueta(""); toast.success("Industria creada");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase.from as any)("industrias_catalog").update({
+        clave: editClave.trim(),
+        etiqueta: editEtiqueta.trim(),
+        is_active: editActive,
+      }).eq("id", editItem.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["industrias_catalog_admin"] });
+      qc.invalidateQueries({ queryKey: ["industrias_catalog"] });
+      setEditItem(null); toast.success("Industria actualizada");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from as any)("industrias_catalog").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["industrias_catalog_admin"] });
+      qc.invalidateQueries({ queryKey: ["industrias_catalog"] });
+      toast.success("Industria eliminada");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const openEdit = (item: any) => {
+    setEditItem(item);
+    setEditClave(item.clave);
+    setEditEtiqueta(item.etiqueta);
+    setEditActive(item.is_active);
+  };
+
+  const filtered = items.filter((i: any) => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return true;
+    return i.etiqueta.toLowerCase().includes(q) || i.clave.toLowerCase().includes(q);
+  });
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2"><Factory className="h-5 w-5" /> Industrias</CardTitle>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Nueva</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nueva Industria</DialogTitle>
+              <DialogDescription>
+                La <b>etiqueta</b> es lo que se muestra en pantalla. La <b>clave</b> es el valor guardado en la base. Si las dejas iguales déjala en blanco.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Etiqueta (visible)</Label><Input value={etiqueta} onChange={e => setEtiqueta(e.target.value)} placeholder="Ej: Transporte de carga" /></div>
+              <div>
+                <Label>Clave guardada (opcional)</Label>
+                <Input value={clave} onChange={e => setClave(e.target.value)} placeholder="Si se omite se usa la etiqueta" />
+                <p className="text-[11px] text-muted-foreground mt-1">Solo cámbiala si la clave guardada debe ser distinta del nombre mostrado.</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => create.mutate()} disabled={!etiqueta || create.isPending}>{create.isPending ? "Guardando..." : "Guardar"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="relative max-w-xs">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Buscar industria..." className="pl-8 h-9" />
+        </div>
+        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Etiqueta (visible)</TableHead>
+                <TableHead>Clave (guardada)</TableHead>
+                <TableHead>Activo</TableHead>
+                <TableHead className="w-24"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((r: any) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium">{r.etiqueta}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">{r.clave}</TableCell>
+                  <TableCell><Badge variant={r.is_active ? "default" : "secondary"}>{r.is_active ? "Sí" : "No"}</Badge></TableCell>
+                  <TableCell className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => { if (confirm(`¿Eliminar "${r.etiqueta}"?`)) remove.mutate(r.id); }}><Trash2 className="h-4 w-4" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin resultados</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+      <Dialog open={!!editItem} onOpenChange={v => { if (!v) setEditItem(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Industria</DialogTitle>
+            <DialogDescription>
+              Cambiar la <b>clave</b> puede romper registros existentes que la usen. La <b>etiqueta</b> solo afecta cómo se muestra.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Etiqueta (visible)</Label><Input value={editEtiqueta} onChange={e => setEditEtiqueta(e.target.value)} /></div>
+            <div><Label>Clave (guardada)</Label><Input value={editClave} onChange={e => setEditClave(e.target.value)} /></div>
+            <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
+          </div>
+          <DialogFooter><Button onClick={() => update.mutate()} disabled={!editEtiqueta || !editClave || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
 // ─── Main Page ───────────────────────────────────────────────
+type CatalogKey =
+  | "plazas" | "vehiculos" | "repartidores" | "tipos_direccion"
+  | "presentaciones" | "clasificaciones" | "empresa_marcas"
+  | "industrias" | "embudos" | "condiciones"
+  | "logos"
+  | "email_groups" | "system_settings";
+
+type CatalogGroup = {
+  id: string;
+  label: string;
+  items: { key: CatalogKey; label: string; description?: string }[];
+};
+
+const CATALOG_GROUPS: CatalogGroup[] = [
+  {
+    id: "logistica",
+    label: "Logística y operación",
+    items: [
+      { key: "plazas", label: "Plazas", description: "Ciudades y punto de partida para rutas" },
+      { key: "vehiculos", label: "Vehículos" },
+      { key: "repartidores", label: "Repartidores" },
+      { key: "tipos_direccion", label: "Tipos de Dirección" },
+    ],
+  },
+  {
+    id: "productos",
+    label: "Productos",
+    items: [
+      { key: "presentaciones", label: "Presentaciones" },
+      { key: "clasificaciones", label: "Clasificaciones de Producto" },
+      { key: "empresa_marcas", label: "Marcas por Empresa" },
+    ],
+  },
+  {
+    id: "ventas",
+    label: "CRM y ventas",
+    items: [
+      { key: "industrias", label: "Industrias", description: "Editar nombre mostrado vs guardado" },
+      { key: "embudos", label: "Embudos de Venta" },
+      { key: "condiciones", label: "Condiciones" },
+    ],
+  },
+  {
+    id: "marca",
+    label: "Marca",
+    items: [
+      { key: "logos", label: "Logos" },
+    ],
+  },
+  {
+    id: "sistema",
+    label: "Sistema",
+    items: [
+      { key: "email_groups", label: "Grupos de Correo" },
+      { key: "system_settings", label: "Parámetros" },
+    ],
+  },
+];
+
+function renderCatalog(key: CatalogKey) {
+  switch (key) {
+    case "plazas": return <PlazasTab />;
+    case "vehiculos": return <VehiculosTab />;
+    case "repartidores": return <RepartidoresTab />;
+    case "tipos_direccion": return <TiposDireccionTab />;
+    case "presentaciones": return <PresentacionesTab />;
+    case "clasificaciones": return <OptionsTab />;
+    case "empresa_marcas": return <EmpresaMarcasTab />;
+    case "industrias": return <IndustriasTab />;
+    case "embudos": return <EmbudosTab />;
+    case "condiciones": return <CondicionesTab />;
+    case "logos": return <LogosTab />;
+    case "email_groups": return <EmailGroupsTab />;
+    case "system_settings": return <SystemSettingsTab />;
+  }
+}
+
 export default function CatalogsManagement() {
+  const [active, setActive] = useState<CatalogKey>("plazas");
+  const [search, setSearch] = useState("");
+
+  const flat = CATALOG_GROUPS.flatMap(g => g.items.map(i => ({ ...i, group: g.label, groupId: g.id })));
+  const activeMeta = flat.find(f => f.key === active);
+  const q = search.trim().toLowerCase();
+  const matches = (label: string) => !q || label.toLowerCase().includes(q);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Catálogos</h1>
-        <p className="text-muted-foreground">Administra plazas, presentaciones, clasificaciones, embudos, logos, condiciones, marcas por empresa, vehículos, repartidores y tipos de dirección.</p>
+        <p className="text-muted-foreground">Administra todos los catálogos del sistema, organizados por área.</p>
       </div>
-      <Tabs defaultValue="plazas">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="plazas">Plazas</TabsTrigger>
-          <TabsTrigger value="presentaciones">Presentaciones</TabsTrigger>
-          <TabsTrigger value="clasificaciones">Clasificaciones</TabsTrigger>
-          <TabsTrigger value="embudos">Embudos de Venta</TabsTrigger>
-          <TabsTrigger value="logos">Logos</TabsTrigger>
-          <TabsTrigger value="condiciones">Condiciones</TabsTrigger>
-          <TabsTrigger value="empresa_marcas">Marcas por Empresa</TabsTrigger>
-          <TabsTrigger value="vehiculos">Vehículos</TabsTrigger>
-          <TabsTrigger value="repartidores">Repartidores</TabsTrigger>
-          <TabsTrigger value="tipos_direccion">Tipos de Dirección</TabsTrigger>
-          <TabsTrigger value="email_groups">Grupos de Correo</TabsTrigger>
-          <TabsTrigger value="system_settings">Parámetros</TabsTrigger>
-        </TabsList>
-        <TabsContent value="plazas"><PlazasTab /></TabsContent>
-        <TabsContent value="presentaciones"><PresentacionesTab /></TabsContent>
-        <TabsContent value="clasificaciones"><OptionsTab /></TabsContent>
-        <TabsContent value="embudos"><EmbudosTab /></TabsContent>
-        <TabsContent value="logos"><LogosTab /></TabsContent>
-        <TabsContent value="condiciones"><CondicionesTab /></TabsContent>
-        <TabsContent value="empresa_marcas"><EmpresaMarcasTab /></TabsContent>
-        <TabsContent value="vehiculos"><VehiculosTab /></TabsContent>
-        <TabsContent value="repartidores"><RepartidoresTab /></TabsContent>
-        <TabsContent value="tipos_direccion"><TiposDireccionTab /></TabsContent>
-        <TabsContent value="email_groups"><EmailGroupsTab /></TabsContent>
-        <TabsContent value="system_settings"><SystemSettingsTab /></TabsContent>
-      </Tabs>
+
+      <div className="grid gap-4 md:grid-cols-[260px,1fr]">
+        {/* Sidebar de selección */}
+        <aside className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar catálogo..."
+              className="pl-8 h-9"
+            />
+          </div>
+
+          {/* Móvil: selector */}
+          <div className="md:hidden">
+            <Select value={active} onValueChange={v => setActive(v as CatalogKey)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CATALOG_GROUPS.map(g => (
+                  <div key={g.id}>
+                    <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">{g.label}</div>
+                    {g.items.filter(i => matches(i.label)).map(i => (
+                      <SelectItem key={i.key} value={i.key}>{i.label}</SelectItem>
+                    ))}
+                  </div>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Desktop: lista agrupada */}
+          <div className="hidden md:block space-y-4">
+            {CATALOG_GROUPS.map(g => {
+              const visible = g.items.filter(i => matches(i.label));
+              if (visible.length === 0) return null;
+              return (
+                <div key={g.id}>
+                  <div className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {g.label}
+                  </div>
+                  <div className="space-y-0.5">
+                    {visible.map(i => {
+                      const isActive = i.key === active;
+                      return (
+                        <button
+                          key={i.key}
+                          type="button"
+                          onClick={() => setActive(i.key)}
+                          className={
+                            "w-full text-left rounded-md px-2.5 py-1.5 text-sm transition-colors " +
+                            (isActive
+                              ? "bg-violet-100 text-violet-900 font-medium"
+                              : "hover:bg-muted text-foreground/80")
+                          }
+                        >
+                          {i.label}
+                          {i.description && !isActive && (
+                            <div className="text-[10px] text-muted-foreground truncate">{i.description}</div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+
+        {/* Contenido */}
+        <section className="min-w-0">
+          {activeMeta && (
+            <div className="mb-3 text-[11px] uppercase tracking-wide text-muted-foreground">
+              {activeMeta.group} · {activeMeta.label}
+            </div>
+          )}
+          {renderCatalog(active)}
+        </section>
+      </div>
     </div>
   );
 }
