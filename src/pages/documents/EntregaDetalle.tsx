@@ -16,7 +16,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, MapPin, Upload, FileText, Image as ImageIcon, Trash2, Check,
-  Navigation, Pencil, Loader2, ExternalLink,
+  Navigation, Pencil, Loader2, ExternalLink, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -34,6 +34,8 @@ export default function EntregaDetalle() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
 
   const [uploading, setUploading] = useState<"evidencia" | "firmado" | null>(null);
   const [marking, setMarking] = useState(false);
@@ -60,6 +62,9 @@ export default function EntregaDetalle() {
   const [fechaEntrega, setFechaEntrega] = useState<string>("");
   const [savingEstatus, setSavingEstatus] = useState(false);
   const [savingFecha, setSavingFecha] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjustValue, setAdjustValue] = useState<string>("");
+  const [savingAdjust, setSavingAdjust] = useState(false);
 
   // Documento
   const { data: documento, isLoading } = useQuery({
