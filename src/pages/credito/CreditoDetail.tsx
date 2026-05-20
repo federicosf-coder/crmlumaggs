@@ -3157,47 +3157,6 @@ function AnalisisInternoSection({
 
   return (
     <>
-      {/* RPP */}
-      <Card className="border-slate-300">
-        <CardHeader className="bg-gradient-to-br from-violet-50 to-blue-50 border-b py-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-sm font-semibold tracking-tight flex items-center gap-2">
-              <Landmark className="h-4 w-4 text-slate-700" />
-              Propiedades en RPP
-            </CardTitle>
-            <Badge variant="outline" className="text-[10px] bg-slate-100 border-slate-300 text-slate-700">Solo interno</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-5 space-y-4">
-          <Tabs value={whoTab} onValueChange={(v) => setWhoTab(v as any)}>
-            <TabsList className="grid grid-cols-2 w-full sm:w-72">
-              <TabsTrigger value="solicitante">Solicitante</TabsTrigger>
-              <TabsTrigger value="aval">Aval</TabsTrigger>
-            </TabsList>
-            <TabsContent value="solicitante" className="mt-4">
-              <RppPanel
-                who="solicitante"
-                creditId={creditId}
-                encontrado={form.rpp_solicitante_encontrado ?? null}
-                data={form.rpp_solicitante_data || {}}
-                docPath={form.rpp_solicitante_doc_path || null}
-                onChange={onPersisted}
-              />
-            </TabsContent>
-            <TabsContent value="aval" className="mt-4">
-              <RppPanel
-                who="aval"
-                creditId={creditId}
-                encontrado={form.rpp_aval_encontrado ?? null}
-                data={form.rpp_aval_data || {}}
-                docPath={form.rpp_aval_doc_path || null}
-                onChange={onPersisted}
-              />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
       {/* Resumen Empresa IA */}
       <Card className="border-slate-300">
         <CardHeader className="bg-gradient-to-br from-violet-50 to-blue-50 border-b py-3">
@@ -3237,6 +3196,47 @@ function AnalisisInternoSection({
               </Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* RPP */}
+      <Card className="border-slate-300">
+        <CardHeader className="bg-gradient-to-br from-violet-50 to-blue-50 border-b py-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-sm font-semibold tracking-tight flex items-center gap-2">
+              <Landmark className="h-4 w-4 text-slate-700" />
+              Propiedades en RPP
+            </CardTitle>
+            <Badge variant="outline" className="text-[10px] bg-slate-100 border-slate-300 text-slate-700">Solo interno</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-5 space-y-4">
+          <Tabs value={whoTab} onValueChange={(v) => setWhoTab(v as any)}>
+            <TabsList className="grid grid-cols-2 w-full sm:w-72">
+              <TabsTrigger value="solicitante">Solicitante</TabsTrigger>
+              <TabsTrigger value="aval">Aval</TabsTrigger>
+            </TabsList>
+            <TabsContent value="solicitante" className="mt-4">
+              <RppPanel
+                who="solicitante"
+                creditId={creditId}
+                encontrado={form.rpp_solicitante_encontrado ?? null}
+                data={form.rpp_solicitante_data || {}}
+                docPath={form.rpp_solicitante_doc_path || null}
+                onChange={onPersisted}
+              />
+            </TabsContent>
+            <TabsContent value="aval" className="mt-4">
+              <RppPanel
+                who="aval"
+                creditId={creditId}
+                encontrado={form.rpp_aval_encontrado ?? null}
+                data={form.rpp_aval_data || {}}
+                docPath={form.rpp_aval_doc_path || null}
+                onChange={onPersisted}
+              />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </>
