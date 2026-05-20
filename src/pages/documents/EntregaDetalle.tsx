@@ -791,6 +791,43 @@ export default function EntregaDetalle() {
           {(docLat && docLng) && (
             <p className="text-xs text-muted-foreground">📍 {Number(docLat).toFixed(6)}, {Number(docLng).toFixed(6)}</p>
           )}
+          {/* Si la dirección del documento no está en el catálogo de la empresa, ofrecer guardarla */}
+          {empresaIdForAddrs && documento.direccion_envio && (direccionesEmpresa as any[]).length === 0 && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-xs text-amber-900 dark:text-amber-200">
+                Esta dirección no está registrada en el catálogo de la empresa.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-amber-400 text-amber-900 hover:bg-amber-100"
+                onClick={async () => {
+                  const nombre = (documento as any).direccion_envio_nombre || documento.direccion_envio;
+                  const { data: inserted, error } = await supabase
+                    .from("direcciones_empresa")
+                    .insert({
+                      empresa_id: empresaIdForAddrs,
+                      nombre,
+                      tipo: "envio",
+                      tipos: ["envio"],
+                      calle: documento.direccion_envio,
+                      direccion_completa: documento.direccion_envio,
+                      coordenadas_lat: docLat ?? null,
+                      coordenadas_lng: docLng ?? null,
+                    } as any)
+                    .select("id")
+                    .single();
+                  if (error) { toast.error(error.message); return; }
+                  toast.success("Dirección guardada en el catálogo de la empresa");
+                  queryClient.invalidateQueries({ queryKey: ["direcciones-empresa-lookup"] });
+                  setSelectedDireccionId((inserted as any).id);
+                }}
+              >
+                <Check className="h-3.5 w-3.5 mr-1" /> Guardar como dirección de la empresa
+              </Button>
+            </div>
+          )}
           {(documento.direccion_envio || (docLat && docLng)) && (
             <AddressDisplay
               address={documento.direccion_envio}
