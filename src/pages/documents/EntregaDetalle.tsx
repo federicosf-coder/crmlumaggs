@@ -33,8 +33,7 @@ export default function EntregaDetalle() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const { hasRole } = useAuth();
+  const { user, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
 
   const [uploading, setUploading] = useState<"evidencia" | "firmado" | null>(null);
