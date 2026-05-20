@@ -1614,7 +1614,16 @@ export type Database = {
           rep_legal_rfc: string | null
           rep_legal_tipo_id: string | null
           rep_legal_vencimiento_id: string | null
+          resumen_empresa: string | null
+          resumen_empresa_generated_at: string | null
+          resumen_empresa_generated_by: string | null
           rfc: string | null
+          rpp_aval_data: Json
+          rpp_aval_doc_path: string | null
+          rpp_aval_encontrado: boolean | null
+          rpp_solicitante_data: Json
+          rpp_solicitante_doc_path: string | null
+          rpp_solicitante_encontrado: boolean | null
           short_code: string | null
           solicita_galsa: boolean
           solicita_lumaggs: boolean
@@ -1730,7 +1739,16 @@ export type Database = {
           rep_legal_rfc?: string | null
           rep_legal_tipo_id?: string | null
           rep_legal_vencimiento_id?: string | null
+          resumen_empresa?: string | null
+          resumen_empresa_generated_at?: string | null
+          resumen_empresa_generated_by?: string | null
           rfc?: string | null
+          rpp_aval_data?: Json
+          rpp_aval_doc_path?: string | null
+          rpp_aval_encontrado?: boolean | null
+          rpp_solicitante_data?: Json
+          rpp_solicitante_doc_path?: string | null
+          rpp_solicitante_encontrado?: boolean | null
           short_code?: string | null
           solicita_galsa?: boolean
           solicita_lumaggs?: boolean
@@ -1846,7 +1864,16 @@ export type Database = {
           rep_legal_rfc?: string | null
           rep_legal_tipo_id?: string | null
           rep_legal_vencimiento_id?: string | null
+          resumen_empresa?: string | null
+          resumen_empresa_generated_at?: string | null
+          resumen_empresa_generated_by?: string | null
           rfc?: string | null
+          rpp_aval_data?: Json
+          rpp_aval_doc_path?: string | null
+          rpp_aval_encontrado?: boolean | null
+          rpp_solicitante_data?: Json
+          rpp_solicitante_doc_path?: string | null
+          rpp_solicitante_encontrado?: boolean | null
           short_code?: string | null
           solicita_galsa?: boolean
           solicita_lumaggs?: boolean
