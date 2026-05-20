@@ -1,10 +1,10 @@
 /**
- * Trae TODAS las filas de una consulta Supabase paginando en lotes de 5000
- * (evita el límite por defecto de 1000 filas por respuesta).
+ * Trae TODAS las filas de una consulta Supabase paginando en lotes de 1000
+ * (que es el máximo que Supabase devuelve por respuesta por defecto).
  */
 export async function fetchAllRows<T>(
   fetchPage: (from: number, to: number) => any,
-  pageSize = 5000
+  pageSize = 1000
 ): Promise<T[]> {
   const all: T[] = [];
   let from = 0;
