@@ -65,17 +65,17 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
     : (bancosRaw && typeof bancosRaw === "object" ? [bancosRaw] : []);
   const primerBanco: any = bancos[0] || {};
   const bancosHtml = bancos.length
-    ? `<table class="grid"><thead><tr><th>Banco</th><th>Cuenta / CLABE</th><th>Sucursal</th></tr></thead><tbody>${bancos
-        .map((b: any) => `<tr><td>${b?.banco ?? ""}</td><td>${b?.cuenta ?? b?.clabe ?? ""}</td><td>${b?.sucursal ?? ""}</td></tr>`)
-        .join("")}</tbody></table>`
-    : '<p class="muted">Sin cuentas bancarias capturadas.</p>';
+    ? bancos
+        .map((b: any) => `<tr><td>${b?.banco ?? ""}</td><td>${b?.cuenta ?? ""}</td><td>${b?.clabe ?? b?.cuenta ?? ""}</td></tr>`)
+        .join("")
+    : "";
   const tipo = form?.tipo_persona || form?.csf_tipo_persona || "moral";
 
   const refsHtml = referencias.length
-    ? `<table class="grid"><thead><tr><th>Empresa</th><th>Contacto</th><th>Teléfono</th></tr></thead><tbody>${referencias
+    ? referencias
         .map((r: any) => `<tr><td>${r?.empresa ?? ""}</td><td>${r?.contacto ?? ""}</td><td>${r?.telefono ?? ""}</td></tr>`)
-        .join("")}</tbody></table>`
-    : '<p class="muted">Sin referencias capturadas.</p>';
+        .join("")
+    : "";
 
   const t: Record<string, string> = {
     razon_social: form?.razon_social || form?.csf_razon_social || company?.razon_social || company?.name || "",
