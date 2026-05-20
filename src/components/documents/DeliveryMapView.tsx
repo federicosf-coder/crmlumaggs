@@ -1,9 +1,16 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useGoogleMaps } from "@/hooks/useGoogleMaps";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Truck, MapPin } from "lucide-react";
-import { format } from "date-fns";
+import { Truck, MapPin, CalendarIcon, Filter, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import {
+  format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, isWithinInterval, parseISO,
+} from "date-fns";
 import { es } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 
@@ -32,6 +39,8 @@ type Vehiculo = {
 };
 
 type Plaza = { id: string; nombre: string };
+type Repartidor = { id: string; nombre: string };
+type RutaRepartidor = { ruta_id: string; repartidor_id: string };
 
 interface DeliveryMapViewProps {
   entregas: Entrega[];
@@ -39,6 +48,8 @@ interface DeliveryMapViewProps {
   vehiculos: Vehiculo[];
   plazas: Plaza[];
   selectedPlaza: string;
+  repartidores?: Repartidor[];
+  rutaRepartidores?: RutaRepartidor[];
 }
 
 // Returns SVG markup for a colored pin with a vehicle silhouette
@@ -58,7 +69,12 @@ function buildPinSvg(color: string, icon: "pickup" | "truck") {
 </svg>`;
 }
 
-export function DeliveryMapView({ entregas, rutas, vehiculos, plazas, selectedPlaza }: DeliveryMapViewProps) {
+type DatePreset = "all" | "today" | "yesterday" | "7d" | "month" | "custom";
+
+export function DeliveryMapView({
+  entregas, rutas, vehiculos, plazas, selectedPlaza,
+  repartidores = [], rutaRepartidores = [],
+}: DeliveryMapViewProps) {
   const { ready, error } = useGoogleMaps();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -66,17 +82,86 @@ export function DeliveryMapView({ entregas, rutas, vehiculos, plazas, selectedPl
   const markersRef = useRef<any[]>([]);
   const infoRef = useRef<any>(null);
 
-  // Filter entregas by plaza
+  // ── Filtros ────────────────────────────────────────────────
+  const [rutaFilter, setRutaFilter] = useState<string>("all");
+  const [repartidorFilter, setRepartidorFilter] = useState<string>("all");
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>(undefined);
+  const [customTo, setCustomTo] = useState<Date | undefined>(undefined);
+  const [filtersOpen, setFiltersOpen] = useState(true);
+
+  const dateRange = useMemo<{ from: Date; to: Date } | null>(() => {
+    const now = new Date();
+    switch (datePreset) {
+      case "today":
+        return { from: startOfDay(now), to: endOfDay(now) };
+      case "yesterday": {
+        const y = subDays(now, 1);
+        return { from: startOfDay(y), to: endOfDay(y) };
+      }
+      case "7d":
+        return { from: startOfDay(subDays(now, 6)), to: endOfDay(now) };
+      case "month":
+        return { from: startOfMonth(now), to: endOfMonth(now) };
+      case "custom":
+        if (customFrom && customTo) return { from: startOfDay(customFrom), to: endOfDay(customTo) };
+        if (customFrom) return { from: startOfDay(customFrom), to: endOfDay(customFrom) };
+        return null;
+      default:
+        return null;
+    }
+  }, [datePreset, customFrom, customTo]);
+
+  // Rutas asociadas al repartidor seleccionado
+  const rutasDeRepartidor = useMemo(() => {
+    if (repartidorFilter === "all") return null;
+    const set = new Set(
+      rutaRepartidores.filter(rr => rr.repartidor_id === repartidorFilter).map(rr => rr.ruta_id)
+    );
+    return set;
+  }, [repartidorFilter, rutaRepartidores]);
+
+  // Filter entregas by plaza + ruta + repartidor + fecha
   const visibleEntregas = useMemo(() => {
     return entregas.filter((e) => {
       const ruta = rutas.find((r) => r.id === e.ruta_id);
       if (!ruta) return false;
       if (selectedPlaza !== "all" && ruta.plaza_id !== selectedPlaza) return false;
+      if (rutaFilter !== "all" && ruta.id !== rutaFilter) return false;
+      if (rutasDeRepartidor && !rutasDeRepartidor.has(ruta.id)) return false;
+      if (dateRange && e.fecha_entrega) {
+        try {
+          const d = parseISO(e.fecha_entrega + "T12:00:00");
+          if (!isWithinInterval(d, dateRange)) return false;
+        } catch { /* ignore */ }
+      }
       const lat = e.documentos?.direccion_envio_lat;
       const lng = e.documentos?.direccion_envio_lng;
       return typeof lat === "number" && typeof lng === "number";
     });
-  }, [entregas, rutas, selectedPlaza]);
+  }, [entregas, rutas, selectedPlaza, rutaFilter, rutasDeRepartidor, dateRange]);
+
+  // Rutas disponibles para el selector (limitadas por plaza y repartidor)
+  const rutasDisponibles = useMemo(() => {
+    return rutas.filter((r) => {
+      if (selectedPlaza !== "all" && r.plaza_id !== selectedPlaza) return false;
+      if (rutasDeRepartidor && !rutasDeRepartidor.has(r.id)) return false;
+      return true;
+    });
+  }, [rutas, selectedPlaza, rutasDeRepartidor]);
+
+  const activeFilterCount =
+    (rutaFilter !== "all" ? 1 : 0) +
+    (repartidorFilter !== "all" ? 1 : 0) +
+    (datePreset !== "all" ? 1 : 0);
+
+  const clearFilters = () => {
+    setRutaFilter("all");
+    setRepartidorFilter("all");
+    setDatePreset("all");
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+  };
 
   // Init map
   useEffect(() => {
@@ -227,6 +312,129 @@ export function DeliveryMapView({ entregas, rutas, vehiculos, plazas, selectedPl
               );
             })}
           </div>
+        </Card>
+      )}
+
+      {/* Filtros overlay */}
+      {ready && (
+        <Card className="absolute top-3 right-3 p-3 w-[280px] shadow-lg bg-background/95 backdrop-blur space-y-2">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(v => !v)}
+              className="text-xs font-semibold flex items-center gap-1 hover:text-primary transition-colors"
+            >
+              <Filter className="h-3.5 w-3.5" /> Filtros
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{activeFilterCount}</Badge>
+              )}
+            </button>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={clearFilters}>
+                <X className="h-3 w-3 mr-1" /> Limpiar
+              </Button>
+            )}
+          </div>
+
+          {filtersOpen && (
+            <div className="space-y-2 pt-1">
+              {/* Ruta */}
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-light">Ruta</label>
+                <Select value={rutaFilter} onValueChange={setRutaFilter}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las rutas</SelectItem>
+                    {rutasDisponibles.map((r) => {
+                      const veh = vehiculos.find((v) => v.id === r.vehiculo_id);
+                      const plaza = plazas.find((p) => p.id === r.plaza_id);
+                      const fechaTxt = r.fecha_entrega
+                        ? format(new Date(r.fecha_entrega + "T12:00:00"), "dd MMM", { locale: es })
+                        : "";
+                      const label = `${plaza?.nombre || "—"} · ${veh?.nombre || "—"}${fechaTxt ? " · " + fechaTxt : ""}`;
+                      return <SelectItem key={r.id} value={r.id}>{label}</SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Repartidor */}
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-light">Repartidor</label>
+                <Select value={repartidorFilter} onValueChange={setRepartidorFilter}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los repartidores</SelectItem>
+                    {repartidores.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Fecha */}
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-light">Fecha</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {([
+                    ["all", "Todas"],
+                    ["today", "Hoy"],
+                    ["yesterday", "Ayer"],
+                    ["7d", "7 días"],
+                    ["month", "Mes"],
+                    ["custom", "Rango"],
+                  ] as [DatePreset, string][]).map(([key, label]) => (
+                    <Button
+                      key={key}
+                      type="button"
+                      size="sm"
+                      variant={datePreset === key ? "default" : "outline"}
+                      className="h-7 text-[10px] px-1"
+                      onClick={() => setDatePreset(key)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+                {datePreset === "custom" && (
+                  <div className="grid grid-cols-2 gap-1 pt-1">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className={cn("h-7 text-[10px] justify-start", !customFrom && "text-muted-foreground")}>
+                          <CalendarIcon className="h-3 w-3 mr-1" />
+                          {customFrom ? format(customFrom, "dd MMM", { locale: es }) : "Desde"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={customFrom} onSelect={setCustomFrom} initialFocus className="p-3 pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className={cn("h-7 text-[10px] justify-start", !customTo && "text-muted-foreground")}>
+                          <CalendarIcon className="h-3 w-3 mr-1" />
+                          {customTo ? format(customTo, "dd MMM", { locale: es }) : "Hasta"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={customTo} onSelect={setCustomTo} initialFocus className="p-3 pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+                {dateRange && datePreset !== "all" && (
+                  <p className="text-[10px] text-muted-foreground font-light">
+                    {format(dateRange.from, "dd MMM yyyy", { locale: es })} – {format(dateRange.to, "dd MMM yyyy", { locale: es })}
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-1 border-t flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>Mostrando</span>
+                <Badge variant="secondary" className="text-[10px]">{visibleEntregas.length}</Badge>
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
