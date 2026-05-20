@@ -522,7 +522,6 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="vigente">Vigente</SelectItem>
-                <SelectItem value="parcial">Parcial</SelectItem>
                 <SelectItem value="pagada">Pagada</SelectItem>
                 <SelectItem value="vencida">Vencida</SelectItem>
                 <SelectItem value="cancelada">Cancelada</SelectItem>
