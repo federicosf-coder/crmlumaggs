@@ -4,6 +4,7 @@ import { Calendar, GripVertical, Package, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabasePagination";
 
 interface CrmDealCardProps {
   deal: CrmDeal;
