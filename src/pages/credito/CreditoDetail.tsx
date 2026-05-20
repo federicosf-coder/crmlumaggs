@@ -2039,8 +2039,8 @@ export default function CreditoDetail() {
               onChange={(v) => set("datos_bancarios", v)}
               fields={[
                 { key: "banco", label: "Banco" },
-                { key: "cuenta", label: "Cuenta / CLABE" },
-                { key: "sucursal", label: "Sucursal" },
+                { key: "cuenta", label: "Número de cuenta" },
+                { key: "clabe", label: "CLABE interbancaria" },
               ]}
             />
             <Repeater
