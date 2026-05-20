@@ -3,7 +3,7 @@ import { useGoogleMaps } from "@/hooks/useGoogleMaps";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Truck, MapPin, CalendarIcon, Filter, X } from "lucide-react";
+import { Truck, MapPin, CalendarIcon, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -201,6 +201,7 @@ export function DeliveryMapView({
   useEffect(() => {
     if (!ready || !mapRef.current) return;
     const google = (window as any).google;
+    let cancelled = false;
 
     // Clear old markers
     markersRef.current.forEach((m) => m.setMap(null));
@@ -208,7 +209,7 @@ export function DeliveryMapView({
     polylinesRef.current.forEach((p) => p.setMap(null));
     polylinesRef.current = [];
 
-    if (visibleEntregas.length === 0) return;
+    if (visibleEntregas.length === 0) return () => { cancelled = true; };
 
     const bounds = new google.maps.LatLngBounds();
 
@@ -299,6 +300,7 @@ export function DeliveryMapView({
       });
 
       for (const rid of Object.keys(grouped)) {
+        if (cancelled) return;
         const items = grouped[rid].slice().sort(
           (a, b) => (a.orden_ruta ?? 0) - (b.orden_ruta ?? 0),
         );
@@ -319,6 +321,7 @@ export function DeliveryMapView({
                 intermediates: pts.slice(1, -1),
               } },
           );
+          if (cancelled) return;
           if (!fnErr && data?.encodedPolyline && google.maps.geometry?.encoding) {
             path = google.maps.geometry.encoding.decodePath(data.encodedPolyline);
           }
@@ -329,6 +332,7 @@ export function DeliveryMapView({
           path = pts;
         }
 
+        if (cancelled) return;
         const poly = new google.maps.Polyline({
           path,
           geodesic: true,
@@ -348,6 +352,7 @@ export function DeliveryMapView({
     } else {
       mapRef.current.fitBounds(bounds, 80);
     }
+    return () => { cancelled = true; };
   }, [ready, visibleEntregas, rutas, vehiculos, plazas, navigate]);
 
   // Group counts per plaza for legend
@@ -400,19 +405,27 @@ export function DeliveryMapView({
 
       {/* Filtros overlay */}
       {ready && (
-        <Card className="absolute top-3 right-3 p-3 w-[280px] shadow-lg bg-background/95 backdrop-blur space-y-2">
-          <div className="flex items-center justify-between">
+        <Card className={cn(
+          "absolute top-3 right-3 shadow-lg bg-background/95 backdrop-blur transition-all",
+          filtersOpen ? "p-3 w-[280px] space-y-2" : "p-1.5 w-auto"
+        )}>
+          <div className="flex items-center justify-between gap-1">
             <button
               type="button"
               onClick={() => setFiltersOpen(v => !v)}
-              className="text-xs font-semibold flex items-center gap-1 hover:text-primary transition-colors"
+              className="text-xs font-semibold flex items-center gap-1 hover:text-primary transition-colors px-1"
+              title={filtersOpen ? "Colapsar filtros" : "Expandir filtros"}
             >
-              <Filter className="h-3.5 w-3.5" /> Filtros
+              <Filter className="h-3.5 w-3.5" />
+              {filtersOpen && <span>Filtros</span>}
               {activeFilterCount > 0 && (
                 <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{activeFilterCount}</Badge>
               )}
+              {filtersOpen
+                ? <ChevronUp className="h-3.5 w-3.5 ml-0.5 opacity-60" />
+                : <ChevronDown className="h-3.5 w-3.5 ml-0.5 opacity-60" />}
             </button>
-            {activeFilterCount > 0 && (
+            {filtersOpen && activeFilterCount > 0 && (
               <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={clearFilters}>
                 <X className="h-3 w-3 mr-1" /> Limpiar
               </Button>
