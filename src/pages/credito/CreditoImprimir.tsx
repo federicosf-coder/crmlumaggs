@@ -90,11 +90,7 @@ export default function CreditoImprimir() {
 
         setTitulo(`${TEMPLATE_LABELS[tplKey]} · ${tokens.razon_social}`);
         setEntidadActual(entidad);
-        const brandBanner =
-          entidad === "galsa"
-            ? `<div class="brand-banner brand-galsa"><div class="brand-name">GALSA</div><div class="brand-sub">Phillips 66 · Distribuidor Autorizado</div></div>`
-            : `<div class="brand-banner brand-lumaggs"><div class="brand-name">LUMAGG'S</div><div class="brand-sub">Chevron · Distribuidor Autorizado</div></div>`;
-        setHtml(`${brandBanner}${header}${body}${footer}`);
+        setHtml(`${header}${body}${footer}`);
       } catch (e: any) {
         setError(e?.message || "Error al cargar");
       } finally {
