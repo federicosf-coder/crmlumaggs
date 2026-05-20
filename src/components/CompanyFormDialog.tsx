@@ -21,6 +21,7 @@ import { AddressDisplay } from "@/components/AddressDisplay";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
+import { CompanyAddressDialog } from "@/components/directory/CompanyAddressDialog";
 
 // LADAs MX de 2 dígitos: formato +52 LL DDDD DDDD; resto: +52 LLL DDD DDDD.
 const TWO_DIGIT_LADAS = new Set(["33", "55", "56", "81"]);
