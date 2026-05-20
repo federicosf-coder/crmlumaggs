@@ -209,6 +209,14 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
 
   return (
     <div className="mt-1 ml-0 rounded-md border bg-muted/30 px-2 py-1.5 text-[11px] space-y-1" onPointerDown={(e) => e.stopPropagation()}>
+      {entrega.fecha_entrega_real && (
+        <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+          <span>✅ Entregada:</span>
+          <span className="font-medium text-foreground">
+            {format(new Date(entrega.fecha_entrega_real), "dd MMM yyyy · HH:mm", { locale: es })}
+          </span>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-2 items-end">
         <div>
           <Label className="text-[10px] text-muted-foreground">Km recorridos</Label>
