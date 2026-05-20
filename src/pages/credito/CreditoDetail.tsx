@@ -740,8 +740,6 @@ function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs, creditId 
 }
 
 export default function CreditoDetail() {
-  // (component defined below; AnalisisInternoSection is declared after this default component)
-}
   const { id } = useParams<{ id: string }>();
   const { user, hasAnyRole } = useAuth();
   const qc = useQueryClient();
