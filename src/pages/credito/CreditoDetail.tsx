@@ -2449,6 +2449,18 @@ export default function CreditoDetail() {
           </CardContent></Card>
         </TabsContent>
 
+        {/* ============ ANÁLISIS INTERNO ============ */}
+        <TabsContent value="analisis" className="space-y-4 mt-4">
+          <AnalisisInternoSection
+            form={form}
+            set={set}
+            creditId={id!}
+            isInternal={isInternal}
+            onPersisted={() => qc.invalidateQueries({ queryKey: ["credit_request", id] })}
+            userId={user?.id || null}
+          />
+        </TabsContent>
+
         {/* ============ COMENTARIOS ============ */}
         <TabsContent value="comentarios" className="space-y-4 mt-4">
           <Card><CardContent className="pt-6 space-y-4">
