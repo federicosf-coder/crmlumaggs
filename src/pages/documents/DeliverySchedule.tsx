@@ -52,6 +52,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   programado_entrega: { label: "Programado Entrega", color: "text-purple-700 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700" },
   entregado: { label: "Entregado", color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700" },
   cancelado: { label: "Cancelado", color: "text-gray-700 dark:text-gray-400", bg: "bg-gray-100 dark:bg-gray-900/30 border-gray-300 dark:border-gray-700" },
+  entrega_corporativa: { label: "Entrega Corporativa", color: "text-indigo-700 dark:text-indigo-400", bg: "bg-indigo-100 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-700" },
 };
 
 // ─── Types ────────────────────────────────────────────────────
@@ -650,6 +651,21 @@ export default function DeliverySchedule() {
     },
   });
 
+  // Pool: entregas corporativas no entregadas
+  const { data: poolCorporativas = [], refetch: refetchCorporativas } = useQuery({
+    queryKey: ["pool-corporativas"],
+    queryFn: async () => {
+      const q = supabase
+        .from("documentos")
+        .select("*, companies(name), documento_productos(cantidad, producto_id, productos(presentacion_id, presentaciones(nombre)))")
+        .eq("tipo_documento", "entrega_corporativa")
+        .eq("is_active", true)
+        .is("fecha_entrega_real", null)
+        .order("created_at", { ascending: false });
+      return await fetchAllRows<any>((from, to) => q.range(from, to));
+    },
+  });
+
   // All routes (no filter by date/plaza - show all active)
   const { data: allRutas = [], refetch: refetchRutas } = useQuery({
     queryKey: ["all-rutas-entrega"],
@@ -721,8 +737,34 @@ export default function DeliverySchedule() {
         };
       });
 
-    return pedidoItems;
-  }, [poolPedidos, allEntregas]);
+    const corporativaItems: PoolItem[] = (poolCorporativas || [])
+      .filter((p: any) => !scheduledDocIds.has(p.id))
+      .map((p: any) => {
+        const presByName: Record<string, number> = {};
+        (p.documento_productos || []).forEach((dp: any) => {
+          const presName = dp.productos?.presentaciones?.nombre || "Sin presentación";
+          presByName[presName] = (presByName[presName] || 0) + Number(dp.cantidad);
+        });
+        const productSummary = Object.entries(presByName)
+          .map(([name, qty]) => `${qty} ${name}`)
+          .join(", ") || "Entrega corporativa";
+        return {
+          id: p.id,
+          type: "pedido" as const,
+          title: p.companies?.name || "Sin cliente",
+          subtitle: productSummary,
+          address: p.direccion_envio || undefined,
+          total: Number(p.total) || 0,
+          unidades: Number(p.unidades_equivalentes_total) || 0,
+          estatus: "entrega_corporativa",
+          plaza_id: p.plaza_id || undefined,
+          fecha_documento: p.fecha_documento || undefined,
+          raw: p,
+        };
+      });
+
+    return [...pedidoItems, ...corporativaItems];
+  }, [poolPedidos, poolCorporativas, allEntregas]);
 
   // Build route items from entregas
   useEffect(() => {
@@ -988,8 +1030,9 @@ export default function DeliverySchedule() {
           refetchEntregas();
           return;
         }
+        const isCorp = item.raw?.tipo_documento === "entrega_corporativa";
         await supabase.from("documentos").update({
-          estatus_pedido: "programado_entrega",
+          ...(isCorp ? {} : { estatus_pedido: "programado_entrega" }),
           plaza_id: ruta.plaza_id,
           fecha_entrega_programada: ruta.fecha_entrega,
         }).eq("id", item.id);
@@ -997,6 +1040,7 @@ export default function DeliverySchedule() {
       }
 
       refetchPool();
+      refetchCorporativas();
       refetchEntregas();
       await recalcRouteDistances(ruta.id);
       return;
@@ -1009,13 +1053,14 @@ export default function DeliverySchedule() {
 
       await supabase.from("entregas_programadas").delete()
         .eq("documento_id", item.id).eq("ruta_id", activeContainer);
-      // Reset status to the previous pool status - use validado_contabilidad as default
+      const isCorp = item.raw?.tipo_documento === "entrega_corporativa";
       await supabase.from("documentos").update({
-        estatus_pedido: "validado_contabilidad",
+        ...(isCorp ? {} : { estatus_pedido: "validado_contabilidad" }),
         fecha_entrega_programada: null,
       }).eq("id", item.id);
       toast.success("Pedido devuelto al pool");
       refetchPool();
+      refetchCorporativas();
       refetchEntregas();
       await recalcRouteDistances(activeContainer);
       return;
@@ -1084,8 +1129,9 @@ export default function DeliverySchedule() {
     const items = routeItems[rutaId] || [];
     for (const item of items) {
       if (item.type === "pedido") {
+        const isCorp = item.raw?.tipo_documento === "entrega_corporativa";
         await supabase.from("documentos").update({
-          estatus_pedido: "validado_contabilidad",
+          ...(isCorp ? {} : { estatus_pedido: "validado_contabilidad" }),
           fecha_entrega_programada: null,
         }).eq("id", item.id);
       }
@@ -1097,20 +1143,24 @@ export default function DeliverySchedule() {
     refetchRutas();
     refetchEntregas();
     refetchPool();
+    refetchCorporativas();
     refetchRutaRepartidores();
   };
 
   const removeItemFromRoute = async (itemId: string) => {
     const container = findContainer(itemId);
     if (!container || container === "pool") return;
+    const item = (routeItems[container] || []).find(i => i.id === itemId);
+    const isCorp = item?.raw?.tipo_documento === "entrega_corporativa";
     await supabase.from("entregas_programadas").delete()
       .eq("documento_id", itemId).eq("ruta_id", container);
     await supabase.from("documentos").update({
-      estatus_pedido: "validado_contabilidad",
+      ...(isCorp ? {} : { estatus_pedido: "validado_contabilidad" }),
       fecha_entrega_programada: null,
     }).eq("id", itemId);
     toast.success("Pedido devuelto al pool");
     refetchPool();
+    refetchCorporativas();
     refetchEntregas();
   };
 
@@ -1209,11 +1259,17 @@ export default function DeliverySchedule() {
           evidencia_url: evidenciaUrl,
         }).eq("documento_id", deliverItem.id).eq("ruta_id", container);
       }
-      await supabase.from("documentos").update({ estatus_pedido: "entregado" }).eq("id", deliverItem.id);
+      const isCorp = deliverItem.raw?.tipo_documento === "entrega_corporativa";
+      await supabase.from("documentos").update(
+        isCorp
+          ? { fecha_entrega_real: new Date().toISOString().slice(0, 10) }
+          : { estatus_pedido: "entregado" }
+      ).eq("id", deliverItem.id);
       toast.success("Entrega registrada");
       setDeliverDialog(false);
       refetchEntregas();
       refetchPool();
+      refetchCorporativas();
       // Recalcular km y tiempos de la ruta con la información real tras marcar entregado
       if (container && container !== "pool") {
         await recalcRouteDistances(container);
