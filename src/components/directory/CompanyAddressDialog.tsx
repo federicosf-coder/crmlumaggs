@@ -126,6 +126,7 @@ export function CompanyAddressDialog({ open, onOpenChange, empresaId, empresaNam
     }
     qc.invalidateQueries({ queryKey: ["company_addresses_form"] });
     qc.invalidateQueries({ queryKey: ["all_addresses"] });
+    qc.invalidateQueries({ queryKey: ["direcciones-empresa-lookup"] });
     onSaved?.();
     onOpenChange(false);
   };
@@ -140,6 +141,7 @@ export function CompanyAddressDialog({ open, onOpenChange, empresaId, empresaNam
     toast.success("Dirección vinculada");
     qc.invalidateQueries({ queryKey: ["company_addresses_form"] });
     qc.invalidateQueries({ queryKey: ["all_addresses"] });
+    qc.invalidateQueries({ queryKey: ["direcciones-empresa-lookup"] });
     onSaved?.();
     onOpenChange(false);
   };

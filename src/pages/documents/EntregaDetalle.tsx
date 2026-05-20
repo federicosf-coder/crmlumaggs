@@ -27,6 +27,7 @@ import { useGoogleMaps } from "@/hooks/useGoogleMaps";
 import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { SignedDocImage } from "@/components/SignedDocImage";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { CompanyAddressDialog } from "@/components/directory/CompanyAddressDialog";
 
 export default function EntregaDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +38,8 @@ export default function EntregaDetalle() {
   const [uploading, setUploading] = useState<"evidencia" | "firmado" | null>(null);
   const [marking, setMarking] = useState(false);
   const [editAddrOpen, setEditAddrOpen] = useState(false);
+  const [addrDialogOpen, setAddrDialogOpen] = useState(false);
+  const [editingAddr, setEditingAddr] = useState<any | null>(null);
   const [selectedDireccionId, setSelectedDireccionId] = useState<string>("");
   const [newAddress, setNewAddress] = useState("");
   const [newLat, setNewLat] = useState<number | null>(null);
@@ -753,10 +756,12 @@ export default function EntregaDetalle() {
                   size="icon"
                   variant="outline"
                   disabled={!selectedDireccionId}
-                  title="Ver / Editar en módulo Direcciones"
+                  title="Ver / Editar dirección"
                   onClick={() => {
-                    if (!empresaIdForAddrs) return;
-                     window.open(`/directory/addresses?empresa=${empresaIdForAddrs}&direccion=${selectedDireccionId}`, "_blank", "noopener");
+                    if (!empresaIdForAddrs || !selectedDireccionId) return;
+                    const sel = (direccionesEmpresa as any[]).find((d) => d.id === selectedDireccionId);
+                    setEditingAddr(sel || null);
+                    setAddrDialogOpen(true);
                   }}
                 >
                   <ExternalLink className="h-4 w-4" />
@@ -770,7 +775,7 @@ export default function EntregaDetalle() {
                     type="button"
                     size="sm"
                     variant="outline"
-                     onClick={() => window.open(`/directory/addresses?empresa=${empresaIdForAddrs}&nuevo=1`, "_blank", "noopener")}
+                    onClick={() => { setEditingAddr(null); setAddrDialogOpen(true); }}
                   >
                     <ExternalLink className="h-3.5 w-3.5 mr-1" /> Agregar dirección
                   </Button>
@@ -964,6 +969,15 @@ export default function EntregaDetalle() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {empresaIdForAddrs && (
+        <CompanyAddressDialog
+          open={addrDialogOpen}
+          onOpenChange={(v) => { setAddrDialogOpen(v); if (!v) setEditingAddr(null); }}
+          empresaId={empresaIdForAddrs}
+          empresaName={(documento as any)?.empresa_nombre || ""}
+          editing={editingAddr}
+        />
+      )}
     </div>
   );
 }
