@@ -139,6 +139,22 @@ export default function EntregaDetalle() {
     enabled: !!empresaIdForAddrs,
   });
 
+  // Nombre del usuario que ajustó manualmente la fecha/hora de entrega
+  const editadaPorId = (entrega as any)?.fecha_entrega_real_editada_por as string | undefined;
+  const { data: editorProfile } = useQuery({
+    queryKey: ["entrega-editor-profile", editadaPorId],
+    queryFn: async () => {
+      if (!editadaPorId) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("user_id", editadaPorId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!editadaPorId,
+  });
+
   useEffect(() => {
     if (documento?.direccion_envio) setNewAddress(documento.direccion_envio);
   }, [documento?.direccion_envio]);
