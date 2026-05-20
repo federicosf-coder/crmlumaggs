@@ -1129,8 +1129,9 @@ export default function DeliverySchedule() {
     const items = routeItems[rutaId] || [];
     for (const item of items) {
       if (item.type === "pedido") {
+        const isCorp = item.raw?.tipo_documento === "entrega_corporativa";
         await supabase.from("documentos").update({
-          estatus_pedido: "validado_contabilidad",
+          ...(isCorp ? {} : { estatus_pedido: "validado_contabilidad" }),
           fecha_entrega_programada: null,
         }).eq("id", item.id);
       }
@@ -1142,20 +1143,24 @@ export default function DeliverySchedule() {
     refetchRutas();
     refetchEntregas();
     refetchPool();
+    refetchCorporativas();
     refetchRutaRepartidores();
   };
 
   const removeItemFromRoute = async (itemId: string) => {
     const container = findContainer(itemId);
     if (!container || container === "pool") return;
+    const item = (routeItems[container] || []).find(i => i.id === itemId);
+    const isCorp = item?.raw?.tipo_documento === "entrega_corporativa";
     await supabase.from("entregas_programadas").delete()
       .eq("documento_id", itemId).eq("ruta_id", container);
     await supabase.from("documentos").update({
-      estatus_pedido: "validado_contabilidad",
+      ...(isCorp ? {} : { estatus_pedido: "validado_contabilidad" }),
       fecha_entrega_programada: null,
     }).eq("id", itemId);
     toast.success("Pedido devuelto al pool");
     refetchPool();
+    refetchCorporativas();
     refetchEntregas();
   };
 
