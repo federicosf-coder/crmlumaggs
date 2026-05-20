@@ -2037,7 +2037,18 @@ export default function CreditoDetail() {
                       />
                     </Field>
                   </div>
-                  <Field label="Régimen conyugal"><Input value={form.aval_regimen_conyugal || ""} onChange={(e) => set("aval_regimen_conyugal", e.target.value)} /></Field>
+                  <Field label="Régimen conyugal">
+                    <Select value={form.aval_regimen_conyugal || ""} onValueChange={(v) => set("aval_regimen_conyugal", v)}>
+                      <SelectTrigger><SelectValue placeholder="Selecciona régimen" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Sociedad conyugal">Sociedad conyugal</SelectItem>
+                        <SelectItem value="Separación de bienes">Separación de bienes</SelectItem>
+                        <SelectItem value="Sociedad legal">Sociedad legal</SelectItem>
+                        <SelectItem value="Soltero(a)">Soltero(a)</SelectItem>
+                        <SelectItem value="No aplica">No aplica</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
                 </>
               )}
             </Section>
