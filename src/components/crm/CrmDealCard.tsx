@@ -4,6 +4,7 @@ import { Calendar, GripVertical, Package, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabasePagination";
 
 interface CrmDealCardProps {
   deal: CrmDeal;
@@ -60,9 +61,9 @@ export function CrmDealCard({ deal, stageColor, onClick, monthlyAvg, showHistori
   const { data: profilesMap } = useQuery({
     queryKey: ["profiles-name-map"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, full_name");
+      const data = await fetchAllRows<any>((from, to) => supabase.from("profiles").select("user_id, full_name").range(from, to));
       const map = new Map<string, string>();
-      (data || []).forEach((p: any) => map.set(p.user_id, p.full_name || ""));
+      data.forEach((p: any) => map.set(p.user_id, p.full_name || ""));
       return map;
     },
     staleTime: 5 * 60_000,

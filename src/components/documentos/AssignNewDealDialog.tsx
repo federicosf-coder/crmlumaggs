@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabasePagination";
 import { toast } from "sonner";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Plus } from "lucide-react";
@@ -84,8 +85,8 @@ export function AssignNewDealDialog({ open, prefill, onClose, onCreated }: Props
   const { data: companies = [] } = useQuery({
     queryKey: ["assign_new_deal_companies"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
-      return data || [];
+      const data = await fetchAllRows<any>((from, to) => supabase.from("companies").select("id, name").eq("is_active", true).order("name").range(from, to));
+      return data;
     },
   });
 
