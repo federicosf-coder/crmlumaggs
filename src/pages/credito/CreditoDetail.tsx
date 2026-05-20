@@ -882,8 +882,6 @@ export default function CreditoDetail() {
     );
   }
 
-  const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
-
   const handleSave = async () => {
     setSaving(true);
     const { id: _id, created_at, updated_at, companies, folio, client_token, ...payload } = form;
