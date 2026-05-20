@@ -2854,7 +2854,7 @@ function RppPanel({
   const colData = who === "solicitante" ? "rpp_solicitante_data" : "rpp_aval_data";
 
   const setEncontrado = async (v: boolean) => {
-    const { error } = await supabase.from("credit_requests").update({ [colEnc]: v }).eq("id", creditId);
+    const { error } = await supabase.from("credit_requests").update({ [colEnc]: v } as any).eq("id", creditId);
     if (error) { toast.error(error.message); return; }
     toast.success("Actualizado");
     onChange();
@@ -2868,7 +2868,7 @@ function RppPanel({
       if (error) throw error;
       // remove previous if any
       if (docPath) await supabase.storage.from("credit-docs").remove([docPath]);
-      const { error: upErr } = await supabase.from("credit_requests").update({ [colDoc]: path }).eq("id", creditId);
+      const { error: upErr } = await supabase.from("credit_requests").update({ [colDoc]: path } as any).eq("id", creditId);
       if (upErr) throw upErr;
       toast.success("Comprobante subido");
       onChange();
@@ -2889,13 +2889,13 @@ function RppPanel({
     if (!docPath) return;
     if (!confirm("¿Eliminar comprobante?")) return;
     await supabase.storage.from("credit-docs").remove([docPath]);
-    await supabase.from("credit_requests").update({ [colDoc]: null }).eq("id", creditId);
+    await supabase.from("credit_requests").update({ [colDoc]: null } as any).eq("id", creditId);
     onChange();
   };
 
   const saveData = async () => {
     setSaving(true);
-    const { error } = await supabase.from("credit_requests").update({ [colData]: local }).eq("id", creditId);
+    const { error } = await supabase.from("credit_requests").update({ [colData]: local } as any).eq("id", creditId);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Datos del RPP guardados");
