@@ -25,7 +25,7 @@ import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Badge } from "@/components/ui/badge";
-import { INDUSTRIAS_OPTIONS } from "@/components/CompanyFormDialog";
+import { useIndustriasCatalog } from "@/hooks/useIndustriasCatalog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 
@@ -745,6 +745,7 @@ export default function CreditoDetail() {
   const qc = useQueryClient();
   const isInternal = hasAnyRole(["admin", "manager", "customer_service", "accounting", "sales"]);
   const isAdminMgr = hasAnyRole(["admin", "manager"]);
+  const { data: industriasCatalog = [] } = useIndustriasCatalog();
 
   const [form, setForm] = useState<Req | null>(null);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
