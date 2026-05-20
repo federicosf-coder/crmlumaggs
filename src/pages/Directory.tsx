@@ -1189,9 +1189,47 @@ export default function Directory() {
                   </div>
                 </TabsContent>
 
+                <TabsContent value="direcciones" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <MapPin className="h-3.5 w-3.5" /> Direcciones de envío relacionadas
+                    </div>
+                    {selectedCompanyAddresses.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Sin direcciones vinculadas.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {selectedCompanyAddresses.map((a: any) => {
+                          const tipos = (a.tipos && a.tipos.length ? a.tipos : [a.tipo]).filter(Boolean);
+                          return (
+                            <div key={a.id} className="rounded border bg-muted/30 px-3 py-2 text-sm space-y-1">
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <div className="font-medium truncate">{a.nombre || a.direccion_completa || a.calle}</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {tipos.map((t: string) => (
+                                    <Badge key={t} variant="outline" className="text-xs">{labelTipoDireccion(t)}</Badge>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                <AddressDisplay
+                                  address={a.direccion_completa || a.calle}
+                                  lat={a.coordenadas_lat}
+                                  lng={a.coordenadas_lng}
+                                />
+                              </div>
+                              {a.referencia && (
+                                <p className="text-xs text-muted-foreground italic">Ref: {a.referencia}</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
                 <TabsContent value="clasificacion" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
                   {/* Lista de precios + Tipo destino */}
-                </TabsContent>
                   <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-primary">
                       <Tag className="h-3.5 w-3.5" /> Clasificación comercial
