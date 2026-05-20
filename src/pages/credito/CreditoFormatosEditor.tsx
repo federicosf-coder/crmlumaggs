@@ -40,6 +40,7 @@ const TOKENS_DISPONIBLES = [
   "rep_legal_fecha_nac", "rep_legal_pais_nac", "rep_legal_id_tipo", "rep_legal_id_num",
   "fecha_firma", "ciudad_firma", "fecha_constitucion", "municipio", "nacionalidad",
   "bc_nombre", "bc_porcentaje", "empresa_vendedora_nombre_largo",
+  "accionistas_html", "escritura_constitutiva", "datos_registro", "ultima_asamblea", "administrador_presidente",
 ];
 
 export default function CreditoFormatosEditor() {
