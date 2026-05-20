@@ -178,7 +178,7 @@ export default function WhatsAppCampaigns() {
       .select("id,wa_phone,status,error_message,sent_at,contacts(first_name,last_name)")
       .eq("campaign_id", c.id)
       .order("status", { ascending: true })
-      .limit(1000);
+      .limit(5000);
     setReportRows(((data ?? []) as any[]).map((r) => ({
       id: r.id,
       wa_phone: r.wa_phone,
