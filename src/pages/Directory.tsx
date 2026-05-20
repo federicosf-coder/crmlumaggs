@@ -1093,6 +1093,7 @@ export default function Directory() {
                 <TabsList className="w-full">
                   <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
                   <TabsTrigger value="contactos" className="flex-1">Contactos</TabsTrigger>
+                  <TabsTrigger value="direcciones" className="flex-1">Direcciones</TabsTrigger>
                   <TabsTrigger value="clasificacion" className="flex-1">Clasificación</TabsTrigger>
                   <TabsTrigger value="facturacion" className="flex-1">Detalles Facturación</TabsTrigger>
                   <TabsTrigger value="decision" className="flex-1">Proceso Decisión</TabsTrigger>
