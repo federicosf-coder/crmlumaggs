@@ -68,7 +68,7 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
   const bancosTop3 = bancos.slice(0, 3);
   const bancosHtml =
     bancosTop3
-      .map((b: any) => `<tr><td>${b?.banco ?? ""}</td><td>${b?.cuenta ?? ""}</td><td>${b?.clabe ?? b?.cuenta ?? ""}</td></tr>`)
+      .map((b: any) => `<tr><td>${b?.banco ?? ""}</td><td>${b?.cuenta ?? ""}</td><td>${b?.clabe ?? ""}</td></tr>`)
       .join("") + emptyBankRow.repeat(Math.max(0, 3 - bancosTop3.length));
   const tipo = form?.tipo_persona || form?.csf_tipo_persona || "moral";
 
