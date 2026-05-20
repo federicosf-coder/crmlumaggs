@@ -40,8 +40,24 @@ export default function CreditoImprimir() {
         if (entidadOverride) {
           entidad = entidadOverride;
         } else {
-          const empresaVendedora = company?.empresa_vendedora as string | undefined;
-          entidad = (empresaVendedora || "").toLowerCase().includes("galsa") ? "galsa" : "lumaggs";
+          // Para firmas comunes (buro, confidencialidad, subsistencia) usar la empresa
+          // marcada en "Crédito solicitado por empresa". Si están las dos, usar la del
+          // monto solicitado mayor. Fallback a empresa_vendedora del cliente.
+          const f: any = form;
+          const solL = !!f.solicita_lumaggs;
+          const solG = !!f.solicita_galsa;
+          const mL = Number(f.monto_solicitado_lumaggs ?? 0);
+          const mG = Number(f.monto_solicitado_galsa ?? 0);
+          if (solL && solG) {
+            entidad = mG > mL ? "galsa" : "lumaggs";
+          } else if (solG) {
+            entidad = "galsa";
+          } else if (solL) {
+            entidad = "lumaggs";
+          } else {
+            const empresaVendedora = company?.empresa_vendedora as string | undefined;
+            entidad = (empresaVendedora || "").toLowerCase().includes("galsa") ? "galsa" : "lumaggs";
+          }
         }
 
         // Si se imprime una solicitud específica por empresa, usa su monto en los tokens
