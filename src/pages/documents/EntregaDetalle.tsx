@@ -969,6 +969,15 @@ export default function EntregaDetalle() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {empresaIdForAddrs && (
+        <CompanyAddressDialog
+          open={addrDialogOpen}
+          onOpenChange={(v) => { setAddrDialogOpen(v); if (!v) setEditingAddr(null); }}
+          empresaId={empresaIdForAddrs}
+          empresaName={(documento as any)?.empresa_nombre || ""}
+          editing={editingAddr}
+        />
+      )}
     </div>
   );
 }
