@@ -186,6 +186,24 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
     setFreeSelected(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
+      // Construir grupo personalizado automáticamente al seleccionar
+      const selectedIds = Array.from(next);
+      const selected = allRows.filter(r => next.has(r.id));
+      if (selected.length >= 2) {
+        setCustomGroup({ key: "__custom__", reason: "Selección manual", rows: selected });
+        setActiveGroupKey(null);
+        setPrimaryId(prev2 => (prev2 && next.has(prev2) ? prev2 : selected[0].id));
+        setDuplicateIds(() => {
+          const dups = new Set(selectedIds);
+          // El principal se calcula con setPrimaryId arriba; aquí quitamos el primero por defecto
+          dups.delete(selected[0].id);
+          return dups;
+        });
+      } else {
+        setCustomGroup(null);
+        setPrimaryId(null);
+        setDuplicateIds(new Set());
+      }
       return next;
     });
   };
