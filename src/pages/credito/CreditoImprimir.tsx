@@ -11,6 +11,7 @@ export default function CreditoImprimir() {
   const [error, setError] = useState<string | null>(null);
   const [html, setHtml] = useState<string>("");
   const [titulo, setTitulo] = useState<string>("");
+  const [entidadActual, setEntidadActual] = useState<"lumaggs" | "galsa">("lumaggs");
 
   useEffect(() => {
     (async () => {
@@ -40,8 +41,24 @@ export default function CreditoImprimir() {
         if (entidadOverride) {
           entidad = entidadOverride;
         } else {
-          const empresaVendedora = company?.empresa_vendedora as string | undefined;
-          entidad = (empresaVendedora || "").toLowerCase().includes("galsa") ? "galsa" : "lumaggs";
+          // Para firmas comunes (buro, confidencialidad, subsistencia) usar la empresa
+          // marcada en "Crédito solicitado por empresa". Si están las dos, usar la del
+          // monto solicitado mayor. Fallback a empresa_vendedora del cliente.
+          const f: any = form;
+          const solL = !!f.solicita_lumaggs;
+          const solG = !!f.solicita_galsa;
+          const mL = Number(f.monto_solicitado_lumaggs ?? 0);
+          const mG = Number(f.monto_solicitado_galsa ?? 0);
+          if (solL && solG) {
+            entidad = mG > mL ? "galsa" : "lumaggs";
+          } else if (solG) {
+            entidad = "galsa";
+          } else if (solL) {
+            entidad = "lumaggs";
+          } else {
+            const empresaVendedora = company?.empresa_vendedora as string | undefined;
+            entidad = (empresaVendedora || "").toLowerCase().includes("galsa") ? "galsa" : "lumaggs";
+          }
         }
 
         // Si se imprime una solicitud específica por empresa, usa su monto en los tokens
@@ -72,7 +89,12 @@ export default function CreditoImprimir() {
         const footer = renderTemplate(tpl.footer_html || "", tokens);
 
         setTitulo(`${TEMPLATE_LABELS[tplKey]} · ${tokens.razon_social}`);
-        setHtml(`${header}${body}${footer}`);
+        setEntidadActual(entidad);
+        const brandBanner =
+          entidad === "galsa"
+            ? `<div class="brand-banner brand-galsa"><div class="brand-name">GALSA</div><div class="brand-sub">Phillips 66 · Distribuidor Autorizado</div></div>`
+            : `<div class="brand-banner brand-lumaggs"><div class="brand-name">LUMAGG'S</div><div class="brand-sub">Chevron · Distribuidor Autorizado</div></div>`;
+        setHtml(`${brandBanner}${header}${body}${footer}`);
       } catch (e: any) {
         setError(e?.message || "Error al cargar");
       } finally {
@@ -115,12 +137,23 @@ export default function CreditoImprimir() {
         body { background: #f4f4f5; }
         .doc-page { background: white; max-width: 8.5in; margin: 24px auto; padding: 0.75in 0.75in; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
         @media print { .doc-page { box-shadow: none; margin: 0; padding: 0; max-width: none; } }
+        .brand-banner { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10pt 0 14pt; margin: 0 0 16pt; border-top: 3pt solid var(--brand); border-bottom: 1pt solid var(--brand); }
+        .brand-banner .brand-name { font-size: 22pt; font-weight: 800; letter-spacing: 3px; color: var(--brand); }
+        .brand-banner .brand-sub { font-size: 9pt; color: #555; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2pt; }
+        .doc-page.brand-lumaggs { --brand: #1d4ed8; }
+        .doc-page.brand-galsa   { --brand: #b91c1c; }
+        .doc-page.brand-lumaggs h2 { border-bottom-color: #1d4ed8 !important; color: #1d4ed8; }
+        .doc-page.brand-galsa   h2 { border-bottom-color: #b91c1c !important; color: #b91c1c; }
+        .doc-page.brand-lumaggs table.kv th, .doc-page.brand-lumaggs table.grid th { background: #eff6ff !important; color: #1d4ed8; }
+        .doc-page.brand-galsa   table.kv th, .doc-page.brand-galsa   table.grid th { background: #fef2f2 !important; color: #b91c1c; }
+        .doc-page.brand-lumaggs .doc-title { color: #1d4ed8; }
+        .doc-page.brand-galsa   .doc-title { color: #b91c1c; }
       `}</style>
       <div className="print-toolbar">
         <Button size="sm" onClick={() => window.print()}>Imprimir</Button>
         <Button size="sm" variant="outline" onClick={() => window.close()}>Cerrar</Button>
       </div>
-      <div className="doc-page" dangerouslySetInnerHTML={{ __html: html }} />
+      <div className={`doc-page brand-${entidadActual}`} dangerouslySetInnerHTML={{ __html: html }} />
     </>
   );
 }
