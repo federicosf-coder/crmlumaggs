@@ -1179,15 +1179,20 @@ export default function SellerPortal() {
       })()}
 
       {/* Tabs detalle */}
-      <Tabs defaultValue="primera_compra">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="primera_compra">1ra Compra ({dealsEnRango.filter(d => d.pipeline_type !== "recompra").length})</TabsTrigger>
-          <TabsTrigger value="recompra">Recompra ({dealsEnRango.filter(d => d.pipeline_type === "recompra").length})</TabsTrigger>
-          <TabsTrigger value="cotizaciones">Cotizaciones ({cotizaciones.length})</TabsTrigger>
-          <TabsTrigger value="pedidos">Pedidos ({pedidos.length})</TabsTrigger>
-          <TabsTrigger value="facturas">Facturas ({facturas.length})</TabsTrigger>
-          <TabsTrigger value="cobranza">Cobranza ({pagos.length})</TabsTrigger>
-        </TabsList>
+      <Card>
+        <CardHeader className="pb-2 gap-2">
+          <CardTitle className="text-base">Detalle por sección</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="primera_compra">
+          <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="primera_compra">1ra Compra ({dealsEnRango.filter(d => d.pipeline_type !== "recompra").length})</TabsTrigger>
+            <TabsTrigger value="recompra">Recompra ({dealsEnRango.filter(d => d.pipeline_type === "recompra").length})</TabsTrigger>
+            <TabsTrigger value="cotizaciones">Cotizaciones ({cotizaciones.length})</TabsTrigger>
+            <TabsTrigger value="pedidos">Pedidos ({pedidos.length})</TabsTrigger>
+            <TabsTrigger value="facturas">Facturas ({facturas.length})</TabsTrigger>
+            <TabsTrigger value="cobranza">Cobranza ({pagos.length})</TabsTrigger>
+          </TabsList>
 
         {([
           { key: "primera_compra", label: "1ra Compra", filter: (d: any) => d.pipeline_type !== "recompra", empty: "Sin prospectos de 1ra compra en el rango" },
@@ -1195,30 +1200,29 @@ export default function SellerPortal() {
         ] as const).map(({ key, filter, empty }) => {
           const rows = dealsEnRango.filter(filter);
           return (
-            <TabsContent value={key} key={key}>
-              <Card>
-                <CardContent className="p-0 overflow-x-auto"><Table>
-                <TableHeader><TableRow className="h-8"><TableHead className="py-1">Cliente</TableHead><TableHead className="py-1">Tipo</TableHead><TableHead className="py-1">Fecha</TableHead><TableHead className="py-1 text-right">Unid. equiv.</TableHead><TableHead className="py-1"></TableHead></TableRow></TableHeader>
+            <TabsContent value={key} key={key} className="mt-3">
+              <div className="overflow-x-auto border rounded-md"><Table>
+                <TableHeader><TableRow><TableHead className="py-1.5">Cliente</TableHead><TableHead className="py-1.5">Tipo</TableHead><TableHead className="py-1.5">Fecha</TableHead><TableHead className="py-1.5 text-right">Unid. equiv.</TableHead><TableHead className="py-1.5 text-right">Acciones</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-4 text-muted-foreground text-sm">{empty}</TableCell></TableRow>}
+                  {rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-3 text-muted-foreground">{empty}</TableCell></TableRow>}
                   {paginate(rows, limProspectos, pageProspectos).map(d => {
                     const dealMarca = (d as any).crm_pipelines?.marca === "phillips66" ? "phillips66" : "chevron";
                     const dealType = d.pipeline_type === "recompra" ? "recompra" : "primera_compra";
                     const dealUrl = `/crm/${dealMarca}/pipeline?type=${dealType}&deal=${d.id}`;
                     return (
-                      <TableRow key={d.id} className="h-8">
-                        <TableCell className="font-medium text-sm py-1">{companyMap[d.company_id] || d.title}</TableCell>
-                        <TableCell className="py-1"><Badge variant="outline" className="text-xs">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
-                        <TableCell className="text-xs py-1">{format(new Date(d.created_at), "dd MMM yyyy", { locale: es })}</TableCell>
-                        <TableCell className="text-right text-sm py-1">{fmtNum(Number(d.potencial_unidades || 0))}</TableCell>
-                        <TableCell className="py-1"><Button size="sm" variant="ghost" onClick={() => navigate(dealUrl)}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
+                      <TableRow key={d.id}>
+                        <TableCell className="font-medium">{companyMap[d.company_id] || d.title}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{format(new Date(d.created_at), "dd MMM yyyy", { locale: es })}</TableCell>
+                        <TableCell className="text-right">{fmtNum(Number(d.potencial_unidades || 0))}</TableCell>
+                        <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => navigate(dealUrl)}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
               <PaginatorBar page={pageProspectos} setPage={setPageProspectos} total={rows.length} lim={limProspectos} setLim={setLimProspectos} />
-              </CardContent></Card>
+              </div>
             </TabsContent>
           );
         })}
@@ -1228,52 +1232,52 @@ export default function SellerPortal() {
           { key: "pedidos", data: pedidos, lim: limPedidos, setLim: setLimPedidos, page: pagePedidos, setPage: setPagePedidos },
           { key: "facturas", data: facturas, lim: limFacturas, setLim: setLimFacturas, page: pageFacturas, setPage: setPageFacturas },
         ].map(({ key, data, lim, setLim, page, setPage }) => (
-          <TabsContent value={key} key={key}>
-            <Card>
-              <CardContent className="p-0 overflow-x-auto"><Table>
-              <TableHeader><TableRow><TableHead>Folio</TableHead><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estatus</TableHead><TableHead className="text-right">Importe</TableHead><TableHead className="text-right">Unid. equiv.</TableHead><TableHead></TableHead></TableRow></TableHeader>
+          <TabsContent value={key} key={key} className="mt-3">
+            <div className="overflow-x-auto border rounded-md"><Table>
+              <TableHeader><TableRow><TableHead className="py-1.5">Folio</TableHead><TableHead className="py-1.5">Cliente</TableHead><TableHead className="py-1.5">Fecha</TableHead><TableHead className="py-1.5">Estatus</TableHead><TableHead className="py-1.5 text-right">Importe</TableHead><TableHead className="py-1.5 text-right">Unid. equiv.</TableHead><TableHead className="py-1.5 text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
-                {data.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Sin registros</TableCell></TableRow>}
+                {data.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-3 text-muted-foreground">Sin registros</TableCell></TableRow>}
                 {paginate(data, lim, page).map((d: any) => (
                   <TableRow key={d.id}>
                     <TableCell className="font-mono text-xs">{docFolio(d)}</TableCell>
-                    <TableCell className="text-sm">{companyMap[d.empresa_id] || "—"}</TableCell>
-                    <TableCell className="text-xs">{d.fecha_documento}</TableCell>
+                    <TableCell className="font-medium">{companyMap[d.empresa_id] || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{d.fecha_documento}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{docStatus(d)}</Badge></TableCell>
-                    <TableCell className="text-right text-sm">{fmtMoney(Number(d.total))}</TableCell>
-                    <TableCell className="text-right text-sm">{fmtNum(Number(d.unidades_equivalentes_total))}</TableCell>
-                    <TableCell><Button size="sm" variant="ghost" onClick={() => window.open(`/documents/${d.id}`, "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
+                    <TableCell className="text-right">{fmtMoney(Number(d.total))}</TableCell>
+                    <TableCell className="text-right">{fmtNum(Number(d.unidades_equivalentes_total))}</TableCell>
+                    <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => window.open(`/documents/${d.id}`, "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
             <PaginatorBar page={page} setPage={setPage} total={data.length} lim={lim} setLim={setLim} />
-            </CardContent></Card>
+            </div>
           </TabsContent>
         ))}
 
-        <TabsContent value="cobranza">
-          <Card>
-            <CardContent className="p-0 overflow-x-auto"><Table>
-            <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Fecha</TableHead><TableHead>Estatus</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="text-right">Aplicado</TableHead><TableHead></TableHead></TableRow></TableHeader>
+        <TabsContent value="cobranza" className="mt-3">
+          <div className="overflow-x-auto border rounded-md"><Table>
+            <TableHeader><TableRow><TableHead className="py-1.5">Cliente</TableHead><TableHead className="py-1.5">Fecha</TableHead><TableHead className="py-1.5">Estatus</TableHead><TableHead className="py-1.5 text-right">Monto</TableHead><TableHead className="py-1.5 text-right">Aplicado</TableHead><TableHead className="py-1.5 text-right">Acciones</TableHead></TableRow></TableHeader>
             <TableBody>
-              {pagos.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Sin pagos en el rango</TableCell></TableRow>}
+              {pagos.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-3 text-muted-foreground">Sin pagos en el rango</TableCell></TableRow>}
               {paginate(pagos, limCobranza, pageCobranza).map(p => (
                 <TableRow key={p.id}>
-                  <TableCell className="text-sm font-medium">{companyMap[p.empresa_id] || "—"}</TableCell>
-                  <TableCell className="text-xs">{p.fecha_pago}</TableCell>
+                  <TableCell className="font-medium">{companyMap[p.empresa_id] || "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{p.fecha_pago}</TableCell>
                   <TableCell><Badge variant="outline" className="text-xs">{p.estatus_pago}</Badge></TableCell>
-                  <TableCell className="text-right text-sm">{fmtMoney(Number(p.monto_total))}</TableCell>
-                  <TableCell className="text-right text-sm">{fmtMoney(Number(p.monto_aplicado))}</TableCell>
-                  <TableCell><Button size="sm" variant="ghost" onClick={() => window.open("/cobranza", "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
+                  <TableCell className="text-right">{fmtMoney(Number(p.monto_total))}</TableCell>
+                  <TableCell className="text-right">{fmtMoney(Number(p.monto_aplicado))}</TableCell>
+                  <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => window.open("/cobranza", "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
           <PaginatorBar page={pageCobranza} setPage={setPageCobranza} total={pagos.length} lim={limCobranza} setLim={setLimCobranza} />
-          </CardContent></Card>
+          </div>
         </TabsContent>
-      </Tabs>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       {/* Facturas vencidas y por vencer — buckets como filtros */}
       <Card>
