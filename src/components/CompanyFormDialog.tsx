@@ -958,7 +958,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {form.industrias.map(ind => (
                     <Badge key={ind} variant="secondary" className="gap-1 text-xs">
-                      {ind}
+                      {industriasCatalog.find(c => c.clave === ind)?.etiqueta || ind}
                       <X className="h-3 w-3 cursor-pointer" onClick={() => toggleIndustria(ind)} />
                     </Badge>
                   ))}
@@ -966,9 +966,11 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 <Select value="" onValueChange={v => { if (v && !form.industrias.includes(v)) toggleIndustria(v); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Agregar industria..." /></SelectTrigger>
                   <SelectContent>
-                    {INDUSTRIAS_OPTIONS.filter(o => !form.industrias.includes(o)).map(o => (
-                      <SelectItem key={o} value={o}>{o}</SelectItem>
-                    ))}
+                    {industriasCatalog
+                      .filter(o => !form.industrias.includes(o.clave))
+                      .map(o => (
+                        <SelectItem key={o.clave} value={o.clave}>{o.etiqueta}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
