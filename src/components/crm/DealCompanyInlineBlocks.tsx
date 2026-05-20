@@ -8,7 +8,8 @@ import { Plus, Briefcase, Users, Tag, ExternalLink } from "lucide-react";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { INDUSTRIAS_OPTIONS, TIPO_CLIENTE_OPTIONS } from "@/components/CompanyFormDialog";
+import { TIPO_CLIENTE_OPTIONS } from "@/components/CompanyFormDialog";
+import { useIndustriasCatalog } from "@/hooks/useIndustriasCatalog";
 import { X } from "lucide-react";
 
 interface Props { companyId: string }
@@ -17,6 +18,7 @@ export function DealCompanyInlineBlocks({ companyId }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const { data: industriasCatalog = [] } = useIndustriasCatalog();
 
   const { data: company } = useQuery({
     queryKey: ["deal-inline-company", companyId],
@@ -120,7 +122,7 @@ export function DealCompanyInlineBlocks({ companyId }: Props) {
           {industrias.length === 0 && <span className="text-xs text-muted-foreground">Sin industrias.</span>}
           {industrias.map((i) => (
             <Badge key={i} variant="secondary" className="text-xs gap-1">
-              {i}
+              {industriasCatalog.find(c => c.clave === i)?.etiqueta || i}
               <button type="button" onClick={() => removeIndustria(i)} className="hover:text-destructive">
                 <X className="h-3 w-3" />
               </button>
@@ -130,9 +132,11 @@ export function DealCompanyInlineBlocks({ companyId }: Props) {
         <Select value="" onValueChange={addIndustria}>
           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Agregar industria..." /></SelectTrigger>
           <SelectContent>
-            {INDUSTRIAS_OPTIONS.filter((o) => !industrias.includes(o)).map((o) => (
-              <SelectItem key={o} value={o}>{o}</SelectItem>
-            ))}
+            {industriasCatalog
+              .filter((o) => !industrias.includes(o.clave))
+              .map((o) => (
+                <SelectItem key={o.clave} value={o.clave}>{o.etiqueta}</SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </Card>
