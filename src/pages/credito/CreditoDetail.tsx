@@ -2029,9 +2029,8 @@ export default function CreditoDetail() {
               value={form.accionistas || []}
               onChange={(v) => set("accionistas", v)}
               fields={[
-                { key: "nombre", label: "Nombre" },
+                { key: "nombre", label: "Nombre accionista" },
                 { key: "acciones", label: "Número de acciones", type: "number" },
-                { key: "rfc", label: "RFC" },
               ]}
             />
             <Repeater
@@ -2775,14 +2774,26 @@ function Repeater({ title, value, onChange, fields, minRequired }: {
       ) : (
         <div className="space-y-2">
           {list.map((row, i) => (
-            <div key={i} className="grid sm:grid-cols-3 gap-2 items-end border rounded-md p-2">
+            <div
+              key={i}
+              className={`grid gap-2 items-end border rounded-md p-2 ${
+                fields.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"
+              }`}
+            >
               {fields.map((f) => (
                 <div key={f.key} className="space-y-1">
                   <Label className="text-[10px] text-muted-foreground">{f.label}</Label>
-                  <Input type={f.type || "text"} value={row?.[f.key] ?? ""} onChange={(e) => update(i, f.key, f.type === "number" ? (e.target.value ? Number(e.target.value) : null) : e.target.value)} />
+                  <Input
+                    type={f.type || "text"}
+                    inputMode={f.type === "number" ? "numeric" : undefined}
+                    min={f.type === "number" ? 0 : undefined}
+                    step={f.type === "number" ? 1 : undefined}
+                    value={row?.[f.key] ?? ""}
+                    onChange={(e) => update(i, f.key, f.type === "number" ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
+                  />
                 </div>
               ))}
-              <div className="sm:col-span-3 flex justify-end">
+              <div className={`flex justify-end ${fields.length === 2 ? "sm:col-span-2" : "sm:col-span-3"}`}>
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(i)}>
                   <Trash2 className="h-3.5 w-3.5 mr-1" />Eliminar
                 </Button>
