@@ -1320,7 +1320,10 @@ export function CreateCrmTaskDialog({
     {dealFormOpen && dealPipelineId && (
       <CreateCrmDealDialog
         open={dealFormOpen}
-        onOpenChange={setDealFormOpen}
+        onOpenChange={(o) => {
+          setDealFormOpen(o);
+          if (!o) queryClient.invalidateQueries({ queryKey: ["crm-deals-picker"] });
+        }}
         pipelineId={dealPipelineId}
         stages={dealStages}
         defaultCompanyId={companyId || undefined}
