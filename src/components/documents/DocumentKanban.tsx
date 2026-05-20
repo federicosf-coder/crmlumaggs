@@ -79,14 +79,14 @@ function KanbanColumn({
 
   return (
     <div className="w-[280px] flex-shrink-0">
-      <div className={`rounded-t-lg px-3 py-2 ${col.color}`}>
+      <div className={`rounded-t-xl border border-b-0 border-border/60 px-3 py-2.5 ${col.color}`}>
         <div className="flex items-center justify-between">
-          <span className="font-semibold text-sm">{col.label}</span>
-          <Badge variant="secondary" className="text-xs">{docs.length}</Badge>
+          <span className="text-xs uppercase tracking-wide font-semibold text-foreground/80">{col.label}</span>
+          <Badge variant="outline" className="text-[10px] font-medium bg-background/80 border">{docs.length}</Badge>
         </div>
       </div>
       <div
-        className={`rounded-b-lg p-2 space-y-2 min-h-[200px] transition-colors ${
+        className={`rounded-b-xl border border-t-0 border-border/60 p-2 space-y-2 min-h-[200px] transition-colors ${
           isDragOver ? "bg-primary/10 ring-2 ring-primary/30" : "bg-muted/30"
         }`}
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -99,25 +99,25 @@ function KanbanColumn({
         }}
       >
         {docs.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-8">Sin documentos</p>
+          <p className="text-xs font-light text-muted-foreground text-center py-8">Sin documentos</p>
         ) : (
           docs.map((doc: any) => (
             <Card
               key={doc.id}
               draggable
               onDragStart={(e) => e.dataTransfer.setData("docId", doc.id)}
-              className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+              className="cursor-grab active:cursor-grabbing hover:border-primary/30"
               onClick={() => onNavigate(doc.id)}
             >
               <CardContent className="p-3 space-y-1">
-                <div className="font-medium text-sm truncate">
+                <div className="font-medium text-sm tracking-tight truncate">
                   {doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "Sin número"}
                 </div>
-                <div className="text-xs text-muted-foreground truncate">
+                <div className="text-xs font-light text-muted-foreground truncate">
                   {(doc.companies as any)?.name || "Sin cliente"}
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">
+                  <span className="font-light text-muted-foreground">
                     {format(new Date(doc.fecha_documento), "dd/MM/yy")}
                   </span>
                   <span className="font-semibold">
