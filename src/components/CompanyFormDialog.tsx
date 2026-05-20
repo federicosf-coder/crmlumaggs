@@ -22,6 +22,7 @@ import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { CompanyAddressDialog } from "@/components/directory/CompanyAddressDialog";
+import { useIndustriasCatalog } from "@/hooks/useIndustriasCatalog";
 
 // LADAs MX de 2 dígitos: formato +52 LL DDDD DDDD; resto: +52 LLL DDD DDDD.
 const TWO_DIGIT_LADAS = new Set(["33", "55", "56", "81"]);
@@ -195,6 +196,7 @@ const emptyForm = {
 export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: Props) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const { data: industriasCatalog = [] } = useIndustriasCatalog();
   const [form, setForm] = useState({ ...emptyForm });
   const isEdit = !!editData?.id;
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
