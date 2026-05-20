@@ -257,6 +257,34 @@ export default function Directory() {
     enabled: !!selectedCompany?.id,
   });
 
+  // Direcciones vinculadas a la empresa seleccionada (para vista detalle)
+  const { data: selectedCompanyAddresses = [] } = useQuery({
+    queryKey: ["company_addresses_detail", selectedCompany?.id],
+    queryFn: async () => {
+      if (!selectedCompany?.id) return [];
+      const { data } = await supabase
+        .from("direcciones_empresa")
+        .select("id, nombre, tipo, tipos, calle, ciudad, estado, codigo_postal, direccion_completa, referencia, coordenadas_lat, coordenadas_lng")
+        .eq("empresa_id", selectedCompany.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!selectedCompany?.id,
+  });
+
+  const { data: tiposDireccionCatalog = [] } = useQuery({
+    queryKey: ["tipos_direccion_catalog_detail"],
+    queryFn: async () => {
+      const { data } = await (supabase.from as any)("tipos_direccion")
+        .select("clave, etiqueta")
+        .eq("is_active", true);
+      return (data || []) as { clave: string; etiqueta: string }[];
+    },
+  });
+  const labelTipoDireccion = (clave: string) =>
+    tiposDireccionCatalog.find((t) => t.clave === clave)?.etiqueta || clave;
+
   // Contact ejecutivos for selected contact
   const { data: selectedContactEjecutivos = [] } = useQuery({
     queryKey: ["contact_ejecutivos_detail", selectedContact?.id],
@@ -1065,6 +1093,7 @@ export default function Directory() {
                 <TabsList className="w-full">
                   <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
                   <TabsTrigger value="contactos" className="flex-1">Contactos</TabsTrigger>
+                  <TabsTrigger value="direcciones" className="flex-1">Direcciones</TabsTrigger>
                   <TabsTrigger value="clasificacion" className="flex-1">Clasificación</TabsTrigger>
                   <TabsTrigger value="facturacion" className="flex-1">Detalles Facturación</TabsTrigger>
                   <TabsTrigger value="decision" className="flex-1">Proceso Decisión</TabsTrigger>
@@ -1155,6 +1184,45 @@ export default function Directory() {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="direcciones" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <MapPin className="h-3.5 w-3.5" /> Direcciones de envío relacionadas
+                    </div>
+                    {selectedCompanyAddresses.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Sin direcciones vinculadas.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {selectedCompanyAddresses.map((a: any) => {
+                          const tipos = (a.tipos && a.tipos.length ? a.tipos : [a.tipo]).filter(Boolean);
+                          return (
+                            <div key={a.id} className="rounded border bg-muted/30 px-3 py-2 text-sm space-y-1">
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <div className="font-medium truncate">{a.nombre || a.direccion_completa || a.calle}</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {tipos.map((t: string) => (
+                                    <Badge key={t} variant="outline" className="text-xs">{labelTipoDireccion(t)}</Badge>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                <AddressDisplay
+                                  address={a.direccion_completa || a.calle}
+                                  lat={a.coordenadas_lat}
+                                  lng={a.coordenadas_lng}
+                                />
+                              </div>
+                              {a.referencia && (
+                                <p className="text-xs text-muted-foreground italic">Ref: {a.referencia}</p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
