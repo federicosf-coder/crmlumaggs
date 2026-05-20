@@ -2030,7 +2030,7 @@ export default function CreditoDetail() {
               onChange={(v) => set("accionistas", v)}
               fields={[
                 { key: "nombre", label: "Nombre" },
-                { key: "porcentaje", label: "% participación", type: "number" },
+                { key: "acciones", label: "Número de acciones", type: "number" },
                 { key: "rfc", label: "RFC" },
               ]}
             />
