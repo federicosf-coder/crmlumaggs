@@ -1444,7 +1444,7 @@ export default function CreditoDetail() {
                 )}
                 {companyIndustrias.map((i) => (
                   <Badge key={i} variant="secondary" className="text-xs gap-1">
-                    {i}
+                    {industriasCatalog.find(c => c.clave === i)?.etiqueta || i}
                     <button type="button" onClick={() => removeIndustria(i)} className="hover:text-destructive">
                       <X className="h-3 w-3" />
                     </button>
@@ -1454,9 +1454,11 @@ export default function CreditoDetail() {
               <Select value="" onValueChange={addIndustria}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Agregar industria..." /></SelectTrigger>
                 <SelectContent>
-                  {INDUSTRIAS_OPTIONS.filter((o) => !companyIndustrias.includes(o)).map((o) => (
-                    <SelectItem key={o} value={o}>{o}</SelectItem>
-                  ))}
+                  {industriasCatalog
+                    .filter((o) => !companyIndustrias.includes(o.clave))
+                    .map((o) => (
+                      <SelectItem key={o.clave} value={o.clave}>{o.etiqueta}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
