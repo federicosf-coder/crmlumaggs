@@ -1244,39 +1244,41 @@ export default function DeliverySchedule() {
           </div>
         </div>
         {/* Plaza filter chips + pool toggle + view toggle */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex gap-1.5 flex-wrap items-center">
-            <Button
-              size="sm"
-              variant={showPool ? "default" : "outline"}
-              className="h-7 text-xs"
-              onClick={() => setShowPool(!showPool)}
-            >
-              {showPool ? <PanelLeftClose className="h-3.5 w-3.5 mr-1" /> : <PanelLeftOpen className="h-3.5 w-3.5 mr-1" />}
-              Pool de Pedidos
-            </Button>
-            <Separator orientation="vertical" className="h-5 mx-1" />
-            <Button
-              size="sm"
-              variant={selectedPlaza === "all" ? "default" : "outline"}
-              className="h-7 text-xs"
-              onClick={() => setSelectedPlaza("all")}
-            >
-              Todas las plazas
-            </Button>
-            {plazas.map((p: any) => (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex gap-1.5 flex-wrap items-center">
               <Button
-                key={p.id}
                 size="sm"
-                variant={selectedPlaza === p.id ? "default" : "outline"}
+                variant={showPool ? "default" : "outline"}
                 className="h-7 text-xs"
-                onClick={() => setSelectedPlaza(p.id)}
+                onClick={() => setShowPool(!showPool)}
               >
-                {p.nombre}
+                {showPool ? <PanelLeftClose className="h-3.5 w-3.5 mr-1" /> : <PanelLeftOpen className="h-3.5 w-3.5 mr-1" />}
+                Pool de Pedidos
               </Button>
-            ))}
+              <Separator orientation="vertical" className="h-5 mx-1" />
+              <Button
+                size="sm"
+                variant={selectedPlaza === "all" ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setSelectedPlaza("all")}
+              >
+                Todas las plazas
+              </Button>
+              {plazas.map((p: any) => (
+                <Button
+                  key={p.id}
+                  size="sm"
+                  variant={selectedPlaza === p.id ? "default" : "outline"}
+                  className="h-7 text-xs"
+                  onClick={() => setSelectedPlaza(p.id)}
+                >
+                  {p.nombre}
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-1 border rounded-md p-0.5">
               <Button
                 size="sm"
