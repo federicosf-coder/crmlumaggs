@@ -251,6 +251,35 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
     enabled: !!editData?.id && open,
   });
 
+  // Direcciones vinculadas a la empresa (para pestaña Direcciones)
+  const { data: companyAddresses = [] } = useQuery({
+    queryKey: ["company_addresses_form", editData?.id],
+    queryFn: async () => {
+      if (!editData?.id) return [];
+      const { data } = await supabase
+        .from("direcciones_empresa")
+        .select("id, nombre, tipo, tipos, calle, ciudad, estado, codigo_postal, direccion_completa, referencia, coordenadas_lat, coordenadas_lng")
+        .eq("empresa_id", editData.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!editData?.id && open,
+  });
+
+  const { data: tiposDireccionCatalog = [] } = useQuery({
+    queryKey: ["tipos_direccion_catalog_form"],
+    queryFn: async () => {
+      const { data } = await (supabase.from as any)("tipos_direccion")
+        .select("clave, etiqueta")
+        .eq("is_active", true);
+      return (data || []) as { clave: string; etiqueta: string }[];
+    },
+    enabled: open,
+  });
+  const labelTipoDireccion = (clave: string) =>
+    tiposDireccionCatalog.find((t) => t.clave === clave)?.etiqueta || clave;
+
   // Contactos disponibles para vincular al crear empresa (sin company_id o seleccionados)
   const { data: pendingContactsData = [], refetch: refetchPendingContacts } = useQuery({
     queryKey: ["pending_contacts_for_new_company", pendingContactIds.join(",")],
