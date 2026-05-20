@@ -2846,6 +2846,7 @@ function RppPanel({
 }) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [local, setLocal] = useState<any>(data || {});
   useEffect(() => { setLocal(data || {}); }, [data]);
 
@@ -2871,6 +2872,33 @@ function RppPanel({
       const { error: upErr } = await supabase.from("credit_requests").update({ [colDoc]: path } as any).eq("id", creditId);
       if (upErr) throw upErr;
       toast.success("Comprobante subido");
+      // Auto-extracción con IA
+      setExtracting(true);
+      try {
+        const b64: string = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => {
+            const s = String(r.result || "");
+            const i = s.indexOf(",");
+            resolve(i >= 0 ? s.slice(i + 1) : s);
+          };
+          r.onerror = () => reject(r.error);
+          r.readAsDataURL(file);
+        });
+        const { data: ex, error: exErr } = await supabase.functions.invoke("credito-rpp-extract", {
+          body: { request_id: creditId, who, file_b64: b64, mime: file.type || "application/pdf" },
+        });
+        if (exErr) throw exErr;
+        if ((ex as any)?.error) throw new Error((ex as any).error);
+        const merged = (ex as any)?.merged || {};
+        setLocal(merged);
+        const count = Object.values((ex as any)?.parsed || {}).filter((v) => v !== null && v !== undefined && String(v).trim() !== "").length;
+        toast.success(`Autocompletado: ${count} campos detectados`);
+      } catch (e: any) {
+        toast.error(`No se pudo autocompletar: ${e?.message || "error"}`);
+      } finally {
+        setExtracting(false);
+      }
       onChange();
     } catch (e: any) {
       toast.error(e?.message || "Error al subir");
@@ -2935,13 +2963,13 @@ function RppPanel({
               </>
             ) : null}
             <label className="cursor-pointer inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border bg-background hover:bg-accent">
-              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-              {docPath ? "Reemplazar" : "Subir"}
+              {uploading || extracting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              {extracting ? "Analizando con IA..." : uploading ? "Subiendo..." : (docPath ? "Reemplazar y autocompletar" : "Subir y autocompletar")}
               <input
                 type="file"
                 className="hidden"
                 accept="application/pdf,image/*"
-                disabled={uploading}
+                disabled={uploading || extracting}
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadComprobante(f); e.currentTarget.value = ""; }}
               />
             </label>
