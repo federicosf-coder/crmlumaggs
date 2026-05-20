@@ -82,9 +82,14 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
   const accionistasRaw = Array.isArray(form?.accionistas) ? form.accionistas : [];
   const emptyAccRow = `<tr><td>&nbsp;</td><td>&nbsp;</td></tr>`;
   const accTop4 = accionistasRaw.slice(0, 4);
+  const fmtAcc = (v: any) => {
+    if (v === null || v === undefined || v === "") return "";
+    const n = Number(v);
+    return Number.isFinite(n) ? n.toLocaleString("es-MX") : String(v);
+  };
   const accionistasHtml =
     accTop4
-      .map((a: any) => `<tr><td>${a?.nombre ?? ""}</td><td>${a?.acciones ?? a?.no_acciones ?? ""}</td></tr>`)
+      .map((a: any) => `<tr><td>${a?.nombre ?? ""}</td><td style="text-align:right">${fmtAcc(a?.acciones ?? a?.no_acciones)}</td></tr>`)
       .join("") + emptyAccRow.repeat(Math.max(0, 4 - accTop4.length));
 
   const t: Record<string, string> = {
