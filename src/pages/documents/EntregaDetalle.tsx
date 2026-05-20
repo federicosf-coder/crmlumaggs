@@ -16,8 +16,11 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, MapPin, Upload, FileText, Image as ImageIcon, Trash2, Check,
-  Navigation, Pencil, Loader2, ExternalLink, Clock,
+  Navigation, Pencil, Loader2, ExternalLink, Clock, Calendar as CalendarIcon,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -62,7 +65,9 @@ export default function EntregaDetalle() {
   const [savingEstatus, setSavingEstatus] = useState(false);
   const [savingFecha, setSavingFecha] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [adjustValue, setAdjustValue] = useState<string>("");
+  const [adjustDate, setAdjustDate] = useState<Date | undefined>(undefined);
+  const [adjustTime, setAdjustTime] = useState<string>("");
+  const [adjustPickerOpen, setAdjustPickerOpen] = useState(false);
   const [savingAdjust, setSavingAdjust] = useState(false);
 
   // Documento
@@ -465,9 +470,12 @@ export default function EntregaDetalle() {
   };
 
   const saveAdjustedFechaEntregaReal = async () => {
-    if (!entrega?.id || !adjustValue) return;
+    if (!entrega?.id || !adjustDate) return;
     setSavingAdjust(true);
-    const iso = new Date(adjustValue).toISOString();
+    const [hh, mm] = (adjustTime || "00:00").split(":").map((n) => Number(n) || 0);
+    const dt = new Date(adjustDate);
+    dt.setHours(hh, mm, 0, 0);
+    const iso = dt.toISOString();
     const { error } = await supabase
       .from("entregas_programadas")
       .update({
@@ -667,8 +675,8 @@ export default function EntregaDetalle() {
               onClick={() => {
                 const base = entrega?.fecha_entrega_real ? new Date(entrega.fecha_entrega_real) : new Date();
                 const pad = (n: number) => String(n).padStart(2, "0");
-                const local = `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}T${pad(base.getHours())}:${pad(base.getMinutes())}`;
-                setAdjustValue(local);
+                setAdjustDate(base);
+                setAdjustTime(`${pad(base.getHours())}:${pad(base.getMinutes())}`);
                 setAdjustOpen(true);
               }}
               disabled={!entrega}
@@ -1124,20 +1132,56 @@ export default function EntregaDetalle() {
               Solo administradores. Se registrará tu nombre como editor.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="adjust-datetime" className="text-xs uppercase tracking-wide text-muted-foreground">
+          <div className="space-y-3">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">
               Fecha y hora
             </Label>
-            <Input
-              id="adjust-datetime"
-              type="datetime-local"
-              value={adjustValue}
-              onChange={(e) => setAdjustValue(e.target.value)}
-            />
+            <Popover open={adjustPickerOpen} onOpenChange={setAdjustPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-light h-10",
+                    !adjustDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 opacity-60" />
+                  {adjustDate
+                    ? `${format(adjustDate, "dd MMM yyyy", { locale: es })}${adjustTime ? ` · ${adjustTime}` : ""}`
+                    : "Selecciona fecha"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={adjustDate}
+                  onDayClick={(day) => {
+                    if (adjustDate && day.toDateString() === adjustDate.toDateString()) {
+                      setAdjustDate(undefined);
+                    } else {
+                      setAdjustDate(day);
+                    }
+                  }}
+                  defaultMonth={adjustDate || new Date()}
+                  initialFocus
+                  locale={es}
+                  className={cn("p-3 pointer-events-auto font-light")}
+                />
+                <div className="border-t p-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="time"
+                    value={adjustTime}
+                    onChange={(e) => setAdjustTime(e.target.value)}
+                    className="h-9 font-light"
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAdjustOpen(false)}>Cancelar</Button>
-            <Button onClick={saveAdjustedFechaEntregaReal} disabled={savingAdjust || !adjustValue}>
+            <Button onClick={saveAdjustedFechaEntregaReal} disabled={savingAdjust || !adjustDate}>
               {savingAdjust && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Guardar
             </Button>
