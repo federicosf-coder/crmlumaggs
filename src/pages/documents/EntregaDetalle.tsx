@@ -62,7 +62,9 @@ export default function EntregaDetalle() {
   const [savingEstatus, setSavingEstatus] = useState(false);
   const [savingFecha, setSavingFecha] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [adjustValue, setAdjustValue] = useState<string>("");
+  const [adjustDate, setAdjustDate] = useState<Date | undefined>(undefined);
+  const [adjustTime, setAdjustTime] = useState<string>("");
+  const [adjustPickerOpen, setAdjustPickerOpen] = useState(false);
   const [savingAdjust, setSavingAdjust] = useState(false);
 
   // Documento
