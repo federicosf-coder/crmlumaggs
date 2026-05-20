@@ -15,7 +15,7 @@ import { TEMPLATE_LABELS, TEMPLATE_KEYS, renderTemplate, PRINT_STYLES, buildToke
 interface Tpl {
   id: string;
   key: TemplateKey;
-  entidad: "lumaggs" | "galsa";
+  entidad: "lumaggs" | "galsa" | "ambas";
   nombre: string;
   contenido_html: string;
   header_html: string | null;
@@ -27,6 +27,7 @@ interface Tpl {
 const ENTIDADES = [
   { value: "lumaggs", label: "Lumaggs (Chevron)" },
   { value: "galsa", label: "Galsa (Phillips 66)" },
+  { value: "ambas", label: "Ambas (Lumaggs y Galsa)" },
 ];
 
 const TOKENS_DISPONIBLES = [
