@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabasePagination";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -292,8 +293,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles_active"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, full_name, email").eq("is_active", true).order("full_name");
-      return data || [];
+      const data = await fetchAllRows<any>((from, to) => supabase.from("profiles").select("user_id, full_name, email").eq("is_active", true).order("full_name").range(from, to));
+      return data;
     },
   });
 

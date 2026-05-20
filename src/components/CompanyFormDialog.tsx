@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabasePagination";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -332,8 +333,8 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles_active"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, full_name, email").eq("is_active", true).order("full_name");
-      return data || [];
+      const data = await fetchAllRows<any>((from, to) => supabase.from("profiles").select("user_id, full_name, email").eq("is_active", true).order("full_name").range(from, to));
+      return data;
     },
   });
 

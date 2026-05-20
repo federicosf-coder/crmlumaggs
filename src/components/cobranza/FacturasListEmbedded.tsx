@@ -218,8 +218,8 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-for-filter"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name");
-      return data || [];
+      const data = await fetchAllRows<any>((from, to) => supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name").range(from, to));
+      return data;
     },
   });
   const getEjecutivoName = (id: string | null) => {

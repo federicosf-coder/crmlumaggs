@@ -8,6 +8,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabasePagination";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 
@@ -40,8 +41,8 @@ export function BulkEditDialog({ open, onOpenChange, selectedIds, table, fields,
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles_active_bulk"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, full_name, email").eq("is_active", true).order("full_name");
-      return data || [];
+      const data = await fetchAllRows<any>((from, to) => supabase.from("profiles").select("user_id, full_name, email").eq("is_active", true).order("full_name").range(from, to));
+      return data;
     },
     enabled: open && ejecutivoFields.length > 0,
   });

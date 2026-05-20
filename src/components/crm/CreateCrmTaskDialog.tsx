@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmTask, useUpdateCrmTask, type CrmTask } from "@/hooks/useCrmTasks";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabasePagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,16 +57,16 @@ export function CreateCrmTaskDialog({
   const { data: contacts } = useQuery({
     queryKey: ["contacts-picker"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name").eq("is_active", true).order("first_name");
-      return data || [];
+      const data = await fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, first_name, last_name").eq("is_active", true).order("first_name").range(from, to));
+      return data;
     },
   });
 
   const { data: companies } = useQuery({
     queryKey: ["companies-picker"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
-      return data || [];
+      const data = await fetchAllRows<any>((from, to) => supabase.from("companies").select("id, name").eq("is_active", true).order("name").range(from, to));
+      return data;
     },
   });
 
