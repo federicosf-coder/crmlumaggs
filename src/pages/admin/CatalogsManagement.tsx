@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText, Building2, Truck, User, Mail } from "lucide-react";
+import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText, Building2, Truck, User, Mail, Factory, Search, Settings2 } from "lucide-react";
 import { EmailGroupsTab } from "@/components/admin/EmailGroupsTab";
 import { SystemSettingsTab } from "@/components/admin/SystemSettingsTab";
 
