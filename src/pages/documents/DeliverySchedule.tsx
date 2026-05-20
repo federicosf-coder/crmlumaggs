@@ -543,15 +543,15 @@ function PedidoFooterActions({ item }: { item: any }) {
       </Button>
       <Dialog open={open !== null} onOpenChange={(v) => !v && setOpen(null)}>
         <DialogContent className="max-w-5xl w-[95vw] h-[85vh] p-0 flex flex-col">
-          <DialogHeader className="px-4 py-3 border-b shrink-0">
-            <DialogTitle className="flex items-center justify-between gap-2">
-              <span>{title}</span>
+          <DialogHeader className="px-4 py-3 pr-12 border-b shrink-0">
+            <DialogTitle className="flex items-center justify-between gap-2 pr-6">
+              <span className="truncate">{title}</span>
               {src && (
                 <a
                   href={src}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                  className="text-xs text-muted-foreground hover:text-foreground underline shrink-0"
                 >
                   Abrir en pestaña
                 </a>
