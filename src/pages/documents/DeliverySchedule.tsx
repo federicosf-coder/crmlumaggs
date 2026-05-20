@@ -1259,11 +1259,17 @@ export default function DeliverySchedule() {
           evidencia_url: evidenciaUrl,
         }).eq("documento_id", deliverItem.id).eq("ruta_id", container);
       }
-      await supabase.from("documentos").update({ estatus_pedido: "entregado" }).eq("id", deliverItem.id);
+      const isCorp = deliverItem.raw?.tipo_documento === "entrega_corporativa";
+      await supabase.from("documentos").update(
+        isCorp
+          ? { fecha_entrega_real: new Date().toISOString().slice(0, 10) }
+          : { estatus_pedido: "entregado" }
+      ).eq("id", deliverItem.id);
       toast.success("Entrega registrada");
       setDeliverDialog(false);
       refetchEntregas();
       refetchPool();
+      refetchCorporativas();
       // Recalcular km y tiempos de la ruta con la información real tras marcar entregado
       if (container && container !== "pool") {
         await recalcRouteDistances(container);
