@@ -747,6 +747,7 @@ export default function CreditoDetail() {
   const isAdminMgr = hasAnyRole(["admin", "manager"]);
 
   const [form, setForm] = useState<Req | null>(null);
+  const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("datos");
   const [formTab, setFormTab] = useState("empresa");
