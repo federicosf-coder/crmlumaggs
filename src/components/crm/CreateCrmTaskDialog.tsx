@@ -123,6 +123,21 @@ export function CreateCrmTaskDialog({
 
   const userEmail = session?.user?.email || "";
 
+  // Auto: cuando se selecciona un negocio, autocompletar empresa (y contacto si no hay)
+  useEffect(() => {
+    if (!dealId || !deals) return;
+    const d = (deals as any[]).find((x) => x.id === dealId);
+    if (!d) return;
+    if (d.company_id && !companyId) setCompanyId(d.company_id);
+    if (d.contact_id && !contactId) setContactId(d.contact_id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dealId, deals]);
+
+  // Contactos filtrados por empresa seleccionada (si hay)
+  const filteredContacts = (contacts || []).filter((c: any) =>
+    companyId ? c.company_id === companyId : true
+  );
+
   const persistEmailTask = (sentOk: boolean) => {
     if (!session?.user) return;
     const subject = emailSubject || "(sin asunto)";
