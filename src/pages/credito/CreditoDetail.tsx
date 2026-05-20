@@ -2015,8 +2015,28 @@ export default function CreditoDetail() {
                   })()}
                   <Field label="Nombre"><Input value={form.aval_nombre || ""} onChange={(e) => set("aval_nombre", e.target.value)} /></Field>
                   <Field label="Relación"><Input value={form.aval_relacion || ""} onChange={(e) => set("aval_relacion", e.target.value)} /></Field>
-                  <Field label="Dirección"><Input value={form.aval_direccion || ""} onChange={(e) => set("aval_direccion", e.target.value)} /></Field>
-                  <Field label="Ciudad"><Input value={form.aval_ciudad || ""} onChange={(e) => set("aval_ciudad", e.target.value)} /></Field>
+                  <div className="sm:col-span-2">
+                    <Field label="Dirección">
+                      <AddressAutocompleteInput
+                        label=""
+                        showCoords={false}
+                        showLocateButton={false}
+                        placeholder="Buscar dirección en Google Maps..."
+                        value={{
+                          ...emptyAddress,
+                          direccion_completa: form.aval_direccion || "",
+                          ciudad: form.aval_ciudad || null,
+                        }}
+                        onChange={(v: AddressValue) => {
+                          setForm((f: any) => ({
+                            ...f,
+                            aval_direccion: v.direccion_completa || "",
+                            aval_ciudad: v.ciudad ?? f.aval_ciudad,
+                          }));
+                        }}
+                      />
+                    </Field>
+                  </div>
                   <Field label="Régimen conyugal"><Input value={form.aval_regimen_conyugal || ""} onChange={(e) => set("aval_regimen_conyugal", e.target.value)} /></Field>
                 </>
               )}
