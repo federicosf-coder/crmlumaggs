@@ -59,17 +59,17 @@ export function CrmDealsListView({
         const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
         const someSelected = visibleIds.some((id) => selectedIds.has(id));
         return (
-          <div key={stage.id} className="rounded-lg border bg-card overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 bg-muted/40 border-b">
+          <div key={stage.id} className="rounded-xl border bg-card overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 border-b">
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleGroup(stage.id)}>
                   {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </Button>
-                <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
-                <span className="font-semibold text-sm">{stage.name}</span>
-                <Badge variant="secondary" className="ml-1">{list.length}</Badge>
+                <span className="inline-block h-2.5 w-2.5 rounded-full ring-2 ring-background" style={{ backgroundColor: stage.color }} />
+                <span className="text-xs uppercase tracking-wide font-semibold text-foreground/80">{stage.name}</span>
+                <Badge variant="secondary" className="ml-1 text-[10px] font-light bg-background/80 border">{list.length}</Badge>
               </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-3 text-xs text-muted-foreground font-light">
                 {totalUnits > 0 && <span>{totalUnits.toLocaleString("es-MX")} u.</span>}
                 {totalValue > 0 && <span>{fmtMoney(totalValue)}</span>}
               </div>
@@ -77,7 +77,7 @@ export function CrmDealsListView({
             {!isCollapsed && (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-muted/20 text-xs text-muted-foreground">
+                  <thead className="bg-muted/20 text-[10px] uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="px-3 py-2 text-left w-8">
                         <Checkbox
@@ -96,7 +96,7 @@ export function CrmDealsListView({
                       <th className="px-3 py-2 text-right w-20">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="font-light">
                     {list.length === 0 ? (
                       <tr><td colSpan={9} className="px-3 py-4 text-center text-muted-foreground text-xs">Sin negocios</td></tr>
                     ) : list.map((d: any) => (
@@ -111,7 +111,7 @@ export function CrmDealsListView({
                             onCheckedChange={() => onToggleSelect(d.id)}
                           />
                         </td>
-                        <td className="px-3 py-2 font-medium">{d.title}</td>
+                        <td className="px-3 py-2 font-medium text-foreground">{d.title}</td>
                         <td className="px-3 py-2">{d.companies?.name || "—"}</td>
                         <td className="px-3 py-2">
                           {d.contacts ? `${d.contacts.first_name ?? ""} ${d.contacts.last_name ?? ""}`.trim() : "—"}

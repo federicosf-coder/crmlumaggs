@@ -7,7 +7,7 @@ interface PageBannerProps {
 
 export function PageBanner({ title, description, avatar, children }: PageBannerProps) {
   return (
-    <div className="mb-6">
+    <div className="mb-6 rounded-xl border bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-center gap-4 min-w-0">
           {avatar}
@@ -16,7 +16,7 @@ export function PageBanner({ title, description, avatar, children }: PageBannerP
               {title}
             </h1>
             {description && (
-              <p className="text-muted-foreground text-sm mt-0.5">{description}</p>
+              <p className="text-muted-foreground text-xs mt-1 font-light">{description}</p>
             )}
           </div>
         </div>
