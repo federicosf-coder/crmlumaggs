@@ -675,8 +675,8 @@ export default function EntregaDetalle() {
               onClick={() => {
                 const base = entrega?.fecha_entrega_real ? new Date(entrega.fecha_entrega_real) : new Date();
                 const pad = (n: number) => String(n).padStart(2, "0");
-                const local = `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}T${pad(base.getHours())}:${pad(base.getMinutes())}`;
-                setAdjustValue(local);
+                setAdjustDate(base);
+                setAdjustTime(`${pad(base.getHours())}:${pad(base.getMinutes())}`);
                 setAdjustOpen(true);
               }}
               disabled={!entrega}
