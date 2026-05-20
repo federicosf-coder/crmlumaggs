@@ -3554,6 +3554,8 @@ export type Database = {
           evidencia_url: string | null
           fecha_entrega: string
           fecha_entrega_real: string | null
+          fecha_entrega_real_editada_at: string | null
+          fecha_entrega_real_editada_por: string | null
           id: string
           km_desde_anterior: number | null
           notas: string | null
@@ -3573,6 +3575,8 @@ export type Database = {
           evidencia_url?: string | null
           fecha_entrega: string
           fecha_entrega_real?: string | null
+          fecha_entrega_real_editada_at?: string | null
+          fecha_entrega_real_editada_por?: string | null
           id?: string
           km_desde_anterior?: number | null
           notas?: string | null
@@ -3592,6 +3596,8 @@ export type Database = {
           evidencia_url?: string | null
           fecha_entrega?: string
           fecha_entrega_real?: string | null
+          fecha_entrega_real_editada_at?: string | null
+          fecha_entrega_real_editada_por?: string | null
           id?: string
           km_desde_anterior?: number | null
           notas?: string | null

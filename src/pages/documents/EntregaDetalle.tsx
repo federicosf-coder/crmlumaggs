@@ -16,7 +16,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, MapPin, Upload, FileText, Image as ImageIcon, Trash2, Check,
-  Navigation, Pencil, Loader2, ExternalLink,
+  Navigation, Pencil, Loader2, ExternalLink, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -33,7 +33,8 @@ export default function EntregaDetalle() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
 
   const [uploading, setUploading] = useState<"evidencia" | "firmado" | null>(null);
   const [marking, setMarking] = useState(false);
@@ -60,6 +61,9 @@ export default function EntregaDetalle() {
   const [fechaEntrega, setFechaEntrega] = useState<string>("");
   const [savingEstatus, setSavingEstatus] = useState(false);
   const [savingFecha, setSavingFecha] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjustValue, setAdjustValue] = useState<string>("");
+  const [savingAdjust, setSavingAdjust] = useState(false);
 
   // Documento
   const { data: documento, isLoading } = useQuery({
@@ -133,6 +137,22 @@ export default function EntregaDetalle() {
       return data || [];
     },
     enabled: !!empresaIdForAddrs,
+  });
+
+  // Nombre del usuario que ajustó manualmente la fecha/hora de entrega
+  const editadaPorId = (entrega as any)?.fecha_entrega_real_editada_por as string | undefined;
+  const { data: editorProfile } = useQuery({
+    queryKey: ["entrega-editor-profile", editadaPorId],
+    queryFn: async () => {
+      if (!editadaPorId) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("user_id", editadaPorId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!editadaPorId,
   });
 
   useEffect(() => {
@@ -419,7 +439,11 @@ export default function EntregaDetalle() {
       .eq("id", id);
 
     if (!error && entrega) {
-      const updates: any = { fecha_entrega_real: new Date().toISOString() };
+      const updates: any = {
+        fecha_entrega_real: new Date().toISOString(),
+        fecha_entrega_real_editada_por: null,
+        fecha_entrega_real_editada_at: null,
+      };
       if (capturedCoords) {
         updates.delivered_latitude = capturedCoords.lat;
         updates.delivered_longitude = capturedCoords.lng;
@@ -438,6 +462,28 @@ export default function EntregaDetalle() {
       queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
       queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
     }
+  };
+
+  const saveAdjustedFechaEntregaReal = async () => {
+    if (!entrega?.id || !adjustValue) return;
+    setSavingAdjust(true);
+    const iso = new Date(adjustValue).toISOString();
+    const { error } = await supabase
+      .from("entregas_programadas")
+      .update({
+        fecha_entrega_real: iso,
+        fecha_entrega_real_editada_por: user?.id ?? null,
+        fecha_entrega_real_editada_at: new Date().toISOString(),
+      } as any)
+      .eq("id", entrega.id);
+    setSavingAdjust(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Fecha de entrega actualizada");
+    setAdjustOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
   };
 
   const useCurrentLocation = () => {
@@ -588,6 +634,60 @@ export default function EntregaDetalle() {
           {ESTATUS_OPCIONES.find((o) => o.value === documento.estatus_pedido)?.label || "—"}
         </Badge>
       </div>
+
+      {/* Barra superior: Marcar Entregada + Fecha/Hora de entrega */}
+      <Card className="border-primary/20">
+        <CardContent className="p-3 flex flex-wrap items-center gap-2">
+          {documento.estatus_pedido !== "entregado" ? (
+            <Button onClick={markDelivered} disabled={marking} size="sm">
+              {marking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+              Marcar Entregada
+            </Button>
+          ) : (
+            <Badge variant="default" className="gap-1">
+              <Check className="h-3.5 w-3.5" /> Entregada
+            </Badge>
+          )}
+
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-muted/40 text-sm min-w-0">
+            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+            {entrega?.fecha_entrega_real ? (
+              <span className="font-medium truncate">
+                {format(new Date(entrega.fecha_entrega_real), "dd MMM yyyy · HH:mm", { locale: es })} hrs
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Sin fecha/hora de entrega</span>
+            )}
+          </div>
+
+          {isAdmin && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const base = entrega?.fecha_entrega_real ? new Date(entrega.fecha_entrega_real) : new Date();
+                const pad = (n: number) => String(n).padStart(2, "0");
+                const local = `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}T${pad(base.getHours())}:${pad(base.getMinutes())}`;
+                setAdjustValue(local);
+                setAdjustOpen(true);
+              }}
+              disabled={!entrega}
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Ajustar manualmente
+            </Button>
+          )}
+
+          {(entrega as any)?.fecha_entrega_real_editada_por && (
+            <span className="text-xs text-muted-foreground ml-auto">
+              Editado por{" "}
+              <strong>{editorProfile?.full_name || editorProfile?.email || "Usuario"}</strong>
+              {(entrega as any)?.fecha_entrega_real_editada_at && (
+                <> · {format(new Date((entrega as any).fecha_entrega_real_editada_at), "dd MMM HH:mm", { locale: es })}</>
+              )}
+            </span>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Información */}
       <Card>
@@ -1015,6 +1115,35 @@ export default function EntregaDetalle() {
           editing={editingAddr}
         />
       )}
+
+      <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajustar fecha y hora de entrega</DialogTitle>
+            <DialogDescription>
+              Solo administradores. Se registrará tu nombre como editor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="adjust-datetime" className="text-xs uppercase tracking-wide text-muted-foreground">
+              Fecha y hora
+            </Label>
+            <Input
+              id="adjust-datetime"
+              type="datetime-local"
+              value={adjustValue}
+              onChange={(e) => setAdjustValue(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAdjustOpen(false)}>Cancelar</Button>
+            <Button onClick={saveAdjustedFechaEntregaReal} disabled={savingAdjust || !adjustValue}>
+              {savingAdjust && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
