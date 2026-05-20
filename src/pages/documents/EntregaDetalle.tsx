@@ -756,10 +756,12 @@ export default function EntregaDetalle() {
                   size="icon"
                   variant="outline"
                   disabled={!selectedDireccionId}
-                  title="Ver / Editar en módulo Direcciones"
+                  title="Ver / Editar dirección"
                   onClick={() => {
-                    if (!empresaIdForAddrs) return;
-                     window.open(`/directory/addresses?empresa=${empresaIdForAddrs}&direccion=${selectedDireccionId}`, "_blank", "noopener");
+                    if (!empresaIdForAddrs || !selectedDireccionId) return;
+                    const sel = (direccionesEmpresa as any[]).find((d) => d.id === selectedDireccionId);
+                    setEditingAddr(sel || null);
+                    setAddrDialogOpen(true);
                   }}
                 >
                   <ExternalLink className="h-4 w-4" />
@@ -773,7 +775,7 @@ export default function EntregaDetalle() {
                     type="button"
                     size="sm"
                     variant="outline"
-                     onClick={() => window.open(`/directory/addresses?empresa=${empresaIdForAddrs}&nuevo=1`, "_blank", "noopener")}
+                    onClick={() => { setEditingAddr(null); setAddrDialogOpen(true); }}
                   >
                     <ExternalLink className="h-3.5 w-3.5 mr-1" /> Agregar dirección
                   </Button>
