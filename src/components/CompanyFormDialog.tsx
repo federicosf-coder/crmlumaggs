@@ -15,7 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, ExternalLink } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { AddressDisplay } from "@/components/AddressDisplay";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
