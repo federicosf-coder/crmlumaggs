@@ -1115,6 +1115,35 @@ export default function EntregaDetalle() {
           editing={editingAddr}
         />
       )}
+
+      <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajustar fecha y hora de entrega</DialogTitle>
+            <DialogDescription>
+              Solo administradores. Se registrará tu nombre como editor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="adjust-datetime" className="text-xs uppercase tracking-wide text-muted-foreground">
+              Fecha y hora
+            </Label>
+            <Input
+              id="adjust-datetime"
+              type="datetime-local"
+              value={adjustValue}
+              onChange={(e) => setAdjustValue(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAdjustOpen(false)}>Cancelar</Button>
+            <Button onClick={saveAdjustedFechaEntregaReal} disabled={savingAdjust || !adjustValue}>
+              {savingAdjust && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
