@@ -28,10 +28,10 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
-    const { request_id, who, file_b64, mime } = await req.json();
-    if (!request_id || !who || !file_b64) return jsonRes({ error: 'missing_params' }, 400);
+    const { request_id, who, file_b64: fileB64In, mime: mimeIn } = await req.json();
+    if (!request_id || !who) return jsonRes({ error: 'missing_params' }, 400);
     if (who !== 'solicitante' && who !== 'aval') return jsonRes({ error: 'invalid_who' }, 400);
-    if (String(file_b64).length > 20 * 1024 * 1024) return jsonRes({ error: 'file_too_large' }, 400);
+    if (fileB64In && String(fileB64In).length > 20 * 1024 * 1024) return jsonRes({ error: 'file_too_large' }, 400);
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -47,6 +47,22 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    let file_b64 = fileB64In as string | undefined;
+    let mime = mimeIn as string | undefined;
+    if (!file_b64) {
+      // Fetch document from storage using stored path
+      const colDoc = who === 'solicitante' ? 'rpp_solicitante_doc_path' : 'rpp_aval_doc_path';
+      const { data: cr2 } = await admin.from('credit_requests').select(colDoc).eq('id', request_id).maybeSingle();
+      const path = (cr2 as any)?.[colDoc] as string | null;
+      if (!path) return jsonRes({ error: 'sin_comprobante' }, 400);
+      const { data: blob, error: dlErr } = await admin.storage.from('credit-docs').download(path);
+      if (dlErr || !blob) return jsonRes({ error: dlErr?.message || 'download_failed' }, 500);
+      const buf = new Uint8Array(await blob.arrayBuffer());
+      let bin = '';
+      for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+      file_b64 = btoa(bin);
+      mime = blob.type || (path.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+    }
     const isPdf = (mime || '').includes('pdf');
     const dataUrl = `data:${mime || 'image/jpeg'};base64,${file_b64}`;
     const content: any[] = [{ type: 'text', text: PROMPT }];
