@@ -651,6 +651,21 @@ export default function DeliverySchedule() {
     },
   });
 
+  // Pool: entregas corporativas no entregadas
+  const { data: poolCorporativas = [], refetch: refetchCorporativas } = useQuery({
+    queryKey: ["pool-corporativas"],
+    queryFn: async () => {
+      const q = supabase
+        .from("documentos")
+        .select("*, companies(name), documento_productos(cantidad, producto_id, productos(presentacion_id, presentaciones(nombre)))")
+        .eq("tipo_documento", "entrega_corporativa")
+        .eq("is_active", true)
+        .is("fecha_entrega_real", null)
+        .order("created_at", { ascending: false });
+      return await fetchAllRows<any>((from, to) => q.range(from, to));
+    },
+  });
+
   // All routes (no filter by date/plaza - show all active)
   const { data: allRutas = [], refetch: refetchRutas } = useQuery({
     queryKey: ["all-rutas-entrega"],
