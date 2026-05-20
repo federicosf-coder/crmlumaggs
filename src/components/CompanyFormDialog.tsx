@@ -1022,6 +1022,15 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
             }
           }}
         />
+        {isEdit && editData?.id && (
+          <CompanyAddressDialog
+            open={addressDialogOpen}
+            onOpenChange={(v) => { setAddressDialogOpen(v); if (!v) setEditingAddress(null); }}
+            empresaId={editData.id}
+            empresaName={form.name}
+            editing={editingAddress}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
