@@ -73,11 +73,9 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
     setLoading(true);
     try {
       if (entity === "companies") {
-        const { data, error } = await supabase
-          .from("companies")
-          .select("id, name, razon_social, id_contpaq, email, phone, city");
-        if (error) throw error;
-        const rows = (data || []) as any[];
+        const rows = await fetchAllRows<any>((from, to) =>
+          supabase.from("companies").select("id, name, razon_social, id_contpaq, email, phone, city").range(from, to)
+        );
         const buckets = new Map<string, { reason: string; rows: Row[] }>();
         const push = (key: string, reason: string, r: any) => {
           if (!key) return;
