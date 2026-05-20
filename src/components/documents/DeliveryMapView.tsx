@@ -132,7 +132,7 @@ export function DeliveryMapView({
       if (dateRange && e.fecha_entrega) {
         try {
           const d = parseISO(e.fecha_entrega + "T12:00:00");
-          if (!isWithinInterval(d, dateRange)) return false;
+          if (!isWithinInterval(d, { start: dateRange.from, end: dateRange.to })) return false;
         } catch { /* ignore */ }
       }
       const lat = e.documentos?.direccion_envio_lat;
