@@ -54,23 +54,6 @@ interface DeliveryMapViewProps {
   rutaRepartidores?: RutaRepartidor[];
 }
 
-// Returns SVG markup for a colored pin with a vehicle silhouette
-function buildPinSvg(color: string, icon: "pickup" | "truck") {
-  // Truck silhouette (Lucide-like, simplified)
-  const truckPath = `M3 7h11v8H3z M14 10h4l3 3v2h-7z M6 17.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z M17 17.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z`;
-  // Pickup silhouette (simpler box + bed)
-  const pickupPath = `M3 9h8v6H3z M11 11h4l4 2v2h-8z M6 17.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z M16 17.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z`;
-  const path = icon === "pickup" ? pickupPath : truckPath;
-  return `
-<svg xmlns="http://www.w3.org/2000/svg" width="40" height="50" viewBox="0 0 40 50">
-  <path d="M20 0 C9 0 0 9 0 20 C0 32 20 50 20 50 C20 50 40 32 40 20 C40 9 31 0 20 0 Z"
-    fill="${color}" stroke="#ffffff" stroke-width="2"/>
-  <g transform="translate(8, 8) scale(1)" fill="#ffffff" stroke="#ffffff" stroke-width="0.5">
-    <path d="${path}" />
-  </g>
-</svg>`;
-}
-
 // Paleta de colores distintivos por ruta
 const ROUTE_COLORS = [
   "#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6",
