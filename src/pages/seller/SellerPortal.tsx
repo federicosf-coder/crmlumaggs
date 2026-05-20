@@ -1182,6 +1182,8 @@ export default function SellerPortal() {
       <Card>
         <CardHeader className="pb-2 gap-2">
           <CardTitle className="text-base">Detalle por sección</CardTitle>
+        </CardHeader>
+        <CardContent>
           <Tabs defaultValue="primera_compra">
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="primera_compra">1ra Compra ({dealsEnRango.filter(d => d.pipeline_type !== "recompra").length})</TabsTrigger>
@@ -1274,7 +1276,7 @@ export default function SellerPortal() {
           </div>
         </TabsContent>
           </Tabs>
-        </CardHeader>
+        </CardContent>
       </Card>
 
       {/* Facturas vencidas y por vencer — buckets como filtros */}
