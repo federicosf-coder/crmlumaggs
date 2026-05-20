@@ -500,9 +500,9 @@ function PedidoFooterActions({ item }: { item: any }) {
     open === "mapa"
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address || "")}`
       : open === "editar"
-      ? `/documents/${item.id}/edit`
+      ? `/documents/${item.id}/edit?embed=1`
       : open === "entrega"
-      ? `/delivery/entrega/${item.id}`
+      ? `/delivery/entrega/${item.id}?embed=1`
       : "";
   return (
     <>

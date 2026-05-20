@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,6 +51,10 @@ interface Address {
 export default function DeliveryAddresses() {
   const qc = useQueryClient();
   const { hasRole } = useAuth();
+  const [searchParams] = useSearchParams();
+  const empresaParam = searchParams.get("empresa") || "";
+  const direccionParam = searchParams.get("direccion") || "";
+  const nuevoParam = searchParams.get("nuevo") === "1";
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
@@ -236,6 +241,25 @@ export default function DeliveryAddresses() {
     });
     setDialogOpen(true);
   };
+
+  // Auto-abrir el diálogo cuando viene por query param (?empresa=... [&nuevo=1] | ?direccion=...)
+  const [autoOpened, setAutoOpened] = useState(false);
+  useEffect(() => {
+    if (autoOpened) return;
+    if (direccionParam && addresses.length > 0) {
+      const found = addresses.find((a) => a.id === direccionParam);
+      if (found) { openEdit(found); setAutoOpened(true); return; }
+    }
+    if ((empresaParam && nuevoParam) || (empresaParam && !direccionParam && addresses.length >= 0 && !autoOpened)) {
+      // Sólo auto-abrir nuevo si nuevo=1 o si no hay ?direccion
+      if (nuevoParam) {
+        setForm({ empresa_id: empresaParam, tipos: ["envio"], nombre: "", nombre_touched: false, referencia: "", address: { ...emptyAddress } });
+        setEditing(null);
+        setDialogOpen(true);
+        setAutoOpened(true);
+      }
+    }
+  }, [empresaParam, direccionParam, nuevoParam, addresses, autoOpened]);
 
   const toggleTipo = (clave: string) => {
     setForm((p) => ({
