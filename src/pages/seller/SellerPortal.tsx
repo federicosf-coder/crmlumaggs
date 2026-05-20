@@ -1211,7 +1211,7 @@ export default function SellerPortal() {
                         <TableCell className="py-1"><Badge variant="outline" className="text-xs">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
                         <TableCell className="text-xs py-1">{format(new Date(d.created_at), "dd MMM yyyy", { locale: es })}</TableCell>
                         <TableCell className="text-right text-sm py-1">{fmtNum(Number(d.potencial_unidades || 0))}</TableCell>
-                        <TableCell className="py-1"><Button size="sm" variant="ghost" onClick={() => window.open(dealUrl, "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
+                        <TableCell className="py-1"><Button size="sm" variant="ghost" onClick={() => navigate(dealUrl)}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
                       </TableRow>
                     );
                   })}
