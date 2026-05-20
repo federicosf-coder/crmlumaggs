@@ -21,6 +21,7 @@ import { AddressDisplay } from "@/components/AddressDisplay";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
+import { CompanyAddressDialog } from "@/components/directory/CompanyAddressDialog";
 
 // LADAs MX de 2 dígitos: formato +52 LL DDDD DDDD; resto: +52 LLL DDD DDDD.
 const TWO_DIGIT_LADAS = new Set(["33", "55", "56", "81"]);
@@ -198,6 +199,8 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const isEdit = !!editData?.id;
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<any | null>(null);
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<any | null>(null);
   // Contactos seleccionados/creados en modo nuevo (se vinculan al crear la empresa)
   const [pendingContactIds, setPendingContactIds] = useState<string[]>([]);
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
@@ -881,12 +884,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        window.open(
-                          `/directory/addresses?empresa=${editData?.id}&nuevo=1`,
-                          "_blank"
-                        );
-                      }}
+                      onClick={() => { setEditingAddress(null); setAddressDialogOpen(true); }}
                     >
                       <Plus className="h-3 w-3 mr-1" /> Agregar dirección
                     </Button>
@@ -912,12 +910,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                                   size="sm"
                                   variant="ghost"
                                   className="h-7 w-7 p-0"
-                                  onClick={() =>
-                                    window.open(
-                                      `/directory/addresses?empresa=${editData?.id}&direccion=${a.id}`,
-                                      "_blank"
-                                    )
-                                  }
+                                  onClick={() => { setEditingAddress(a); setAddressDialogOpen(true); }}
                                   title="Abrir dirección"
                                 >
                                   <ExternalLink className="h-3.5 w-3.5" />
@@ -1029,6 +1022,15 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
             }
           }}
         />
+        {isEdit && editData?.id && (
+          <CompanyAddressDialog
+            open={addressDialogOpen}
+            onOpenChange={(v) => { setAddressDialogOpen(v); if (!v) setEditingAddress(null); }}
+            empresaId={editData.id}
+            empresaName={form.name}
+            editing={editingAddress}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
