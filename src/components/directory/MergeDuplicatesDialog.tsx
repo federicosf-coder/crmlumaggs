@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle, Merge, Search } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -53,17 +54,22 @@ function digits(s: string | null | undefined) {
 export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: Props) {
   const [loading, setLoading] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [allRows, setAllRows] = useState<Row[]>([]);
   const [activeGroupKey, setActiveGroupKey] = useState<string | null>(null);
   const [primaryId, setPrimaryId] = useState<string | null>(null);
   const [duplicateIds, setDuplicateIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  const [freeSearch, setFreeSearch] = useState("");
+  const [freeSelected, setFreeSelected] = useState<Set<string>>(new Set());
+  const [customGroup, setCustomGroup] = useState<Group | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [merging, setMerging] = useState(false);
 
   useEffect(() => {
     if (!open) {
-      setGroups([]); setActiveGroupKey(null); setPrimaryId(null);
+      setGroups([]); setAllRows([]); setActiveGroupKey(null); setPrimaryId(null);
       setDuplicateIds(new Set()); setSearch(""); setConfirmOpen(false);
+      setFreeSearch(""); setFreeSelected(new Set()); setCustomGroup(null);
       return;
     }
     void detect();
@@ -77,6 +83,13 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
         const rows = await fetchAllRows<any>((from, to) =>
           supabase.from("companies").select("id, name, razon_social, id_contpaq, email, phone, city").range(from, to)
         );
+        const all: Row[] = rows.map((r: any) => ({
+          id: r.id,
+          label: r.name,
+          sub: [r.razon_social, r.id_contpaq, r.email, r.city].filter(Boolean).join(" • ") || null,
+          raw: r,
+        }));
+        setAllRows(all);
         const buckets = new Map<string, { reason: string; rows: Row[] }>();
         const push = (key: string, reason: string, r: any) => {
           if (!key) return;
@@ -106,6 +119,13 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
         const rows = await fetchAllRows<any>((from, to) =>
           supabase.from("contacts").select("id, first_name, last_name, email, phone, mobile, company_id, companies(name)").range(from, to)
         );
+        const all: Row[] = rows.map((r: any) => ({
+          id: r.id,
+          label: `${r.first_name || ""} ${r.last_name || ""}`.trim() || "(sin nombre)",
+          sub: [r.email, r.mobile || r.phone, r.companies?.name].filter(Boolean).join(" • ") || null,
+          raw: r,
+        }));
+        setAllRows(all);
         const buckets = new Map<string, { reason: string; rows: Row[] }>();
         const push = (key: string, reason: string, r: any) => {
           if (!key) return;
@@ -152,9 +172,40 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
   }, [groups, search]);
 
   const activeGroup = groups.find(g => g.key === activeGroupKey) || null;
+  const effectiveGroup = activeGroup || customGroup;
+
+  const freeResults = useMemo(() => {
+    const q = freeSearch.trim().toLowerCase();
+    if (!q) return [];
+    return allRows
+      .filter(r => r.label.toLowerCase().includes(q) || (r.sub || "").toLowerCase().includes(q))
+      .slice(0, 200);
+  }, [allRows, freeSearch]);
+
+  const toggleFreeSelected = (id: string) => {
+    setFreeSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const useFreeSelection = () => {
+    if (freeSelected.size < 2) {
+      toast.error("Selecciona al menos 2 registros");
+      return;
+    }
+    const selected = allRows.filter(r => freeSelected.has(r.id));
+    const g: Group = { key: "__custom__", reason: "Selección manual", rows: selected };
+    setCustomGroup(g);
+    setActiveGroupKey(null);
+    setPrimaryId(selected[0]?.id || null);
+    setDuplicateIds(new Set(selected.slice(1).map(r => r.id)));
+  };
 
   const selectGroup = (g: Group) => {
     setActiveGroupKey(g.key);
+    setCustomGroup(null);
     setPrimaryId(g.rows[0]?.id || null);
     setDuplicateIds(new Set(g.rows.slice(1).map(r => r.id)));
   };
@@ -221,52 +272,121 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 min-h-[400px]">
-              {/* Left: groups */}
+              {/* Left: groups + free search */}
               <div className="border rounded-md flex flex-col">
-                <div className="p-2 border-b">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Filtrar grupos..."
-                      className="pl-8 h-9"
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <ScrollArea className="h-[380px]">
-                  <div className="p-2 space-y-1">
-                    {filteredGroups.map(g => (
-                      <button
-                        key={g.key}
-                        onClick={() => selectGroup(g)}
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                          activeGroupKey === g.key ? "bg-accent" : "hover:bg-muted"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium truncate">{g.rows[0]?.label}</span>
-                          <Badge variant="secondary" className="shrink-0">{g.rows.length}</Badge>
+                <Tabs defaultValue="groups" className="flex-1 flex flex-col">
+                  <TabsList className="m-2">
+                    <TabsTrigger value="groups">Grupos ({groups.length})</TabsTrigger>
+                    <TabsTrigger value="free">Búsqueda libre</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="groups" className="flex-1 m-0">
+                    <div className="p-2 border-b">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Filtrar grupos..."
+                          className="pl-8 h-9"
+                          value={search}
+                          onChange={e => setSearch(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <ScrollArea className="h-[330px]">
+                      <div className="p-2 space-y-1">
+                        {filteredGroups.map(g => (
+                          <button
+                            key={g.key}
+                            onClick={() => selectGroup(g)}
+                            className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                              activeGroupKey === g.key ? "bg-accent" : "hover:bg-muted"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium truncate">{g.rows[0]?.label}</span>
+                              <Badge variant="secondary" className="shrink-0">{g.rows.length}</Badge>
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">{g.reason}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+                  <TabsContent value="free" className="flex-1 m-0">
+                    <div className="p-2 border-b space-y-2">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder={`Buscar ${entity === "companies" ? "empresa" : "contacto"} por nombre, correo, etc...`}
+                          className="pl-8 h-9"
+                          value={freeSearch}
+                          onChange={e => setFreeSearch(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {freeSelected.size} seleccionado(s)
+                        </span>
+                        <div className="flex gap-1">
+                          {freeSelected.size > 0 && (
+                            <Button size="sm" variant="ghost" className="h-7"
+                              onClick={() => setFreeSelected(new Set())}>
+                              Limpiar
+                            </Button>
+                          )}
+                          <Button size="sm" className="h-7" onClick={useFreeSelection}
+                            disabled={freeSelected.size < 2}>
+                            Usar selección
+                          </Button>
                         </div>
-                        <div className="text-xs text-muted-foreground truncate">{g.reason}</div>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
+                      </div>
+                    </div>
+                    <ScrollArea className="h-[280px]">
+                      <div className="p-2 space-y-1">
+                        {freeSearch.trim() === "" ? (
+                          <p className="text-xs text-muted-foreground p-2">
+                            Escribe para buscar entre todos los registros.
+                          </p>
+                        ) : freeResults.length === 0 ? (
+                          <p className="text-xs text-muted-foreground p-2">Sin resultados.</p>
+                        ) : (
+                          freeResults.map(r => (
+                            <label
+                              key={r.id}
+                              className={`flex items-start gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm ${
+                                freeSelected.has(r.id) ? "bg-accent" : "hover:bg-muted"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                className="mt-1"
+                                checked={freeSelected.has(r.id)}
+                                onChange={() => toggleFreeSelected(r.id)}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{r.label}</div>
+                                {r.sub && <div className="text-xs text-muted-foreground truncate">{r.sub}</div>}
+                              </div>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+                </Tabs>
               </div>
 
               {/* Right: detail */}
               <div className="border rounded-md flex flex-col">
-                {activeGroup ? (
+                {effectiveGroup ? (
                   <>
                     <div className="p-3 border-b">
-                      <p className="text-xs text-muted-foreground">{activeGroup.reason}</p>
+                      <p className="text-xs text-muted-foreground">{effectiveGroup.reason}</p>
                       <p className="text-sm font-medium">Elige el registro principal</p>
                     </div>
                     <ScrollArea className="h-[340px]">
                       <div className="p-3 space-y-2">
                         <RadioGroup value={primaryId || ""} onValueChange={onPickPrimary}>
-                          {activeGroup.rows.map(r => (
+                          {effectiveGroup.rows.map(r => (
                             <div key={r.id} className="flex items-start gap-2 p-2 rounded-md border">
                               <RadioGroupItem value={r.id} id={`p-${r.id}`} className="mt-1" />
                               <div className="flex-1 min-w-0">
@@ -296,7 +416,7 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
                   </>
                 ) : (
                   <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground p-4">
-                    Selecciona un grupo de la izquierda
+                    Selecciona un grupo o realiza una búsqueda libre
                   </div>
                 )}
               </div>
@@ -333,12 +453,12 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
           <Separator />
           <div className="text-sm">
             <p><span className="text-muted-foreground">Principal:</span>{" "}
-              <strong>{activeGroup?.rows.find(r => r.id === primaryId)?.label}</strong>
+              <strong>{effectiveGroup?.rows.find(r => r.id === primaryId)?.label}</strong>
             </p>
             <p className="mt-2 text-muted-foreground">A fusionar ({duplicateIds.size}):</p>
             <ul className="mt-1 space-y-0.5 text-sm">
               {Array.from(duplicateIds).map(id => {
-                const r = activeGroup?.rows.find(x => x.id === id);
+                const r = effectiveGroup?.rows.find(x => x.id === id);
                 return <li key={id}>• {r?.label}</li>;
               })}
             </ul>
