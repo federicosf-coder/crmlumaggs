@@ -64,18 +64,20 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
     ? bancosRaw
     : (bancosRaw && typeof bancosRaw === "object" ? [bancosRaw] : []);
   const primerBanco: any = bancos[0] || {};
-  const bancosHtml = bancos.length
-    ? bancos
-        .map((b: any) => `<tr><td>${b?.banco ?? ""}</td><td>${b?.cuenta ?? ""}</td><td>${b?.clabe ?? b?.cuenta ?? ""}</td></tr>`)
-        .join("")
-    : "";
+  const emptyBankRow = `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+  const bancosTop3 = bancos.slice(0, 3);
+  const bancosHtml =
+    bancosTop3
+      .map((b: any) => `<tr><td>${b?.banco ?? ""}</td><td>${b?.cuenta ?? ""}</td><td>${b?.clabe ?? b?.cuenta ?? ""}</td></tr>`)
+      .join("") + emptyBankRow.repeat(Math.max(0, 3 - bancosTop3.length));
   const tipo = form?.tipo_persona || form?.csf_tipo_persona || "moral";
 
-  const refsHtml = referencias.length
-    ? referencias
-        .map((r: any) => `<tr><td>${r?.empresa ?? ""}</td><td>${r?.contacto ?? ""}</td><td>${r?.telefono ?? ""}</td></tr>`)
-        .join("")
-    : "";
+  const emptyRefRow = `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+  const refsTop3 = referencias.slice(0, 3);
+  const refsHtml =
+    refsTop3
+      .map((r: any) => `<tr><td>${r?.empresa ?? ""}</td><td>${r?.contacto ?? ""}</td><td>${r?.telefono ?? ""}</td></tr>`)
+      .join("") + emptyRefRow.repeat(Math.max(0, 3 - refsTop3.length));
 
   const t: Record<string, string> = {
     razon_social: form?.razon_social || form?.csf_razon_social || company?.razon_social || company?.name || "",
