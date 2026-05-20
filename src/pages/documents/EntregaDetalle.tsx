@@ -1132,20 +1132,56 @@ export default function EntregaDetalle() {
               Solo administradores. Se registrará tu nombre como editor.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="adjust-datetime" className="text-xs uppercase tracking-wide text-muted-foreground">
+          <div className="space-y-3">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">
               Fecha y hora
             </Label>
-            <Input
-              id="adjust-datetime"
-              type="datetime-local"
-              value={adjustValue}
-              onChange={(e) => setAdjustValue(e.target.value)}
-            />
+            <Popover open={adjustPickerOpen} onOpenChange={setAdjustPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-light h-10",
+                    !adjustDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 opacity-60" />
+                  {adjustDate
+                    ? `${format(adjustDate, "dd MMM yyyy", { locale: es })}${adjustTime ? ` · ${adjustTime}` : ""}`
+                    : "Selecciona fecha"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={adjustDate}
+                  onDayClick={(day) => {
+                    if (adjustDate && day.toDateString() === adjustDate.toDateString()) {
+                      setAdjustDate(undefined);
+                    } else {
+                      setAdjustDate(day);
+                    }
+                  }}
+                  defaultMonth={adjustDate || new Date()}
+                  initialFocus
+                  locale={es}
+                  className={cn("p-3 pointer-events-auto font-light")}
+                />
+                <div className="border-t p-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="time"
+                    value={adjustTime}
+                    onChange={(e) => setAdjustTime(e.target.value)}
+                    className="h-9 font-light"
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAdjustOpen(false)}>Cancelar</Button>
-            <Button onClick={saveAdjustedFechaEntregaReal} disabled={savingAdjust || !adjustValue}>
+            <Button onClick={saveAdjustedFechaEntregaReal} disabled={savingAdjust || !adjustDate}>
               {savingAdjust && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Guardar
             </Button>
