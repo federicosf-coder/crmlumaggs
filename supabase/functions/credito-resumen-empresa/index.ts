@@ -46,40 +46,26 @@ Deno.serve(async (req) => {
     }
 
     const c: any = cr.companies || {};
-    const ctx = {
-      razon_social: c.razon_social || cr.razon_social || null,
-      nombre_comercial: c.name || cr.nombre_comercial || null,
-      giro: cr.giro_comercial || c.industry || null,
-      industrias: c.industrias || [],
-      website: c.website || null,
-      telefono: c.phone || cr.telefono || null,
-      email: c.email || cr.correo_contacto || null,
-      direccion: [c.address, c.city, c.state, c.zip_code].filter(Boolean).join(', ') || null,
-      tipo_destino_lubricante: c.tipo_destino_lubricante,
-      potencial_unidades: c.potencial_unidades,
-      potencial_cliente: c.potencial_cliente,
-      barrera_entrada: c.barrera_entrada,
-      riesgo_cambio_marca: c.riesgo_cambio_marca,
-      tomador_decision: c.tomador_decision,
-      origen_contacto: c.origen_contacto,
-      tipo_cliente_comercial: c.tipo_cliente_comercial,
-      ticket_promedio: c.ticket_promedio,
-      volumen_mensual_estimado: c.volumen_mensual_estimado,
-      monto_solicitado: cr.monto_solicitado,
-      dias_credito: cr.dias_credito,
-      tipo_credito: cr.tipo,
-      antiguedad: cr.antiguedad,
-      rfc: cr.rfc || cr.csf_rfc,
-      csf_actividad: cr.csf_actividad_economica,
-      csf_regimen: cr.csf_regimen_fiscal,
-      fecha_inicio_operaciones: cr.csf_fecha_inicio_operaciones,
-      referencias_comerciales: cr.referencias_comerciales,
-      datos_bancarios: (cr.datos_bancarios || []).map((b: any) => ({ banco: b.banco, plaza: b.plaza })),
-      notas_empresa: c.notes,
-    };
+    const name = c.razon_social || c.name || cr.razon_social || cr.nombre_comercial || '';
+    const rfc = cr.rfc || cr.csf_rfc || c.rfc || '';
+    const website = c.website || '';
+    const industry = cr.giro_comercial || c.industry || '';
+    const email = c.email || cr.correo_contacto || '';
 
-    const systemPrompt = `Eres un analista de crédito experto. Generas resúmenes ejecutivos breves (máx 250 palabras) en español, profesionales y objetivos para evaluar si conviene otorgar crédito comercial a un cliente. NUNCA inventes datos. Si falta información clave, indícalo. Estructura tu respuesta con secciones cortas: Perfil del Negocio, Capacidad y Antigüedad, Riesgo y Recomendación.`;
-    const userPrompt = `Analiza este prospecto de crédito y genera el resumen ejecutivo. Datos disponibles:\n\n${JSON.stringify(ctx, null, 2)}\n\nUsa SOLO los datos proporcionados. No inventes facturación, ni clientes, ni datos que no aparezcan. Si un campo está vacío, omítelo o señala "información no disponible".`;
+    const systemPrompt = `You are a business intelligence researcher. Using web search, find information about this company and write a helpful profile for a sales representative who is about to do business with them.`;
+    const userPrompt = `Company data: ${name}, RFC: ${rfc}, Website: ${website}, Industry: ${industry}, Email: ${email}
+
+Search for: their website, Google Business profile, LinkedIn, news articles, industry directories, transport/logistics portals, and any public business registries in Mexico.
+
+Return ONLY a valid JSON object (no markdown, no extra text):
+
+{
+  "resumen": string (exactly 2 paragraphs in Spanish: paragraph 1 = who they are, what they do, how long they have been operating, their presence and legitimacy; paragraph 2 = what makes them a good prospect, their industry standing, growth signals, or relevant context that supports doing business with them),
+  "hallazgos": string[] (3-5 specific facts found online about the company),
+  "fuentes_consultadas": string[] (actual URLs or source names used)
+}
+
+Important: Write the resumen in a neutral, informative, and constructive tone. Do not issue credit recommendations or risk verdicts. Focus on painting a clear picture of who this company is.`;
 
     const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -89,6 +75,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
+        response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -113,20 +100,36 @@ Deno.serve(async (req) => {
       });
     }
     const aiJson = await aiRes.json();
-    const resumen = aiJson?.choices?.[0]?.message?.content?.trim();
-    if (!resumen) {
+    const raw = aiJson?.choices?.[0]?.message?.content?.trim();
+    if (!raw) {
       return new Response(JSON.stringify({ error: 'AI no devolvió contenido' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    let parsed: any;
+    try {
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      return new Response(JSON.stringify({ error: 'AI no devolvió JSON válido', raw }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const resumen = String(parsed?.resumen || '').trim();
+    const hallazgos = Array.isArray(parsed?.hallazgos) ? parsed.hallazgos.map((x: any) => String(x)) : [];
+    const fuentes_consultadas = Array.isArray(parsed?.fuentes_consultadas) ? parsed.fuentes_consultadas.map((x: any) => String(x)) : [];
+    const data = { hallazgos, fuentes_consultadas };
+
     await admin.from('credit_requests').update({
       resumen_empresa: resumen,
+      resumen_empresa_data: data,
       resumen_empresa_generated_at: new Date().toISOString(),
       resumen_empresa_generated_by: userData.user.id,
     }).eq('id', request_id);
 
-    return new Response(JSON.stringify({ resumen }), {
+    return new Response(JSON.stringify({ resumen, ...data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e: any) {
