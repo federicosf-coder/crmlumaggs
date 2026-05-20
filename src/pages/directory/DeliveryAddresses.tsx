@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,6 +51,10 @@ interface Address {
 export default function DeliveryAddresses() {
   const qc = useQueryClient();
   const { hasRole } = useAuth();
+  const [searchParams] = useSearchParams();
+  const empresaParam = searchParams.get("empresa") || "";
+  const direccionParam = searchParams.get("direccion") || "";
+  const nuevoParam = searchParams.get("nuevo") === "1";
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
