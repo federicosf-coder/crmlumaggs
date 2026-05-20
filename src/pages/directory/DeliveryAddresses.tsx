@@ -242,6 +242,25 @@ export default function DeliveryAddresses() {
     setDialogOpen(true);
   };
 
+  // Auto-abrir el diálogo cuando viene por query param (?empresa=... [&nuevo=1] | ?direccion=...)
+  const [autoOpened, setAutoOpened] = useState(false);
+  useEffect(() => {
+    if (autoOpened) return;
+    if (direccionParam && addresses.length > 0) {
+      const found = addresses.find((a) => a.id === direccionParam);
+      if (found) { openEdit(found); setAutoOpened(true); return; }
+    }
+    if ((empresaParam && nuevoParam) || (empresaParam && !direccionParam && addresses.length >= 0 && !autoOpened)) {
+      // Sólo auto-abrir nuevo si nuevo=1 o si no hay ?direccion
+      if (nuevoParam) {
+        setForm({ empresa_id: empresaParam, tipos: ["envio"], nombre: "", nombre_touched: false, referencia: "", address: { ...emptyAddress } });
+        setEditing(null);
+        setDialogOpen(true);
+        setAutoOpened(true);
+      }
+    }
+  }, [empresaParam, direccionParam, nuevoParam, addresses, autoOpened]);
+
   const toggleTipo = (clave: string) => {
     setForm((p) => ({
       ...p,
