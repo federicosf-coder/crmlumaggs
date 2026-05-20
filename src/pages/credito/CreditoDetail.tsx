@@ -2990,6 +2990,26 @@ function RppPanel({
     onChange();
   };
 
+  const regenerarResumen = async () => {
+    if (!docPath) { toast.error("Sube primero el comprobante"); return; }
+    setExtracting(true);
+    try {
+      const { data: ex, error: exErr } = await supabase.functions.invoke("credito-rpp-extract", {
+        body: { request_id: creditId, who },
+      });
+      if (exErr) throw exErr;
+      if ((ex as any)?.error) throw new Error((ex as any).error);
+      const merged = (ex as any)?.merged || {};
+      setLocal(merged);
+      toast.success("Resumen autogenerado");
+      onChange();
+    } catch (e: any) {
+      toast.error(`No se pudo autogenerar: ${e?.message || "error"}`);
+    } finally {
+      setExtracting(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -3035,23 +3055,38 @@ function RppPanel({
             </label>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-3">
-            {RPP_FIELDS.map((f) => (
-              <div key={f.key} className={f.long ? "sm:col-span-2 space-y-1" : "space-y-1"}>
-                <Label className="text-xs text-muted-foreground">{f.label}</Label>
-                {f.long ? (
-                  <Textarea rows={2} value={local[f.key] || ""} onChange={(e) => setLocal({ ...local, [f.key]: e.target.value })} />
-                ) : (
-                  <Input value={local[f.key] || ""} onChange={(e) => setLocal({ ...local, [f.key]: e.target.value })} />
-                )}
-              </div>
-            ))}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Resumen de la propiedad</Label>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={regenerarResumen}
+                disabled={extracting || !docPath}
+                title={!docPath ? "Sube primero el comprobante" : "Autogenerar resumen con IA"}
+              >
+                {extracting ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-1" />}
+                Autogenerar con IA
+              </Button>
+            </div>
+            <Textarea
+              rows={10}
+              value={local.resumen || ""}
+              onChange={(e) => setLocal({ ...local, resumen: e.target.value })}
+              placeholder="Escribe el resumen de la propiedad o autogenéralo a partir del comprobante subido…"
+              className="font-light text-sm"
+            />
+            {local.resumen_generated_at && (
+              <p className="text-[11px] text-muted-foreground">
+                Última generación con IA: {format(new Date(local.resumen_generated_at), "dd/MM/yyyy HH:mm")}
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end">
             <Button onClick={saveData} disabled={saving} size="sm">
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-              Guardar datos del RPP
+              Guardar resumen
             </Button>
           </div>
         </div>
