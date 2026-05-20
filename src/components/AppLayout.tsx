@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +13,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { roles, hasRole } = useAuth();
   const pendingFeedback = usePendingFeedbackCount();
   const isAdmin = hasRole("admin");
+  const [sp] = useSearchParams();
+  const embed = sp.get("embed") === "1";
+
+  if (embed) {
+    return <div className="min-h-screen w-full bg-background"><main className="p-4">{children}</main></div>;
+  }
 
   return (
     <SidebarProvider>
