@@ -470,9 +470,12 @@ export default function EntregaDetalle() {
   };
 
   const saveAdjustedFechaEntregaReal = async () => {
-    if (!entrega?.id || !adjustValue) return;
+    if (!entrega?.id || !adjustDate) return;
     setSavingAdjust(true);
-    const iso = new Date(adjustValue).toISOString();
+    const [hh, mm] = (adjustTime || "00:00").split(":").map((n) => Number(n) || 0);
+    const dt = new Date(adjustDate);
+    dt.setHours(hh, mm, 0, 0);
+    const iso = dt.toISOString();
     const { error } = await supabase
       .from("entregas_programadas")
       .update({
