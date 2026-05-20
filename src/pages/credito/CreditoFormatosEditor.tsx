@@ -15,7 +15,7 @@ import { TEMPLATE_LABELS, TEMPLATE_KEYS, renderTemplate, PRINT_STYLES, buildToke
 interface Tpl {
   id: string;
   key: TemplateKey;
-  entidad: "lumaggs" | "galsa" | "ambas";
+  entidad: "lumaggs" | "galsa";
   nombre: string;
   contenido_html: string;
   header_html: string | null;
@@ -25,7 +25,6 @@ interface Tpl {
 }
 
 const ENTIDADES = [
-  { value: "ambas", label: "Ambas (Lumaggs y Galsa)" },
   { value: "lumaggs", label: "Lumaggs (Chevron)" },
   { value: "galsa", label: "Galsa (Phillips 66)" },
 ];
@@ -54,7 +53,8 @@ export default function CreditoFormatosEditor() {
     const { data, error } = await (supabase as any)
       .from("credit_doc_templates")
       .select("*")
-      .order("key", { ascending: true });
+      .order("key", { ascending: true })
+      .order("entidad", { ascending: true });
     if (error) toast.error(error.message);
     setItems((data || []) as Tpl[]);
     setLoading(false);
