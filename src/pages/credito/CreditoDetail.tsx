@@ -2990,6 +2990,26 @@ function RppPanel({
     onChange();
   };
 
+  const regenerarResumen = async () => {
+    if (!docPath) { toast.error("Sube primero el comprobante"); return; }
+    setExtracting(true);
+    try {
+      const { data: ex, error: exErr } = await supabase.functions.invoke("credito-rpp-extract", {
+        body: { request_id: creditId, who },
+      });
+      if (exErr) throw exErr;
+      if ((ex as any)?.error) throw new Error((ex as any).error);
+      const merged = (ex as any)?.merged || {};
+      setLocal(merged);
+      toast.success("Resumen autogenerado");
+      onChange();
+    } catch (e: any) {
+      toast.error(`No se pudo autogenerar: ${e?.message || "error"}`);
+    } finally {
+      setExtracting(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
