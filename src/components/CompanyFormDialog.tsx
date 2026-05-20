@@ -639,6 +639,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
           <Tabs defaultValue="general">
             <TabsList className="w-full">
               <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
+              {isEdit && <TabsTrigger value="direcciones" className="flex-1">Direcciones</TabsTrigger>}
               <TabsTrigger value="clasificacion" className="flex-1">Clasificación</TabsTrigger>
               <TabsTrigger value="facturacion" className="flex-1">Detalles Facturación</TabsTrigger>
               <TabsTrigger value="decision" className="flex-1">Proceso Decisión</TabsTrigger>
