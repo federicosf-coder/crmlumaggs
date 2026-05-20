@@ -49,13 +49,28 @@ Deno.serve(async (req) => {
     const name = c.razon_social || c.name || cr.razon_social || cr.nombre_comercial || '';
     const rfc = cr.rfc || cr.csf_rfc || c.rfc || '';
     const website = c.website || '';
-    const industry = cr.giro_comercial || c.industry || '';
     const email = c.email || cr.correo_contacto || '';
 
+    // Resolver industrias estrictamente desde el catálogo administrable.
+    // No usar csf_actividad_economica ni códigos SCIAN: el resumen debe
+    // referirse a la industria solo con las etiquetas del catálogo.
+    const claves: string[] = Array.isArray(c.industrias) ? c.industrias : [];
+    let industriaLabels: string[] = [];
+    if (claves.length > 0) {
+      const { data: catRows } = await admin
+        .from('industrias_catalog')
+        .select('clave, etiqueta')
+        .in('clave', claves);
+      industriaLabels = (catRows || []).map((r: any) => r.etiqueta || r.clave);
+    }
+    const industry = industriaLabels.join(', ');
+
     const systemPrompt = `You are a business intelligence researcher. Using web search, find information about this company and write a helpful profile for a sales representative who is about to do business with them.`;
-    const userPrompt = `Company data: ${name}, RFC: ${rfc}, Website: ${website}, Industry: ${industry}, Email: ${email}
+    const userPrompt = `Company data: ${name}, RFC: ${rfc}, Website: ${website}, Industry: ${industry || '(no asignada)'}, Email: ${email}
 
 Search for: their website, Google Business profile, LinkedIn, news articles, industry directories, transport/logistics portals, and any public business registries in Mexico.
+
+IMPORTANT — Industria/Giro: cuando te refieras a la industria o giro de la empresa, usa EXCLUSIVAMENTE las etiquetas listadas arriba en "Industry" (provenientes de nuestro catálogo interno). NO inventes subcategorías, NO uses códigos o nombres SCIAN, NO uses la actividad económica del CSF/SAT, NO agregues frases como "específicamente en …". Si no hay industria asignada, simplemente omite mencionar la industria.
 
 Return ONLY a valid JSON object (no markdown, no extra text):
 
