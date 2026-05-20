@@ -108,7 +108,7 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
     dias_credito: form?.dias_credito != null ? String(form.dias_credito) : "",
     banco_nombre: primerBanco?.banco || "",
     banco_cuenta: primerBanco?.cuenta || "",
-    banco_clabe: primerBanco?.clabe || primerBanco?.cuenta || "",
+    banco_clabe: primerBanco?.clabe || "",
     datos_bancarios_html: bancosHtml,
     referencias_comerciales_html: refsHtml,
     accionistas_html: accionistasHtml,
