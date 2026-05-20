@@ -139,7 +139,7 @@ export default function DeliveryAddresses() {
   const { data: companies = [] } = useQuery({
     queryKey: ["companies_for_addr"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
+      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name").limit(5000);
       return data || [];
     },
   });
