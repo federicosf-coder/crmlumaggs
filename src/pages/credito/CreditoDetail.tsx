@@ -1557,36 +1557,48 @@ export default function CreditoDetail() {
                 const hasActa = docsForKind("acta_constitutiva").length > 0;
                 return (
                   <Card className="border-violet-200 bg-gradient-to-br from-violet-50 via-white to-blue-50 mt-4">
-                    <CardContent className="pt-5 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
-                          <Wand2 className="h-5 w-5 text-violet-700" />
+                    <CardContent className="pt-3 pb-3 space-y-2">
+                      <div className="flex items-start gap-2.5">
+                        <div className="h-7 w-7 rounded-md bg-violet-100 flex items-center justify-center shrink-0">
+                          <Wand2 className="h-4 w-4 text-violet-700" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold flex items-center gap-1.5">
+                          <p className="text-[13px] font-semibold flex items-center gap-1.5 leading-tight">
                             Autocompletar con documentos
-                            <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded">
+                            <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wide bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded">
                               <Sparkles className="h-3 w-3" /> Opcional
                             </span>
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground leading-snug">
                             Sube los documentos del solicitante y se autocompletarán los datos posibles del formulario. Es opcional pero ahorra mucha captura.
                           </p>
                         </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 shrink-0 border-violet-300 text-violet-700 hover:bg-violet-100"
-                          onClick={() => setAutofillCollapsed(v => !v)}
-                          title={autofillCollapsed ? "Mostrar documentos" : "Ocultar documentos"}
-                        >
-                          {autofillCollapsed ? (
-                            <><ChevronDown className="h-3.5 w-3.5 mr-1" />Mostrar</>
-                          ) : (
-                            <><ChevronUp className="h-3.5 w-3.5 mr-1" />Ocultar</>
-                          )}
-                        </Button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-violet-300 text-violet-700 hover:bg-violet-100"
+                            onClick={() => setAutofillCollapsed(v => !v)}
+                            title={autofillCollapsed ? "Mostrar documentos" : "Ocultar documentos"}
+                          >
+                            {autofillCollapsed ? (
+                              <><ChevronDown className="h-3.5 w-3.5 mr-1" />Mostrar</>
+                            ) : (
+                              <><ChevronUp className="h-3.5 w-3.5 mr-1" />Ocultar</>
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8"
+                            onClick={handleSave}
+                            disabled={saving}
+                          >
+                            {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                            Guardar
+                          </Button>
+                        </div>
                       </div>
                       {!autofillCollapsed && (<>
                       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
