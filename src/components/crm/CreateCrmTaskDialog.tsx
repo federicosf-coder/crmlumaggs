@@ -824,7 +824,7 @@ export function CreateCrmTaskDialog({
               {!contactId && (
                 <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs font-light text-amber-900 dark:text-amber-200 flex items-start gap-2">
                   <UserPlus className="h-4 w-4 mt-0.5 shrink-0" />
-                  <span>Selecciona un contacto en <strong>Vincular a Contacto</strong> para autollenar el teléfono.</span>
+                  <span>Selecciona un contacto en <strong>Contacto</strong> para autollenar el teléfono.</span>
                 </div>
               )}
               <div className="grid grid-cols-12 gap-2">
@@ -1317,6 +1317,16 @@ export function CreateCrmTaskDialog({
         setContactId(newId);
       }}
     />
+    {dealFormOpen && dealPipelineId && (
+      <CreateCrmDealDialog
+        open={dealFormOpen}
+        onOpenChange={setDealFormOpen}
+        pipelineId={dealPipelineId}
+        stages={dealStages}
+        defaultCompanyId={companyId || undefined}
+        defaultContactId={contactId || undefined}
+      />
+    )}
     </>
   );
 }
