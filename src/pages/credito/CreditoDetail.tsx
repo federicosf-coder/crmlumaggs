@@ -2029,9 +2029,8 @@ export default function CreditoDetail() {
               value={form.accionistas || []}
               onChange={(v) => set("accionistas", v)}
               fields={[
-                { key: "nombre", label: "Nombre" },
+                { key: "nombre", label: "Nombre accionista" },
                 { key: "acciones", label: "Número de acciones", type: "number" },
-                { key: "rfc", label: "RFC" },
               ]}
             />
             <Repeater
