@@ -49,8 +49,16 @@ const DEFAULT_COLS: ColumnKey[] = ["numero", "cliente", "ejecutivo", "plaza", "f
 const colsStorageKey = (userId: string) => `doc-cols:${userId}:factura`;
 
 const ESTATUS_FAC_LABELS: Record<string, string> = {
-  vigente: "Vigente", pendiente: "Vigente", pagada: "Pagada", parcial: "Parcial",
-  vencida: "Vencida", cancelada: "Cancelada",
+  vigente: "Vigente",
+  pagada: "Pagada",
+  vencida: "Vencida",
+  cancelada: "Cancelada",
+};
+// Compat: facturas antiguas pueden tener estos valores en BD
+const ESTATUS_FAC_LABELS_DISPLAY: Record<string, string> = {
+  ...ESTATUS_FAC_LABELS,
+  pendiente: "Vigente",
+  parcial: "Vigente",
 };
 
 function getStatusBadgeClass(st: string): string {
