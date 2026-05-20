@@ -910,12 +910,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                                   size="sm"
                                   variant="ghost"
                                   className="h-7 w-7 p-0"
-                                  onClick={() =>
-                                    window.open(
-                                      `/directory/addresses?empresa=${editData?.id}&direccion=${a.id}`,
-                                      "_blank"
-                                    )
-                                  }
+                                  onClick={() => { setEditingAddress(a); setAddressDialogOpen(true); }}
                                   title="Abrir dirección"
                                 >
                                   <ExternalLink className="h-3.5 w-3.5" />
