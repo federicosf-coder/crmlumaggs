@@ -1248,6 +1248,23 @@ export function CreateCrmTaskDialog({
         </div>
       </DialogContent>
     </Dialog>
+    <CompanyFormDialog
+      open={companyFormOpen}
+      onOpenChange={setCompanyFormOpen}
+      onCreated={(newId) => {
+        queryClient.invalidateQueries({ queryKey: ["companies-picker"] });
+        setCompanyId(newId);
+      }}
+    />
+    <ContactFormDialog
+      open={contactFormOpen}
+      onOpenChange={setContactFormOpen}
+      defaultCompanyId={companyId || undefined}
+      onCreated={(newId) => {
+        queryClient.invalidateQueries({ queryKey: ["contacts-picker"] });
+        setContactId(newId);
+      }}
+    />
     </>
   );
 }
