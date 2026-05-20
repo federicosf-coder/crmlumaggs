@@ -1504,7 +1504,7 @@ export default function CreditoDetail() {
       </Card>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-5 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
+        <TabsList className="grid grid-cols-6 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
           <TabsTrigger value="docs" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
             Documentos
           </TabsTrigger>
@@ -1516,6 +1516,9 @@ export default function CreditoDetail() {
           </TabsTrigger>
           <TabsTrigger value="seguimiento" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md text-amber-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
             Seguimiento
+          </TabsTrigger>
+          <TabsTrigger value="analisis" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-slate-600 data-[state=active]:to-slate-800 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
+            Análisis<br className="sm:hidden"/> Interno
           </TabsTrigger>
           <TabsTrigger value="comentarios" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-rose-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md text-rose-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
             Comentarios
@@ -2446,6 +2449,18 @@ export default function CreditoDetail() {
           </CardContent></Card>
         </TabsContent>
 
+        {/* ============ ANÁLISIS INTERNO ============ */}
+        <TabsContent value="analisis" className="space-y-4 mt-4">
+          <AnalisisInternoSection
+            form={form}
+            set={set}
+            creditId={id!}
+            isInternal={isInternal}
+            onPersisted={() => qc.invalidateQueries({ queryKey: ["credit_request", id] })}
+            userId={user?.id || null}
+          />
+        </TabsContent>
+
         {/* ============ COMENTARIOS ============ */}
         <TabsContent value="comentarios" className="space-y-4 mt-4">
           <Card><CardContent className="pt-6 space-y-4">
@@ -2777,5 +2792,330 @@ function Repeater({ title, value, onChange, fields, minRequired }: {
         </div>
       )}
     </div>
+  );
+}
+
+// =========================================================================
+// ANÁLISIS INTERNO — RPP (Solicitante / Aval) + Resumen de Empresa con IA
+// Esta sección es SOLO interna. La página completa ya está protegida por
+// `isInternal`, por lo que estos componentes no se exponen al cliente.
+// =========================================================================
+
+const RPP_FIELDS: Array<{ key: string; label: string; long?: boolean }> = [
+  { key: "partida", label: "Partida" },
+  { key: "fecha_partida", label: "Fecha de partida" },
+  { key: "seccion", label: "Sección" },
+  { key: "volante", label: "Volante" },
+  { key: "recibo_oficial", label: "Recibo oficial" },
+  { key: "fecha", label: "Fecha" },
+  { key: "hora", label: "Hora" },
+  { key: "monto", label: "Monto" },
+  { key: "analista", label: "Analista" },
+  { key: "acto", label: "Acto", long: true },
+  { key: "tipo_contrato", label: "Tipo de contrato" },
+  { key: "vendedor", label: "Vendedor(es)", long: true },
+  { key: "comprador", label: "Comprador(es)", long: true },
+  { key: "folio_real", label: "Folio real" },
+  { key: "tipo_predio", label: "Tipo de predio" },
+  { key: "lote", label: "Lote" },
+  { key: "manzana", label: "Manzana" },
+  { key: "colonia", label: "Colonia" },
+  { key: "municipio", label: "Municipio" },
+  { key: "superficie", label: "Superficie" },
+  { key: "medidas_colindancias", label: "Medidas y colindancias", long: true },
+  { key: "valor_operacion", label: "Valor de operación" },
+  { key: "valor_avaluo", label: "Valor de avalúo" },
+  { key: "clave_catastral", label: "Clave catastral" },
+  { key: "antecedentes", label: "Antecedentes", long: true },
+];
+
+function RppPanel({
+  who,
+  creditId,
+  encontrado,
+  data,
+  docPath,
+  onChange,
+}: {
+  who: "solicitante" | "aval";
+  creditId: string;
+  encontrado: boolean | null;
+  data: any;
+  docPath: string | null;
+  onChange: () => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [local, setLocal] = useState<any>(data || {});
+  useEffect(() => { setLocal(data || {}); }, [data]);
+
+  const colEnc = who === "solicitante" ? "rpp_solicitante_encontrado" : "rpp_aval_encontrado";
+  const colDoc = who === "solicitante" ? "rpp_solicitante_doc_path" : "rpp_aval_doc_path";
+  const colData = who === "solicitante" ? "rpp_solicitante_data" : "rpp_aval_data";
+
+  const setEncontrado = async (v: boolean) => {
+    const { error } = await supabase.from("credit_requests").update({ [colEnc]: v } as any).eq("id", creditId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Actualizado");
+    onChange();
+  };
+
+  const uploadComprobante = async (file: File) => {
+    setUploading(true);
+    try {
+      const path = `${creditId}/rpp_${who}_${crypto.randomUUID()}_${file.name.replace(/[^\w.\-]+/g, "_")}`;
+      const { error } = await supabase.storage.from("credit-docs").upload(path, file, { contentType: file.type });
+      if (error) throw error;
+      // remove previous if any
+      if (docPath) await supabase.storage.from("credit-docs").remove([docPath]);
+      const { error: upErr } = await supabase.from("credit_requests").update({ [colDoc]: path } as any).eq("id", creditId);
+      if (upErr) throw upErr;
+      toast.success("Comprobante subido");
+      onChange();
+    } catch (e: any) {
+      toast.error(e?.message || "Error al subir");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const openDoc = async () => {
+    if (!docPath) return;
+    const { data: s } = await supabase.storage.from("credit-docs").createSignedUrl(docPath, 600);
+    if (s?.signedUrl) window.open(s.signedUrl, "_blank");
+  };
+
+  const removeDoc = async () => {
+    if (!docPath) return;
+    if (!confirm("¿Eliminar comprobante?")) return;
+    await supabase.storage.from("credit-docs").remove([docPath]);
+    await supabase.from("credit_requests").update({ [colDoc]: null } as any).eq("id", creditId);
+    onChange();
+  };
+
+  const saveData = async () => {
+    setSaving(true);
+    const { error } = await supabase.from("credit_requests").update({ [colData]: local } as any).eq("id", creditId);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Datos del RPP guardados");
+    onChange();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted-foreground uppercase tracking-wide">¿Se encontraron propiedades?</span>
+        <Button
+          size="sm"
+          variant={encontrado === true ? "default" : "outline"}
+          className={encontrado === true ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+          onClick={() => setEncontrado(true)}
+        >
+          <Check className="h-3.5 w-3.5 mr-1" />Sí se encontraron
+        </Button>
+        <Button
+          size="sm"
+          variant={encontrado === false ? "default" : "outline"}
+          className={encontrado === false ? "bg-rose-600 hover:bg-rose-700" : ""}
+          onClick={() => setEncontrado(false)}
+        >
+          <X className="h-3.5 w-3.5 mr-1" />No se encontraron
+        </Button>
+      </div>
+
+      {encontrado === true && (
+        <div className="space-y-4 border-t pt-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground flex-1">Comprobante del Registro Público de la Propiedad</p>
+            {docPath ? (
+              <>
+                <Button size="sm" variant="outline" onClick={openDoc}><ExternalLink className="h-3.5 w-3.5 mr-1" />Ver</Button>
+                <Button size="sm" variant="ghost" className="text-destructive" onClick={removeDoc}><Trash2 className="h-3.5 w-3.5" /></Button>
+              </>
+            ) : null}
+            <label className="cursor-pointer inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border bg-background hover:bg-accent">
+              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              {docPath ? "Reemplazar" : "Subir"}
+              <input
+                type="file"
+                className="hidden"
+                accept="application/pdf,image/*"
+                disabled={uploading}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadComprobante(f); e.currentTarget.value = ""; }}
+              />
+            </label>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            {RPP_FIELDS.map((f) => (
+              <div key={f.key} className={f.long ? "sm:col-span-2 space-y-1" : "space-y-1"}>
+                <Label className="text-xs text-muted-foreground">{f.label}</Label>
+                {f.long ? (
+                  <Textarea rows={2} value={local[f.key] || ""} onChange={(e) => setLocal({ ...local, [f.key]: e.target.value })} />
+                ) : (
+                  <Input value={local[f.key] || ""} onChange={(e) => setLocal({ ...local, [f.key]: e.target.value })} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={saveData} disabled={saving} size="sm">
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              Guardar datos del RPP
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AnalisisInternoSection({
+  form,
+  set,
+  creditId,
+  isInternal,
+  onPersisted,
+  userId,
+}: {
+  form: any;
+  set: (k: string, v: any) => void;
+  creditId: string;
+  isInternal: boolean;
+  onPersisted: () => void;
+  userId: string | null;
+}) {
+  const [whoTab, setWhoTab] = useState<"solicitante" | "aval">("solicitante");
+  const [generating, setGenerating] = useState(false);
+  const [savingResumen, setSavingResumen] = useState(false);
+  const [resumenLocal, setResumenLocal] = useState<string>(form.resumen_empresa || "");
+
+  useEffect(() => { setResumenLocal(form.resumen_empresa || ""); }, [form.resumen_empresa]);
+
+  if (!isInternal) return null;
+
+  const generarResumen = async () => {
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("credito-resumen-empresa", {
+        body: { request_id: creditId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const r = (data as any)?.resumen as string;
+      if (r) {
+        setResumenLocal(r);
+        set("resumen_empresa", r);
+        toast.success("Resumen generado");
+        onPersisted();
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Error al generar resumen");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const guardarResumen = async () => {
+    setSavingResumen(true);
+    const { error } = await supabase.from("credit_requests").update({
+      resumen_empresa: resumenLocal,
+      resumen_empresa_generated_at: new Date().toISOString(),
+      resumen_empresa_generated_by: userId,
+    } as any).eq("id", creditId);
+    setSavingResumen(false);
+    if (error) { toast.error(error.message); return; }
+    set("resumen_empresa", resumenLocal);
+    toast.success("Resumen guardado");
+    onPersisted();
+  };
+
+  return (
+    <>
+      {/* RPP */}
+      <Card className="border-slate-300">
+        <CardHeader className="bg-gradient-to-br from-violet-50 to-blue-50 border-b py-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-sm font-semibold tracking-tight flex items-center gap-2">
+              <Landmark className="h-4 w-4 text-slate-700" />
+              Propiedades en RPP
+            </CardTitle>
+            <Badge variant="outline" className="text-[10px] bg-slate-100 border-slate-300 text-slate-700">Solo interno</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-5 space-y-4">
+          <Tabs value={whoTab} onValueChange={(v) => setWhoTab(v as any)}>
+            <TabsList className="grid grid-cols-2 w-full sm:w-72">
+              <TabsTrigger value="solicitante">Solicitante</TabsTrigger>
+              <TabsTrigger value="aval">Aval</TabsTrigger>
+            </TabsList>
+            <TabsContent value="solicitante" className="mt-4">
+              <RppPanel
+                who="solicitante"
+                creditId={creditId}
+                encontrado={form.rpp_solicitante_encontrado ?? null}
+                data={form.rpp_solicitante_data || {}}
+                docPath={form.rpp_solicitante_doc_path || null}
+                onChange={onPersisted}
+              />
+            </TabsContent>
+            <TabsContent value="aval" className="mt-4">
+              <RppPanel
+                who="aval"
+                creditId={creditId}
+                encontrado={form.rpp_aval_encontrado ?? null}
+                data={form.rpp_aval_data || {}}
+                docPath={form.rpp_aval_doc_path || null}
+                onChange={onPersisted}
+              />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Resumen Empresa IA */}
+      <Card className="border-slate-300">
+        <CardHeader className="bg-gradient-to-br from-violet-50 to-blue-50 border-b py-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-sm font-semibold tracking-tight flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-violet-700" />
+              Resumen de Empresa
+            </CardTitle>
+            <Badge variant="outline" className="text-[10px] bg-slate-100 border-slate-300 text-slate-700">Solo interno</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-5 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Evaluación ejecutiva del cliente. Puedes llenarlo a mano o autogenerarlo con IA usando los datos del perfil de la empresa (razón social, giro, industria, potencial, monto solicitado, sitio web, etc.). La IA NO inventará información que no esté disponible.
+          </p>
+          <Textarea
+            rows={10}
+            value={resumenLocal}
+            onChange={(e) => setResumenLocal(e.target.value)}
+            placeholder="Escribe o autogenera el resumen del negocio..."
+            className="font-light text-sm"
+          />
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-[11px] text-muted-foreground">
+              {form.resumen_empresa_generated_at
+                ? `Última actualización: ${format(new Date(form.resumen_empresa_generated_at), "dd/MM/yyyy HH:mm")}`
+                : "Sin generar"}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={generarResumen} disabled={generating}>
+                {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+                Autogenerar con IA
+              </Button>
+              <Button size="sm" onClick={guardarResumen} disabled={savingResumen || resumenLocal === (form.resumen_empresa || "")}>
+                {savingResumen ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </>
   );
 }
