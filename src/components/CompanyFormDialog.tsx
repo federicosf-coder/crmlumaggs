@@ -199,6 +199,8 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const isEdit = !!editData?.id;
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<any | null>(null);
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<any | null>(null);
   // Contactos seleccionados/creados en modo nuevo (se vinculan al crear la empresa)
   const [pendingContactIds, setPendingContactIds] = useState<string[]>([]);
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
