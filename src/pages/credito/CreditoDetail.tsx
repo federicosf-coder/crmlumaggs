@@ -3024,7 +3024,7 @@ function AnalisisInternoSection({
       resumen_empresa: resumenLocal,
       resumen_empresa_generated_at: new Date().toISOString(),
       resumen_empresa_generated_by: userId,
-    }).eq("id", creditId);
+    } as any).eq("id", creditId);
     setSavingResumen(false);
     if (error) { toast.error(error.message); return; }
     set("resumen_empresa", resumenLocal);
