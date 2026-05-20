@@ -366,123 +366,150 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
           <div className="lg:col-span-2 space-y-6">
           {editing ? (
             <div className="space-y-4">
-              <div className="space-y-2"><Label>Título</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></div>
-              <div className="space-y-2">
-                <Label>Potencial Unidades</Label>
-                <Input
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  placeholder="Unidades manuales"
-                />
+              {/* Fila 1: Título + Pipeline */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">Título</Label>
+                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">Pipeline</Label>
+                  <Select value={editPipelineId} onValueChange={setEditPipelineId}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar pipeline" /></SelectTrigger>
+                    <SelectContent>
+                      {(availablePipelines || []).map((p: any) => {
+                        const tipoLabel = p.pipeline_type === "recompra" ? "Recompra" : "Primera Compra";
+                        const marcaLabel = p.marca === "phillips66" ? "Phillips 66" : "Chevron";
+                        const clean = cleanPipelineName(p.nombre);
+                        return (
+                          <SelectItem key={p.id} value={p.id}>
+                            {marcaLabel} · {tipoLabel}{clean ? ` · ${clean}` : ""}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Plaza <span className="text-destructive">*</span></Label>
-                <Select value={editPlazaId} onValueChange={setEditPlazaId}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar plaza" /></SelectTrigger>
-                  <SelectContent>
-                    {(plazas || []).map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {editPipelineId && editPipelineId !== deal.pipeline_id && (
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Al cambiar de pipeline, la etapa se reasignará a la primera del pipeline destino si no coincide.
+                </p>
+              )}
+
+              {/* Fila 2: Empresa + Contacto */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">Empresa</Label>
+                  <div className="flex gap-2">
+                    <div className="flex-1 min-w-0">
+                      <SearchableSelect
+                        value={editCompanyId}
+                        onValueChange={setEditCompanyId}
+                        options={(allCompanies || []).map((c) => ({ value: c.id, label: c.name }))}
+                        placeholder="Buscar empresa..."
+                      />
+                    </div>
+                    <Button type="button" variant="outline" size="icon" title="Nueva empresa" onClick={() => setCompanyDialogOpen(true)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="outline" size="icon" title="Abrir empresa" disabled={!editCompanyId} onClick={() => editCompanyId && openInNewTab(`/directory?tab=companies&select=${editCompanyId}`)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">Contacto</Label>
+                  <div className="flex gap-2">
+                    <div className="flex-1 min-w-0">
+                      <SearchableSelect
+                        value={editContactId}
+                        onValueChange={setEditContactId}
+                        options={(allContacts || [])
+                          .filter((c: any) => c.company_id === editCompanyId)
+                          .map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
+                        placeholder={editCompanyId ? "Buscar contacto..." : "Selecciona primero una empresa"}
+                        disabled={!editCompanyId}
+                      />
+                    </div>
+                    <Button type="button" variant="outline" size="icon" title="Nuevo contacto" disabled={!editCompanyId} onClick={() => setContactDialogOpen(true)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="outline" size="icon" title="Abrir contacto" disabled={!editContactId} onClick={() => editContactId && openInNewTab(`/directory?tab=contacts&select=${editContactId}`)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Ejecutivo</Label>
-                <Select value={editOwnerId} onValueChange={setEditOwnerId}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar ejecutivo" /></SelectTrigger>
-                  <SelectContent>
-                    {(ejecutivos || []).map((e: any) => (
-                      <SelectItem key={e.user_id} value={e.user_id}>{e.full_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+              {/* Fila 3: Ejecutivo + Plaza */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">Ejecutivo</Label>
+                  <Select value={editOwnerId} onValueChange={setEditOwnerId}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar ejecutivo" /></SelectTrigger>
+                    <SelectContent>
+                      {(ejecutivos || []).map((e: any) => (
+                        <SelectItem key={e.user_id} value={e.user_id}>{e.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">Plaza <span className="text-destructive">*</span></Label>
+                  <Select value={editPlazaId} onValueChange={setEditPlazaId}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar plaza" /></SelectTrigger>
+                    <SelectContent>
+                      {(plazas || []).map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Etapa</Label>
-                <Select value={editStageId} onValueChange={setEditStageId}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {(editPipelineId && editPipelineId !== deal.pipeline_id ? (editStages || []) : stages).map((s: any) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
-                          {s.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Pipeline</Label>
-                <Select value={editPipelineId} onValueChange={setEditPipelineId}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar pipeline" /></SelectTrigger>
-                  <SelectContent>
-                    {(availablePipelines || []).map((p: any) => {
-                      const tipoLabel = p.pipeline_type === "recompra" ? "Recompra" : "Primera Compra";
-                      const marcaLabel = p.marca === "phillips66" ? "Phillips 66" : "Chevron";
-                      const clean = cleanPipelineName(p.nombre);
-                      return (
-                        <SelectItem key={p.id} value={p.id}>
-                          {marcaLabel} · {tipoLabel}{clean ? ` · ${clean}` : ""}
+
+              {/* Fila 4: Potencial + Etapa + Fecha de Cierre */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">Potencial Unidades</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    placeholder="Unidades"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">Etapa</Label>
+                  <Select value={editStageId} onValueChange={setEditStageId}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(editPipelineId && editPipelineId !== deal.pipeline_id ? (editStages || []) : stages).map((s: any) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+                            {s.name}
+                          </div>
                         </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                {editPipelineId && editPipelineId !== deal.pipeline_id && (
-                  <p className="text-xs text-muted-foreground">
-                    Al cambiar de pipeline, la etapa se reasignará a la primera del pipeline destino si no coincide.
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Empresa</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1 min-w-0">
-                    <SearchableSelect
-                      value={editCompanyId}
-                      onValueChange={setEditCompanyId}
-                      options={(allCompanies || []).map((c) => ({ value: c.id, label: c.name }))}
-                      placeholder="Buscar empresa..."
-                    />
-                  </div>
-                  <Button type="button" variant="outline" size="icon" title="Nueva empresa" onClick={() => setCompanyDialogOpen(true)}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                  <Button type="button" variant="outline" size="icon" title="Abrir empresa" disabled={!editCompanyId} onClick={() => editCompanyId && openInNewTab(`/directory?tab=companies&select=${editCompanyId}`)}>
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">Fecha de Cierre</Label>
+                  <Input type="date" value={editCloseDate} onChange={(e) => setEditCloseDate(e.target.value)} />
                 </div>
               </div>
+
+              {/* Notas */}
               <div className="space-y-2">
-                <Label>Contacto</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1 min-w-0">
-                    <SearchableSelect
-                      value={editContactId}
-                      onValueChange={setEditContactId}
-                      options={(allContacts || [])
-                        .filter((c: any) => c.company_id === editCompanyId)
-                        .map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
-                      placeholder={editCompanyId ? "Buscar contacto..." : "Selecciona primero una empresa"}
-                      disabled={!editCompanyId}
-                    />
-                  </div>
-                  <Button type="button" variant="outline" size="icon" title="Nuevo contacto" disabled={!editCompanyId} onClick={() => setContactDialogOpen(true)}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                  <Button type="button" variant="outline" size="icon" title="Abrir contacto" disabled={!editContactId} onClick={() => editContactId && openInNewTab(`/directory?tab=contacts&select=${editContactId}`)}>
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">Notas</Label>
+                <Textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={3} />
               </div>
-              <div className="space-y-2"><Label>Fecha de Cierre</Label><Input type="date" value={editCloseDate} onChange={(e) => setEditCloseDate(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Notas</Label><Textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={3} /></div>
-              <div className="flex gap-2">
+
+              <div className="flex gap-2 pt-2">
                 <Button onClick={handleSave} disabled={updateDeal.isPending}><Save className="h-4 w-4 mr-1" /> Guardar</Button>
                 <Button variant="ghost" onClick={() => setEditing(false)}>Cancelar</Button>
               </div>
