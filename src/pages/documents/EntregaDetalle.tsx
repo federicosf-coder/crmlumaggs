@@ -439,7 +439,11 @@ export default function EntregaDetalle() {
       .eq("id", id);
 
     if (!error && entrega) {
-      const updates: any = { fecha_entrega_real: new Date().toISOString() };
+      const updates: any = {
+        fecha_entrega_real: new Date().toISOString(),
+        fecha_entrega_real_editada_por: null,
+        fecha_entrega_real_editada_at: null,
+      };
       if (capturedCoords) {
         updates.delivered_latitude = capturedCoords.lat;
         updates.delivered_longitude = capturedCoords.lng;
@@ -458,6 +462,28 @@ export default function EntregaDetalle() {
       queryClient.invalidateQueries({ queryKey: ["entrega-doc", id] });
       queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
     }
+  };
+
+  const saveAdjustedFechaEntregaReal = async () => {
+    if (!entrega?.id || !adjustValue) return;
+    setSavingAdjust(true);
+    const iso = new Date(adjustValue).toISOString();
+    const { error } = await supabase
+      .from("entregas_programadas")
+      .update({
+        fecha_entrega_real: iso,
+        fecha_entrega_real_editada_por: user?.id ?? null,
+        fecha_entrega_real_editada_at: new Date().toISOString(),
+      } as any)
+      .eq("id", entrega.id);
+    setSavingAdjust(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Fecha de entrega actualizada");
+    setAdjustOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["entrega-programada", id] });
   };
 
   const useCurrentLocation = () => {
