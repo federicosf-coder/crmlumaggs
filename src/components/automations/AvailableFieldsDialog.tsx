@@ -116,7 +116,6 @@ export const FIELD_OPTIONS: Record<string, { value: string; label: string }[]> =
   estatus_factura: [
     { value: "pendiente", label: "Pendiente" },
     { value: "pagada", label: "Pagada" },
-    { value: "parcial", label: "Parcial" },
     { value: "vencida", label: "Vencida" },
     { value: "cancelada", label: "Cancelada" },
     { value: "vigente", label: "Vigente" },

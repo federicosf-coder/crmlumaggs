@@ -965,7 +965,6 @@ export default function DocumentsList() {
                               <SelectContent>
                                 <SelectItem value="all"><Pill cls={NEUTRAL_PILL}>Todos</Pill></SelectItem>
                                 <SelectItem value="vigente"><Pill cls={STATUS_PILL_MAP.vigente}>Vigente</Pill></SelectItem>
-                                <SelectItem value="parcial"><Pill cls={STATUS_PILL_MAP.parcial}>Parcial</Pill></SelectItem>
                                 <SelectItem value="pagada"><Pill cls={STATUS_PILL_MAP.pagada}>Pagada</Pill></SelectItem>
                                 <SelectItem value="vencida"><Pill cls={STATUS_PILL_MAP.vencida}>Vencida</Pill></SelectItem>
                                 <SelectItem value="cancelada"><Pill cls={STATUS_PILL_MAP.cancelada}>Cancelada</Pill></SelectItem>
