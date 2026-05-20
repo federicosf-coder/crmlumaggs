@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmTask, useUpdateCrmTask, type CrmTask } from "@/hooks/useCrmTasks";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DictationButton } from "@/components/ui/dictation-button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save, Phone, Copy, Send as SendIcon, Paperclip, FileText, X } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save, Phone, Copy, Send as SendIcon, Paperclip, FileText, X, Plus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
@@ -24,6 +24,8 @@ import { MessageCircle, Send } from "lucide-react";
 import { normalizePhoneForWhatsApp, openWhatsApp, logWhatsAppActivity } from "@/lib/whatsapp";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
 import { RescheduleActivityDialog, type RescheduleContext } from "@/components/crm/RescheduleActivityDialog";
+import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { ContactFormDialog } from "@/components/ContactFormDialog";
 
 interface CreateCrmTaskDialogProps {
   open: boolean;
@@ -53,11 +55,12 @@ export function CreateCrmTaskDialog({
   const updateTask = useUpdateCrmTask();
   const isEditing = !!editTask;
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: contacts } = useQuery({
     queryKey: ["contacts-picker"],
     queryFn: async () => {
-      const data = await fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, first_name, last_name").eq("is_active", true).order("first_name").range(from, to));
+      const data = await fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, first_name, last_name, company_id").eq("is_active", true).order("first_name").range(from, to));
       return data;
     },
   });
@@ -73,7 +76,7 @@ export function CreateCrmTaskDialog({
   const { data: deals } = useQuery({
     queryKey: ["crm-deals-picker"],
     queryFn: async () => {
-      const { data } = await supabase.from("crm_deals").select("id, title").order("title");
+      const { data } = await supabase.from("crm_deals").select("id, title, company_id, contact_id").order("title");
       return data || [];
     },
   });
@@ -109,6 +112,9 @@ export function CreateCrmTaskDialog({
   // Adjuntos (links a documentos de la empresa)
   const [attachedDocs, setAttachedDocs] = useState<Array<{ id: string; label: string; url: string }>>([]);
   const [attachOpen, setAttachOpen] = useState(false);
+  // Diálogos "+ Nuevo" para Empresa y Contacto
+  const [companyFormOpen, setCompanyFormOpen] = useState(false);
+  const [contactFormOpen, setContactFormOpen] = useState(false);
 
   const isWhatsApp = taskType === "whatsapp";
   const isVisit = taskType === "field_visit";
@@ -116,6 +122,21 @@ export function CreateCrmTaskDialog({
   const isCall = taskType === "call";
 
   const userEmail = session?.user?.email || "";
+
+  // Auto: cuando se selecciona un negocio, autocompletar empresa (y contacto si no hay)
+  useEffect(() => {
+    if (!dealId || !deals) return;
+    const d = (deals as any[]).find((x) => x.id === dealId);
+    if (!d) return;
+    if (d.company_id && !companyId) setCompanyId(d.company_id);
+    if (d.contact_id && !contactId) setContactId(d.contact_id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dealId, deals]);
+
+  // Contactos filtrados por empresa seleccionada (si hay)
+  const filteredContacts = (contacts || []).filter((c: any) =>
+    companyId ? c.company_id === companyId : true
+  );
 
   const persistEmailTask = (sentOk: boolean) => {
     if (!session?.user) return;
@@ -695,7 +716,16 @@ export function CreateCrmTaskDialog({
               />
             </div>
             <div className="space-y-2 min-w-0">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Empresa</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Empresa</div>
+                <button
+                  type="button"
+                  onClick={() => setCompanyFormOpen(true)}
+                  className="text-[10px] uppercase tracking-wide text-primary hover:underline flex items-center gap-0.5"
+                >
+                  <Plus className="h-3 w-3" /> Nueva
+                </button>
+              </div>
               <SearchableSelect
                 value={companyId || "none"}
                 onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
@@ -708,15 +738,29 @@ export function CreateCrmTaskDialog({
               />
             </div>
             <div className="space-y-2 min-w-0">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Contacto</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Vincular a Contacto
+                  {companyId && (
+                    <span className="ml-1 normal-case text-[10px] text-muted-foreground/70 font-light">(filtrado por empresa)</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setContactFormOpen(true)}
+                  className="text-[10px] uppercase tracking-wide text-primary hover:underline flex items-center gap-0.5"
+                >
+                  <Plus className="h-3 w-3" /> Nuevo
+                </button>
+              </div>
               <SearchableSelect
                 value={contactId || "none"}
                 onValueChange={(v) => setContactId(v === "none" ? "" : v)}
                 options={[
                   { value: "none", label: "Ninguno" },
-                  ...((contacts || []).map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))),
+                  ...(filteredContacts.map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))),
                 ]}
-                placeholder="Buscar contacto..."
+                placeholder={companyId ? "Buscar contacto de la empresa..." : "Buscar contacto..."}
                 className="font-light text-sm"
               />
             </div>
@@ -1204,6 +1248,23 @@ export function CreateCrmTaskDialog({
         </div>
       </DialogContent>
     </Dialog>
+    <CompanyFormDialog
+      open={companyFormOpen}
+      onOpenChange={setCompanyFormOpen}
+      onCreated={(newId) => {
+        queryClient.invalidateQueries({ queryKey: ["companies-picker"] });
+        setCompanyId(newId);
+      }}
+    />
+    <ContactFormDialog
+      open={contactFormOpen}
+      onOpenChange={setContactFormOpen}
+      defaultCompanyId={companyId || undefined}
+      onCreated={(newId) => {
+        queryClient.invalidateQueries({ queryKey: ["contacts-picker"] });
+        setContactId(newId);
+      }}
+    />
     </>
   );
 }
