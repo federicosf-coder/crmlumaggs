@@ -635,6 +635,60 @@ export default function EntregaDetalle() {
         </Badge>
       </div>
 
+      {/* Barra superior: Marcar Entregada + Fecha/Hora de entrega */}
+      <Card className="border-primary/20">
+        <CardContent className="p-3 flex flex-wrap items-center gap-2">
+          {documento.estatus_pedido !== "entregado" ? (
+            <Button onClick={markDelivered} disabled={marking} size="sm">
+              {marking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+              Marcar Entregada
+            </Button>
+          ) : (
+            <Badge variant="default" className="gap-1">
+              <Check className="h-3.5 w-3.5" /> Entregada
+            </Badge>
+          )}
+
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-muted/40 text-sm min-w-0">
+            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+            {entrega?.fecha_entrega_real ? (
+              <span className="font-medium truncate">
+                {format(new Date(entrega.fecha_entrega_real), "dd MMM yyyy · HH:mm", { locale: es })} hrs
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Sin fecha/hora de entrega</span>
+            )}
+          </div>
+
+          {isAdmin && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const base = entrega?.fecha_entrega_real ? new Date(entrega.fecha_entrega_real) : new Date();
+                const pad = (n: number) => String(n).padStart(2, "0");
+                const local = `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}T${pad(base.getHours())}:${pad(base.getMinutes())}`;
+                setAdjustValue(local);
+                setAdjustOpen(true);
+              }}
+              disabled={!entrega}
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Ajustar manualmente
+            </Button>
+          )}
+
+          {(entrega as any)?.fecha_entrega_real_editada_por && (
+            <span className="text-xs text-muted-foreground ml-auto">
+              Editado por{" "}
+              <strong>{editorProfile?.full_name || editorProfile?.email || "Usuario"}</strong>
+              {(entrega as any)?.fecha_entrega_real_editada_at && (
+                <> · {format(new Date((entrega as any).fecha_entrega_real_editada_at), "dd MMM HH:mm", { locale: es })}</>
+              )}
+            </span>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Información */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Información</CardTitle></CardHeader>
