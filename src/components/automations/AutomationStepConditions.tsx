@@ -66,7 +66,7 @@ function RemotePicker({
             .select("id, name, razon_social, id_contpaq")
             .eq("is_active", true)
             .order("name")
-            .limit(1000);
+            .limit(5000);
           const useId = fieldValue.endsWith("_id") || fieldValue === "document.company_id";
           const opts = (data || []).map((c: any) => {
             const label = c.name || c.razon_social || c.id_contpaq || c.id;
@@ -86,7 +86,7 @@ function RemotePicker({
             .select("id, first_name, last_name, email")
             .eq("is_active", true)
             .order("first_name")
-            .limit(1000);
+            .limit(5000);
           const useId = fieldValue.endsWith("_id");
           const opts = (data || []).map((c: any) => {
             const full = `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim();
@@ -109,7 +109,7 @@ function RemotePicker({
             .select("id, codigo, nombre_producto")
             .eq("is_active", true)
             .order("nombre_producto")
-            .limit(1000);
+            .limit(5000);
           const opts = (data || []).map((p: any) => {
             const val = fieldValue === "product.codigo" ? (p.codigo || "") : (p.nombre_producto || "");
             const label = `${p.codigo ?? ""} — ${p.nombre_producto ?? ""}`.trim();
