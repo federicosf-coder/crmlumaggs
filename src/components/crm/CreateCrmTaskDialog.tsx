@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmTask, useUpdateCrmTask, type CrmTask } from "@/hooks/useCrmTasks";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DictationButton } from "@/components/ui/dictation-button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save, Phone, Copy, Send as SendIcon, Paperclip, FileText, X } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, MapPin, Crosshair, Mail, UserPlus, Save, Phone, Copy, Send as SendIcon, Paperclip, FileText, X, Plus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
@@ -24,6 +24,8 @@ import { MessageCircle, Send } from "lucide-react";
 import { normalizePhoneForWhatsApp, openWhatsApp, logWhatsAppActivity } from "@/lib/whatsapp";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
 import { RescheduleActivityDialog, type RescheduleContext } from "@/components/crm/RescheduleActivityDialog";
+import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { ContactFormDialog } from "@/components/ContactFormDialog";
 
 interface CreateCrmTaskDialogProps {
   open: boolean;
@@ -53,11 +55,12 @@ export function CreateCrmTaskDialog({
   const updateTask = useUpdateCrmTask();
   const isEditing = !!editTask;
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: contacts } = useQuery({
     queryKey: ["contacts-picker"],
     queryFn: async () => {
-      const data = await fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, first_name, last_name").eq("is_active", true).order("first_name").range(from, to));
+      const data = await fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, first_name, last_name, company_id").eq("is_active", true).order("first_name").range(from, to));
       return data;
     },
   });
@@ -73,7 +76,7 @@ export function CreateCrmTaskDialog({
   const { data: deals } = useQuery({
     queryKey: ["crm-deals-picker"],
     queryFn: async () => {
-      const { data } = await supabase.from("crm_deals").select("id, title").order("title");
+      const { data } = await supabase.from("crm_deals").select("id, title, company_id, contact_id").order("title");
       return data || [];
     },
   });
@@ -109,6 +112,9 @@ export function CreateCrmTaskDialog({
   // Adjuntos (links a documentos de la empresa)
   const [attachedDocs, setAttachedDocs] = useState<Array<{ id: string; label: string; url: string }>>([]);
   const [attachOpen, setAttachOpen] = useState(false);
+  // Diálogos "+ Nuevo" para Empresa y Contacto
+  const [companyFormOpen, setCompanyFormOpen] = useState(false);
+  const [contactFormOpen, setContactFormOpen] = useState(false);
 
   const isWhatsApp = taskType === "whatsapp";
   const isVisit = taskType === "field_visit";
