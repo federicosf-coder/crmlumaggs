@@ -807,7 +807,7 @@ export default function CreditoDetail() {
     },
   });
 
-  // Auto-jalar teléfono del contacto vinculado si el campo está vacío
+  // Auto-extraer teléfono del contacto vinculado si el campo está vacío
   useEffect(() => {
     if (!id || !form?.contact_id) return;
     if (form.telefono && String(form.telefono).trim() !== "") return;
@@ -818,7 +818,7 @@ export default function CreditoDetail() {
     supabase.from("credit_requests").update({ telefono: tel }).eq("id", id);
   }, [companyContacts, form?.contact_id, form?.telefono, id]);
 
-  // Auto-jalar nombre comercial de la empresa vinculada si el campo está vacío
+  // Auto-extraer nombre comercial de la empresa vinculada si el campo está vacío
   useEffect(() => {
     if (!id) return;
     if (form?.nombre_comercial && String(form.nombre_comercial).trim() !== "") return;
@@ -1804,9 +1804,9 @@ export default function CreditoDetail() {
                         {cc?.email && (
                           <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs whitespace-nowrap"
                             onClick={() => { set("correo_contacto", cc.email); supabase.from("credit_requests").update({ correo_contacto: cc.email }).eq("id", id!); }}
-                            title={`Jalar de ${cc.first_name || ""} ${cc.last_name || ""}`.trim()}
+                            title={`Extraer de ${cc.first_name || ""} ${cc.last_name || ""}`.trim()}
                           >
-                            Jalar del contacto
+                            Extraer del contacto
                           </Button>
                         )}
                       </div>
