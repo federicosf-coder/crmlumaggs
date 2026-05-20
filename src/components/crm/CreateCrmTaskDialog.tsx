@@ -26,6 +26,8 @@ import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog
 import { RescheduleActivityDialog, type RescheduleContext } from "@/components/crm/RescheduleActivityDialog";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
+import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
+import type { CrmPipelineStage } from "@/hooks/useCrmPipelines";
 
 interface CreateCrmTaskDialogProps {
   open: boolean;
@@ -115,6 +117,47 @@ export function CreateCrmTaskDialog({
   // Diálogos "+ Nuevo" para Empresa y Contacto
   const [companyFormOpen, setCompanyFormOpen] = useState(false);
   const [contactFormOpen, setContactFormOpen] = useState(false);
+  // Diálogo "+ Nuevo" para Negocio
+  const [dealFormOpen, setDealFormOpen] = useState(false);
+  const [dealPipelineId, setDealPipelineId] = useState<string>("");
+  const [dealStages, setDealStages] = useState<CrmPipelineStage[]>([]);
+
+  const handleNewDeal = async () => {
+    try {
+      // Determinar la marca a partir de la empresa seleccionada (si la hay)
+      let marca: string | null = null;
+      if (companyId) {
+        const { data: comp } = await supabase
+          .from("companies")
+          .select("marca")
+          .eq("id", companyId)
+          .maybeSingle();
+        marca = (comp as any)?.marca || null;
+      }
+      let pipelinesQ = supabase
+        .from("crm_pipelines")
+        .select("id, marca, pipeline_type")
+        .order("created_at", { ascending: true });
+      if (marca) pipelinesQ = pipelinesQ.eq("marca", marca);
+      const { data: pipelines } = await pipelinesQ;
+      const list = (pipelines as any[]) || [];
+      const pipeline = list.find((p) => p.pipeline_type === "primera_compra") || list[0];
+      if (!pipeline) {
+        toast({ title: "No hay pipelines", description: "Configura un pipeline antes de crear un negocio.", variant: "destructive" });
+        return;
+      }
+      const { data: stages } = await supabase
+        .from("crm_pipeline_stages")
+        .select("*")
+        .eq("pipeline_id", pipeline.id)
+        .order("position", { ascending: true });
+      setDealPipelineId(pipeline.id);
+      setDealStages((stages as any[] as CrmPipelineStage[]) || []);
+      setDealFormOpen(true);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "No se pudo abrir el formulario", variant: "destructive" });
+    }
+  };
 
   const isWhatsApp = taskType === "whatsapp";
   const isVisit = taskType === "field_visit";
@@ -703,7 +746,16 @@ export function CreateCrmTaskDialog({
           </section>
           <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-2 min-w-0">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Negocio</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Negocio</div>
+                <button
+                  type="button"
+                  onClick={handleNewDeal}
+                  className="text-[10px] uppercase tracking-wide text-primary hover:underline flex items-center gap-0.5"
+                >
+                  <Plus className="h-3 w-3" /> Nuevo
+                </button>
+              </div>
               <SearchableSelect
                 value={dealId || "none"}
                 onValueChange={(v) => setDealId(v === "none" ? "" : v)}
@@ -717,7 +769,7 @@ export function CreateCrmTaskDialog({
             </div>
             <div className="space-y-2 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Empresa</div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Empresa</div>
                 <button
                   type="button"
                   onClick={() => setCompanyFormOpen(true)}
@@ -740,7 +792,7 @@ export function CreateCrmTaskDialog({
             <div className="space-y-2 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Vincular a Contacto
+                  Contacto
                   {companyId && (
                     <span className="ml-1 normal-case text-[10px] text-muted-foreground/70 font-light">(filtrado por empresa)</span>
                   )}
