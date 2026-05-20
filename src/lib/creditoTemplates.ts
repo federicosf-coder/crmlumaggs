@@ -79,6 +79,14 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
       .map((r: any) => `<tr><td>${r?.empresa ?? ""}</td><td>${r?.contacto ?? ""}</td><td>${r?.telefono ?? ""}</td></tr>`)
       .join("") + emptyRefRow.repeat(Math.max(0, 3 - refsTop3.length));
 
+  const accionistasRaw = Array.isArray(form?.accionistas) ? form.accionistas : [];
+  const emptyAccRow = `<tr><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+  const accTop4 = accionistasRaw.slice(0, 4);
+  const accionistasHtml =
+    accTop4
+      .map((a: any) => `<tr><td>${a?.nombre ?? ""}</td><td>${a?.acciones ?? a?.no_acciones ?? ""}</td></tr>`)
+      .join("") + emptyAccRow.repeat(Math.max(0, 4 - accTop4.length));
+
   const t: Record<string, string> = {
     razon_social: form?.razon_social || form?.csf_razon_social || company?.razon_social || company?.name || "",
     nombre_comercial: form?.nombre_comercial || company?.name || "",
@@ -98,6 +106,11 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
     banco_clabe: primerBanco?.clabe || primerBanco?.cuenta || "",
     datos_bancarios_html: bancosHtml,
     referencias_comerciales_html: refsHtml,
+    accionistas_html: accionistasHtml,
+    escritura_constitutiva: form?.escritura_constitutiva || "",
+    datos_registro: form?.datos_registro || "",
+    ultima_asamblea: form?.ultima_asamblea || "",
+    administrador_presidente: form?.administrador_presidente || "",
     aval_nombre: form?.aval_nombre || "",
     aval_direccion: form?.aval_direccion || "",
     aval_ciudad: form?.aval_ciudad || "",
