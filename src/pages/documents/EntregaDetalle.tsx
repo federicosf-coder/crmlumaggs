@@ -27,6 +27,7 @@ import { useGoogleMaps } from "@/hooks/useGoogleMaps";
 import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { SignedDocImage } from "@/components/SignedDocImage";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { CompanyAddressDialog } from "@/components/directory/CompanyAddressDialog";
 
 export default function EntregaDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +38,8 @@ export default function EntregaDetalle() {
   const [uploading, setUploading] = useState<"evidencia" | "firmado" | null>(null);
   const [marking, setMarking] = useState(false);
   const [editAddrOpen, setEditAddrOpen] = useState(false);
+  const [addrDialogOpen, setAddrDialogOpen] = useState(false);
+  const [editingAddr, setEditingAddr] = useState<any | null>(null);
   const [selectedDireccionId, setSelectedDireccionId] = useState<string>("");
   const [newAddress, setNewAddress] = useState("");
   const [newLat, setNewLat] = useState<number | null>(null);
