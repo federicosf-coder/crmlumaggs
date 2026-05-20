@@ -347,7 +347,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
         "Tipo de Pago": tp,
         "Total": Number(d.total) || 0,
         "Saldo": Number(d.saldo_pendiente_cobranza) || 0,
-        "Estatus Factura": ESTATUS_FAC_LABELS[(d.estatus_factura || "").toLowerCase()] || d.estatus_factura || "",
+        "Estatus Factura": ESTATUS_FAC_LABELS_DISPLAY[(d.estatus_factura || "").toLowerCase()] || d.estatus_factura || "",
       };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -655,7 +655,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                         {isColVisible("estatus") && (
                           <TableCell>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(doc.estatus_factura)}`}>
-                              {ESTATUS_FAC_LABELS[doc.estatus_factura] || "-"}
+                              {ESTATUS_FAC_LABELS_DISPLAY[doc.estatus_factura] || "-"}
                             </span>
                           </TableCell>
                         )}
@@ -849,7 +849,7 @@ function GroupedByClient({
                           </TableCell>
                           <TableCell>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(doc.estatus_factura)}`}>
-                              {ESTATUS_FAC_LABELS[doc.estatus_factura] || "-"}
+                              {ESTATUS_FAC_LABELS_DISPLAY[doc.estatus_factura] || "-"}
                             </span>
                           </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
