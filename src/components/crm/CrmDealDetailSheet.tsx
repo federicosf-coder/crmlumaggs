@@ -310,6 +310,18 @@ export function CrmDealDetailSheet({ deal, open, onOpenChange, stages }: CrmDeal
               <DialogTitle className="flex items-center gap-2 text-lg flex-wrap">
                 <div className="h-3 w-3 rounded-full ring-2 ring-white" style={{ backgroundColor: stageColor }} />
                 <span>{deal.title}</span>
+                {(() => {
+                  const p = (availablePipelines || []).find((x: any) => x.id === deal.pipeline_id);
+                  if (!p) return null;
+                  const tipoLabel = p.pipeline_type === "recompra" ? "Recompra" : "Primera Compra";
+                  const marcaLabel = p.marca === "phillips66" ? "Phillips 66" : "Chevron";
+                  const clean = cleanPipelineName(p.nombre);
+                  return (
+                    <Badge variant="outline" className="text-xs font-semibold bg-white/80 border-foreground/10 shadow-sm">
+                      {marcaLabel} · {tipoLabel}{clean ? ` · ${clean}` : ""}
+                    </Badge>
+                  );
+                })()}
                 {(deal.close_date || (isRecompra && cierreDefault)) && (
                   <span className="text-sm font-normal text-muted-foreground">
                     · Cierre: {isRecompra
