@@ -3117,8 +3117,14 @@ function AnalisisInternoSection({
   const [generating, setGenerating] = useState(false);
   const [savingResumen, setSavingResumen] = useState(false);
   const [resumenLocal, setResumenLocal] = useState<string>(form.resumen_empresa || "");
+  const [hallazgos, setHallazgos] = useState<string[]>(form.resumen_empresa_data?.hallazgos || []);
+  const [fuentes, setFuentes] = useState<string[]>(form.resumen_empresa_data?.fuentes_consultadas || []);
 
   useEffect(() => { setResumenLocal(form.resumen_empresa || ""); }, [form.resumen_empresa]);
+  useEffect(() => {
+    setHallazgos(form.resumen_empresa_data?.hallazgos || []);
+    setFuentes(form.resumen_empresa_data?.fuentes_consultadas || []);
+  }, [form.resumen_empresa_data]);
 
   if (!isInternal) return null;
 
@@ -3134,7 +3140,12 @@ function AnalisisInternoSection({
       if (r) {
         setResumenLocal(r);
         set("resumen_empresa", r);
-        toast.success("Resumen generado");
+        const h = (data as any)?.hallazgos || [];
+        const f = (data as any)?.fuentes_consultadas || [];
+        setHallazgos(h);
+        setFuentes(f);
+        set("resumen_empresa_data", { hallazgos: h, fuentes_consultadas: f });
+        toast.success("Perfil generado");
         onPersisted();
       }
     } catch (e: any) {
@@ -3166,22 +3177,58 @@ function AnalisisInternoSection({
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-sm font-semibold tracking-tight flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-violet-700" />
-              Resumen de Empresa
+              Perfil de la Empresa
             </CardTitle>
             <Badge variant="outline" className="text-[10px] bg-slate-100 border-slate-300 text-slate-700">Solo interno</Badge>
           </div>
         </CardHeader>
         <CardContent className="pt-5 space-y-3">
           <p className="text-xs text-muted-foreground">
-            Evaluación ejecutiva del cliente. Puedes llenarlo a mano o autogenerarlo con IA usando los datos del perfil de la empresa (razón social, giro, industria, potencial, monto solicitado, sitio web, etc.). La IA NO inventará información que no esté disponible.
+            Investigación de la empresa para contexto comercial. La IA busca en línea (sitio web, LinkedIn, directorios, noticias) y devuelve un perfil informativo. Puedes editarlo a mano o regenerarlo.
           </p>
           <Textarea
             rows={10}
             value={resumenLocal}
             onChange={(e) => setResumenLocal(e.target.value)}
-            placeholder="Escribe o autogenera el resumen del negocio..."
+            placeholder="Escribe o autogenera el perfil de la empresa..."
             className="font-light text-sm"
           />
+          {resumenLocal && (
+            <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50/60 p-3">
+              <div className="space-y-2">
+                {resumenLocal.split(/\n\s*\n/).filter(Boolean).map((para, i) => (
+                  <p key={i} className="text-sm font-light leading-relaxed text-slate-700">{para.trim()}</p>
+                ))}
+              </div>
+              {hallazgos.length > 0 && (
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-slate-500 font-medium mb-1">Lo que encontramos</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {hallazgos.map((h, i) => (
+                      <li key={i} className="text-xs font-light text-slate-700">{h}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {fuentes.length > 0 && (
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-slate-500 font-medium mb-1">Fuentes</p>
+                  <div className="flex flex-wrap gap-1">
+                    {fuentes.map((f, i) => {
+                      const isUrl = /^https?:\/\//i.test(f);
+                      return isUrl ? (
+                        <a key={i} href={f} target="_blank" rel="noreferrer" className="text-[10px] bg-slate-200/70 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded-full truncate max-w-[220px]">
+                          {f.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}
+                        </a>
+                      ) : (
+                        <span key={i} className="text-[10px] bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-full">{f}</span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-[11px] text-muted-foreground">
               {form.resumen_empresa_generated_at
@@ -3191,7 +3238,7 @@ function AnalisisInternoSection({
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={generarResumen} disabled={generating}>
                 {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
-                Autogenerar con IA
+                {form.resumen_empresa_generated_at ? "Re-analizar con IA" : "Autogenerar con IA"}
               </Button>
               <Button size="sm" onClick={guardarResumen} disabled={savingResumen || resumenLocal === (form.resumen_empresa || "")}>
                 {savingResumen ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}

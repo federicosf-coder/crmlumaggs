@@ -1615,6 +1615,7 @@ export type Database = {
           rep_legal_tipo_id: string | null
           rep_legal_vencimiento_id: string | null
           resumen_empresa: string | null
+          resumen_empresa_data: Json | null
           resumen_empresa_generated_at: string | null
           resumen_empresa_generated_by: string | null
           rfc: string | null
@@ -1740,6 +1741,7 @@ export type Database = {
           rep_legal_tipo_id?: string | null
           rep_legal_vencimiento_id?: string | null
           resumen_empresa?: string | null
+          resumen_empresa_data?: Json | null
           resumen_empresa_generated_at?: string | null
           resumen_empresa_generated_by?: string | null
           rfc?: string | null
@@ -1865,6 +1867,7 @@ export type Database = {
           rep_legal_tipo_id?: string | null
           rep_legal_vencimiento_id?: string | null
           resumen_empresa?: string | null
+          resumen_empresa_data?: Json | null
           resumen_empresa_generated_at?: string | null
           resumen_empresa_generated_by?: string | null
           rfc?: string | null

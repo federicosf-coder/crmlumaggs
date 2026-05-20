@@ -1,0 +1,1 @@
+ALTER TABLE public.credit_requests ADD COLUMN IF NOT EXISTS resumen_empresa_data jsonb;
