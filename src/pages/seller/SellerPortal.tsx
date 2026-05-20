@@ -40,6 +40,7 @@ export default function SellerPortal() {
   const { user, profile, hasAnyRole } = useAuth();
   const isManager = hasAnyRole(["admin", "manager"]);
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const sp = (k: string) => searchParams.get(k);
   const initFrom = sp("from") ? startOfDay(parseISO(sp("from")!)) : startOfDay(new Date());
   const initTo = sp("to") ? endOfDay(parseISO(sp("to")!)) : endOfDay(new Date());
