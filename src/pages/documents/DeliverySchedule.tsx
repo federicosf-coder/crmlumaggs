@@ -737,8 +737,34 @@ export default function DeliverySchedule() {
         };
       });
 
-    return pedidoItems;
-  }, [poolPedidos, allEntregas]);
+    const corporativaItems: PoolItem[] = (poolCorporativas || [])
+      .filter((p: any) => !scheduledDocIds.has(p.id))
+      .map((p: any) => {
+        const presByName: Record<string, number> = {};
+        (p.documento_productos || []).forEach((dp: any) => {
+          const presName = dp.productos?.presentaciones?.nombre || "Sin presentación";
+          presByName[presName] = (presByName[presName] || 0) + Number(dp.cantidad);
+        });
+        const productSummary = Object.entries(presByName)
+          .map(([name, qty]) => `${qty} ${name}`)
+          .join(", ") || "Entrega corporativa";
+        return {
+          id: p.id,
+          type: "pedido" as const,
+          title: p.companies?.name || "Sin cliente",
+          subtitle: productSummary,
+          address: p.direccion_envio || undefined,
+          total: Number(p.total) || 0,
+          unidades: Number(p.unidades_equivalentes_total) || 0,
+          estatus: "entrega_corporativa",
+          plaza_id: p.plaza_id || undefined,
+          fecha_documento: p.fecha_documento || undefined,
+          raw: p,
+        };
+      });
+
+    return [...pedidoItems, ...corporativaItems];
+  }, [poolPedidos, poolCorporativas, allEntregas]);
 
   // Build route items from entregas
   useEffect(() => {
