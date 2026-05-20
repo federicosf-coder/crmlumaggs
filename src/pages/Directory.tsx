@@ -257,6 +257,34 @@ export default function Directory() {
     enabled: !!selectedCompany?.id,
   });
 
+  // Direcciones vinculadas a la empresa seleccionada (para vista detalle)
+  const { data: selectedCompanyAddresses = [] } = useQuery({
+    queryKey: ["company_addresses_detail", selectedCompany?.id],
+    queryFn: async () => {
+      if (!selectedCompany?.id) return [];
+      const { data } = await supabase
+        .from("direcciones_empresa")
+        .select("id, nombre, tipo, tipos, calle, ciudad, estado, codigo_postal, direccion_completa, referencia, coordenadas_lat, coordenadas_lng")
+        .eq("empresa_id", selectedCompany.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!selectedCompany?.id,
+  });
+
+  const { data: tiposDireccionCatalog = [] } = useQuery({
+    queryKey: ["tipos_direccion_catalog_detail"],
+    queryFn: async () => {
+      const { data } = await (supabase.from as any)("tipos_direccion")
+        .select("clave, etiqueta")
+        .eq("is_active", true);
+      return (data || []) as { clave: string; etiqueta: string }[];
+    },
+  });
+  const labelTipoDireccion = (clave: string) =>
+    tiposDireccionCatalog.find((t) => t.clave === clave)?.etiqueta || clave;
+
   // Contact ejecutivos for selected contact
   const { data: selectedContactEjecutivos = [] } = useQuery({
     queryKey: ["contact_ejecutivos_detail", selectedContact?.id],
