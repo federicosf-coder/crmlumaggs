@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package, Pencil, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, Search, Layers, List, CornerDownRight, ChevronRight, ChevronDown } from "lucide-react";
@@ -40,6 +40,7 @@ export default function SellerPortal() {
   const { user, profile, hasAnyRole } = useAuth();
   const isManager = hasAnyRole(["admin", "manager"]);
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const sp = (k: string) => searchParams.get(k);
   const initFrom = sp("from") ? startOfDay(parseISO(sp("from")!)) : startOfDay(new Date());
   const initTo = sp("to") ? endOfDay(parseISO(sp("to")!)) : endOfDay(new Date());
@@ -1210,7 +1211,7 @@ export default function SellerPortal() {
                         <TableCell className="py-1"><Badge variant="outline" className="text-xs">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
                         <TableCell className="text-xs py-1">{format(new Date(d.created_at), "dd MMM yyyy", { locale: es })}</TableCell>
                         <TableCell className="text-right text-sm py-1">{fmtNum(Number(d.potencial_unidades || 0))}</TableCell>
-                        <TableCell className="py-1"><Button size="sm" variant="ghost" onClick={() => window.open(dealUrl, "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
+                        <TableCell className="py-1"><Button size="sm" variant="ghost" onClick={() => navigate(dealUrl)}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
                       </TableRow>
                     );
                   })}
