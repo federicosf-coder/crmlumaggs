@@ -716,7 +716,16 @@ export function CreateCrmTaskDialog({
               />
             </div>
             <div className="space-y-2 min-w-0">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Empresa</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Empresa</div>
+                <button
+                  type="button"
+                  onClick={() => setCompanyFormOpen(true)}
+                  className="text-[10px] uppercase tracking-wide text-primary hover:underline flex items-center gap-0.5"
+                >
+                  <Plus className="h-3 w-3" /> Nueva
+                </button>
+              </div>
               <SearchableSelect
                 value={companyId || "none"}
                 onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
@@ -729,15 +738,29 @@ export function CreateCrmTaskDialog({
               />
             </div>
             <div className="space-y-2 min-w-0">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Contacto</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Vincular a Contacto
+                  {companyId && (
+                    <span className="ml-1 normal-case text-[10px] text-muted-foreground/70 font-light">(filtrado por empresa)</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setContactFormOpen(true)}
+                  className="text-[10px] uppercase tracking-wide text-primary hover:underline flex items-center gap-0.5"
+                >
+                  <Plus className="h-3 w-3" /> Nuevo
+                </button>
+              </div>
               <SearchableSelect
                 value={contactId || "none"}
                 onValueChange={(v) => setContactId(v === "none" ? "" : v)}
                 options={[
                   { value: "none", label: "Ninguno" },
-                  ...((contacts || []).map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))),
+                  ...(filteredContacts.map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))),
                 ]}
-                placeholder="Buscar contacto..."
+                placeholder={companyId ? "Buscar contacto de la empresa..." : "Buscar contacto..."}
                 className="font-light text-sm"
               />
             </div>
