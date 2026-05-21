@@ -144,8 +144,24 @@ export default function DeliveryAddresses() {
   const { data: companies = [] } = useQuery({
     queryKey: ["companies_for_addr"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name").limit(5000);
-      return data || [];
+      // Paginar para evitar el límite por defecto de 1000 filas de PostgREST
+      const pageSize = 1000;
+      let from = 0;
+      const all: { id: string; name: string }[] = [];
+      for (let i = 0; i < 10; i++) {
+        const { data, error } = await supabase
+          .from("companies")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("name")
+          .range(from, from + pageSize - 1);
+        if (error) break;
+        const rows = (data || []) as { id: string; name: string }[];
+        all.push(...rows);
+        if (rows.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
   });
 
