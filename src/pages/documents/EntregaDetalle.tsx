@@ -1193,6 +1193,16 @@ export default function EntregaDetalle() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DeliveryConfirmDialog
+        open={confirmDeliveryOpen}
+        onOpenChange={setConfirmDeliveryOpen}
+        initialLat={(documento as any)?.direccion_envio_lat ?? null}
+        initialLng={(documento as any)?.direccion_envio_lng ?? null}
+        addressLabel={documento?.direccion_envio || null}
+        busy={marking}
+        onConfirm={confirmDeliveryWithCoords}
+      />
     </div>
   );
 }
