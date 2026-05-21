@@ -1736,6 +1736,9 @@ export default function DeliverySchedule() {
                                   onSaveTiempoReal={(docId, min) => saveTiempoReal(ruta.id, docId, min)}
                                   onSaveKmManual={(docId, km) => saveKmManual(ruta.id, docId, km)}
                                   onSaveDocCoords={(docId, lat, lng, address) => saveDocCoords(ruta.id, docId, lat, lng, address)}
+                                  onAdjustRouteTime={openAdjustRouteTime}
+                                  onResetRouteTime={resetRouteTime}
+                                  isAdmin={isAdmin}
                                 />
                               ))}
                             </div>
