@@ -65,26 +65,34 @@ Deno.serve(async (req) => {
     }
     const industry = industriaLabels.join(', ');
 
-    const systemPrompt = `Eres un asistente de inteligencia comercial para un vendedor B2B en México. Tu trabajo NO es emitir un dictamen crediticio ni recomendar aprobar o rechazar a la empresa. Tu trabajo es entregarle al vendedor toda la información útil que encuentres en línea sobre la empresa, para que él tome una decisión informada. Tono: "aquí está todo lo que encontré sobre esta empresa", nunca "no la apruebes".`;
-    const userPrompt = `Datos de la empresa: ${name}, RFC: ${rfc}, Sitio web: ${website}, Industria: ${industry || '(no asignada)'}, Email: ${email}
+    const systemPrompt = `Eres un vendedor B2B mexicano experimentado redactando una nota interna breve sobre un prospecto. Tu único objetivo es describir a la empresa en TRES dimensiones: (1) perfil de negocio, (2) capacidad operativa/comercial aparente y (3) antigüedad/trayectoria. NO emitas dictamen crediticio, NO uses palabras como "riesgo", "aprobar", "rechazar", "score". Habla como vendedor a su gerente, en primera persona plural o tono profesional neutro.`;
+    const userPrompt = `Empresa: ${name}
+RFC: ${rfc || '(no disponible)'}
+Sitio web: ${website || '(no disponible)'}
+Industria (catálogo interno): ${industry || '(no asignada)'}
+Email: ${email || '(no disponible)'}
 
-Busca en: su sitio web, perfil de Google Business, LinkedIn, notas de prensa, directorios sectoriales, portales de transporte/logística y registros públicos de empresas en México.
+Investiga la empresa en internet utilizando: su sitio web oficial, perfil de Google Business / Google Maps, LinkedIn de la empresa, notas de prensa, directorios sectoriales y registros públicos en México. Limítate a información pública y verificable.
 
-IMPORTANTE — Industria/Giro: cuando te refieras a la industria o giro de la empresa, usa EXCLUSIVAMENTE las etiquetas listadas arriba en "Industria" (provenientes de nuestro catálogo interno). NO inventes subcategorías, NO uses códigos ni nombres SCIAN, NO uses la actividad económica del CSF/SAT, NO agregues frases como "específicamente en …". Si no hay industria asignada, simplemente omite mencionar la industria.
+IMPORTANTE — Industria/Giro: cuando te refieras a la industria o giro, usa EXCLUSIVAMENTE las etiquetas del campo "Industria" de arriba. NO inventes subcategorías, NO uses códigos SCIAN, NO uses la actividad económica del CSF/SAT. Si no hay industria asignada, omite mencionarla.
 
-Devuelve ÚNICAMENTE un objeto JSON válido (sin markdown, sin texto extra):
+Devuelve ÚNICAMENTE un objeto JSON válido (sin markdown, sin texto extra) con esta estructura:
 
 {
-  "resumen": string (exactamente 2 párrafos en español, en formato narrativo y fluido —no listas, no viñetas—. Párrafo 1: quién es la empresa, a qué se dedica, desde cuándo opera, dónde tiene presencia y qué tan legítima/establecida se ve. Párrafo 2: contexto comercial útil para el vendedor —tamaño aparente, clientes o sectores que atiende, señales de actividad reciente, presencia digital, o cualquier dato relevante que ayude a entenderla mejor como prospecto—.),
-  "hallazgos": string[] (3-5 datos concretos encontrados en línea sobre la empresa),
+  "resumen": string (resumen escrito por el vendedor, en español, en formato narrativo y fluido —sin listas ni viñetas—, máximo 3 párrafos cortos, organizado EXACTAMENTE en este orden y SIN incluir nada fuera de estos tres temas:
+    • Perfil de negocio: a qué se dedica la empresa, qué productos/servicios ofrece, a qué tipo de clientes o sectores atiende y dónde tiene presencia geográfica.
+    • Capacidad: tamaño aparente del negocio (número de sucursales, flota, plantilla, cobertura, marcas representadas, infraestructura visible), señales de su capacidad operativa y comercial.
+    • Antigüedad: año o década de fundación, años operando, trayectoria, hitos relevantes que muestren continuidad en el mercado.
+    Si algún dato no se puede confirmar en internet, omítelo —no especules, no inventes—.),
+  "hallazgos": string[] (3-5 datos concretos encontrados que respalden el perfil, la capacidad o la antigüedad),
   "fuentes_consultadas": string[] (URLs reales o nombres de las fuentes utilizadas)
 }
 
-Reglas de tono OBLIGATORIAS para el resumen:
-- Es una herramienta de inteligencia para el vendedor, NO un dictamen crediticio.
-- NO emitas recomendaciones de aprobar/rechazar crédito, NO uses palabras como "riesgo", "no recomendado", "rechazar", "aprobar", "score", "calificación crediticia".
-- NO inventes información: si algo no se puede confirmar, omítelo en lugar de especular.
-- Lenguaje neutral, informativo y útil, como si le pasaras tus notas de investigación a un colega vendedor.`;
+Reglas estrictas:
+- NO incluyas información financiera, crediticia, de morosidad, de litigios ni recomendaciones de crédito.
+- NO menciones contactos, accionistas ni datos personales.
+- NO uses encabezados, viñetas, negritas ni markdown dentro de "resumen": solo texto corrido.
+- Si la empresa no se encuentra en línea, escribe un resumen breve indicando que no hay información pública disponible y deja "hallazgos" y "fuentes_consultadas" vacíos.`;
 
     const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
