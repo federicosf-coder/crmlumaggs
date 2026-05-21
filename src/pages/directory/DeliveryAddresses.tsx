@@ -349,35 +349,44 @@ export default function DeliveryAddresses() {
   return (
     <div className="space-y-4">
       <BackButton fallback="/directory" />
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Direcciones</h1>
-          <p className="text-muted-foreground text-sm">Gestión de direcciones de empresas</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {hasRole("admin") && (
-            <ImportExportMenu
-              table="direcciones_empresa"
-              entityLabel="Direcciones"
-              upsertKey="codigo_google"
-              fields={[
-                { key: "empresa_id", label: "Empresa ID" },
-                { key: "tipos", label: "Tipos" },
-                { key: "calle", label: "Calle" },
-                { key: "ciudad", label: "Ciudad" },
-                { key: "estado", label: "Estado" },
-                { key: "codigo_postal", label: "Código Postal" },
-                { key: "referencia", label: "Referencia" },
-                { key: "coordenadas_lat", label: "Latitud" },
-                { key: "coordenadas_lng", label: "Longitud" },
-                { key: "codigo_google", label: "Código Google" },
-              ]}
-              data={addresses as any}
-              onImported={() => qc.invalidateQueries({ queryKey: ["all_addresses"] })}
-            />
-          )}
-          <Button size="sm" onClick={openNew}>
-            <Plus className="mr-1 h-4 w-4" /> Agregar Dirección
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Direcciones</h1>
+        <p className="text-muted-foreground text-sm">Gestión de direcciones de empresas</p>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button size="sm" onClick={openNew}>
+          <Plus className="mr-1 h-4 w-4" /> Agregar Dirección
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setMergeOpen(true)}>
+          <Merge className="mr-1 h-4 w-4" /> Fusionar duplicados
+        </Button>
+        {hasRole("admin") && (
+          <ImportExportMenu
+            table="direcciones_empresa"
+            entityLabel="Direcciones"
+            upsertKey="codigo_google"
+            fields={[
+              { key: "empresa_id", label: "Empresa ID" },
+              { key: "tipos", label: "Tipos" },
+              { key: "calle", label: "Calle" },
+              { key: "ciudad", label: "Ciudad" },
+              { key: "estado", label: "Estado" },
+              { key: "codigo_postal", label: "Código Postal" },
+              { key: "referencia", label: "Referencia" },
+              { key: "coordenadas_lat", label: "Latitud" },
+              { key: "coordenadas_lng", label: "Longitud" },
+              { key: "codigo_google", label: "Código Google" },
+            ]}
+            data={addresses as any}
+            onImported={() => qc.invalidateQueries({ queryKey: ["all_addresses"] })}
+          />
+        )}
+        <div className="ml-auto inline-flex rounded-md border bg-background p-0.5">
+          <Button size="sm" variant={view === "list" ? "secondary" : "ghost"} className="h-8 px-3" onClick={() => setView("list")}>
+            <ListIcon className="h-4 w-4 mr-1" /> Lista
+          </Button>
+          <Button size="sm" variant={view === "map" ? "secondary" : "ghost"} className="h-8 px-3" onClick={() => setView("map")}>
+            <MapIcon className="h-4 w-4 mr-1" /> Mapa
           </Button>
         </div>
       </div>
@@ -397,6 +406,31 @@ export default function DeliveryAddresses() {
             <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
           </Button>
         </div>
+        {plazaOptions.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setFilterPlaza("all")}
+              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                filterPlaza === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
+              }`}
+            >
+              Todas
+            </button>
+            {plazaOptions.map(p => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setFilterPlaza(p)}
+                className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                  filterPlaza === p ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        )}
         <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
           <CollapsibleContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end pt-2">
@@ -408,18 +442,6 @@ export default function DeliveryAddresses() {
                     <SelectItem value="all">Todos los vendedores</SelectItem>
                     {vendedorOptions.map(v => (
                       <SelectItem key={v.user_id} value={v.user_id}>{v.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Plaza</Label>
-                <Select value={filterPlaza} onValueChange={setFilterPlaza}>
-                  <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las plazas</SelectItem>
-                    {plazaOptions.map(p => (
-                      <SelectItem key={p} value={p}>{p}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -446,11 +468,87 @@ export default function DeliveryAddresses() {
         </Collapsible>
       </div>
 
+      {selectedIds.size > 0 && view === "list" && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-muted rounded-md flex-wrap">
+          <CheckSquare className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Deseleccionar</Button>
+          <Button variant="outline" size="sm" onClick={() => setBulkEditOpen(true)}>
+            <Pencil className="h-4 w-4 mr-1" /> Editar seleccionados
+          </Button>
+          <Button variant="outline" size="sm" onClick={async () => {
+            const ids = Array.from(selectedIds);
+            const { error } = await (supabase.from("direcciones_empresa") as any).update({ is_active: false }).in("id", ids);
+            if (error) return toast.error(error.message);
+            toast.success(`${ids.length} dirección(es) desactivadas`);
+            setSelectedIds(new Set());
+            qc.invalidateQueries({ queryKey: ["all_addresses"] });
+          }}>Desactivar</Button>
+        </div>
+      )}
+
+      {view === "map" ? (
+        <AddressesMapView addresses={sorted} labelByClave={labelByClave} sidebarOpen={mapFiltersOpen} onToggleSidebar={() => setMapFiltersOpen(o => !o)}>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Buscar</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input className="pl-8 h-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Empresa, dirección..." />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Plaza</Label>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                <button type="button" onClick={() => setFilterPlaza("all")} className={`px-3 py-1 text-xs rounded-full border ${filterPlaza === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}>Todas</button>
+                {plazaOptions.map(p => (
+                  <button key={p} type="button" onClick={() => setFilterPlaza(p)} className={`px-3 py-1 text-xs rounded-full border ${filterPlaza === p ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}>{p}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Vendedor</Label>
+              <Select value={filterVendedor} onValueChange={setFilterVendedor}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {vendedorOptions.map(v => (<SelectItem key={v.user_id} value={v.user_id}>{v.label}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Industria</Label>
+              <Select value={filterIndustria} onValueChange={setFilterIndustria}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {industriaOptions.map(i => (<SelectItem key={i} value={i}>{i}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 w-full"><X className="h-4 w-4" /> Limpiar filtros</Button>
+            )}
+            <p className="text-xs text-muted-foreground pt-2 border-t">
+              {sorted.filter(a => a.coordenadas_lat != null && a.coordenadas_lng != null).length} con coordenadas / {sorted.length} totales
+            </p>
+          </div>
+        </AddressesMapView>
+      ) : (
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={sorted.length > 0 && selectedIds.size === sorted.length}
+                    onCheckedChange={() => {
+                      if (selectedIds.size === sorted.length) setSelectedIds(new Set());
+                      else setSelectedIds(new Set(sorted.map(a => a.id)));
+                    }}
+                  />
+                </TableHead>
                 <TableHead><button type="button" onClick={() => toggleSort("empresa")} className="inline-flex items-center hover:text-foreground">Empresa<SortIcon f="empresa" /></button></TableHead>
                 <TableHead><button type="button" onClick={() => toggleSort("nombre")} className="inline-flex items-center hover:text-foreground">Nombre<SortIcon f="nombre" /></button></TableHead>
                 <TableHead><button type="button" onClick={() => toggleSort("tipos")} className="inline-flex items-center hover:text-foreground">Tipos<SortIcon f="tipos" /></button></TableHead>
@@ -461,9 +559,9 @@ export default function DeliveryAddresses() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
               ) : sorted.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin direcciones</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin direcciones</TableCell></TableRow>
               ) : (
                 sorted.map((a) => {
                   const tipos = a.tipos && a.tipos.length ? a.tipos : [a.tipo];
@@ -471,7 +569,19 @@ export default function DeliveryAddresses() {
                     ? `${Number(a.coordenadas_lat).toFixed(5)}, ${Number(a.coordenadas_lng).toFixed(5)}`
                     : "—";
                   return (
-                    <TableRow key={a.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(a)}>
+                    <TableRow key={a.id} className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(a.id) ? "bg-muted/30" : ""}`} onClick={() => openEdit(a)}>
+                      <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedIds.has(a.id)}
+                          onCheckedChange={() => {
+                            setSelectedIds(prev => {
+                              const next = new Set(prev);
+                              next.has(a.id) ? next.delete(a.id) : next.add(a.id);
+                              return next;
+                            });
+                          }}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{a.companies?.name || "—"}</TableCell>
                       <TableCell className="font-medium">{a.nombre || "—"}</TableCell>
                       <TableCell>
@@ -506,6 +616,7 @@ export default function DeliveryAddresses() {
           </Table>
         </CardContent>
       </Card>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) resetForm(); setDialogOpen(v); }}>
         <DialogContent className="sm:max-w-lg flex flex-col max-h-[90vh] p-0">
@@ -574,6 +685,114 @@ export default function DeliveryAddresses() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkEditDialog
+        open={bulkEditOpen}
+        onOpenChange={setBulkEditOpen}
+        selectedIds={Array.from(selectedIds)}
+        table="direcciones_empresa"
+        fields={[
+          { key: "is_active", label: "Estado", type: "select", options: [
+            { value: "__true__", label: "Activa" }, { value: "__false__", label: "Inactiva" },
+          ]},
+          { key: "ciudad", label: "Ciudad", type: "text" },
+          { key: "estado", label: "Estado", type: "text" },
+          { key: "codigo_postal", label: "Código Postal", type: "text" },
+          { key: "referencia", label: "Referencia", type: "text" },
+        ]}
+        onSuccess={() => { setSelectedIds(new Set()); qc.invalidateQueries({ queryKey: ["all_addresses"] }); }}
+      />
+      <MergeDuplicatesDialog
+        open={mergeOpen}
+        onOpenChange={setMergeOpen}
+        entity={"addresses" as any}
+        onMerged={() => qc.invalidateQueries({ queryKey: ["all_addresses"] })}
+      />
+    </div>
+  );
+}
+
+function AddressesMapView({
+  addresses,
+  labelByClave,
+  sidebarOpen,
+  onToggleSidebar,
+  children,
+}: {
+  addresses: Address[];
+  labelByClave: (c: string) => string;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
+  children: React.ReactNode;
+}) {
+  const { ready } = useGoogleMaps();
+  const mapEl = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const infoRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!ready || !mapEl.current) return;
+    const g = (window as any).google;
+    if (!mapRef.current) {
+      mapRef.current = new g.maps.Map(mapEl.current, {
+        center: { lat: 25.6866, lng: -100.3161 },
+        zoom: 6,
+        mapTypeControl: false,
+        streetViewControl: false,
+      });
+      infoRef.current = new g.maps.InfoWindow();
+    }
+    markersRef.current.forEach(m => m.setMap(null));
+    markersRef.current = [];
+    const bounds = new g.maps.LatLngBounds();
+    let count = 0;
+    addresses.forEach((a) => {
+      if (a.coordenadas_lat == null || a.coordenadas_lng == null) return;
+      const pos = { lat: Number(a.coordenadas_lat), lng: Number(a.coordenadas_lng) };
+      const marker = new g.maps.Marker({ position: pos, map: mapRef.current, title: a.companies?.name || a.nombre || "" });
+      marker.addListener("click", () => {
+        const tipos = (a.tipos && a.tipos.length ? a.tipos : [a.tipo]).map(labelByClave).join(", ");
+        const link = `/directory?company=${a.empresa_id}`;
+        infoRef.current.setContent(`
+          <div style="min-width:200px;font-family:system-ui;font-size:13px">
+            <div style="font-weight:600;margin-bottom:4px">${a.companies?.name || "—"}</div>
+            <div style="color:#555;margin-bottom:4px">${a.direccion_completa || a.calle || ""}</div>
+            <div style="font-size:11px;color:#777;margin-bottom:6px">${tipos}</div>
+            <a href="${link}" style="color:#2563eb;font-size:12px">Abrir empresa →</a>
+          </div>
+        `);
+        infoRef.current.open(mapRef.current, marker);
+      });
+      markersRef.current.push(marker);
+      bounds.extend(pos);
+      count++;
+    });
+    if (count > 0) {
+      mapRef.current.fitBounds(bounds);
+      if (count === 1) mapRef.current.setZoom(15);
+    }
+  }, [ready, addresses, labelByClave]);
+
+  return (
+    <div className="relative border rounded-md overflow-hidden" style={{ height: "calc(100vh - 280px)", minHeight: 500 }}>
+      <div ref={mapEl} className="absolute inset-0 bg-muted" />
+      {!ready && (
+        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-muted/50">Cargando mapa...</div>
+      )}
+      <div className={`absolute top-2 left-2 bottom-2 z-10 transition-all duration-200 ${sidebarOpen ? "w-72" : "w-10"}`}>
+        <div className="bg-background/95 backdrop-blur border rounded-md shadow-md h-full flex flex-col">
+          <div className="flex items-center justify-between p-2 border-b">
+            {sidebarOpen && <span className="text-sm font-medium px-1">Filtros</span>}
+            <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={onToggleSidebar} title={sidebarOpen ? "Colapsar" : "Expandir"}>
+              {sidebarOpen ? <ChevronDown className="h-4 w-4 -rotate-90" /> : <SlidersHorizontal className="h-4 w-4" />}
+            </Button>
+          </div>
+          {sidebarOpen && (
+            <div className="p-3 overflow-y-auto flex-1">{children}</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
