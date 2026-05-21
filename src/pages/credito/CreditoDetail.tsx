@@ -2373,7 +2373,8 @@ export default function CreditoDetail() {
                   <div className="flex justify-end">
                     <Button
                       size="sm"
-                      variant="default"
+                      variant="outline"
+                      className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
                       onClick={() => {
                         if (all.length === 0) return;
                         all.forEach((f, idx) => {
@@ -2382,7 +2383,7 @@ export default function CreditoDetail() {
                         toast.success(`Abriendo ${all.length} PDF(s) en pestañas nuevas`);
                       }}
                     >
-                      <Printer className="h-4 w-4 mr-1" />Generar Todos
+                      <Printer className="h-3.5 w-3.5 mr-1.5" />Generar Todos
                     </Button>
                   </div>
                   <Table>
