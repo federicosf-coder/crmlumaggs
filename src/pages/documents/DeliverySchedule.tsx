@@ -643,7 +643,8 @@ function PedidoFooterActions({ item }: { item: any }) {
 export default function DeliverySchedule() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
 
   const [showPool, setShowPool] = useState(false);
   const [searchPool, setSearchPool] = useState("");
@@ -674,6 +675,13 @@ export default function DeliverySchedule() {
   const [deliverNotes, setDeliverNotes] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Ajuste manual de hora de inicio/fin de ruta
+  const [adjustRoute, setAdjustRoute] = useState<{ ruta: any; mode: "start" | "finish" } | null>(null);
+  const [adjustDate, setAdjustDate] = useState<Date | undefined>(undefined);
+  const [adjustTime, setAdjustTime] = useState<string>("");
+  const [adjustPickerOpen, setAdjustPickerOpen] = useState(false);
+  const [savingAdjust, setSavingAdjust] = useState(false);
 
   // ─── Data queries ─────────────────────────────────────────
   const { data: plazas = [] } = useQuery({
