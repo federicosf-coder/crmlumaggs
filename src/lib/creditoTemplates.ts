@@ -19,7 +19,6 @@ export const TEMPLATE_LABELS: Record<TemplateKey, string> = {
   bc_no: "Beneficiario Controlador — No existe",
 };
 
-// Maps firma key → template key. For lfpiorpi, picks bc_si or bc_no based on credit data.
 export function templateKeyForFirma(firmaKey: string, form: any): TemplateKey | null {
   if (firmaKey === "lfpiorpi") {
     return form?.lfpiorpi_beneficiario_controlador ? "bc_si" : "bc_no";
@@ -65,24 +64,24 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
     : (bancosRaw && typeof bancosRaw === "object" ? [bancosRaw] : []);
   const primerBanco: any = bancos[0] || {};
 
-  const emptyBankRow = `<tr><td style="width:30%">&nbsp;</td><td style="width:35%">&nbsp;</td><td style="width:35%">&nbsp;</td></tr>`;
+  const emptyBankRow = `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
   const bancosTop3 = bancos.slice(0, 3);
   const bancosHtml =
     bancosTop3
-      .map((b: any) => `<tr><td style="width:30%">${b?.banco ?? ""}</td><td style="width:35%">${b?.cuenta ?? ""}</td><td style="width:35%">${b?.clabe ?? ""}</td></tr>`)
+      .map((b: any) => `<tr><td>${b?.banco ?? ""}</td><td>${b?.cuenta ?? ""}</td><td>${b?.clabe ?? ""}</td></tr>`)
       .join("") + emptyBankRow.repeat(Math.max(0, 3 - bancosTop3.length));
 
   const tipo = form?.tipo_persona || form?.csf_tipo_persona || "moral";
 
-  const emptyRefRow = `<tr><td style="width:35%">&nbsp;</td><td style="width:35%">&nbsp;</td><td style="width:30%">&nbsp;</td></tr>`;
+  const emptyRefRow = `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
   const refsTop3 = referencias.slice(0, 3);
   const refsHtml =
     refsTop3
-      .map((r: any) => `<tr><td style="width:35%">${r?.empresa ?? ""}</td><td style="width:35%">${r?.contacto ?? ""}</td><td style="width:30%">${r?.telefono ?? ""}</td></tr>`)
+      .map((r: any) => `<tr><td>${r?.empresa ?? ""}</td><td>${r?.contacto ?? ""}</td><td>${r?.telefono ?? ""}</td></tr>`)
       .join("") + emptyRefRow.repeat(Math.max(0, 3 - refsTop3.length));
 
   const accionistasRaw = Array.isArray(form?.accionistas) ? form.accionistas : [];
-  const emptyAccRow = `<tr><td style="width:70%">&nbsp;</td><td style="width:30%">&nbsp;</td></tr>`;
+  const emptyAccRow = `<tr><td>&nbsp;</td><td>&nbsp;</td></tr>`;
   const accTop4 = accionistasRaw.slice(0, 4);
   const fmtAcc = (v: any) => {
     if (v === null || v === undefined || v === "") return "";
@@ -91,7 +90,7 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
   };
   const accionistasHtml =
     accTop4
-      .map((a: any) => `<tr><td style="width:70%">${a?.nombre ?? ""}</td><td style="width:30%;text-align:right">${fmtAcc(a?.acciones ?? a?.no_acciones)}</td></tr>`)
+      .map((a: any) => `<tr><td>${a?.nombre ?? ""}</td><td style="text-align:right">${fmtAcc(a?.acciones ?? a?.no_acciones)}</td></tr>`)
       .join("") + emptyAccRow.repeat(Math.max(0, 4 - accTop4.length));
 
   const t: Record<string, string> = {
@@ -151,24 +150,32 @@ export function renderTemplate(html: string, tokens: Record<string, string>): st
 }
 
 export const PRINT_STYLES = `
-  @page { size: letter; margin: 18mm 15mm; }
-  * { box-sizing: border-box; }
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #111; font-size: 11pt; line-height: 1.5; }
+  @page { size: letter; margin: 6mm 6mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 8pt; color: #1a1a1a; background: #fff; }
   .doc-title { font-size: 18pt; text-align: center; margin: 0 0 4pt; letter-spacing: 0.5px; }
   .doc-subtitle { text-align: center; margin: 0 0 18pt; color: #555; font-size: 10pt; text-transform: uppercase; letter-spacing: 1px; }
   .doc-right { text-align: right; }
   h2 { font-size: 12pt; border-bottom: 1px solid #999; padding-bottom: 2pt; margin: 16pt 0 8pt; text-transform: uppercase; letter-spacing: 0.5px; }
   p { margin: 6pt 0; text-align: justify; }
-  table.kv { width: 100%; border-collapse: collapse; margin: 4pt 0; }
-  table.kv th { width: 35%; text-align: left; font-weight: 600; background: #f5f5f5; padding: 4pt 6pt; border: 1px solid #ddd; vertical-align: top; }
-  table.kv td { padding: 4pt 6pt; border: 1px solid #ddd; vertical-align: top; }
-  table.grid { width: 100% !important; border-collapse: separate !important; border-spacing: 0 !important; margin: 4pt 0; table-layout: fixed !important; }
-  table.grid th, table.grid td { border: 1px solid #ccc; padding: 4pt 6pt; text-align: left; font-size: 10pt; overflow: hidden; word-wrap: break-word; }
-  table.grid th { background: #f5f5f5; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2mm; padding-bottom: 1.5mm; border-bottom: 1.2pt solid #1a3e6e; }
+  .header-logo img { height: 14mm; }
+  .header-title { text-align: right; }
+  .header-title .empresa { font-size: 11pt; font-weight: bold; color: #1a3e6e; text-transform: uppercase; letter-spacing: 0.5px; }
+  .header-title .doc-name { font-size: 9pt; color: #555; margin-top: 1px; }
+  .section-title { background-color: #1a3e6e; color: #fff; font-size: 8pt; font-weight: bold; text-align: center; padding: 2px 5px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2mm; }
+  table { width: 100%; border-collapse: collapse; }
+  table.kv th, table.kv td { border: 0.4pt solid #b0b8c8; padding: 2px 5px; vertical-align: middle; line-height: 1.25; height: 5.2mm; }
+  table.kv th { background: #dce6f1; color: #1a3e6e; font-weight: bold; white-space: nowrap; width: 22%; font-size: 7.5pt; text-align: left; }
+  table.kv td { color: #1a1a1a; font-size: 8pt; }
+  table.kv th.th-sm { width: 11%; }
+  table.kv td.td-sm { width: 22%; }
+  table.grid { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+  table.grid th { background: #dce6f1; color: #1a3e6e; font-weight: bold; border: 0.4pt solid #b0b8c8; padding: 2px 5px; font-size: 7.5pt; text-align: left; height: 5.2mm; overflow: hidden; }
+  table.grid td { border: 0.4pt solid #b0b8c8; padding: 2px 5px; font-size: 8pt; height: 5.6mm; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word; }
   .muted { color: #888; font-style: italic; }
-  .signature-row { display: flex; justify-content: space-around; gap: 24pt; margin-top: 36pt; }
-  .signature-row.centered { justify-content: center; }
-  .signature-row .sig { flex: 1; max-width: 280pt; text-align: center; }
-  .signature-row .sig .line { border-top: 1px solid #333; height: 1px; margin-bottom: 4pt; }
-  .signature-row .sig p { font-size: 9pt; margin: 0; color: #333; }
+  .signature-row { display: flex; justify-content: space-between; margin-top: 8mm; gap: 14mm; }
+  .sig { flex: 1; text-align: center; }
+  .sig .line { border-top: 0.8pt solid #1a1a1a; margin-bottom: 2px; height: 7mm; }
+  .sig p { font-size: 7pt; color: #444; }
 `;
