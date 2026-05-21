@@ -14,7 +14,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, SlidersHorizontal, X, Map as MapIcon, List as ListIcon, Merge, CheckSquare } from "lucide-react";
+import { Plus, Search, Pencil, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, SlidersHorizontal, X, Map as MapIcon, List as ListIcon, Merge, CheckSquare, MapPinned, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
@@ -70,6 +70,7 @@ export default function DeliveryAddresses() {
 
   const [view, setView] = useState<"list" | "map">("list");
   const [mapFiltersOpen, setMapFiltersOpen] = useState(true);
+  const [geocoding, setGeocoding] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
@@ -359,6 +360,28 @@ export default function DeliveryAddresses() {
         </Button>
         <Button size="sm" variant="outline" onClick={() => setMergeOpen(true)}>
           <Merge className="mr-1 h-4 w-4" /> Fusionar duplicados
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={geocoding}
+          onClick={async () => {
+            setGeocoding(true);
+            const t = toast.loading("Geocodificando direcciones sin coordenadas...");
+            try {
+              const { data, error } = await supabase.functions.invoke("geocode-addresses", { body: { limit: 200 } });
+              if (error) throw error;
+              toast.success(`Geocodificación lista: ${data?.updated ?? 0} actualizadas, ${data?.failed ?? 0} fallidas (de ${data?.scanned ?? 0})`, { id: t });
+              qc.invalidateQueries({ queryKey: ["all_addresses"] });
+            } catch (e: any) {
+              toast.error(e?.message || "Error al geocodificar", { id: t });
+            } finally {
+              setGeocoding(false);
+            }
+          }}
+        >
+          {geocoding ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <MapPinned className="mr-1 h-4 w-4" />}
+          Geocodificar faltantes
         </Button>
         {hasRole("admin") && (
           <ImportExportMenu
