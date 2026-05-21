@@ -81,17 +81,20 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
       .join("") + emptyRefRow.repeat(Math.max(0, 3 - refsTop3.length));
 
   const accionistasRaw = Array.isArray(form?.accionistas) ? form.accionistas : [];
-  const emptyAccRow = `<tr><td>&nbsp;</td><td>&nbsp;</td></tr>`;
-  const accTop4 = accionistasRaw.slice(0, 4);
   const fmtAcc = (v: any) => {
     if (v === null || v === undefined || v === "") return "";
     const n = Number(v);
     return Number.isFinite(n) ? n.toLocaleString("es-MX") : String(v);
   };
   const accionistasHtml =
-    accTop4
-      .map((a: any) => `<tr><td>${a?.nombre ?? ""}</td><td style="text-align:right">${fmtAcc(a?.acciones ?? a?.no_acciones)}</td></tr>`)
-      .join("") + emptyAccRow.repeat(Math.max(0, 4 - accTop4.length));
+    accionistasRaw.length > 0
+      ? accionistasRaw
+          .map(
+            (a: any) =>
+              `<tr><td style="width:70%;text-align:left">${a?.nombre ?? ""}</td><td style="width:30%;text-align:right">${fmtAcc(a?.acciones ?? a?.no_acciones)}</td></tr>`
+          )
+          .join("")
+      : `<tr><td style="width:70%">&nbsp;</td><td style="width:30%">&nbsp;</td></tr>`;
 
   const t: Record<string, string> = {
     razon_social: form?.razon_social || form?.csf_razon_social || company?.razon_social || company?.name || "",
