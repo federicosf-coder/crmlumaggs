@@ -3287,8 +3287,8 @@ function AnalisisInternoSection({
                 : "Sin generar"}
             </p>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={generarResumen} disabled={generating}>
-                {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+              <Button variant="outline" size="sm" disabled title="Temporalmente desactivado">
+                <Wand2 className="h-4 w-4 mr-2" />
                 {form.resumen_empresa_generated_at ? "Re-analizar con IA" : "Autogenerar con IA"}
               </Button>
               <Button size="sm" onClick={guardarResumen} disabled={savingResumen || resumenLocal === (form.resumen_empresa || "")}>
