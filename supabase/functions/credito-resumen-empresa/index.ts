@@ -65,34 +65,30 @@ Deno.serve(async (req) => {
     }
     const industry = industriaLabels.join(', ');
 
-    const systemPrompt = `Eres un vendedor B2B mexicano experimentado redactando una nota interna breve sobre un prospecto. Tu único objetivo es describir a la empresa en TRES dimensiones: (1) perfil de negocio, (2) capacidad operativa/comercial aparente y (3) antigüedad/trayectoria. NO emitas dictamen crediticio, NO uses palabras como "riesgo", "aprobar", "rechazar", "score". Habla como vendedor a su gerente, en primera persona plural o tono profesional neutro.`;
+    const systemPrompt = `Eres un vendedor B2B mexicano redactando una nota interna MUY BREVE sobre un prospecto. Escribe como vendedor a su gerente. NO emitas dictamen crediticio ni uses palabras como "riesgo", "aprobar", "rechazar", "score".`;
     const userPrompt = `Empresa: ${name}
 RFC: ${rfc || '(no disponible)'}
 Sitio web: ${website || '(no disponible)'}
 Industria (catálogo interno): ${industry || '(no asignada)'}
 Email: ${email || '(no disponible)'}
 
-Investiga la empresa en internet utilizando: su sitio web oficial, perfil de Google Business / Google Maps, LinkedIn de la empresa, notas de prensa, directorios sectoriales y registros públicos en México. Limítate a información pública y verificable.
+Apóyate principalmente en los datos de la empresa de arriba. Si hay un sitio web registrado, verifícalo para confirmar perfil, capacidad y antigüedad. No te metas en detalles menores.
 
-IMPORTANTE — Industria/Giro: cuando te refieras a la industria o giro, usa EXCLUSIVAMENTE las etiquetas del campo "Industria" de arriba. NO inventes subcategorías, NO uses códigos SCIAN, NO uses la actividad económica del CSF/SAT. Si no hay industria asignada, omite mencionarla.
+IMPORTANTE — Industria/Giro: si mencionas la industria, usa EXCLUSIVAMENTE las etiquetas del campo "Industria" de arriba. NO inventes subcategorías, NO uses códigos SCIAN ni la actividad del CSF/SAT. Si no hay industria asignada, omítela.
 
-Devuelve ÚNICAMENTE un objeto JSON válido (sin markdown, sin texto extra) con esta estructura:
+Devuelve ÚNICAMENTE un objeto JSON válido (sin markdown, sin texto extra):
 
 {
-  "resumen": string (resumen escrito por el vendedor, en español, en formato narrativo y fluido —sin listas ni viñetas—, máximo 3 párrafos cortos, organizado EXACTAMENTE en este orden y SIN incluir nada fuera de estos tres temas:
-    • Perfil de negocio: a qué se dedica la empresa, qué productos/servicios ofrece, a qué tipo de clientes o sectores atiende y dónde tiene presencia geográfica.
-    • Capacidad: tamaño aparente del negocio (número de sucursales, flota, plantilla, cobertura, marcas representadas, infraestructura visible), señales de su capacidad operativa y comercial.
-    • Antigüedad: año o década de fundación, años operando, trayectoria, hitos relevantes que muestren continuidad en el mercado.
-    Si algún dato no se puede confirmar en internet, omítelo —no especules, no inventes—.),
-  "hallazgos": string[] (3-5 datos concretos encontrados que respalden el perfil, la capacidad o la antigüedad),
-  "fuentes_consultadas": string[] (URLs reales o nombres de las fuentes utilizadas)
+  "resumen": string (MÁXIMO 2 párrafos cortos en español, texto corrido —sin listas, viñetas ni encabezados—. Cubre de forma resumida: perfil de negocio, capacidad aparente y antigüedad. Sé conciso, no agregues detalles secundarios.),
+  "hallazgos": string[] (2-3 datos clave),
+  "fuentes_consultadas": string[] (URLs o nombres de las fuentes utilizadas)
 }
 
 Reglas estrictas:
-- NO incluyas información financiera, crediticia, de morosidad, de litigios ni recomendaciones de crédito.
+- Máximo 2 párrafos. Si no hay suficiente información verificable, escribe 1 párrafo.
+- NO incluyas información financiera, crediticia, de morosidad o litigios.
 - NO menciones contactos, accionistas ni datos personales.
-- NO uses encabezados, viñetas, negritas ni markdown dentro de "resumen": solo texto corrido.
-- Si la empresa no se encuentra en línea, escribe un resumen breve indicando que no hay información pública disponible y deja "hallazgos" y "fuentes_consultadas" vacíos.`;
+- Si no hay información pública disponible, escribe un párrafo breve indicándolo y deja "hallazgos" y "fuentes_consultadas" vacíos.`;
 
     const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
