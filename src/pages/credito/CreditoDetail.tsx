@@ -2367,8 +2367,25 @@ export default function CreditoDetail() {
                   personaMoralOnly: false,
                 });
               }
-              return [...solicitudEntries, ...base];
-            })().map((f) => {
+              const all = [...solicitudEntries, ...base];
+              return (
+                <>
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => {
+                        if (all.length === 0) return;
+                        all.forEach((f, idx) => {
+                          setTimeout(() => openFirmaPdf(f), idx * 350);
+                        });
+                        toast.success(`Abriendo ${all.length} PDF(s) en pestañas nuevas`);
+                      }}
+                    >
+                      <Printer className="h-4 w-4 mr-1" />Generar Todos
+                    </Button>
+                  </div>
+                  {all.map((f) => {
               const fecha = (form as any)[f.fechaCol];
               const nombre = (form as any)[f.nombreCol];
               const docIdCol = `${f.fechaCol.replace("_fecha", "")}_doc_id`;
@@ -2432,7 +2449,10 @@ export default function CreditoDetail() {
                   </div>
                 </div>
               );
-            })}
+                  })}
+                </>
+              );
+            })()}
             <p className="text-xs text-muted-foreground pt-2">
               Genera el PDF, imprime y firma físicamente, luego sube el documento escaneado. La firma en línea estará disponible próximamente.
             </p>
