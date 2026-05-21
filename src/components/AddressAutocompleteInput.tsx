@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, MapPin, Crosshair } from "lucide-react";
+import { Loader2, MapPin, Crosshair, Info } from "lucide-react";
 import { useGoogleMaps } from "@/hooks/useGoogleMaps";
 import { toast } from "sonner";
 
@@ -64,6 +64,9 @@ export function AddressAutocompleteInput({
   const [latStr, setLatStr] = useState(value.latitud != null ? String(value.latitud) : "");
   const [lngStr, setLngStr] = useState(value.longitud != null ? String(value.longitud) : "");
   const [reverseLoading, setReverseLoading] = useState(false);
+  const [autoGeocodedInfo, setAutoGeocodedInfo] = useState(false);
+  const debounceRef = useRef<number | null>(null);
+  const didAutoForwardRef = useRef(false);
 
   // Keep local lat/lng strings in sync if value changes externally
   useEffect(() => {
@@ -79,6 +82,7 @@ export function AddressAutocompleteInput({
       const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
         fields: ["formatted_address", "geometry", "address_components", "place_id"],
         types: ["geocode"],
+        componentRestrictions: { country: "mx" },
       });
       ac.addListener("place_changed", () => {
         const place = ac.getPlace();
@@ -107,6 +111,40 @@ export function AddressAutocompleteInput({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
+  // Forward-geocode existing address when lat/lng are missing (EDIT mode fallback)
+  useEffect(() => {
+    if (!ready) return;
+    if (didAutoForwardRef.current) return;
+    if (value.latitud != null && value.longitud != null) return;
+    if (!value.direccion_completa || value.direccion_completa.trim().length < 5) return;
+    didAutoForwardRef.current = true;
+    (async () => {
+      try {
+        if ((window as any).google?.maps?.importLibrary) {
+          await (window as any).google.maps.importLibrary("geocoding");
+        }
+        const geocoder = new window.google.maps.Geocoder();
+        const res: any = await geocoder.geocode({ address: value.direccion_completa, region: "mx" });
+        const place = res?.results?.[0];
+        if (!place?.geometry?.location) return;
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const comp = extractComponents(place);
+        onChange({
+          ...value,
+          ...comp,
+          latitud: lat,
+          longitud: lng,
+          codigo_google: place.place_id || value.codigo_google,
+        });
+        setAutoGeocodedInfo(true);
+      } catch (e) {
+        console.warn("[AddressAutocompleteInput] auto-geocode falló:", e);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, value.direccion_completa, value.latitud, value.longitud]);
 
   const reverseGeocode = async (lat: number, lng: number) => {
     if (!ready) return;
@@ -138,21 +176,18 @@ export function AddressAutocompleteInput({
     }
   };
 
-  const handleCoordsBlur = () => {
-    const lat = parseFloat(latStr);
-    const lng = parseFloat(lngStr);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      // Only reverse-geocode if coords actually changed
-      if (lat !== value.latitud || lng !== value.longitud) {
-        if (value.direccion_completa && value.latitud != null && value.longitud != null) {
-          // Both exist already → just suggest update via reverse
-          reverseGeocode(lat, lng);
-        } else {
-          reverseGeocode(lat, lng);
-        }
-      }
-    }
+  const scheduleReverseFromInputs = (latRaw: string, lngRaw: string) => {
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      const lat = parseFloat(latRaw);
+      const lng = parseFloat(lngRaw);
+      if (isNaN(lat) || isNaN(lng)) return;
+      if (lat === value.latitud && lng === value.longitud) return;
+      reverseGeocode(lat, lng);
+    }, 800);
   };
+
+  useEffect(() => () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); }, []);
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -195,8 +230,7 @@ export function AddressAutocompleteInput({
               type="number"
               step="any"
               value={latStr}
-              onChange={(e) => setLatStr(e.target.value)}
-              onBlur={handleCoordsBlur}
+              onChange={(e) => { setLatStr(e.target.value); scheduleReverseFromInputs(e.target.value, lngStr); }}
               placeholder="25.6866"
             />
           </div>
@@ -206,8 +240,7 @@ export function AddressAutocompleteInput({
               type="number"
               step="any"
               value={lngStr}
-              onChange={(e) => setLngStr(e.target.value)}
-              onBlur={handleCoordsBlur}
+              onChange={(e) => { setLngStr(e.target.value); scheduleReverseFromInputs(latStr, e.target.value); }}
               placeholder="-100.3161"
             />
           </div>
@@ -224,6 +257,12 @@ export function AddressAutocompleteInput({
             </Button>
           )}
         </div>
+      )}
+
+      {autoGeocodedInfo && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <Info className="h-3 w-3" /> Coordenadas obtenidas automáticamente desde la dirección guardada
+        </p>
       )}
 
       {(value.ciudad || value.estado || value.codigo_postal || value.pais) && (
