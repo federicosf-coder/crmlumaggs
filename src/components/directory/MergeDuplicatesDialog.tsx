@@ -311,7 +311,7 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
           }
         }
         if (Object.keys(patch).length > 0) {
-          const { error } = await supabase.from("direcciones_empresa").update(patch).eq("id", primaryId);
+          const { error } = await (supabase.from("direcciones_empresa") as any).update(patch).eq("id", primaryId);
           if (error) throw error;
         }
         const dupIds = Array.from(duplicateIds);
