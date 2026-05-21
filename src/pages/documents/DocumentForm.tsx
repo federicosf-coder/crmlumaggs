@@ -632,6 +632,8 @@ export default function DocumentForm() {
         forma_pago: form.forma_pago || null,
         fecha_entrega_programada: (form.tipo_documento === "pedido" || form.tipo_documento === "entrega_corporativa") ? (form.fecha_entrega_programada || null) : null,
       };
+      // FK a direcciones_empresa (sólo si la dirección seleccionada es una existente)
+      docData.direccion_envio_id = selectedAddr?.id || null;
       if (selectedAddr) {
         docData.direccion_envio_lat = selectedAddr.coordenadas_lat ?? null;
         docData.direccion_envio_lng = selectedAddr.coordenadas_lng ?? null;
