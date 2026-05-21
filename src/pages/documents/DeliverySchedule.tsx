@@ -324,7 +324,7 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
   );
 }
 
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute, onSaveTiempoReal, onSaveKmManual, onSaveDocCoords }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute, onSaveTiempoReal, onSaveKmManual, onSaveDocCoords, onAdjustRouteTime, onResetRouteTime, isAdmin }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -340,6 +340,9 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onSaveTiempoReal?: (docId: string, minutes: number | null) => void;
   onSaveKmManual?: (docId: string, km: number | null) => void;
   onSaveDocCoords?: (docId: string, lat: number, lng: number, address?: string | null) => void | Promise<void>;
+  onAdjustRouteTime?: (ruta: any, mode: "start" | "finish") => void;
+  onResetRouteTime?: (ruta: any, mode: "start" | "finish") => void;
+  isAdmin?: boolean;
 }) {
   const navigate = useNavigate();
   const cerrada = !!ruta.cerrada;
@@ -392,35 +395,96 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
 
       {/* Iniciar / Finalizar ruta */}
       <div className="grid grid-cols-2 gap-2 mb-2">
-        <Button
-          size="sm"
-          className="w-full h-8 text-xs gap-1.5 px-2 bg-green-800 hover:bg-green-900 text-white disabled:opacity-60"
-          disabled={!!ruta.ruta_started_at || cerrada}
-          onClick={() => onStartRoute(ruta)}
-          title={ruta.ruta_started_at ? `Iniciada ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}` : "Marcar inicio de ruta al salir de planta"}
-        >
-          <Play className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">
-            {ruta.ruta_started_at
-              ? `Iniciada ${format(new Date(ruta.ruta_started_at), "HH:mm", { locale: es })}`
-              : "Iniciar ruta"}
-          </span>
-        </Button>
-        <Button
-          size="sm"
-          className="w-full h-8 text-xs gap-1.5 px-2 bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
-          disabled={!ruta.ruta_started_at || !!ruta.ruta_finished_at || cerrada}
-          onClick={() => onFinishRoute(ruta)}
-          title={ruta.ruta_finished_at ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "dd MMM HH:mm", { locale: es })}` : "Marcar fin de ruta"}
-        >
-          <Flag className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">
-            {ruta.ruta_finished_at
-              ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "HH:mm", { locale: es })}`
-              : "Ruta Finalizada"}
-          </span>
-        </Button>
+        <div className="flex items-stretch gap-1">
+          <Button
+            size="sm"
+            className="flex-1 h-8 text-xs gap-1.5 px-2 bg-green-800 hover:bg-green-900 text-white disabled:opacity-60"
+            disabled={!!ruta.ruta_started_at || cerrada}
+            onClick={() => onStartRoute(ruta)}
+            title={ruta.ruta_started_at ? `Iniciada ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}` : "Marcar inicio de ruta al salir de planta"}
+          >
+            <Play className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">
+              {ruta.ruta_started_at
+                ? `Iniciada ${format(new Date(ruta.ruta_started_at), "HH:mm", { locale: es })}`
+                : "Iniciar ruta"}
+            </span>
+          </Button>
+          {isAdmin && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="icon" variant="outline" className="h-8 w-7 shrink-0" title="Ajustar / Reiniciar inicio">
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-44 p-1" align="end">
+                <button
+                  type="button"
+                  className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent"
+                  onClick={() => onAdjustRouteTime?.(ruta, "start")}
+                >
+                  Ajustar manualmente
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent text-destructive disabled:opacity-50"
+                  disabled={!ruta.ruta_started_at}
+                  onClick={() => onResetRouteTime?.(ruta, "start")}
+                >
+                  Reiniciar
+                </button>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+        <div className="flex items-stretch gap-1">
+          <Button
+            size="sm"
+            className="flex-1 h-8 text-xs gap-1.5 px-2 bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
+            disabled={!ruta.ruta_started_at || !!ruta.ruta_finished_at || cerrada}
+            onClick={() => onFinishRoute(ruta)}
+            title={ruta.ruta_finished_at ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "dd MMM HH:mm", { locale: es })}` : "Marcar fin de ruta"}
+          >
+            <Flag className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">
+              {ruta.ruta_finished_at
+                ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "HH:mm", { locale: es })}`
+                : "Ruta Finalizada"}
+            </span>
+          </Button>
+          {isAdmin && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="icon" variant="outline" className="h-8 w-7 shrink-0" title="Ajustar / Reiniciar fin">
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-44 p-1" align="end">
+                <button
+                  type="button"
+                  className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent"
+                  onClick={() => onAdjustRouteTime?.(ruta, "finish")}
+                >
+                  Ajustar manualmente
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent text-destructive disabled:opacity-50"
+                  disabled={!ruta.ruta_finished_at}
+                  onClick={() => onResetRouteTime?.(ruta, "finish")}
+                >
+                  Reiniciar
+                </button>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
       </div>
+      {(ruta.ruta_started_at_editada_por || ruta.ruta_finished_at_editada_por) && (
+        <p className="text-[10px] text-muted-foreground mb-2 -mt-1">
+          ✎ Hora ajustada manualmente
+        </p>
+      )}
 
       {/* Resumen de ruta: km y tiempos */}
       <div className="rounded-md border bg-muted/40 px-2 py-1.5 mb-2 space-y-0.5 text-[11px]">
@@ -579,7 +643,8 @@ function PedidoFooterActions({ item }: { item: any }) {
 export default function DeliverySchedule() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
 
   const [showPool, setShowPool] = useState(false);
   const [searchPool, setSearchPool] = useState("");
@@ -610,6 +675,13 @@ export default function DeliverySchedule() {
   const [deliverNotes, setDeliverNotes] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Ajuste manual de hora de inicio/fin de ruta
+  const [adjustRoute, setAdjustRoute] = useState<{ ruta: any; mode: "start" | "finish" } | null>(null);
+  const [adjustDate, setAdjustDate] = useState<Date | undefined>(undefined);
+  const [adjustTime, setAdjustTime] = useState<string>("");
+  const [adjustPickerOpen, setAdjustPickerOpen] = useState(false);
+  const [savingAdjust, setSavingAdjust] = useState(false);
 
   // ─── Data queries ─────────────────────────────────────────
   const { data: plazas = [] } = useQuery({
@@ -1249,6 +1321,78 @@ export default function DeliverySchedule() {
     refetchRutas();
   };
 
+  const openAdjustRouteTime = (ruta: any, mode: "start" | "finish") => {
+    const current = mode === "start" ? ruta.ruta_started_at : ruta.ruta_finished_at;
+    const base = current ? new Date(current) : new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setAdjustDate(base);
+    setAdjustTime(`${pad(base.getHours())}:${pad(base.getMinutes())}`);
+    setAdjustRoute({ ruta, mode });
+  };
+
+  const saveAdjustedRouteTime = async () => {
+    if (!adjustRoute || !adjustDate) return;
+    setSavingAdjust(true);
+    const [hh, mm] = (adjustTime || "00:00").split(":").map((n) => Number(n) || 0);
+    const dt = new Date(adjustDate);
+    dt.setHours(hh, mm, 0, 0);
+    const iso = dt.toISOString();
+    const nowIso = new Date().toISOString();
+    const payload: any = adjustRoute.mode === "start"
+      ? {
+          ruta_started_at: iso,
+          ruta_started_by: adjustRoute.ruta.ruta_started_by ?? user?.id ?? null,
+          ruta_started_at_editada_por: user?.id ?? null,
+          ruta_started_at_editada_at: nowIso,
+          estatus: adjustRoute.ruta.estatus || "en_ruta",
+        }
+      : {
+          ruta_finished_at: iso,
+          ruta_finished_by: adjustRoute.ruta.ruta_finished_by ?? user?.id ?? null,
+          ruta_finished_at_editada_por: user?.id ?? null,
+          ruta_finished_at_editada_at: nowIso,
+          estatus: "finalizada",
+        };
+    const { error } = await (supabase.from("rutas_entrega") as any)
+      .update(payload)
+      .eq("id", adjustRoute.ruta.id);
+    setSavingAdjust(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Hora actualizada");
+    setAdjustRoute(null);
+    refetchRutas();
+  };
+
+  const resetRouteTime = async (ruta: any, mode: "start" | "finish") => {
+    if (!confirm(`¿Reiniciar la hora de ${mode === "start" ? "inicio" : "fin"} de la ruta?`)) return;
+    const nowIso = new Date().toISOString();
+    const payload: any = mode === "start"
+      ? {
+          ruta_started_at: null,
+          ruta_started_by: null,
+          ruta_finished_at: null,
+          ruta_finished_by: null,
+          ruta_started_at_editada_por: user?.id ?? null,
+          ruta_started_at_editada_at: nowIso,
+          ruta_finished_at_editada_por: null,
+          ruta_finished_at_editada_at: null,
+          estatus: null,
+        }
+      : {
+          ruta_finished_at: null,
+          ruta_finished_by: null,
+          ruta_finished_at_editada_por: user?.id ?? null,
+          ruta_finished_at_editada_at: nowIso,
+          estatus: "en_ruta",
+        };
+    const { error } = await (supabase.from("rutas_entrega") as any)
+      .update(payload)
+      .eq("id", ruta.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Hora reiniciada");
+    refetchRutas();
+  };
+
   const handleDeliver = (item: PoolItem) => {
     setDeliverItem(item);
     setDeliverNotes("");
@@ -1592,6 +1736,9 @@ export default function DeliverySchedule() {
                                   onSaveTiempoReal={(docId, min) => saveTiempoReal(ruta.id, docId, min)}
                                   onSaveKmManual={(docId, km) => saveKmManual(ruta.id, docId, km)}
                                   onSaveDocCoords={(docId, lat, lng, address) => saveDocCoords(ruta.id, docId, lat, lng, address)}
+                                  onAdjustRouteTime={openAdjustRouteTime}
+                                  onResetRouteTime={resetRouteTime}
+                                  isAdmin={isAdmin}
                                 />
                               ))}
                             </div>
@@ -1742,6 +1889,67 @@ export default function DeliverySchedule() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeliverDialog(false)}>Cancelar</Button>
             <Button onClick={confirmDelivery} disabled={uploading}>{uploading ? "Subiendo..." : "Confirmar Entrega"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ajuste manual de hora inicio/fin de ruta */}
+      <Dialog open={!!adjustRoute} onOpenChange={(o) => { if (!o) setAdjustRoute(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Ajustar hora de {adjustRoute?.mode === "start" ? "inicio" : "finalización"} de ruta
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">
+              Fecha y hora
+            </Label>
+            <Popover open={adjustPickerOpen} onOpenChange={setAdjustPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-light h-10",
+                    !adjustDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 opacity-60" />
+                  {adjustDate
+                    ? `${format(adjustDate, "dd MMM yyyy", { locale: es })}${adjustTime ? ` · ${adjustTime}` : ""}`
+                    : "Selecciona fecha"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={adjustDate}
+                  onDayClick={(day) => setAdjustDate(day)}
+                  defaultMonth={adjustDate || new Date()}
+                  initialFocus
+                  locale={es}
+                  className={cn("p-3 pointer-events-auto font-light")}
+                />
+                <div className="border-t p-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="time"
+                    value={adjustTime}
+                    onChange={(e) => setAdjustTime(e.target.value)}
+                    className="h-9 font-light"
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+            <p className="text-xs text-muted-foreground">
+              Solo administradores. Se registrará tu nombre como editor.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAdjustRoute(null)}>Cancelar</Button>
+            <Button onClick={saveAdjustedRouteTime} disabled={savingAdjust || !adjustDate}>
+              Guardar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
