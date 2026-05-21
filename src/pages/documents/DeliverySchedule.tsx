@@ -340,6 +340,9 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onSaveTiempoReal?: (docId: string, minutes: number | null) => void;
   onSaveKmManual?: (docId: string, km: number | null) => void;
   onSaveDocCoords?: (docId: string, lat: number, lng: number, address?: string | null) => void | Promise<void>;
+  onAdjustRouteTime?: (ruta: any, mode: "start" | "finish") => void;
+  onResetRouteTime?: (ruta: any, mode: "start" | "finish") => void;
+  isAdmin?: boolean;
 }) {
   const navigate = useNavigate();
   const cerrada = !!ruta.cerrada;
