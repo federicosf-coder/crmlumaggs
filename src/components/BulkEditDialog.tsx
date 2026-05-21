@@ -26,7 +26,7 @@ interface BulkEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedIds: string[];
-  table: "documentos" | "companies" | "contacts";
+  table: "documentos" | "companies" | "contacts" | "direcciones_empresa";
   fields: BulkField[];
   onSuccess: () => void;
 }
