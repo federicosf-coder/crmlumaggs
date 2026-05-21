@@ -1892,6 +1892,67 @@ export default function DeliverySchedule() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Ajuste manual de hora inicio/fin de ruta */}
+      <Dialog open={!!adjustRoute} onOpenChange={(o) => { if (!o) setAdjustRoute(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Ajustar hora de {adjustRoute?.mode === "start" ? "inicio" : "finalización"} de ruta
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light">
+              Fecha y hora
+            </Label>
+            <Popover open={adjustPickerOpen} onOpenChange={setAdjustPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-light h-10",
+                    !adjustDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 opacity-60" />
+                  {adjustDate
+                    ? `${format(adjustDate, "dd MMM yyyy", { locale: es })}${adjustTime ? ` · ${adjustTime}` : ""}`
+                    : "Selecciona fecha"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={adjustDate}
+                  onDayClick={(day) => setAdjustDate(day)}
+                  defaultMonth={adjustDate || new Date()}
+                  initialFocus
+                  locale={es}
+                  className={cn("p-3 pointer-events-auto font-light")}
+                />
+                <div className="border-t p-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="time"
+                    value={adjustTime}
+                    onChange={(e) => setAdjustTime(e.target.value)}
+                    className="h-9 font-light"
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+            <p className="text-xs text-muted-foreground">
+              Solo administradores. Se registrará tu nombre como editor.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAdjustRoute(null)}>Cancelar</Button>
+            <Button onClick={saveAdjustedRouteTime} disabled={savingAdjust || !adjustDate}>
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
