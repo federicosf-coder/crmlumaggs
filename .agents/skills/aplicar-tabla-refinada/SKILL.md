@@ -138,3 +138,75 @@ Para botones primarios que viven dentro del card de la pestaña (ej. "Generar To
 ### Referencia canónica de Tabs
 
 - `src/pages/credito/CreditoDetail.tsx` (líneas ~1510 TabsList principal y ~1535 sub-TabsList).
+
+## Header de Detalle Refinado
+
+Para la cabecera principal de una vista de detalle (título de entidad + folio + estado + acciones globales + métricas de progreso), aplicar el mismo lenguaje visual de la tabla refinada.
+
+### Card contenedor
+
+```tsx
+<Card className="overflow-hidden border-border/60 shadow-sm">
+  <CardHeader className="pb-3 bg-gradient-to-br from-violet-50 to-blue-50 border-b border-border/40">
+    …
+  </CardHeader>
+</Card>
+```
+
+- `overflow-hidden` para que el gradiente respete los `rounded` del Card.
+- `border-border/60 shadow-sm` igual que el contenedor de tabla.
+- Header con gradiente `from-violet-50 to-blue-50` y `border-b border-border/40`.
+
+### Título y metadatos (folio, estado, tipo)
+
+- `CardTitle`: `text-xl font-light tracking-tight` (NO usar `font-semibold/bold`).
+- Folio: `font-mono text-[10px] uppercase tracking-widest text-muted-foreground`.
+- Badges de estado/tipo (chips): `inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-widest border` + colores semánticos por estado.
+- Subtítulo (razón social, descripción secundaria): `text-xs font-light text-muted-foreground mt-1`.
+- Botón ícono de edición inline: `Button variant="ghost" size="icon" className="h-7 w-7"` con ícono `h-3.5 w-3.5`.
+
+### Botones de acción del header
+
+Secundario (outline gradiente — mismo patrón que botones dentro de tabs):
+```tsx
+<Button
+  variant="outline"
+  size="sm"
+  className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
+>
+  <Send className="h-3.5 w-3.5 mr-1.5" />Acción secundaria
+</Button>
+```
+
+Primario (gradiente saturado, mismo lenguaje que TabsTrigger activo):
+```tsx
+<Button
+  size="sm"
+  className="bg-gradient-to-br from-violet-500 to-fuchsia-600 hover:from-violet-600 hover:to-fuchsia-700 text-white shadow-md text-[10px] font-semibold uppercase tracking-widest"
+>
+  <Save className="h-3.5 w-3.5 mr-1.5" />Guardar
+</Button>
+```
+
+Si la acción primaria tiene otro acento semántico, reutilizar la tabla de colores de TabsTrigger (azul `from-blue-500 to-indigo-600`, esmeralda `from-emerald-500 to-teal-600`, etc.).
+
+### Bloque de métricas / progreso
+
+```tsx
+<div className="grid grid-cols-3 gap-3 pt-4">
+  <div>
+    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Formulario</p>
+    <Progress value={pct} className="h-2 mt-1" />
+    <p className="text-xs font-light mt-0.5">{pct}%</p>
+  </div>
+  …
+</div>
+```
+
+- Etiqueta: `text-[10px] font-semibold uppercase tracking-widest text-muted-foreground` (idéntica a `TableHead`).
+- Valor: `text-xs font-light` (tipografía consistente con celdas de tabla).
+- `Progress` con `h-2 mt-1`.
+
+### Referencia canónica de Header
+
+- `src/pages/credito/CreditoDetail.tsx` (líneas ~1228-1320).

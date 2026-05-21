@@ -1226,12 +1226,12 @@ export default function CreditoDetail() {
       <BackButton fallback="/credito" />
 
       {/* Header */}
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="overflow-hidden border-border/60 shadow-sm">
+        <CardHeader className="pb-3 bg-gradient-to-br from-violet-50 to-blue-50 border-b border-border/40">
           <div className="flex items-start justify-between flex-wrap gap-3">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="text-xl">{(form.companies as any)?.name || "Sin cliente"}</CardTitle>
+                <CardTitle className="text-xl font-light tracking-tight">{(form.companies as any)?.name || "Sin cliente"}</CardTitle>
                 {companyId && (
                   <Button
                     variant="ghost"
@@ -1243,26 +1243,36 @@ export default function CreditoDetail() {
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
                 )}
-                <span className="font-mono text-xs text-muted-foreground">{form.folio}</span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${c}`}>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{form.folio}</span>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-widest border ${c}`}>
                   {CREDITO_ESTADO_LABEL[form.estado] || form.estado}
                 </span>
                 {form.tipo && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs border bg-blue-50 text-blue-700 border-blue-200">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-widest border bg-blue-50 text-blue-700 border-blue-200">
                     {CREDITO_TIPO_LABEL[form.tipo]}
                   </span>
                 )}
               </div>
               {company?.razon_social && company.razon_social !== company.name && (
-                <p className="text-xs text-muted-foreground mt-1">{company.razon_social}</p>
+                <p className="text-xs font-light text-muted-foreground mt-1">{company.razon_social}</p>
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={sendToPortal}>
-                <Send className="h-4 w-4 mr-2" />Enviar al cliente
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={sendToPortal}
+                className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
+              >
+                <Send className="h-3.5 w-3.5 mr-1.5" />Enviar al cliente
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-gradient-to-br from-violet-500 to-fuchsia-600 hover:from-violet-600 hover:to-fuchsia-700 text-white shadow-md text-[10px] font-semibold uppercase tracking-widest"
+              >
+                {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
                 Guardar
               </Button>
             </div>
@@ -1297,19 +1307,19 @@ export default function CreditoDetail() {
               return (
             <div className="grid grid-cols-3 gap-3 pt-4">
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Formulario</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Formulario</p>
                 <Progress value={completeness.form_pct || 0} className="h-2 mt-1" />
-                <p className="text-xs mt-0.5">{completeness.form_pct || 0}%</p>
+                <p className="text-xs font-light mt-0.5">{completeness.form_pct || 0}%</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Documentos</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Documentos</p>
                 <Progress value={docsPct} className="h-2 mt-1" />
-                <p className="text-xs mt-0.5">{recibidosDocs}/{totalDocs}</p>
+                <p className="text-xs font-light mt-0.5">{recibidosDocs}/{totalDocs}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Firmas</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Firmas</p>
                 <Progress value={completeness.sigs_pct || 0} className="h-2 mt-1" />
-                <p className="text-xs mt-0.5">{completeness.sigs_done}/{completeness.sigs_required}</p>
+                <p className="text-xs font-light mt-0.5">{completeness.sigs_done}/{completeness.sigs_required}</p>
               </div>
             </div>
               );
