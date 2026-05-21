@@ -381,7 +381,7 @@ export default function DeliveryAddresses() {
             onImported={() => qc.invalidateQueries({ queryKey: ["all_addresses"] })}
           />
         )}
-        <div className="ml-auto inline-flex rounded-md border bg-background p-0.5">
+        <div className="inline-flex rounded-md border bg-background p-0.5">
           <Button size="sm" variant={view === "list" ? "secondary" : "ghost"} className="h-8 px-3" onClick={() => setView("list")}>
             <ListIcon className="h-4 w-4 mr-1" /> Lista
           </Button>
