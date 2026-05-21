@@ -40,15 +40,16 @@ const FORM_FIELDS = [
   'tipo_persona',
   'razon_social','nombre_comercial','rfc','telefono','correo_contacto',
   'domicilio_fiscal','ciudad_fiscal','estado_fiscal','antiguedad',
-  'domicilio_comercial','ciudad_comercial','giro_comercial',
+  'domicilio_comercial','ciudad_comercial','estado_comercial','giro_comercial',
   'monto_solicitado','dias_credito',
   'accionistas','escritura_constitutiva','datos_registro','ultima_asamblea','administrador_presidente',
   'datos_bancarios','referencias_comerciales',
   'aval_nombre','aval_direccion','aval_ciudad','aval_relacion','aval_regimen_conyugal','aval_es_distinto',
   'rep_legal_nombre','rep_legal_curp','rep_legal_rfc','rep_legal_tipo_id','rep_legal_num_id',
-  'rep_legal_fecha_nacimiento','rep_legal_pais_nacimiento',
+  'rep_legal_fecha_nacimiento','rep_legal_pais_nacimiento','rep_legal_vencimiento_id',
   'lfpiorpi_beneficiario_controlador','lfpiorpi_tiene_documentacion',
   'lfpiorpi_fecha_firma','lfpiorpi_lugar_firma',
+  'bc_data','bc_es_representante_legal','bc_confirmacion_no_existe','bc_tipo_persona',
 ] as const
 
 const SIGN_MAP: Record<string, { fechaCol: string; nombreCol: string }> = {
