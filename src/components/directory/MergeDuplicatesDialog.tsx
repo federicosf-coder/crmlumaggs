@@ -13,7 +13,7 @@ import { fetchAllRows } from "@/lib/supabasePagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-type Entity = "companies" | "contacts";
+type Entity = "companies" | "contacts" | "addresses";
 
 interface Props {
   open: boolean;
@@ -115,7 +115,7 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
         }
         out.sort((a, b) => b.rows.length - a.rows.length);
         setGroups(out);
-      } else {
+      } else if (entity === "contacts") {
         const rows = await fetchAllRows<any>((from, to) =>
           supabase.from("contacts").select("id, first_name, last_name, email, phone, mobile, company_id, companies(name)").range(from, to)
         );
@@ -147,6 +147,51 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
           const dp = digits(r.phone);
           if (dm.length >= 8) push(dm, "Mismo celular", r);
           if (dp.length >= 8 && dp !== dm) push(dp, "Mismo teléfono", r);
+        }
+        const out: Group[] = [];
+        for (const [k, v] of buckets) {
+          if (v.rows.length >= 2) out.push({ key: k, reason: v.reason, rows: v.rows });
+        }
+        out.sort((a, b) => b.rows.length - a.rows.length);
+        setGroups(out);
+      } else {
+        // addresses
+        const rows = await fetchAllRows<any>((from, to) =>
+          supabase
+            .from("direcciones_empresa")
+            .select("id, nombre, empresa_id, direccion_completa, calle, ciudad, codigo_google, coordenadas_lat, coordenadas_lng, is_active, companies(name)")
+            .eq("is_active", true)
+            .range(from, to)
+        );
+        const all: Row[] = rows.map((r: any) => ({
+          id: r.id,
+          label: r.nombre || r.direccion_completa || r.calle || "(sin nombre)",
+          sub: [r.companies?.name, r.direccion_completa || r.calle, r.ciudad].filter(Boolean).join(" • ") || null,
+          raw: r,
+        }));
+        setAllRows(all);
+        const buckets = new Map<string, { reason: string; rows: Row[] }>();
+        const push = (key: string, reason: string, r: any) => {
+          if (!key) return;
+          const k = `${reason}::${key}`;
+          if (!buckets.has(k)) buckets.set(k, { reason, rows: [] });
+          const arr = buckets.get(k)!.rows;
+          if (!arr.find(x => x.id === r.id)) arr.push({
+            id: r.id,
+            label: r.nombre || r.direccion_completa || r.calle || "(sin nombre)",
+            sub: [r.companies?.name, r.direccion_completa || r.calle, r.ciudad].filter(Boolean).join(" • ") || null,
+            raw: r,
+          });
+        };
+        for (const r of rows) {
+          if (r.empresa_id) {
+            push(`${r.empresa_id}|${normalize(r.direccion_completa || r.calle)}`, "Misma empresa y dirección", r);
+          }
+          if (r.codigo_google) push((r.codigo_google || "").trim().toLowerCase(), "Mismo Place ID", r);
+          if (r.coordenadas_lat != null && r.coordenadas_lng != null && r.empresa_id) {
+            const key = `${r.empresa_id}|${Number(r.coordenadas_lat).toFixed(5)},${Number(r.coordenadas_lng).toFixed(5)}`;
+            push(key, "Mismas coordenadas en misma empresa", r);
+          }
         }
         const out: Group[] = [];
         for (const [k, v] of buckets) {
@@ -250,15 +295,39 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
     if (!primaryId || duplicateIds.size === 0) return;
     setMerging(true);
     try {
-      const fnName = entity === "companies" ? "merge_companies" : "merge_contacts";
       let ok = 0;
-      for (const dupId of duplicateIds) {
-        const { error } = await (supabase.rpc as any)(fnName, {
-          _primary_id: primaryId,
-          _duplicate_id: dupId,
-        });
-        if (error) throw error;
-        ok++;
+      if (entity === "addresses") {
+        // Soft merge: completar campos vacíos en el principal y desactivar duplicados.
+        const primary = allRows.find(r => r.id === primaryId)?.raw;
+        const fillable = ["nombre", "direccion_completa", "calle", "ciudad", "estado", "codigo_postal", "pais", "referencia", "coordenadas_lat", "coordenadas_lng", "codigo_google"];
+        const patch: Record<string, any> = {};
+        for (const dupId of duplicateIds) {
+          const dup = allRows.find(r => r.id === dupId)?.raw;
+          if (!dup) continue;
+          for (const f of fillable) {
+            if ((primary?.[f] == null || primary?.[f] === "") && dup[f] != null && dup[f] !== "" && patch[f] == null) {
+              patch[f] = dup[f];
+            }
+          }
+        }
+        if (Object.keys(patch).length > 0) {
+          const { error } = await (supabase.from("direcciones_empresa") as any).update(patch).eq("id", primaryId);
+          if (error) throw error;
+        }
+        const dupIds = Array.from(duplicateIds);
+        const { error: delErr } = await supabase.from("direcciones_empresa").update({ is_active: false }).in("id", dupIds);
+        if (delErr) throw delErr;
+        ok = dupIds.length;
+      } else {
+        const fnName = entity === "companies" ? "merge_companies" : "merge_contacts";
+        for (const dupId of duplicateIds) {
+          const { error } = await (supabase.rpc as any)(fnName, {
+            _primary_id: primaryId,
+            _duplicate_id: dupId,
+          });
+          if (error) throw error;
+          ok++;
+        }
       }
       toast.success(`${ok} registro(s) fusionado(s) correctamente`);
       setConfirmOpen(false);
@@ -276,7 +345,7 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Fusionar duplicados — {entity === "companies" ? "Empresas" : "Contactos"}</DialogTitle>
+            <DialogTitle>Fusionar duplicados — {entity === "companies" ? "Empresas" : entity === "contacts" ? "Contactos" : "Direcciones"}</DialogTitle>
             <DialogDescription>
               Detecta posibles duplicados, elige el registro principal y los demás se fusionarán en él.
             </DialogDescription>
