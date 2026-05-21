@@ -14,12 +14,16 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, ChevronUp, ChevronDown, ChevronsUpDown, SlidersHorizontal, X } from "lucide-react";
+import { Plus, Search, Pencil, ChevronUp, ChevronDown, ChevronsUpDown, SlidersHorizontal, X, Map as MapIcon, List as ListIcon, Merge, CheckSquare } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { BackButton } from "@/components/BackButton";
+import { BulkEditDialog } from "@/components/BulkEditDialog";
+import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDialog";
+import { useGoogleMaps } from "@/hooks/useGoogleMaps";
+import { useRef } from "react";
 
 interface TipoCatalogItem {
   id: string;
@@ -63,6 +67,12 @@ export default function DeliveryAddresses() {
   const [filterVendedor, setFilterVendedor] = useState<string>("all");
   const [filterPlaza, setFilterPlaza] = useState<string>("all");
   const [filterIndustria, setFilterIndustria] = useState<string>("all");
+
+  const [view, setView] = useState<"list" | "map">("list");
+  const [mapFiltersOpen, setMapFiltersOpen] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
 
   type SortField = "empresa" | "nombre" | "tipos" | "direccion" | "coordenadas";
   const [sortField, setSortField] = useState<SortField>("empresa");
