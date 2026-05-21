@@ -395,35 +395,96 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
 
       {/* Iniciar / Finalizar ruta */}
       <div className="grid grid-cols-2 gap-2 mb-2">
-        <Button
-          size="sm"
-          className="w-full h-8 text-xs gap-1.5 px-2 bg-green-800 hover:bg-green-900 text-white disabled:opacity-60"
-          disabled={!!ruta.ruta_started_at || cerrada}
-          onClick={() => onStartRoute(ruta)}
-          title={ruta.ruta_started_at ? `Iniciada ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}` : "Marcar inicio de ruta al salir de planta"}
-        >
-          <Play className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">
-            {ruta.ruta_started_at
-              ? `Iniciada ${format(new Date(ruta.ruta_started_at), "HH:mm", { locale: es })}`
-              : "Iniciar ruta"}
-          </span>
-        </Button>
-        <Button
-          size="sm"
-          className="w-full h-8 text-xs gap-1.5 px-2 bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
-          disabled={!ruta.ruta_started_at || !!ruta.ruta_finished_at || cerrada}
-          onClick={() => onFinishRoute(ruta)}
-          title={ruta.ruta_finished_at ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "dd MMM HH:mm", { locale: es })}` : "Marcar fin de ruta"}
-        >
-          <Flag className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">
-            {ruta.ruta_finished_at
-              ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "HH:mm", { locale: es })}`
-              : "Ruta Finalizada"}
-          </span>
-        </Button>
+        <div className="flex items-stretch gap-1">
+          <Button
+            size="sm"
+            className="flex-1 h-8 text-xs gap-1.5 px-2 bg-green-800 hover:bg-green-900 text-white disabled:opacity-60"
+            disabled={!!ruta.ruta_started_at || cerrada}
+            onClick={() => onStartRoute(ruta)}
+            title={ruta.ruta_started_at ? `Iniciada ${format(new Date(ruta.ruta_started_at), "dd MMM HH:mm", { locale: es })}` : "Marcar inicio de ruta al salir de planta"}
+          >
+            <Play className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">
+              {ruta.ruta_started_at
+                ? `Iniciada ${format(new Date(ruta.ruta_started_at), "HH:mm", { locale: es })}`
+                : "Iniciar ruta"}
+            </span>
+          </Button>
+          {isAdmin && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="icon" variant="outline" className="h-8 w-7 shrink-0" title="Ajustar / Reiniciar inicio">
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-44 p-1" align="end">
+                <button
+                  type="button"
+                  className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent"
+                  onClick={() => onAdjustRouteTime?.(ruta, "start")}
+                >
+                  Ajustar manualmente
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent text-destructive disabled:opacity-50"
+                  disabled={!ruta.ruta_started_at}
+                  onClick={() => onResetRouteTime?.(ruta, "start")}
+                >
+                  Reiniciar
+                </button>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+        <div className="flex items-stretch gap-1">
+          <Button
+            size="sm"
+            className="flex-1 h-8 text-xs gap-1.5 px-2 bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
+            disabled={!ruta.ruta_started_at || !!ruta.ruta_finished_at || cerrada}
+            onClick={() => onFinishRoute(ruta)}
+            title={ruta.ruta_finished_at ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "dd MMM HH:mm", { locale: es })}` : "Marcar fin de ruta"}
+          >
+            <Flag className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">
+              {ruta.ruta_finished_at
+                ? `Finalizada ${format(new Date(ruta.ruta_finished_at), "HH:mm", { locale: es })}`
+                : "Ruta Finalizada"}
+            </span>
+          </Button>
+          {isAdmin && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="icon" variant="outline" className="h-8 w-7 shrink-0" title="Ajustar / Reiniciar fin">
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-44 p-1" align="end">
+                <button
+                  type="button"
+                  className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent"
+                  onClick={() => onAdjustRouteTime?.(ruta, "finish")}
+                >
+                  Ajustar manualmente
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent text-destructive disabled:opacity-50"
+                  disabled={!ruta.ruta_finished_at}
+                  onClick={() => onResetRouteTime?.(ruta, "finish")}
+                >
+                  Reiniciar
+                </button>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
       </div>
+      {(ruta.ruta_started_at_editada_por || ruta.ruta_finished_at_editada_por) && (
+        <p className="text-[10px] text-muted-foreground mb-2 -mt-1">
+          ✎ Hora ajustada manualmente
+        </p>
+      )}
 
       {/* Resumen de ruta: km y tiempos */}
       <div className="rounded-md border bg-muted/40 px-2 py-1.5 mb-2 space-y-0.5 text-[11px]">
