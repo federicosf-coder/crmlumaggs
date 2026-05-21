@@ -162,7 +162,7 @@ export const PRINT_STYLES = `
   table.kv { width: 100%; border-collapse: collapse; margin: 4pt 0; }
   table.kv th { width: 35%; text-align: left; font-weight: 600; background: #f5f5f5; padding: 4pt 6pt; border: 1px solid #ddd; vertical-align: top; }
   table.kv td { padding: 4pt 6pt; border: 1px solid #ddd; vertical-align: top; }
-  table.grid { width: 100%; border-collapse: collapse; margin: 4pt 0; table-layout: fixed; }
+  table.grid { width: 100% !important; border-collapse: separate !important; border-spacing: 0 !important; margin: 4pt 0; table-layout: fixed !important; }
   table.grid th, table.grid td { border: 1px solid #ccc; padding: 4pt 6pt; text-align: left; font-size: 10pt; overflow: hidden; word-wrap: break-word; }
   table.grid th { background: #f5f5f5; }
   .muted { color: #888; font-style: italic; }
