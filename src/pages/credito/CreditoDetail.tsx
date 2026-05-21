@@ -2340,7 +2340,7 @@ export default function CreditoDetail() {
 
         {/* ============ FIRMAS ============ */}
         <TabsContent value="firmas" className="space-y-4 mt-4">
-          <Card><CardContent className="pt-6 space-y-3">
+          <Card><CardContent className="pt-6 space-y-3 p-0 sm:p-0">
             {(() => {
               const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
               const base = CREDITO_FIRMAS.filter((f) => {
@@ -2369,7 +2369,7 @@ export default function CreditoDetail() {
               }
               const all = [...solicitudEntries, ...base];
               return (
-                <>
+                <div className="space-y-3 p-4 sm:p-6">
                   <div className="flex justify-end">
                     <Button
                       size="sm"
@@ -2385,77 +2385,97 @@ export default function CreditoDetail() {
                       <Printer className="h-4 w-4 mr-1" />Generar Todos
                     </Button>
                   </div>
-                  {all.map((f) => {
-              const fecha = (form as any)[f.fechaCol];
-              const nombre = (form as any)[f.nombreCol];
-              const docIdCol = `${f.fechaCol.replace("_fecha", "")}_doc_id`;
-              const docId = (form as any)[docIdCol];
-              const doc = (docs as any[] | undefined)?.find((d) => d.id === docId);
-              return (
-                <div key={f.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border rounded-md p-3">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <ShieldCheck className={`h-5 w-5 mt-0.5 ${fecha ? "text-emerald-600" : "text-muted-foreground/40"}`} />
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm">{f.label}</p>
-                      {fecha ? (
-                        <p className="text-xs text-muted-foreground">
-                          {nombre} · {format(new Date(fecha), "dd/MM/yyyy HH:mm")}
-                          {doc?.url_archivo && (
-                            <>
-                              {" · "}
-                              <button
-                                type="button"
-                                className="text-emerald-700 hover:underline"
-                                onClick={() => openDoc(doc.url_archivo)}
-                              >
-                                Ver documento firmado
-                              </button>
-                            </>
-                          )}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">Pendiente de firmar</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => openFirmaPdf(f)}>
-                      <Printer className="h-4 w-4 mr-1" />Generar PDF
-                    </Button>
-                    <Button size="sm" variant="outline" asChild>
-                      <label className="cursor-pointer">
-                        <Upload className="h-4 w-4 mr-1" />
-                        {fecha ? "Reemplazar firmado" : "Subir firmado"}
-                        <input
-                          type="file"
-                          accept="application/pdf,image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            e.currentTarget.value = "";
-                            if (file) await uploadFirmaDoc(f, file);
-                          }}
-                        />
-                      </label>
-                    </Button>
-                    <Button size="sm" variant="ghost" disabled title="Próximamente">
-                      <PenSquare className="h-4 w-4 mr-1" />Firmar en línea
-                    </Button>
-                    {fecha && (
-                      <Button size="sm" variant="ghost" onClick={() => clearFirma(f)} title="Limpiar">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Documento</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {all.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                            Sin documentos para firmar.
+                          </TableCell>
+                        </TableRow>
+                      ) : all.map((f) => {
+                        const fecha = (form as any)[f.fechaCol];
+                        const nombre = (form as any)[f.nombreCol];
+                        const docIdCol = `${f.fechaCol.replace("_fecha", "")}_doc_id`;
+                        const docId = (form as any)[docIdCol];
+                        const doc = (docs as any[] | undefined)?.find((d) => d.id === docId);
+                        return (
+                          <TableRow key={f.key}>
+                            <TableCell>
+                              <div className="flex items-start gap-2 min-w-0">
+                                <ShieldCheck className={`h-4 w-4 mt-0.5 shrink-0 ${fecha ? "text-emerald-600" : "text-muted-foreground/40"}`} />
+                                <span className="font-medium">{f.label}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {fecha ? (
+                                <div className="flex flex-col gap-0.5">
+                                  <Badge variant="outline" className="w-fit border-emerald-300 text-emerald-700">Firmado</Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {nombre} · {format(new Date(fecha), "dd/MM/yyyy HH:mm")}
+                                  </span>
+                                  {doc?.url_archivo && (
+                                    <button
+                                      type="button"
+                                      className="text-xs text-emerald-700 hover:underline w-fit"
+                                      onClick={() => openDoc(doc.url_archivo)}
+                                    >
+                                      Ver documento firmado
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <Badge variant="secondary">Pendiente de firmar</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex flex-wrap gap-1.5 justify-end">
+                                <Button size="icon" variant="ghost" onClick={() => openFirmaPdf(f)} title="Generar PDF">
+                                  <Printer className="h-4 w-4" />
+                                </Button>
+                                <Button size="icon" variant="ghost" asChild title={fecha ? "Reemplazar firmado" : "Subir firmado"}>
+                                  <label className="cursor-pointer">
+                                    <Upload className="h-4 w-4" />
+                                    <input
+                                      type="file"
+                                      accept="application/pdf,image/*"
+                                      className="hidden"
+                                      onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        e.currentTarget.value = "";
+                                        if (file) await uploadFirmaDoc(f, file);
+                                      }}
+                                    />
+                                  </label>
+                                </Button>
+                                <Button size="icon" variant="ghost" disabled title="Firmar en línea (próximamente)">
+                                  <PenSquare className="h-4 w-4" />
+                                </Button>
+                                {fecha && (
+                                  <Button size="icon" variant="ghost" onClick={() => clearFirma(f)} title="Limpiar">
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                  <p className="text-xs text-muted-foreground pt-2">
+                    Genera el PDF, imprime y firma físicamente, luego sube el documento escaneado. La firma en línea estará disponible próximamente.
+                  </p>
                 </div>
               );
-                  })}
-                </>
-              );
             })()}
-            <p className="text-xs text-muted-foreground pt-2">
-              Genera el PDF, imprime y firma físicamente, luego sube el documento escaneado. La firma en línea estará disponible próximamente.
-            </p>
           </CardContent></Card>
         </TabsContent>
 
