@@ -152,6 +152,22 @@ export default function CreditoImprimir() {
         .doc-page.brand-galsa   table.kv th, .doc-page.brand-galsa   table.grid th { background: #fef2f2 !important; color: #b91c1c; }
         .doc-page.brand-lumaggs .doc-title { color: #1d4ed8; }
         .doc-page.brand-galsa   .doc-title { color: #b91c1c; }
+        /* Refuerzo por marca: las plantillas inyectan <style> globales que se pisan entre sí
+           cuando se imprimen varios documentos. Forzamos colores por marca con alta especificidad. */
+        .doc-page.brand-lumaggs .section-title { background-color: #1d4ed8 !important; color: #fff !important; }
+        .doc-page.brand-galsa   .section-title { background-color: #b91c1c !important; color: #fff !important; }
+        .doc-page.brand-lumaggs .header { border-bottom-color: #1d4ed8 !important; }
+        .doc-page.brand-galsa   .header { border-bottom-color: #b91c1c !important; }
+        .doc-page.brand-lumaggs .header-title .empresa { color: #1d4ed8 !important; }
+        .doc-page.brand-galsa   .header-title .empresa { color: #b91c1c !important; }
+        .doc-page.brand-lumaggs table.kv th, .doc-page.brand-lumaggs table.kv td,
+        .doc-page.brand-lumaggs table.grid th, .doc-page.brand-lumaggs table.grid td {
+          border-color: #bfdbfe !important;
+        }
+        .doc-page.brand-galsa table.kv th, .doc-page.brand-galsa table.kv td,
+        .doc-page.brand-galsa table.grid th, .doc-page.brand-galsa table.grid td {
+          border-color: #fecaca !important;
+        }
       `}</style>
       <div className="print-toolbar">
         <Button size="sm" onClick={() => window.print()}>Imprimir</Button>
