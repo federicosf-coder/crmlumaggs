@@ -2456,9 +2456,10 @@ export default function CreditoDetail() {
                                 <Button size="icon" variant="ghost" onClick={() => openFirmaPdf(f)} title="Generar PDF">
                                   <Printer className="h-4 w-4" />
                                 </Button>
-                                <Button size="icon" variant="ghost" asChild title={fecha ? "Reemplazar firmado" : "Subir firmado"}>
-                                  <label className="cursor-pointer">
+                                <Button size="icon" variant="ghost" asChild title={fecha ? "Reemplazar firmado" : "Subir firmado"} className="h-auto py-1">
+                                  <label className="cursor-pointer flex flex-col items-center justify-center gap-0.5">
                                     <Upload className="h-4 w-4" />
+                                    <span className="text-[9px] leading-none font-medium">Subir</span>
                                     <input
                                       type="file"
                                       accept="application/pdf,image/*"
