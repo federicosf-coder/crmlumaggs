@@ -64,23 +64,25 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
     ? bancosRaw
     : (bancosRaw && typeof bancosRaw === "object" ? [bancosRaw] : []);
   const primerBanco: any = bancos[0] || {};
-  const emptyBankRow = `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+
+  const emptyBankRow = `<tr><td style="width:30%">&nbsp;</td><td style="width:35%">&nbsp;</td><td style="width:35%">&nbsp;</td></tr>`;
   const bancosTop3 = bancos.slice(0, 3);
   const bancosHtml =
     bancosTop3
-      .map((b: any) => `<tr><td>${b?.banco ?? ""}</td><td>${b?.cuenta ?? ""}</td><td>${b?.clabe ?? ""}</td></tr>`)
+      .map((b: any) => `<tr><td style="width:30%">${b?.banco ?? ""}</td><td style="width:35%">${b?.cuenta ?? ""}</td><td style="width:35%">${b?.clabe ?? ""}</td></tr>`)
       .join("") + emptyBankRow.repeat(Math.max(0, 3 - bancosTop3.length));
+
   const tipo = form?.tipo_persona || form?.csf_tipo_persona || "moral";
 
-  const emptyRefRow = `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+  const emptyRefRow = `<tr><td style="width:35%">&nbsp;</td><td style="width:35%">&nbsp;</td><td style="width:30%">&nbsp;</td></tr>`;
   const refsTop3 = referencias.slice(0, 3);
   const refsHtml =
     refsTop3
-      .map((r: any) => `<tr><td>${r?.empresa ?? ""}</td><td>${r?.contacto ?? ""}</td><td>${r?.telefono ?? ""}</td></tr>`)
+      .map((r: any) => `<tr><td style="width:35%">${r?.empresa ?? ""}</td><td style="width:35%">${r?.contacto ?? ""}</td><td style="width:30%">${r?.telefono ?? ""}</td></tr>`)
       .join("") + emptyRefRow.repeat(Math.max(0, 3 - refsTop3.length));
 
   const accionistasRaw = Array.isArray(form?.accionistas) ? form.accionistas : [];
-  const emptyAccRow = `<tr><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+  const emptyAccRow = `<tr><td style="width:70%">&nbsp;</td><td style="width:30%">&nbsp;</td></tr>`;
   const accTop4 = accionistasRaw.slice(0, 4);
   const fmtAcc = (v: any) => {
     if (v === null || v === undefined || v === "") return "";
@@ -89,7 +91,7 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
   };
   const accionistasHtml =
     accTop4
-      .map((a: any) => `<tr><td>${a?.nombre ?? ""}</td><td style="text-align:right">${fmtAcc(a?.acciones ?? a?.no_acciones)}</td></tr>`)
+      .map((a: any) => `<tr><td style="width:70%">${a?.nombre ?? ""}</td><td style="width:30%;text-align:right">${fmtAcc(a?.acciones ?? a?.no_acciones)}</td></tr>`)
       .join("") + emptyAccRow.repeat(Math.max(0, 4 - accTop4.length));
 
   const t: Record<string, string> = {
@@ -160,8 +162,8 @@ export const PRINT_STYLES = `
   table.kv { width: 100%; border-collapse: collapse; margin: 4pt 0; }
   table.kv th { width: 35%; text-align: left; font-weight: 600; background: #f5f5f5; padding: 4pt 6pt; border: 1px solid #ddd; vertical-align: top; }
   table.kv td { padding: 4pt 6pt; border: 1px solid #ddd; vertical-align: top; }
-  table.grid { width: 100%; border-collapse: collapse; margin: 4pt 0; }
-  table.grid th, table.grid td { border: 1px solid #ccc; padding: 4pt 6pt; text-align: left; font-size: 10pt; }
+  table.grid { width: 100%; border-collapse: collapse; margin: 4pt 0; table-layout: fixed; }
+  table.grid th, table.grid td { border: 1px solid #ccc; padding: 4pt 6pt; text-align: left; font-size: 10pt; overflow: hidden; word-wrap: break-word; }
   table.grid th { background: #f5f5f5; }
   .muted { color: #888; font-style: italic; }
   .signature-row { display: flex; justify-content: space-around; gap: 24pt; margin-top: 36pt; }
