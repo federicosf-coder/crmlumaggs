@@ -2387,19 +2387,14 @@ export default function CreditoDetail() {
                       className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
                       onClick={() => {
                         if (all.length === 0) return;
-                        let opened = 0;
-                        let blocked = 0;
-                        all.forEach((f) => {
-                          const w = window.open(`/credito/${id}/imprimir/${f.key}`, "_blank");
-                          if (w) opened++;
-                          else blocked++;
-                        });
-                        if (blocked > 0) {
+                        const joined = all.map((f) => f.key).join(",");
+                        const w = window.open(`/credito/${id}/imprimir/${joined}`, "_blank");
+                        if (!w) {
                           toast.error(
-                            `Tu navegador bloqueó ${blocked} ventana(s) emergente(s). Permite pop-ups para este sitio y vuelve a intentar.`
+                            "Tu navegador bloqueó la ventana emergente. Permite pop-ups para este sitio y vuelve a intentar."
                           );
                         } else {
-                          toast.success(`Abriendo ${opened} PDF(s) en pestañas nuevas`);
+                          toast.success(`Generando ${all.length} documento(s) en una sola vista`);
                         }
                       }}
                     >
