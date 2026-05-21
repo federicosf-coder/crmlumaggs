@@ -99,9 +99,9 @@ export default function CreditoFormatosEditor() {
     sample["referencias_comerciales_html"] =
       '<table class="grid"><tr><th>Empresa</th><th>Contacto</th><th>Teléfono</th></tr><tr><td>[empresa]</td><td>[contacto]</td><td>[telefono]</td></tr></table>';
     sample["accionistas_html"] =
-      '<tr><td style="width:70% !important;text-align:left !important">[accionista 1]</td><td style="width:30% !important;text-align:right !important">1,000</td></tr>' +
-      '<tr><td style="width:70% !important;text-align:left !important">[accionista 2]</td><td style="width:30% !important;text-align:right !important">500</td></tr>' +
-      '<tr><td style="width:70% !important;text-align:left !important">[accionista 3]</td><td style="width:30% !important;text-align:right !important">250</td></tr>';
+      '<tr><td class="accionista-nombre" style="width:70% !important;text-align:left !important">[accionista 1]</td><td class="accionista-acciones" style="width:30% !important;text-align:right !important">1,000</td></tr>' +
+      '<tr><td class="accionista-nombre" style="width:70% !important;text-align:left !important">[accionista 2]</td><td class="accionista-acciones" style="width:30% !important;text-align:right !important">500</td></tr>' +
+      '<tr><td class="accionista-nombre" style="width:70% !important;text-align:left !important">[accionista 3]</td><td class="accionista-acciones" style="width:30% !important;text-align:right !important">250</td></tr>';
     sample["datos_bancarios_html"] =
       '<table class="grid"><tr><th>Banco</th><th>Cuenta</th><th>CLABE</th></tr><tr><td>[banco]</td><td>[cuenta]</td><td>[clabe]</td></tr></table>';
     return (preview.header_html || "") + renderTemplate(preview.contenido_html || "", sample) + (preview.footer_html || "");

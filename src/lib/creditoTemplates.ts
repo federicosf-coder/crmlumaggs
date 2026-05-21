@@ -91,10 +91,10 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
       ? accionistasRaw
           .map(
             (a: any) =>
-              `<tr><td style="width:70% !important;text-align:left !important">${a?.nombre ?? ""}</td><td style="width:30% !important;text-align:right !important">${fmtAcc(a?.acciones ?? a?.no_acciones)}</td></tr>`
+              `<tr><td class="accionista-nombre" style="width:70% !important;text-align:left !important">${a?.nombre ?? ""}</td><td class="accionista-acciones" style="width:30% !important;text-align:right !important">${fmtAcc(a?.acciones ?? a?.no_acciones)}</td></tr>`
           )
           .join("")
-      : `<tr><td style="width:70% !important;text-align:left !important">&nbsp;</td><td style="width:30% !important;text-align:right !important">&nbsp;</td></tr>`;
+      : `<tr><td class="accionista-nombre" style="width:70% !important;text-align:left !important">&nbsp;</td><td class="accionista-acciones" style="width:30% !important;text-align:right !important">&nbsp;</td></tr>`;
 
   const t: Record<string, string> = {
     razon_social: form?.razon_social || form?.csf_razon_social || company?.razon_social || company?.name || "",
@@ -173,9 +173,17 @@ export const PRINT_STYLES = `
   table.kv td { color: #1a1a1a; font-size: 8pt; }
   table.kv th.th-sm { width: 11%; }
   table.kv td.td-sm { width: 22%; }
-  table.grid { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+  table.grid { display: table !important; width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+  table.grid thead { display: table-header-group !important; }
+  table.grid tbody { display: table-row-group !important; }
+  table.grid tr { display: table-row !important; }
+  table.grid th, table.grid td { display: table-cell !important; }
   table.grid th { background: #dce6f1; color: #1a3e6e; font-weight: bold; border: 0.4pt solid #b0b8c8; padding: 2px 5px; font-size: 7.5pt; text-align: left; height: 5.2mm; overflow: hidden; }
   table.grid td { border: 0.4pt solid #b0b8c8; padding: 2px 5px; font-size: 8pt; height: 5.6mm; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word; }
+  table.accionistas-grid col:first-child { width: 70% !important; }
+  table.accionistas-grid col:nth-child(2) { width: 30% !important; }
+  table.accionistas-grid th:first-child, table.accionistas-grid td:first-child { width: 70% !important; text-align: left !important; }
+  table.accionistas-grid th:nth-child(2), table.accionistas-grid td:nth-child(2) { width: 30% !important; text-align: right !important; }
   .muted { color: #888; font-style: italic; }
   .signature-row { display: flex; justify-content: space-between; margin-top: 8mm; gap: 14mm; }
   .sig { flex: 1; text-align: center; }
