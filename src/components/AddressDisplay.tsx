@@ -53,6 +53,7 @@ function MiniMap({ lat, lng, address, height }: { lat?: number | null; lng?: num
         });
       } else {
         mapRef.current.setCenter(center);
+        mapRef.current.setZoom(15);
       }
       if (markerRef.current) markerRef.current.setMap(null);
       markerRef.current = new g.maps.Marker({ position: center, map: mapRef.current });
@@ -64,15 +65,27 @@ function MiniMap({ lat, lng, address, height }: { lat?: number | null; lng?: num
           await g.maps.importLibrary("maps");
           await g.maps.importLibrary("marker");
         }
+        // Always initialize the map first so the container isn't blank while geocoding
+        if (!mapRef.current) {
+          mapRef.current = new g.maps.Map(ref.current!, {
+            center: { lat: 23.6345, lng: -102.5528 }, // México
+            zoom: 5,
+            disableDefaultUI: true,
+            zoomControl: true,
+            gestureHandling: "cooperative",
+          });
+        }
         if (lat != null && lng != null) {
           place(Number(lat), Number(lng));
         } else if (address) {
           if (g.maps.importLibrary) await g.maps.importLibrary("geocoding");
           const geocoder = new g.maps.Geocoder();
-          geocoder.geocode({ address }, (results: any, status: string) => {
+          geocoder.geocode({ address, region: "mx" }, (results: any, status: string) => {
             if (status === "OK" && results?.[0]?.geometry?.location) {
               const loc = results[0].geometry.location;
               place(loc.lat(), loc.lng());
+            } else {
+              console.warn("[MiniMap] Geocoder no devolvió resultados:", status, address);
             }
           });
         }
