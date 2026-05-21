@@ -31,6 +31,7 @@ import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { SignedDocImage } from "@/components/SignedDocImage";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { CompanyAddressDialog } from "@/components/directory/CompanyAddressDialog";
+import { DeliveryConfirmDialog } from "@/components/documents/DeliveryConfirmDialog";
 
 export default function EntregaDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +42,7 @@ export default function EntregaDetalle() {
 
   const [uploading, setUploading] = useState<"evidencia" | "firmado" | null>(null);
   const [marking, setMarking] = useState(false);
+  const [confirmDeliveryOpen, setConfirmDeliveryOpen] = useState(false);
   const [editAddrOpen, setEditAddrOpen] = useState(false);
   const [addrDialogOpen, setAddrDialogOpen] = useState(false);
   const [editingAddr, setEditingAddr] = useState<any | null>(null);
@@ -415,29 +417,14 @@ export default function EntregaDetalle() {
 
   const markDelivered = async () => {
     if (!id) return;
+    // Abre el diálogo con mapa arrastrable; el guardado real se hace en confirmDeliveryWithCoords.
+    setConfirmDeliveryOpen(true);
+  };
+
+  const confirmDeliveryWithCoords = async (coords: { lat: number; lng: number } | null) => {
+    if (!id) return;
     setMarking(true);
-
-    // Try to capture device GPS at the moment of delivery (best-effort)
-    const capturedCoords: { lat: number; lng: number } | null = await new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        toast.warning("Tu dispositivo no soporta geolocalización; se marcará entregada sin coordenadas.");
-        resolve(null);
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        (err) => {
-          if (err.code === err.PERMISSION_DENIED) {
-            toast.warning("Permiso de ubicación denegado. Se marcará entregada sin coordenadas GPS.");
-          } else {
-            toast.warning("No se pudo obtener ubicación; se marcará entregada sin coordenadas.");
-          }
-          resolve(null);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    });
-
+    const capturedCoords = coords;
     const { error } = await supabase
       .from("documentos")
       .update({ estatus_pedido: "entregado" })
@@ -454,8 +441,26 @@ export default function EntregaDetalle() {
         updates.delivered_longitude = capturedCoords.lng;
       }
       await supabase.from("entregas_programadas").update(updates).eq("id", entrega.id);
+      // Persistir también en documentos para consistencia con el resto del sistema
+      if (capturedCoords) {
+        await supabase.from("documentos").update({
+          direccion_envio_lat: capturedCoords.lat,
+          direccion_envio_lng: capturedCoords.lng,
+        }).eq("id", id);
+        // Bitácora
+        await supabase.from("documento_direccion_bitacora").insert({
+          documento_id: id,
+          direccion_anterior: documento?.direccion_envio || null,
+          direccion_nueva: documento?.direccion_envio || `Lat ${capturedCoords.lat.toFixed(6)}, Lng ${capturedCoords.lng.toFixed(6)}`,
+          latitud: capturedCoords.lat,
+          longitud: capturedCoords.lng,
+          origen: "gps_chofer",
+          usuario_id: user?.id ?? null,
+        } as any);
+      }
     }
     setMarking(false);
+    setConfirmDeliveryOpen(false);
     if (error) toast.error(error.message);
     else {
       toast.success(
@@ -1188,6 +1193,16 @@ export default function EntregaDetalle() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DeliveryConfirmDialog
+        open={confirmDeliveryOpen}
+        onOpenChange={setConfirmDeliveryOpen}
+        initialLat={(documento as any)?.direccion_envio_lat ?? null}
+        initialLng={(documento as any)?.direccion_envio_lng ?? null}
+        addressLabel={documento?.direccion_envio || null}
+        busy={marking}
+        onConfirm={confirmDeliveryWithCoords}
+      />
     </div>
   );
 }

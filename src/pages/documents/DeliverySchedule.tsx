@@ -709,7 +709,11 @@ export default function DeliverySchedule() {
         p.tipo_documento === "pedido" &&
         p.is_active === true &&
         (POOL_STATUSES as readonly string[]).includes(p.estatus_pedido) &&
-        !scheduledDocIds.has(p.id)
+        !scheduledDocIds.has(p.id) &&
+        // Sólo aparecen pedidos con dirección de envío asignada (FK a direcciones_empresa
+        // o, por compatibilidad, dirección con coordenadas heredadas).
+        (p.direccion_envio_id ||
+          (p.direccion_envio && p.direccion_envio_lat != null && p.direccion_envio_lng != null))
       )
       .map((p: any) => {
         // Group quantities by presentacion
@@ -765,6 +769,20 @@ export default function DeliverySchedule() {
 
     return [...pedidoItems, ...corporativaItems];
   }, [poolPedidos, poolCorporativas, allEntregas]);
+
+  // Pedidos en estatus de pool que NO tienen dirección de envío asignada.
+  // Se excluyen del pool principal y se muestran como advertencia.
+  const pedidosSinDireccion = useMemo(() => {
+    const scheduledDocIds = new Set(allEntregas.map((e: any) => e.documento_id));
+    return (poolPedidos as any[]).filter(
+      (p) =>
+        p.is_active === true &&
+        (POOL_STATUSES as readonly string[]).includes(p.estatus_pedido) &&
+        !scheduledDocIds.has(p.id) &&
+        !p.direccion_envio_id &&
+        !(p.direccion_envio && p.direccion_envio_lat != null && p.direccion_envio_lng != null),
+    );
+  }, [poolPedidos, allEntregas]);
 
   // Build route items from entregas
   useEffect(() => {
@@ -1431,6 +1449,37 @@ export default function DeliverySchedule() {
             <ScrollArea className="flex-1">
               <SortableContext items={filteredPool.map(i => i.id)} strategy={verticalListSortingStrategy}>
                 <div className="p-2 space-y-2">
+                  {pedidosSinDireccion.length > 0 && (
+                    <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 p-2 space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 text-xs font-medium">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Requieren dirección de envío
+                        <Badge variant="secondary" className="ml-auto text-[10px]">{pedidosSinDireccion.length}</Badge>
+                      </div>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-snug">
+                        Este pedido no puede programarse sin una dirección de envío asignada.
+                      </p>
+                      <div className="space-y-1">
+                        {pedidosSinDireccion.slice(0, 5).map((p: any) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => window.open(`/documents/${p.id}/edit`, "_blank")}
+                            className="w-full text-left text-[11px] px-2 py-1 rounded bg-white dark:bg-background hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 truncate"
+                            title={`${p.companies?.name || "Sin cliente"} — ${p.numero_pedido || ""}`}
+                          >
+                            <span className="font-medium">{p.companies?.name || "Sin cliente"}</span>
+                            {p.numero_pedido && <span className="text-muted-foreground"> · #{p.numero_pedido}</span>}
+                          </button>
+                        ))}
+                        {pedidosSinDireccion.length > 5 && (
+                          <p className="text-[10px] text-amber-700 dark:text-amber-400 text-center">
+                            +{pedidosSinDireccion.length - 5} más…
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {filteredPool.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <Package className="mx-auto h-8 w-8 mb-2 opacity-40" />

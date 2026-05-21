@@ -10,6 +10,7 @@ import { AddressDisplay } from "@/components/AddressDisplay";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ArrowRightLeft } from "lucide-react";
 
 interface TipoCatalogItem { clave: string; etiqueta: string; }
 
@@ -27,6 +28,8 @@ export function CompanyAddressDialog({ open, onOpenChange, empresaId, empresaNam
   const isEdit = !!editing;
   const [mode, setMode] = useState<"form" | "link">("form");
   const [linkAddressId, setLinkAddressId] = useState("");
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [reassignTo, setReassignTo] = useState("");
 
   const [form, setForm] = useState<{
     tipos: string[]; nombre: string; nombre_touched: boolean; referencia: string; address: AddressValue;
@@ -65,6 +68,8 @@ export function CompanyAddressDialog({ open, onOpenChange, empresaId, empresaNam
     if (!open) return;
     setMode("form");
     setLinkAddressId("");
+    setReassignOpen(false);
+    setReassignTo("");
     if (editing) {
       const tipos = editing.tipos && editing.tipos.length > 0 ? editing.tipos : (editing.tipo ? [editing.tipo] : []);
       setForm({
@@ -143,6 +148,38 @@ export function CompanyAddressDialog({ open, onOpenChange, empresaId, empresaNam
     qc.invalidateQueries({ queryKey: ["all_addresses"] });
     qc.invalidateQueries({ queryKey: ["direcciones-empresa-lookup"] });
     onSaved?.();
+    onOpenChange(false);
+  };
+
+  // Lista de empresas para el modal de reasignación
+  const { data: empresasList = [] } = useQuery({
+    queryKey: ["companies_for_reassign_addr", open && isEdit],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name")
+        .limit(5000);
+      return data || [];
+    },
+    enabled: open && isEdit,
+  });
+
+  const handleReassign = async () => {
+    if (!reassignTo || !editing?.id) { toast.error("Selecciona la empresa destino"); return; }
+    if (reassignTo === empresaId) { toast.error("Esa ya es la empresa actual"); return; }
+    const { error } = await supabase
+      .from("direcciones_empresa")
+      .update({ empresa_id: reassignTo })
+      .eq("id", editing.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Dirección reasignada");
+    qc.invalidateQueries({ queryKey: ["company_addresses_form"] });
+    qc.invalidateQueries({ queryKey: ["all_addresses"] });
+    qc.invalidateQueries({ queryKey: ["direcciones-empresa-lookup"] });
+    onSaved?.();
+    setReassignOpen(false);
     onOpenChange(false);
   };
 
@@ -227,6 +264,18 @@ export function CompanyAddressDialog({ open, onOpenChange, empresaId, empresaNam
         </div>
 
         <DialogFooter className="px-6 py-4 border-t bg-background shrink-0">
+          {isEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mr-auto gap-1.5"
+              onClick={() => setReassignOpen(true)}
+              title="Mover esta dirección a otra empresa"
+            >
+              <ArrowRightLeft className="h-3.5 w-3.5" />
+              Reasignar a otra empresa
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           {mode === "link" && !isEdit ? (
             <Button onClick={handleLink} disabled={!linkAddressId}>Vincular</Button>
@@ -237,6 +286,36 @@ export function CompanyAddressDialog({ open, onOpenChange, empresaId, empresaNam
           )}
         </DialogFooter>
       </DialogContent>
+
+      {/* Sub-dialog: reasignar a otra empresa */}
+      <Dialog open={reassignOpen} onOpenChange={setReassignOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reasignar dirección a otra empresa</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              La dirección se moverá a la empresa seleccionada. Los documentos que ya la referencian seguirán
+              apuntando al mismo registro.
+            </p>
+            <div className="space-y-1">
+              <Label className="text-xs">Empresa destino</Label>
+              <SearchableSelect
+                value={reassignTo}
+                onValueChange={setReassignTo}
+                placeholder="Buscar empresa..."
+                options={(empresasList as any[])
+                  .filter((c) => c.id !== empresaId)
+                  .map((c) => ({ value: c.id, label: c.name }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReassignOpen(false)}>Cancelar</Button>
+            <Button onClick={handleReassign} disabled={!reassignTo}>Reasignar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
