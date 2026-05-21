@@ -3039,6 +3039,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           direccion_envio: string | null
+          direccion_envio_id: string | null
           direccion_envio_lat: number | null
           direccion_envio_lng: number | null
           direccion_envio_nombre: string | null
@@ -3093,6 +3094,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           direccion_envio?: string | null
+          direccion_envio_id?: string | null
           direccion_envio_lat?: number | null
           direccion_envio_lng?: number | null
           direccion_envio_nombre?: string | null
@@ -3149,6 +3151,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           direccion_envio?: string | null
+          direccion_envio_id?: string | null
           direccion_envio_lat?: number | null
           direccion_envio_lng?: number | null
           direccion_envio_nombre?: string | null
@@ -3212,6 +3215,13 @@ export type Database = {
             columns: ["cotizacion_original_id"]
             isOneToOne: false
             referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_direccion_envio_id_fkey"
+            columns: ["direccion_envio_id"]
+            isOneToOne: false
+            referencedRelation: "direcciones_empresa"
             referencedColumns: ["id"]
           },
           {
