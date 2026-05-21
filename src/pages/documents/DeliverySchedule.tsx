@@ -1321,6 +1321,78 @@ export default function DeliverySchedule() {
     refetchRutas();
   };
 
+  const openAdjustRouteTime = (ruta: any, mode: "start" | "finish") => {
+    const current = mode === "start" ? ruta.ruta_started_at : ruta.ruta_finished_at;
+    const base = current ? new Date(current) : new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setAdjustDate(base);
+    setAdjustTime(`${pad(base.getHours())}:${pad(base.getMinutes())}`);
+    setAdjustRoute({ ruta, mode });
+  };
+
+  const saveAdjustedRouteTime = async () => {
+    if (!adjustRoute || !adjustDate) return;
+    setSavingAdjust(true);
+    const [hh, mm] = (adjustTime || "00:00").split(":").map((n) => Number(n) || 0);
+    const dt = new Date(adjustDate);
+    dt.setHours(hh, mm, 0, 0);
+    const iso = dt.toISOString();
+    const nowIso = new Date().toISOString();
+    const payload: any = adjustRoute.mode === "start"
+      ? {
+          ruta_started_at: iso,
+          ruta_started_by: adjustRoute.ruta.ruta_started_by ?? user?.id ?? null,
+          ruta_started_at_editada_por: user?.id ?? null,
+          ruta_started_at_editada_at: nowIso,
+          estatus: adjustRoute.ruta.estatus || "en_ruta",
+        }
+      : {
+          ruta_finished_at: iso,
+          ruta_finished_by: adjustRoute.ruta.ruta_finished_by ?? user?.id ?? null,
+          ruta_finished_at_editada_por: user?.id ?? null,
+          ruta_finished_at_editada_at: nowIso,
+          estatus: "finalizada",
+        };
+    const { error } = await (supabase.from("rutas_entrega") as any)
+      .update(payload)
+      .eq("id", adjustRoute.ruta.id);
+    setSavingAdjust(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Hora actualizada");
+    setAdjustRoute(null);
+    refetchRutas();
+  };
+
+  const resetRouteTime = async (ruta: any, mode: "start" | "finish") => {
+    if (!confirm(`¿Reiniciar la hora de ${mode === "start" ? "inicio" : "fin"} de la ruta?`)) return;
+    const nowIso = new Date().toISOString();
+    const payload: any = mode === "start"
+      ? {
+          ruta_started_at: null,
+          ruta_started_by: null,
+          ruta_finished_at: null,
+          ruta_finished_by: null,
+          ruta_started_at_editada_por: user?.id ?? null,
+          ruta_started_at_editada_at: nowIso,
+          ruta_finished_at_editada_por: null,
+          ruta_finished_at_editada_at: null,
+          estatus: null,
+        }
+      : {
+          ruta_finished_at: null,
+          ruta_finished_by: null,
+          ruta_finished_at_editada_por: user?.id ?? null,
+          ruta_finished_at_editada_at: nowIso,
+          estatus: "en_ruta",
+        };
+    const { error } = await (supabase.from("rutas_entrega") as any)
+      .update(payload)
+      .eq("id", ruta.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Hora reiniciada");
+    refetchRutas();
+  };
+
   const handleDeliver = (item: PoolItem) => {
     setDeliverItem(item);
     setDeliverNotes("");
