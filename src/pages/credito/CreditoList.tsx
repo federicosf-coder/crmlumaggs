@@ -101,27 +101,40 @@ export default function CreditoList() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <FileCheck className="h-6 w-6 text-primary" />
-            Solicitudes de Crédito
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gestiona solicitudes de crédito (Cescemex y Crédito Directo).
-          </p>
+      <Card className="overflow-hidden border-border/60 shadow-sm">
+        <div className="bg-gradient-to-br from-violet-50 to-blue-50 border-b border-border/40 px-6 py-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-xl font-light tracking-tight flex items-center gap-2">
+                <FileCheck className="h-5 w-5 text-violet-600" />
+                Solicitudes de Crédito
+              </h1>
+              <p className="text-xs font-light text-muted-foreground mt-1">
+                Gestiona solicitudes de crédito (Cescemex y Crédito Directo).
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {canConfigure && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
+                >
+                  <Link to="/credito/configuracion"><Settings className="h-3.5 w-3.5 mr-1.5" />Configurar documentos</Link>
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={() => setNewOpen(true)}
+                className="bg-gradient-to-br from-violet-500 to-fuchsia-600 hover:from-violet-600 hover:to-fuchsia-700 text-white shadow-md text-[10px] font-semibold uppercase tracking-widest"
+              >
+                <Plus className="h-3.5 w-3.5 mr-1.5" />Nueva solicitud
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2">
-          {canConfigure && (
-            <Button variant="outline" asChild>
-              <Link to="/credito/configuracion"><Settings className="h-4 w-4 mr-2" />Configurar documentos</Link>
-            </Button>
-          )}
-          <Button onClick={() => setNewOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />Nueva solicitud
-          </Button>
-        </div>
-      </div>
+      </Card>
 
       {/* Resumen por estado */}
       <div className="flex gap-2 flex-wrap">
@@ -134,10 +147,10 @@ export default function CreditoList() {
               key={o.value}
               type="button"
               onClick={() => setEstado(active ? "all" : o.value)}
-              className={`inline-flex items-center gap-2 h-8 px-3 rounded-full border text-xs font-medium transition-all ${c} ${active ? "ring-2 ring-primary/40" : "opacity-90 hover:opacity-100"}`}
+              className={`inline-flex items-center gap-2 h-7 px-2.5 rounded-full border text-[10px] font-semibold uppercase tracking-widest transition-all ${c} ${active ? "ring-2 ring-primary/40" : "opacity-90 hover:opacity-100"}`}
             >
               {o.label}
-              <span className="rounded-full bg-white/70 text-foreground px-1.5 min-w-[20px] text-center text-[10px]">{n}</span>
+              <span className="rounded-full bg-white/70 text-foreground px-1.5 min-w-[20px] text-center text-[10px] font-light tracking-normal normal-case">{n}</span>
             </button>
           );
         })}
@@ -185,19 +198,19 @@ export default function CreditoList() {
                     <TableHead>Días</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Creada</TableHead>
-                    <TableHead></TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(rows as any[]).map((r) => {
                     const c = CREDITO_ESTADO_COLOR[r.estado] || "bg-slate-50 text-slate-700 border-slate-200";
                     return (
-                      <TableRow key={r.id} className="cursor-pointer hover:bg-muted/40" onClick={() => navigate(`/credito/${r.id}`)}>
-                        <TableCell className="font-mono text-xs">{r.folio || "—"}</TableCell>
-                        <TableCell className="font-medium">{(r.companies as any)?.name || "—"}</TableCell>
+                      <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/credito/${r.id}`)}>
+                        <TableCell className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{r.folio || "—"}</TableCell>
+                        <TableCell>{(r.companies as any)?.name || "—"}</TableCell>
                         <TableCell>
                           {r.tipo ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs border bg-blue-50 text-blue-700 border-blue-200">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-widest border bg-blue-50 text-blue-700 border-blue-200">
                               {CREDITO_TIPO_LABEL[r.tipo]}
                             </span>
                           ) : "—"}
@@ -207,14 +220,14 @@ export default function CreditoList() {
                         </TableCell>
                         <TableCell>{r.dias_credito ?? "—"}</TableCell>
                         <TableCell>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${c}`}>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-widest border ${c}`}>
                             {CREDITO_ESTADO_LABEL[r.estado] || r.estado}
                           </span>
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                           {format(new Date(r.created_at), "dd/MM/yyyy")}
                         </TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" onClick={() => navigate(`/credito/${r.id}`)} title="Ver">
                             <Eye className="h-4 w-4" />
                           </Button>
