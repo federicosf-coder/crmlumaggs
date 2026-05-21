@@ -198,7 +198,7 @@ export default function CreditoList() {
                     <TableHead>Días</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Creada</TableHead>
-                    <TableHead></TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
