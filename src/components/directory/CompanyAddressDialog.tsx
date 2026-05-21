@@ -155,13 +155,25 @@ export function CompanyAddressDialog({ open, onOpenChange, empresaId, empresaNam
   const { data: empresasList = [] } = useQuery({
     queryKey: ["companies_for_reassign_addr", open && isEdit],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("companies")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("name")
-        .limit(5000);
-      return data || [];
+      // Paginar para evitar el límite por defecto de 1000 filas de PostgREST
+      const pageSize = 1000;
+      let from = 0;
+      const all: { id: string; name: string }[] = [];
+      // Hasta 10 páginas (10,000 empresas) como tope de seguridad
+      for (let i = 0; i < 10; i++) {
+        const { data, error } = await supabase
+          .from("companies")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("name")
+          .range(from, from + pageSize - 1);
+        if (error) break;
+        const rows = (data || []) as { id: string; name: string }[];
+        all.push(...rows);
+        if (rows.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
     enabled: open && isEdit,
   });
