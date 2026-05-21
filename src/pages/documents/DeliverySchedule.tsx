@@ -709,7 +709,11 @@ export default function DeliverySchedule() {
         p.tipo_documento === "pedido" &&
         p.is_active === true &&
         (POOL_STATUSES as readonly string[]).includes(p.estatus_pedido) &&
-        !scheduledDocIds.has(p.id)
+        !scheduledDocIds.has(p.id) &&
+        // Sólo aparecen pedidos con dirección de envío asignada (FK a direcciones_empresa
+        // o, por compatibilidad, dirección con coordenadas heredadas).
+        (p.direccion_envio_id ||
+          (p.direccion_envio && p.direccion_envio_lat != null && p.direccion_envio_lng != null))
       )
       .map((p: any) => {
         // Group quantities by presentacion
@@ -765,6 +769,20 @@ export default function DeliverySchedule() {
 
     return [...pedidoItems, ...corporativaItems];
   }, [poolPedidos, poolCorporativas, allEntregas]);
+
+  // Pedidos en estatus de pool que NO tienen dirección de envío asignada.
+  // Se excluyen del pool principal y se muestran como advertencia.
+  const pedidosSinDireccion = useMemo(() => {
+    const scheduledDocIds = new Set(allEntregas.map((e: any) => e.documento_id));
+    return (poolPedidos as any[]).filter(
+      (p) =>
+        p.is_active === true &&
+        (POOL_STATUSES as readonly string[]).includes(p.estatus_pedido) &&
+        !scheduledDocIds.has(p.id) &&
+        !p.direccion_envio_id &&
+        !(p.direccion_envio && p.direccion_envio_lat != null && p.direccion_envio_lng != null),
+    );
+  }, [poolPedidos, allEntregas]);
 
   // Build route items from entregas
   useEffect(() => {
