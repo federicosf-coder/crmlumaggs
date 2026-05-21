@@ -14,7 +14,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, ChevronUp, ChevronDown, ChevronsUpDown, SlidersHorizontal, X, Map as MapIcon, List as ListIcon, Merge, CheckSquare } from "lucide-react";
+import { Plus, Search, Pencil, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, SlidersHorizontal, X, Map as MapIcon, List as ListIcon, Merge, CheckSquare } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
@@ -782,10 +782,20 @@ function AddressesMapView({
       )}
       <div className={`absolute top-2 left-2 bottom-2 z-10 transition-all duration-200 ${sidebarOpen ? "w-72" : "w-10"}`}>
         <div className="bg-background/95 backdrop-blur border rounded-md shadow-md h-full flex flex-col">
-          <div className="flex items-center justify-between p-2 border-b">
+          <div className="flex items-center justify-between p-2 border-b gap-1">
             {sidebarOpen && <span className="text-sm font-medium px-1">Filtros</span>}
-            <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={onToggleSidebar} title={sidebarOpen ? "Colapsar" : "Expandir"}>
-              {sidebarOpen ? <ChevronDown className="h-4 w-4 -rotate-90" /> : <SlidersHorizontal className="h-4 w-4" />}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 ml-auto gap-1"
+              onClick={onToggleSidebar}
+              title={sidebarOpen ? "Colapsar filtros" : "Expandir filtros"}
+            >
+              {sidebarOpen ? (
+                <><ChevronLeft className="h-4 w-4" /><span className="text-xs">Colapsar</span></>
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
             </Button>
           </div>
           {sidebarOpen && (
