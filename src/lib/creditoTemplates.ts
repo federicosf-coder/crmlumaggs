@@ -91,10 +91,10 @@ export function buildTokens(form: any, company: any = {}): Record<string, string
       ? accionistasRaw
           .map(
             (a: any) =>
-              `<tr><td style="width:70%;text-align:left">${a?.nombre ?? ""}</td><td style="width:30%;text-align:right">${fmtAcc(a?.acciones ?? a?.no_acciones)}</td></tr>`
+              `<tr><td style="width:70% !important;text-align:left !important">${a?.nombre ?? ""}</td><td style="width:30% !important;text-align:right !important">${fmtAcc(a?.acciones ?? a?.no_acciones)}</td></tr>`
           )
           .join("")
-      : `<tr><td style="width:70%">&nbsp;</td><td style="width:30%">&nbsp;</td></tr>`;
+      : `<tr><td style="width:70% !important;text-align:left !important">&nbsp;</td><td style="width:30% !important;text-align:right !important">&nbsp;</td></tr>`;
 
   const t: Record<string, string> = {
     razon_social: form?.razon_social || form?.csf_razon_social || company?.razon_social || company?.name || "",
