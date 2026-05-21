@@ -65,22 +65,26 @@ Deno.serve(async (req) => {
     }
     const industry = industriaLabels.join(', ');
 
-    const systemPrompt = `You are a business intelligence researcher. Using web search, find information about this company and write a helpful profile for a sales representative who is about to do business with them.`;
-    const userPrompt = `Company data: ${name}, RFC: ${rfc}, Website: ${website}, Industry: ${industry || '(no asignada)'}, Email: ${email}
+    const systemPrompt = `Eres un asistente de inteligencia comercial para un vendedor B2B en México. Tu trabajo NO es emitir un dictamen crediticio ni recomendar aprobar o rechazar a la empresa. Tu trabajo es entregarle al vendedor toda la información útil que encuentres en línea sobre la empresa, para que él tome una decisión informada. Tono: "aquí está todo lo que encontré sobre esta empresa", nunca "no la apruebes".`;
+    const userPrompt = `Datos de la empresa: ${name}, RFC: ${rfc}, Sitio web: ${website}, Industria: ${industry || '(no asignada)'}, Email: ${email}
 
-Search for: their website, Google Business profile, LinkedIn, news articles, industry directories, transport/logistics portals, and any public business registries in Mexico.
+Busca en: su sitio web, perfil de Google Business, LinkedIn, notas de prensa, directorios sectoriales, portales de transporte/logística y registros públicos de empresas en México.
 
-IMPORTANT — Industria/Giro: cuando te refieras a la industria o giro de la empresa, usa EXCLUSIVAMENTE las etiquetas listadas arriba en "Industry" (provenientes de nuestro catálogo interno). NO inventes subcategorías, NO uses códigos o nombres SCIAN, NO uses la actividad económica del CSF/SAT, NO agregues frases como "específicamente en …". Si no hay industria asignada, simplemente omite mencionar la industria.
+IMPORTANTE — Industria/Giro: cuando te refieras a la industria o giro de la empresa, usa EXCLUSIVAMENTE las etiquetas listadas arriba en "Industria" (provenientes de nuestro catálogo interno). NO inventes subcategorías, NO uses códigos ni nombres SCIAN, NO uses la actividad económica del CSF/SAT, NO agregues frases como "específicamente en …". Si no hay industria asignada, simplemente omite mencionar la industria.
 
-Return ONLY a valid JSON object (no markdown, no extra text):
+Devuelve ÚNICAMENTE un objeto JSON válido (sin markdown, sin texto extra):
 
 {
-  "resumen": string (exactly 2 paragraphs in Spanish: paragraph 1 = who they are, what they do, how long they have been operating, their presence and legitimacy; paragraph 2 = what makes them a good prospect, their industry standing, growth signals, or relevant context that supports doing business with them),
-  "hallazgos": string[] (3-5 specific facts found online about the company),
-  "fuentes_consultadas": string[] (actual URLs or source names used)
+  "resumen": string (exactamente 2 párrafos en español, en formato narrativo y fluido —no listas, no viñetas—. Párrafo 1: quién es la empresa, a qué se dedica, desde cuándo opera, dónde tiene presencia y qué tan legítima/establecida se ve. Párrafo 2: contexto comercial útil para el vendedor —tamaño aparente, clientes o sectores que atiende, señales de actividad reciente, presencia digital, o cualquier dato relevante que ayude a entenderla mejor como prospecto—.),
+  "hallazgos": string[] (3-5 datos concretos encontrados en línea sobre la empresa),
+  "fuentes_consultadas": string[] (URLs reales o nombres de las fuentes utilizadas)
 }
 
-Important: Write the resumen in a neutral, informative, and constructive tone. Do not issue credit recommendations or risk verdicts. Focus on painting a clear picture of who this company is.`;
+Reglas de tono OBLIGATORIAS para el resumen:
+- Es una herramienta de inteligencia para el vendedor, NO un dictamen crediticio.
+- NO emitas recomendaciones de aprobar/rechazar crédito, NO uses palabras como "riesgo", "no recomendado", "rechazar", "aprobar", "score", "calificación crediticia".
+- NO inventes información: si algo no se puede confirmar, omítelo en lugar de especular.
+- Lenguaje neutral, informativo y útil, como si le pasaras tus notas de investigación a un colega vendedor.`;
 
     const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
