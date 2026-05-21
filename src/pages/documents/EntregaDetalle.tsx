@@ -31,6 +31,7 @@ import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { SignedDocImage } from "@/components/SignedDocImage";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { CompanyAddressDialog } from "@/components/directory/CompanyAddressDialog";
+import { DeliveryConfirmDialog } from "@/components/documents/DeliveryConfirmDialog";
 
 export default function EntregaDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +42,7 @@ export default function EntregaDetalle() {
 
   const [uploading, setUploading] = useState<"evidencia" | "firmado" | null>(null);
   const [marking, setMarking] = useState(false);
+  const [confirmDeliveryOpen, setConfirmDeliveryOpen] = useState(false);
   const [editAddrOpen, setEditAddrOpen] = useState(false);
   const [addrDialogOpen, setAddrDialogOpen] = useState(false);
   const [editingAddr, setEditingAddr] = useState<any | null>(null);
