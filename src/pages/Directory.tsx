@@ -1052,7 +1052,24 @@ export default function Directory() {
         </CardContent>
       </Card>
 
-      <CompanyFormDialog open={companyOpen} onOpenChange={setCompanyOpen} onCreated={() => fetchData()} />
+      <CompanyFormDialog
+        open={companyOpen}
+        onOpenChange={setCompanyOpen}
+        onCreated={async (newId) => {
+          // Limpiar filtros y búsqueda para que el nuevo registro sea visible
+          setCompanySearch("");
+          clearCompanyFilters();
+          await fetchData();
+          if (newId) {
+            // Abrir la ficha recién creada para confirmación visual inmediata
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.set("select", newId);
+              return next;
+            }, { replace: true });
+          }
+        }}
+      />
       <CompanyFormDialog
         open={!!editCompany}
         onOpenChange={open => { if (!open) setEditCompany(null); }}
