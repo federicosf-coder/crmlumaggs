@@ -521,16 +521,47 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    const trimmedName = form.name.trim();
+    if (!trimmedName) {
+      toast.error("El nombre de la empresa es obligatorio");
+      return;
+    }
     if (form.plaza_ids.length === 0) {
       toast.error("La plaza es obligatoria");
       return;
     }
     setSaving(true);
 
+    // Pre-insert: verificar duplicado por nombre (case-insensitive) en modo creación
+    if (!isEdit) {
+      const { data: existing } = await supabase
+        .from("companies")
+        .select("id, name, is_active")
+        .ilike("name", trimmedName)
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) {
+        setSaving(false);
+        toast.error(`Ya existe una empresa con el nombre "${existing.name}"`, {
+          description: existing.is_active === false
+            ? "Está marcada como inactiva. Ábrela para reactivarla."
+            : "Abre la empresa existente para editarla o agregar información.",
+          action: {
+            label: "Abrir empresa",
+            onClick: () => {
+              onOpenChange(false);
+              window.location.href = `/directory?company=${existing.id}&select=${existing.id}`;
+            },
+          },
+          duration: 10000,
+        });
+        return;
+      }
+    }
+
     const payload = {
-      name: form.name,
-      razon_social: form.razon_social?.trim() || form.name,
+      name: trimmedName,
+      razon_social: form.razon_social?.trim() || trimmedName,
       industry: form.industry || null, website: form.website || null,
       phone: form.phone || null, email: form.email || null,
       notes: form.notes || null,
@@ -560,7 +591,23 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       result = await supabase.from("companies").insert(payload).select("id").single();
     }
 
-    if (result.error) { setSaving(false); toast.error(result.error.message); return; }
+    if (result.error) {
+      setSaving(false);
+      const code = (result.error as any).code;
+      if (code === "23505") {
+        toast.error("Ya existe un registro con esos datos", {
+          description: "Revisa el nombre de la empresa o busca el registro existente en el listado.",
+          duration: 8000,
+        });
+      } else if (code === "42501" || /row-level security/i.test(result.error.message)) {
+        toast.error("No tienes permisos para crear esta empresa", {
+          description: "Contacta al administrador para revisar tus permisos del módulo Directorio.",
+        });
+      } else {
+        toast.error(`No se pudo guardar: ${result.error.message}`);
+      }
+      return;
+    }
 
     // Sync company_plazas
     const companyId = result.data.id;
