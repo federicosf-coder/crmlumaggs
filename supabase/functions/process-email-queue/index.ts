@@ -280,6 +280,11 @@ Deno.serve(async (req) => {
           template_name: payload.label || queue,
           recipient_email: payload.to,
           status: 'sent',
+          metadata: {
+            cc: Array.isArray(payload.cc) && payload.cc.length ? payload.cc : undefined,
+            bcc: Array.isArray(payload.bcc) && payload.bcc.length ? payload.bcc : undefined,
+            reply_to: payload.reply_to || undefined,
+          },
         })
 
         // Delete from queue

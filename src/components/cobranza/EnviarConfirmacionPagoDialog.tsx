@@ -361,6 +361,23 @@ export function EnviarConfirmacionPagoDialog({
               Presiona Enter o coma para agregar varios.
             </p>
           </div>
+          {ccEmails && ccEmails.filter((e) => !emails.map((x) => x.toLowerCase()).includes(e.toLowerCase())).length > 0 && (
+            <div>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">En copia (CC)</Label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {Array.from(new Set(ccEmails))
+                  .filter((e) => !emails.map((x) => x.toLowerCase()).includes(e.toLowerCase()))
+                  .map((e) => (
+                    <Badge key={`cc-${e}`} variant="outline" className="text-xs font-normal">
+                      {e}
+                    </Badge>
+                  ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Estos destinatarios reciben el correo en copia (CC) para que cualquiera pueda usar "Responder a todos".
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
