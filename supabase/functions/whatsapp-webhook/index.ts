@@ -351,9 +351,9 @@ Deno.serve(async (req) => {
                 const name = msg.location.name || "Ubicación compartida";
                 const address = msg.location.address ? `\nDirección: ${msg.location.address}` : "";
 
-                // Enlace compatible con mapas en cualquier dispositivo
-                const googleMapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
-                locationText = `📍 ${name}${address}\nVer mapa: ${googleMapsUrl}`;
+                // Enlace oficial de Google Maps
+                const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                locationText = `📍 *${name}*${address}\n\n🌐 [Ver en Google Maps](${googleMapsUrl})`;
               }
               // ==========================================
 
