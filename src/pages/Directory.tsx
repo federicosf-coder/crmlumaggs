@@ -720,6 +720,17 @@ export default function Directory() {
                 <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
               </Button>
             )}
+            {activeTab === "contacts" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMergeContactsOpen(true)}
+                className="gap-2"
+              >
+                <Merge className="h-4 w-4" />
+                Fusionar duplicados
+              </Button>
+            )}
             {activeTab === "companies" && (
               <Button
                 variant="outline"
