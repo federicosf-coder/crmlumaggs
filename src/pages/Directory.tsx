@@ -30,6 +30,7 @@ import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDialog";
+import { MergeContactsDialog } from "@/components/directory/MergeContactsDialog";
 import { CompanyMetricsPanel } from "@/components/directory/CompanyMetricsPanel";
 import { CompanyEvaluacionTab } from "@/components/crm/CompanyEvaluacionTab";
 
