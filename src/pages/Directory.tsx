@@ -30,6 +30,7 @@ import { ImportExportMenu } from "@/components/ImportExportMenu";
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDialog";
+import { MergeContactsDialog } from "@/components/directory/MergeContactsDialog";
 import { CompanyMetricsPanel } from "@/components/directory/CompanyMetricsPanel";
 import { CompanyEvaluacionTab } from "@/components/crm/CompanyEvaluacionTab";
 
@@ -111,6 +112,7 @@ export default function Directory() {
   const [companySortField, setCompanySortField] = useState<"name" | "id_contpaq" | "industry" | "contacts" | "plaza" | "ejecutivo" | "venta" | "estado">("name");
   const [companySortDir, setCompanySortDir] = useState<"asc" | "desc">("asc");
   const [contactSort, setContactSort] = useState("last_name_asc");
+  const [mergeContactsOpen, setMergeContactsOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [editContact, setEditContact] = useState<ContactEditData | null>(null);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
@@ -716,6 +718,17 @@ export default function Directory() {
                   <Badge variant="secondary" className="ml-1 h-5 px-1.5">{activeFilterCount}</Badge>
                 )}
                 <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+              </Button>
+            )}
+            {activeTab === "contacts" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMergeContactsOpen(true)}
+                className="gap-2"
+              >
+                <Merge className="h-4 w-4" />
+                Fusionar duplicados
               </Button>
             )}
             {activeTab === "companies" && (
@@ -1411,6 +1424,11 @@ export default function Directory() {
         open={mergeOpen}
         onOpenChange={setMergeOpen}
         entity={activeTab === "companies" ? "companies" : "contacts"}
+        onMerged={fetchData}
+      />
+      <MergeContactsDialog
+        open={mergeContactsOpen}
+        onOpenChange={setMergeContactsOpen}
         onMerged={fetchData}
       />
     </div>
