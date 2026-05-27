@@ -1426,6 +1426,11 @@ export default function Directory() {
         entity={activeTab === "companies" ? "companies" : "contacts"}
         onMerged={fetchData}
       />
+      <MergeContactsDialog
+        open={mergeContactsOpen}
+        onOpenChange={setMergeContactsOpen}
+        onMerged={fetchData}
+      />
     </div>
   );
 }
