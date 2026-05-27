@@ -353,15 +353,11 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
 
           {loading ? (
             <p className="text-center py-8 text-muted-foreground">Buscando duplicados...</p>
-          ) : groups.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
-              <p>No se encontraron posibles duplicados.</p>
-            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 min-h-[400px]">
               {/* Left: groups + free search */}
               <div className="border rounded-md flex flex-col">
-                <Tabs defaultValue="groups" className="flex-1 flex flex-col">
+                <Tabs defaultValue={groups.length === 0 ? "free" : "groups"} className="flex-1 flex flex-col">
                   <TabsList className="m-2">
                     <TabsTrigger value="groups">Grupos ({groups.length})</TabsTrigger>
                     <TabsTrigger value="free">Búsqueda libre</TabsTrigger>
@@ -380,7 +376,11 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
                     </div>
                     <ScrollArea className="h-[330px]">
                       <div className="p-2 space-y-1">
-                        {filteredGroups.map(g => (
+                        {groups.length === 0 ? (
+                          <p className="text-xs text-muted-foreground p-2">
+                            No se encontraron posibles duplicados automáticamente. Usa la pestaña "Búsqueda libre".
+                          </p>
+                        ) : filteredGroups.map(g => (
                           <button
                             key={g.key}
                             onClick={() => selectGroup(g)}
