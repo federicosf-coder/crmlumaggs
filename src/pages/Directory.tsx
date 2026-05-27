@@ -112,6 +112,7 @@ export default function Directory() {
   const [companySortField, setCompanySortField] = useState<"name" | "id_contpaq" | "industry" | "contacts" | "plaza" | "ejecutivo" | "venta" | "estado">("name");
   const [companySortDir, setCompanySortDir] = useState<"asc" | "desc">("asc");
   const [contactSort, setContactSort] = useState("last_name_asc");
+  const [mergeContactsOpen, setMergeContactsOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [editContact, setEditContact] = useState<ContactEditData | null>(null);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
