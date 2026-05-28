@@ -171,9 +171,9 @@ export default function CrmPipeline({ brandProp, pipelineTypeProp, embedded }: C
       out = out.filter((d) => d.owner_id === filterEjecutivo);
     }
     if (filterPlaza === "none") {
-      out = out.filter((d) => !d.companies?.plaza_id);
+      out = out.filter((d) => !(d.plaza_id || d.companies?.plaza_id));
     } else if (filterPlaza !== "all") {
-      out = out.filter((d) => d.companies?.plaza_id === filterPlaza);
+      out = out.filter((d) => (d.plaza_id || d.companies?.plaza_id) === filterPlaza);
     }
     if (pipelineType === "recompra") {
       if (filterMes !== "all") {
