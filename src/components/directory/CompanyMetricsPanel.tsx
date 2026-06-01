@@ -58,9 +58,12 @@ export function CompanyMetricsPanel({ companyId }: Props) {
       const chevron = computeStats(chevronRows);
       const galsa = computeStats(galsaRows);
 
-      const today = new Date().toISOString().slice(0, 10);
+      // Misma fuente de verdad que el módulo Cobranza: estatus_factura === 'vencida' y saldo > 0
       const saldoVencido = rows
-        .filter((r: any) => String(r.estado_cobranza ?? "") === "vencida" && r.fecha_vencimiento && r.fecha_vencimiento < today)
+        .filter((r: any) =>
+          String(r.estatus_factura ?? "").toLowerCase() === "vencida" &&
+          Number(r.saldo_pendiente_cobranza) > 0
+        )
         .reduce((a: number, r: any) => a + (Number(r.saldo_pendiente_cobranza) || 0), 0);
 
       return { chevron, galsa, saldoVencido };
