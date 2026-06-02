@@ -4316,6 +4316,54 @@ export type Database = {
           },
         ]
       }
+      seguimiento_estatus_catalogo: {
+        Row: {
+          activo: boolean
+          ambito: string
+          color: string
+          created_at: string
+          es_urgente: boolean
+          familia: string
+          id: string
+          nombre: string
+          orden: number
+          umbral_max: number | null
+          umbral_min: number | null
+          unidad: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          ambito: string
+          color?: string
+          created_at?: string
+          es_urgente?: boolean
+          familia: string
+          id?: string
+          nombre: string
+          orden?: number
+          umbral_max?: number | null
+          umbral_min?: number | null
+          unidad: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          ambito?: string
+          color?: string
+          created_at?: string
+          es_urgente?: boolean
+          familia?: string
+          id?: string
+          nombre?: string
+          orden?: number
+          umbral_max?: number | null
+          umbral_min?: number | null
+          unidad?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
