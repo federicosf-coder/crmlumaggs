@@ -369,7 +369,7 @@ export function SeguimientoEstatusTab() {
 
   const recompute = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("recompute_all_seguimiento_ventas");
+      const { error } = await (supabase as any).rpc("recompute_all_seguimiento_ventas");
       if (error) throw error;
     },
     onSuccess: () => {
