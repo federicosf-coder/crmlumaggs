@@ -4366,6 +4366,8 @@ export type Database = {
       }
       seguimiento_ventas: {
         Row: {
+          actividades_activas: number
+          actividades_total: number
           acum_anio: number
           acum_mes: number
           acum_mes_anterior: number
@@ -4373,6 +4375,7 @@ export type Database = {
           company_id: string
           cotizaciones_total: number
           created_at: string
+          dias_ultima_actividad: number | null
           dias_ultima_compra: number | null
           dias_ultima_cotizacion: number | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
@@ -4386,13 +4389,17 @@ export type Database = {
           owner_id: string | null
           potencial: number
           promedio_historico_mensual: number
+          proxima_tarea_fecha: string | null
           ritmo_pct: number | null
           tiene_venta: boolean
+          ultima_actividad_fecha: string | null
           ultima_actualizacion: string
           ultima_cotizacion_fecha: string | null
           updated_at: string
         }
         Insert: {
+          actividades_activas?: number
+          actividades_total?: number
           acum_anio?: number
           acum_mes?: number
           acum_mes_anterior?: number
@@ -4400,6 +4407,7 @@ export type Database = {
           company_id: string
           cotizaciones_total?: number
           created_at?: string
+          dias_ultima_actividad?: number | null
           dias_ultima_compra?: number | null
           dias_ultima_cotizacion?: number | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
@@ -4413,13 +4421,17 @@ export type Database = {
           owner_id?: string | null
           potencial?: number
           promedio_historico_mensual?: number
+          proxima_tarea_fecha?: string | null
           ritmo_pct?: number | null
           tiene_venta?: boolean
+          ultima_actividad_fecha?: string | null
           ultima_actualizacion?: string
           ultima_cotizacion_fecha?: string | null
           updated_at?: string
         }
         Update: {
+          actividades_activas?: number
+          actividades_total?: number
           acum_anio?: number
           acum_mes?: number
           acum_mes_anterior?: number
@@ -4427,6 +4439,7 @@ export type Database = {
           company_id?: string
           cotizaciones_total?: number
           created_at?: string
+          dias_ultima_actividad?: number | null
           dias_ultima_compra?: number | null
           dias_ultima_cotizacion?: number | null
           empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
@@ -4440,8 +4453,10 @@ export type Database = {
           owner_id?: string | null
           potencial?: number
           promedio_historico_mensual?: number
+          proxima_tarea_fecha?: string | null
           ritmo_pct?: number | null
           tiene_venta?: boolean
+          ultima_actividad_fecha?: string | null
           ultima_actualizacion?: string
           ultima_cotizacion_fecha?: string | null
           updated_at?: string
