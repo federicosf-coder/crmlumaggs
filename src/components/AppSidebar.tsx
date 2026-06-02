@@ -4,7 +4,7 @@ import {
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
   Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet,
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
-  Briefcase, Zap, FolderOpen,
+  Briefcase, Zap, FolderOpen, TrendingUp,
   FileCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -35,7 +35,7 @@ const mainItems: NavItem[] = [
   { title: "Inicio", url: "/", icon: LayoutDashboard, roles: "all" },
   { title: "Portal del Vendedor", url: "/seller-portal", icon: Briefcase, roles: ["admin", "manager", "sales"] },
   { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
-  { title: "CRM", url: "/crm", icon: ShoppingCart, roles: ["admin", "manager", "sales", "customer_service"] },
+  { title: "Seguimiento a Ventas", url: "/seguimiento", icon: TrendingUp, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Documentos", url: "/documents", icon: FileText, roles: ["admin", "manager", "sales"] },
   { title: "Cobranza", url: "/cobranza", icon: Wallet, roles: ["admin", "manager", "accounting"] },
   { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
