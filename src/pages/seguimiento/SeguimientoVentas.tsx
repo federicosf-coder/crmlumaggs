@@ -4,10 +4,9 @@ import { BackButton } from "@/components/BackButton";
 import { PageBanner } from "@/components/PageBanner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon } from "lucide-react";
+import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown } from "lucide-react";
 import { formatDate } from "@/lib/formatters";
 import {
   useSeguimientoVentas,
@@ -17,6 +16,12 @@ import {
   type SeguimientoEstatus,
 } from "@/hooks/useSeguimientoVentas";
 import { SeguimientoDetailDialog } from "@/components/seguimiento/SeguimientoDetailDialog";
+
+type SortDir = "asc" | "desc";
+interface SortState {
+  key: string;
+  dir: SortDir;
+}
 
 function StatusBadge({ estatus }: { estatus: SeguimientoEstatus | undefined | null }) {
   if (!estatus) return <span className="text-xs text-muted-foreground">—</span>;
@@ -29,6 +34,31 @@ function StatusBadge({ estatus }: { estatus: SeguimientoEstatus | undefined | nu
       {estatus.es_urgente && <AlertTriangle className="h-3 w-3" />}
       {estatus.nombre}
     </span>
+  );
+}
+
+function SortableHead({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  align = "left",
+}: {
+  label: string;
+  sortKey: string;
+  sort: SortState | null;
+  onSort: (key: string) => void;
+  align?: "left" | "right" | "center";
+}) {
+  const active = sort?.key === sortKey;
+  const alignClass = align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+  return (
+    <TableHead className={`${alignClass} cursor-pointer select-none hover:bg-muted/40 transition-colors`} onClick={() => onSort(sortKey)}>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active && (sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+      </span>
+    </TableHead>
   );
 }
 
@@ -56,6 +86,7 @@ export default function SeguimientoVentas() {
   const [tab, setTab] = useState<"con_venta" | "sin_venta">("con_venta");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<SeguimientoVentasRow | null>(null);
+  const [sort, setSort] = useState<SortState | null>(null);
 
   const tieneVenta = tab === "con_venta";
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
@@ -72,24 +103,115 @@ export default function SeguimientoVentas() {
     return tieneVenta ? row.estatus_riesgo_id : row.estatus_gestion_id;
   };
 
+  const handleSort = (key: string) => {
+    setSort((prev) => {
+      if (prev?.key === key) {
+        return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
+      }
+      return { key, dir: "asc" };
+    });
+  };
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     const base = term
       ? rows.filter((r) => (r.companies?.name || "").toLowerCase().includes(term))
       : rows;
+
+    if (!sort) {
+      // Default: urgencia primero, luego recencia
+      return [...base].sort((a, b) => {
+        const ea = catalogMap.get(getEffectiveStatusId(a) || "");
+        const eb = catalogMap.get(getEffectiveStatusId(b) || "");
+        const ua = ea?.es_urgente ? 1 : 0;
+        const ub = eb?.es_urgente ? 1 : 0;
+        if (ua !== ub) return ub - ua;
+        const da = tieneVenta ? (a.dias_ultima_compra ?? -1) : (a.dias_ultima_actividad ?? -1);
+        const db = tieneVenta ? (b.dias_ultima_compra ?? -1) : (b.dias_ultima_actividad ?? -1);
+        return db - da;
+      });
+    }
+
+    const dir = sort.dir === "asc" ? 1 : -1;
     return [...base].sort((a, b) => {
-      const ea = catalogMap.get(getEffectiveStatusId(a) || "");
-      const eb = catalogMap.get(getEffectiveStatusId(b) || "");
-      const ua = ea?.es_urgente ? 1 : 0;
-      const ub = eb?.es_urgente ? 1 : 0;
-      if (ua !== ub) return ub - ua;
-      const da = tieneVenta ? (a.dias_ultima_compra ?? -1) : (a.dias_ultima_actividad ?? -1);
-      const db = tieneVenta ? (b.dias_ultima_compra ?? -1) : (b.dias_ultima_actividad ?? -1);
-      return db - da;
+      let va: any;
+      let vb: any;
+
+      switch (sort.key) {
+        case "empresa":
+          va = (a.companies?.name || "").toLowerCase();
+          vb = (b.companies?.name || "").toLowerCase();
+          break;
+        case "estatus": {
+          const ea = catalogMap.get(getEffectiveStatusId(a) || "");
+          const eb = catalogMap.get(getEffectiveStatusId(b) || "");
+          va = ea?.orden ?? 999;
+          vb = eb?.orden ?? 999;
+          break;
+        }
+        case "ritmo": {
+          const ra = catalogMap.get(a.estatus_ritmo_id || "");
+          const rb = catalogMap.get(b.estatus_ritmo_id || "");
+          va = ra?.orden ?? 999;
+          vb = rb?.orden ?? 999;
+          break;
+        }
+        case "ultima_compra":
+          va = a.dias_ultima_compra ?? -1;
+          vb = b.dias_ultima_compra ?? -1;
+          break;
+        case "potencial":
+          va = a.potencial ?? 0;
+          vb = b.potencial ?? 0;
+          break;
+        case "promedio_mensual":
+          va = a.promedio_historico_mensual ?? 0;
+          vb = b.promedio_historico_mensual ?? 0;
+          break;
+        case "acum_mes":
+          va = a.acum_mes ?? 0;
+          vb = b.acum_mes ?? 0;
+          break;
+        case "acum_mes_anterior":
+          va = a.acum_mes_anterior ?? 0;
+          vb = b.acum_mes_anterior ?? 0;
+          break;
+        case "acum_anio":
+          va = a.acum_anio ?? 0;
+          vb = b.acum_anio ?? 0;
+          break;
+        case "actividades":
+          va = a.actividades_activas ?? 0;
+          vb = b.actividades_activas ?? 0;
+          break;
+        case "proxima_tarea":
+          va = a.proxima_tarea_fecha ? new Date(a.proxima_tarea_fecha).getTime() : 0;
+          vb = b.proxima_tarea_fecha ? new Date(b.proxima_tarea_fecha).getTime() : 0;
+          break;
+        case "ultima_actividad":
+          va = a.dias_ultima_actividad ?? -1;
+          vb = b.dias_ultima_actividad ?? -1;
+          break;
+        case "cotizaciones":
+          va = a.cotizaciones_total ?? 0;
+          vb = b.cotizaciones_total ?? 0;
+          break;
+        case "ultima_cotizacion":
+          va = a.dias_ultima_cotizacion ?? -1;
+          vb = b.dias_ultima_cotizacion ?? -1;
+          break;
+        default:
+          return 0;
+      }
+
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta]);
+  }, [rows, search, catalogMap, tieneVenta, sort]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
+
 
   return (
     <div className="space-y-4">
