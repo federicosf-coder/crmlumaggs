@@ -28,6 +28,8 @@ import CrmActivitiesTasks from "@/pages/crm/CrmActivitiesTasks";
 import CrmItemsPage from "@/pages/crm/CrmItemsPage";
 import CrmRepurchase from "@/pages/crm/CrmRepurchase";
 import CrmByCompany from "@/pages/crm/CrmByCompany";
+import SeguimientoLanding from "@/pages/seguimiento/SeguimientoLanding";
+import SeguimientoVentas from "@/pages/seguimiento/SeguimientoVentas";
 import NotFound from "@/pages/NotFound";
 import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
 import Cobranza from "@/pages/cobranza/Cobranza";
@@ -103,6 +105,8 @@ const App = () => (
             <Route path="/crm/empresas" element={<ProtectedRoute><CrmByCompany /></ProtectedRoute>} />
             <Route path="/crm/:brand/pipeline" element={<ProtectedRoute><CrmPipeline /></ProtectedRoute>} />
             <Route path="/crm/recompra" element={<ProtectedRoute><CrmRepurchase /></ProtectedRoute>} />
+            <Route path="/seguimiento" element={<ProtectedRoute><SeguimientoLanding /></ProtectedRoute>} />
+            <Route path="/seguimiento/:brand" element={<ProtectedRoute><SeguimientoVentas /></ProtectedRoute>} />
             <Route path="/activities" element={<ProtectedRoute><CrmItemsPage /></ProtectedRoute>} />
             <Route path="/activities/legacy" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsList /></ProtectedRoute>} />
