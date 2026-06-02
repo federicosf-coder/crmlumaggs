@@ -16,6 +16,12 @@ import {
   type SeguimientoEstatus,
 } from "@/hooks/useSeguimientoVentas";
 import { SeguimientoDetailDialog } from "@/components/seguimiento/SeguimientoDetailDialog";
+import {
+  ColumnFilterBuilder,
+  evaluateConditions,
+  type ColumnFilterDef,
+  type ColumnFilterCondition,
+} from "@/components/cobranza/ColumnFilterBuilder";
 
 type SortDir = "asc" | "desc";
 interface SortState {
@@ -87,10 +93,67 @@ export default function SeguimientoVentas() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<SeguimientoVentasRow | null>(null);
   const [sort, setSort] = useState<SortState | null>(null);
+  const [filterConditions, setFilterConditions] = useState<ColumnFilterCondition[]>([]);
+  const [filterCombinator, setFilterCombinator] = useState<"AND" | "OR">("AND");
 
   const tieneVenta = tab === "con_venta";
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
+
+  const filterColumns = useMemo<ColumnFilterDef[]>(() => {
+    const ambito = tieneVenta ? "con_venta" : "sin_venta";
+    const statusOpts = (familia: "riesgo" | "ritmo" | "gestion") =>
+      catalog
+        .filter((c) => c.ambito === ambito && c.familia === familia)
+        .map((c) => ({ value: c.nombre, label: c.nombre }));
+
+    const common: ColumnFilterDef[] = [
+      { key: "empresa", label: "Empresa", type: "text" },
+      { key: "actividades_activas", label: "Actividades activas", type: "number" },
+      { key: "actividades_total", label: "Actividades totales", type: "number" },
+      { key: "proxima_tarea_fecha", label: "Próxima tarea", type: "date" },
+      { key: "ultima_actividad_fecha", label: "Última actividad (fecha)", type: "date" },
+      { key: "dias_ultima_actividad", label: "Días última actividad", type: "number" },
+      { key: "cotizaciones_total", label: "Cotizaciones totales", type: "number" },
+      { key: "ultima_cotizacion_fecha", label: "Última cotización (fecha)", type: "date" },
+      { key: "dias_ultima_cotizacion", label: "Días última cotización", type: "number" },
+      { key: "estatus_manual", label: "Estatus manual", type: "select", options: [
+        { value: "true", label: "Sí" }, { value: "false", label: "No" },
+      ] },
+    ];
+
+    if (tieneVenta) {
+      return [
+        ...common,
+        { key: "estatus_riesgo", label: "Estatus (riesgo)", type: "select", options: statusOpts("riesgo") },
+        { key: "estatus_ritmo", label: "Estatus (ritmo)", type: "select", options: statusOpts("ritmo") },
+        { key: "potencial", label: "Potencial", type: "number" },
+        { key: "promedio_historico_mensual", label: "Promedio mensual", type: "number" },
+        { key: "acum_mes", label: "Acumulado mes", type: "number" },
+        { key: "acum_mes_anterior", label: "Acumulado mes anterior", type: "number" },
+        { key: "acum_anio", label: "Acumulado año", type: "number" },
+        { key: "fecha_ultima_compra", label: "Última compra (fecha)", type: "date" },
+        { key: "dias_ultima_compra", label: "Días última compra", type: "number" },
+        { key: "ciclo_dias", label: "Ciclo (días)", type: "number" },
+        { key: "ritmo_pct", label: "Ritmo (%)", type: "number" },
+      ];
+    }
+    return [
+      ...common,
+      { key: "estatus_gestion", label: "Estatus (gestión)", type: "select", options: statusOpts("gestion") },
+    ];
+  }, [tieneVenta, catalog]);
+
+  const getFilterValue = (row: SeguimientoVentasRow, key: string): any => {
+    switch (key) {
+      case "empresa": return row.companies?.name || "";
+      case "estatus_riesgo": return catalog.find((c) => c.id === row.estatus_riesgo_id)?.nombre ?? "";
+      case "estatus_ritmo": return catalog.find((c) => c.id === row.estatus_ritmo_id)?.nombre ?? "";
+      case "estatus_gestion": return catalog.find((c) => c.id === row.estatus_gestion_id)?.nombre ?? "";
+      case "estatus_manual": return row.estatus_manual ? "true" : "false";
+      default: return (row as any)[key];
+    }
+  };
 
   const catalogMap = useMemo(() => {
     const m = new Map<string, SeguimientoEstatus>();
@@ -114,9 +177,10 @@ export default function SeguimientoVentas() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const base = term
+    let base = term
       ? rows.filter((r) => (r.companies?.name || "").toLowerCase().includes(term))
       : rows;
+    base = evaluateConditions(base, filterConditions, filterCombinator, getFilterValue);
 
     if (!sort) {
       // Default: urgencia primero, luego recencia
@@ -208,7 +272,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, sort]);
+  }, [rows, search, catalogMap, tieneVenta, sort, filterConditions, filterCombinator, catalog]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
@@ -250,13 +314,22 @@ export default function SeguimientoVentas() {
             Clientes sin Venta
           </button>
         </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar empresa..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-9 font-light"
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-72">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar empresa..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-9 font-light"
+            />
+          </div>
+          <ColumnFilterBuilder
+            columns={filterColumns}
+            conditions={filterConditions}
+            onChange={setFilterConditions}
+            combinator={filterCombinator}
+            onCombinatorChange={setFilterCombinator}
           />
         </div>
       </div>
