@@ -96,6 +96,8 @@ export default function SeguimientoVentas() {
   const [filterConditions, setFilterConditions] = useState<ColumnFilterCondition[]>([]);
   const [filterCombinator, setFilterCombinator] = useState<"AND" | "OR">("AND");
 
+  const tieneVenta = tab === "con_venta";
+
   // Pre-poblar campos de filtro al cambiar de pestaña (sin valor → no activos)
   useEffect(() => {
     const seed: ColumnFilterCondition[] = tieneVenta
@@ -108,8 +110,6 @@ export default function SeguimientoVentas() {
         ];
     setFilterConditions(seed);
   }, [tieneVenta]);
-
-  const tieneVenta = tab === "con_venta";
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
 
