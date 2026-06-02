@@ -4,7 +4,7 @@ import {
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
   Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet,
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
-  Briefcase, Zap, FolderOpen,
+  Briefcase, Zap, FolderOpen, TrendingUp,
   FileCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
