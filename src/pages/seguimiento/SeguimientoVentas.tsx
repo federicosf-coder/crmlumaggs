@@ -353,27 +353,27 @@ export default function SeguimientoVentas() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Estatus</TableHead>
+                <SortableHead label="Empresa" sortKey="empresa" sort={sort} onSort={handleSort} />
+                <SortableHead label="Estatus" sortKey="estatus" sort={sort} onSort={handleSort} />
                 {tieneVenta ? (
                   <>
-                    <TableHead>Ritmo</TableHead>
-                    <TableHead>Última compra</TableHead>
-                    <TableHead className="text-right">Potencial</TableHead>
-                    <TableHead className="text-right">Prom. mensual</TableHead>
-                    <TableHead className="text-right">Acum. mes</TableHead>
-                    <TableHead className="text-right">Mes ant.</TableHead>
-                    <TableHead className="text-right">Acum. año</TableHead>
-                    <TableHead className="text-center">Activ.</TableHead>
-                    <TableHead>Próx. tarea</TableHead>
+                    <SortableHead label="Ritmo" sortKey="ritmo" sort={sort} onSort={handleSort} />
+                    <SortableHead label="Última compra" sortKey="ultima_compra" sort={sort} onSort={handleSort} />
+                    <SortableHead label="Potencial" sortKey="potencial" sort={sort} onSort={handleSort} align="right" />
+                    <SortableHead label="Prom. mensual" sortKey="promedio_mensual" sort={sort} onSort={handleSort} align="right" />
+                    <SortableHead label="Acum. mes" sortKey="acum_mes" sort={sort} onSort={handleSort} align="right" />
+                    <SortableHead label="Mes ant." sortKey="acum_mes_anterior" sort={sort} onSort={handleSort} align="right" />
+                    <SortableHead label="Acum. año" sortKey="acum_anio" sort={sort} onSort={handleSort} align="right" />
+                    <SortableHead label="Activ." sortKey="actividades" sort={sort} onSort={handleSort} align="center" />
+                    <SortableHead label="Próx. tarea" sortKey="proxima_tarea" sort={sort} onSort={handleSort} />
                   </>
                 ) : (
                   <>
-                    <TableHead>Últ. actividad</TableHead>
-                    <TableHead className="text-center">Cotiz.</TableHead>
-                    <TableHead>Últ. cotización</TableHead>
-                    <TableHead className="text-center">Activ.</TableHead>
-                    <TableHead>Próx. tarea</TableHead>
+                    <SortableHead label="Últ. actividad" sortKey="ultima_actividad" sort={sort} onSort={handleSort} />
+                    <SortableHead label="Cotiz." sortKey="cotizaciones" sort={sort} onSort={handleSort} align="center" />
+                    <SortableHead label="Últ. cotización" sortKey="ultima_cotizacion" sort={sort} onSort={handleSort} />
+                    <SortableHead label="Activ." sortKey="actividades" sort={sort} onSort={handleSort} align="center" />
+                    <SortableHead label="Próx. tarea" sortKey="proxima_tarea" sort={sort} onSort={handleSort} />
                   </>
                 )}
               </TableRow>
