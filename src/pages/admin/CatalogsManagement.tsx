@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText, Building2, Truck, User, Mail, Factory, Search, Settings2 } from "lucide-react";
 import { EmailGroupsTab } from "@/components/admin/EmailGroupsTab";
 import { SystemSettingsTab } from "@/components/admin/SystemSettingsTab";
+import { SeguimientoEstatusTab } from "@/components/admin/SeguimientoEstatusTab";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
 
@@ -1747,6 +1748,7 @@ type CatalogKey =
   | "presentaciones" | "clasificaciones" | "empresa_marcas"
   | "industrias" | "embudos" | "condiciones"
   | "logos"
+  | "seguimiento_estatus"
   | "email_groups" | "system_settings";
 
 type CatalogGroup = {
@@ -1782,6 +1784,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
       { key: "industrias", label: "Industrias", description: "Editar nombre mostrado vs guardado" },
       { key: "embudos", label: "Embudos de Venta" },
       { key: "condiciones", label: "Condiciones" },
+      { key: "seguimiento_estatus", label: "Estatus de Seguimiento a Ventas", description: "Rangos por familia y ámbito" },
     ],
   },
   {
@@ -1814,6 +1817,7 @@ function renderCatalog(key: CatalogKey) {
     case "embudos": return <EmbudosTab />;
     case "condiciones": return <CondicionesTab />;
     case "logos": return <LogosTab />;
+    case "seguimiento_estatus": return <SeguimientoEstatusTab />;
     case "email_groups": return <EmailGroupsTab />;
     case "system_settings": return <SystemSettingsTab />;
   }
