@@ -4364,6 +4364,126 @@ export type Database = {
         }
         Relationships: []
       }
+      seguimiento_ventas: {
+        Row: {
+          acum_anio: number
+          acum_mes: number
+          acum_mes_anterior: number
+          ciclo_dias: number | null
+          company_id: string
+          cotizaciones_total: number
+          created_at: string
+          dias_ultima_compra: number | null
+          dias_ultima_cotizacion: number | null
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          estatus_gestion_id: string | null
+          estatus_manual: boolean
+          estatus_manual_id: string | null
+          estatus_riesgo_id: string | null
+          estatus_ritmo_id: string | null
+          fecha_ultima_compra: string | null
+          id: string
+          owner_id: string | null
+          potencial: number
+          promedio_historico_mensual: number
+          ritmo_pct: number | null
+          tiene_venta: boolean
+          ultima_actualizacion: string
+          ultima_cotizacion_fecha: string | null
+          updated_at: string
+        }
+        Insert: {
+          acum_anio?: number
+          acum_mes?: number
+          acum_mes_anterior?: number
+          ciclo_dias?: number | null
+          company_id: string
+          cotizaciones_total?: number
+          created_at?: string
+          dias_ultima_compra?: number | null
+          dias_ultima_cotizacion?: number | null
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          estatus_gestion_id?: string | null
+          estatus_manual?: boolean
+          estatus_manual_id?: string | null
+          estatus_riesgo_id?: string | null
+          estatus_ritmo_id?: string | null
+          fecha_ultima_compra?: string | null
+          id?: string
+          owner_id?: string | null
+          potencial?: number
+          promedio_historico_mensual?: number
+          ritmo_pct?: number | null
+          tiene_venta?: boolean
+          ultima_actualizacion?: string
+          ultima_cotizacion_fecha?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acum_anio?: number
+          acum_mes?: number
+          acum_mes_anterior?: number
+          ciclo_dias?: number | null
+          company_id?: string
+          cotizaciones_total?: number
+          created_at?: string
+          dias_ultima_compra?: number | null
+          dias_ultima_cotizacion?: number | null
+          empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
+          estatus_gestion_id?: string | null
+          estatus_manual?: boolean
+          estatus_manual_id?: string | null
+          estatus_riesgo_id?: string | null
+          estatus_ritmo_id?: string | null
+          fecha_ultima_compra?: string | null
+          id?: string
+          owner_id?: string | null
+          potencial?: number
+          promedio_historico_mensual?: number
+          ritmo_pct?: number | null
+          tiene_venta?: boolean
+          ultima_actualizacion?: string
+          ultima_cotizacion_fecha?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seguimiento_ventas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimiento_ventas_estatus_gestion_id_fkey"
+            columns: ["estatus_gestion_id"]
+            isOneToOne: false
+            referencedRelation: "seguimiento_estatus_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimiento_ventas_estatus_manual_id_fkey"
+            columns: ["estatus_manual_id"]
+            isOneToOne: false
+            referencedRelation: "seguimiento_estatus_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimiento_ventas_estatus_riesgo_id_fkey"
+            columns: ["estatus_riesgo_id"]
+            isOneToOne: false
+            referencedRelation: "seguimiento_estatus_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimiento_ventas_estatus_ritmo_id_fkey"
+            columns: ["estatus_ritmo_id"]
+            isOneToOne: false
+            referencedRelation: "seguimiento_estatus_catalogo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -5690,6 +5810,13 @@ export type Database = {
         Returns: undefined
       }
       recompute_pago_balance: { Args: { _pago_id: string }; Returns: undefined }
+      recompute_seguimiento_ventas: {
+        Args: {
+          _company_id: string
+          _ev: Database["public"]["Enums"]["empresa_vendedora"]
+        }
+        Returns: undefined
+      }
       repair_whatsapp_account_links: { Args: never; Returns: Json }
       resolve_credit_short_code: { Args: { code: string }; Returns: string }
       resolve_documento_negocio: {
