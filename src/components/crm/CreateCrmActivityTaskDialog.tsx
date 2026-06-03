@@ -62,14 +62,6 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
     },
   });
 
-  const { data: deals } = useQuery({
-    queryKey: ["crm-deals-picker"],
-    queryFn: async () => {
-      const { data } = await supabase.from("crm_deals").select("id, title, crm_pipelines(marca)").order("title");
-      return data || [];
-    },
-  });
-
   const { data: users } = useQuery({
     queryKey: ["profiles-picker"],
     queryFn: async () => {
@@ -97,29 +89,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   useEffect(() => {
     if (!open) return;
     (async () => {
-      // Si viene defaultDealId: resolver empresa y contacto principal
-      if (defaultDealId) {
-        const { data: deal } = await supabase
-          .from("crm_deals")
-          .select("company_id, contact_id")
-          .eq("id", defaultDealId)
-          .maybeSingle();
-        if (deal) {
-          const cId = (deal as any).company_id || "";
-          if (cId) {
-            setCompanyId((prev) => prev || cId);
-            const { data: comp } = await supabase
-              .from("companies")
-              .select("primary_contact_id")
-              .eq("id", cId)
-              .maybeSingle();
-            const primary = (comp as any)?.primary_contact_id || (deal as any).contact_id || "";
-            if (primary) setContactId((prev) => prev || primary);
-          } else if ((deal as any).contact_id) {
-            setContactId((prev) => prev || (deal as any).contact_id);
-          }
-        }
-      } else if (defaultCompanyId) {
+      if (defaultCompanyId) {
         // Si viene defaultCompanyId: resolver contacto principal
         const { data: comp } = await supabase
           .from("companies")
@@ -130,40 +100,10 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
         if (primary) setContactId((prev) => prev || primary);
       }
     })();
-  }, [open, defaultDealId, defaultCompanyId]);
+  }, [open, defaultCompanyId]);
 
-  const lockCompany = !!defaultCompanyId || !!defaultDealId;
-  const lockDeal = !!defaultDealId;
+  const lockCompany = !!defaultCompanyId;
   const lockContact = !!defaultContactId;
-
-  const handleDealChange = async (v: string) => {
-    const newDealId = v === "none" ? "" : v;
-    setDealId(newDealId);
-    if (!newDealId) return;
-    const { data: deal } = await supabase
-      .from("crm_deals")
-      .select("company_id, contact_id")
-      .eq("id", newDealId)
-      .maybeSingle();
-    if (!deal) return;
-    const cId = (deal as any).company_id || "";
-    if (cId) {
-      setCompanyId(cId);
-      const { data: comp } = await supabase
-        .from("companies")
-        .select("primary_contact_id")
-        .eq("id", cId)
-        .maybeSingle();
-      const primary = (comp as any)?.primary_contact_id || (deal as any).contact_id || "";
-      if (primary) setContactId(primary);
-    } else if ((deal as any).contact_id) {
-      setContactId((deal as any).contact_id);
-    }
-  };
-
-  const filteredDeals = brand
-    ? deals?.filter((d: any) => d.crm_pipelines?.marca === brand) || []
-    : deals || [];
 
   const availableCollaborators = users?.filter(
     (u) => u.user_id !== session?.user?.id && !collaboratorIds.includes(u.user_id)
@@ -203,16 +143,10 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
     if (createTask.isPending) return;
 
     const typeLabel = TASK_TYPE_LABEL[taskType];
-    const normalizedDealId = dealId && dealId !== "none" ? dealId : null;
     const normalizedContactId = contactId && contactId !== "none" ? contactId : null;
     let normalizedCompanyId = companyId && companyId !== "none" ? companyId : null;
 
-    // Auto-resolver company_id desde deal o contact si el usuario no la seleccionó
-    if (!normalizedCompanyId && normalizedDealId) {
-      const { data: dealRow } = await supabase
-        .from("crm_deals").select("company_id").eq("id", normalizedDealId).maybeSingle();
-      if (dealRow?.company_id) normalizedCompanyId = dealRow.company_id;
-    }
+    // Auto-resolver company_id desde contact si el usuario no la seleccionó
     if (!normalizedCompanyId && normalizedContactId) {
       const { data: contactRow } = await supabase
         .from("contacts").select("company_id").eq("id", normalizedContactId).maybeSingle();
@@ -243,7 +177,6 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
         due_date: activityDate || null,
         priority,
         company_id: normalizedCompanyId,
-        deal_id: normalizedDealId,
         contact_id: normalizedContactId,
         // Nuevas columnas
         task_type: taskType,
@@ -403,18 +336,6 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
                       })}
                     </div>
                   )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-2">Vincular a Negocio {lockDeal && <span className="text-[10px] text-muted-foreground">(prellenado)</span>}</Label>
-                  <SearchableSelect
-                    value={dealId || "none"}
-                    onValueChange={handleDealChange}
-                    options={[
-                      { value: "none", label: "Ninguno" },
-                      ...(filteredDeals?.map((d: any) => ({ value: d.id, label: d.title })) || []),
-                    ]}
-                    placeholder="Buscar negocio..."
-                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-2">Empresa / Cliente {lockCompany && <span className="text-[10px] text-muted-foreground">(prellenada)</span>}</Label>
