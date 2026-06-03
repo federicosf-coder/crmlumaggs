@@ -1279,16 +1279,6 @@ export default function WhatsAppInbox() {
         }}
       />
 
-      {defaultPipelineId && (
-        <CreateCrmDealDialog
-          open={createDealOpen}
-          onOpenChange={setCreateDealOpen}
-          pipelineId={defaultPipelineId}
-          stages={defaultPipelineStages}
-          defaultCompanyId={companyData?.id || ""}
-          defaultContactId={contactData?.id || ""}
-        />
-      )}
 
       <TemplatePickerDialog
         open={tplPickerOpen}
