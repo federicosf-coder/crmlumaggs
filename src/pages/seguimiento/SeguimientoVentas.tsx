@@ -216,6 +216,58 @@ function SortableHead({
   );
 }
 
+function DraggableSortableHead({
+  id,
+  label,
+  sortKey,
+  sort,
+  onSort,
+  align = "left",
+}: {
+  id: string;
+  label: string;
+  sortKey?: string;
+  sort: SortState | null;
+  onSort: (key: string) => void;
+  align?: "left" | "right" | "center";
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  const active = sortKey && sort?.key === sortKey;
+  const alignClass = align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+  return (
+    <TableHead
+      ref={setNodeRef}
+      style={style}
+      className={`${alignClass} select-none hover:bg-muted/40 transition-colors group whitespace-nowrap ${isDragging ? "bg-violet-50" : ""}`}
+    >
+      <span className="inline-flex items-center gap-1">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="opacity-30 group-hover:opacity-100 cursor-grab active:cursor-grabbing touch-none"
+          aria-label="Arrastrar columna"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-3 w-3" />
+        </button>
+        <span
+          className={sortKey ? "cursor-pointer" : ""}
+          onClick={() => sortKey && onSort(sortKey)}
+        >
+          {label}
+          {active && (sort.dir === "asc" ? <ArrowUp className="h-3 w-3 inline ml-1" /> : <ArrowDown className="h-3 w-3 inline ml-1" />)}
+        </span>
+      </span>
+    </TableHead>
+  );
+}
+
 function daysColor(days: number | null | undefined): string {
   if (days == null) return "text-muted-foreground";
   if (days < 15) return "text-emerald-600";
