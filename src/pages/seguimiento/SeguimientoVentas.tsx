@@ -232,6 +232,7 @@ export default function SeguimientoVentas() {
   const [fDias, setFDias] = useState<string[]>([]);
   const [fPotencial, setFPotencial] = useState<string[]>([]);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
+  const [fPlaza, setFPlaza] = useState<string[]>([]);
 
   const tieneVenta = tab === "con_venta";
 
@@ -242,6 +243,7 @@ export default function SeguimientoVentas() {
     setFDias([]);
     setFPotencial([]);
     setFEjecutivo([]);
+    setFPlaza([]);
   }, [tieneVenta]);
 
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
@@ -266,6 +268,63 @@ export default function SeguimientoVentas() {
     return m;
   }, [profiles]);
 
+  const { data: plazasData = [] } = useQuery({
+    queryKey: ["plazas_min"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("plazas")
+        .select("id, nombre")
+        .eq("is_active", true)
+        .order("nombre");
+      if (error) throw error;
+      return (data || []) as { id: string; nombre: string }[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: companyPlazas = [] } = useQuery({
+    queryKey: ["company_plazas_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_plazas")
+        .select("company_id, plaza_id");
+      if (error) throw error;
+      return (data || []) as { company_id: string; plaza_id: string }[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const plazaNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of plazasData) m.set(p.id, p.nombre);
+    return m;
+  }, [plazasData]);
+
+  const companyPlazaMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const cp of companyPlazas) {
+      const arr = m.get(cp.company_id) || [];
+      arr.push(cp.plaza_id);
+      m.set(cp.company_id, arr);
+    }
+    return m;
+  }, [companyPlazas]);
+
+  const getRowPlazaIds = (companyId: string): string[] => companyPlazaMap.get(companyId) || [];
+  const getRowPlazaLabel = (companyId: string): string => {
+    const ids = getRowPlazaIds(companyId);
+    if (ids.length === 0) return "";
+    return ids.map((id) => plazaNameMap.get(id) || "").filter(Boolean).join(", ");
+  };
+
+  const plazaOptions = useMemo(() => {
+    const used = new Set<string>();
+    for (const r of rows) for (const pid of getRowPlazaIds(r.company_id)) used.add(pid);
+    return plazasData
+      .filter((p) => used.has(p.id))
+      .map((p, i) => ({ id: p.id, name: p.nombre, color: colorForIndex(i + 3) }));
+  }, [rows, plazasData, companyPlazaMap]);
+
   const ejecutivoOptions = useMemo(() => {
     const ids = new Set<string>();
     for (const r of rows) if (r.owner_id) ids.add(r.owner_id);
@@ -288,7 +347,7 @@ export default function SeguimientoVentas() {
     arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
   const activeFiltersCount =
-    fEstatus.length + fRitmo.length + fDias.length + fPotencial.length + fEjecutivo.length;
+    fEstatus.length + fRitmo.length + fDias.length + fPotencial.length + fEjecutivo.length + fPlaza.length;
 
   const clearAllFilters = () => {
     setFEstatus([]);
@@ -296,6 +355,7 @@ export default function SeguimientoVentas() {
     setFDias([]);
     setFPotencial([]);
     setFEjecutivo([]);
+    setFPlaza([]);
   };
 
   const catalogMap = useMemo(() => {
@@ -363,6 +423,13 @@ export default function SeguimientoVentas() {
         return r.owner_id ? fEjecutivo.includes(r.owner_id) : false;
       });
     }
+    if (fPlaza.length > 0) {
+      base = base.filter((r) => {
+        const ids = getRowPlazaIds(r.company_id);
+        if (fPlaza.includes("__none__") && ids.length === 0) return true;
+        return ids.some((id) => fPlaza.includes(id));
+      });
+    }
 
     if (!sort) {
       // Default: urgencia primero, luego recencia
@@ -391,6 +458,10 @@ export default function SeguimientoVentas() {
         case "ejecutivo":
           va = (a.owner_id ? profileMap.get(a.owner_id) || "" : "").toLowerCase();
           vb = (b.owner_id ? profileMap.get(b.owner_id) || "" : "").toLowerCase();
+          break;
+        case "plaza":
+          va = getRowPlazaLabel(a.company_id).toLowerCase();
+          vb = getRowPlazaLabel(b.company_id).toLowerCase();
           break;
         case "estatus": {
           const ea = catalogMap.get(getEffectiveStatusId(a) || "");
@@ -458,7 +529,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fRitmo, fDias, fPotencial, fEjecutivo, profileMap]);
+  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fRitmo, fDias, fPotencial, fEjecutivo, fPlaza, profileMap, companyPlazaMap, plazaNameMap]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
@@ -624,6 +695,23 @@ export default function SeguimientoVentas() {
                     emptyText="Sin ejecutivos"
                   />
                 </div>
+
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
+                    Plaza
+                  </p>
+                  <MultiSelectFilter
+                    label="Plaza"
+                    options={[
+                      { id: "__none__", label: "Sin plaza", color: "#64748b" },
+                      ...plazaOptions.map((p) => ({ id: p.id, label: p.name, color: p.color })),
+                    ]}
+                    selected={fPlaza}
+                    onToggle={(id) => setFPlaza((arr) => toggleInArray(arr, id))}
+                    onClear={() => setFPlaza([])}
+                    emptyText="Sin plazas"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -653,6 +741,9 @@ export default function SeguimientoVentas() {
                   </div>
                   <p className="text-[11px] text-muted-foreground font-light">
                     Ejecutivo: <span className="text-foreground">{r.owner_id ? (profileMap.get(r.owner_id) || "—") : "Sin asignar"}</span>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground font-light">
+                    Plaza: <span className="text-foreground">{getRowPlazaLabel(r.company_id) || "—"}</span>
                   </p>
                   {tieneVenta ? (
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-light">
@@ -727,6 +818,7 @@ export default function SeguimientoVentas() {
               <TableRow>
                 <SortableHead label="Empresa" sortKey="empresa" sort={sort} onSort={handleSort} />
                 <SortableHead label="Ejecutivo" sortKey="ejecutivo" sort={sort} onSort={handleSort} />
+                <SortableHead label="Plaza" sortKey="plaza" sort={sort} onSort={handleSort} />
                 <SortableHead label="Estatus" sortKey="estatus" sort={sort} onSort={handleSort} />
                 {tieneVenta ? (
                   <>
@@ -754,13 +846,13 @@ export default function SeguimientoVentas() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={tieneVenta ? 12 : 7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={tieneVenta ? 13 : 8} className="text-center text-muted-foreground py-8">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={tieneVenta ? 12 : 7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={tieneVenta ? 13 : 8} className="text-center text-muted-foreground py-8">
                     Sin registros.
                   </TableCell>
                 </TableRow>
@@ -773,6 +865,9 @@ export default function SeguimientoVentas() {
                       <TableCell className="font-medium">{r.companies?.name || "—"}</TableCell>
                       <TableCell className="text-xs font-light text-muted-foreground">
                         {r.owner_id ? (profileMap.get(r.owner_id) || "—") : <span className="italic">Sin asignar</span>}
+                      </TableCell>
+                      <TableCell className="text-xs font-light text-muted-foreground">
+                        {getRowPlazaLabel(r.company_id) || <span className="italic">—</span>}
                       </TableCell>
                       <TableCell><StatusBadge estatus={eff} /></TableCell>
                       {tieneVenta ? (
