@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { BackButton } from "@/components/BackButton";
 import { PageBanner } from "@/components/PageBanner";
@@ -16,7 +16,22 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X } from "lucide-react";
+import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X, GripVertical, RotateCcw } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { formatDate } from "@/lib/formatters";
 import {
   useSeguimientoVentas,
@@ -201,6 +216,58 @@ function SortableHead({
   );
 }
 
+function DraggableSortableHead({
+  id,
+  label,
+  sortKey,
+  sort,
+  onSort,
+  align = "left",
+}: {
+  id: string;
+  label: string;
+  sortKey?: string;
+  sort: SortState | null;
+  onSort: (key: string) => void;
+  align?: "left" | "right" | "center";
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  const active = sortKey && sort?.key === sortKey;
+  const alignClass = align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+  return (
+    <TableHead
+      ref={setNodeRef}
+      style={style}
+      className={`${alignClass} select-none hover:bg-muted/40 transition-colors group whitespace-nowrap ${isDragging ? "bg-violet-50" : ""}`}
+    >
+      <span className="inline-flex items-center gap-1">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="opacity-30 group-hover:opacity-100 cursor-grab active:cursor-grabbing touch-none"
+          aria-label="Arrastrar columna"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-3 w-3" />
+        </button>
+        <span
+          className={sortKey ? "cursor-pointer" : ""}
+          onClick={() => sortKey && onSort(sortKey)}
+        >
+          {label}
+          {active && (sort.dir === "asc" ? <ArrowUp className="h-3 w-3 inline ml-1" /> : <ArrowDown className="h-3 w-3 inline ml-1" />)}
+        </span>
+      </span>
+    </TableHead>
+  );
+}
+
 function daysColor(days: number | null | undefined): string {
   if (days == null) return "text-muted-foreground";
   if (days < 15) return "text-emerald-600";
@@ -376,6 +443,170 @@ export default function SeguimientoVentas() {
       }
       return { key, dir: "asc" };
     });
+  };
+
+  // ====== Columnas configurables (drag-and-drop) ======
+  type ColDef = {
+    id: string;
+    label: string;
+    sortKey?: string;
+    align?: "left" | "right" | "center";
+    cellClassName?: string;
+    render: (r: SeguimientoVentasRow) => React.ReactNode;
+  };
+
+  const allColumns: ColDef[] = useMemo(() => {
+    const base: ColDef[] = [
+      {
+        id: "empresa",
+        label: "Empresa",
+        sortKey: "empresa",
+        cellClassName: "font-medium",
+        render: (r) => r.companies?.name || "—",
+      },
+      {
+        id: "ejecutivo",
+        label: "Ejecutivo",
+        sortKey: "ejecutivo",
+        cellClassName: "text-xs font-light text-muted-foreground",
+        render: (r) => r.owner_id ? (profileMap.get(r.owner_id) || "—") : <span className="italic">Sin asignar</span>,
+      },
+      {
+        id: "plaza",
+        label: "Plaza",
+        sortKey: "plaza",
+        cellClassName: "text-xs font-light text-muted-foreground",
+        render: (r) => getRowPlazaLabel(r.company_id) || <span className="italic">—</span>,
+      },
+      {
+        id: "estatus",
+        label: "Estatus",
+        sortKey: "estatus",
+        render: (r) => <StatusBadge estatus={catalogMap.get(getEffectiveStatusId(r) || "")} />,
+      },
+    ];
+    if (tieneVenta) {
+      return [
+        ...base,
+        {
+          id: "ritmo",
+          label: "Ritmo",
+          sortKey: "ritmo",
+          render: (r) => <StatusBadge estatus={r.estatus_ritmo_id ? catalogMap.get(r.estatus_ritmo_id) : null} />,
+        },
+        {
+          id: "ultima_compra",
+          label: "Última compra",
+          sortKey: "ultima_compra",
+          render: (r) => (
+            <>
+              <span className={`font-medium ${daysColor(r.dias_ultima_compra)}`}>
+                {r.dias_ultima_compra != null ? `${r.dias_ultima_compra} d` : "—"}
+              </span>
+              {r.fecha_ultima_compra && (
+                <span className="block text-[10px] text-muted-foreground">{formatDate(r.fecha_ultima_compra)}</span>
+              )}
+            </>
+          ),
+        },
+        { id: "potencial", label: "Potencial", sortKey: "potencial", align: "right", render: (r) => fmtNum(r.potencial) },
+        { id: "promedio_mensual", label: "Prom. mensual", sortKey: "promedio_mensual", align: "right", render: (r) => fmtNum(r.promedio_historico_mensual) },
+        { id: "acum_mes", label: "Acum. mes", sortKey: "acum_mes", align: "right", render: (r) => fmtNum(r.acum_mes) },
+        { id: "acum_mes_anterior", label: "Mes ant.", sortKey: "acum_mes_anterior", align: "right", render: (r) => fmtNum(r.acum_mes_anterior) },
+        { id: "acum_anio", label: "Acum. año", sortKey: "acum_anio", align: "right", render: (r) => fmtNum(r.acum_anio) },
+        { id: "actividades", label: "Activ.", sortKey: "actividades", align: "center", render: (r) => <Badge variant="outline">{r.actividades_activas}</Badge> },
+        { id: "proxima_tarea", label: "Próx. tarea", sortKey: "proxima_tarea", cellClassName: "text-xs text-muted-foreground", render: (r) => r.proxima_tarea_fecha ? formatDate(r.proxima_tarea_fecha) : "—" },
+      ];
+    }
+    return [
+      ...base,
+      {
+        id: "ultima_actividad",
+        label: "Últ. actividad",
+        sortKey: "ultima_actividad",
+        render: (r) => (
+          <>
+            <span className={`font-medium ${daysColor(r.dias_ultima_actividad)}`}>
+              {r.dias_ultima_actividad != null ? `${r.dias_ultima_actividad} d` : "—"}
+            </span>
+            {r.ultima_actividad_fecha && (
+              <span className="block text-[10px] text-muted-foreground">{formatDate(r.ultima_actividad_fecha)}</span>
+            )}
+          </>
+        ),
+      },
+      { id: "cotizaciones", label: "Cotiz.", sortKey: "cotizaciones", align: "center", render: (r) => r.cotizaciones_total },
+      {
+        id: "ultima_cotizacion",
+        label: "Últ. cotización",
+        sortKey: "ultima_cotizacion",
+        render: (r) => (
+          <>
+            <span className={`font-medium ${daysColor(r.dias_ultima_cotizacion)}`}>
+              {r.dias_ultima_cotizacion != null ? `${r.dias_ultima_cotizacion} d` : "—"}
+            </span>
+            {r.ultima_cotizacion_fecha && (
+              <span className="block text-[10px] text-muted-foreground">{formatDate(r.ultima_cotizacion_fecha)}</span>
+            )}
+          </>
+        ),
+      },
+      { id: "actividades", label: "Activ.", sortKey: "actividades", align: "center", render: (r) => <Badge variant="outline">{r.actividades_activas}</Badge> },
+      { id: "proxima_tarea", label: "Próx. tarea", sortKey: "proxima_tarea", cellClassName: "text-xs text-muted-foreground", render: (r) => r.proxima_tarea_fecha ? formatDate(r.proxima_tarea_fecha) : "—" },
+    ];
+  }, [tieneVenta, profileMap, catalogMap, companyPlazaMap, plazaNameMap]);
+
+  const defaultOrderIds = useMemo(() => allColumns.map((c) => c.id), [allColumns]);
+  const colsStorageKey = `seguimiento_cols_order_${tieneVenta ? "con_venta" : "sin_venta"}`;
+
+  const [colOrder, setColOrder] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(`seguimiento_cols_order_${tieneVenta ? "con_venta" : "sin_venta"}`);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(colsStorageKey);
+      setColOrder(raw ? JSON.parse(raw) : []);
+    } catch {
+      setColOrder([]);
+    }
+  }, [colsStorageKey]);
+
+  const orderedColumns = useMemo(() => {
+    if (!colOrder || colOrder.length === 0) return allColumns;
+    const map = new Map(allColumns.map((c) => [c.id, c]));
+    const seen = new Set<string>();
+    const out: ColDef[] = [];
+    for (const id of colOrder) {
+      const c = map.get(id);
+      if (c && !seen.has(id)) { out.push(c); seen.add(id); }
+    }
+    // append any new columns not yet in saved order
+    for (const c of allColumns) if (!seen.has(c.id)) out.push(c);
+    return out;
+  }, [allColumns, colOrder]);
+
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  const handleColumnDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const current = orderedColumns.map((c) => c.id);
+    const oldIndex = current.indexOf(active.id as string);
+    const newIndex = current.indexOf(over.id as string);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const next = arrayMove(current, oldIndex, newIndex);
+    setColOrder(next);
+    try { localStorage.setItem(colsStorageKey, JSON.stringify(next)); } catch {}
+  };
+
+  const resetColumnOrder = () => {
+    setColOrder([]);
+    try { localStorage.removeItem(colsStorageKey); } catch {}
   };
 
   const filtered = useMemo(() => {
@@ -813,125 +1044,66 @@ export default function SeguimientoVentas() {
       {/* Tabla desktop */}
       <div className="hidden md:block">
         <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <SortableHead label="Empresa" sortKey="empresa" sort={sort} onSort={handleSort} />
-                <SortableHead label="Ejecutivo" sortKey="ejecutivo" sort={sort} onSort={handleSort} />
-                <SortableHead label="Plaza" sortKey="plaza" sort={sort} onSort={handleSort} />
-                <SortableHead label="Estatus" sortKey="estatus" sort={sort} onSort={handleSort} />
-                {tieneVenta ? (
-                  <>
-                    <SortableHead label="Ritmo" sortKey="ritmo" sort={sort} onSort={handleSort} />
-                    <SortableHead label="Última compra" sortKey="ultima_compra" sort={sort} onSort={handleSort} />
-                    <SortableHead label="Potencial" sortKey="potencial" sort={sort} onSort={handleSort} align="right" />
-                    <SortableHead label="Prom. mensual" sortKey="promedio_mensual" sort={sort} onSort={handleSort} align="right" />
-                    <SortableHead label="Acum. mes" sortKey="acum_mes" sort={sort} onSort={handleSort} align="right" />
-                    <SortableHead label="Mes ant." sortKey="acum_mes_anterior" sort={sort} onSort={handleSort} align="right" />
-                    <SortableHead label="Acum. año" sortKey="acum_anio" sort={sort} onSort={handleSort} align="right" />
-                    <SortableHead label="Activ." sortKey="actividades" sort={sort} onSort={handleSort} align="center" />
-                    <SortableHead label="Próx. tarea" sortKey="proxima_tarea" sort={sort} onSort={handleSort} />
-                  </>
+          <div className="flex justify-end p-2 border-b bg-muted/30">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={resetColumnOrder}
+              title="Restaurar el orden original de las columnas"
+            >
+              <RotateCcw className="h-3 w-3 mr-1" /> Restaurar columnas
+            </Button>
+          </div>
+          <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleColumnDragEnd}>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <SortableContext items={orderedColumns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
+                    {orderedColumns.map((col) => (
+                      <DraggableSortableHead
+                        key={col.id}
+                        id={col.id}
+                        label={col.label}
+                        sortKey={col.sortKey}
+                        sort={sort}
+                        onSort={handleSort}
+                        align={col.align}
+                      />
+                    ))}
+                  </SortableContext>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={orderedColumns.length} className="text-center text-muted-foreground py-8">
+                      Cargando…
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={orderedColumns.length} className="text-center text-muted-foreground py-8">
+                      Sin registros.
+                    </TableCell>
+                  </TableRow>
                 ) : (
-                  <>
-                    <SortableHead label="Últ. actividad" sortKey="ultima_actividad" sort={sort} onSort={handleSort} />
-                    <SortableHead label="Cotiz." sortKey="cotizaciones" sort={sort} onSort={handleSort} align="center" />
-                    <SortableHead label="Últ. cotización" sortKey="ultima_cotizacion" sort={sort} onSort={handleSort} />
-                    <SortableHead label="Activ." sortKey="actividades" sort={sort} onSort={handleSort} align="center" />
-                    <SortableHead label="Próx. tarea" sortKey="proxima_tarea" sort={sort} onSort={handleSort} />
-                  </>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={tieneVenta ? 13 : 8} className="text-center text-muted-foreground py-8">
-                    Cargando…
-                  </TableCell>
-                </TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={tieneVenta ? 13 : 8} className="text-center text-muted-foreground py-8">
-                    Sin registros.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((r) => {
-                  const eff = catalogMap.get(getEffectiveStatusId(r) || "");
-                  const ritmo = r.estatus_ritmo_id ? catalogMap.get(r.estatus_ritmo_id) : null;
-                  return (
+                  filtered.map((r) => (
                     <TableRow key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
-                      <TableCell className="font-medium">{r.companies?.name || "—"}</TableCell>
-                      <TableCell className="text-xs font-light text-muted-foreground">
-                        {r.owner_id ? (profileMap.get(r.owner_id) || "—") : <span className="italic">Sin asignar</span>}
-                      </TableCell>
-                      <TableCell className="text-xs font-light text-muted-foreground">
-                        {getRowPlazaLabel(r.company_id) || <span className="italic">—</span>}
-                      </TableCell>
-                      <TableCell><StatusBadge estatus={eff} /></TableCell>
-                      {tieneVenta ? (
-                        <>
-                          <TableCell><StatusBadge estatus={ritmo} /></TableCell>
-                          <TableCell>
-                            <span className={`font-medium ${daysColor(r.dias_ultima_compra)}`}>
-                              {r.dias_ultima_compra != null ? `${r.dias_ultima_compra} d` : "—"}
-                            </span>
-                            {r.fecha_ultima_compra && (
-                              <span className="block text-[10px] text-muted-foreground">
-                                {formatDate(r.fecha_ultima_compra)}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">{fmtNum(r.potencial)}</TableCell>
-                          <TableCell className="text-right">{fmtNum(r.promedio_historico_mensual)}</TableCell>
-                          <TableCell className="text-right">{fmtNum(r.acum_mes)}</TableCell>
-                          <TableCell className="text-right">{fmtNum(r.acum_mes_anterior)}</TableCell>
-                          <TableCell className="text-right">{fmtNum(r.acum_anio)}</TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="outline">{r.actividades_activas}</Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {r.proxima_tarea_fecha ? formatDate(r.proxima_tarea_fecha) : "—"}
-                          </TableCell>
-                        </>
-                      ) : (
-                        <>
-                          <TableCell>
-                            <span className={`font-medium ${daysColor(r.dias_ultima_actividad)}`}>
-                              {r.dias_ultima_actividad != null ? `${r.dias_ultima_actividad} d` : "—"}
-                            </span>
-                            {r.ultima_actividad_fecha && (
-                              <span className="block text-[10px] text-muted-foreground">
-                                {formatDate(r.ultima_actividad_fecha)}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">{r.cotizaciones_total}</TableCell>
-                          <TableCell>
-                            <span className={`font-medium ${daysColor(r.dias_ultima_cotizacion)}`}>
-                              {r.dias_ultima_cotizacion != null ? `${r.dias_ultima_cotizacion} d` : "—"}
-                            </span>
-                            {r.ultima_cotizacion_fecha && (
-                              <span className="block text-[10px] text-muted-foreground">
-                                {formatDate(r.ultima_cotizacion_fecha)}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="outline">{r.actividades_activas}</Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {r.proxima_tarea_fecha ? formatDate(r.proxima_tarea_fecha) : "—"}
-                          </TableCell>
-                        </>
-                      )}
+                      {orderedColumns.map((col) => (
+                        <TableCell
+                          key={col.id}
+                          className={`${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""} ${col.cellClassName || ""}`}
+                        >
+                          {col.render(r)}
+                        </TableCell>
+                      ))}
                     </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </DndContext>
         </Card>
       </div>
 
