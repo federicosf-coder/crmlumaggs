@@ -58,25 +58,11 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
     },
     enabled: open,
   });
-  const { data: deals } = useQuery({
-    queryKey: ["crm-deals-picker-act"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("crm_deals")
-        .select("id, title, company_id, created_at")
-        .order("created_at", { ascending: false })
-        .limit(5000);
-      return data || [];
-    },
-    enabled: open,
-  });
-
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editType, setEditType] = useState<CrmActivityType>("note");
   const [editCompanyId, setEditCompanyId] = useState("none");
-  const [editDealId, setEditDealId] = useState("none");
   const [editContactId, setEditContactId] = useState("none");
 
   useEffect(() => {
@@ -84,34 +70,15 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
       setEditTitle(activity.title);
       setEditDescription(activity.description || "");
       setEditType(activity.type);
-      // Empresa: usar la del activity, o derivar de la del negocio si no existe
-      const dealMatch = (deals || []).find((d: any) => d.id === activity.deal_id);
-      setEditCompanyId(activity.company_id || dealMatch?.company_id || "none");
-      setEditDealId(activity.deal_id || "none");
+      setEditCompanyId(activity.company_id || "none");
       setEditContactId(activity.contact_id || "none");
     }
-  }, [activity, editing, deals]);
-
-  // Negocios filtrados por empresa seleccionada
-  const filteredDeals = (deals || []).filter((d: any) =>
-    editCompanyId !== "none" ? d.company_id === editCompanyId : true
-  );
+  }, [activity, editing]);
 
   // Contactos filtrados por empresa seleccionada
   const filteredContacts = (contacts || []).filter((c: any) =>
     editCompanyId !== "none" ? c.company_id === editCompanyId : true
   );
-
-  // Cuando cambia la empresa, si el negocio actual no pertenece a esa empresa,
-  // selecciona automáticamente el último negocio activo de la empresa.
-  useEffect(() => {
-    if (!editing || editCompanyId === "none") return;
-    const current = (deals || []).find((d: any) => d.id === editDealId);
-    if (current && current.company_id === editCompanyId) return;
-    const latest = (deals || []).find((d: any) => d.company_id === editCompanyId);
-    setEditDealId(latest ? latest.id : "none");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editCompanyId, editing, deals]);
 
   if (!activity) return null;
   const config = ACTIVITY_TYPE_CONFIG[activity.type] || ACTIVITY_TYPE_CONFIG.note;
@@ -125,7 +92,6 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
         description: editDescription || null,
         type: editType,
         company_id: editCompanyId !== "none" ? editCompanyId : null,
-        deal_id: editDealId !== "none" ? editDealId : null,
         contact_id: editContactId !== "none" ? editContactId : null,
       } as any,
       {
@@ -182,16 +148,6 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Negocio</Label>
-                <Select value={editDealId} onValueChange={setEditDealId}>
-                  <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Ninguno</SelectItem>
-                    {filteredDeals.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label>Contacto</Label>
                 <div className="flex gap-2">
                   <Select value={editContactId} onValueChange={setEditContactId}>
@@ -234,13 +190,6 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
                     <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground">Empresa:</span>
                     <span>{activity.companies.name}</span>
-                  </div>
-                )}
-                {activity.crm_deals && (
-                  <div className="flex items-center gap-2">
-                    <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground">Negocio:</span>
-                    <span>{activity.crm_deals.title}</span>
                   </div>
                 )}
                 {activity.contacts && (
