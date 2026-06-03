@@ -98,7 +98,6 @@ export default function DocumentForm() {
   const initialTipo = searchParams.get("tipo");
   const initialEmpresaId = searchParams.get("empresa_id") || "";
   const initialContactoId = searchParams.get("contacto_id") || "";
-  const initialNegocioId = searchParams.get("negocio_id") || "";
   const initialNegocioCrm = searchParams.get("negocio_crm") || "";
   const initialEmpresaVendedora = searchParams.get("empresa_vendedora") || "";
   const initialEjecutivoId = searchParams.get("ejecutivo_venta_id") || "";
@@ -139,7 +138,6 @@ export default function DocumentForm() {
     estatus_factura: "pendiente",
     estatus_entrega_corporativa: "solicitada",
     negocio_crm: initialNegocioCrm,
-    negocio_id: initialNegocioId,
     notas: initialNotas,
     numero_oc_cliente: "",
     fecha_oc_cliente: "",
@@ -343,7 +341,6 @@ export default function DocumentForm() {
         estatus_factura: existingDoc.estatus_factura || "pendiente",
         estatus_entrega_corporativa: (existingDoc as any).estatus_entrega_corporativa || "solicitada",
         negocio_crm: existingDoc.negocio_crm || "",
-        negocio_id: (existingDoc as any).negocio_id || "",
         notas: existingDoc.notas || "",
         numero_oc_cliente: existingDoc.numero_oc_cliente || "",
         fecha_oc_cliente: (existingDoc as any).fecha_oc_cliente || "",
@@ -607,7 +604,6 @@ export default function DocumentForm() {
         estatus_entrega_corporativa: form.tipo_documento === "entrega_corporativa" ? form.estatus_entrega_corporativa : null,
         subtotal, iva_importe: ivaImporte, total, unidades_equivalentes_total: ueTotal,
         negocio_crm: form.negocio_crm || null,
-        negocio_id: form.negocio_id || null,
         notas: form.notas || null,
         numero_oc_cliente: form.numero_oc_cliente || null,
         fecha_oc_cliente: form.tipo_documento === "entrega_corporativa" ? (form.fecha_oc_cliente || null) : null,
