@@ -56,7 +56,6 @@ interface Props {
   logContext?: {
     company_id?: string | null;
     contact_id?: string | null;
-    deal_id?: string | null;
     documento_id?: string | null;
     user_id?: string | null;
   };
@@ -221,7 +220,6 @@ export function EnviarConfirmacionPagoDialog({
               description,
               company_id: logContext.company_id ?? null,
               contact_id: logContext.contact_id ?? null,
-              deal_id: logContext.deal_id ?? null,
               documento_id: logContext.documento_id ?? null,
             } as any);
           } catch (e) {

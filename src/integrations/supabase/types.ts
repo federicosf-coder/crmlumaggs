@@ -1948,7 +1948,6 @@ export type Database = {
           company_id: string | null
           contact_id: string | null
           created_at: string
-          deal_id: string | null
           description: string | null
           destinatario_phone: string | null
           documento_id: string | null
@@ -1968,7 +1967,6 @@ export type Database = {
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
-          deal_id?: string | null
           description?: string | null
           destinatario_phone?: string | null
           documento_id?: string | null
@@ -1988,7 +1986,6 @@ export type Database = {
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
-          deal_id?: string | null
           description?: string | null
           destinatario_phone?: string | null
           documento_id?: string | null
@@ -2312,7 +2309,6 @@ export type Database = {
           completed_at: string | null
           contact_id: string | null
           created_at: string
-          deal_id: string | null
           description: string | null
           due_date: string | null
           id: string
@@ -2341,7 +2337,6 @@ export type Database = {
           completed_at?: string | null
           contact_id?: string | null
           created_at?: string
-          deal_id?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -2370,7 +2365,6 @@ export type Database = {
           completed_at?: string | null
           contact_id?: string | null
           created_at?: string
-          deal_id?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -2851,7 +2845,6 @@ export type Database = {
           iva_porcentaje: number
           metodo_pago: Database["public"]["Enums"]["metodo_pago_sat"] | null
           negocio_crm: string | null
-          negocio_id: string | null
           notas: string | null
           numero_cotizacion: string | null
           numero_factura: string | null
@@ -2908,7 +2901,6 @@ export type Database = {
           iva_porcentaje?: number
           metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
           negocio_crm?: string | null
-          negocio_id?: string | null
           notas?: string | null
           numero_cotizacion?: string | null
           numero_factura?: string | null
@@ -2965,7 +2957,6 @@ export type Database = {
           iva_porcentaje?: number
           metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
           negocio_crm?: string | null
-          negocio_id?: string | null
           notas?: string | null
           numero_cotizacion?: string | null
           numero_factura?: string | null
@@ -5399,35 +5390,7 @@ export type Database = {
       }
     }
     Views: {
-      crm_items_unified: {
-        Row: {
-          assigned_to: string | null
-          canal: string | null
-          company_id: string | null
-          completed_by: string | null
-          contact_id: string | null
-          created_by: string | null
-          deal_id: string | null
-          description: string | null
-          fecha_actividad: string | null
-          fecha_creacion: string | null
-          fecha_programada: string | null
-          fecha_terminacion: string | null
-          fecha_vencimiento: string | null
-          id: string | null
-          kind: Database["public"]["Enums"]["crm_item_kind"] | null
-          marca: string | null
-          origen: string | null
-          pipeline_id: string | null
-          priority: string | null
-          resultado: string | null
-          source_table: string | null
-          status: string | null
-          title: string | null
-          type: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       backfill_documentos_negocio_id: { Args: never; Returns: Json }
