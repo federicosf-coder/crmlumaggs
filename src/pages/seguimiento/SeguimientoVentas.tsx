@@ -8,6 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X } from "lucide-react";
 import { formatDate } from "@/lib/formatters";
 import {
@@ -43,6 +51,116 @@ const POTENCIAL_RANGES: { id: string; label: string; min: number; max: number | 
   { id: "101-150", label: "101–150", min: 101, max: 150 },
   { id: "151+", label: "151+", min: 151, max: null },
 ];
+
+const DIAS_COLORS: Record<string, string> = {
+  "0-30": "#16a34a",
+  "31-60": "#65a30d",
+  "61-90": "#ca8a04",
+  "91-120": "#ea580c",
+  "121+": "#dc2626",
+};
+
+const POTENCIAL_COLORS: Record<string, string> = {
+  "0-25": "#94a3b8",
+  "26-50": "#0ea5e9",
+  "51-75": "#2563eb",
+  "76-100": "#7c3aed",
+  "101-150": "#c026d3",
+  "151+": "#db2777",
+};
+
+const EJECUTIVO_PALETTE = [
+  "#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed",
+  "#0891b2", "#db2777", "#ea580c", "#65a30d", "#9333ea",
+  "#0ea5e9", "#e11d48", "#059669", "#ca8a04", "#6366f1",
+];
+
+function colorForIndex(i: number) {
+  return EJECUTIVO_PALETTE[i % EJECUTIVO_PALETTE.length];
+}
+
+interface MSOption { id: string; label: string; color?: string; urgent?: boolean }
+
+function MultiSelectFilter({
+  label,
+  options,
+  selected,
+  onToggle,
+  onClear,
+  emptyText = "Sin opciones",
+  width = "w-full sm:w-64",
+}: {
+  label: string;
+  options: MSOption[];
+  selected: string[];
+  onToggle: (id: string) => void;
+  onClear: () => void;
+  emptyText?: string;
+  width?: string;
+}) {
+  const count = selected.length;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={`${width} justify-between font-normal h-9`}
+        >
+          <span className="truncate text-left">
+            {count === 0 ? (
+              <span className="text-muted-foreground">Todos</span>
+            ) : count === 1 ? (
+              <span
+                style={{ color: options.find((o) => o.id === selected[0])?.color }}
+                className="font-medium"
+              >
+                {options.find((o) => o.id === selected[0])?.label}
+              </span>
+            ) : (
+              <span className="font-medium">{count} seleccionados</span>
+            )}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64 max-h-80 overflow-y-auto">
+        <DropdownMenuLabel className="flex items-center justify-between">
+          <span className="text-xs uppercase tracking-wide">{label}</span>
+          {count > 0 && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-[10px] font-medium text-muted-foreground hover:text-foreground"
+            >
+              Limpiar
+            </button>
+          )}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {options.length === 0 ? (
+          <div className="px-2 py-2 text-xs text-muted-foreground">{emptyText}</div>
+        ) : (
+          options.map((opt) => (
+            <DropdownMenuCheckboxItem
+              key={opt.id}
+              checked={selected.includes(opt.id)}
+              onCheckedChange={() => onToggle(opt.id)}
+              onSelect={(e) => e.preventDefault()}
+              className="font-medium"
+              style={{ color: opt.color }}
+            >
+              <span className="inline-flex items-center gap-1">
+                {opt.urgent && <AlertTriangle className="h-3 w-3" />}
+                {opt.label}
+              </span>
+            </DropdownMenuCheckboxItem>
+          ))
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 function StatusBadge({ estatus }: { estatus: SeguimientoEstatus | undefined | null }) {
   if (!estatus) return <span className="text-xs text-muted-foreground">—</span>;
