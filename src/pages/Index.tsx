@@ -2,7 +2,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   ShoppingCart, FileText, Package, Truck, BookOpen, ArrowLeftRight, FolderKanban,
   GraduationCap, BarChart3, Briefcase, Wallet, FolderOpen, FileCheck, MessageCircle,
-  Zap, ArrowRight, Sparkles,
+  Zap, ArrowRight, Sparkles, TrendingUp,
+
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -56,6 +57,7 @@ const groups: { title: string; subtitle: string; items: Mod[] }[] = [
       { title: "Directorio",            description: "Empresas y contactos",                 icon: BookOpen,      url: "/directory",  accent: A.blue   },
       { title: "Cobranza",              description: "Pagos y aplicaciones de cobro",        icon: Wallet,        url: "/cobranza",   accent: A.emerald},
       { title: "WhatsApp",              description: "Conversaciones con clientes",          icon: MessageCircle, url: "/whatsapp",   accent: A.lime   },
+      { title: "Seguimiento",           description: "Seguimiento de ventas y clientes",    icon: TrendingUp,    url: "/seguimiento", accent: A.slate  },
     ],
   },
   {
