@@ -558,7 +558,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                                 taskType: subType,
                                 parentCategory,
                                 parentTaskId: task!.id,
-                                dealId: (sub as any).deal_id || dealId || "",
                                 contactId: (sub as any).contact_id || contactId || "",
                                 companyId: (sub as any).company_id || companyId || "",
                                 baseTitle: (sub.title || "").replace(/^\[[^\]]+\]\s*/, ""),
@@ -987,7 +986,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
             onOpenChange={setCreateSubOpen}
             defaultCompanyId={companyId || undefined}
             defaultContactId={contactId || undefined}
-            defaultDealId={dealId || undefined}
             parentTaskId={task.id}
             defaultTaskType="call"
           />
@@ -999,7 +997,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
           onOpenChange={setCreateNextOpen}
           defaultCompanyId={companyId || undefined}
           defaultContactId={contactId || undefined}
-          defaultDealId={dealId || undefined}
           parentTaskId={task.parent_task_id || null}
           defaultParentCategory={!task.parent_task_id ? parentCategory : null}
           defaultTaskType={taskType}
