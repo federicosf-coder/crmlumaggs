@@ -542,6 +542,45 @@ export default function SeguimientoVentas() {
                   </div>
                 </div>
               )}
+
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
+                  Ejecutivo
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {ejecutivoOptions.length === 0 && (
+                    <span className="text-xs text-muted-foreground font-light">Sin ejecutivos</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setFEjecutivo((arr) => toggleInArray(arr, "__none__"))}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                      fEjecutivo.includes("__none__")
+                        ? "bg-slate-600 text-white border-transparent shadow-sm"
+                        : "bg-background text-foreground border-border hover:border-slate-300"
+                    }`}
+                  >
+                    Sin asignar
+                  </button>
+                  {ejecutivoOptions.map((opt) => {
+                    const active = fEjecutivo.includes(opt.id);
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setFEjecutivo((arr) => toggleInArray(arr, opt.id))}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                          active
+                            ? "bg-violet-600 text-white border-transparent shadow-sm"
+                            : "bg-background text-foreground border-border hover:border-violet-300"
+                        }`}
+                      >
+                        {opt.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </CollapsibleContent>
