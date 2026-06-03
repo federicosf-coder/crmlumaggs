@@ -113,7 +113,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
       setDueDate(task.due_date ? task.due_date.slice(0, 10) : "");
       setPriority(task.priority || "medium");
       setCompleted(!!task.completed);
-      setDealId(task.deal_id || null);
       setCompanyId(task.company_id || null);
       setContactId(task.contact_id || null);
       setUserId(task.user_id || null);
@@ -559,7 +558,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                                 taskType: subType,
                                 parentCategory,
                                 parentTaskId: task!.id,
-                                dealId: (sub as any).deal_id || dealId || "",
                                 contactId: (sub as any).contact_id || contactId || "",
                                 companyId: (sub as any).company_id || companyId || "",
                                 baseTitle: (sub.title || "").replace(/^\[[^\]]+\]\s*/, ""),
@@ -946,7 +944,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
           phone={phone}
           variables={variables}
           defaultMessage={task.mensaje_sugerido || undefined}
-          context={{ company_id: companyId, contact_id: contactId, deal_id: dealId }}
+          context={{ company_id: companyId, contact_id: contactId }}
           onSent={() => updateTask.mutate({ id: task.id, whatsapp_status: "enviado", whatsapp_last_sent_at: new Date().toISOString() })}
         />
 
@@ -988,7 +986,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
             onOpenChange={setCreateSubOpen}
             defaultCompanyId={companyId || undefined}
             defaultContactId={contactId || undefined}
-            defaultDealId={dealId || undefined}
             parentTaskId={task.id}
             defaultTaskType="call"
           />
@@ -1000,7 +997,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
           onOpenChange={setCreateNextOpen}
           defaultCompanyId={companyId || undefined}
           defaultContactId={contactId || undefined}
-          defaultDealId={dealId || undefined}
           parentTaskId={task.parent_task_id || null}
           defaultParentCategory={!task.parent_task_id ? parentCategory : null}
           defaultTaskType={taskType}

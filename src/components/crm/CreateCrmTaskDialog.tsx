@@ -28,13 +28,10 @@ import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog
 import { RescheduleActivityDialog, type RescheduleContext } from "@/components/crm/RescheduleActivityDialog";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
-import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
-import type { CrmPipelineStage } from "@/hooks/useCrmPipelines";
 
 interface CreateCrmTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultDealId?: string;
   defaultContactId?: string;
   defaultCompanyId?: string;
   /** Si se define, la nueva tarea se crea como sub-tarea (paso) de esta tarea padre. */
@@ -50,7 +47,7 @@ interface CreateCrmTaskDialogProps {
 }
 
 export function CreateCrmTaskDialog({
-  open, onOpenChange, defaultDealId, defaultContactId, defaultCompanyId,
+  open, onOpenChange, defaultContactId, defaultCompanyId,
   parentTaskId = null, defaultParentCategory = null, defaultTaskType = null, defaultTitle = "",
   editTask = null,
 }: CreateCrmTaskDialogProps) {
@@ -77,21 +74,12 @@ export function CreateCrmTaskDialog({
     },
   });
 
-  const { data: deals } = useQuery({
-    queryKey: ["crm-deals-picker"],
-    queryFn: async () => {
-      const { data } = await supabase.from("crm_deals").select("id, title, company_id, contact_id").order("title");
-      return data || [];
-    },
-  });
-
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [dateOpen, setDateOpen] = useState(false);
   const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState("medium");
-  const [dealId, setDealId] = useState(defaultDealId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
   const [companyId, setCompanyId] = useState(defaultCompanyId || "");
   const [parentCategory, setParentCategory] = useState<ParentCategoryKey | null>(defaultParentCategory);
@@ -119,47 +107,6 @@ export function CreateCrmTaskDialog({
   // Diálogos "+ Nuevo" para Empresa y Contacto
   const [companyFormOpen, setCompanyFormOpen] = useState(false);
   const [contactFormOpen, setContactFormOpen] = useState(false);
-  // Diálogo "+ Nuevo" para Negocio
-  const [dealFormOpen, setDealFormOpen] = useState(false);
-  const [dealPipelineId, setDealPipelineId] = useState<string>("");
-  const [dealStages, setDealStages] = useState<CrmPipelineStage[]>([]);
-
-  const handleNewDeal = async () => {
-    try {
-      // Determinar la marca a partir de la empresa seleccionada (si la hay)
-      let marca: string | null = null;
-      if (companyId) {
-        const { data: comp } = await supabase
-          .from("companies")
-          .select("marca")
-          .eq("id", companyId)
-          .maybeSingle();
-        marca = (comp as any)?.marca || null;
-      }
-      let pipelinesQ = supabase
-        .from("crm_pipelines")
-        .select("id, marca, pipeline_type")
-        .order("created_at", { ascending: true });
-      if (marca) pipelinesQ = pipelinesQ.eq("marca", marca);
-      const { data: pipelines } = await pipelinesQ;
-      const list = (pipelines as any[]) || [];
-      const pipeline = list.find((p) => p.pipeline_type === "primera_compra") || list[0];
-      if (!pipeline) {
-        toast({ title: "No hay pipelines", description: "Configura un pipeline antes de crear un negocio.", variant: "destructive" });
-        return;
-      }
-      const { data: stages } = await supabase
-        .from("crm_pipeline_stages")
-        .select("*")
-        .eq("pipeline_id", pipeline.id)
-        .order("position", { ascending: true });
-      setDealPipelineId(pipeline.id);
-      setDealStages((stages as any[] as CrmPipelineStage[]) || []);
-      setDealFormOpen(true);
-    } catch (e: any) {
-      toast({ title: "Error", description: e?.message || "No se pudo abrir el formulario", variant: "destructive" });
-    }
-  };
 
   const isWhatsApp = taskType === "whatsapp";
   const isVisit = taskType === "field_visit";
@@ -167,16 +114,6 @@ export function CreateCrmTaskDialog({
   const isCall = taskType === "call";
 
   const userEmail = session?.user?.email || "";
-
-  // Auto: cuando se selecciona un negocio, autocompletar empresa (y contacto si no hay)
-  useEffect(() => {
-    if (!dealId || !deals) return;
-    const d = (deals as any[]).find((x) => x.id === dealId);
-    if (!d) return;
-    if (d.company_id && !companyId) setCompanyId(d.company_id);
-    if (d.contact_id && !contactId) setContactId(d.contact_id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dealId, deals]);
 
   // Contactos filtrados por empresa seleccionada (si hay)
   const filteredContacts = (contacts || []).filter((c: any) =>
@@ -203,7 +140,6 @@ export function CreateCrmTaskDialog({
         description: finalDescription,
         due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : new Date().toISOString(),
         priority,
-        deal_id: dealId && dealId !== "none" ? dealId : null,
         contact_id: contactId && contactId !== "none" ? contactId : null,
         company_id: companyId && companyId !== "none" ? companyId : null,
         task_type: "email",
@@ -433,7 +369,6 @@ export function CreateCrmTaskDialog({
       setDescription(editTask.description || "");
       setParentCategory(((editTask as any).parent_category as ParentCategoryKey) || null);
       setTaskType(((editTask as any).task_type as TaskTypeKey) || null);
-      setDealId(editTask.deal_id || "");
       setContactId(editTask.contact_id || "");
       setCompanyId(editTask.company_id || "");
       setPriority(editTask.priority || "medium");
@@ -453,7 +388,6 @@ export function CreateCrmTaskDialog({
       setTitle(defaultTitle);
       setParentCategory(defaultParentCategory);
       setTaskType(defaultTaskType);
-      setDealId(defaultDealId || "");
       setContactId(defaultContactId || "");
       setCompanyId(defaultCompanyId || "");
       setDueTime("");
@@ -465,32 +399,6 @@ export function CreateCrmTaskDialog({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-
-  // Cuando se abre con un defaultDealId, resolver empresa y contacto principal
-  useEffect(() => {
-    if (!open || !defaultDealId) return;
-    (async () => {
-      const { data: deal } = await supabase
-        .from("crm_deals")
-        .select("company_id, contact_id")
-        .eq("id", defaultDealId)
-        .maybeSingle();
-      if (!deal) return;
-      const cId = (deal as any).company_id || "";
-      if (cId) {
-        setCompanyId((prev) => prev || cId);
-        const { data: comp } = await supabase
-          .from("companies")
-          .select("primary_contact_id")
-          .eq("id", cId)
-          .maybeSingle();
-        const primary = (comp as any)?.primary_contact_id || (deal as any).contact_id || "";
-        if (primary) setContactId((prev) => prev || primary);
-      } else if ((deal as any).contact_id) {
-        setContactId((prev) => prev || (deal as any).contact_id);
-      }
-    })();
-  }, [open, defaultDealId]);
 
   const buildWhatsAppTitle = () =>
     `WhatsApp${waContactName ? ` · ${waContactName}` : waCompanyName ? ` · ${waCompanyName}` : ""}`;
@@ -572,7 +480,6 @@ export function CreateCrmTaskDialog({
         description: finalDescription || null,
         due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : null,
         priority,
-        deal_id: dealId && dealId !== "none" ? dealId : null,
         contact_id: contactId && contactId !== "none" ? contactId : null,
         company_id: companyId && companyId !== "none" ? companyId : null,
         task_type: taskType || null,
@@ -598,7 +505,6 @@ export function CreateCrmTaskDialog({
           taskType,
           parentCategory,
           parentTaskId,
-          dealId,
           contactId,
           companyId,
           baseTitle: title || finalTitle.replace(/^\[[^\]]+\]\s*/, ""),
@@ -612,7 +518,7 @@ export function CreateCrmTaskDialog({
       }
       onOpenChange(false);
       setTitle(""); setDescription(""); setDueDate(""); setDueTime(""); setPriority("medium");
-      setDealId(defaultDealId || ""); setContactId(defaultContactId || ""); setCompanyId(defaultCompanyId || "");
+      setContactId(defaultContactId || ""); setCompanyId(defaultCompanyId || "");
       setParentCategory(defaultParentCategory); setTaskType(defaultTaskType);
     } catch (e: any) {
       toast({ title: "No se pudo guardar", description: e?.message, variant: "destructive" });
@@ -631,7 +537,6 @@ export function CreateCrmTaskDialog({
         description: `[${channelLabel}] ${description}`,
         due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : new Date().toISOString(),
         priority,
-        deal_id: dealId && dealId !== "none" ? dealId : null,
         contact_id: contactId && contactId !== "none" ? contactId : null,
         company_id: companyId && companyId !== "none" ? companyId : null,
         task_type: taskType || "whatsapp",
@@ -670,7 +575,6 @@ export function CreateCrmTaskDialog({
         message: description,
         company_id: companyId || null,
         contact_id: contactId || null,
-        deal_id: dealId || null,
         result: "enviado",
         title: buildWhatsAppTitle(),
         destinatario_phone: waNormalized,
@@ -747,28 +651,6 @@ export function CreateCrmTaskDialog({
             </div>
           </section>
           <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-2 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">Negocio</div>
-                <button
-                  type="button"
-                  onClick={handleNewDeal}
-                  className="text-[10px] uppercase tracking-wide text-primary hover:underline flex items-center gap-0.5"
-                >
-                  <Plus className="h-3 w-3" /> Nuevo
-                </button>
-              </div>
-              <SearchableSelect
-                value={dealId || "none"}
-                onValueChange={(v) => setDealId(v === "none" ? "" : v)}
-                options={[
-                  { value: "none", label: "Ninguno" },
-                  ...((deals || []).map((d: any) => ({ value: d.id, label: d.title }))),
-                ]}
-                placeholder="Buscar negocio..."
-                className="font-light text-sm"
-              />
-            </div>
             <div className="space-y-2 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">Empresa</div>
@@ -1233,13 +1115,12 @@ export function CreateCrmTaskDialog({
               contacto_nombre: waContactName || null,
               empresa_nombre: waCompanyName || null,
               ejecutivo_nombre: null,
-              folio_cotizacion: deals?.find((d: any) => d.id === dealId)?.title || null,
+              folio_cotizacion: null,
             }}
             defaultMessage={description}
             context={{
               company_id: companyId || null,
               contact_id: contactId || null,
-              deal_id: dealId || null,
             }}
             onSent={() => {
               setWhatsappOpen(false);
@@ -1319,19 +1200,6 @@ export function CreateCrmTaskDialog({
         setContactId(newId);
       }}
     />
-    {dealFormOpen && dealPipelineId && (
-      <CreateCrmDealDialog
-        open={dealFormOpen}
-        onOpenChange={(o) => {
-          setDealFormOpen(o);
-          if (!o) queryClient.invalidateQueries({ queryKey: ["crm-deals-picker"] });
-        }}
-        pipelineId={dealPipelineId}
-        stages={dealStages}
-        defaultCompanyId={companyId || undefined}
-        defaultContactId={contactId || undefined}
-      />
-    )}
     </>
   );
 }

@@ -12,11 +12,10 @@ import { Loader2 } from "lucide-react";
 interface LogCrmActivityDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultDealId?: string;
   defaultContactId?: string;
 }
 
-export function LogCrmActivityDialog({ open, onOpenChange, defaultDealId, defaultContactId }: LogCrmActivityDialogProps) {
+export function LogCrmActivityDialog({ open, onOpenChange, defaultContactId }: LogCrmActivityDialogProps) {
   const { session } = useAuth();
   const createActivity = useCreateCrmActivity();
   const { toast } = useToast();
@@ -36,7 +35,6 @@ export function LogCrmActivityDialog({ open, onOpenChange, defaultDealId, defaul
         type,
         title: typeLabel,
         description: description || null,
-        deal_id: defaultDealId || null,
         contact_id: defaultContactId || null,
       },
       {

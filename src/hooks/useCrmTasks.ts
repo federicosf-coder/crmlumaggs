@@ -12,7 +12,6 @@ export interface CrmTask {
   description: string | null;
   due_date: string | null;
   completed: boolean;
-  deal_id: string | null;
   contact_id: string | null;
   company_id: string | null;
   priority: string;
@@ -26,12 +25,11 @@ export interface CrmTask {
   mensaje_sugerido?: string | null;
   whatsapp_status?: string | null;
   whatsapp_last_sent_at?: string | null;
-  crm_deals?: { id: string; title: string } | null;
   contacts?: { id: string; first_name: string; last_name: string } | null;
   companies?: { id: string; name: string } | null;
 }
 
-export function useCrmTasks(filters?: { completed?: boolean; deal_id?: string; brand?: string }) {
+export function useCrmTasks(filters?: { completed?: boolean; brand?: string }) {
   const { session } = useAuth();
   const access = useModuleAccess("tareas");
 
@@ -42,10 +40,9 @@ export function useCrmTasks(filters?: { completed?: boolean; deal_id?: string; b
 
       let q = supabase
         .from("crm_tasks")
-        .select("*, crm_deals(id, title), contacts(id, first_name, last_name), companies(id, name)")
+        .select("*, contacts(id, first_name, last_name), companies(id, name)")
         .order("due_date", { ascending: true, nullsFirst: false });
       if (filters?.completed !== undefined) q = q.eq("completed", filters.completed);
-      if (filters?.deal_id) q = q.eq("deal_id", filters.deal_id);
 
       // PROPIO: own tasks + tasks where I'm collaborator
       // EQUIPO: tasks owned by team OR tasks where any team member is collaborator
@@ -93,7 +90,6 @@ export function useCreateCrmTask() {
       due_date?: string | null;
       priority?: string;
       company_id?: string | null;
-      deal_id?: string | null;
       contact_id?: string | null;
       task_type?: string | null;
       parent_task_id?: string | null;
@@ -138,7 +134,7 @@ export function useTaskTimeline(parentId: string | null | undefined) {
       if (!parentId) return [] as CrmTask[];
       const { data, error } = await supabase
         .from("crm_tasks")
-        .select("*, crm_deals(id, title), contacts(id, first_name, last_name), companies(id, name)")
+        .select("*, contacts(id, first_name, last_name), companies(id, name)")
         .eq("parent_task_id", parentId)
         .order("sequence_order", { ascending: true })
         .order("created_at", { ascending: true });

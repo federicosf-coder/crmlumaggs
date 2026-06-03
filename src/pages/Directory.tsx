@@ -32,7 +32,6 @@ import { AddressDisplay } from "@/components/AddressDisplay";
 import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDialog";
 import { MergeContactsDialog } from "@/components/directory/MergeContactsDialog";
 import { CompanyMetricsPanel } from "@/components/directory/CompanyMetricsPanel";
-import { CompanyEvaluacionTab } from "@/components/crm/CompanyEvaluacionTab";
 
 interface Company {
   id: string; name: string; razon_social: string | null; industry: string | null; phone: string | null;
@@ -1127,7 +1126,6 @@ export default function Directory() {
                   <TabsTrigger value="clasificacion" className="flex-1">Clasificación</TabsTrigger>
                   <TabsTrigger value="facturacion" className="flex-1">Detalles Facturación</TabsTrigger>
                   <TabsTrigger value="decision" className="flex-1">Proceso Decisión</TabsTrigger>
-                  <TabsTrigger value="evaluacion" className="flex-1">Evaluación Cliente</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="general" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
@@ -1317,7 +1315,6 @@ export default function Directory() {
                 </TabsContent>
 
                 <TabsContent value="evaluacion" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
-                  <CompanyEvaluacionTab companyId={selectedCompany.id} />
                 </TabsContent>
               </Tabs>
             </>

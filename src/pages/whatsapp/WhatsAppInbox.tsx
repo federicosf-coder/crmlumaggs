@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/sheet";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
-import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
 import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
 import { useNavigate } from "react-router-dom";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
@@ -1280,16 +1279,6 @@ export default function WhatsAppInbox() {
         }}
       />
 
-      {defaultPipelineId && (
-        <CreateCrmDealDialog
-          open={createDealOpen}
-          onOpenChange={setCreateDealOpen}
-          pipelineId={defaultPipelineId}
-          stages={defaultPipelineStages}
-          defaultCompanyId={companyData?.id || ""}
-          defaultContactId={contactData?.id || ""}
-        />
-      )}
 
       <TemplatePickerDialog
         open={tplPickerOpen}

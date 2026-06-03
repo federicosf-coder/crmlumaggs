@@ -87,7 +87,7 @@ export function MergeContactsDialog({ open, onOpenChange, onMerged }: Props) {
     if (!detailsCache[id]) {
       const [{ data: c }, { count }] = await Promise.all([
         supabase.from("contacts").select("id, first_name, last_name, email, email2, mobile, tel_emp, whatsapp_phone, company_id, companies(name)").eq("id", id).maybeSingle(),
-        supabase.from("crm_deals").select("id", { count: "exact", head: true }).eq("contact_id", id),
+        Promise.resolve({ count: 0 } as any),
       ]);
       if (c) setDetailsCache(prev => ({ ...prev, [id]: { contact: c as any, dealsCount: count || 0 } }));
     }
@@ -107,7 +107,6 @@ export function MergeContactsDialog({ open, onOpenChange, onMerged }: Props) {
         const { error } = await (supabase.from(table) as any).update({ contact_id: principalId }).in("contact_id", ids);
         if (error) throw error;
       };
-      await upd("crm_deals");
       await upd("whatsapp_conversations");
       await upd("whatsapp_messages");
       await upd("whatsapp_campaign_recipients");
