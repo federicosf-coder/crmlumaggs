@@ -30,7 +30,6 @@ function nextRoundHourLocal(): string {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultDealId?: string;
   defaultContactId?: string;
   defaultBrand?: string;
   defaultDate?: string;
@@ -40,7 +39,7 @@ interface Props {
   origenTareaId?: string;
 }
 
-export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId, defaultContactId, defaultBrand, defaultDate, defaultCompanyId, defaultTaskType, defaultDescription, origenTareaId }: Props) {
+export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContactId, defaultBrand, defaultDate, defaultCompanyId, defaultTaskType, defaultDescription, origenTareaId }: Props) {
   const { session } = useAuth();
   const createTask = useCreateCrmTask();
   const { toast } = useToast();
@@ -80,8 +79,6 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
   const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
   const [taskStatus, setTaskStatus] = useState<"planned" | "done" | "cancelled">("planned");
   const [companyId, setCompanyId] = useState(defaultCompanyId || "");
-  const [brand, setBrand] = useState(defaultBrand || "");
-  const [dealId, setDealId] = useState(defaultDealId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
 
@@ -214,8 +211,6 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultDealId,
     setRecurrence("none");
     setTaskStatus("planned");
     setCompanyId(defaultCompanyId || "");
-    setBrand(defaultBrand || "");
-    setDealId(defaultDealId || "");
     setContactId(defaultContactId || "");
     setCollaboratorIds([]);
   };
