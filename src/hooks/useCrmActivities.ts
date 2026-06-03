@@ -20,7 +20,6 @@ export const ACTIVITY_TYPE_CONFIG: Record<CrmActivityType, { emoji: string; labe
 
 export interface CrmActivity {
   id: string;
-  deal_id: string | null;
   contact_id: string | null;
   company_id: string | null;
   user_id: string;
@@ -29,12 +28,11 @@ export interface CrmActivity {
   description: string | null;
   activity_date: string;
   created_at: string;
-  crm_deals?: { id: string; title: string } | null;
   contacts?: { id: string; first_name: string; last_name: string } | null;
   companies?: { id: string; name: string } | null;
 }
 
-export function useCrmActivities(filters?: { type?: string; limit?: number; since?: string; pipelineId?: string; brand?: string }) {
+export function useCrmActivities(filters?: { type?: string; limit?: number; since?: string; brand?: string }) {
   const access = useModuleAccess("actividades");
 
   return useQuery({
@@ -44,7 +42,7 @@ export function useCrmActivities(filters?: { type?: string; limit?: number; sinc
 
       let q = supabase
         .from("crm_activities")
-        .select("*, crm_deals(id, title, pipeline_id), contacts(id, first_name, last_name), companies(id, name)")
+        .select("*, contacts(id, first_name, last_name), companies(id, name)")
         .order("activity_date", { ascending: false });
       if (filters?.type) q = q.eq("type", filters.type);
       if (filters?.since) q = q.gte("created_at", filters.since);
@@ -79,14 +77,7 @@ export function useCrmActivities(filters?: { type?: string; limit?: number; sinc
 
       const { data, error } = await q;
       if (error) throw error;
-      // Filter by pipeline if needed
-      let results = data as any[];
-      if (filters?.pipelineId) {
-        results = results.filter(
-          (a) => !a.crm_deals || a.crm_deals.pipeline_id === filters.pipelineId
-        );
-      }
-      return results as CrmActivity[];
+      return (data as any[]) as CrmActivity[];
     },
     enabled: !access.isLoading,
   });
@@ -97,7 +88,6 @@ export function useCreateCrmActivity() {
   return useMutation({
     mutationFn: async (activity: {
       company_id?: string | null;
-      deal_id?: string | null;
       contact_id?: string | null;
       user_id: string;
       type: CrmActivityType;
@@ -118,7 +108,7 @@ export function useCreateCrmActivity() {
 export function useUpdateCrmActivity() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; title?: string; description?: string | null; type?: string; company_id?: string | null; deal_id?: string | null; contact_id?: string | null }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; title?: string; description?: string | null; type?: string; company_id?: string | null; contact_id?: string | null }) => {
       const { data, error } = await supabase.from("crm_activities").update(updates).eq("id", id).select().single();
       if (error) throw error;
       return data;
