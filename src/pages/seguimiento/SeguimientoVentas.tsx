@@ -445,6 +445,170 @@ export default function SeguimientoVentas() {
     });
   };
 
+  // ====== Columnas configurables (drag-and-drop) ======
+  type ColDef = {
+    id: string;
+    label: string;
+    sortKey?: string;
+    align?: "left" | "right" | "center";
+    cellClassName?: string;
+    render: (r: SeguimientoVentasRow) => React.ReactNode;
+  };
+
+  const allColumns: ColDef[] = useMemo(() => {
+    const base: ColDef[] = [
+      {
+        id: "empresa",
+        label: "Empresa",
+        sortKey: "empresa",
+        cellClassName: "font-medium",
+        render: (r) => r.companies?.name || "—",
+      },
+      {
+        id: "ejecutivo",
+        label: "Ejecutivo",
+        sortKey: "ejecutivo",
+        cellClassName: "text-xs font-light text-muted-foreground",
+        render: (r) => r.owner_id ? (profileMap.get(r.owner_id) || "—") : <span className="italic">Sin asignar</span>,
+      },
+      {
+        id: "plaza",
+        label: "Plaza",
+        sortKey: "plaza",
+        cellClassName: "text-xs font-light text-muted-foreground",
+        render: (r) => getRowPlazaLabel(r.company_id) || <span className="italic">—</span>,
+      },
+      {
+        id: "estatus",
+        label: "Estatus",
+        sortKey: "estatus",
+        render: (r) => <StatusBadge estatus={catalogMap.get(getEffectiveStatusId(r) || "")} />,
+      },
+    ];
+    if (tieneVenta) {
+      return [
+        ...base,
+        {
+          id: "ritmo",
+          label: "Ritmo",
+          sortKey: "ritmo",
+          render: (r) => <StatusBadge estatus={r.estatus_ritmo_id ? catalogMap.get(r.estatus_ritmo_id) : null} />,
+        },
+        {
+          id: "ultima_compra",
+          label: "Última compra",
+          sortKey: "ultima_compra",
+          render: (r) => (
+            <>
+              <span className={`font-medium ${daysColor(r.dias_ultima_compra)}`}>
+                {r.dias_ultima_compra != null ? `${r.dias_ultima_compra} d` : "—"}
+              </span>
+              {r.fecha_ultima_compra && (
+                <span className="block text-[10px] text-muted-foreground">{formatDate(r.fecha_ultima_compra)}</span>
+              )}
+            </>
+          ),
+        },
+        { id: "potencial", label: "Potencial", sortKey: "potencial", align: "right", render: (r) => fmtNum(r.potencial) },
+        { id: "promedio_mensual", label: "Prom. mensual", sortKey: "promedio_mensual", align: "right", render: (r) => fmtNum(r.promedio_historico_mensual) },
+        { id: "acum_mes", label: "Acum. mes", sortKey: "acum_mes", align: "right", render: (r) => fmtNum(r.acum_mes) },
+        { id: "acum_mes_anterior", label: "Mes ant.", sortKey: "acum_mes_anterior", align: "right", render: (r) => fmtNum(r.acum_mes_anterior) },
+        { id: "acum_anio", label: "Acum. año", sortKey: "acum_anio", align: "right", render: (r) => fmtNum(r.acum_anio) },
+        { id: "actividades", label: "Activ.", sortKey: "actividades", align: "center", render: (r) => <Badge variant="outline">{r.actividades_activas}</Badge> },
+        { id: "proxima_tarea", label: "Próx. tarea", sortKey: "proxima_tarea", cellClassName: "text-xs text-muted-foreground", render: (r) => r.proxima_tarea_fecha ? formatDate(r.proxima_tarea_fecha) : "—" },
+      ];
+    }
+    return [
+      ...base,
+      {
+        id: "ultima_actividad",
+        label: "Últ. actividad",
+        sortKey: "ultima_actividad",
+        render: (r) => (
+          <>
+            <span className={`font-medium ${daysColor(r.dias_ultima_actividad)}`}>
+              {r.dias_ultima_actividad != null ? `${r.dias_ultima_actividad} d` : "—"}
+            </span>
+            {r.ultima_actividad_fecha && (
+              <span className="block text-[10px] text-muted-foreground">{formatDate(r.ultima_actividad_fecha)}</span>
+            )}
+          </>
+        ),
+      },
+      { id: "cotizaciones", label: "Cotiz.", sortKey: "cotizaciones", align: "center", render: (r) => r.cotizaciones_total },
+      {
+        id: "ultima_cotizacion",
+        label: "Últ. cotización",
+        sortKey: "ultima_cotizacion",
+        render: (r) => (
+          <>
+            <span className={`font-medium ${daysColor(r.dias_ultima_cotizacion)}`}>
+              {r.dias_ultima_cotizacion != null ? `${r.dias_ultima_cotizacion} d` : "—"}
+            </span>
+            {r.ultima_cotizacion_fecha && (
+              <span className="block text-[10px] text-muted-foreground">{formatDate(r.ultima_cotizacion_fecha)}</span>
+            )}
+          </>
+        ),
+      },
+      { id: "actividades", label: "Activ.", sortKey: "actividades", align: "center", render: (r) => <Badge variant="outline">{r.actividades_activas}</Badge> },
+      { id: "proxima_tarea", label: "Próx. tarea", sortKey: "proxima_tarea", cellClassName: "text-xs text-muted-foreground", render: (r) => r.proxima_tarea_fecha ? formatDate(r.proxima_tarea_fecha) : "—" },
+    ];
+  }, [tieneVenta, profileMap, catalogMap, companyPlazaMap, plazaNameMap]);
+
+  const defaultOrderIds = useMemo(() => allColumns.map((c) => c.id), [allColumns]);
+  const colsStorageKey = `seguimiento_cols_order_${tieneVenta ? "con_venta" : "sin_venta"}`;
+
+  const [colOrder, setColOrder] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(`seguimiento_cols_order_${tieneVenta ? "con_venta" : "sin_venta"}`);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(colsStorageKey);
+      setColOrder(raw ? JSON.parse(raw) : []);
+    } catch {
+      setColOrder([]);
+    }
+  }, [colsStorageKey]);
+
+  const orderedColumns = useMemo(() => {
+    if (!colOrder || colOrder.length === 0) return allColumns;
+    const map = new Map(allColumns.map((c) => [c.id, c]));
+    const seen = new Set<string>();
+    const out: ColDef[] = [];
+    for (const id of colOrder) {
+      const c = map.get(id);
+      if (c && !seen.has(id)) { out.push(c); seen.add(id); }
+    }
+    // append any new columns not yet in saved order
+    for (const c of allColumns) if (!seen.has(c.id)) out.push(c);
+    return out;
+  }, [allColumns, colOrder]);
+
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  const handleColumnDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const current = orderedColumns.map((c) => c.id);
+    const oldIndex = current.indexOf(active.id as string);
+    const newIndex = current.indexOf(over.id as string);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const next = arrayMove(current, oldIndex, newIndex);
+    setColOrder(next);
+    try { localStorage.setItem(colsStorageKey, JSON.stringify(next)); } catch {}
+  };
+
+  const resetColumnOrder = () => {
+    setColOrder([]);
+    try { localStorage.removeItem(colsStorageKey); } catch {}
+  };
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     let base = term
