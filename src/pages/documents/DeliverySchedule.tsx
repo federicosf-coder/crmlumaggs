@@ -21,7 +21,7 @@ import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
   ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon, FileText, Play, Flag, Eye,
-  Route as RouteIcon, Clock, Timer, AlertTriangle, Save,
+  Route as RouteIcon, Clock, Timer, AlertTriangle, Save, ArrowDownUp,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
