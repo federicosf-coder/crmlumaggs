@@ -813,7 +813,9 @@ export default function WhatsAppInbox() {
       </Card>
 
       {/* Chat */}
-      <Card className="col-span-6 flex flex-col h-full overflow-hidden">
+      <Card
+        className={`${mobileView === "chat" ? "flex" : "hidden"} md:flex md:col-span-6 flex-col h-full w-full overflow-hidden`}
+      >
         {!active ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
             Selecciona una conversación
@@ -822,19 +824,41 @@ export default function WhatsAppInbox() {
           <>
             <div className="p-3 border-b shrink-0 bg-card">
               <div className="flex items-center gap-2">
-                <div className="font-medium">{contactName || active.wa_profile_name || active.wa_phone}</div>
-                {activeAccount && (
-                  <span
-                    className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                    style={{ backgroundColor: `${activeAccount.color}22`, color: activeAccount.color }}
-                  >
-                    {activeAccount.label}
-                  </span>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden h-8 w-8 -ml-1 shrink-0"
+                  onClick={() => setMobileView("list")}
+                  title="Volver"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="font-medium truncate">{contactName || active.wa_profile_name || active.wa_phone}</div>
+                    {activeAccount && (
+                      <span
+                        className="text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0"
+                        style={{ backgroundColor: `${activeAccount.color}22`, color: activeAccount.color }}
+                      >
+                        {activeAccount.label}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">+{active.wa_phone}</div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden h-8 w-8 shrink-0"
+                  onClick={() => setInfoOpen(true)}
+                  title="Detalles"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
               </div>
-              <div className="text-xs text-muted-foreground">+{active.wa_phone}</div>
               {activeAccount && (
-                <div className="mt-1 text-[10px] text-muted-foreground">
+                <div className="mt-1 text-[10px] text-muted-foreground hidden md:block">
                   Respondiendo desde <strong className="text-foreground">{activeAccount.label}</strong>
                 </div>
               )}
