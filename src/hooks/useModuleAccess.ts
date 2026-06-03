@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export type AccessLevel = "todos" | "equipo" | "propio" | "ninguno";
 export type AppModule =
-  | "directorio" | "crm_chevron" | "crm_phillips66"
+  | "directorio"
   | "cotizaciones" | "inventario" | "entregas"
   | "transferencias" | "facturacion" | "productos"
   | "proyectos" | "capacitacion" | "reportes"

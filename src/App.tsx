@@ -22,12 +22,7 @@ import DocumentsList from "@/pages/documents/DocumentsList";
 import DocumentForm from "@/pages/documents/DocumentForm";
 import DeliverySchedule from "@/pages/documents/DeliverySchedule";
 import EntregaDetalle from "@/pages/documents/EntregaDetalle";
-import CrmLanding from "@/pages/crm/CrmLanding";
-import CrmPipeline from "@/pages/crm/CrmPipeline";
 import CrmActivitiesTasks from "@/pages/crm/CrmActivitiesTasks";
-import CrmItemsPage from "@/pages/crm/CrmItemsPage";
-import CrmRepurchase from "@/pages/crm/CrmRepurchase";
-import CrmByCompany from "@/pages/crm/CrmByCompany";
 import SeguimientoLanding from "@/pages/seguimiento/SeguimientoLanding";
 import SeguimientoVentas from "@/pages/seguimiento/SeguimientoVentas";
 import NotFound from "@/pages/NotFound";
@@ -101,14 +96,9 @@ const App = () => (
 
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
             <Route path="/directory/addresses" element={<ProtectedRoute><DeliveryAddresses /></ProtectedRoute>} />
-            <Route path="/crm" element={<ProtectedRoute><CrmLanding /></ProtectedRoute>} />
-            <Route path="/crm/empresas" element={<ProtectedRoute><CrmByCompany /></ProtectedRoute>} />
-            <Route path="/crm/:brand/pipeline" element={<ProtectedRoute><CrmPipeline /></ProtectedRoute>} />
-            <Route path="/crm/recompra" element={<ProtectedRoute><CrmRepurchase /></ProtectedRoute>} />
             <Route path="/seguimiento" element={<ProtectedRoute><SeguimientoLanding /></ProtectedRoute>} />
             <Route path="/seguimiento/:brand" element={<ProtectedRoute><SeguimientoVentas /></ProtectedRoute>} />
-            <Route path="/activities" element={<ProtectedRoute><CrmItemsPage /></ProtectedRoute>} />
-            <Route path="/activities/legacy" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />
+            <Route path="/activities" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsList /></ProtectedRoute>} />
             <Route path="/documents/new" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
