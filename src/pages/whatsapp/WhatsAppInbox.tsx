@@ -18,11 +18,14 @@ import { toast } from "sonner";
 import {
   MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus,
   FileText, Search, Paperclip, Image as ImageIcon, File as FileIcon, Download, Play, X,
-  FileSpreadsheet, FileType, AlertCircle,
+  FileSpreadsheet, FileType, AlertCircle, ArrowLeft, Info,
 } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
