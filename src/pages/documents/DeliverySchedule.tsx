@@ -1308,6 +1308,9 @@ export default function DeliverySchedule() {
   const handleFinishRoute = async (ruta: any) => {
     if (!ruta.ruta_started_at) { toast.error("Primero inicia la ruta"); return; }
     if (ruta.ruta_finished_at) return;
+    // Antes de validar, reordena automáticamente las paradas por hora real de entrega
+    // ascendente (las que no tengan hora real quedan al final preservando su orden actual).
+    await sortRouteByRealTime(ruta.id, { silent: true });
     // Validar que el orden de las paradas sea consistente con las horas reales de entrega.
     // Si una parada con orden posterior tiene fecha_entrega_real anterior a la de una parada
     // con orden previo, se debe corregir el orden antes de cerrar la ruta.
