@@ -550,153 +550,79 @@ export default function SeguimientoVentas() {
                 </Button>
               </div>
             </div>
-            <CardContent className="p-4 space-y-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
-                  Estatus
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {estatusOptions.length === 0 && (
-                    <span className="text-xs text-muted-foreground font-light">Sin opciones</span>
-                  )}
-                  {estatusOptions.map((opt) => {
-                    const active = fEstatus.includes(opt.id);
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setFEstatus((arr) => toggleInArray(arr, opt.id))}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide border transition-all ${
-                          active
-                            ? "text-white border-transparent shadow-sm"
-                            : "bg-background text-foreground border-border hover:border-violet-300"
-                        }`}
-                        style={active ? { backgroundColor: opt.color } : undefined}
-                      >
-                        {opt.es_urgente && <AlertTriangle className="h-3 w-3" />}
-                        {opt.nombre}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {tieneVenta && (
+            <CardContent className="p-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
-                    Ritmo
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
+                    Estatus
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ritmoOptions.map((opt) => {
-                      const active = fRitmo.includes(opt.id);
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setFRitmo((arr) => toggleInArray(arr, opt.id))}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide border transition-all ${
-                            active
-                              ? "text-white border-transparent shadow-sm"
-                              : "bg-background text-foreground border-border hover:border-violet-300"
-                          }`}
-                          style={active ? { backgroundColor: opt.color } : undefined}
-                        >
-                          {opt.nombre}
-                        </button>
-                      );
-                    })}
+                  <MultiSelectFilter
+                    label="Estatus"
+                    options={estatusOptions.map((o) => ({ id: o.id, label: o.nombre, color: o.color, urgent: o.es_urgente }))}
+                    selected={fEstatus}
+                    onToggle={(id) => setFEstatus((arr) => toggleInArray(arr, id))}
+                    onClear={() => setFEstatus([])}
+                  />
+                </div>
+
+                {tieneVenta && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
+                      Ritmo
+                    </p>
+                    <MultiSelectFilter
+                      label="Ritmo"
+                      options={ritmoOptions.map((o) => ({ id: o.id, label: o.nombre, color: o.color }))}
+                      selected={fRitmo}
+                      onToggle={(id) => setFRitmo((arr) => toggleInArray(arr, id))}
+                      onClear={() => setFRitmo([])}
+                    />
                   </div>
-                </div>
-              )}
+                )}
 
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
-                  {tieneVenta ? "Última compra" : "Última actividad"} (rangos de 30 días)
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {DIAS_RANGES.map((r) => {
-                    const active = fDias.includes(r.id);
-                    return (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => setFDias((arr) => toggleInArray(arr, r.id))}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
-                          active
-                            ? "bg-violet-600 text-white border-transparent shadow-sm"
-                            : "bg-background text-foreground border-border hover:border-violet-300"
-                        }`}
-                      >
-                        {r.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {tieneVenta && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
-                    Potencial (rangos de 25)
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
+                    {tieneVenta ? "Última compra" : "Última actividad"} (30 días)
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {POTENCIAL_RANGES.map((r) => {
-                      const active = fPotencial.includes(r.id);
-                      return (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => setFPotencial((arr) => toggleInArray(arr, r.id))}
-                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
-                            active
-                              ? "bg-blue-600 text-white border-transparent shadow-sm"
-                              : "bg-background text-foreground border-border hover:border-blue-300"
-                          }`}
-                        >
-                          {r.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <MultiSelectFilter
+                    label="Días"
+                    options={DIAS_RANGES.map((r) => ({ id: r.id, label: r.label, color: DIAS_COLORS[r.id] }))}
+                    selected={fDias}
+                    onToggle={(id) => setFDias((arr) => toggleInArray(arr, id))}
+                    onClear={() => setFDias([])}
+                  />
                 </div>
-              )}
 
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
-                  Ejecutivo
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {ejecutivoOptions.length === 0 && (
-                    <span className="text-xs text-muted-foreground font-light">Sin ejecutivos</span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setFEjecutivo((arr) => toggleInArray(arr, "__none__"))}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
-                      fEjecutivo.includes("__none__")
-                        ? "bg-slate-600 text-white border-transparent shadow-sm"
-                        : "bg-background text-foreground border-border hover:border-slate-300"
-                    }`}
-                  >
-                    Sin asignar
-                  </button>
-                  {ejecutivoOptions.map((opt) => {
-                    const active = fEjecutivo.includes(opt.id);
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setFEjecutivo((arr) => toggleInArray(arr, opt.id))}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
-                          active
-                            ? "bg-violet-600 text-white border-transparent shadow-sm"
-                            : "bg-background text-foreground border-border hover:border-violet-300"
-                        }`}
-                      >
-                        {opt.name}
-                      </button>
-                    );
-                  })}
+                {tieneVenta && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
+                      Potencial (rangos de 25)
+                    </p>
+                    <MultiSelectFilter
+                      label="Potencial"
+                      options={POTENCIAL_RANGES.map((r) => ({ id: r.id, label: r.label, color: POTENCIAL_COLORS[r.id] }))}
+                      selected={fPotencial}
+                      onToggle={(id) => setFPotencial((arr) => toggleInArray(arr, id))}
+                      onClear={() => setFPotencial([])}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
+                    Ejecutivo
+                  </p>
+                  <MultiSelectFilter
+                    label="Ejecutivo"
+                    options={[
+                      { id: "__none__", label: "Sin asignar", color: "#64748b" },
+                      ...ejecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) })),
+                    ]}
+                    selected={fEjecutivo}
+                    onToggle={(id) => setFEjecutivo((arr) => toggleInArray(arr, id))}
+                    onClear={() => setFEjecutivo([])}
+                    emptyText="Sin ejecutivos"
+                  />
                 </div>
               </div>
             </CardContent>
