@@ -2018,13 +2018,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "crm_activities_deal_id_fkey"
-            columns: ["deal_id"]
-            isOneToOne: false
-            referencedRelation: "crm_deals"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "crm_activities_seguimiento_venta_id_fkey"
             columns: ["seguimiento_venta_id"]
             isOneToOne: false
@@ -2101,152 +2094,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
-      }
-      crm_deals: {
-        Row: {
-          categoria_interes_id: string | null
-          close_date: string | null
-          company_id: string
-          contact_id: string | null
-          convertido_a_cliente: boolean
-          cotizado_unidades: number
-          created_at: string
-          created_by: string | null
-          facturado_unidades: number
-          fecha_conversion: string | null
-          id: string
-          mes_negocio: string | null
-          motivo_perdida_id: string | null
-          notes: string | null
-          origen_prospecto_id: string | null
-          owner_id: string | null
-          pedido_unidades: number
-          pipeline_id: string
-          pipeline_type: Database["public"]["Enums"]["pipeline_type"]
-          plaza_id: string | null
-          potencial_unidades: number | null
-          probability: number
-          proxima_fecha_seguimiento: string | null
-          stage_id: string
-          tipo_negocio: Database["public"]["Enums"]["tipo_negocio_crm"]
-          title: string
-          updated_at: string
-          value: number
-          volumen_mensual_estimado: number | null
-        }
-        Insert: {
-          categoria_interes_id?: string | null
-          close_date?: string | null
-          company_id: string
-          contact_id?: string | null
-          convertido_a_cliente?: boolean
-          cotizado_unidades?: number
-          created_at?: string
-          created_by?: string | null
-          facturado_unidades?: number
-          fecha_conversion?: string | null
-          id?: string
-          mes_negocio?: string | null
-          motivo_perdida_id?: string | null
-          notes?: string | null
-          origen_prospecto_id?: string | null
-          owner_id?: string | null
-          pedido_unidades?: number
-          pipeline_id: string
-          pipeline_type?: Database["public"]["Enums"]["pipeline_type"]
-          plaza_id?: string | null
-          potencial_unidades?: number | null
-          probability?: number
-          proxima_fecha_seguimiento?: string | null
-          stage_id: string
-          tipo_negocio?: Database["public"]["Enums"]["tipo_negocio_crm"]
-          title: string
-          updated_at?: string
-          value?: number
-          volumen_mensual_estimado?: number | null
-        }
-        Update: {
-          categoria_interes_id?: string | null
-          close_date?: string | null
-          company_id?: string
-          contact_id?: string | null
-          convertido_a_cliente?: boolean
-          cotizado_unidades?: number
-          created_at?: string
-          created_by?: string | null
-          facturado_unidades?: number
-          fecha_conversion?: string | null
-          id?: string
-          mes_negocio?: string | null
-          motivo_perdida_id?: string | null
-          notes?: string | null
-          origen_prospecto_id?: string | null
-          owner_id?: string | null
-          pedido_unidades?: number
-          pipeline_id?: string
-          pipeline_type?: Database["public"]["Enums"]["pipeline_type"]
-          plaza_id?: string | null
-          potencial_unidades?: number | null
-          probability?: number
-          proxima_fecha_seguimiento?: string | null
-          stage_id?: string
-          tipo_negocio?: Database["public"]["Enums"]["tipo_negocio_crm"]
-          title?: string
-          updated_at?: string
-          value?: number
-          volumen_mensual_estimado?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crm_deals_categoria_interes_id_fkey"
-            columns: ["categoria_interes_id"]
-            isOneToOne: false
-            referencedRelation: "product_option_values"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_deals_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_deals_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_deals_motivo_perdida_id_fkey"
-            columns: ["motivo_perdida_id"]
-            isOneToOne: false
-            referencedRelation: "product_option_values"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_deals_origen_prospecto_id_fkey"
-            columns: ["origen_prospecto_id"]
-            isOneToOne: false
-            referencedRelation: "product_option_values"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_deals_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "crm_pipelines"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_deals_stage_id_fkey"
-            columns: ["stage_id"]
-            isOneToOne: false
-            referencedRelation: "crm_pipeline_stages"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       crm_item_collaborators: {
         Row: {
@@ -2389,86 +2236,7 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "crm_items_deal_id_fkey"
-            columns: ["deal_id"]
-            isOneToOne: false
-            referencedRelation: "crm_deals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_items_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "crm_pipelines"
-            referencedColumns: ["id"]
-          },
         ]
-      }
-      crm_pipeline_stages: {
-        Row: {
-          color: string
-          created_at: string
-          id: string
-          name: string
-          pipeline_id: string
-          position: number
-        }
-        Insert: {
-          color?: string
-          created_at?: string
-          id?: string
-          name: string
-          pipeline_id: string
-          position?: number
-        }
-        Update: {
-          color?: string
-          created_at?: string
-          id?: string
-          name?: string
-          pipeline_id?: string
-          position?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crm_pipeline_stages_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "crm_pipelines"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crm_pipelines: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          id: string
-          marca: string
-          nombre: string
-          pipeline_type: Database["public"]["Enums"]["pipeline_type"] | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          marca: string
-          nombre: string
-          pipeline_type?: Database["public"]["Enums"]["pipeline_type"] | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          marca?: string
-          nombre?: string
-          pipeline_type?: Database["public"]["Enums"]["pipeline_type"] | null
-          updated_at?: string
-        }
-        Relationships: []
       }
       crm_task_collaborators: {
         Row: {
@@ -2638,13 +2406,6 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_tasks_deal_id_fkey"
-            columns: ["deal_id"]
-            isOneToOne: false
-            referencedRelation: "crm_deals"
             referencedColumns: ["id"]
           },
           {
@@ -3249,13 +3010,6 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "documentos_negocio_id_fkey"
-            columns: ["negocio_id"]
-            isOneToOne: false
-            referencedRelation: "crm_deals"
             referencedColumns: ["id"]
           },
           {
@@ -6017,7 +5771,6 @@ export type Database = {
         | "dormido"
         | "sin_historial"
       metodo_pago_sat: "PUE" | "PPD"
-      pipeline_type: "primera_compra" | "recompra"
       placeholder_scope: "email" | "whatsapp" | "ambos"
       product_option_type:
         | "marca"
@@ -6366,7 +6119,6 @@ export const Constants = {
         "sin_historial",
       ],
       metodo_pago_sat: ["PUE", "PPD"],
-      pipeline_type: ["primera_compra", "recompra"],
       placeholder_scope: ["email", "whatsapp", "ambos"],
       product_option_type: [
         "marca",
