@@ -1130,10 +1130,9 @@ export default function WhatsAppInbox() {
         )}
       </Card>
 
-      {/* Lateral */}
-      <Card className="col-span-3 flex flex-col h-full overflow-hidden">
-        <div className="p-3 overflow-y-auto flex-1 min-h-0">
-        {!active ? (
+      {/* Lateral (desktop) + Sheet (móvil) */}
+      {(() => {
+        const sidePanelContent = !active ? (
           <div className="text-sm text-muted-foreground">Datos del contacto</div>
         ) : (
           <div className="space-y-3">
@@ -1215,9 +1214,25 @@ export default function WhatsAppInbox() {
               )}
             </div>
           </div>
-        )}
-        </div>
-      </Card>
+        );
+        return (
+          <>
+            <Card className="hidden md:flex md:col-span-3 flex-col h-full overflow-hidden">
+              <div className="p-3 overflow-y-auto flex-1 min-h-0">
+                {sidePanelContent}
+              </div>
+            </Card>
+            <Sheet open={infoOpen} onOpenChange={setInfoOpen}>
+              <SheetContent side="bottom" className="md:hidden h-[85vh] overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Detalles</SheetTitle>
+                </SheetHeader>
+                <div className="mt-4">{sidePanelContent}</div>
+              </SheetContent>
+            </Sheet>
+          </>
+        );
+      })()}
 
       <ContactFormDialog
         open={editContactOpen}
