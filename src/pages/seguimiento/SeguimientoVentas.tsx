@@ -348,16 +348,160 @@ export default function SeguimientoVentas() {
               className="pl-8 h-9 font-light"
             />
           </div>
-          <ColumnFilterBuilder
-            columns={filterColumns}
-            conditions={filterConditions}
-            onChange={setFilterConditions}
-            combinator={filterCombinator}
-            onCombinatorChange={setFilterCombinator}
-            triggerLabel="Filtros"
-          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9"
+            onClick={() => setFiltersOpen((v) => !v)}
+          >
+            <Filter className="h-4 w-4" />
+            Filtros
+            {activeFiltersCount > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5">{activeFiltersCount}</Badge>
+            )}
+            <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+          </Button>
         </div>
       </div>
+
+      {/* Panel de filtros colapsable */}
+      <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <CollapsibleContent>
+          <Card className="border-violet-200/60">
+            <div className="bg-gradient-to-r from-violet-50 to-blue-50 px-4 py-2.5 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-violet-900">
+                <Filter className="h-3.5 w-3.5" /> Filtros rápidos
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5 normal-case tracking-normal">
+                    {activeFiltersCount} activos
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {activeFiltersCount > 0 && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearAllFilters}>
+                    <X className="h-3 w-3 mr-1" /> Limpiar
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setFiltersOpen(false)}>
+                  Colapsar
+                </Button>
+              </div>
+            </div>
+            <CardContent className="p-4 space-y-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
+                  Estatus
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {estatusOptions.length === 0 && (
+                    <span className="text-xs text-muted-foreground font-light">Sin opciones</span>
+                  )}
+                  {estatusOptions.map((opt) => {
+                    const active = fEstatus.includes(opt.id);
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setFEstatus((arr) => toggleInArray(arr, opt.id))}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide border transition-all ${
+                          active
+                            ? "text-white border-transparent shadow-sm"
+                            : "bg-background text-foreground border-border hover:border-violet-300"
+                        }`}
+                        style={active ? { backgroundColor: opt.color } : undefined}
+                      >
+                        {opt.es_urgente && <AlertTriangle className="h-3 w-3" />}
+                        {opt.nombre}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {tieneVenta && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
+                    Ritmo
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ritmoOptions.map((opt) => {
+                      const active = fRitmo.includes(opt.id);
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setFRitmo((arr) => toggleInArray(arr, opt.id))}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide border transition-all ${
+                            active
+                              ? "text-white border-transparent shadow-sm"
+                              : "bg-background text-foreground border-border hover:border-violet-300"
+                          }`}
+                          style={active ? { backgroundColor: opt.color } : undefined}
+                        >
+                          {opt.nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
+                  {tieneVenta ? "Última compra" : "Última actividad"} (rangos de 30 días)
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {DIAS_RANGES.map((r) => {
+                    const active = fDias.includes(r.id);
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setFDias((arr) => toggleInArray(arr, r.id))}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                          active
+                            ? "bg-violet-600 text-white border-transparent shadow-sm"
+                            : "bg-background text-foreground border-border hover:border-violet-300"
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {tieneVenta && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
+                    Potencial (rangos de 25)
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {POTENCIAL_RANGES.map((r) => {
+                      const active = fPotencial.includes(r.id);
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setFPotencial((arr) => toggleInArray(arr, r.id))}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                            active
+                              ? "bg-blue-600 text-white border-transparent shadow-sm"
+                              : "bg-background text-foreground border-border hover:border-blue-300"
+                          }`}
+                        >
+                          {r.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Lista mobile (cards) */}
       <div className="grid gap-3 md:hidden">
