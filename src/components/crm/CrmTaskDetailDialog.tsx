@@ -944,7 +944,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
           phone={phone}
           variables={variables}
           defaultMessage={task.mensaje_sugerido || undefined}
-          context={{ company_id: companyId, contact_id: contactId, deal_id: dealId }}
+          context={{ company_id: companyId, contact_id: contactId }}
           onSent={() => updateTask.mutate({ id: task.id, whatsapp_status: "enviado", whatsapp_last_sent_at: new Date().toISOString() })}
         />
 
