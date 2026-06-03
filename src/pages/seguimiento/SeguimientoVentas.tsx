@@ -18,6 +18,8 @@ import {
   type SeguimientoEstatus,
 } from "@/hooks/useSeguimientoVentas";
 import { SeguimientoDetailDialog } from "@/components/seguimiento/SeguimientoDetailDialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 type SortDir = "asc" | "desc";
 interface SortState {
@@ -111,6 +113,7 @@ export default function SeguimientoVentas() {
   const [fRitmo, setFRitmo] = useState<string[]>([]);
   const [fDias, setFDias] = useState<string[]>([]);
   const [fPotencial, setFPotencial] = useState<string[]>([]);
+  const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
 
   const tieneVenta = tab === "con_venta";
 
@@ -120,10 +123,38 @@ export default function SeguimientoVentas() {
     setFRitmo([]);
     setFDias([]);
     setFPotencial([]);
+    setFEjecutivo([]);
   }, [tieneVenta]);
 
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles_min"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("is_active", true);
+      if (error) throw error;
+      return (data || []) as { user_id: string; full_name: string | null }[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const profileMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of profiles) m.set(p.user_id, p.full_name || "—");
+    return m;
+  }, [profiles]);
+
+  const ejecutivoOptions = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of rows) if (r.owner_id) ids.add(r.owner_id);
+    return Array.from(ids)
+      .map((id) => ({ id, name: profileMap.get(id) || "—" }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }, [rows, profileMap]);
 
   const ambito = tieneVenta ? "con_venta" : "sin_venta";
   const estatusOptions = useMemo(
@@ -139,13 +170,14 @@ export default function SeguimientoVentas() {
     arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
   const activeFiltersCount =
-    fEstatus.length + fRitmo.length + fDias.length + fPotencial.length;
+    fEstatus.length + fRitmo.length + fDias.length + fPotencial.length + fEjecutivo.length;
 
   const clearAllFilters = () => {
     setFEstatus([]);
     setFRitmo([]);
     setFDias([]);
     setFPotencial([]);
+    setFEjecutivo([]);
   };
 
   const catalogMap = useMemo(() => {
@@ -205,6 +237,14 @@ export default function SeguimientoVentas() {
         });
       });
     }
+    if (fEjecutivo.length > 0) {
+      base = base.filter((r) => {
+        if (fEjecutivo.includes("__none__")) {
+          if (!r.owner_id) return true;
+        }
+        return r.owner_id ? fEjecutivo.includes(r.owner_id) : false;
+      });
+    }
 
     if (!sort) {
       // Default: urgencia primero, luego recencia
@@ -229,6 +269,10 @@ export default function SeguimientoVentas() {
         case "empresa":
           va = (a.companies?.name || "").toLowerCase();
           vb = (b.companies?.name || "").toLowerCase();
+          break;
+        case "ejecutivo":
+          va = (a.owner_id ? profileMap.get(a.owner_id) || "" : "").toLowerCase();
+          vb = (b.owner_id ? profileMap.get(b.owner_id) || "" : "").toLowerCase();
           break;
         case "estatus": {
           const ea = catalogMap.get(getEffectiveStatusId(a) || "");
@@ -296,7 +340,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fRitmo, fDias, fPotencial]);
+  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fRitmo, fDias, fPotencial, fEjecutivo, profileMap]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
