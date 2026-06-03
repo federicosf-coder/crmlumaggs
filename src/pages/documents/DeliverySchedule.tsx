@@ -381,6 +381,16 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
           </p>
         </div>
         <div className="flex gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            title="Ordenar paradas por hora real de entrega (ascendente)"
+            onClick={() => onSortByRealTime?.(ruta)}
+            disabled={cerrada}
+          >
+            <ArrowDownUp className="h-3.5 w-3.5" />
+          </Button>
           <Button size="icon" variant="ghost" className="h-7 w-7" title={cerrada ? "Reabrir ruta" : "Cerrar ruta"} onClick={() => onToggleCerrada(ruta)}>
             {cerrada ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
           </Button>
