@@ -607,6 +607,9 @@ export default function SeguimientoVentas() {
                     <p className="text-sm font-semibold leading-tight">{r.companies?.name || "—"}</p>
                     <StatusBadge estatus={eff} />
                   </div>
+                  <p className="text-[11px] text-muted-foreground font-light">
+                    Ejecutivo: <span className="text-foreground">{r.owner_id ? (profileMap.get(r.owner_id) || "—") : "Sin asignar"}</span>
+                  </p>
                   {tieneVenta ? (
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-light">
                       <div>
