@@ -343,6 +343,7 @@ export default function SeguimientoVentas() {
             onChange={setFilterConditions}
             combinator={filterCombinator}
             onCombinatorChange={setFilterCombinator}
+            triggerLabel="Filtros"
           />
         </div>
       </div>

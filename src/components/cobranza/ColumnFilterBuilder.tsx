@@ -76,9 +76,17 @@ interface Props {
   onChange: (conditions: ColumnFilterCondition[]) => void;
   combinator: "AND" | "OR";
   onCombinatorChange: (c: "AND" | "OR") => void;
+  triggerLabel?: string;
 }
 
-export function ColumnFilterBuilder({ columns, conditions, onChange, combinator, onCombinatorChange }: Props) {
+export function ColumnFilterBuilder({ 
+  columns, 
+  conditions, 
+  onChange, 
+  combinator, 
+  onCombinatorChange,
+  triggerLabel = "Filtros por columna"
+}: Props) {
   const [open, setOpen] = useState(false);
   const activeCount = conditions.filter((c) => c.value !== "" || c.operator === "is_empty" || c.operator === "is_not_empty").length;
 
@@ -94,7 +102,7 @@ export function ColumnFilterBuilder({ columns, conditions, onChange, combinator,
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <Filter className="h-4 w-4" />
-          Filtros por columna
+          {triggerLabel}
           {activeCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5">{activeCount}</Badge>}
         </Button>
       </PopoverTrigger>
