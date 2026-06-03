@@ -58,7 +58,6 @@ export default function SellerPortal() {
   const [loading, setLoading] = useState(false);
 
   const [tasks, setTasks] = useState<any[]>([]);
-  const [deals, setDeals] = useState<any[]>([]);
   const [docs, setDocs] = useState<any[]>([]);
   const [pagos, setPagos] = useState<any[]>([]);
   const [facturasPorVencer, setFacturasPorVencer] = useState<any[]>([]);
@@ -66,7 +65,6 @@ export default function SellerPortal() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
-  const openDealModal = (_dealId: string) => { /* CRM de Negocios eliminado */ };
   const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
@@ -192,7 +190,7 @@ export default function SellerPortal() {
       const inList = uIds && uIds.length ? `(${uIds.join(",")})` : null;
       // helper: si hay equipo vacío, no devolver nada
       if (uIds && uIds.length === 0) {
-        setTasks([]); setDeals([]); setDocs([]); setPagos([]);
+        setTasks([]); setDocs([]); setPagos([]);
         setFacturasPorVencer([]); setFacturasVencidasAll([]); setActividades([]);
         setCompanyMap({}); setCompanyPhoneMap({}); setEjecutivoMap({});
         setCobradoDeVencido(0);
@@ -201,14 +199,11 @@ export default function SellerPortal() {
       }
 
       // Tasks: traemos del ejecutivo (sin filtro de fecha porque necesitamos vencidas + creadas + completadas en periodo)
-      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at, task_type, parent_category, parent_task_id, sequence_order").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
+      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, contact_id, description, user_id, created_at, updated_at, task_type, parent_category, parent_task_id, sequence_order").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
       if (uIds) tq = tq.in("user_id", uIds);
       const { data: tasksData } = await tq;
 
-      // Deals con marca via pipeline join (filtrado por marca y owner)
-      let dq = supabase.from("crm_deals").select("id, title, created_at, company_id, value, stage_id, pipeline_id, pipeline_type, owner_id, tipo_negocio, potencial_unidades, cotizado_unidades, pedido_unidades, facturado_unidades, convertido_a_cliente, crm_pipelines!inner(marca)").in("crm_pipelines.marca", marcaPipelineList).order("created_at", { ascending: false }).limit(1000);
-      if (uIds) dq = dq.in("owner_id", uIds);
-      const { data: dealsData } = await dq;
+      const dealsData: any[] = [];
 
       // Documentos en rango (cot/ped/fact). Periodo inclusivo [from, to+1).
       let docQ = supabase.from("documentos").select("id, tipo_documento, fecha_documento, fecha_vencimiento, total, unidades_equivalentes_total, estatus_cotizacion, estatus_pedido, estatus_factura, empresa_id, plaza_id, ejecutivo_venta_id, created_by, numero_cotizacion, numero_pedido, numero_factura, saldo_pendiente_cobranza, estado_cobranza, empresa_vendedora, created_at").gte("fecha_documento", fromDate).lt("fecha_documento", toExclusive).eq("is_active", true).in("empresa_vendedora", marcasSeleccionadas as any).limit(2000);
@@ -345,7 +340,7 @@ export default function SellerPortal() {
       // Actividades CRM creadas/realizadas en el periodo (por ejecutivo)
       let actQ = supabase
         .from("crm_activities")
-        .select("id, type, activity_date, created_at, user_id, company_id, deal_id")
+        .select("id, type, activity_date, created_at, user_id, company_id")
         .gte("activity_date", fromIso)
         .lte("activity_date", toIso)
         .limit(2000);
@@ -355,7 +350,6 @@ export default function SellerPortal() {
       // Company names
       const ids = new Set<string>();
       (tasksData || []).forEach((t: any) => t.company_id && ids.add(t.company_id));
-      (dealsData || []).forEach((d: any) => d.company_id && ids.add(d.company_id));
       (docsData || []).forEach((d: any) => d.empresa_id && ids.add(d.empresa_id));
       (pagosData || []).forEach((p: any) => p.empresa_id && ids.add(p.empresa_id));
       (fpvData || []).forEach((d: any) => d.empresa_id && ids.add(d.empresa_id));
@@ -383,7 +377,6 @@ export default function SellerPortal() {
       }
 
       setTasks(tasksData || []);
-      setDeals(dealsData || []);
       setDocs(docsData || []);
       setPagos(pagosData || []);
       setFacturasPorVencer(fpvData || []);
