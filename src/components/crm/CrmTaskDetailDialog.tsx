@@ -606,7 +606,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
               taskId={task?.id}
               contactId={contactId}
               companyId={companyId}
-              dealId={dealId}
               description={description}
               setDescription={handleDescChange}
               onSent={() => {
@@ -621,17 +620,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
 
             {/* Vínculos */}
             <section>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-2 min-w-0">
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Negocio</div>
-                  <SearchableSelect
-                    value={dealId || "none"}
-                    onValueChange={handleSelectDeal}
-                    options={dealOptions}
-                    placeholder="Buscar negocio..."
-                    className="font-light text-sm"
-                  />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2 min-w-0">
                   <div className="text-xs uppercase tracking-wide text-muted-foreground">Vincular a Empresa</div>
                   <SearchableSelect
@@ -868,7 +857,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                     priority,
                     completed,
                     completed_at: completed ? (task.completed_at || new Date().toISOString()) : null,
-                    deal_id: dealId,
                     company_id: companyId,
                     contact_id: contactId,
                     user_id: userId,
