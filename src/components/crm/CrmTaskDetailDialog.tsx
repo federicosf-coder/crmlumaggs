@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { CrmTask, useUpdateCrmTask, useDeleteCrmTask, useTaskTimeline } from "@/hooks/useCrmTasks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase: any = _supabaseTyped;
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";

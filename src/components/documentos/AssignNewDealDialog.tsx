@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase: any = _supabaseTyped;
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { toast } from "sonner";
 import { ContactFormDialog } from "@/components/ContactFormDialog";

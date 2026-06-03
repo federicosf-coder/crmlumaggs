@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase: any = _supabaseTyped;
 import { useEffect } from "react";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 

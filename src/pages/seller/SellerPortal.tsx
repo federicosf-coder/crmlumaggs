@@ -3,7 +3,9 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, Percent, ListChecks, Package, Pencil, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, Search, Layers, List, CornerDownRight, ChevronRight, ChevronDown } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase: any = _supabaseTyped;
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

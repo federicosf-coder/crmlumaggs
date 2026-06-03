@@ -3,7 +3,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmDeal } from "@/hooks/useCrmDeals";
 import { CrmPipelineStage } from "@/hooks/useCrmPipelines";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase: any = _supabaseTyped;
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
