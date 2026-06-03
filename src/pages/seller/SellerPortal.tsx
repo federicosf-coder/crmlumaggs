@@ -58,7 +58,6 @@ export default function SellerPortal() {
   const [loading, setLoading] = useState(false);
 
   const [tasks, setTasks] = useState<any[]>([]);
-  const [deals, setDeals] = useState<any[]>([]);
   const [docs, setDocs] = useState<any[]>([]);
   const [pagos, setPagos] = useState<any[]>([]);
   const [facturasPorVencer, setFacturasPorVencer] = useState<any[]>([]);
@@ -66,7 +65,6 @@ export default function SellerPortal() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
-  const openDealModal = (_dealId: string) => { /* CRM de Negocios eliminado */ };
   const [facturasVencidasAll, setFacturasVencidasAll] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
@@ -192,7 +190,7 @@ export default function SellerPortal() {
       const inList = uIds && uIds.length ? `(${uIds.join(",")})` : null;
       // helper: si hay equipo vacío, no devolver nada
       if (uIds && uIds.length === 0) {
-        setTasks([]); setDeals([]); setDocs([]); setPagos([]);
+        setTasks([]); setDocs([]); setPagos([]);
         setFacturasPorVencer([]); setFacturasVencidasAll([]); setActividades([]);
         setCompanyMap({}); setCompanyPhoneMap({}); setEjecutivoMap({});
         setCobradoDeVencido(0);
@@ -201,14 +199,11 @@ export default function SellerPortal() {
       }
 
       // Tasks: traemos del ejecutivo (sin filtro de fecha porque necesitamos vencidas + creadas + completadas en periodo)
-      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, deal_id, contact_id, description, user_id, created_at, updated_at, task_type, parent_category, parent_task_id, sequence_order").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
+      let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, contact_id, description, user_id, created_at, updated_at, task_type, parent_category, parent_task_id, sequence_order").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
       if (uIds) tq = tq.in("user_id", uIds);
       const { data: tasksData } = await tq;
 
-      // Deals con marca via pipeline join (filtrado por marca y owner)
-      let dq = supabase.from("crm_deals").select("id, title, created_at, company_id, value, stage_id, pipeline_id, pipeline_type, owner_id, tipo_negocio, potencial_unidades, cotizado_unidades, pedido_unidades, facturado_unidades, convertido_a_cliente, crm_pipelines!inner(marca)").in("crm_pipelines.marca", marcaPipelineList).order("created_at", { ascending: false }).limit(1000);
-      if (uIds) dq = dq.in("owner_id", uIds);
-      const { data: dealsData } = await dq;
+      const dealsData: any[] = [];
 
       // Documentos en rango (cot/ped/fact). Periodo inclusivo [from, to+1).
       let docQ = supabase.from("documentos").select("id, tipo_documento, fecha_documento, fecha_vencimiento, total, unidades_equivalentes_total, estatus_cotizacion, estatus_pedido, estatus_factura, empresa_id, plaza_id, ejecutivo_venta_id, created_by, numero_cotizacion, numero_pedido, numero_factura, saldo_pendiente_cobranza, estado_cobranza, empresa_vendedora, created_at").gte("fecha_documento", fromDate).lt("fecha_documento", toExclusive).eq("is_active", true).in("empresa_vendedora", marcasSeleccionadas as any).limit(2000);
@@ -345,7 +340,7 @@ export default function SellerPortal() {
       // Actividades CRM creadas/realizadas en el periodo (por ejecutivo)
       let actQ = supabase
         .from("crm_activities")
-        .select("id, type, activity_date, created_at, user_id, company_id, deal_id")
+        .select("id, type, activity_date, created_at, user_id, company_id")
         .gte("activity_date", fromIso)
         .lte("activity_date", toIso)
         .limit(2000);
@@ -355,7 +350,6 @@ export default function SellerPortal() {
       // Company names
       const ids = new Set<string>();
       (tasksData || []).forEach((t: any) => t.company_id && ids.add(t.company_id));
-      (dealsData || []).forEach((d: any) => d.company_id && ids.add(d.company_id));
       (docsData || []).forEach((d: any) => d.empresa_id && ids.add(d.empresa_id));
       (pagosData || []).forEach((p: any) => p.empresa_id && ids.add(p.empresa_id));
       (fpvData || []).forEach((d: any) => d.empresa_id && ids.add(d.empresa_id));
@@ -383,7 +377,6 @@ export default function SellerPortal() {
       }
 
       setTasks(tasksData || []);
-      setDeals(dealsData || []);
       setDocs(docsData || []);
       setPagos(pagosData || []);
       setFacturasPorVencer(fpvData || []);
@@ -421,10 +414,7 @@ export default function SellerPortal() {
   const tasksHoyPendientes = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date) >= todayStart && new Date(t.due_date) <= todayEnd);
   const misTareasHoy = [...tasksVencidas, ...tasksHoyPendientes, ...tasksCompletadasPeriodo].slice(0, 50);
 
-  const dealsEnRango = deals.filter(d => {
-    const t = new Date(d.created_at).getTime();
-    return t >= fromTs && t <= toTs;
-  });
+  const dealsEnRango: any[] = [];
 
   const cotizaciones = docs.filter(d => d.tipo_documento === "cotizacion");
   const pedidos = docs.filter(d => d.tipo_documento === "pedido");
@@ -486,10 +476,8 @@ export default function SellerPortal() {
     return unique.sort((a: any, b: any) => b.dias_vencidos - a.dias_vencidos);
   }, [facturasVencidasAll, facturasPorVencer]);
 
-  // Conversiones por tipo de pipeline.
-  // Regla: contar CLIENTES ÚNICOS (company_id) — no deals duplicados ni documentos.
-  const dealsNuevos = deals.filter(d => d.pipeline_type === "primera_compra");
-  const dealsRecompra = deals.filter(d => d.pipeline_type === "recompra");
+  const dealsNuevos: any[] = [];
+  const dealsRecompra: any[] = [];
 
   const sumDealsField = (arr: any[], key: string) => arr.reduce((a, b) => a + Number(b[key] || 0), 0);
 
@@ -1138,7 +1126,6 @@ export default function SellerPortal() {
                           <DropdownMenuContent align="end">
                             {!t.completed && <DropdownMenuItem onClick={() => completarTarea(t.id)}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Completar</DropdownMenuItem>}
                             {!t.completed && <DropdownMenuItem onClick={() => reprogramarTarea(t.id)}><Clock className="h-3.5 w-3.5 mr-2" /> Reprogramar</DropdownMenuItem>}
-                            {t.deal_id && <DropdownMenuItem onClick={() => openDealModal(t.deal_id)}><ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir CRM</DropdownMenuItem>}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -1161,48 +1148,13 @@ export default function SellerPortal() {
           <CardTitle className="text-base">Detalle por sección</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="primera_compra">
+          <Tabs defaultValue="cotizaciones">
           <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="primera_compra">1ra Compra ({dealsEnRango.filter(d => d.pipeline_type !== "recompra").length})</TabsTrigger>
-            <TabsTrigger value="recompra">Recompra ({dealsEnRango.filter(d => d.pipeline_type === "recompra").length})</TabsTrigger>
             <TabsTrigger value="cotizaciones">Cotizaciones ({cotizaciones.length})</TabsTrigger>
             <TabsTrigger value="pedidos">Pedidos ({pedidos.length})</TabsTrigger>
             <TabsTrigger value="facturas">Facturas ({facturas.length})</TabsTrigger>
             <TabsTrigger value="cobranza">Cobranza ({pagos.length})</TabsTrigger>
           </TabsList>
-
-        {([
-          { key: "primera_compra", label: "1ra Compra", filter: (d: any) => d.pipeline_type !== "recompra", empty: "Sin prospectos de 1ra compra en el rango" },
-          { key: "recompra", label: "Recompra", filter: (d: any) => d.pipeline_type === "recompra", empty: "Sin recompras en el rango" },
-        ] as const).map(({ key, filter, empty }) => {
-          const rows = dealsEnRango.filter(filter);
-          return (
-            <TabsContent value={key} key={key} className="mt-3">
-              <div className="overflow-x-auto border rounded-md"><Table>
-                <TableHeader><TableRow><TableHead className="py-1.5">Cliente</TableHead><TableHead className="py-1.5">Tipo</TableHead><TableHead className="py-1.5">Fecha</TableHead><TableHead className="py-1.5 text-right">Unid. equiv.</TableHead><TableHead className="py-1.5 text-right">Acciones</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-3 text-muted-foreground">{empty}</TableCell></TableRow>}
-                  {paginate(rows, limProspectos, pageProspectos).map(d => {
-                    const dealMarca = (d as any).crm_pipelines?.marca === "phillips66" ? "phillips66" : "chevron";
-                    const dealType = d.pipeline_type === "recompra" ? "recompra" : "primera_compra";
-                    const dealUrl = `/crm/${dealMarca}/pipeline?type=${dealType}&deal=${d.id}`;
-                    return (
-                      <TableRow key={d.id}>
-                        <TableCell className="font-medium">{companyMap[d.company_id] || d.title}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-xs">{d.pipeline_type === "recompra" ? "Recompra" : "1ª Compra"}</Badge></TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{format(new Date(d.created_at), "dd MMM yyyy", { locale: es })}</TableCell>
-                        <TableCell className="text-right">{fmtNum(Number(d.potencial_unidades || 0))}</TableCell>
-                        <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => navigate(dealUrl)}><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-              <PaginatorBar page={pageProspectos} setPage={setPageProspectos} total={rows.length} lim={limProspectos} setLim={setLimProspectos} />
-              </div>
-            </TabsContent>
-          );
-        })}
 
         {[
           { key: "cotizaciones", data: cotizaciones, lim: limCotizaciones, setLim: setLimCotizaciones, page: pageCotizaciones, setPage: setPageCotizaciones },

@@ -146,9 +146,6 @@ export default function WhatsAppCampaigns() {
   const [plazas, setPlazas] = useState<{ id: string; nombre: string }[]>([]);
   const [giroFilter, setGiroFilter] = useState<string[]>([]);
   const [intereses, setIntereses] = useState<{ id: string; nombre: string }[]>([]);
-  const [clientTypeFilter, setClientTypeFilter] = useState<"all" | "primera_compra" | "recompra" | "cliente">("all");
-  const [companyPipelineTypes, setCompanyPipelineTypes] = useState<Map<string, Set<string>>>(new Map());
-  const [companyHasConverted, setCompanyHasConverted] = useState<Set<string>>(new Set());
   const [scheduleMode, setScheduleMode] = useState<"now" | "later">("now");
   const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState<string>("09:00");
@@ -294,24 +291,6 @@ export default function WhatsAppCampaigns() {
       .order("nombre")
       .then(({ data }) => setPlazas((data || []) as any));
 
-    // Cargar pipeline types de crm_deals por empresa para filtro de primera compra / recompra
-    (supabase as any)
-      .from("crm_deals")
-      .select("company_id,pipeline_type,convertido_a_cliente")
-      .not("company_id", "is", null)
-      .then(({ data }: any) => {
-        const map = new Map<string, Set<string>>();
-        const converted = new Set<string>();
-        for (const d of data || []) {
-          const cid = d.company_id as string;
-          if (!map.has(cid)) map.set(cid, new Set());
-          map.get(cid)!.add(d.pipeline_type);
-          if (d.convertido_a_cliente) converted.add(cid);
-        }
-        setCompanyPipelineTypes(map);
-        setCompanyHasConverted(converted);
-      });
-
     // Cargar contactos con envíos en últimas 48h para filtro de exclusión
     const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     (supabase as any)
@@ -345,18 +324,10 @@ export default function WhatsAppCampaigns() {
         // OR: contact must have AT LEAST ONE selected giro
         if (!giroFilter.some((g) => ids.includes(g))) return false;
       }
-      if (clientTypeFilter !== "all" && c.company_id) {
-        const types = companyPipelineTypes.get(c.company_id);
-        if (clientTypeFilter === "cliente") {
-          if (!companyHasConverted.has(c.company_id)) return false;
-        } else if (!types || !types.has(clientTypeFilter)) {
-          return false;
-        }
-      }
       if (excludeRecent && recentContactIds.has(c.id)) return false;
       return true;
     });
-  }, [contacts, plazaFilter, giroFilter, clientTypeFilter, companyPipelineTypes, companyHasConverted, excludeRecent, recentContactIds]);
+  }, [contacts, plazaFilter, giroFilter, excludeRecent, recentContactIds]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -392,7 +363,6 @@ export default function WhatsAppCampaigns() {
     setScheduledAt(undefined);
     setScheduledTime("09:00");
     setExcludeRecent(true);
-    setClientTypeFilter("all");
   };
 
   const selectedTpl = useMemo(
@@ -628,21 +598,6 @@ export default function WhatsAppCampaigns() {
                         );
                       })}
                     </div>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Tipo de negocio</Label>
-                    <Select
-                      value={clientTypeFilter}
-                      onValueChange={(v) => { setClientTypeFilter(v as any); setSelected(new Set()); }}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="primera_compra">Primera Compra</SelectItem>
-                        <SelectItem value="recompra">Recompra</SelectItem>
-                        <SelectItem value="cliente">Cliente (convertido)</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
                 <label className="flex items-center gap-2 text-xs cursor-pointer">
