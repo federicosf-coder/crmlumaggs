@@ -180,7 +180,7 @@ export function useCommercialDashboard(filters: CommercialFilters) {
       ]);
 
       const profiles = profilesRes.data || [];
-      const profileById = new Map(profiles.map((p: any) => [p.user_id, p.full_name || "Sin nombre"]));
+      const profileById = new Map<string, string>(profiles.map((p: any) => [p.user_id, p.full_name || "Sin nombre"]));
 
       // Aplicar filtro de ejecutivo a colecciones que dependen del usuario
       const matchesEjec = (ownerA?: string | null, ownerB?: string | null) => {

@@ -21,7 +21,7 @@ import {
   CalendarIcon, ArrowLeft, GripVertical, Truck, Plus, Check, Image as ImageIcon,
   Pencil, Trash2, Package, ListChecks, Search, PanelLeftClose, PanelLeftOpen,
   ClipboardCheck, MapPin, Lock, Unlock, Map as MapIcon, List as ListIcon, FileText, Play, Flag, Eye,
-  Route as RouteIcon, Clock, Timer, AlertTriangle, Save,
+  Route as RouteIcon, Clock, Timer, AlertTriangle, Save, ArrowDownUp,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -324,7 +324,7 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
   );
 }
 
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute, onSaveTiempoReal, onSaveKmManual, onSaveDocCoords, onAdjustRouteTime, onResetRouteTime, isAdmin }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute, onSortByRealTime, onSaveTiempoReal, onSaveKmManual, onSaveDocCoords, onAdjustRouteTime, onResetRouteTime, isAdmin }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -337,6 +337,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onToggleCerrada: (ruta: any) => void;
   onStartRoute: (ruta: any) => void;
   onFinishRoute: (ruta: any) => void;
+  onSortByRealTime?: (ruta: any) => void;
   onSaveTiempoReal?: (docId: string, minutes: number | null) => void;
   onSaveKmManual?: (docId: string, km: number | null) => void;
   onSaveDocCoords?: (docId: string, lat: number, lng: number, address?: string | null) => void | Promise<void>;
@@ -380,6 +381,16 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
           </p>
         </div>
         <div className="flex gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            title="Ordenar paradas por hora real de entrega (ascendente)"
+            onClick={() => onSortByRealTime?.(ruta)}
+            disabled={cerrada}
+          >
+            <ArrowDownUp className="h-3.5 w-3.5" />
+          </Button>
           <Button size="icon" variant="ghost" className="h-7 w-7" title={cerrada ? "Reabrir ruta" : "Cerrar ruta"} onClick={() => onToggleCerrada(ruta)}>
             {cerrada ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
           </Button>
@@ -1008,6 +1019,57 @@ export default function DeliverySchedule() {
     refetchEntregas();
   };
 
+  // Reordena las entregas de una ruta de forma ascendente por fecha_entrega_real.
+  // Las paradas sin hora real se colocan al final, preservando su orden actual relativo.
+  // Devuelve true si reordenó (o no había nada que cambiar) y false si hubo error.
+  const sortRouteByRealTime = async (rutaId: string, opts?: { silent?: boolean }) => {
+    const silent = !!opts?.silent;
+    const { data: entregas, error } = await supabase
+      .from("entregas_programadas")
+      .select("id, orden_ruta, fecha_entrega_real")
+      .eq("ruta_id", rutaId)
+      .order("orden_ruta");
+    if (error) { if (!silent) toast.error(error.message); return false; }
+    if (!entregas || entregas.length === 0) return true;
+    const conHora = (entregas as any[])
+      .filter((e) => e.fecha_entrega_real)
+      .sort((a, b) => new Date(a.fecha_entrega_real).getTime() - new Date(b.fecha_entrega_real).getTime());
+    const sinHora = (entregas as any[]).filter((e) => !e.fecha_entrega_real);
+    const ordenado = [...conHora, ...sinHora];
+    let changes = 0;
+    // Asignación en dos pasadas para evitar choques con el índice único (ruta_id, orden_ruta).
+    // Paso 1: mover a un offset grande negativo temporal.
+    for (let i = 0; i < ordenado.length; i++) {
+      const e = ordenado[i] as any;
+      const nuevo = i + 1;
+      if (e.orden_ruta !== nuevo) {
+        await supabase.from("entregas_programadas")
+          .update({ orden_ruta: -(i + 1) - 1000 })
+          .eq("id", e.id);
+        changes++;
+      }
+    }
+    // Paso 2: asignar el orden definitivo.
+    if (changes > 0) {
+      for (let i = 0; i < ordenado.length; i++) {
+        const e = ordenado[i] as any;
+        const nuevo = i + 1;
+        if (e.orden_ruta !== nuevo) {
+          await supabase.from("entregas_programadas")
+            .update({ orden_ruta: nuevo })
+            .eq("id", e.id);
+        }
+      }
+      await refetchEntregas();
+      // Recalcular km/tiempo estimado/real con el nuevo orden.
+      await recalcRouteDistances(rutaId);
+      if (!silent) toast.success("Paradas reordenadas por hora real de entrega");
+    } else if (!silent) {
+      toast.info("Las paradas ya estaban ordenadas por hora real");
+    }
+    return true;
+  };
+
   // Guarda km capturados manualmente (cuando faltan coordenadas)
   const saveKmManual = async (rutaId: string, docId: string, km: number | null) => {
     const tiempoEstimado = km != null && km > 0 ? minutesFromKm(km) : null;
@@ -1308,6 +1370,9 @@ export default function DeliverySchedule() {
   const handleFinishRoute = async (ruta: any) => {
     if (!ruta.ruta_started_at) { toast.error("Primero inicia la ruta"); return; }
     if (ruta.ruta_finished_at) return;
+    // Antes de validar, reordena automáticamente las paradas por hora real de entrega
+    // ascendente (las que no tengan hora real quedan al final preservando su orden actual).
+    await sortRouteByRealTime(ruta.id, { silent: true });
     // Validar que el orden de las paradas sea consistente con las horas reales de entrega.
     // Si una parada con orden posterior tiene fecha_entrega_real anterior a la de una parada
     // con orden previo, se debe corregir el orden antes de cerrar la ruta.
@@ -1761,6 +1826,7 @@ export default function DeliverySchedule() {
                                   onToggleCerrada={toggleRutaCerrada}
                                   onStartRoute={handleStartRoute}
                                   onFinishRoute={handleFinishRoute}
+                                  onSortByRealTime={(r) => sortRouteByRealTime(r.id)}
                                   onSaveTiempoReal={(docId, min) => saveTiempoReal(ruta.id, docId, min)}
                                   onSaveKmManual={(docId, km) => saveKmManual(ruta.id, docId, km)}
                                   onSaveDocCoords={(docId, lat, lng, address) => saveDocCoords(ruta.id, docId, lat, lng, address)}
