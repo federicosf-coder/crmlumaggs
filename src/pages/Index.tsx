@@ -57,6 +57,7 @@ const groups: { title: string; subtitle: string; items: Mod[] }[] = [
       { title: "Directorio",            description: "Empresas y contactos",                 icon: BookOpen,      url: "/directory",  accent: A.blue   },
       { title: "Cobranza",              description: "Pagos y aplicaciones de cobro",        icon: Wallet,        url: "/cobranza",   accent: A.emerald},
       { title: "WhatsApp",              description: "Conversaciones con clientes",          icon: MessageCircle, url: "/whatsapp",   accent: A.lime   },
+      { title: "Seguimiento",           description: "Seguimiento de ventas y clientes",    icon: TrendingUp,    url: "/seguimiento", accent: A.slate  },
     ],
   },
   {
