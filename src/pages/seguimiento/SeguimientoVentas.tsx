@@ -18,6 +18,8 @@ import {
   type SeguimientoEstatus,
 } from "@/hooks/useSeguimientoVentas";
 import { SeguimientoDetailDialog } from "@/components/seguimiento/SeguimientoDetailDialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 type SortDir = "asc" | "desc";
 interface SortState {
@@ -111,6 +113,7 @@ export default function SeguimientoVentas() {
   const [fRitmo, setFRitmo] = useState<string[]>([]);
   const [fDias, setFDias] = useState<string[]>([]);
   const [fPotencial, setFPotencial] = useState<string[]>([]);
+  const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
 
   const tieneVenta = tab === "con_venta";
 
@@ -120,10 +123,38 @@ export default function SeguimientoVentas() {
     setFRitmo([]);
     setFDias([]);
     setFPotencial([]);
+    setFEjecutivo([]);
   }, [tieneVenta]);
 
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles_min"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("is_active", true);
+      if (error) throw error;
+      return (data || []) as { user_id: string; full_name: string | null }[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const profileMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of profiles) m.set(p.user_id, p.full_name || "—");
+    return m;
+  }, [profiles]);
+
+  const ejecutivoOptions = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of rows) if (r.owner_id) ids.add(r.owner_id);
+    return Array.from(ids)
+      .map((id) => ({ id, name: profileMap.get(id) || "—" }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }, [rows, profileMap]);
 
   const ambito = tieneVenta ? "con_venta" : "sin_venta";
   const estatusOptions = useMemo(
@@ -139,13 +170,14 @@ export default function SeguimientoVentas() {
     arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
   const activeFiltersCount =
-    fEstatus.length + fRitmo.length + fDias.length + fPotencial.length;
+    fEstatus.length + fRitmo.length + fDias.length + fPotencial.length + fEjecutivo.length;
 
   const clearAllFilters = () => {
     setFEstatus([]);
     setFRitmo([]);
     setFDias([]);
     setFPotencial([]);
+    setFEjecutivo([]);
   };
 
   const catalogMap = useMemo(() => {
@@ -205,6 +237,14 @@ export default function SeguimientoVentas() {
         });
       });
     }
+    if (fEjecutivo.length > 0) {
+      base = base.filter((r) => {
+        if (fEjecutivo.includes("__none__")) {
+          if (!r.owner_id) return true;
+        }
+        return r.owner_id ? fEjecutivo.includes(r.owner_id) : false;
+      });
+    }
 
     if (!sort) {
       // Default: urgencia primero, luego recencia
@@ -229,6 +269,10 @@ export default function SeguimientoVentas() {
         case "empresa":
           va = (a.companies?.name || "").toLowerCase();
           vb = (b.companies?.name || "").toLowerCase();
+          break;
+        case "ejecutivo":
+          va = (a.owner_id ? profileMap.get(a.owner_id) || "" : "").toLowerCase();
+          vb = (b.owner_id ? profileMap.get(b.owner_id) || "" : "").toLowerCase();
           break;
         case "estatus": {
           const ea = catalogMap.get(getEffectiveStatusId(a) || "");
@@ -296,7 +340,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fRitmo, fDias, fPotencial]);
+  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fRitmo, fDias, fPotencial, fEjecutivo, profileMap]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
@@ -498,6 +542,45 @@ export default function SeguimientoVentas() {
                   </div>
                 </div>
               )}
+
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
+                  Ejecutivo
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {ejecutivoOptions.length === 0 && (
+                    <span className="text-xs text-muted-foreground font-light">Sin ejecutivos</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setFEjecutivo((arr) => toggleInArray(arr, "__none__"))}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                      fEjecutivo.includes("__none__")
+                        ? "bg-slate-600 text-white border-transparent shadow-sm"
+                        : "bg-background text-foreground border-border hover:border-slate-300"
+                    }`}
+                  >
+                    Sin asignar
+                  </button>
+                  {ejecutivoOptions.map((opt) => {
+                    const active = fEjecutivo.includes(opt.id);
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setFEjecutivo((arr) => toggleInArray(arr, opt.id))}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                          active
+                            ? "bg-violet-600 text-white border-transparent shadow-sm"
+                            : "bg-background text-foreground border-border hover:border-violet-300"
+                        }`}
+                      >
+                        {opt.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </CollapsibleContent>
@@ -524,6 +607,9 @@ export default function SeguimientoVentas() {
                     <p className="text-sm font-semibold leading-tight">{r.companies?.name || "—"}</p>
                     <StatusBadge estatus={eff} />
                   </div>
+                  <p className="text-[11px] text-muted-foreground font-light">
+                    Ejecutivo: <span className="text-foreground">{r.owner_id ? (profileMap.get(r.owner_id) || "—") : "Sin asignar"}</span>
+                  </p>
                   {tieneVenta ? (
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-light">
                       <div>
@@ -596,6 +682,7 @@ export default function SeguimientoVentas() {
             <TableHeader>
               <TableRow>
                 <SortableHead label="Empresa" sortKey="empresa" sort={sort} onSort={handleSort} />
+                <SortableHead label="Ejecutivo" sortKey="ejecutivo" sort={sort} onSort={handleSort} />
                 <SortableHead label="Estatus" sortKey="estatus" sort={sort} onSort={handleSort} />
                 {tieneVenta ? (
                   <>
@@ -623,13 +710,13 @@ export default function SeguimientoVentas() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={tieneVenta ? 11 : 6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={tieneVenta ? 12 : 7} className="text-center text-muted-foreground py-8">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={tieneVenta ? 11 : 6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={tieneVenta ? 12 : 7} className="text-center text-muted-foreground py-8">
                     Sin registros.
                   </TableCell>
                 </TableRow>
@@ -640,6 +727,9 @@ export default function SeguimientoVentas() {
                   return (
                     <TableRow key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
                       <TableCell className="font-medium">{r.companies?.name || "—"}</TableCell>
+                      <TableCell className="text-xs font-light text-muted-foreground">
+                        {r.owner_id ? (profileMap.get(r.owner_id) || "—") : <span className="italic">Sin asignar</span>}
+                      </TableCell>
                       <TableCell><StatusBadge estatus={eff} /></TableCell>
                       {tieneVenta ? (
                         <>
