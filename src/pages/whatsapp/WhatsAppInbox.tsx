@@ -18,11 +18,14 @@ import { toast } from "sonner";
 import {
   MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus,
   FileText, Search, Paperclip, Image as ImageIcon, File as FileIcon, Download, Play, X,
-  FileSpreadsheet, FileType, AlertCircle,
+  FileSpreadsheet, FileType, AlertCircle, ArrowLeft, Info,
 } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { CreateCrmDealDialog } from "@/components/crm/CreateCrmDealDialog";
@@ -179,6 +182,10 @@ export default function WhatsAppInbox() {
   const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video"; name?: string; storagePath?: string | null } | null>(null);
   // Cache de URLs firmadas frescas por id de mensaje
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
+  // Vista móvil: 'list' (lista de chats a pantalla completa) o 'chat' (chat activo a pantalla completa)
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  // Drawer/Sheet con detalles del contacto en móvil
+  const [infoOpen, setInfoOpen] = useState(false);
 
   // Limpia object URL al cambiar archivo
   useEffect(() => {
@@ -700,9 +707,11 @@ export default function WhatsAppInbox() {
         </p>
       </div>
     ) : (
-    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-8rem)] overflow-hidden">
+    <div className="flex flex-col md:grid md:grid-cols-12 md:gap-4 h-[calc(100vh-8rem)] overflow-hidden">
       {/* Conversaciones */}
-      <Card className="col-span-3 flex flex-col h-full overflow-hidden">
+      <Card
+        className={`${mobileView === "list" ? "flex" : "hidden"} md:flex md:col-span-3 flex-col h-full w-full overflow-hidden`}
+      >
         <div className="p-3 border-b space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 font-medium">
@@ -765,7 +774,7 @@ export default function WhatsAppInbox() {
               return (
               <button
                 key={c.id}
-                onClick={() => setActiveId(c.id)}
+                onClick={() => { setActiveId(c.id); setMobileView("chat"); }}
                 className={`relative w-full text-left p-3 pl-4 border-b hover:bg-accent transition ${activeId === c.id ? "bg-accent" : ""} ${isUnread ? "bg-destructive/5" : ""}`}
               >
                 {isUnread && (
@@ -804,7 +813,9 @@ export default function WhatsAppInbox() {
       </Card>
 
       {/* Chat */}
-      <Card className="col-span-6 flex flex-col h-full overflow-hidden">
+      <Card
+        className={`${mobileView === "chat" ? "flex" : "hidden"} md:flex md:col-span-6 flex-col h-full w-full overflow-hidden`}
+      >
         {!active ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
             Selecciona una conversación
@@ -813,19 +824,41 @@ export default function WhatsAppInbox() {
           <>
             <div className="p-3 border-b shrink-0 bg-card">
               <div className="flex items-center gap-2">
-                <div className="font-medium">{contactName || active.wa_profile_name || active.wa_phone}</div>
-                {activeAccount && (
-                  <span
-                    className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                    style={{ backgroundColor: `${activeAccount.color}22`, color: activeAccount.color }}
-                  >
-                    {activeAccount.label}
-                  </span>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden h-8 w-8 -ml-1 shrink-0"
+                  onClick={() => setMobileView("list")}
+                  title="Volver"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="font-medium truncate">{contactName || active.wa_profile_name || active.wa_phone}</div>
+                    {activeAccount && (
+                      <span
+                        className="text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0"
+                        style={{ backgroundColor: `${activeAccount.color}22`, color: activeAccount.color }}
+                      >
+                        {activeAccount.label}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">+{active.wa_phone}</div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden h-8 w-8 shrink-0"
+                  onClick={() => setInfoOpen(true)}
+                  title="Detalles"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
               </div>
-              <div className="text-xs text-muted-foreground">+{active.wa_phone}</div>
               {activeAccount && (
-                <div className="mt-1 text-[10px] text-muted-foreground">
+                <div className="mt-1 text-[10px] text-muted-foreground hidden md:block">
                   Respondiendo desde <strong className="text-foreground">{activeAccount.label}</strong>
                 </div>
               )}
@@ -977,10 +1010,10 @@ export default function WhatsAppInbox() {
                   </div>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-end">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" disabled={!windowOpen || sending} title="Adjuntar">
+                    <Button variant="outline" size="icon" disabled={!windowOpen || sending} title="Adjuntar" className="shrink-0">
                       <Paperclip className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -1012,7 +1045,7 @@ export default function WhatsAppInbox() {
                     if (v.endsWith("/") && quickReplies.length > 0) setQrOpen(true);
                   }}
                   disabled={!windowOpen || sending}
-                  className="min-h-[60px]"
+                  className="min-h-[44px] md:min-h-[60px] flex-1 resize-none"
                 />
                 <Popover open={qrOpen} onOpenChange={setQrOpen}>
                   <PopoverTrigger asChild>
@@ -1020,6 +1053,7 @@ export default function WhatsAppInbox() {
                       variant="outline"
                       size="icon"
                       disabled={!windowOpen || quickReplies.length === 0}
+                      className="shrink-0 hidden sm:inline-flex"
                       title="Respuestas rápidas"
                     >
                       <Zap className="h-4 w-4" />
@@ -1047,7 +1081,7 @@ export default function WhatsAppInbox() {
                     </div>
                   </PopoverContent>
                 </Popover>
-                <Button onClick={sendText} disabled={!windowOpen || sending || !draft.trim()}>
+                <Button onClick={sendText} disabled={!windowOpen || sending || !draft.trim()} size="icon" className="shrink-0">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
@@ -1096,10 +1130,9 @@ export default function WhatsAppInbox() {
         )}
       </Card>
 
-      {/* Lateral */}
-      <Card className="col-span-3 flex flex-col h-full overflow-hidden">
-        <div className="p-3 overflow-y-auto flex-1 min-h-0">
-        {!active ? (
+      {/* Lateral (desktop) + Sheet (móvil) */}
+      {(() => {
+        const sidePanelContent = !active ? (
           <div className="text-sm text-muted-foreground">Datos del contacto</div>
         ) : (
           <div className="space-y-3">
@@ -1181,9 +1214,25 @@ export default function WhatsAppInbox() {
               )}
             </div>
           </div>
-        )}
-        </div>
-      </Card>
+        );
+        return (
+          <>
+            <Card className="hidden md:flex md:col-span-3 flex-col h-full overflow-hidden">
+              <div className="p-3 overflow-y-auto flex-1 min-h-0">
+                {sidePanelContent}
+              </div>
+            </Card>
+            <Sheet open={infoOpen} onOpenChange={setInfoOpen}>
+              <SheetContent side="bottom" className="md:hidden h-[85vh] overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Detalles</SheetTitle>
+                </SheetHeader>
+                <div className="mt-4">{sidePanelContent}</div>
+              </SheetContent>
+            </Sheet>
+          </>
+        );
+      })()}
 
       <ContactFormDialog
         open={editContactOpen}
