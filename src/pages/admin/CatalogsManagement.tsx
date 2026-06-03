@@ -1784,7 +1784,6 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     label: "CRM y ventas",
     items: [
       { key: "industrias", label: "Industrias", description: "Editar nombre mostrado vs guardado" },
-      { key: "embudos", label: "Embudos de Venta" },
       { key: "condiciones", label: "Condiciones" },
       { key: "seguimiento_estatus", label: "Estatus de Seguimiento a Ventas", description: "Rangos por familia y ámbito" },
     ],
@@ -1816,7 +1815,6 @@ function renderCatalog(key: CatalogKey) {
     case "clasificaciones": return <OptionsTab />;
     case "empresa_marcas": return <EmpresaMarcasTab />;
     case "industrias": return <IndustriasTab />;
-    case "embudos": return <EmbudosTab />;
     case "condiciones": return <CondicionesTab />;
     case "logos": return <LogosTab />;
     case "seguimiento_estatus": return <SeguimientoEstatusTab />;

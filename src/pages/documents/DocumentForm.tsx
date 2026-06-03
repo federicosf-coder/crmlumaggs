@@ -29,7 +29,6 @@ import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 import { fireAutomation } from "@/hooks/useFireAutomation";
 import { EntregaCorporativaSection } from "@/components/documentos/EntregaCorporativaSection";
-import { AssignNewDealDialog, type AssignNewDealPrefill } from "@/components/documentos/AssignNewDealDialog";
 import { EMPRESA_STYLES, TIPO_DOC_STYLES, plazaColor } from "./documentStyles";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
@@ -154,7 +153,6 @@ export default function DocumentForm() {
   });
   const [items, setItems] = useState<LineItem[]>([]);
   const [saving, setSaving] = useState(false);
-  const [pendingNewDeal, setPendingNewDeal] = useState<AssignNewDealPrefill | null>(null);
 
   // Dialog states
   const [showNewCompany, setShowNewCompany] = useState(false);
@@ -226,19 +224,6 @@ export default function DocumentForm() {
       const { data } = await supabase.from("direcciones_empresa").select("*").eq("empresa_id", form.empresa_id).eq("is_active", true).order("tipo");
       return data || [];
     },
-  });
-  const { data: dealsForCompany = [] } = useQuery({
-    queryKey: ["crm_deals_for_company", form.empresa_id],
-    queryFn: async () => {
-      if (!form.empresa_id) return [];
-      const { data } = await supabase
-        .from("crm_deals")
-        .select("id, title, pipeline_id, created_at, crm_pipelines!inner(nombre, marca, pipeline_type)")
-        .eq("company_id", form.empresa_id)
-        .order("created_at", { ascending: false });
-      return data || [];
-    },
-    enabled: !!form.empresa_id,
   });
   const { data: users = [] } = useQuery({ queryKey: ["profiles_list"], queryFn: async () => { const { data } = await supabase.from("profiles").select("user_id, full_name").eq("is_active", true).order("full_name"); return data || []; } });
   const { data: productos = [], refetch: refetchProductos } = useQuery({ queryKey: ["productos_list"], queryFn: async () => { const { data } = await supabase.from("productos").select("id, codigo, nombre_producto, descripcion, marca_id, precio_base_uf1, precio_uf2, precio_uf3, precio_uf4, precio_r1, precio_r2, precio_r3, precio_r4, presentaciones(nombre, unidades_equivalentes)").eq("is_active", true).order("codigo"); return data || []; } });
@@ -1494,23 +1479,11 @@ export default function DocumentForm() {
           total_cotizacion: existingDoc?.total != null ? `$${Number(existingDoc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : null,
           fecha_vencimiento: form.fecha_vencimiento || null,
         }}
-        context={{ company_id: form.empresa_id || null, contact_id: form.contacto_id || null, deal_id: form.negocio_id || null }}
+        context={{ company_id: form.empresa_id || null, contact_id: form.contacto_id || null }}
         onSent={async () => {
           if (!id) return;
           await supabase.from("documentos").update({ whatsapp_last_sent_at: new Date().toISOString() }).eq("id", id);
           qc.invalidateQueries({ queryKey: ["documento", id] });
-        }}
-      />
-
-      <AssignNewDealDialog
-        open={!!pendingNewDeal}
-        prefill={pendingNewDeal}
-        onClose={() => setPendingNewDeal(null)}
-        onCreated={(dealId) => {
-          setPendingNewDeal(null);
-          qc.invalidateQueries({ queryKey: ["documento", pendingNewDeal?.docId] });
-          qc.invalidateQueries({ queryKey: ["documentos"] });
-          qc.invalidateQueries({ queryKey: ["crm_deals"] });
         }}
       />
     </div>

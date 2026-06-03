@@ -156,11 +156,10 @@ export async function logTemplateUsage(opts: {
   final_message: string;
   company_id?: string | null;
   contact_id?: string | null;
-  deal_id?: string | null;
   result?: "generado" | "enviado" | "copiado" | "error";
   title?: string;
 }) {
-  const { template_id, type, user_id, final_message, company_id, contact_id, deal_id, result = "generado", title } = opts;
+  const { template_id, type, user_id, final_message, company_id, contact_id, result = "generado", title } = opts;
   await (supabase as any).from("crm_activities").insert({
     user_id,
     type: type === "email" ? "email" : "whatsapp",
@@ -168,7 +167,6 @@ export async function logTemplateUsage(opts: {
     description: `[${result}] ${final_message.slice(0, 500)}`,
     company_id: company_id ?? null,
     contact_id: contact_id ?? null,
-    deal_id: deal_id ?? null,
     template_id,
   });
 }

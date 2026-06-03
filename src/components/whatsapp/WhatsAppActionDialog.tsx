@@ -27,7 +27,7 @@ interface Props {
   variables: WhatsAppVariables;
   templateType?: WhatsAppTemplateType;
   defaultMessage?: string;
-  context: { company_id?: string | null; contact_id?: string | null; deal_id?: string | null };
+  context: { company_id?: string | null; contact_id?: string | null };
   onSent?: () => void;
   /** Optional: id from public.templates to load saved attachments. */
   templateId?: string | null;

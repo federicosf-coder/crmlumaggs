@@ -70,7 +70,6 @@ export async function logWhatsAppActivity(params: {
   message: string;
   company_id?: string | null;
   contact_id?: string | null;
-  deal_id?: string | null;
   result?: "enviado" | "respondido" | "sin_respuesta" | "pendiente";
   title?: string;
   /** id del documento (cotización/pedido/factura) si aplica */
@@ -98,7 +97,6 @@ export async function logWhatsAppActivity(params: {
     description,
     company_id: params.company_id ?? null,
     contact_id: params.contact_id ?? null,
-    deal_id: params.deal_id ?? null,
     documento_id: params.documento_id ?? null,
     destinatario_phone: params.destinatario_phone ?? null,
     message_type: params.message_type ?? "texto",
