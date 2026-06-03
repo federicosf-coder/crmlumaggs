@@ -363,7 +363,6 @@ export default function WhatsAppCampaigns() {
     setScheduledAt(undefined);
     setScheduledTime("09:00");
     setExcludeRecent(true);
-    setClientTypeFilter("all");
   };
 
   const selectedTpl = useMemo(
