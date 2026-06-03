@@ -649,73 +649,6 @@ export default function DocumentForm() {
       if (!docData.plaza_id) console.warn("[DocumentForm] plaza_id vacío al guardar", docData);
       if (!docData.empresa_vendedora) console.warn("[DocumentForm] empresa_vendedora vacío al guardar", docData);
 
-      // Auto-asignar negocio (crm_deal) si no se seleccionó uno y la empresa está definida.
-      // La falta de negocio_id NUNCA debe impedir guardar el documento.
-      // Aquí SOLO buscamos un negocio existente. Si no existe, después de guardar el documento
-      // abriremos un diálogo para que el usuario cree manualmente el nuevo negocio.
-      let needsNewDealDialog = false;
-      let dealDialogIsPrimeraCompra = false;
-      if (!docData.negocio_id && docData.empresa_id && !isEdit) {
-        try {
-          const marcaTarget = docData.empresa_vendedora === "galsa_phillips66" ? "phillips66" : "chevron";
-
-          // ¿Tiene facturas/pedidos con unidades? -> determina si es Recompra
-          const { data: ventasPrevias } = await supabase
-            .from("documentos")
-            .select("id, unidades_equivalentes_total, tipo_documento")
-            .eq("empresa_id", docData.empresa_id)
-            .in("tipo_documento", ["pedido", "factura"])
-            .gt("unidades_equivalentes_total", 0)
-            .limit(1);
-
-          const tieneVentas = (ventasPrevias || []).length > 0;
-          const targetType: "primera_compra" | "recompra" = tieneVentas ? "recompra" : "primera_compra";
-
-          if (targetType === "recompra") {
-            // RECOMPRA: vincular al deal del MES si ya existe (1 negocio por empresa por mes).
-            // Si NO existe, no lo creamos automáticamente: pediremos al usuario los datos vía diálogo.
-            const fechaDoc = (docData.fecha_documento as string) || new Date().toISOString().slice(0, 10);
-            const mesStart = fechaDoc.slice(0, 7) + "-01"; // YYYY-MM-01
-            const { data: existingRecompra } = await supabase
-              .from("crm_deals")
-              .select("id, pipeline_id, crm_pipelines!inner(marca, pipeline_type)")
-              .eq("company_id", docData.empresa_id)
-              .eq("mes_negocio", mesStart)
-              .order("created_at", { ascending: false });
-            const matchRec = (existingRecompra || []).find((d: any) =>
-              d.crm_pipelines?.marca === marcaTarget && d.crm_pipelines?.pipeline_type === "recompra"
-            );
-            if (matchRec) {
-              docData.negocio_id = matchRec.id;
-            } else {
-              needsNewDealDialog = true;
-              dealDialogIsPrimeraCompra = false;
-            }
-          } else {
-            // PRIMERA COMPRA: reutilizar el más reciente si existe; de lo contrario, pedir al usuario los datos.
-            const { data: existingDeals } = await supabase
-              .from("crm_deals")
-              .select("id, pipeline_id, crm_pipelines!inner(marca, pipeline_type)")
-              .eq("company_id", docData.empresa_id)
-              .order("created_at", { ascending: false });
-
-            const matching = (existingDeals || []).find((d: any) =>
-              d.crm_pipelines?.marca === marcaTarget && d.crm_pipelines?.pipeline_type === "primera_compra"
-            );
-
-            if (matching) {
-              docData.negocio_id = matching.id;
-            } else {
-              needsNewDealDialog = true;
-              dealDialogIsPrimeraCompra = true;
-            }
-          }
-        } catch (e: any) {
-          console.warn("[DocumentForm] Error buscando negocio existente:", e);
-          toast.warning("No se pudo verificar el negocio en CRM. El documento se guardará igual.");
-        }
-      }
-
       let docId = id;
       if (isEdit) {
         const { error } = await supabase.from("documentos").update(docData).eq("id", id!);
@@ -776,23 +709,7 @@ export default function DocumentForm() {
         });
       }
 
-      // Si necesitamos crear un negocio nuevo, abrir diálogo y diferir navegación
-      if (needsNewDealDialog && docId && !isEdit) {
-        setPendingNewDeal({
-          docId,
-          empresa_vendedora: form.empresa_vendedora,
-          empresa_id: form.empresa_id,
-          contacto_id: form.contacto_id || null,
-          plaza_id: form.plaza_id || null,
-          ejecutivo_venta_id: form.ejecutivo_venta_id || null,
-          total: total,
-          fecha_documento: form.fecha_documento,
-          isPrimeraCompra: dealDialogIsPrimeraCompra,
-        });
-        // Navegar al detalle igual; el diálogo seguirá abierto encima.
-        navigate(`/documents/${docId}`);
-        setViewMode(true);
-      } else if (!isEdit) {
+      if (!isEdit) {
         navigate(`/documents/${docId}`);
         setViewMode(true);
       } else {
@@ -1399,31 +1316,6 @@ export default function DocumentForm() {
             ) : (
               <Input value="" disabled placeholder="N/A" className="bg-muted" />
             )}
-          </div>
-          <div>
-            <Label>Negocio relacionado {form.empresa_id && <span className="text-destructive">*</span>}</Label>
-            <div className="flex gap-1">
-              <SearchableSelect
-                value={form.negocio_id}
-                onValueChange={v => set("negocio_id", v)}
-                placeholder={form.empresa_id ? "Se asignará automáticamente al guardar" : "Selecciona empresa primero"}
-                disabled={!form.empresa_id}
-                options={(dealsForCompany as any[]).map((d) => ({
-                  value: d.id,
-                  label: `${d.title}${d.crm_pipelines?.nombre ? ` · ${d.crm_pipelines.nombre}` : ""}`,
-                }))}
-              />
-              {form.negocio_id && (
-                <Button type="button" variant="outline" size="icon" asChild title="Abrir negocio">
-                  <Link to={`/crm/${(dealsForCompany as any[]).find(d => d.id === form.negocio_id)?.crm_pipelines?.marca || "chevron"}/pipeline?deal=${form.negocio_id}`}>
-                    <ExternalLink className="h-4 w-4" />
-                  </Link>
-                </Button>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Si lo dejas vacío, el sistema lo asignará automáticamente según el historial del cliente.
-            </p>
           </div>
         </CardContent>
       </Card>
