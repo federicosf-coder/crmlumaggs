@@ -182,6 +182,10 @@ export default function WhatsAppInbox() {
   const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video"; name?: string; storagePath?: string | null } | null>(null);
   // Cache de URLs firmadas frescas por id de mensaje
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
+  // Vista móvil: 'list' (lista de chats a pantalla completa) o 'chat' (chat activo a pantalla completa)
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  // Drawer/Sheet con detalles del contacto en móvil
+  const [infoOpen, setInfoOpen] = useState(false);
 
   // Limpia object URL al cambiar archivo
   useEffect(() => {
