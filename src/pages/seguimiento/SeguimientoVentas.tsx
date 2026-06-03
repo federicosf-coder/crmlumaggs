@@ -43,6 +43,7 @@ import {
 import { SeguimientoDetailDialog } from "@/components/seguimiento/SeguimientoDetailDialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 
 type SortDir = "asc" | "desc";
 interface SortState {
