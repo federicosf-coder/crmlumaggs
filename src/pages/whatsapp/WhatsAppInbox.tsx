@@ -707,9 +707,11 @@ export default function WhatsAppInbox() {
         </p>
       </div>
     ) : (
-    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-8rem)] overflow-hidden">
+    <div className="flex flex-col md:grid md:grid-cols-12 md:gap-4 h-[calc(100vh-8rem)] overflow-hidden">
       {/* Conversaciones */}
-      <Card className="col-span-3 flex flex-col h-full overflow-hidden">
+      <Card
+        className={`${mobileView === "list" ? "flex" : "hidden"} md:flex md:col-span-3 flex-col h-full w-full overflow-hidden`}
+      >
         <div className="p-3 border-b space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 font-medium">
