@@ -76,9 +76,17 @@ interface Props {
   onChange: (conditions: ColumnFilterCondition[]) => void;
   combinator: "AND" | "OR";
   onCombinatorChange: (c: "AND" | "OR") => void;
+  triggerLabel?: string;
 }
 
-export function ColumnFilterBuilder({ columns, conditions, onChange, combinator, onCombinatorChange }: Props) {
+export function ColumnFilterBuilder({ 
+  columns, 
+  conditions, 
+  onChange, 
+  combinator, 
+  onCombinatorChange,
+  triggerLabel = "Filtros por columna"
+}: Props) {
   const [open, setOpen] = useState(false);
   const activeCount = conditions.filter((c) => c.value !== "" || c.operator === "is_empty" || c.operator === "is_not_empty").length;
 
