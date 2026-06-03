@@ -2,7 +2,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   ShoppingCart, FileText, Package, Truck, BookOpen, ArrowLeftRight, FolderKanban,
   GraduationCap, BarChart3, Briefcase, Wallet, FolderOpen, FileCheck, MessageCircle,
-  Zap, ArrowRight, Sparkles,
+  Zap, ArrowRight, Sparkles, TrendingUp,
+
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
