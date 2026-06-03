@@ -742,6 +742,9 @@ export default function SeguimientoVentas() {
                   <p className="text-[11px] text-muted-foreground font-light">
                     Ejecutivo: <span className="text-foreground">{r.owner_id ? (profileMap.get(r.owner_id) || "—") : "Sin asignar"}</span>
                   </p>
+                  <p className="text-[11px] text-muted-foreground font-light">
+                    Plaza: <span className="text-foreground">{getRowPlazaLabel(r.company_id) || "—"}</span>
+                  </p>
                   {tieneVenta ? (
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-light">
                       <div>
@@ -815,6 +818,7 @@ export default function SeguimientoVentas() {
               <TableRow>
                 <SortableHead label="Empresa" sortKey="empresa" sort={sort} onSort={handleSort} />
                 <SortableHead label="Ejecutivo" sortKey="ejecutivo" sort={sort} onSort={handleSort} />
+                <SortableHead label="Plaza" sortKey="plaza" sort={sort} onSort={handleSort} />
                 <SortableHead label="Estatus" sortKey="estatus" sort={sort} onSort={handleSort} />
                 {tieneVenta ? (
                   <>
@@ -842,13 +846,13 @@ export default function SeguimientoVentas() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={tieneVenta ? 12 : 7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={tieneVenta ? 13 : 8} className="text-center text-muted-foreground py-8">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={tieneVenta ? 12 : 7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={tieneVenta ? 13 : 8} className="text-center text-muted-foreground py-8">
                     Sin registros.
                   </TableCell>
                 </TableRow>
@@ -861,6 +865,9 @@ export default function SeguimientoVentas() {
                       <TableCell className="font-medium">{r.companies?.name || "—"}</TableCell>
                       <TableCell className="text-xs font-light text-muted-foreground">
                         {r.owner_id ? (profileMap.get(r.owner_id) || "—") : <span className="italic">Sin asignar</span>}
+                      </TableCell>
+                      <TableCell className="text-xs font-light text-muted-foreground">
+                        {getRowPlazaLabel(r.company_id) || <span className="italic">—</span>}
                       </TableCell>
                       <TableCell><StatusBadge estatus={eff} /></TableCell>
                       {tieneVenta ? (
