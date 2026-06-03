@@ -1954,6 +1954,7 @@ export type Database = {
           documento_id: string | null
           id: string
           message_type: string | null
+          seguimiento_venta_id: string | null
           template_id: string | null
           title: string
           type: string
@@ -1973,6 +1974,7 @@ export type Database = {
           documento_id?: string | null
           id?: string
           message_type?: string | null
+          seguimiento_venta_id?: string | null
           template_id?: string | null
           title: string
           type: string
@@ -1992,6 +1994,7 @@ export type Database = {
           documento_id?: string | null
           id?: string
           message_type?: string | null
+          seguimiento_venta_id?: string | null
           template_id?: string | null
           title?: string
           type?: string
@@ -2019,6 +2022,13 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_seguimiento_venta_id_fkey"
+            columns: ["seguimiento_venta_id"]
+            isOneToOne: false
+            referencedRelation: "seguimiento_ventas"
             referencedColumns: ["id"]
           },
           {
@@ -2547,6 +2557,7 @@ export type Database = {
           recurrence: string
           reschedule_count: number
           reschedule_reason: string | null
+          seguimiento_venta_id: string | null
           sequence_order: number | null
           task_status: string
           task_type: string
@@ -2575,6 +2586,7 @@ export type Database = {
           recurrence?: string
           reschedule_count?: number
           reschedule_reason?: string | null
+          seguimiento_venta_id?: string | null
           sequence_order?: number | null
           task_status?: string
           task_type?: string
@@ -2603,6 +2615,7 @@ export type Database = {
           recurrence?: string
           reschedule_count?: number
           reschedule_reason?: string | null
+          seguimiento_venta_id?: string | null
           sequence_order?: number | null
           task_status?: string
           task_type?: string
@@ -2646,6 +2659,13 @@ export type Database = {
             columns: ["parent_task_id"]
             isOneToOne: false
             referencedRelation: "crm_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tasks_seguimiento_venta_id_fkey"
+            columns: ["seguimiento_venta_id"]
+            isOneToOne: false
+            referencedRelation: "seguimiento_ventas"
             referencedColumns: ["id"]
           },
         ]
