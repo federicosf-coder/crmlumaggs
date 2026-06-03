@@ -709,23 +709,7 @@ export default function DocumentForm() {
         });
       }
 
-      // Si necesitamos crear un negocio nuevo, abrir diálogo y diferir navegación
-      if (needsNewDealDialog && docId && !isEdit) {
-        setPendingNewDeal({
-          docId,
-          empresa_vendedora: form.empresa_vendedora,
-          empresa_id: form.empresa_id,
-          contacto_id: form.contacto_id || null,
-          plaza_id: form.plaza_id || null,
-          ejecutivo_venta_id: form.ejecutivo_venta_id || null,
-          total: total,
-          fecha_documento: form.fecha_documento,
-          isPrimeraCompra: dealDialogIsPrimeraCompra,
-        });
-        // Navegar al detalle igual; el diálogo seguirá abierto encima.
-        navigate(`/documents/${docId}`);
-        setViewMode(true);
-      } else if (!isEdit) {
+      if (!isEdit) {
         navigate(`/documents/${docId}`);
         setViewMode(true);
       } else {
