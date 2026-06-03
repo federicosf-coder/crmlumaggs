@@ -1008,6 +1008,57 @@ export default function DeliverySchedule() {
     refetchEntregas();
   };
 
+  // Reordena las entregas de una ruta de forma ascendente por fecha_entrega_real.
+  // Las paradas sin hora real se colocan al final, preservando su orden actual relativo.
+  // Devuelve true si reordenó (o no había nada que cambiar) y false si hubo error.
+  const sortRouteByRealTime = async (rutaId: string, opts?: { silent?: boolean }) => {
+    const silent = !!opts?.silent;
+    const { data: entregas, error } = await supabase
+      .from("entregas_programadas")
+      .select("id, orden_ruta, fecha_entrega_real")
+      .eq("ruta_id", rutaId)
+      .order("orden_ruta");
+    if (error) { if (!silent) toast.error(error.message); return false; }
+    if (!entregas || entregas.length === 0) return true;
+    const conHora = (entregas as any[])
+      .filter((e) => e.fecha_entrega_real)
+      .sort((a, b) => new Date(a.fecha_entrega_real).getTime() - new Date(b.fecha_entrega_real).getTime());
+    const sinHora = (entregas as any[]).filter((e) => !e.fecha_entrega_real);
+    const ordenado = [...conHora, ...sinHora];
+    let changes = 0;
+    // Asignación en dos pasadas para evitar choques con el índice único (ruta_id, orden_ruta).
+    // Paso 1: mover a un offset grande negativo temporal.
+    for (let i = 0; i < ordenado.length; i++) {
+      const e = ordenado[i] as any;
+      const nuevo = i + 1;
+      if (e.orden_ruta !== nuevo) {
+        await supabase.from("entregas_programadas")
+          .update({ orden_ruta: -(i + 1) - 1000 })
+          .eq("id", e.id);
+        changes++;
+      }
+    }
+    // Paso 2: asignar el orden definitivo.
+    if (changes > 0) {
+      for (let i = 0; i < ordenado.length; i++) {
+        const e = ordenado[i] as any;
+        const nuevo = i + 1;
+        if (e.orden_ruta !== nuevo) {
+          await supabase.from("entregas_programadas")
+            .update({ orden_ruta: nuevo })
+            .eq("id", e.id);
+        }
+      }
+      await refetchEntregas();
+      // Recalcular km/tiempo estimado/real con el nuevo orden.
+      await recalcRouteDistances(rutaId);
+      if (!silent) toast.success("Paradas reordenadas por hora real de entrega");
+    } else if (!silent) {
+      toast.info("Las paradas ya estaban ordenadas por hora real");
+    }
+    return true;
+  };
+
   // Guarda km capturados manualmente (cuando faltan coordenadas)
   const saveKmManual = async (rutaId: string, docId: string, km: number | null) => {
     const tiempoEstimado = km != null && km > 0 ? minutesFromKm(km) : null;
