@@ -1308,6 +1308,31 @@ export default function DeliverySchedule() {
   const handleFinishRoute = async (ruta: any) => {
     if (!ruta.ruta_started_at) { toast.error("Primero inicia la ruta"); return; }
     if (ruta.ruta_finished_at) return;
+    // Validar que el orden de las paradas sea consistente con las horas reales de entrega.
+    // Si una parada con orden posterior tiene fecha_entrega_real anterior a la de una parada
+    // con orden previo, se debe corregir el orden antes de cerrar la ruta.
+    const { data: entregasOrd, error: errEntregas } = await supabase
+      .from("entregas_programadas")
+      .select("orden_ruta, fecha_entrega_real, documentos(folio_consecutivo, companies(nombre))")
+      .eq("ruta_id", ruta.id)
+      .order("orden_ruta");
+    if (errEntregas) { toast.error(errEntregas.message); return; }
+    const conHora = (entregasOrd || []).filter((e: any) => e.fecha_entrega_real);
+    for (let i = 1; i < conHora.length; i++) {
+      const prev = conHora[i - 1] as any;
+      const cur = conHora[i] as any;
+      if (new Date(cur.fecha_entrega_real).getTime() < new Date(prev.fecha_entrega_real).getTime()) {
+        const nombrePrev = prev.documentos?.companies?.nombre || `parada ${prev.orden_ruta}`;
+        const nombreCur = cur.documentos?.companies?.nombre || `parada ${cur.orden_ruta}`;
+        toast.error(
+          `No se puede cerrar la ruta: el orden de las paradas no coincide con las horas reales de entrega. ` +
+          `La parada #${cur.orden_ruta} (${nombreCur}) fue entregada antes que la parada #${prev.orden_ruta} (${nombrePrev}). ` +
+          `Reordena las paradas para que sigan el orden cronológico real de entrega y vuelve a intentarlo.`,
+          { duration: 9000 },
+        );
+        return;
+      }
+    }
     if (!confirm("¿Confirmas la finalización de esta ruta? Se registrará la hora de cierre.")) return;
     const { error } = await (supabase.from("rutas_entrega") as any)
       .update({
@@ -1317,6 +1342,9 @@ export default function DeliverySchedule() {
       })
       .eq("id", ruta.id);
     if (error) { toast.error(error.message); return; }
+    // Al cerrar la ruta, recalcular tiempos reales (y km/tiempo estimado) tomando como
+    // referencia la entrega previa o, para la primera parada, la hora de salida de planta.
+    await recalcRouteDistances(ruta.id);
     toast.success("Ruta finalizada");
     refetchRutas();
   };
