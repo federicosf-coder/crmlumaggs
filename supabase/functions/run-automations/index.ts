@@ -161,10 +161,6 @@ Deno.serve(async (req) => {
     entity = data
     contact = data
     entityLabel = [data?.first_name, data?.last_name].filter(Boolean).join(' ')
-  } else if (entity_id && entity_type === 'deal') {
-    const { data } = await supabase.from('crm_deals').select('*').eq('id', entity_id).maybeSingle()
-    entity = data
-    entityLabel = data?.title || ''
   } else if (entity_id && entity_type === 'task') {
     const { data } = await supabase.from('crm_tasks').select('*').eq('id', entity_id).maybeSingle()
     entity = data

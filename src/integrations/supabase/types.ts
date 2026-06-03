@@ -5568,7 +5568,6 @@ export type Database = {
           read_ct: number
         }[]
       }
-      recalc_deal_units: { Args: { p_deal_id: string }; Returns: undefined }
       recalc_estatus_factura_batch: { Args: never; Returns: number }
       recalc_estatus_factura_value: {
         Args: {
@@ -5578,14 +5577,6 @@ export type Database = {
           p_total: number
         }
         Returns: string
-      }
-      recalc_recompra_deals_for_doc: {
-        Args: {
-          p_empresa_id: string
-          p_empresa_vendedora: string
-          p_fecha: string
-        }
-        Returns: undefined
       }
       recalc_repurchase_for_company: {
         Args: {
@@ -5626,12 +5617,6 @@ export type Database = {
         }
         Returns: Json
       }
-      seed_crm_pipeline:
-        | { Args: { p_marca: string; p_user_id: string }; Returns: string }
-        | {
-            Args: { p_marca: string; p_nombre?: string; p_user_id: string }
-            Returns: string
-          }
       user_can_access_crm_item: {
         Args: { _item_id: string; _user_id: string }
         Returns: boolean
