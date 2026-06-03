@@ -21,8 +21,6 @@ const ACCESS_LEVELS: { value: AccessLevel; label: string }[] = [
 
 const MODULE_LABELS: Record<AppModule, string> = {
   directorio: "Directorio",
-  crm_chevron: "CRM Chevron",
-  crm_phillips66: "CRM Phillips 66",
   seguimiento_ventas: "Seguimiento a Ventas",
   cotizaciones: "Cotizaciones",
   pedidos: "Pedidos",
