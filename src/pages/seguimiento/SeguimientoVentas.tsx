@@ -359,7 +359,7 @@ export default function SeguimientoVentas() {
       />
 
       {/* Controles */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 items-start">
         <div className="inline-flex rounded-lg border bg-muted/30 p-1 self-start">
           <button
             onClick={() => setTab("con_venta")}
