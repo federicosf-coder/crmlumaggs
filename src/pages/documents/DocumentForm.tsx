@@ -1400,31 +1400,6 @@ export default function DocumentForm() {
               <Input value="" disabled placeholder="N/A" className="bg-muted" />
             )}
           </div>
-          <div>
-            <Label>Negocio relacionado {form.empresa_id && <span className="text-destructive">*</span>}</Label>
-            <div className="flex gap-1">
-              <SearchableSelect
-                value={form.negocio_id}
-                onValueChange={v => set("negocio_id", v)}
-                placeholder={form.empresa_id ? "Se asignará automáticamente al guardar" : "Selecciona empresa primero"}
-                disabled={!form.empresa_id}
-                options={(dealsForCompany as any[]).map((d) => ({
-                  value: d.id,
-                  label: `${d.title}${d.crm_pipelines?.nombre ? ` · ${d.crm_pipelines.nombre}` : ""}`,
-                }))}
-              />
-              {form.negocio_id && (
-                <Button type="button" variant="outline" size="icon" asChild title="Abrir negocio">
-                  <Link to={`/crm/${(dealsForCompany as any[]).find(d => d.id === form.negocio_id)?.crm_pipelines?.marca || "chevron"}/pipeline?deal=${form.negocio_id}`}>
-                    <ExternalLink className="h-4 w-4" />
-                  </Link>
-                </Button>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Si lo dejas vacío, el sistema lo asignará automáticamente según el historial del cliente.
-            </p>
-          </div>
         </CardContent>
       </Card>
       )}
