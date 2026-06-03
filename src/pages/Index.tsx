@@ -52,8 +52,8 @@ const groups: { title: string; subtitle: string; items: Mod[] }[] = [
     items: [
       { title: "Documentos",            description: "Cotizaciones, pedidos y facturas",     icon: FileText,      url: "/documents",  accent: A.violet },
       { title: "CRM",                   description: "Ventas Chevron y Phillips 66",         icon: ShoppingCart,  url: "/crm",        accent: A.red    },
-      { title: "Catálogo de Productos", description: "Catálogo y existencias",               icon: Package,       url: "/inventory",  accent: A.amber  },
-      { title: "Tareas y Actividades",  description: "Pendientes y seguimiento del equipo",  icon: FolderKanban,  url: "/activities", accent: A.pink   },
+      { title: "Productos",             description: "Catálogo y existencias",               icon: Package,       url: "/inventory",  accent: A.amber  },
+      { title: "Actividades",           description: "Pendientes y seguimiento del equipo",  icon: FolderKanban,  url: "/activities", accent: A.pink   },
       { title: "Directorio",            description: "Empresas y contactos",                 icon: BookOpen,      url: "/directory",  accent: A.blue   },
       { title: "Cobranza",              description: "Pagos y aplicaciones de cobro",        icon: Wallet,        url: "/cobranza",   accent: A.emerald},
       { title: "WhatsApp",              description: "Conversaciones con clientes",          icon: MessageCircle, url: "/whatsapp",   accent: A.lime   },
@@ -66,7 +66,7 @@ const groups: { title: string; subtitle: string; items: Mod[] }[] = [
     items: [
       { title: "Entregas",              description: "Programación y seguimiento de rutas",  icon: Truck,         url: "/delivery",   accent: A.orange },
       { title: "Transferencias",        description: "Movimientos entre plazas",             icon: ArrowLeftRight,url: "/transfers",  accent: A.indigo },
-      { title: "Solicitudes de Crédito",description: "Onboarding y aprobación de crédito",   icon: FileCheck,     url: "/credito",    accent: A.cyan   },
+      { title: "Creditos",              description: "Onboarding y aprobación de crédito",   icon: FileCheck,     url: "/credito",    accent: A.cyan   },
     ],
   },
   {
