@@ -43,6 +43,7 @@ import {
 import { SeguimientoDetailDialog } from "@/components/seguimiento/SeguimientoDetailDialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 
 type SortDir = "asc" | "desc";
 interface SortState {
@@ -315,6 +316,9 @@ export default function SeguimientoVentas() {
 
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
+
+  // Filtro por matriz de permisos (según ejecutivo / owner_id)
+  const access = useModuleAccess(brand === "phillips66" ? "crm_phillips66" : "crm_chevron");
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles_min"],
@@ -611,9 +615,19 @@ export default function SeguimientoVentas() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
+    // Filtro por permisos: aplica antes de cualquier otro filtro
+    let accessFiltered: SeguimientoVentasRow[] = rows;
+    if (access.accessLevel === "ninguno") {
+      accessFiltered = [];
+    } else if (access.accessLevel === "propio") {
+      accessFiltered = rows.filter((r) => r.owner_id && r.owner_id === access.userId);
+    } else if (access.accessLevel === "equipo") {
+      const allowed = new Set(access.teamMemberIds);
+      accessFiltered = rows.filter((r) => r.owner_id && allowed.has(r.owner_id));
+    }
     let base = term
-      ? rows.filter((r) => (r.companies?.name || "").toLowerCase().includes(term))
-      : rows;
+      ? accessFiltered.filter((r) => (r.companies?.name || "").toLowerCase().includes(term))
+      : accessFiltered;
 
     if (fEstatus.length > 0) {
       base = base.filter((r) => {
@@ -760,7 +774,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fRitmo, fDias, fPotencial, fEjecutivo, fPlaza, profileMap, companyPlazaMap, plazaNameMap]);
+  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fRitmo, fDias, fPotencial, fEjecutivo, fPlaza, profileMap, companyPlazaMap, plazaNameMap, access.accessLevel, access.teamMemberIds, access.userId]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
