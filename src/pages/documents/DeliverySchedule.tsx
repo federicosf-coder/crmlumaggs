@@ -1826,6 +1826,7 @@ export default function DeliverySchedule() {
                                   onToggleCerrada={toggleRutaCerrada}
                                   onStartRoute={handleStartRoute}
                                   onFinishRoute={handleFinishRoute}
+                                  onSortByRealTime={(r) => sortRouteByRealTime(r.id)}
                                   onSaveTiempoReal={(docId, min) => saveTiempoReal(ruta.id, docId, min)}
                                   onSaveKmManual={(docId, km) => saveKmManual(ruta.id, docId, km)}
                                   onSaveDocCoords={(docId, lat, lng, address) => saveDocCoords(ruta.id, docId, lat, lng, address)}
