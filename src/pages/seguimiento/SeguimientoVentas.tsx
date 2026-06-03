@@ -679,6 +679,7 @@ export default function SeguimientoVentas() {
             <TableHeader>
               <TableRow>
                 <SortableHead label="Empresa" sortKey="empresa" sort={sort} onSort={handleSort} />
+                <SortableHead label="Ejecutivo" sortKey="ejecutivo" sort={sort} onSort={handleSort} />
                 <SortableHead label="Estatus" sortKey="estatus" sort={sort} onSort={handleSort} />
                 {tieneVenta ? (
                   <>
@@ -706,13 +707,13 @@ export default function SeguimientoVentas() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={tieneVenta ? 11 : 6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={tieneVenta ? 12 : 7} className="text-center text-muted-foreground py-8">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={tieneVenta ? 11 : 6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={tieneVenta ? 12 : 7} className="text-center text-muted-foreground py-8">
                     Sin registros.
                   </TableCell>
                 </TableRow>
@@ -723,6 +724,9 @@ export default function SeguimientoVentas() {
                   return (
                     <TableRow key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
                       <TableCell className="font-medium">{r.companies?.name || "—"}</TableCell>
+                      <TableCell className="text-xs font-light text-muted-foreground">
+                        {r.owner_id ? (profileMap.get(r.owner_id) || "—") : <span className="italic">Sin asignar</span>}
+                      </TableCell>
                       <TableCell><StatusBadge estatus={eff} /></TableCell>
                       {tieneVenta ? (
                         <>
