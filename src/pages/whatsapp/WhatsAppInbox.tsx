@@ -774,7 +774,7 @@ export default function WhatsAppInbox() {
               return (
               <button
                 key={c.id}
-                onClick={() => setActiveId(c.id)}
+                onClick={() => { setActiveId(c.id); setMobileView("chat"); }}
                 className={`relative w-full text-left p-3 pl-4 border-b hover:bg-accent transition ${activeId === c.id ? "bg-accent" : ""} ${isUnread ? "bg-destructive/5" : ""}`}
               >
                 {isUnread && (
