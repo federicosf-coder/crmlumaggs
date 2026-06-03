@@ -572,7 +572,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                   onClick={async () => {
                     const { data, error } = await supabase
                       .from("crm_tasks")
-                      .select("*, crm_deals(id, title), contacts(id, first_name, last_name), companies(id, name)")
+                      .select("*, contacts(id, first_name, last_name), companies(id, name)")
                       .eq("id", task.parent_task_id!)
                       .maybeSingle();
                     if (error || !data) { toast({ title: "No se pudo cargar la tarea principal", variant: "destructive" }); return; }
