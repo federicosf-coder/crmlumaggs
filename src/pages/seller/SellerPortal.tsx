@@ -414,10 +414,7 @@ export default function SellerPortal() {
   const tasksHoyPendientes = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date) >= todayStart && new Date(t.due_date) <= todayEnd);
   const misTareasHoy = [...tasksVencidas, ...tasksHoyPendientes, ...tasksCompletadasPeriodo].slice(0, 50);
 
-  const dealsEnRango = deals.filter(d => {
-    const t = new Date(d.created_at).getTime();
-    return t >= fromTs && t <= toTs;
-  });
+  const dealsEnRango: any[] = [];
 
   const cotizaciones = docs.filter(d => d.tipo_documento === "cotizacion");
   const pedidos = docs.filter(d => d.tipo_documento === "pedido");
@@ -479,10 +476,8 @@ export default function SellerPortal() {
     return unique.sort((a: any, b: any) => b.dias_vencidos - a.dias_vencidos);
   }, [facturasVencidasAll, facturasPorVencer]);
 
-  // Conversiones por tipo de pipeline.
-  // Regla: contar CLIENTES ÚNICOS (company_id) — no deals duplicados ni documentos.
-  const dealsNuevos = deals.filter(d => d.pipeline_type === "primera_compra");
-  const dealsRecompra = deals.filter(d => d.pipeline_type === "recompra");
+  const dealsNuevos: any[] = [];
+  const dealsRecompra: any[] = [];
 
   const sumDealsField = (arr: any[], key: string) => arr.reduce((a, b) => a + Number(b[key] || 0), 0);
 
