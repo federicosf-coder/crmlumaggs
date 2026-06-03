@@ -87,7 +87,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("medium");
   const [completed, setCompleted] = useState(false);
-  const [dealId, setDealId] = useState<string | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [contactId, setContactId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -150,13 +149,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
       return data || [];
     },
   });
-  const { data: deals } = useQuery({
-    queryKey: ["crm-deals-picker-task"],
-    queryFn: async () => {
-      const { data } = await supabase.from("crm_deals").select("id, title, company_id, contact_id, created_at").order("created_at", { ascending: false });
-      return data || [];
-    },
-  });
   const { data: users } = useQuery({
     queryKey: ["profiles-picker-task"],
     queryFn: async () => {
@@ -193,38 +185,11 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   }, [task, updateTask, toast]);
 
   // Cascade selection handlers
-  const handleSelectDeal = (val: string) => {
-    const id = val === "none" ? null : val;
-    setDealId(id);
-    const updates: Record<string, any> = { deal_id: id };
-    if (id) {
-      const d = deals?.find((x: any) => x.id === id);
-      if (d?.company_id) {
-        setCompanyId(d.company_id);
-        updates.company_id = d.company_id;
-      }
-      if (d?.contact_id) {
-        setContactId(d.contact_id);
-        updates.contact_id = d.contact_id;
-      }
-    }
-    triggerSave(updates);
-  };
-
   const handleSelectCompany = (val: string) => {
     const id = val === "none" ? null : val;
     setCompanyId(id);
     const updates: Record<string, any> = { company_id: id };
     if (id) {
-      const lastDeal = deals?.find((x: any) => x.company_id === id);
-      if (lastDeal) {
-        setDealId(lastDeal.id);
-        updates.deal_id = lastDeal.id;
-        if (lastDeal.contact_id) {
-          setContactId(lastDeal.contact_id);
-          updates.contact_id = lastDeal.contact_id;
-        }
-      }
       // If current contact doesn't belong to this company, clear it
       const currentContact = contactsAll?.find((c: any) => c.id === contactId);
       if (currentContact && currentContact.company_id !== id) {
@@ -244,11 +209,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
       if (c?.company_id && !companyId) {
         setCompanyId(c.company_id);
         updates.company_id = c.company_id;
-        const lastDeal = deals?.find((x: any) => x.company_id === c.company_id);
-        if (lastDeal) {
-          setDealId(lastDeal.id);
-          updates.deal_id = lastDeal.id;
-        }
       }
     }
     triggerSave(updates);
@@ -372,14 +332,13 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
     contacto_nombre: enriched?.contact ? `${enriched.contact.first_name} ${enriched.contact.last_name}`.trim() : null,
     empresa_nombre: enriched?.company?.name || null,
     ejecutivo_nombre: profile?.full_name || null,
-    folio_cotizacion: deals?.find((d: any) => d.id === dealId)?.title || null,
+    folio_cotizacion: null,
   };
 
   const pMeta = PRIORITY_META[priority] || PRIORITY_META.medium;
 
   const companyOptions = [{ value: "none", label: "Sin empresa" }, ...(companies || []).map((c: any) => ({ value: c.id, label: c.name }))];
   const contactOptions = [{ value: "none", label: "Sin contacto" }, ...filteredContacts.map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))];
-  const dealOptions = [{ value: "none", label: "Sin negocio" }, ...(deals || []).map((d: any) => ({ value: d.id, label: d.title }))];
   const userOptions = [{ value: "none", label: "Sin asignar" }, ...(users || []).map((u: any) => ({ value: u.user_id, label: u.full_name || u.email }))];
 
   return (

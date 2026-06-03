@@ -25,7 +25,6 @@ interface TaskActionFieldsProps {
   taskId?: string | null;
   contactId: string | null;
   companyId: string | null;
-  dealId: string | null;
   description: string;
   setDescription: (v: string) => void;
   /** Llamado tras una acción de envío (email enviado, WA enviado, etc.) para que el padre marque la tarea como completada. */
