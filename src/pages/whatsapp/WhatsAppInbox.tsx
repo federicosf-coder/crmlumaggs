@@ -1010,10 +1010,10 @@ export default function WhatsAppInbox() {
                   </div>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-end">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" disabled={!windowOpen || sending} title="Adjuntar">
+                    <Button variant="outline" size="icon" disabled={!windowOpen || sending} title="Adjuntar" className="shrink-0">
                       <Paperclip className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -1045,7 +1045,7 @@ export default function WhatsAppInbox() {
                     if (v.endsWith("/") && quickReplies.length > 0) setQrOpen(true);
                   }}
                   disabled={!windowOpen || sending}
-                  className="min-h-[60px]"
+                  className="min-h-[44px] md:min-h-[60px] flex-1 resize-none"
                 />
                 <Popover open={qrOpen} onOpenChange={setQrOpen}>
                   <PopoverTrigger asChild>
@@ -1053,6 +1053,7 @@ export default function WhatsAppInbox() {
                       variant="outline"
                       size="icon"
                       disabled={!windowOpen || quickReplies.length === 0}
+                      className="shrink-0 hidden sm:inline-flex"
                       title="Respuestas rápidas"
                     >
                       <Zap className="h-4 w-4" />
@@ -1080,7 +1081,7 @@ export default function WhatsAppInbox() {
                     </div>
                   </PopoverContent>
                 </Popover>
-                <Button onClick={sendText} disabled={!windowOpen || sending || !draft.trim()}>
+                <Button onClick={sendText} disabled={!windowOpen || sending || !draft.trim()} size="icon" className="shrink-0">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
