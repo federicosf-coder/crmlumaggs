@@ -5,8 +5,10 @@ import { PageBanner } from "@/components/PageBanner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X } from "lucide-react";
 import { formatDate } from "@/lib/formatters";
 import {
   useSeguimientoVentas,
@@ -16,18 +18,29 @@ import {
   type SeguimientoEstatus,
 } from "@/hooks/useSeguimientoVentas";
 import { SeguimientoDetailDialog } from "@/components/seguimiento/SeguimientoDetailDialog";
-import {
-  ColumnFilterBuilder,
-  evaluateConditions,
-  type ColumnFilterDef,
-  type ColumnFilterCondition,
-} from "@/components/cobranza/ColumnFilterBuilder";
 
 type SortDir = "asc" | "desc";
 interface SortState {
   key: string;
   dir: SortDir;
 }
+
+const DIAS_RANGES: { id: string; label: string; min: number; max: number | null }[] = [
+  { id: "0-30", label: "0–30 días", min: 0, max: 30 },
+  { id: "31-60", label: "31–60 días", min: 31, max: 60 },
+  { id: "61-90", label: "61–90 días", min: 61, max: 90 },
+  { id: "91-120", label: "91–120 días", min: 91, max: 120 },
+  { id: "121+", label: "121+ días", min: 121, max: null },
+];
+
+const POTENCIAL_RANGES: { id: string; label: string; min: number; max: number | null }[] = [
+  { id: "0-25", label: "0–25", min: 0, max: 25 },
+  { id: "26-50", label: "26–50", min: 26, max: 50 },
+  { id: "51-75", label: "51–75", min: 51, max: 75 },
+  { id: "76-100", label: "76–100", min: 76, max: 100 },
+  { id: "101-150", label: "101–150", min: 101, max: 150 },
+  { id: "151+", label: "151+", min: 151, max: null },
+];
 
 function StatusBadge({ estatus }: { estatus: SeguimientoEstatus | undefined | null }) {
   if (!estatus) return <span className="text-xs text-muted-foreground">—</span>;
@@ -93,79 +106,46 @@ export default function SeguimientoVentas() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<SeguimientoVentasRow | null>(null);
   const [sort, setSort] = useState<SortState | null>(null);
-  const [filterConditions, setFilterConditions] = useState<ColumnFilterCondition[]>([]);
-  const [filterCombinator, setFilterCombinator] = useState<"AND" | "OR">("AND");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [fEstatus, setFEstatus] = useState<string[]>([]);
+  const [fRitmo, setFRitmo] = useState<string[]>([]);
+  const [fDias, setFDias] = useState<string[]>([]);
+  const [fPotencial, setFPotencial] = useState<string[]>([]);
 
   const tieneVenta = tab === "con_venta";
 
-  // Pre-poblar campos de filtro al cambiar de pestaña (sin valor → no activos)
+  // Al cambiar pestaña, limpiar filtros que no aplican
   useEffect(() => {
-    const seed: ColumnFilterCondition[] = tieneVenta
-      ? [
-          { id: crypto.randomUUID(), column: "estatus_riesgo", operator: "equals", value: "" },
-          { id: crypto.randomUUID(), column: "estatus_ritmo", operator: "equals", value: "" },
-        ]
-      : [
-          { id: crypto.randomUUID(), column: "estatus_gestion", operator: "equals", value: "" },
-        ];
-    setFilterConditions(seed);
+    setFEstatus([]);
+    setFRitmo([]);
+    setFDias([]);
+    setFPotencial([]);
   }, [tieneVenta]);
+
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
 
-  const filterColumns = useMemo<ColumnFilterDef[]>(() => {
-    const ambito = tieneVenta ? "con_venta" : "sin_venta";
-    const statusOpts = (familia: "riesgo" | "ritmo" | "gestion") =>
-      catalog
-        .filter((c) => c.ambito === ambito && c.familia === familia)
-        .map((c) => ({ value: c.nombre, label: c.nombre }));
+  const ambito = tieneVenta ? "con_venta" : "sin_venta";
+  const estatusOptions = useMemo(
+    () => catalog.filter((c) => c.ambito === ambito && c.familia === (tieneVenta ? "riesgo" : "gestion")),
+    [catalog, ambito, tieneVenta]
+  );
+  const ritmoOptions = useMemo(
+    () => catalog.filter((c) => c.ambito === "con_venta" && c.familia === "ritmo"),
+    [catalog]
+  );
 
-    const common: ColumnFilterDef[] = [
-      { key: "empresa", label: "Empresa", type: "text" },
-      { key: "actividades_activas", label: "Actividades activas", type: "number" },
-      { key: "actividades_total", label: "Actividades totales", type: "number" },
-      { key: "proxima_tarea_fecha", label: "Próxima tarea", type: "date" },
-      { key: "ultima_actividad_fecha", label: "Última actividad (fecha)", type: "date" },
-      { key: "dias_ultima_actividad", label: "Días última actividad", type: "number" },
-      { key: "cotizaciones_total", label: "Cotizaciones totales", type: "number" },
-      { key: "ultima_cotizacion_fecha", label: "Última cotización (fecha)", type: "date" },
-      { key: "dias_ultima_cotizacion", label: "Días última cotización", type: "number" },
-      { key: "estatus_manual", label: "Estatus manual", type: "select", options: [
-        { value: "true", label: "Sí" }, { value: "false", label: "No" },
-      ] },
-    ];
+  const toggleInArray = (arr: string[], v: string) =>
+    arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
-    if (tieneVenta) {
-      return [
-        ...common,
-        { key: "estatus_riesgo", label: "Estatus (riesgo)", type: "select", options: statusOpts("riesgo") },
-        { key: "estatus_ritmo", label: "Estatus (ritmo)", type: "select", options: statusOpts("ritmo") },
-        { key: "potencial", label: "Potencial", type: "number" },
-        { key: "promedio_historico_mensual", label: "Promedio mensual", type: "number" },
-        { key: "acum_mes", label: "Acumulado mes", type: "number" },
-        { key: "acum_mes_anterior", label: "Acumulado mes anterior", type: "number" },
-        { key: "acum_anio", label: "Acumulado año", type: "number" },
-        { key: "fecha_ultima_compra", label: "Última compra (fecha)", type: "date" },
-        { key: "dias_ultima_compra", label: "Días última compra", type: "number" },
-        { key: "ciclo_dias", label: "Ciclo (días)", type: "number" },
-        { key: "ritmo_pct", label: "Ritmo (%)", type: "number" },
-      ];
-    }
-    return [
-      ...common,
-      { key: "estatus_gestion", label: "Estatus (gestión)", type: "select", options: statusOpts("gestion") },
-    ];
-  }, [tieneVenta, catalog]);
+  const activeFiltersCount =
+    fEstatus.length + fRitmo.length + fDias.length + fPotencial.length;
 
-  const getFilterValue = (row: SeguimientoVentasRow, key: string): any => {
-    switch (key) {
-      case "empresa": return row.companies?.name || "";
-      case "estatus_riesgo": return catalog.find((c) => c.id === row.estatus_riesgo_id)?.nombre ?? "";
-      case "estatus_ritmo": return catalog.find((c) => c.id === row.estatus_ritmo_id)?.nombre ?? "";
-      case "estatus_gestion": return catalog.find((c) => c.id === row.estatus_gestion_id)?.nombre ?? "";
-      case "estatus_manual": return row.estatus_manual ? "true" : "false";
-      default: return (row as any)[key];
-    }
+  const clearAllFilters = () => {
+    setFEstatus([]);
+    setFRitmo([]);
+    setFDias([]);
+    setFPotencial([]);
   };
 
   const catalogMap = useMemo(() => {
@@ -193,7 +173,38 @@ export default function SeguimientoVentas() {
     let base = term
       ? rows.filter((r) => (r.companies?.name || "").toLowerCase().includes(term))
       : rows;
-    base = evaluateConditions(base, filterConditions, filterCombinator, getFilterValue);
+
+    if (fEstatus.length > 0) {
+      base = base.filter((r) => {
+        const id = tieneVenta ? r.estatus_riesgo_id : r.estatus_gestion_id;
+        return id ? fEstatus.includes(id) : false;
+      });
+    }
+    if (tieneVenta && fRitmo.length > 0) {
+      base = base.filter((r) => (r.estatus_ritmo_id ? fRitmo.includes(r.estatus_ritmo_id) : false));
+    }
+    if (fDias.length > 0) {
+      base = base.filter((r) => {
+        const d = tieneVenta ? r.dias_ultima_compra : r.dias_ultima_actividad;
+        if (d == null) return false;
+        return fDias.some((id) => {
+          const range = DIAS_RANGES.find((x) => x.id === id);
+          if (!range) return false;
+          return d >= range.min && (range.max == null || d <= range.max);
+        });
+      });
+    }
+    if (tieneVenta && fPotencial.length > 0) {
+      base = base.filter((r) => {
+        const p = r.potencial;
+        if (p == null) return false;
+        return fPotencial.some((id) => {
+          const range = POTENCIAL_RANGES.find((x) => x.id === id);
+          if (!range) return false;
+          return p >= range.min && (range.max == null || p <= range.max);
+        });
+      });
+    }
 
     if (!sort) {
       // Default: urgencia primero, luego recencia
@@ -285,7 +296,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, sort, filterConditions, filterCombinator, catalog]);
+  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fRitmo, fDias, fPotencial]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
@@ -337,16 +348,160 @@ export default function SeguimientoVentas() {
               className="pl-8 h-9 font-light"
             />
           </div>
-          <ColumnFilterBuilder
-            columns={filterColumns}
-            conditions={filterConditions}
-            onChange={setFilterConditions}
-            combinator={filterCombinator}
-            onCombinatorChange={setFilterCombinator}
-            triggerLabel="Filtros"
-          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9"
+            onClick={() => setFiltersOpen((v) => !v)}
+          >
+            <Filter className="h-4 w-4" />
+            Filtros
+            {activeFiltersCount > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5">{activeFiltersCount}</Badge>
+            )}
+            <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+          </Button>
         </div>
       </div>
+
+      {/* Panel de filtros colapsable */}
+      <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <CollapsibleContent>
+          <Card className="border-violet-200/60">
+            <div className="bg-gradient-to-r from-violet-50 to-blue-50 px-4 py-2.5 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-violet-900">
+                <Filter className="h-3.5 w-3.5" /> Filtros rápidos
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5 normal-case tracking-normal">
+                    {activeFiltersCount} activos
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {activeFiltersCount > 0 && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearAllFilters}>
+                    <X className="h-3 w-3 mr-1" /> Limpiar
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setFiltersOpen(false)}>
+                  Colapsar
+                </Button>
+              </div>
+            </div>
+            <CardContent className="p-4 space-y-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
+                  Estatus
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {estatusOptions.length === 0 && (
+                    <span className="text-xs text-muted-foreground font-light">Sin opciones</span>
+                  )}
+                  {estatusOptions.map((opt) => {
+                    const active = fEstatus.includes(opt.id);
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setFEstatus((arr) => toggleInArray(arr, opt.id))}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide border transition-all ${
+                          active
+                            ? "text-white border-transparent shadow-sm"
+                            : "bg-background text-foreground border-border hover:border-violet-300"
+                        }`}
+                        style={active ? { backgroundColor: opt.color } : undefined}
+                      >
+                        {opt.es_urgente && <AlertTriangle className="h-3 w-3" />}
+                        {opt.nombre}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {tieneVenta && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
+                    Ritmo
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ritmoOptions.map((opt) => {
+                      const active = fRitmo.includes(opt.id);
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setFRitmo((arr) => toggleInArray(arr, opt.id))}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide border transition-all ${
+                            active
+                              ? "text-white border-transparent shadow-sm"
+                              : "bg-background text-foreground border-border hover:border-violet-300"
+                          }`}
+                          style={active ? { backgroundColor: opt.color } : undefined}
+                        >
+                          {opt.nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
+                  {tieneVenta ? "Última compra" : "Última actividad"} (rangos de 30 días)
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {DIAS_RANGES.map((r) => {
+                    const active = fDias.includes(r.id);
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setFDias((arr) => toggleInArray(arr, r.id))}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                          active
+                            ? "bg-violet-600 text-white border-transparent shadow-sm"
+                            : "bg-background text-foreground border-border hover:border-violet-300"
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {tieneVenta && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">
+                    Potencial (rangos de 25)
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {POTENCIAL_RANGES.map((r) => {
+                      const active = fPotencial.includes(r.id);
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setFPotencial((arr) => toggleInArray(arr, r.id))}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                            active
+                              ? "bg-blue-600 text-white border-transparent shadow-sm"
+                              : "bg-background text-foreground border-border hover:border-blue-300"
+                          }`}
+                        >
+                          {r.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Lista mobile (cards) */}
       <div className="grid gap-3 md:hidden">
