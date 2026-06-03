@@ -198,7 +198,7 @@ export default function CrmItemsPage() {
 
   const companyMap = new Map<string, string>(companies.map((c: any) => [c.id, c.name]));
   const contactMap = new Map<string, string>(contacts.map((c: any) => [c.id, `${c.first_name} ${c.last_name}`.trim()]));
-  const dealMap = new Map(deals.map((d: any) => [d.id, d.title]));
+  const dealMap = new Map<string, string>(deals.map((d: any) => [d.id, d.title]));
 
   // Pagination
   const total = counts[tab] || 0;
