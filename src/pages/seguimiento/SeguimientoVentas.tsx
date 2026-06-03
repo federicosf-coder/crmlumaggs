@@ -16,7 +16,22 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X } from "lucide-react";
+import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X, GripVertical, RotateCcw } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { formatDate } from "@/lib/formatters";
 import {
   useSeguimientoVentas,
