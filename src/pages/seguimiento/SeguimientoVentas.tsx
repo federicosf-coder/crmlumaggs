@@ -317,8 +317,8 @@ export default function SeguimientoVentas() {
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
 
-  // Filtro por matriz de permisos (según ejecutivo / owner_id)
-  const access = useModuleAccess(brand === "phillips66" ? "crm_phillips66" : "crm_chevron");
+  // Filtro por matriz de permisos del módulo Seguimiento a Ventas (según ejecutivo / owner_id)
+  const access = useModuleAccess("seguimiento_ventas");
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles_min"],
