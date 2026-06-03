@@ -324,7 +324,7 @@ function DeliveryTrackingRow({ item, onSaveTiempoReal, onSaveKmManual, onSaveDoc
   );
 }
 
-function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute, onSaveTiempoReal, onSaveKmManual, onSaveDocCoords, onAdjustRouteTime, onResetRouteTime, isAdmin }: {
+function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidoresRuta, onEditRoute, onDeleteRoute, onDeliver, onReorder, onToggleCerrada, onStartRoute, onFinishRoute, onSortByRealTime, onSaveTiempoReal, onSaveKmManual, onSaveDocCoords, onAdjustRouteTime, onResetRouteTime, isAdmin }: {
   ruta: any;
   items: PoolItem[];
   vehiculos: any[];
@@ -337,6 +337,7 @@ function RouteDropColumn({ ruta, items, vehiculos, repartidoresAll, repartidores
   onToggleCerrada: (ruta: any) => void;
   onStartRoute: (ruta: any) => void;
   onFinishRoute: (ruta: any) => void;
+  onSortByRealTime?: (ruta: any) => void;
   onSaveTiempoReal?: (docId: string, minutes: number | null) => void;
   onSaveKmManual?: (docId: string, km: number | null) => void;
   onSaveDocCoords?: (docId: string, lat: number, lng: number, address?: string | null) => void | Promise<void>;
