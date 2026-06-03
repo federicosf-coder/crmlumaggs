@@ -71,7 +71,6 @@ export function CrmActivityItem({ activity, onOpen }: { activity: CrmActivity; o
         )}
         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
           <span>{config.label}</span>
-          {activity.crm_deals && <span>· {activity.crm_deals.title}</span>}
           {activity.contacts && <span>· {activity.contacts.first_name} {activity.contacts.last_name}</span>}
           <span className="ml-auto">{formatRelativeDate(activity.created_at)}</span>
         </div>

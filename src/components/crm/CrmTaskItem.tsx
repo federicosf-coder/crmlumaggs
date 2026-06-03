@@ -76,10 +76,10 @@ export function CrmTaskItem({ task, onClick }: CrmTaskItemProps) {
               {formatDistanceToNow(parseISO(task.due_date), { addSuffix: true, locale: es })}
             </span>
           )}
-          {(task.crm_deals || task.contacts) && (
+          {task.contacts && (
             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
               <LinkIcon className="h-3 w-3" />
-              {task.crm_deals?.title || `${task.contacts?.first_name} ${task.contacts?.last_name}`}
+              {`${task.contacts?.first_name} ${task.contacts?.last_name}`}
             </span>
           )}
         </div>
@@ -110,7 +110,6 @@ export function CrmTaskItem({ task, onClick }: CrmTaskItemProps) {
           onOpenChange={setCreateNextOpen}
           defaultCompanyId={task.company_id || undefined}
           defaultContactId={task.contact_id || undefined}
-          defaultDealId={task.deal_id || undefined}
           parentTaskId={(task as any).parent_task_id || null}
           defaultParentCategory={!(task as any).parent_task_id ? parentCat : null}
           defaultTaskType={(task.task_type as TaskTypeKey) || null}

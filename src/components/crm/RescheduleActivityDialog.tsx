@@ -14,7 +14,6 @@ export interface RescheduleContext {
   taskType: TaskTypeKey | null;
   parentCategory: ParentCategoryKey | null;
   parentTaskId: string | null;
-  dealId: string;
   contactId: string;
   companyId: string;
   baseTitle: string;
@@ -55,7 +54,6 @@ export function RescheduleActivityDialog({ open, onOpenChange, context }: Props)
         description: context.description,
         due_date: dueIso,
         priority: context.priority,
-        deal_id: context.dealId && context.dealId !== "none" ? context.dealId : null,
         contact_id: context.contactId && context.contactId !== "none" ? context.contactId : null,
         company_id: context.companyId && context.companyId !== "none" ? context.companyId : null,
         task_type: context.taskType || null,
