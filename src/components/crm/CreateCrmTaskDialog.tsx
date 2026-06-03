@@ -140,7 +140,6 @@ export function CreateCrmTaskDialog({
         description: finalDescription,
         due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : new Date().toISOString(),
         priority,
-        deal_id: dealId && dealId !== "none" ? dealId : null,
         contact_id: contactId && contactId !== "none" ? contactId : null,
         company_id: companyId && companyId !== "none" ? companyId : null,
         task_type: "email",
@@ -370,7 +369,6 @@ export function CreateCrmTaskDialog({
       setDescription(editTask.description || "");
       setParentCategory(((editTask as any).parent_category as ParentCategoryKey) || null);
       setTaskType(((editTask as any).task_type as TaskTypeKey) || null);
-      setDealId(editTask.deal_id || "");
       setContactId(editTask.contact_id || "");
       setCompanyId(editTask.company_id || "");
       setPriority(editTask.priority || "medium");
@@ -390,7 +388,6 @@ export function CreateCrmTaskDialog({
       setTitle(defaultTitle);
       setParentCategory(defaultParentCategory);
       setTaskType(defaultTaskType);
-      setDealId(defaultDealId || "");
       setContactId(defaultContactId || "");
       setCompanyId(defaultCompanyId || "");
       setDueTime("");
@@ -402,32 +399,6 @@ export function CreateCrmTaskDialog({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-
-  // Cuando se abre con un defaultDealId, resolver empresa y contacto principal
-  useEffect(() => {
-    if (!open || !defaultDealId) return;
-    (async () => {
-      const { data: deal } = await supabase
-        .from("crm_deals")
-        .select("company_id, contact_id")
-        .eq("id", defaultDealId)
-        .maybeSingle();
-      if (!deal) return;
-      const cId = (deal as any).company_id || "";
-      if (cId) {
-        setCompanyId((prev) => prev || cId);
-        const { data: comp } = await supabase
-          .from("companies")
-          .select("primary_contact_id")
-          .eq("id", cId)
-          .maybeSingle();
-        const primary = (comp as any)?.primary_contact_id || (deal as any).contact_id || "";
-        if (primary) setContactId((prev) => prev || primary);
-      } else if ((deal as any).contact_id) {
-        setContactId((prev) => prev || (deal as any).contact_id);
-      }
-    })();
-  }, [open, defaultDealId]);
 
   const buildWhatsAppTitle = () =>
     `WhatsApp${waContactName ? ` · ${waContactName}` : waCompanyName ? ` · ${waCompanyName}` : ""}`;
@@ -509,7 +480,6 @@ export function CreateCrmTaskDialog({
         description: finalDescription || null,
         due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : null,
         priority,
-        deal_id: dealId && dealId !== "none" ? dealId : null,
         contact_id: contactId && contactId !== "none" ? contactId : null,
         company_id: companyId && companyId !== "none" ? companyId : null,
         task_type: taskType || null,
@@ -535,7 +505,6 @@ export function CreateCrmTaskDialog({
           taskType,
           parentCategory,
           parentTaskId,
-          dealId,
           contactId,
           companyId,
           baseTitle: title || finalTitle.replace(/^\[[^\]]+\]\s*/, ""),
@@ -549,7 +518,7 @@ export function CreateCrmTaskDialog({
       }
       onOpenChange(false);
       setTitle(""); setDescription(""); setDueDate(""); setDueTime(""); setPriority("medium");
-      setDealId(defaultDealId || ""); setContactId(defaultContactId || ""); setCompanyId(defaultCompanyId || "");
+      setContactId(defaultContactId || ""); setCompanyId(defaultCompanyId || "");
       setParentCategory(defaultParentCategory); setTaskType(defaultTaskType);
     } catch (e: any) {
       toast({ title: "No se pudo guardar", description: e?.message, variant: "destructive" });
@@ -568,7 +537,6 @@ export function CreateCrmTaskDialog({
         description: `[${channelLabel}] ${description}`,
         due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : new Date().toISOString(),
         priority,
-        deal_id: dealId && dealId !== "none" ? dealId : null,
         contact_id: contactId && contactId !== "none" ? contactId : null,
         company_id: companyId && companyId !== "none" ? companyId : null,
         task_type: taskType || "whatsapp",
@@ -607,7 +575,6 @@ export function CreateCrmTaskDialog({
         message: description,
         company_id: companyId || null,
         contact_id: contactId || null,
-        deal_id: dealId || null,
         result: "enviado",
         title: buildWhatsAppTitle(),
         destinatario_phone: waNormalized,
@@ -684,28 +651,6 @@ export function CreateCrmTaskDialog({
             </div>
           </section>
           <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-2 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">Negocio</div>
-                <button
-                  type="button"
-                  onClick={handleNewDeal}
-                  className="text-[10px] uppercase tracking-wide text-primary hover:underline flex items-center gap-0.5"
-                >
-                  <Plus className="h-3 w-3" /> Nuevo
-                </button>
-              </div>
-              <SearchableSelect
-                value={dealId || "none"}
-                onValueChange={(v) => setDealId(v === "none" ? "" : v)}
-                options={[
-                  { value: "none", label: "Ninguno" },
-                  ...((deals || []).map((d: any) => ({ value: d.id, label: d.title }))),
-                ]}
-                placeholder="Buscar negocio..."
-                className="font-light text-sm"
-              />
-            </div>
             <div className="space-y-2 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">Empresa</div>
@@ -1170,13 +1115,12 @@ export function CreateCrmTaskDialog({
               contacto_nombre: waContactName || null,
               empresa_nombre: waCompanyName || null,
               ejecutivo_nombre: null,
-              folio_cotizacion: deals?.find((d: any) => d.id === dealId)?.title || null,
+              folio_cotizacion: null,
             }}
             defaultMessage={description}
             context={{
               company_id: companyId || null,
               contact_id: contactId || null,
-              deal_id: dealId || null,
             }}
             onSent={() => {
               setWhatsappOpen(false);
@@ -1256,19 +1200,6 @@ export function CreateCrmTaskDialog({
         setContactId(newId);
       }}
     />
-    {dealFormOpen && dealPipelineId && (
-      <CreateCrmDealDialog
-        open={dealFormOpen}
-        onOpenChange={(o) => {
-          setDealFormOpen(o);
-          if (!o) queryClient.invalidateQueries({ queryKey: ["crm-deals-picker"] });
-        }}
-        pipelineId={dealPipelineId}
-        stages={dealStages}
-        defaultCompanyId={companyId || undefined}
-        defaultContactId={contactId || undefined}
-      />
-    )}
     </>
   );
 }

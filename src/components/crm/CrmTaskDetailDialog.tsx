@@ -113,7 +113,6 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
       setDueDate(task.due_date ? task.due_date.slice(0, 10) : "");
       setPriority(task.priority || "medium");
       setCompleted(!!task.completed);
-      setDealId(task.deal_id || null);
       setCompanyId(task.company_id || null);
       setContactId(task.contact_id || null);
       setUserId(task.user_id || null);
