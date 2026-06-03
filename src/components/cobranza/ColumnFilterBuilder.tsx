@@ -102,7 +102,7 @@ export function ColumnFilterBuilder({
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <Filter className="h-4 w-4" />
-          Filtros por columna
+          {triggerLabel}
           {activeCount > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5">{activeCount}</Badge>}
         </Button>
       </PopoverTrigger>
