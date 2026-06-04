@@ -1174,6 +1174,111 @@ export default function CreditoDetail() {
     qc.invalidateQueries({ queryKey: ["credit_request", id] });
   };
 
+  // === Multi-PDF firma uploader ===
+  const computeAllFirmas = () => {
+    const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
+    const base = CREDITO_FIRMAS.filter((f) => {
+      if (f.key === "solicitud") return false;
+      return !(f.personaMoralOnly && tp !== "moral");
+    });
+    const solicitudEntries: any[] = [];
+    if ((form as any).solicita_lumaggs) {
+      solicitudEntries.push({
+        key: "solicitud-lumaggs",
+        label: "Solicitud de crédito · Lumaggs (Chevron)",
+        fechaCol: "firma_solicitud_lumaggs_fecha",
+        nombreCol: "firma_solicitud_lumaggs_nombre",
+        personaMoralOnly: false,
+      });
+    }
+    if ((form as any).solicita_galsa) {
+      solicitudEntries.push({
+        key: "solicitud-galsa",
+        label: "Solicitud de crédito · Galsa (Phillips 66)",
+        fechaCol: "firma_solicitud_galsa_fecha",
+        nombreCol: "firma_solicitud_galsa_nombre",
+        personaMoralOnly: false,
+      });
+    }
+    return [...solicitudEntries, ...base];
+  };
+
+  const classifyFirmaByFilename = (name: string, validKeys: string[]): string | null => {
+    const n = name.toLowerCase();
+    const rules: Array<[RegExp, string]> = [
+      [/(galsa|phillips)/, "solicitud-galsa"],
+      [/(lumaggs|chevron)/, "solicitud-lumaggs"],
+      [/(buro|bur[oó])/, "buro"],
+      [/(confidencial)/, "confidencialidad"],
+      [/(subsistencia|poderes)/, "subsistencia"],
+      [/(licita|l[ií]cita|lfpiorpi|procedencia)/, "lfpiorpi"],
+      [/(solicitud)/, "solicitud"],
+    ];
+    for (const [rx, key] of rules) {
+      if (rx.test(n) && validKeys.includes(key)) return key;
+    }
+    return null;
+  };
+
+  const startMultiFirmaUpload = (files: File[]) => {
+    const all = computeAllFirmas();
+    const validKeys = all.map((f) => f.key);
+    const initial: Record<number, string> = {};
+    files.forEach((file, idx) => {
+      const guess = classifyFirmaByFilename(file.name, validKeys);
+      if (guess) initial[idx] = guess;
+    });
+    setMultiFirmaPicker(files);
+    setMultiFirmaMap(initial);
+  };
+
+  const confirmMultiFirmaUpload = async () => {
+    if (!multiFirmaPicker) return;
+    const all = computeAllFirmas();
+    let ok = 0;
+    for (let idx = 0; idx < multiFirmaPicker.length; idx++) {
+      const key = multiFirmaMap[idx];
+      if (!key) continue;
+      const firma = all.find((x) => x.key === key);
+      if (!firma) continue;
+      const file = multiFirmaPicker[idx];
+      const nombre = (form as any)[firma.nombreCol] || form.rep_legal_nombre || form.razon_social || "Firmante";
+      try {
+        const path = `${id}/${firma.key}_${Date.now()}_${file.name.replace(/[^\w.\-]+/g, "_")}`;
+        const { error: upErr } = await supabase.storage.from("credit-docs").upload(path, file, { contentType: file.type, upsert: false });
+        if (upErr) throw upErr;
+        const { data: docRow, error: insErr } = await supabase.from("credit_request_docs").insert({
+          credit_request_id: id!,
+          doc_type_id: null,
+          url_archivo: path,
+          nombre_archivo: file.name,
+          tipo_archivo: file.type,
+          estado: "recibido",
+          visibilidad: "publica",
+          subido_por: user?.id,
+          metadata: { firma_key: firma.key, firma_label: firma.label },
+        }).select("id").single();
+        if (insErr || !docRow) throw insErr || new Error("insert_error");
+        const docIdCol = `${firma.fechaCol.replace("_fecha", "")}_doc_id`;
+        const upd: any = {
+          [firma.fechaCol]: new Date().toISOString(),
+          [firma.nombreCol]: nombre,
+          [docIdCol]: docRow.id,
+        };
+        const { error: updErr } = await supabase.from("credit_requests").update(upd).eq("id", id!);
+        if (updErr) throw updErr;
+        ok++;
+      } catch (e: any) {
+        toast.error(`${firma.label}: ${e?.message || "error"}`);
+      }
+    }
+    if (ok > 0) toast.success(`${ok} documento(s) clasificados y subidos`);
+    setMultiFirmaPicker(null);
+    setMultiFirmaMap({});
+    qc.invalidateQueries({ queryKey: ["credit_request", id] });
+    refetchDocs();
+  };
+
   const portalUrl = form.short_code
     ? `${window.location.origin}/p/${form.short_code}`
     : `${window.location.origin}/portal/credito/${form.client_token}`;
