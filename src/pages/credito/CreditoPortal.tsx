@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Loader2, Save, FileUp, ShieldCheck, Trash2, AlertCircle, CheckCircle2, FileCheck,
   Wand2, Building2, IdCard, Landmark, FileText, Home, ScrollText, BookOpen, Camera,
-  MapPin, Receipt, Paperclip, Check, Plus, ChevronDown, Printer, Upload, Files, PenSquare, X,
+  MapPin, Receipt, Paperclip, Check, Plus, ChevronDown, ChevronUp, Printer, Upload, Files, PenSquare, X, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -388,6 +388,8 @@ function PortalBeneficiarioControladorSteps({
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
+const SHOW_BC_PORTAL = false;
+
 export default function CreditoPortal() {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
@@ -402,6 +404,8 @@ export default function CreditoPortal() {
   const [signingName, setSigningName] = useState("");
   const [multiPicker, setMultiPicker] = useState<{ file: File; b64: string }[] | null>(null);
   const [multiPickerMap, setMultiPickerMap] = useState<Record<number, string>>({});
+  const [autofilling, setAutofilling] = useState<string | null>(null);
+  const [autofillCollapsed, setAutofillCollapsed] = useState(true);
 
   const load = async () => {
     if (!token) return;
@@ -518,8 +522,8 @@ export default function CreditoPortal() {
 
   // === Firma helpers (table + multi-upload) ===
   const openFirmaPdf = (key: string) => {
-    if (!form?.id) { toast.error("Solicitud no cargada"); return; }
-    window.open(`/credito/${form.id}/imprimir/${key}`, "_blank", "noopener");
+    if (!token) { toast.error("Solicitud no cargada"); return; }
+    window.open(`/portal/credito/${token}/imprimir/${key}`, "_blank", "noopener");
   };
 
   const uploadFirmaDoc = async (
@@ -670,6 +674,50 @@ export default function CreditoPortal() {
   const doneReq = visibleDocTypes.filter((d) => d.requerido && hasDocs(d)).length;
   const pct = totalReq > 0 ? Math.round((doneReq / totalReq) * 100) : 0;
 
+  // === Autofill helpers ===
+  const docTypeIdForKind = (kind: string): string | null => {
+    const find = (pred: (n: string) => boolean) =>
+      docTypes.find((t: any) => pred((t.nombre || "").toLowerCase()))?.id ?? null;
+    if (kind === "csf") return find((n) => n.includes("csf") || n.includes("situación fiscal"));
+    if (kind === "comprobante_domicilio") return find((n) => n.includes("comprobante de domicilio") && !n.includes("aval"));
+    if (kind.startsWith("ine") || kind === "passport") return find((n) => n.startsWith("identificación oficial") && !n.includes("aval"));
+    if (kind === "acta_constitutiva") return find((n) => n.includes("acta constitutiva"));
+    return null;
+  };
+  const docsForKind = (kind: string): any[] => {
+    const tid = docTypeIdForKind(kind);
+    if (!tid) return [];
+    return docs.filter((d: any) => d.doc_type_id === tid);
+  };
+  const autofillFromFile = async (file: File, kind: string, label: string) => {
+    if (!file || !token) return;
+    if (file.size > 15 * 1024 * 1024) { toast.error("El archivo supera 15 MB"); return; }
+    setAutofilling(kind);
+    toast.loading(`Leyendo ${label}...`, { id: "af" });
+    try {
+      const b64 = await fileToBase64(file);
+      const { data: rdata, error } = await supabase.functions.invoke("credito-autofill", {
+        body: { token, kind, file_b64: b64, mime: file.type || "image/jpeg" },
+      });
+      if (error) throw error;
+      if ((rdata as any)?.error) throw new Error((rdata as any).error);
+      const filled = Object.keys((rdata as any)?.updated || {}).length;
+      const docTypeId = docTypeIdForKind(kind);
+      try {
+        await callPortal("upload_doc", token, {
+          doc_type_id: docTypeId, file_b64: b64, filename: file.name,
+          mime: file.type || "application/pdf", nombre_personalizado: label,
+        });
+      } catch { /* ignore upload error; autofill ya guardó campos */ }
+      toast.success(filled > 0 ? `${label}: ${filled} campos autocompletados` : `${label} guardada`, { id: "af" });
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || `No se pudo leer ${label}`, { id: "af" });
+    } finally {
+      setAutofilling(null);
+    }
+  };
+
   // === Firmas ===
   const baseFirmas = CREDITO_FIRMAS
     .filter((f) => f.key !== "solicitud")
@@ -780,6 +828,200 @@ export default function CreditoPortal() {
                   </Field>
                 </div>
 
+                {/* Autocompletar con documentos (opcional) */}
+                {(() => {
+                  const palCsf  = DOC_PALETTE["Constancia de Situación Fiscal (CSF)"];
+                  const palIne  = DOC_PALETTE["Identificación oficial"];
+                  const palDom  = DOC_PALETTE["Comprobante de domicilio"];
+                  const palActa = DOC_PALETTE["Acta Constitutiva"];
+                  const cardCls = (has: boolean, p: any) =>
+                    `rounded-lg border-2 ${has ? "border-emerald-300" : p.border} bg-transparent p-3 flex flex-col gap-2 relative`;
+                  const badge = (has: boolean) =>
+                    `absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${has ? "bg-emerald-500 text-white border-emerald-600" : "bg-slate-200 text-slate-700 border-slate-300"}`;
+                  const hasCsf  = docsForKind("csf").length > 0;
+                  const hasIne  = docsForKind("ine_front").length > 0;
+                  const hasDom  = docsForKind("comprobante_domicilio").length > 0;
+                  const hasActa = docsForKind("acta_constitutiva").length > 0;
+                  return (
+                    <Card className="border-violet-200 bg-gradient-to-br from-violet-50 via-white to-blue-50 mt-4">
+                      <CardContent className="pt-3 pb-3 space-y-2">
+                        <div className="flex items-start gap-2.5">
+                          <div className="h-7 w-7 rounded-md bg-violet-100 flex items-center justify-center shrink-0">
+                            <Wand2 className="h-4 w-4 text-violet-700" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-semibold flex items-center gap-1.5 leading-tight">
+                              Autocompletar con documentos
+                              <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wide bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded">
+                                <Sparkles className="h-3 w-3" /> Opcional
+                              </span>
+                            </p>
+                            <p className="text-[11px] text-muted-foreground leading-snug">
+                              Sube los documentos del solicitante y se autocompletarán los datos posibles del formulario. Es opcional pero ahorra mucha captura.
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button type="button" variant="outline" size="sm"
+                              className="h-8 border-violet-300 text-violet-700 hover:bg-violet-100"
+                              onClick={() => setAutofillCollapsed((v) => !v)}
+                              title={autofillCollapsed ? "Mostrar documentos" : "Ocultar documentos"}>
+                              {autofillCollapsed ? (
+                                <><ChevronDown className="h-3.5 w-3.5 mr-1" />Mostrar</>
+                              ) : (
+                                <><ChevronUp className="h-3.5 w-3.5 mr-1" />Ocultar</>
+                              )}
+                            </Button>
+                            <Button type="button" size="sm" className="h-8" onClick={saveForm} disabled={saving}>
+                              {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                              Guardar
+                            </Button>
+                          </div>
+                        </div>
+                        {!autofillCollapsed && (<>
+                          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                            {/* CSF */}
+                            <div className={cardCls(hasCsf, palCsf)}>
+                              <span className={badge(hasCsf)}>
+                                {hasCsf ? (<><Check className="h-2.5 w-2.5" />Subido</>) : "Opcional"}
+                              </span>
+                              <div className="flex items-start gap-2.5 min-w-0 pr-20">
+                                <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palCsf.iconBg}`}>
+                                  <FileText className={`h-4 w-4 ${palCsf.iconColor}`} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-sm leading-tight">Constancia de Situación Fiscal</p>
+                                </div>
+                              </div>
+                              <label className="cursor-pointer block">
+                                <input type="file" accept="application/pdf,image/*" className="hidden"
+                                  disabled={autofilling !== null}
+                                  onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "csf", "CSF"); e.currentTarget.value = ""; }} />
+                                <span className={`inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md border bg-white ${palCsf.btn}`}>
+                                  {autofilling === "csf" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                                  {hasCsf ? "Reemplazar CSF" : "Subir CSF"}
+                                </span>
+                              </label>
+                              {docsForKind("csf").map((it) => (
+                                <button key={it.id} onClick={() => openDoc(it.id)} className="flex items-center gap-1 text-[10px] text-blue-700 hover:underline truncate w-full">
+                                  <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                                </button>
+                              ))}
+                            </div>
+                            {/* INE / Pasaporte */}
+                            <div className={cardCls(hasIne, palIne)}>
+                              <span className={badge(hasIne)}>
+                                {hasIne ? (<><Check className="h-2.5 w-2.5" />Subido</>) : "Opcional"}
+                              </span>
+                              <div className="flex items-start gap-2.5 min-w-0 pr-20">
+                                <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palIne.iconBg}`}>
+                                  <IdCard className={`h-4 w-4 ${palIne.iconColor}`} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-sm leading-tight">INE / Pasaporte del Representante</p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <label className="cursor-pointer">
+                                  <input type="file" accept="image/*,application/pdf" className="hidden" disabled={autofilling !== null}
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "ine_front", "INE frente"); e.currentTarget.value = ""; }} />
+                                  <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                    {autofilling === "ine_front" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}Frente
+                                  </span>
+                                </label>
+                                <label className="cursor-pointer">
+                                  <input type="file" accept="image/*,application/pdf" className="hidden" disabled={autofilling !== null}
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "ine_back", "INE reverso"); e.currentTarget.value = ""; }} />
+                                  <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                    {autofilling === "ine_back" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}Reverso
+                                  </span>
+                                </label>
+                                <label className="cursor-pointer">
+                                  <input type="file" accept="application/pdf,image/*" className="hidden" disabled={autofilling !== null}
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "ine_full", "INE completa"); e.currentTarget.value = ""; }} />
+                                  <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                    {autofilling === "ine_full" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}PDF INE
+                                  </span>
+                                </label>
+                                <label className="cursor-pointer">
+                                  <input type="file" accept="image/*,application/pdf" className="hidden" disabled={autofilling !== null}
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "passport", "Pasaporte"); e.currentTarget.value = ""; }} />
+                                  <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                    {autofilling === "passport" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}Pasaporte
+                                  </span>
+                                </label>
+                              </div>
+                              {docsForKind("ine_front").map((it) => (
+                                <button key={it.id} onClick={() => openDoc(it.id)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate w-full">
+                                  <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                                </button>
+                              ))}
+                            </div>
+                            {/* Comprobante */}
+                            <div className={cardCls(hasDom, palDom)}>
+                              <span className={badge(hasDom)}>
+                                {hasDom ? (<><Check className="h-2.5 w-2.5" />Subido</>) : "Opcional"}
+                              </span>
+                              <div className="flex items-start gap-2.5 min-w-0 pr-20">
+                                <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palDom.iconBg}`}>
+                                  <Home className={`h-4 w-4 ${palDom.iconColor}`} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-sm leading-tight">Comprobante de domicilio</p>
+                                </div>
+                              </div>
+                              <label className="cursor-pointer block">
+                                <input type="file" accept="application/pdf,image/*" className="hidden" disabled={autofilling !== null}
+                                  onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "comprobante_domicilio", "Comprobante"); e.currentTarget.value = ""; }} />
+                                <span className={`inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md border bg-white ${palDom.btn}`}>
+                                  {autofilling === "comprobante_domicilio" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                                  {hasDom ? "Reemplazar comprobante" : "Subir comprobante"}
+                                </span>
+                              </label>
+                              {docsForKind("comprobante_domicilio").map((it) => (
+                                <button key={it.id} onClick={() => openDoc(it.id)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate w-full">
+                                  <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                                </button>
+                              ))}
+                            </div>
+                            {/* Acta Constitutiva */}
+                            {tp === "moral" && (
+                              <div className={cardCls(hasActa, palActa)}>
+                                <span className={badge(hasActa)}>
+                                  {hasActa ? (<><Check className="h-2.5 w-2.5" />Subido</>) : "Opcional"}
+                                </span>
+                                <div className="flex items-start gap-2.5 min-w-0 pr-20">
+                                  <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palActa.iconBg}`}>
+                                    <ScrollText className={`h-4 w-4 ${palActa.iconColor}`} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-sm leading-tight">Acta Constitutiva</p>
+                                  </div>
+                                </div>
+                                <label className="cursor-pointer block">
+                                  <input type="file" accept="application/pdf,image/*" className="hidden" disabled={autofilling !== null}
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "acta_constitutiva", "Acta Constitutiva"); e.currentTarget.value = ""; }} />
+                                  <span className={`inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md border bg-white ${palActa.btn}`}>
+                                    {autofilling === "acta_constitutiva" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                                    {hasActa ? "Reemplazar acta" : "Subir acta"}
+                                  </span>
+                                </label>
+                                {docsForKind("acta_constitutiva").map((it) => (
+                                  <button key={it.id} onClick={() => openDoc(it.id)} className="flex items-center gap-1 text-[10px] text-indigo-700 hover:underline truncate w-full">
+                                    <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground pt-1">
+                            Solo se llenarán los campos que estén vacíos; los datos ya capturados no se sobrescriben.
+                          </p>
+                        </>)}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
                 {/* === EMPRESA === */}
                 <TabsContent value="empresa" className="space-y-6 mt-5">
                   <Section title="Datos generales">
@@ -867,7 +1109,9 @@ export default function CreditoPortal() {
                     )}
                   </Section>
 
-                  <PortalBeneficiarioControladorSteps form={form} set={set} token={token!} onSaved={load} />
+                  {SHOW_BC_PORTAL && (
+                    <PortalBeneficiarioControladorSteps form={form} set={set} token={token!} onSaved={load} />
+                  )}
                 </TabsContent>
 
                 {/* === FINANCIERO === */}
@@ -1051,14 +1295,14 @@ export default function CreditoPortal() {
                   variant="outline"
                   className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
                   onClick={() => {
-                    if (!form?.id || allFirmas.length === 0) return;
+                    if (!token || allFirmas.length === 0) return;
                     const joined = allFirmas.map((f) => f.key).join(",");
-                    const w = window.open(`/credito/${form.id}/imprimir/${joined}`, "_blank");
+                    const w = window.open(`/portal/credito/${token}/imprimir/${joined}`, "_blank");
                     if (!w) toast.error("Tu navegador bloqueó la ventana emergente.");
                     else toast.success(`Generando ${allFirmas.length} documento(s)`);
                   }}
                 >
-                  <Printer className="h-3.5 w-3.5 mr-1.5" />Generar Todos
+                  <FileText className="h-3.5 w-3.5 mr-1.5" />Generar Todos los PDF
                 </Button>
                 <Button
                   size="sm"
@@ -1119,8 +1363,11 @@ export default function CreditoPortal() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex flex-wrap gap-1.5 justify-end">
-                            <Button size="icon" variant="ghost" onClick={() => openFirmaPdf(f.key)} title="Generar PDF">
-                              <Printer className="h-4 w-4" />
+                            <Button size="icon" variant="ghost" onClick={() => openFirmaPdf(f.key)} title="Generar PDF" className="h-auto py-1">
+                              <div className="flex flex-col items-center justify-center gap-0.5">
+                                <FileText className="h-4 w-4" />
+                                <span className="text-[9px] leading-none font-medium">PDF</span>
+                              </div>
                             </Button>
                             <Button size="icon" variant="ghost" asChild title={fecha ? "Reemplazar firmado" : "Subir firmado"} className="h-auto py-1">
                               <label className="cursor-pointer flex flex-col items-center justify-center gap-0.5">
