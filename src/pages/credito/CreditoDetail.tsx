@@ -2496,7 +2496,7 @@ export default function CreditoDetail() {
               const all = [...solicitudEntries, ...base];
               return (
                 <div className="space-y-3 p-4 sm:p-6">
-                  <div className="flex justify-end">
+                  <div className="flex flex-wrap justify-end gap-2">
                     <Button
                       size="sm"
                       variant="outline"
@@ -2515,6 +2515,27 @@ export default function CreditoDetail() {
                       }}
                     >
                       <Printer className="h-3.5 w-3.5 mr-1.5" />Generar Todos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 hover:from-blue-100 hover:to-cyan-100 hover:text-blue-800 text-[10px] font-semibold uppercase tracking-widest"
+                      asChild
+                    >
+                      <label className="cursor-pointer">
+                        <Files className="h-3.5 w-3.5 mr-1.5" />Subir varios PDFs
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            e.currentTarget.value = "";
+                            if (files.length > 0) startMultiFirmaUpload(files);
+                          }}
+                        />
+                      </label>
                     </Button>
                   </div>
                   <Table>
