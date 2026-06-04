@@ -1045,42 +1045,111 @@ export default function CreditoPortal() {
           {/* ============ FORMATOS Y FIRMAS ============ */}
           <TabsContent value="firmas" className="space-y-4 mt-4">
             <Card><CardContent className="pt-6 space-y-3">
-              <div className="space-y-2">
-                {baseFirmas.map((f) => {
-                  const fecha = (form as any)[f.fechaCol];
-                  const nombre = (form as any)[f.nombreCol];
-                  return (
-                    <div key={f.key} className="rounded-lg border bg-card p-3 flex items-center justify-between gap-3 flex-wrap">
-                      <div className="flex items-start gap-2 min-w-0 flex-1">
-                        <ShieldCheck className={`h-5 w-5 mt-0.5 shrink-0 ${fecha ? "text-emerald-600" : "text-muted-foreground/40"}`} />
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm">{f.label}</p>
-                          {fecha ? (
-                            <p className="text-xs text-muted-foreground">
-                              Firmado por {nombre} · {format(new Date(fecha), "dd/MM/yyyy HH:mm")}
-                            </p>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">Pendiente de firmar</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {fecha ? (
-                          <Badge variant="outline" className="border-emerald-300 text-emerald-700">Firmado</Badge>
-                        ) : (
-                          <Badge variant="secondary">Pendiente</Badge>
-                        )}
-                        <Button size="sm" variant={fecha ? "outline" : "default"} onClick={() => { setSigningKey(f.key); setSigningName(""); }}>
-                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-                          {fecha ? "Volver a firmar" : "Firmar"}
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
+                  onClick={() => {
+                    if (!form?.id || allFirmas.length === 0) return;
+                    const joined = allFirmas.map((f) => f.key).join(",");
+                    const w = window.open(`/credito/${form.id}/imprimir/${joined}`, "_blank");
+                    if (!w) toast.error("Tu navegador bloqueó la ventana emergente.");
+                    else toast.success(`Generando ${allFirmas.length} documento(s)`);
+                  }}
+                >
+                  <Printer className="h-3.5 w-3.5 mr-1.5" />Generar Todos
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 hover:from-blue-100 hover:to-cyan-100 hover:text-blue-800 text-[10px] font-semibold uppercase tracking-widest"
+                  asChild
+                >
+                  <label className="cursor-pointer">
+                    <Files className="h-3.5 w-3.5 mr-1.5" />Subir varios PDFs
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      multiple
+                      className="hidden"
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files || []);
+                        e.currentTarget.value = "";
+                        if (files.length === 0) return;
+                        await handleMultiFirmaFiles(files, allFirmas);
+                      }}
+                    />
+                  </label>
+                </Button>
               </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Documento</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allFirmas.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground py-8">Sin documentos para firmar.</TableCell>
+                    </TableRow>
+                  ) : allFirmas.map((f) => {
+                    const fecha = (form as any)[f.fechaCol];
+                    const nombre = (form as any)[f.nombreCol];
+                    return (
+                      <TableRow key={f.key}>
+                        <TableCell>
+                          <div className="flex items-start gap-2 min-w-0">
+                            <ShieldCheck className={`h-4 w-4 mt-0.5 shrink-0 ${fecha ? "text-emerald-600" : "text-muted-foreground/40"}`} />
+                            <span className="font-medium">{f.label}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {fecha ? (
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="outline" className="w-fit border-emerald-300 text-emerald-700">Firmado</Badge>
+                              <span className="text-xs text-muted-foreground">{nombre} · {format(new Date(fecha), "dd/MM/yyyy HH:mm")}</span>
+                            </div>
+                          ) : (
+                            <Badge variant="secondary">Pendiente</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-wrap gap-1.5 justify-end">
+                            <Button size="icon" variant="ghost" onClick={() => openFirmaPdf(f.key)} title="Generar PDF">
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" asChild title={fecha ? "Reemplazar firmado" : "Subir firmado"} className="h-auto py-1">
+                              <label className="cursor-pointer flex flex-col items-center justify-center gap-0.5">
+                                <Upload className="h-4 w-4" />
+                                <span className="text-[9px] leading-none font-medium">Subir</span>
+                                <input
+                                  type="file"
+                                  accept="application/pdf,image/*"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    e.currentTarget.value = "";
+                                    if (file) await uploadFirmaDoc(f, file);
+                                  }}
+                                />
+                              </label>
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => { setSigningKey(f.key); setSigningName(""); }} title="Firmar en línea">
+                              <PenSquare className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
               <p className="text-xs text-muted-foreground pt-2">
-                Tu ejecutivo generará los formatos en PDF y te los compartirá para firma física o electrónica.
+                Genera el PDF, imprime y firma físicamente, luego sube el documento escaneado, o usa "Subir varios PDFs" para cargar todos en un paso.
               </p>
             </CardContent></Card>
           </TabsContent>
