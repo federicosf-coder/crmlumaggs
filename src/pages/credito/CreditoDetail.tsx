@@ -2358,7 +2358,9 @@ export default function CreditoDetail() {
             {(() => {
               const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
               const base = CREDITO_FIRMAS.filter((f) => {
-                if (f.key === "lfpiorpi") return false;
+                if (f.key === "lfpiorpi" && !SHOW_BENEFICIARIO_CONTROLADOR) {
+                  // mantener visible: lfpiorpi ahora es "Recursos de Procedencia Lícita"
+                }
                 if (f.key === "solicitud") return false; // se reemplaza por entrada por empresa
                 return !(f.personaMoralOnly && tp !== "moral");
               });
