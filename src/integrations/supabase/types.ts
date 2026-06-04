@@ -2845,6 +2845,7 @@ export type Database = {
           iva_porcentaje: number
           metodo_pago: Database["public"]["Enums"]["metodo_pago_sat"] | null
           negocio_crm: string | null
+          negocio_id: string | null
           notas: string | null
           numero_cotizacion: string | null
           numero_factura: string | null
@@ -2901,6 +2902,7 @@ export type Database = {
           iva_porcentaje?: number
           metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
           negocio_crm?: string | null
+          negocio_id?: string | null
           notas?: string | null
           numero_cotizacion?: string | null
           numero_factura?: string | null
@@ -2957,6 +2959,7 @@ export type Database = {
           iva_porcentaje?: number
           metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
           negocio_crm?: string | null
+          negocio_id?: string | null
           notas?: string | null
           numero_cotizacion?: string | null
           numero_factura?: string | null
