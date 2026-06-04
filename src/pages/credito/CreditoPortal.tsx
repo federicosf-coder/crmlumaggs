@@ -16,13 +16,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Loader2, Save, FileUp, ShieldCheck, Trash2, AlertCircle, CheckCircle2, FileCheck,
   Wand2, Building2, IdCard, Landmark, FileText, Home, ScrollText, BookOpen, Camera,
-  MapPin, Receipt, Paperclip, Check, Plus, ChevronDown,
+  MapPin, Receipt, Paperclip, Check, Plus, ChevronDown, Printer, Upload, Files, PenSquare, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
   CREDITO_FIRMAS, CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_PERSONA_OPTIONS,
 } from "@/lib/credito";
+import { TEMPLATE_LABELS } from "@/lib/creditoTemplates";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 // ---------------------------------------------------------------------------
 // Helpers
