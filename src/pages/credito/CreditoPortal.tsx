@@ -871,7 +871,9 @@ export default function CreditoPortal() {
                     )}
                   </Section>
 
-                  <PortalBeneficiarioControladorSteps form={form} set={set} token={token!} onSaved={load} />
+                  {SHOW_BC_PORTAL && (
+                    <PortalBeneficiarioControladorSteps form={form} set={set} token={token!} onSaved={load} />
+                  )}
                 </TabsContent>
 
                 {/* === FINANCIERO === */}
