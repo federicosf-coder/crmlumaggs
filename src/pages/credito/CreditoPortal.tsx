@@ -1180,6 +1180,47 @@ export default function CreditoPortal() {
             </div>
           </div>
         )}
+
+        {/* Diálogo para clasificar PDFs múltiples */}
+        <Dialog open={!!multiPicker} onOpenChange={(o) => { if (!o) { setMultiPicker(null); setMultiPickerMap({}); } }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Clasificar PDFs</DialogTitle>
+              <DialogDescription>
+                Selecciona a qué formato corresponde cada archivo. Los que dejes sin asignar se ignorarán.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {(multiPicker || []).map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2 border rounded p-2">
+                  <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="text-xs flex-1 truncate" title={item.file.name}>{item.file.name}</span>
+                  <Select
+                    value={multiPickerMap[idx] || ""}
+                    onValueChange={(v) => setMultiPickerMap((m) => ({ ...m, [idx]: v }))}
+                  >
+                    <SelectTrigger className="w-[260px] h-8 text-xs">
+                      <SelectValue placeholder="Selecciona documento..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allFirmas.map((f) => (
+                        <SelectItem key={f.key} value={f.key} className="text-xs">
+                          {f.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => { setMultiPicker(null); setMultiPickerMap({}); }}>Cancelar</Button>
+              <Button size="sm" onClick={() => confirmMultiUpload(allFirmas)}>
+                <Upload className="h-3.5 w-3.5 mr-1.5" />Subir clasificados
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
