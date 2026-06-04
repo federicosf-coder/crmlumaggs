@@ -516,6 +516,113 @@ export default function CreditoPortal() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  // === Firma helpers (table + multi-upload) ===
+  const openFirmaPdf = (key: string) => {
+    if (!form?.id) { toast.error("Solicitud no cargada"); return; }
+    window.open(`/credito/${form.id}/imprimir/${key}`, "_blank", "noopener");
+  };
+
+  const uploadFirmaDoc = async (
+    f: { key: string; label: string; nombreCol: string },
+    file: File,
+    nombreOverride?: string,
+  ) => {
+    const nombre = (nombreOverride ?? prompt(`Nombre de quien firmó "${f.label}":`, (form as any)[f.nombreCol] || "") ?? "").trim();
+    if (!nombre) { toast.error("Captura el nombre del firmante"); return; }
+    toast.loading("Subiendo...", { id: `firma-${f.key}` });
+    try {
+      const b64 = await fileToBase64(file);
+      await callPortal("upload_firma", token!, {
+        tipo: f.key, file_b64: b64, filename: file.name, mime: file.type || "application/pdf", nombre,
+      });
+      toast.success(`${f.label}: firma registrada`, { id: `firma-${f.key}` });
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Error al subir", { id: `firma-${f.key}` });
+    }
+  };
+
+  const classifyFirmaByFilename = (name: string, validKeys: string[]): string | null => {
+    const n = name.toLowerCase();
+    const rules: Array<[RegExp, string]> = [
+      [/(galsa|phillips)/, "solicitud-galsa"],
+      [/(lumaggs|chevron)/, "solicitud-lumaggs"],
+      [/(buro|bur[oó])/, "buro"],
+      [/(confidencial)/, "confidencialidad"],
+      [/(subsistencia|poderes)/, "subsistencia"],
+      [/(licita|l[ií]cita|lfpiorpi|procedencia)/, "lfpiorpi"],
+      [/(solicitud)/, "solicitud"],
+    ];
+    for (const [rx, key] of rules) {
+      if (rx.test(n) && validKeys.includes(key)) return key;
+    }
+    return null;
+  };
+
+  const handleMultiFirmaFiles = async (files: File[], allFirmas: Array<{ key: string; label: string; nombreCol: string }>) => {
+    const validKeys = allFirmas.map((f) => f.key);
+    const items = await Promise.all(files.map(async (file) => {
+      const guess = classifyFirmaByFilename(file.name, validKeys);
+      return { file, guess };
+    }));
+    const unresolved = items.filter((i) => !i.guess);
+    if (unresolved.length > 0) {
+      // Open picker
+      const b64Items = await Promise.all(items.map(async (i) => ({ file: i.file, b64: await fileToBase64(i.file) })));
+      const initialMap: Record<number, string> = {};
+      items.forEach((it, idx) => { if (it.guess) initialMap[idx] = it.guess; });
+      setMultiPickerMap(initialMap);
+      setMultiPicker(b64Items);
+      return;
+    }
+    // All classified: upload sequentially
+    let ok = 0;
+    for (const it of items) {
+      const firma = allFirmas.find((x) => x.key === it.guess!);
+      if (!firma) continue;
+      const defaultName = (form as any)[firma.nombreCol] || form.rep_legal_nombre || form.razon_social || "Firmante";
+      try {
+        const b64 = await fileToBase64(it.file);
+        await callPortal("upload_firma", token!, {
+          tipo: firma.key, file_b64: b64, filename: it.file.name, mime: it.file.type || "application/pdf", nombre: defaultName,
+        });
+        ok++;
+      } catch (e: any) {
+        toast.error(`${firma.label}: ${e?.message || "error"}`);
+      }
+    }
+    if (ok > 0) toast.success(`${ok} documento(s) clasificados y subidos`);
+    load();
+  };
+
+  const confirmMultiUpload = async (allFirmas: Array<{ key: string; label: string; nombreCol: string }>) => {
+    if (!multiPicker) return;
+    let ok = 0;
+    for (let idx = 0; idx < multiPicker.length; idx++) {
+      const key = multiPickerMap[idx];
+      if (!key) continue;
+      const firma = allFirmas.find((x) => x.key === key);
+      if (!firma) continue;
+      const defaultName = (form as any)[firma.nombreCol] || form.rep_legal_nombre || form.razon_social || "Firmante";
+      try {
+        await callPortal("upload_firma", token!, {
+          tipo: firma.key,
+          file_b64: multiPicker[idx].b64,
+          filename: multiPicker[idx].file.name,
+          mime: multiPicker[idx].file.type || "application/pdf",
+          nombre: defaultName,
+        });
+        ok++;
+      } catch (e: any) {
+        toast.error(`${firma.label}: ${e?.message || "error"}`);
+      }
+    }
+    if (ok > 0) toast.success(`${ok} documento(s) clasificados y subidos`);
+    setMultiPicker(null);
+    setMultiPickerMap({});
+    load();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
