@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Loader2, Save, FileUp, ShieldCheck, Trash2, AlertCircle, CheckCircle2, FileCheck,
   Wand2, Building2, IdCard, Landmark, FileText, Home, ScrollText, BookOpen, Camera,
-  MapPin, Receipt, Paperclip, Check, Plus, ChevronDown, Printer, Upload, Files, PenSquare, X,
+  MapPin, Receipt, Paperclip, Check, Plus, ChevronDown, ChevronUp, Printer, Upload, Files, PenSquare, X, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
