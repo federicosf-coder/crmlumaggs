@@ -400,6 +400,8 @@ export default function CreditoPortal() {
   const [formTab, setFormTab] = useState("empresa");
   const [signingKey, setSigningKey] = useState<string | null>(null);
   const [signingName, setSigningName] = useState("");
+  const [multiPicker, setMultiPicker] = useState<{ file: File; b64: string }[] | null>(null);
+  const [multiPickerMap, setMultiPickerMap] = useState<Record<number, string>>({});
 
   const load = async () => {
     if (!token) return;
