@@ -2802,6 +2802,48 @@ export default function CreditoDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Multi-PDF firma picker */}
+      <Dialog open={!!multiFirmaPicker} onOpenChange={(o) => { if (!o) { setMultiFirmaPicker(null); setMultiFirmaMap({}); } }}>
+        <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-br from-violet-50 to-blue-50 px-6 py-4 border-b">
+            <DialogTitle className="text-base font-semibold tracking-tight">Clasificar PDFs</DialogTitle>
+            <DialogDescription className="text-xs">
+              Confirma a qué formato corresponde cada archivo. Los que dejes sin asignar se ignorarán.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-6 py-5 space-y-2 max-h-[60vh] overflow-y-auto">
+            {(multiFirmaPicker || []).map((file, idx) => {
+              const all = computeAllFirmas();
+              return (
+                <div key={idx} className="flex items-center gap-2 border rounded p-2">
+                  <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="text-xs flex-1 truncate" title={file.name}>{file.name}</span>
+                  <Select
+                    value={multiFirmaMap[idx] || ""}
+                    onValueChange={(v) => setMultiFirmaMap((m) => ({ ...m, [idx]: v }))}
+                  >
+                    <SelectTrigger className="w-[260px] h-8 text-xs">
+                      <SelectValue placeholder="Selecciona documento..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {all.map((f: any) => (
+                        <SelectItem key={f.key} value={f.key} className="text-xs">{f.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter className="bg-muted/40 px-6 py-3 border-t">
+            <Button variant="outline" onClick={() => { setMultiFirmaPicker(null); setMultiFirmaMap({}); }}>Cancelar</Button>
+            <Button onClick={confirmMultiFirmaUpload}>
+              <Upload className="h-4 w-4 mr-2" />Subir clasificados
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit fecha emisión dialog */}
       <Dialog open={!!editFechaDoc} onOpenChange={(o) => { if (!o) setEditFechaDoc(null); }}>
         <DialogContent className="sm:max-w-sm p-0 gap-0 overflow-hidden">
