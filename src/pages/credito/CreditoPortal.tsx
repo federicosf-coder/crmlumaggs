@@ -1123,8 +1123,11 @@ export default function CreditoPortal() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex flex-wrap gap-1.5 justify-end">
-                            <Button size="icon" variant="ghost" onClick={() => openFirmaPdf(f.key)} title="Generar PDF">
-                              <Printer className="h-4 w-4" />
+                            <Button size="icon" variant="ghost" onClick={() => openFirmaPdf(f.key)} title="Generar PDF" className="h-auto py-1">
+                              <div className="flex flex-col items-center justify-center gap-0.5">
+                                <FileText className="h-4 w-4" />
+                                <span className="text-[9px] leading-none font-medium">PDF</span>
+                              </div>
                             </Button>
                             <Button size="icon" variant="ghost" asChild title={fecha ? "Reemplazar firmado" : "Subir firmado"} className="h-auto py-1">
                               <label className="cursor-pointer flex flex-col items-center justify-center gap-0.5">
