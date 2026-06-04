@@ -674,6 +674,50 @@ export default function CreditoPortal() {
   const doneReq = visibleDocTypes.filter((d) => d.requerido && hasDocs(d)).length;
   const pct = totalReq > 0 ? Math.round((doneReq / totalReq) * 100) : 0;
 
+  // === Autofill helpers ===
+  const docTypeIdForKind = (kind: string): string | null => {
+    const find = (pred: (n: string) => boolean) =>
+      docTypes.find((t: any) => pred((t.nombre || "").toLowerCase()))?.id ?? null;
+    if (kind === "csf") return find((n) => n.includes("csf") || n.includes("situación fiscal"));
+    if (kind === "comprobante_domicilio") return find((n) => n.includes("comprobante de domicilio") && !n.includes("aval"));
+    if (kind.startsWith("ine") || kind === "passport") return find((n) => n.startsWith("identificación oficial") && !n.includes("aval"));
+    if (kind === "acta_constitutiva") return find((n) => n.includes("acta constitutiva"));
+    return null;
+  };
+  const docsForKind = (kind: string): any[] => {
+    const tid = docTypeIdForKind(kind);
+    if (!tid) return [];
+    return docs.filter((d: any) => d.doc_type_id === tid);
+  };
+  const autofillFromFile = async (file: File, kind: string, label: string) => {
+    if (!file || !token) return;
+    if (file.size > 15 * 1024 * 1024) { toast.error("El archivo supera 15 MB"); return; }
+    setAutofilling(kind);
+    toast.loading(`Leyendo ${label}...`, { id: "af" });
+    try {
+      const b64 = await fileToBase64(file);
+      const { data: rdata, error } = await supabase.functions.invoke("credito-autofill", {
+        body: { token, kind, file_b64: b64, mime: file.type || "image/jpeg" },
+      });
+      if (error) throw error;
+      if ((rdata as any)?.error) throw new Error((rdata as any).error);
+      const filled = Object.keys((rdata as any)?.updated || {}).length;
+      const docTypeId = docTypeIdForKind(kind);
+      try {
+        await callPortal("upload_doc", token, {
+          doc_type_id: docTypeId, file_b64: b64, filename: file.name,
+          mime: file.type || "application/pdf", nombre_personalizado: label,
+        });
+      } catch { /* ignore upload error; autofill ya guardó campos */ }
+      toast.success(filled > 0 ? `${label}: ${filled} campos autocompletados` : `${label} guardada`, { id: "af" });
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || `No se pudo leer ${label}`, { id: "af" });
+    } finally {
+      setAutofilling(null);
+    }
+  };
+
   // === Firmas ===
   const baseFirmas = CREDITO_FIRMAS
     .filter((f) => f.key !== "solicitud")
