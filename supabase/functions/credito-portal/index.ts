@@ -174,10 +174,6 @@ Deno.serve(async (req) => {
       return json({ ok: true })
     }
 
-    if (action === 'upload_doc') {
-      // legacy entry: handled by the real block below; kept to anchor patch
-    }
-
     if (action === 'upload_firma') {
       const tipo = String(body.tipo || '')
       const map = SIGN_MAP[tipo]
