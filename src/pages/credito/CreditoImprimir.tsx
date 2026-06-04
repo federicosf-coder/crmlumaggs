@@ -8,7 +8,7 @@ import { buildTokens, renderTemplate, templateKeyForFirma, PRINT_STYLES, TEMPLAT
 type RenderedDoc = { html: string; entidad: "lumaggs" | "galsa"; titulo: string };
 
 export default function CreditoImprimir() {
-  const { id, firmaKey } = useParams<{ id: string; firmaKey: string }>();
+  const { id, token, firmaKey } = useParams<{ id?: string; token?: string; firmaKey: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [docs, setDocs] = useState<RenderedDoc[]>([]);
@@ -17,18 +17,33 @@ export default function CreditoImprimir() {
   useEffect(() => {
     (async () => {
       try {
-        const { data: form, error: e1 } = await supabase
-          .from("credit_requests")
-          .select("*, companies(*)")
-          .eq("id", id!)
-          .maybeSingle();
-        if (e1 || !form) throw new Error(e1?.message || "Crédito no encontrado");
-
-        const company = (form as any).companies || {};
-
         // firmaKey puede ser un solo key o varios separados por coma (para "Generar Todos")
         const requestedKeys = (firmaKey || "").split(",").map((k) => k.trim()).filter(Boolean);
         if (requestedKeys.length === 0) throw new Error("No se especificó ningún documento");
+
+        let form: any;
+        let company: any;
+        let portalTemplates: any[] | null = null;
+        if (token) {
+          const { data, error: eP } = await supabase.functions.invoke("credito-portal", {
+            body: { action: "print_data", token, keys: requestedKeys },
+          });
+          if (eP) throw new Error(eP.message);
+          if ((data as any)?.error) throw new Error((data as any).error);
+          form = (data as any).request;
+          company = form?.companies || {};
+          portalTemplates = (data as any).templates || [];
+          if (!form) throw new Error("Crédito no encontrado");
+        } else {
+          const { data: f, error: e1 } = await supabase
+            .from("credit_requests")
+            .select("*, companies(*)")
+            .eq("id", id!)
+            .maybeSingle();
+          if (e1 || !f) throw new Error(e1?.message || "Crédito no encontrado");
+          form = f;
+          company = (form as any).companies || {};
+        }
 
         const rendered: RenderedDoc[] = [];
         for (const rawKey of requestedKeys) {
@@ -70,12 +85,18 @@ export default function CreditoImprimir() {
           }
           const companyForTokens: any = { ...company, empresa_vendedora: entidad };
 
-          const { data: tpls, error: e2 } = await (supabase as any)
-            .from("credit_doc_templates")
-            .select("*")
-            .eq("key", tplKey)
-            .eq("activo", true);
-          if (e2) throw new Error(e2.message);
+          let tpls: any[];
+          if (portalTemplates) {
+            tpls = portalTemplates.filter((t: any) => t.key === tplKey);
+          } else {
+            const { data: r, error: e2 } = await (supabase as any)
+              .from("credit_doc_templates")
+              .select("*")
+              .eq("key", tplKey)
+              .eq("activo", true);
+            if (e2) throw new Error(e2.message);
+            tpls = r || [];
+          }
           let tpl =
             (tpls || []).find((t: any) => t.entidad === entidad) ||
             (tpls || []).find((t: any) => t.entidad === "ambas") ||
@@ -115,7 +136,7 @@ export default function CreditoImprimir() {
         setLoading(false);
       }
     })();
-  }, [id, firmaKey]);
+  }, [id, token, firmaKey]);
 
   useEffect(() => {
     if (!loading && !error && docs.length > 0) {
