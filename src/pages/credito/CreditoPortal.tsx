@@ -828,6 +828,200 @@ export default function CreditoPortal() {
                   </Field>
                 </div>
 
+                {/* Autocompletar con documentos (opcional) */}
+                {(() => {
+                  const palCsf  = DOC_PALETTE["Constancia de Situación Fiscal (CSF)"];
+                  const palIne  = DOC_PALETTE["Identificación oficial"];
+                  const palDom  = DOC_PALETTE["Comprobante de domicilio"];
+                  const palActa = DOC_PALETTE["Acta Constitutiva"];
+                  const cardCls = (has: boolean, p: any) =>
+                    `rounded-lg border-2 ${has ? "border-emerald-300" : p.border} bg-transparent p-3 flex flex-col gap-2 relative`;
+                  const badge = (has: boolean) =>
+                    `absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${has ? "bg-emerald-500 text-white border-emerald-600" : "bg-slate-200 text-slate-700 border-slate-300"}`;
+                  const hasCsf  = docsForKind("csf").length > 0;
+                  const hasIne  = docsForKind("ine_front").length > 0;
+                  const hasDom  = docsForKind("comprobante_domicilio").length > 0;
+                  const hasActa = docsForKind("acta_constitutiva").length > 0;
+                  return (
+                    <Card className="border-violet-200 bg-gradient-to-br from-violet-50 via-white to-blue-50 mt-4">
+                      <CardContent className="pt-3 pb-3 space-y-2">
+                        <div className="flex items-start gap-2.5">
+                          <div className="h-7 w-7 rounded-md bg-violet-100 flex items-center justify-center shrink-0">
+                            <Wand2 className="h-4 w-4 text-violet-700" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-semibold flex items-center gap-1.5 leading-tight">
+                              Autocompletar con documentos
+                              <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wide bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded">
+                                <Sparkles className="h-3 w-3" /> Opcional
+                              </span>
+                            </p>
+                            <p className="text-[11px] text-muted-foreground leading-snug">
+                              Sube los documentos del solicitante y se autocompletarán los datos posibles del formulario. Es opcional pero ahorra mucha captura.
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button type="button" variant="outline" size="sm"
+                              className="h-8 border-violet-300 text-violet-700 hover:bg-violet-100"
+                              onClick={() => setAutofillCollapsed((v) => !v)}
+                              title={autofillCollapsed ? "Mostrar documentos" : "Ocultar documentos"}>
+                              {autofillCollapsed ? (
+                                <><ChevronDown className="h-3.5 w-3.5 mr-1" />Mostrar</>
+                              ) : (
+                                <><ChevronUp className="h-3.5 w-3.5 mr-1" />Ocultar</>
+                              )}
+                            </Button>
+                            <Button type="button" size="sm" className="h-8" onClick={saveForm} disabled={saving}>
+                              {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                              Guardar
+                            </Button>
+                          </div>
+                        </div>
+                        {!autofillCollapsed && (<>
+                          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                            {/* CSF */}
+                            <div className={cardCls(hasCsf, palCsf)}>
+                              <span className={badge(hasCsf)}>
+                                {hasCsf ? (<><Check className="h-2.5 w-2.5" />Subido</>) : "Opcional"}
+                              </span>
+                              <div className="flex items-start gap-2.5 min-w-0 pr-20">
+                                <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palCsf.iconBg}`}>
+                                  <FileText className={`h-4 w-4 ${palCsf.iconColor}`} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-sm leading-tight">Constancia de Situación Fiscal</p>
+                                </div>
+                              </div>
+                              <label className="cursor-pointer block">
+                                <input type="file" accept="application/pdf,image/*" className="hidden"
+                                  disabled={autofilling !== null}
+                                  onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "csf", "CSF"); e.currentTarget.value = ""; }} />
+                                <span className={`inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md border bg-white ${palCsf.btn}`}>
+                                  {autofilling === "csf" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                                  {hasCsf ? "Reemplazar CSF" : "Subir CSF"}
+                                </span>
+                              </label>
+                              {docsForKind("csf").map((it) => (
+                                <button key={it.id} onClick={() => openDoc(it.id)} className="flex items-center gap-1 text-[10px] text-blue-700 hover:underline truncate w-full">
+                                  <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                                </button>
+                              ))}
+                            </div>
+                            {/* INE / Pasaporte */}
+                            <div className={cardCls(hasIne, palIne)}>
+                              <span className={badge(hasIne)}>
+                                {hasIne ? (<><Check className="h-2.5 w-2.5" />Subido</>) : "Opcional"}
+                              </span>
+                              <div className="flex items-start gap-2.5 min-w-0 pr-20">
+                                <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palIne.iconBg}`}>
+                                  <IdCard className={`h-4 w-4 ${palIne.iconColor}`} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-sm leading-tight">INE / Pasaporte del Representante</p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <label className="cursor-pointer">
+                                  <input type="file" accept="image/*,application/pdf" className="hidden" disabled={autofilling !== null}
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "ine_front", "INE frente"); e.currentTarget.value = ""; }} />
+                                  <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                    {autofilling === "ine_front" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}Frente
+                                  </span>
+                                </label>
+                                <label className="cursor-pointer">
+                                  <input type="file" accept="image/*,application/pdf" className="hidden" disabled={autofilling !== null}
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "ine_back", "INE reverso"); e.currentTarget.value = ""; }} />
+                                  <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                    {autofilling === "ine_back" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}Reverso
+                                  </span>
+                                </label>
+                                <label className="cursor-pointer">
+                                  <input type="file" accept="application/pdf,image/*" className="hidden" disabled={autofilling !== null}
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "ine_full", "INE completa"); e.currentTarget.value = ""; }} />
+                                  <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                    {autofilling === "ine_full" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}PDF INE
+                                  </span>
+                                </label>
+                                <label className="cursor-pointer">
+                                  <input type="file" accept="image/*,application/pdf" className="hidden" disabled={autofilling !== null}
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "passport", "Pasaporte"); e.currentTarget.value = ""; }} />
+                                  <span className={`inline-flex items-center justify-center gap-1 w-full text-[11px] px-2 py-1.5 rounded-md border bg-white ${palIne.btn}`}>
+                                    {autofilling === "passport" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3" />}Pasaporte
+                                  </span>
+                                </label>
+                              </div>
+                              {docsForKind("ine_front").map((it) => (
+                                <button key={it.id} onClick={() => openDoc(it.id)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate w-full">
+                                  <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                                </button>
+                              ))}
+                            </div>
+                            {/* Comprobante */}
+                            <div className={cardCls(hasDom, palDom)}>
+                              <span className={badge(hasDom)}>
+                                {hasDom ? (<><Check className="h-2.5 w-2.5" />Subido</>) : "Opcional"}
+                              </span>
+                              <div className="flex items-start gap-2.5 min-w-0 pr-20">
+                                <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palDom.iconBg}`}>
+                                  <Home className={`h-4 w-4 ${palDom.iconColor}`} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-sm leading-tight">Comprobante de domicilio</p>
+                                </div>
+                              </div>
+                              <label className="cursor-pointer block">
+                                <input type="file" accept="application/pdf,image/*" className="hidden" disabled={autofilling !== null}
+                                  onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "comprobante_domicilio", "Comprobante"); e.currentTarget.value = ""; }} />
+                                <span className={`inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md border bg-white ${palDom.btn}`}>
+                                  {autofilling === "comprobante_domicilio" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                                  {hasDom ? "Reemplazar comprobante" : "Subir comprobante"}
+                                </span>
+                              </label>
+                              {docsForKind("comprobante_domicilio").map((it) => (
+                                <button key={it.id} onClick={() => openDoc(it.id)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate w-full">
+                                  <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                                </button>
+                              ))}
+                            </div>
+                            {/* Acta Constitutiva */}
+                            {tp === "moral" && (
+                              <div className={cardCls(hasActa, palActa)}>
+                                <span className={badge(hasActa)}>
+                                  {hasActa ? (<><Check className="h-2.5 w-2.5" />Subido</>) : "Opcional"}
+                                </span>
+                                <div className="flex items-start gap-2.5 min-w-0 pr-20">
+                                  <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palActa.iconBg}`}>
+                                    <ScrollText className={`h-4 w-4 ${palActa.iconColor}`} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-sm leading-tight">Acta Constitutiva</p>
+                                  </div>
+                                </div>
+                                <label className="cursor-pointer block">
+                                  <input type="file" accept="application/pdf,image/*" className="hidden" disabled={autofilling !== null}
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) autofillFromFile(f, "acta_constitutiva", "Acta Constitutiva"); e.currentTarget.value = ""; }} />
+                                  <span className={`inline-flex items-center justify-center gap-1 w-full text-xs px-3 py-1.5 rounded-md border bg-white ${palActa.btn}`}>
+                                    {autofilling === "acta_constitutiva" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                                    {hasActa ? "Reemplazar acta" : "Subir acta"}
+                                  </span>
+                                </label>
+                                {docsForKind("acta_constitutiva").map((it) => (
+                                  <button key={it.id} onClick={() => openDoc(it.id)} className="flex items-center gap-1 text-[10px] text-indigo-700 hover:underline truncate w-full">
+                                    <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground pt-1">
+                            Solo se llenarán los campos que estén vacíos; los datos ya capturados no se sobrescriben.
+                          </p>
+                        </>)}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
                 {/* === EMPRESA === */}
                 <TabsContent value="empresa" className="space-y-6 mt-5">
                   <Section title="Datos generales">
