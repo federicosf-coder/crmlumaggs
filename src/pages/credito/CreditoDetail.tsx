@@ -29,6 +29,10 @@ import { useIndustriasCatalog } from "@/hooks/useIndustriasCatalog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 
+// Bandera temporal para ocultar visualmente las secciones de
+// Beneficiario Controlador (LFPIORPI) sin eliminar el código.
+const SHOW_BENEFICIARIO_CONTROLADOR = false;
+
 type Req = any;
 
 const DOC_PALETTE: Record<string, { icon: any; bg: string; border: string; iconBg: string; iconColor: string; btn: string }> = {
