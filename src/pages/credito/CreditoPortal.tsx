@@ -1055,14 +1055,14 @@ export default function CreditoPortal() {
                   variant="outline"
                   className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
                   onClick={() => {
-                    if (!form?.id || allFirmas.length === 0) return;
+                    if (!token || allFirmas.length === 0) return;
                     const joined = allFirmas.map((f) => f.key).join(",");
-                    const w = window.open(`/credito/${form.id}/imprimir/${joined}`, "_blank");
+                    const w = window.open(`/portal/credito/${token}/imprimir/${joined}`, "_blank");
                     if (!w) toast.error("Tu navegador bloqueó la ventana emergente.");
                     else toast.success(`Generando ${allFirmas.length} documento(s)`);
                   }}
                 >
-                  <Printer className="h-3.5 w-3.5 mr-1.5" />Generar Todos
+                  <FileText className="h-3.5 w-3.5 mr-1.5" />Generar Todos los PDF
                 </Button>
                 <Button
                   size="sm"
