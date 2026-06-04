@@ -187,6 +187,9 @@ function BeneficiarioControladorSteps({
     setStep2Open(false);
   };
 
+  // BC oculto temporalmente sin eliminar código.
+  if (!SHOW_BENEFICIARIO_CONTROLADOR) return null;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center" style={{ gap: "3mm" }}>
