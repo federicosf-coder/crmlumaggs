@@ -16,13 +16,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Loader2, Save, FileUp, ShieldCheck, Trash2, AlertCircle, CheckCircle2, FileCheck,
   Wand2, Building2, IdCard, Landmark, FileText, Home, ScrollText, BookOpen, Camera,
-  MapPin, Receipt, Paperclip, Check, Plus, ChevronDown,
+  MapPin, Receipt, Paperclip, Check, Plus, ChevronDown, Printer, Upload, Files, PenSquare, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
   CREDITO_FIRMAS, CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_PERSONA_OPTIONS,
 } from "@/lib/credito";
+import { TEMPLATE_LABELS } from "@/lib/creditoTemplates";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -397,6 +400,8 @@ export default function CreditoPortal() {
   const [formTab, setFormTab] = useState("empresa");
   const [signingKey, setSigningKey] = useState<string | null>(null);
   const [signingName, setSigningName] = useState("");
+  const [multiPicker, setMultiPicker] = useState<{ file: File; b64: string }[] | null>(null);
+  const [multiPickerMap, setMultiPickerMap] = useState<Record<number, string>>({});
 
   const load = async () => {
     if (!token) return;
@@ -511,6 +516,113 @@ export default function CreditoPortal() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  // === Firma helpers (table + multi-upload) ===
+  const openFirmaPdf = (key: string) => {
+    if (!form?.id) { toast.error("Solicitud no cargada"); return; }
+    window.open(`/credito/${form.id}/imprimir/${key}`, "_blank", "noopener");
+  };
+
+  const uploadFirmaDoc = async (
+    f: { key: string; label: string; nombreCol: string },
+    file: File,
+    nombreOverride?: string,
+  ) => {
+    const nombre = (nombreOverride ?? prompt(`Nombre de quien firmó "${f.label}":`, (form as any)[f.nombreCol] || "") ?? "").trim();
+    if (!nombre) { toast.error("Captura el nombre del firmante"); return; }
+    toast.loading("Subiendo...", { id: `firma-${f.key}` });
+    try {
+      const b64 = await fileToBase64(file);
+      await callPortal("upload_firma", token!, {
+        tipo: f.key, file_b64: b64, filename: file.name, mime: file.type || "application/pdf", nombre,
+      });
+      toast.success(`${f.label}: firma registrada`, { id: `firma-${f.key}` });
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Error al subir", { id: `firma-${f.key}` });
+    }
+  };
+
+  const classifyFirmaByFilename = (name: string, validKeys: string[]): string | null => {
+    const n = name.toLowerCase();
+    const rules: Array<[RegExp, string]> = [
+      [/(galsa|phillips)/, "solicitud-galsa"],
+      [/(lumaggs|chevron)/, "solicitud-lumaggs"],
+      [/(buro|bur[oó])/, "buro"],
+      [/(confidencial)/, "confidencialidad"],
+      [/(subsistencia|poderes)/, "subsistencia"],
+      [/(licita|l[ií]cita|lfpiorpi|procedencia)/, "lfpiorpi"],
+      [/(solicitud)/, "solicitud"],
+    ];
+    for (const [rx, key] of rules) {
+      if (rx.test(n) && validKeys.includes(key)) return key;
+    }
+    return null;
+  };
+
+  const handleMultiFirmaFiles = async (files: File[], allFirmas: Array<{ key: string; label: string; nombreCol: string }>) => {
+    const validKeys = allFirmas.map((f) => f.key);
+    const items = await Promise.all(files.map(async (file) => {
+      const guess = classifyFirmaByFilename(file.name, validKeys);
+      return { file, guess };
+    }));
+    const unresolved = items.filter((i) => !i.guess);
+    if (unresolved.length > 0) {
+      // Open picker
+      const b64Items = await Promise.all(items.map(async (i) => ({ file: i.file, b64: await fileToBase64(i.file) })));
+      const initialMap: Record<number, string> = {};
+      items.forEach((it, idx) => { if (it.guess) initialMap[idx] = it.guess; });
+      setMultiPickerMap(initialMap);
+      setMultiPicker(b64Items);
+      return;
+    }
+    // All classified: upload sequentially
+    let ok = 0;
+    for (const it of items) {
+      const firma = allFirmas.find((x) => x.key === it.guess!);
+      if (!firma) continue;
+      const defaultName = (form as any)[firma.nombreCol] || form.rep_legal_nombre || form.razon_social || "Firmante";
+      try {
+        const b64 = await fileToBase64(it.file);
+        await callPortal("upload_firma", token!, {
+          tipo: firma.key, file_b64: b64, filename: it.file.name, mime: it.file.type || "application/pdf", nombre: defaultName,
+        });
+        ok++;
+      } catch (e: any) {
+        toast.error(`${firma.label}: ${e?.message || "error"}`);
+      }
+    }
+    if (ok > 0) toast.success(`${ok} documento(s) clasificados y subidos`);
+    load();
+  };
+
+  const confirmMultiUpload = async (allFirmas: Array<{ key: string; label: string; nombreCol: string }>) => {
+    if (!multiPicker) return;
+    let ok = 0;
+    for (let idx = 0; idx < multiPicker.length; idx++) {
+      const key = multiPickerMap[idx];
+      if (!key) continue;
+      const firma = allFirmas.find((x) => x.key === key);
+      if (!firma) continue;
+      const defaultName = (form as any)[firma.nombreCol] || form.rep_legal_nombre || form.razon_social || "Firmante";
+      try {
+        await callPortal("upload_firma", token!, {
+          tipo: firma.key,
+          file_b64: multiPicker[idx].b64,
+          filename: multiPicker[idx].file.name,
+          mime: multiPicker[idx].file.type || "application/pdf",
+          nombre: defaultName,
+        });
+        ok++;
+      } catch (e: any) {
+        toast.error(`${firma.label}: ${e?.message || "error"}`);
+      }
+    }
+    if (ok > 0) toast.success(`${ok} documento(s) clasificados y subidos`);
+    setMultiPicker(null);
+    setMultiPickerMap({});
+    load();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -559,7 +671,34 @@ export default function CreditoPortal() {
   const pct = totalReq > 0 ? Math.round((doneReq / totalReq) * 100) : 0;
 
   // === Firmas ===
-  const baseFirmas = CREDITO_FIRMAS.filter((f) => !(f.personaMoralOnly && tp !== "moral"));
+  const baseFirmas = CREDITO_FIRMAS
+    .filter((f) => f.key !== "solicitud")
+    .filter((f) => !(f.personaMoralOnly && tp !== "moral"));
+  const solicitudEntries: Array<{ key: string; label: string; fechaCol: string; nombreCol: string; personaMoralOnly: boolean }> = [];
+  if ((form as any).solicita_lumaggs) {
+    solicitudEntries.push({
+      key: "solicitud-lumaggs",
+      label: "Solicitud de crédito · Lumaggs (Chevron)",
+      fechaCol: "firma_solicitud_lumaggs_fecha",
+      nombreCol: "firma_solicitud_lumaggs_nombre",
+      personaMoralOnly: false,
+    });
+  }
+  if ((form as any).solicita_galsa) {
+    solicitudEntries.push({
+      key: "solicitud-galsa",
+      label: "Solicitud de crédito · Galsa (Phillips 66)",
+      fechaCol: "firma_solicitud_galsa_fecha",
+      nombreCol: "firma_solicitud_galsa_nombre",
+      personaMoralOnly: false,
+    });
+  }
+  // Fallback: si no hay marcas seleccionadas, conserva la entrada genérica de "Solicitud".
+  if (solicitudEntries.length === 0) {
+    const orig = CREDITO_FIRMAS.find((f) => f.key === "solicitud");
+    if (orig) solicitudEntries.push({ ...orig } as any);
+  }
+  const allFirmas = [...solicitudEntries, ...baseFirmas] as Array<{ key: string; label: string; fechaCol: string; nombreCol: string; personaMoralOnly: boolean }>;
 
   return (
     <div className="min-h-screen bg-muted/30 py-6 px-4">
@@ -906,42 +1045,111 @@ export default function CreditoPortal() {
           {/* ============ FORMATOS Y FIRMAS ============ */}
           <TabsContent value="firmas" className="space-y-4 mt-4">
             <Card><CardContent className="pt-6 space-y-3">
-              <div className="space-y-2">
-                {baseFirmas.map((f) => {
-                  const fecha = (form as any)[f.fechaCol];
-                  const nombre = (form as any)[f.nombreCol];
-                  return (
-                    <div key={f.key} className="rounded-lg border bg-card p-3 flex items-center justify-between gap-3 flex-wrap">
-                      <div className="flex items-start gap-2 min-w-0 flex-1">
-                        <ShieldCheck className={`h-5 w-5 mt-0.5 shrink-0 ${fecha ? "text-emerald-600" : "text-muted-foreground/40"}`} />
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm">{f.label}</p>
-                          {fecha ? (
-                            <p className="text-xs text-muted-foreground">
-                              Firmado por {nombre} · {format(new Date(fecha), "dd/MM/yyyy HH:mm")}
-                            </p>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">Pendiente de firmar</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {fecha ? (
-                          <Badge variant="outline" className="border-emerald-300 text-emerald-700">Firmado</Badge>
-                        ) : (
-                          <Badge variant="secondary">Pendiente</Badge>
-                        )}
-                        <Button size="sm" variant={fecha ? "outline" : "default"} onClick={() => { setSigningKey(f.key); setSigningName(""); }}>
-                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-                          {fecha ? "Volver a firmar" : "Firmar"}
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
+                  onClick={() => {
+                    if (!form?.id || allFirmas.length === 0) return;
+                    const joined = allFirmas.map((f) => f.key).join(",");
+                    const w = window.open(`/credito/${form.id}/imprimir/${joined}`, "_blank");
+                    if (!w) toast.error("Tu navegador bloqueó la ventana emergente.");
+                    else toast.success(`Generando ${allFirmas.length} documento(s)`);
+                  }}
+                >
+                  <Printer className="h-3.5 w-3.5 mr-1.5" />Generar Todos
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 hover:from-blue-100 hover:to-cyan-100 hover:text-blue-800 text-[10px] font-semibold uppercase tracking-widest"
+                  asChild
+                >
+                  <label className="cursor-pointer">
+                    <Files className="h-3.5 w-3.5 mr-1.5" />Subir varios PDFs
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      multiple
+                      className="hidden"
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files || []);
+                        e.currentTarget.value = "";
+                        if (files.length === 0) return;
+                        await handleMultiFirmaFiles(files, allFirmas);
+                      }}
+                    />
+                  </label>
+                </Button>
               </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Documento</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allFirmas.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground py-8">Sin documentos para firmar.</TableCell>
+                    </TableRow>
+                  ) : allFirmas.map((f) => {
+                    const fecha = (form as any)[f.fechaCol];
+                    const nombre = (form as any)[f.nombreCol];
+                    return (
+                      <TableRow key={f.key}>
+                        <TableCell>
+                          <div className="flex items-start gap-2 min-w-0">
+                            <ShieldCheck className={`h-4 w-4 mt-0.5 shrink-0 ${fecha ? "text-emerald-600" : "text-muted-foreground/40"}`} />
+                            <span className="font-medium">{f.label}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {fecha ? (
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="outline" className="w-fit border-emerald-300 text-emerald-700">Firmado</Badge>
+                              <span className="text-xs text-muted-foreground">{nombre} · {format(new Date(fecha), "dd/MM/yyyy HH:mm")}</span>
+                            </div>
+                          ) : (
+                            <Badge variant="secondary">Pendiente</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-wrap gap-1.5 justify-end">
+                            <Button size="icon" variant="ghost" onClick={() => openFirmaPdf(f.key)} title="Generar PDF">
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" asChild title={fecha ? "Reemplazar firmado" : "Subir firmado"} className="h-auto py-1">
+                              <label className="cursor-pointer flex flex-col items-center justify-center gap-0.5">
+                                <Upload className="h-4 w-4" />
+                                <span className="text-[9px] leading-none font-medium">Subir</span>
+                                <input
+                                  type="file"
+                                  accept="application/pdf,image/*"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    e.currentTarget.value = "";
+                                    if (file) await uploadFirmaDoc(f, file);
+                                  }}
+                                />
+                              </label>
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => { setSigningKey(f.key); setSigningName(""); }} title="Firmar en línea">
+                              <PenSquare className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
               <p className="text-xs text-muted-foreground pt-2">
-                Tu ejecutivo generará los formatos en PDF y te los compartirá para firma física o electrónica.
+                Genera el PDF, imprime y firma físicamente, luego sube el documento escaneado, o usa "Subir varios PDFs" para cargar todos en un paso.
               </p>
             </CardContent></Card>
           </TabsContent>
@@ -972,6 +1180,47 @@ export default function CreditoPortal() {
             </div>
           </div>
         )}
+
+        {/* Diálogo para clasificar PDFs múltiples */}
+        <Dialog open={!!multiPicker} onOpenChange={(o) => { if (!o) { setMultiPicker(null); setMultiPickerMap({}); } }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Clasificar PDFs</DialogTitle>
+              <DialogDescription>
+                Selecciona a qué formato corresponde cada archivo. Los que dejes sin asignar se ignorarán.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {(multiPicker || []).map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2 border rounded p-2">
+                  <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="text-xs flex-1 truncate" title={item.file.name}>{item.file.name}</span>
+                  <Select
+                    value={multiPickerMap[idx] || ""}
+                    onValueChange={(v) => setMultiPickerMap((m) => ({ ...m, [idx]: v }))}
+                  >
+                    <SelectTrigger className="w-[260px] h-8 text-xs">
+                      <SelectValue placeholder="Selecciona documento..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allFirmas.map((f) => (
+                        <SelectItem key={f.key} value={f.key} className="text-xs">
+                          {f.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => { setMultiPicker(null); setMultiPickerMap({}); }}>Cancelar</Button>
+              <Button size="sm" onClick={() => confirmMultiUpload(allFirmas)}>
+                <Upload className="h-3.5 w-3.5 mr-1.5" />Subir clasificados
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

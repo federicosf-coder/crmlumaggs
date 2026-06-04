@@ -18,7 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock, Briefcase, Phone, Mail, ChevronDown, ChevronUp, HelpCircle, Printer, Upload, PenSquare } from "lucide-react";
+import { Loader2, Save, Send, FileUp, Plus, Trash2, Check, X, Copy, ExternalLink, MessageSquare, History, FileCheck, ShieldCheck, Pencil, FileText, IdCard, Home, ScrollText, Camera, MapPin, Landmark, BookOpen, Receipt, Building2, Paperclip, Wand2, Sparkles, AlertTriangle, CalendarClock, Briefcase, Phone, Mail, ChevronDown, ChevronUp, HelpCircle, Printer, Upload, PenSquare, Files } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_LABEL, CREDITO_ESTADO_OPTIONS, CREDITO_TIPO_OPTIONS, CREDITO_FIRMAS, CREDITO_TIPO_PERSONA_OPTIONS } from "@/lib/credito";
@@ -774,6 +774,8 @@ export default function CreditoDetail() {
   const [bcInfoOpen, setBcInfoOpen] = useState(false);
   const [editFechaValue, setEditFechaValue] = useState<string>("");
   const [verifyDoc, setVerifyDoc] = useState<any | null>(null);
+  const [multiFirmaPicker, setMultiFirmaPicker] = useState<File[] | null>(null);
+  const [multiFirmaMap, setMultiFirmaMap] = useState<Record<number, string>>({});
 
   const { data: req, isLoading } = useQuery({
     queryKey: ["credit_request", id],
@@ -1170,6 +1172,111 @@ export default function CreditoDetail() {
     const upd: any = { [key.fechaCol]: null, [key.nombreCol]: null, [docIdCol]: null };
     await supabase.from("credit_requests").update(upd).eq("id", id!);
     qc.invalidateQueries({ queryKey: ["credit_request", id] });
+  };
+
+  // === Multi-PDF firma uploader ===
+  const computeAllFirmas = () => {
+    const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
+    const base = CREDITO_FIRMAS.filter((f) => {
+      if (f.key === "solicitud") return false;
+      return !(f.personaMoralOnly && tp !== "moral");
+    });
+    const solicitudEntries: any[] = [];
+    if ((form as any).solicita_lumaggs) {
+      solicitudEntries.push({
+        key: "solicitud-lumaggs",
+        label: "Solicitud de crédito · Lumaggs (Chevron)",
+        fechaCol: "firma_solicitud_lumaggs_fecha",
+        nombreCol: "firma_solicitud_lumaggs_nombre",
+        personaMoralOnly: false,
+      });
+    }
+    if ((form as any).solicita_galsa) {
+      solicitudEntries.push({
+        key: "solicitud-galsa",
+        label: "Solicitud de crédito · Galsa (Phillips 66)",
+        fechaCol: "firma_solicitud_galsa_fecha",
+        nombreCol: "firma_solicitud_galsa_nombre",
+        personaMoralOnly: false,
+      });
+    }
+    return [...solicitudEntries, ...base];
+  };
+
+  const classifyFirmaByFilename = (name: string, validKeys: string[]): string | null => {
+    const n = name.toLowerCase();
+    const rules: Array<[RegExp, string]> = [
+      [/(galsa|phillips)/, "solicitud-galsa"],
+      [/(lumaggs|chevron)/, "solicitud-lumaggs"],
+      [/(buro|bur[oó])/, "buro"],
+      [/(confidencial)/, "confidencialidad"],
+      [/(subsistencia|poderes)/, "subsistencia"],
+      [/(licita|l[ií]cita|lfpiorpi|procedencia)/, "lfpiorpi"],
+      [/(solicitud)/, "solicitud"],
+    ];
+    for (const [rx, key] of rules) {
+      if (rx.test(n) && validKeys.includes(key)) return key;
+    }
+    return null;
+  };
+
+  const startMultiFirmaUpload = (files: File[]) => {
+    const all = computeAllFirmas();
+    const validKeys = all.map((f) => f.key);
+    const initial: Record<number, string> = {};
+    files.forEach((file, idx) => {
+      const guess = classifyFirmaByFilename(file.name, validKeys);
+      if (guess) initial[idx] = guess;
+    });
+    setMultiFirmaPicker(files);
+    setMultiFirmaMap(initial);
+  };
+
+  const confirmMultiFirmaUpload = async () => {
+    if (!multiFirmaPicker) return;
+    const all = computeAllFirmas();
+    let ok = 0;
+    for (let idx = 0; idx < multiFirmaPicker.length; idx++) {
+      const key = multiFirmaMap[idx];
+      if (!key) continue;
+      const firma = all.find((x) => x.key === key);
+      if (!firma) continue;
+      const file = multiFirmaPicker[idx];
+      const nombre = (form as any)[firma.nombreCol] || form.rep_legal_nombre || form.razon_social || "Firmante";
+      try {
+        const path = `${id}/${firma.key}_${Date.now()}_${file.name.replace(/[^\w.\-]+/g, "_")}`;
+        const { error: upErr } = await supabase.storage.from("credit-docs").upload(path, file, { contentType: file.type, upsert: false });
+        if (upErr) throw upErr;
+        const { data: docRow, error: insErr } = await supabase.from("credit_request_docs").insert({
+          credit_request_id: id!,
+          doc_type_id: null,
+          url_archivo: path,
+          nombre_archivo: file.name,
+          tipo_archivo: file.type,
+          estado: "recibido",
+          visibilidad: "publica",
+          subido_por: user?.id,
+          metadata: { firma_key: firma.key, firma_label: firma.label },
+        }).select("id").single();
+        if (insErr || !docRow) throw insErr || new Error("insert_error");
+        const docIdCol = `${firma.fechaCol.replace("_fecha", "")}_doc_id`;
+        const upd: any = {
+          [firma.fechaCol]: new Date().toISOString(),
+          [firma.nombreCol]: nombre,
+          [docIdCol]: docRow.id,
+        };
+        const { error: updErr } = await supabase.from("credit_requests").update(upd).eq("id", id!);
+        if (updErr) throw updErr;
+        ok++;
+      } catch (e: any) {
+        toast.error(`${firma.label}: ${e?.message || "error"}`);
+      }
+    }
+    if (ok > 0) toast.success(`${ok} documento(s) clasificados y subidos`);
+    setMultiFirmaPicker(null);
+    setMultiFirmaMap({});
+    qc.invalidateQueries({ queryKey: ["credit_request", id] });
+    refetchDocs();
   };
 
   const portalUrl = form.short_code
@@ -2389,7 +2496,7 @@ export default function CreditoDetail() {
               const all = [...solicitudEntries, ...base];
               return (
                 <div className="space-y-3 p-4 sm:p-6">
-                  <div className="flex justify-end">
+                  <div className="flex flex-wrap justify-end gap-2">
                     <Button
                       size="sm"
                       variant="outline"
@@ -2408,6 +2515,27 @@ export default function CreditoDetail() {
                       }}
                     >
                       <Printer className="h-3.5 w-3.5 mr-1.5" />Generar Todos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 hover:from-blue-100 hover:to-cyan-100 hover:text-blue-800 text-[10px] font-semibold uppercase tracking-widest"
+                      asChild
+                    >
+                      <label className="cursor-pointer">
+                        <Files className="h-3.5 w-3.5 mr-1.5" />Subir varios PDFs
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            e.currentTarget.value = "";
+                            if (files.length > 0) startMultiFirmaUpload(files);
+                          }}
+                        />
+                      </label>
                     </Button>
                   </div>
                   <Table>
@@ -2669,6 +2797,48 @@ export default function CreditoDetail() {
             <Button onClick={confirmUpload} disabled={uploadingDoc || !uploadFile || !uploadName.trim()}>
               {uploadingDoc ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileUp className="h-4 w-4 mr-2" />}
               Subir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Multi-PDF firma picker */}
+      <Dialog open={!!multiFirmaPicker} onOpenChange={(o) => { if (!o) { setMultiFirmaPicker(null); setMultiFirmaMap({}); } }}>
+        <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-br from-violet-50 to-blue-50 px-6 py-4 border-b">
+            <DialogTitle className="text-base font-semibold tracking-tight">Clasificar PDFs</DialogTitle>
+            <DialogDescription className="text-xs">
+              Confirma a qué formato corresponde cada archivo. Los que dejes sin asignar se ignorarán.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-6 py-5 space-y-2 max-h-[60vh] overflow-y-auto">
+            {(multiFirmaPicker || []).map((file, idx) => {
+              const all = computeAllFirmas();
+              return (
+                <div key={idx} className="flex items-center gap-2 border rounded p-2">
+                  <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="text-xs flex-1 truncate" title={file.name}>{file.name}</span>
+                  <Select
+                    value={multiFirmaMap[idx] || ""}
+                    onValueChange={(v) => setMultiFirmaMap((m) => ({ ...m, [idx]: v }))}
+                  >
+                    <SelectTrigger className="w-[260px] h-8 text-xs">
+                      <SelectValue placeholder="Selecciona documento..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {all.map((f: any) => (
+                        <SelectItem key={f.key} value={f.key} className="text-xs">{f.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter className="bg-muted/40 px-6 py-3 border-t">
+            <Button variant="outline" onClick={() => { setMultiFirmaPicker(null); setMultiFirmaMap({}); }}>Cancelar</Button>
+            <Button onClick={confirmMultiFirmaUpload}>
+              <Upload className="h-4 w-4 mr-2" />Subir clasificados
             </Button>
           </DialogFooter>
         </DialogContent>

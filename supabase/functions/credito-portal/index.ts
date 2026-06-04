@@ -58,6 +58,8 @@ const SIGN_MAP: Record<string, { fechaCol: string; nombreCol: string }> = {
   confidencialidad: { fechaCol: 'firma_confidencialidad_fecha', nombreCol: 'firma_confidencialidad_nombre' },
   subsistencia:     { fechaCol: 'firma_subsistencia_fecha',     nombreCol: 'firma_subsistencia_nombre' },
   lfpiorpi:         { fechaCol: 'firma_lfpiorpi_fecha',         nombreCol: 'firma_lfpiorpi_nombre' },
+  'solicitud-lumaggs': { fechaCol: 'firma_solicitud_lumaggs_fecha', nombreCol: 'firma_solicitud_lumaggs_nombre' },
+  'solicitud-galsa':   { fechaCol: 'firma_solicitud_galsa_fecha',   nombreCol: 'firma_solicitud_galsa_nombre' },
 }
 
 function b64ToBytes(b64: string): Uint8Array {
@@ -170,6 +172,45 @@ Deno.serve(async (req) => {
       const { error } = await supabase.from('credit_requests').update(updates).eq('id', ctx.requestId)
       if (error) return json({ error: error.message }, 500)
       return json({ ok: true })
+    }
+
+    if (action === 'upload_firma') {
+      const tipo = String(body.tipo || '')
+      const map = SIGN_MAP[tipo]
+      if (!map) return json({ error: 'invalid_firma_key' }, 400)
+      const nombre = String(body.nombre || '').trim()
+      if (!nombre) return json({ error: 'missing_nombre' }, 400)
+      const filename = String(body.filename || 'firma.pdf').replace(/[^\w.\-]+/g, '_')
+      const mime = String(body.mime || 'application/pdf')
+      const b64 = String(body.file_b64 || '')
+      if (!b64) return json({ error: 'missing_file' }, 400)
+      const bytes = b64ToBytes(b64)
+      if (bytes.length > 15 * 1024 * 1024) return json({ error: 'file_too_large' }, 400)
+      const path = `${ctx.requestId}/${tipo}_${Date.now()}_${filename}`
+      const { error: upErr } = await supabase.storage.from('credit-docs').upload(path, bytes, { contentType: mime, upsert: false })
+      if (upErr) return json({ error: upErr.message }, 500)
+      const { data: docRow, error: insErr } = await supabase.from('credit_request_docs').insert({
+        credit_request_id: ctx.requestId,
+        doc_type_id: null,
+        party_id: ctx.partyId,
+        url_archivo: path,
+        nombre_archivo: filename,
+        tipo_archivo: mime,
+        estado: 'recibido',
+        visibilidad: 'publica',
+        subido_por_cliente: true,
+        metadata: { firma_key: tipo, firma_nombre: nombre },
+      }).select('id').single()
+      if (insErr || !docRow) return json({ error: insErr?.message || 'insert_error' }, 500)
+      const docIdCol = `${map.fechaCol.replace('_fecha', '')}_doc_id`
+      const updates: Record<string, any> = {
+        [map.fechaCol]: new Date().toISOString(),
+        [map.nombreCol]: nombre,
+        [docIdCol]: docRow.id,
+      }
+      const { error: updErr } = await supabase.from('credit_requests').update(updates).eq('id', ctx.requestId)
+      if (updErr) return json({ error: updErr.message }, 500)
+      return json({ ok: true, doc_id: docRow.id, path })
     }
 
     if (action === 'upload_doc') {
