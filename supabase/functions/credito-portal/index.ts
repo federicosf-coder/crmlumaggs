@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'upload_doc') {
-      // handled below
+      // legacy entry: handled by the real block below; kept to anchor patch
     }
 
     if (action === 'upload_firma') {
@@ -215,10 +215,6 @@ Deno.serve(async (req) => {
       const { error: updErr } = await supabase.from('credit_requests').update(updates).eq('id', ctx.requestId)
       if (updErr) return json({ error: updErr.message }, 500)
       return json({ ok: true, doc_id: docRow.id, path })
-    }
-
-    if (action === 'upload_doc_legacy_placeholder') {
-      // kept to preserve original block start; real upload_doc continues below
     }
 
     if (action === 'upload_doc') {
