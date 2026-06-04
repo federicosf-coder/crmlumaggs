@@ -774,6 +774,8 @@ export default function CreditoDetail() {
   const [bcInfoOpen, setBcInfoOpen] = useState(false);
   const [editFechaValue, setEditFechaValue] = useState<string>("");
   const [verifyDoc, setVerifyDoc] = useState<any | null>(null);
+  const [multiFirmaPicker, setMultiFirmaPicker] = useState<File[] | null>(null);
+  const [multiFirmaMap, setMultiFirmaMap] = useState<Record<number, string>>({});
 
   const { data: req, isLoading } = useQuery({
     queryKey: ["credit_request", id],
