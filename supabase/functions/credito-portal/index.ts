@@ -58,6 +58,8 @@ const SIGN_MAP: Record<string, { fechaCol: string; nombreCol: string }> = {
   confidencialidad: { fechaCol: 'firma_confidencialidad_fecha', nombreCol: 'firma_confidencialidad_nombre' },
   subsistencia:     { fechaCol: 'firma_subsistencia_fecha',     nombreCol: 'firma_subsistencia_nombre' },
   lfpiorpi:         { fechaCol: 'firma_lfpiorpi_fecha',         nombreCol: 'firma_lfpiorpi_nombre' },
+  'solicitud-lumaggs': { fechaCol: 'firma_solicitud_lumaggs_fecha', nombreCol: 'firma_solicitud_lumaggs_nombre' },
+  'solicitud-galsa':   { fechaCol: 'firma_solicitud_galsa_fecha',   nombreCol: 'firma_solicitud_galsa_nombre' },
 }
 
 function b64ToBytes(b64: string): Uint8Array {
