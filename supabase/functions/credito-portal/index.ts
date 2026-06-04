@@ -261,6 +261,20 @@ Deno.serve(async (req) => {
       return json({ url: signed.signedUrl })
     }
 
+    if (action === 'print_data') {
+      const keysRaw = Array.isArray(body.keys) ? body.keys : []
+      const keys: string[] = keysRaw.map((k: any) => String(k))
+      const tplKeys = Array.from(new Set(keys.map((k) => k.startsWith('solicitud-') ? 'solicitud' : k)))
+      const [{ data: request }, { data: templates }] = await Promise.all([
+        supabase.from('credit_requests').select('*, companies(*)').eq('id', ctx.requestId).maybeSingle(),
+        tplKeys.length > 0
+          ? supabase.from('credit_doc_templates').select('*').in('key', tplKeys).eq('activo', true)
+          : Promise.resolve({ data: [] } as any),
+      ])
+      if (!request) return json({ error: 'not_found' }, 404)
+      return json({ request, templates: templates || [] })
+    }
+
     if (action === 'parse_csf') {
       const filename = String(body.filename || 'csf.pdf').replace(/[^\w.\-]+/g, '_')
       const mime = String(body.mime || 'application/pdf')
