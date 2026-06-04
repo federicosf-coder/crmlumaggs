@@ -388,6 +388,8 @@ function PortalBeneficiarioControladorSteps({
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
+const SHOW_BC_PORTAL = false;
+
 export default function CreditoPortal() {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
