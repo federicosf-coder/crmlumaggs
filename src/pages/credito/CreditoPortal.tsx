@@ -522,8 +522,8 @@ export default function CreditoPortal() {
 
   // === Firma helpers (table + multi-upload) ===
   const openFirmaPdf = (key: string) => {
-    if (!form?.id) { toast.error("Solicitud no cargada"); return; }
-    window.open(`/credito/${form.id}/imprimir/${key}`, "_blank", "noopener");
+    if (!token) { toast.error("Solicitud no cargada"); return; }
+    window.open(`/portal/credito/${token}/imprimir/${key}`, "_blank", "noopener");
   };
 
   const uploadFirmaDoc = async (
