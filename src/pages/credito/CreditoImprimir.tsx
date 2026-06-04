@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { buildTokens, renderTemplate, templateKeyForFirma, PRINT_STYLES, TEMPLATE_LABELS, TemplateKey } from "@/lib/creditoTemplates";
+import { buildTokens, renderTemplate, templateKeyForFirma, PRINT_STYLES, TEMPLATE_LABELS, TemplateKey, LFPIORPI_DEFAULT_HTML } from "@/lib/creditoTemplates";
 
 type RenderedDoc = { html: string; entidad: "lumaggs" | "galsa"; titulo: string };
 
@@ -76,10 +76,20 @@ export default function CreditoImprimir() {
             .eq("key", tplKey)
             .eq("activo", true);
           if (e2) throw new Error(e2.message);
-          const tpl =
+          let tpl =
             (tpls || []).find((t: any) => t.entidad === entidad) ||
             (tpls || []).find((t: any) => t.entidad === "ambas") ||
             (tpls || [])[0];
+          // Fallback embebido para "Recursos de Procedencia Lícita" cuando no hay
+          // plantilla configurada en base de datos.
+          if (!tpl && tplKey === "lfpiorpi") {
+            tpl = {
+              entidad,
+              contenido_html: LFPIORPI_DEFAULT_HTML,
+              header_html: "",
+              footer_html: "",
+            };
+          }
           if (!tpl) continue;
 
           const tokens = buildTokens(formForTokens, companyForTokens);

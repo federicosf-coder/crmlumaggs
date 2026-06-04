@@ -29,6 +29,10 @@ import { useIndustriasCatalog } from "@/hooks/useIndustriasCatalog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 
+// Bandera temporal para ocultar visualmente las secciones de
+// Beneficiario Controlador (LFPIORPI) sin eliminar el código.
+const SHOW_BENEFICIARIO_CONTROLADOR = false;
+
 type Req = any;
 
 const DOC_PALETTE: Record<string, { icon: any; bg: string; border: string; iconBg: string; iconColor: string; btn: string }> = {
@@ -182,6 +186,9 @@ function BeneficiarioControladorSteps({
     // Auto-colapsa Paso 2 al elegir; Paso 3 (no implementado en este alcance) tomará el foco.
     setStep2Open(false);
   };
+
+  // BC oculto temporalmente sin eliminar código.
+  if (!SHOW_BENEFICIARIO_CONTROLADOR) return null;
 
   return (
     <div className="space-y-3">
@@ -2354,7 +2361,9 @@ export default function CreditoDetail() {
             {(() => {
               const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
               const base = CREDITO_FIRMAS.filter((f) => {
-                if (f.key === "lfpiorpi") return false;
+                if (f.key === "lfpiorpi" && !SHOW_BENEFICIARIO_CONTROLADOR) {
+                  // mantener visible: lfpiorpi ahora es "Recursos de Procedencia Lícita"
+                }
                 if (f.key === "solicitud") return false; // se reemplaza por entrada por empresa
                 return !(f.personaMoralOnly && tp !== "moral");
               });
@@ -2760,6 +2769,7 @@ export default function CreditoDetail() {
           qc.invalidateQueries({ queryKey: ["credit_request", id] });
         }}
       />
+      {SHOW_BENEFICIARIO_CONTROLADOR && (
       <Dialog open={bcInfoOpen} onOpenChange={setBcInfoOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0">
           <DialogHeader className="px-6 py-4 bg-gradient-to-br from-violet-50 to-blue-50 border-b">
@@ -2841,6 +2851,7 @@ export default function CreditoDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }
