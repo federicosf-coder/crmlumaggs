@@ -84,6 +84,7 @@ const App = () => (
             <Route path="/portal/credito/:token" element={<CreditoPortal />} />
             <Route path="/p/:code" element={<CreditoShortRedirect />} />
             <Route path="/credito/:id/imprimir/:firmaKey" element={<CreditoImprimir />} />
+            <Route path="/portal/credito/:token/imprimir/:firmaKey" element={<CreditoImprimir />} />
 
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
