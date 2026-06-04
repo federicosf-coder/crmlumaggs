@@ -2766,6 +2766,7 @@ export default function CreditoDetail() {
           qc.invalidateQueries({ queryKey: ["credit_request", id] });
         }}
       />
+      {SHOW_BENEFICIARIO_CONTROLADOR && (
       <Dialog open={bcInfoOpen} onOpenChange={setBcInfoOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0">
           <DialogHeader className="px-6 py-4 bg-gradient-to-br from-violet-50 to-blue-50 border-b">
@@ -2847,6 +2848,7 @@ export default function CreditoDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }
