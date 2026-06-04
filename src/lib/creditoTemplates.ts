@@ -5,6 +5,7 @@ export const TEMPLATE_KEYS = [
   "confidencialidad",
   "buro",
   "subsistencia",
+  "lfpiorpi",
   "bc_si",
   "bc_no",
 ] as const;
@@ -15,13 +16,14 @@ export const TEMPLATE_LABELS: Record<TemplateKey, string> = {
   confidencialidad: "Contrato de confidencialidad",
   buro: "Autorización Buró de Crédito",
   subsistencia: "Carta de Subsistencia de Poderes",
+  lfpiorpi: "Recursos de Procedencia Lícita",
   bc_si: "Beneficiario Controlador — Sí existe",
   bc_no: "Beneficiario Controlador — No existe",
 };
 
 export function templateKeyForFirma(firmaKey: string, form: any): TemplateKey | null {
   if (firmaKey === "lfpiorpi") {
-    return form?.lfpiorpi_beneficiario_controlador ? "bc_si" : "bc_no";
+    return "lfpiorpi";
   }
   if ((TEMPLATE_KEYS as readonly string[]).includes(firmaKey)) return firmaKey as TemplateKey;
   return null;
