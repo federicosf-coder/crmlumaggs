@@ -671,7 +671,34 @@ export default function CreditoPortal() {
   const pct = totalReq > 0 ? Math.round((doneReq / totalReq) * 100) : 0;
 
   // === Firmas ===
-  const baseFirmas = CREDITO_FIRMAS.filter((f) => !(f.personaMoralOnly && tp !== "moral"));
+  const baseFirmas = CREDITO_FIRMAS
+    .filter((f) => f.key !== "solicitud")
+    .filter((f) => !(f.personaMoralOnly && tp !== "moral"));
+  const solicitudEntries: Array<{ key: string; label: string; fechaCol: string; nombreCol: string; personaMoralOnly: boolean }> = [];
+  if ((form as any).solicita_lumaggs) {
+    solicitudEntries.push({
+      key: "solicitud-lumaggs",
+      label: "Solicitud de crédito · Lumaggs (Chevron)",
+      fechaCol: "firma_solicitud_lumaggs_fecha",
+      nombreCol: "firma_solicitud_lumaggs_nombre",
+      personaMoralOnly: false,
+    });
+  }
+  if ((form as any).solicita_galsa) {
+    solicitudEntries.push({
+      key: "solicitud-galsa",
+      label: "Solicitud de crédito · Galsa (Phillips 66)",
+      fechaCol: "firma_solicitud_galsa_fecha",
+      nombreCol: "firma_solicitud_galsa_nombre",
+      personaMoralOnly: false,
+    });
+  }
+  // Fallback: si no hay marcas seleccionadas, conserva la entrada genérica de "Solicitud".
+  if (solicitudEntries.length === 0) {
+    const orig = CREDITO_FIRMAS.find((f) => f.key === "solicitud");
+    if (orig) solicitudEntries.push({ ...orig } as any);
+  }
+  const allFirmas = [...solicitudEntries, ...baseFirmas] as Array<{ key: string; label: string; fechaCol: string; nombreCol: string; personaMoralOnly: boolean }>;
 
   return (
     <div className="min-h-screen bg-muted/30 py-6 px-4">
