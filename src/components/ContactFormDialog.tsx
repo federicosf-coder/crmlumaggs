@@ -20,6 +20,14 @@ import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { useQueryClient } from "@tanstack/react-query";
 
+// Convierte a "Nombre Propio": primera letra de cada palabra en mayúscula, resto en minúsculas.
+const toProperCase = (s: string): string => {
+  if (!s) return s;
+  return s
+    .toLowerCase()
+    .replace(/(^|[\s\-'’])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase());
+};
+
 export interface ContactEditData {
   id: string;
   first_name: string;
@@ -161,7 +169,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
       if (k === "ejecutivo_ids" || k === "interes_ids") continue;
       const v = changes[k];
       if (k === "first_name" || k === "last_name") {
-        dbPayload[k] = (v ?? "").toString();
+        dbPayload[k] = toProperCase((v ?? "").toString());
       } else if (k.startsWith("comm_")) {
         dbPayload[k] = !!v;
       } else {
@@ -371,7 +379,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
     setSaving(true);
 
     const payload: any = {
-      first_name: form.first_name, last_name: form.last_name,
+      first_name: toProperCase(form.first_name.trim()),
+      last_name: toProperCase(form.last_name.trim()),
       email: form.email || null,
       email2: form.email2 || null,
       whatsapp_phone: form.whatsapp_phone || null,
@@ -450,8 +459,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
             <div className="px-6 py-4 space-y-4">
               {/* Identidad */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Nombre *</Label><Input value={form.first_name} onChange={e => setAndSchedule("first_name", e.target.value)} onBlur={e => autosave.saveNow("first_name", e.target.value)} required /></div>
-                <div className="space-y-2"><Label>Apellido *</Label><Input value={form.last_name} onChange={e => setAndSchedule("last_name", e.target.value)} onBlur={e => autosave.saveNow("last_name", e.target.value)} required /></div>
+                <div className="space-y-2"><Label>Nombre *</Label><Input value={form.first_name} onChange={e => setAndSchedule("first_name", toProperCase(e.target.value))} onBlur={e => autosave.saveNow("first_name", toProperCase(e.target.value))} required /></div>
+                <div className="space-y-2"><Label>Apellido *</Label><Input value={form.last_name} onChange={e => setAndSchedule("last_name", toProperCase(e.target.value))} onBlur={e => autosave.saveNow("last_name", toProperCase(e.target.value))} required /></div>
                 <div className="space-y-2"><Label>Puesto</Label><Input value={form.job_title} onChange={e => setAndSchedule("job_title", e.target.value)} onBlur={e => autosave.saveNow("job_title", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Departamento</Label><Input value={form.department} onChange={e => setAndSchedule("department", e.target.value)} onBlur={e => autosave.saveNow("department", e.target.value)} /></div>
               </div>
