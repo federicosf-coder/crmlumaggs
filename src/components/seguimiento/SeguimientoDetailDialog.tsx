@@ -536,8 +536,8 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
             <div
               className="rounded-lg shadow-sm p-4 border-l-4"
               style={{
-                borderLeftColor: effective?.color || "hsl(var(--primary))",
-                backgroundImage: `linear-gradient(135deg, ${effective?.color || "hsl(var(--primary))"}22 0%, ${effective?.color || "hsl(var(--primary))"}0D 45%, transparent 100%)`,
+                borderLeftColor: ritmo?.color || effective?.color || "hsl(var(--primary))",
+                backgroundImage: `linear-gradient(135deg, ${ritmo?.color || effective?.color || "hsl(var(--primary))"}33 0%, ${ritmo?.color || effective?.color || "hsl(var(--primary))"}14 45%, transparent 100%)`,
                 backgroundColor: "hsl(var(--muted) / 0.30)",
               }}
             >
