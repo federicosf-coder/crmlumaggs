@@ -37,9 +37,13 @@ interface Props {
   defaultTaskType?: TaskTypeKey;
   defaultDescription?: string;
   origenTareaId?: string;
+  /** Marcas pre-seleccionadas (uno o ambos). */
+  defaultBrands?: Array<"lumaggs_chevron" | "galsa_phillips66">;
 }
 
-export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContactId, defaultBrand, defaultDate, defaultCompanyId, defaultTaskType, defaultDescription, origenTareaId }: Props) {
+type Brand = "lumaggs_chevron" | "galsa_phillips66";
+
+export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContactId, defaultBrand, defaultDate, defaultCompanyId, defaultTaskType, defaultDescription, origenTareaId, defaultBrands }: Props) {
   const { session } = useAuth();
   const createTask = useCreateCrmTask();
   const { toast } = useToast();
@@ -81,6 +85,36 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   const [companyId, setCompanyId] = useState(defaultCompanyId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
+  const [brands, setBrands] = useState<Brand[]>(defaultBrands || []);
+
+  useEffect(() => {
+    if (open) setBrands(defaultBrands || []);
+  }, [open, defaultBrands?.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleBrand = (b: Brand) => {
+    setBrands((prev) => (prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]));
+  };
+
+  const linkSeguimientos = async (taskId: string, companyIdFinal: string) => {
+    for (const ev of brands) {
+      try {
+        await supabase.rpc("recompute_seguimiento_ventas", { _company_id: companyIdFinal, _ev: ev });
+        const { data: seg } = await supabase
+          .from("seguimiento_ventas")
+          .select("id")
+          .eq("company_id", companyIdFinal)
+          .eq("empresa_vendedora", ev)
+          .maybeSingle();
+        if (seg?.id) {
+          await supabase
+            .from("crm_task_seguimiento")
+            .upsert({ task_id: taskId, seguimiento_venta_id: seg.id }, { onConflict: "task_id,seguimiento_venta_id" });
+        }
+      } catch (err) {
+        console.warn("[seguimiento link] failed", ev, err);
+      }
+    }
+  };
 
   // Auto-resolver vínculos cuando se abre desde una vista específica
   useEffect(() => {
@@ -139,6 +173,11 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
     if (!session?.user) return;
     if (createTask.isPending) return;
 
+    if (brands.length === 0) {
+      toast({ title: "Selecciona al menos una marca", description: "Marca Lumaggs y/o Galsa antes de guardar.", variant: "destructive" });
+      return;
+    }
+
     const typeLabel = TASK_TYPE_LABEL[taskType];
     const normalizedContactId = contactId && contactId !== "none" ? contactId : null;
     let normalizedCompanyId = companyId && companyId !== "none" ? companyId : null;
@@ -150,10 +189,16 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
       if (contactRow?.company_id) normalizedCompanyId = contactRow.company_id;
     }
 
+    if (!normalizedCompanyId) {
+      toast({ title: "Selecciona una empresa", description: "Se requiere para vincular el seguimiento por marca.", variant: "destructive" });
+      return;
+    }
+
     const invalidateAll = () => {
       queryClient.invalidateQueries({ queryKey: ["crm_tasks"] });
       queryClient.invalidateQueries({ queryKey: ["crm_activities"] });
       queryClient.invalidateQueries({ queryKey: ["seller-portal"] });
+      queryClient.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
     };
 
     const verifyCompany = (data: any) => {
@@ -185,6 +230,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
       {
         onSuccess: async (data) => {
           verifyCompany(data);
+          await linkSeguimientos(data.id, normalizedCompanyId!);
           invalidateAll();
           toast({ title: "Tarea creada" });
           resetAndClose();
@@ -213,6 +259,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
     setCompanyId(defaultCompanyId || "");
     setContactId(defaultContactId || "");
     setCollaboratorIds([]);
+    setBrands(defaultBrands || []);
   };
 
   const isPending = createTask.isPending;
@@ -248,6 +295,25 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
                     >
                       <Icon className="h-4 w-4" />
                       <span className="text-[10px] font-medium leading-tight">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Marcas */}
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Marca * (puede seleccionar una o ambas)</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { key: "lumaggs_chevron" as Brand, label: "Lumaggs (Chevron)", soft: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100", active: "bg-blue-600 text-white border-blue-600 hover:bg-blue-600" },
+                  { key: "galsa_phillips66" as Brand, label: "Galsa (Phillips 66)", soft: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100", active: "bg-red-600 text-white border-red-600 hover:bg-red-600" },
+                ].map((b) => {
+                  const sel = brands.includes(b.key);
+                  return (
+                    <button key={b.key} type="button" onClick={() => toggleBrand(b.key)} aria-pressed={sel}
+                      className={cn("rounded-md border px-3 py-2 text-sm font-medium transition-all", sel ? b.active : b.soft)}>
+                      {b.label}
                     </button>
                   );
                 })}
