@@ -521,7 +521,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedName = form.name.trim();
+    const trimmedName = form.name.trim().toUpperCase();
     if (!trimmedName) {
       toast.error("El nombre de la empresa es obligatorio");
       return;
@@ -561,7 +561,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
     const payload = {
       name: trimmedName,
-      razon_social: form.razon_social?.trim() || trimmedName,
+      razon_social: (form.razon_social?.trim().toUpperCase()) || trimmedName,
       industry: form.industry || null, website: form.website || null,
       phone: form.phone || null, email: form.email || null,
       notes: form.notes || null,
