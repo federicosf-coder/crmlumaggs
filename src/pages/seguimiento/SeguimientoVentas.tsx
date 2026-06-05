@@ -1182,6 +1182,16 @@ export default function SeguimientoVentas() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={filtered.length > 0 && filtered.every((r) => selectedIds.has(r.id))}
+                      onCheckedChange={(v) => {
+                        if (v) setSelectedIds(new Set(filtered.map((r) => r.id)));
+                        else setSelectedIds(new Set());
+                      }}
+                      aria-label="Seleccionar todos"
+                    />
+                  </TableHead>
                   <SortableContext items={orderedColumns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
                     {orderedColumns.map((col) => (
                       <DraggableSortableHead
@@ -1195,24 +1205,38 @@ export default function SeguimientoVentas() {
                       />
                     ))}
                   </SortableContext>
+                  <TableHead className="w-14 text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + 2} className="text-center text-muted-foreground py-8">
                       Cargando…
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + 2} className="text-center text-muted-foreground py-8">
                       Sin registros.
                     </TableCell>
                   </TableRow>
                 ) : (
                   filtered.map((r) => (
                     <TableRow key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
+                      <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedIds.has(r.id)}
+                          onCheckedChange={(v) => {
+                            setSelectedIds((prev) => {
+                              const next = new Set(prev);
+                              if (v) next.add(r.id); else next.delete(r.id);
+                              return next;
+                            });
+                          }}
+                          aria-label={`Seleccionar ${r.companies?.name || ""}`}
+                        />
+                      </TableCell>
                       {orderedColumns.map((col) => (
                         <TableCell
                           key={col.id}
@@ -1221,6 +1245,12 @@ export default function SeguimientoVentas() {
                           {col.render(r)}
                         </TableCell>
                       ))}
+                      <TableCell className="w-14 text-center" onClick={(e) => e.stopPropagation()}>
+                        <RowActionsMenu
+                          row={r}
+                          onOpenTask={(type) => setTaskDialog({ companyId: r.company_id, type })}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -1236,6 +1266,122 @@ export default function SeguimientoVentas() {
         onOpenChange={(o) => { if (!o) setSelected(null); }}
         catalog={catalog}
       />
+
+      {/* Diálogo crear tarea/actividad pre-cargado */}
+      {taskDialog && (
+        <CreateCrmTaskDialog
+          open={!!taskDialog}
+          onOpenChange={(o) => { if (!o) setTaskDialog(null); }}
+          defaultCompanyId={taskDialog.companyId}
+          defaultTaskType={taskDialog.type}
+          defaultBrands={[empresaVendedora]}
+        />
+      )}
+
+      {/* Diálogo reasignar ejecutivo */}
+      <Dialog open={reassignOpen} onOpenChange={(o) => { if (!reassigning) setReassignOpen(o); }}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                <UserCog className="h-4 w-4" /> Reasignar ejecutivo
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5 font-light">
+                Se actualizará el ejecutivo de {selectedIds.size} cliente{selectedIds.size === 1 ? "" : "s"} y se recalculará su seguimiento.
+              </p>
+            </DialogHeader>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Nuevo ejecutivo</p>
+              <SearchableSelect
+                value={reassignUserId || "none"}
+                onValueChange={(v) => setReassignUserId(v === "none" ? "" : v)}
+                options={[
+                  { value: "none", label: "Selecciona…" },
+                  ...profiles.map((p) => ({ value: p.user_id, label: p.full_name || p.user_id })),
+                ]}
+                placeholder="Buscar ejecutivo…"
+              />
+            </div>
+          </div>
+          <DialogFooter className="px-5 py-3 bg-muted/30 border-t">
+            <Button variant="outline" onClick={() => setReassignOpen(false)} disabled={reassigning}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={!reassignUserId || reassigning}
+              onClick={async () => {
+                if (!reassignUserId) return;
+                setReassigning(true);
+                try {
+                  const rowsToUpdate = filtered.filter((r) => selectedIds.has(r.id));
+                  const companyIds = Array.from(new Set(rowsToUpdate.map((r) => r.company_id)));
+                  // Reemplaza ejecutivos por el nuevo (patrón usado en CompanyFormDialog)
+                  for (const cid of companyIds) {
+                    await (supabase as any).from("company_ejecutivos").delete().eq("company_id", cid);
+                    await (supabase as any).from("company_ejecutivos").insert({ company_id: cid, user_id: reassignUserId });
+                  }
+                  // Recalcula seguimiento por cada (company, empresa_vendedora)
+                  for (const r of rowsToUpdate) {
+                    try {
+                      await (supabase as any).rpc("recompute_seguimiento_ventas", {
+                        _company_id: r.company_id,
+                        _ev: r.empresa_vendedora,
+                      });
+                    } catch (err) {
+                      console.warn("[recompute] failed", r.company_id, err);
+                    }
+                  }
+                  toast({ title: "Ejecutivo reasignado", description: `${rowsToUpdate.length} cliente${rowsToUpdate.length === 1 ? "" : "s"} actualizado${rowsToUpdate.length === 1 ? "" : "s"}.` });
+                  setSelectedIds(new Set());
+                  setReassignOpen(false);
+                  queryClient.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+                  queryClient.invalidateQueries({ queryKey: ["company_ejecutivos"] });
+                } catch (e: any) {
+                  toast({ title: "Error al reasignar", description: e?.message || "Intenta de nuevo.", variant: "destructive" });
+                } finally {
+                  setReassigning(false);
+                }
+              }}
+            >
+              {reassigning ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function RowActionsMenu({
+  row, onOpenTask,
+}: {
+  row: SeguimientoVentasRow;
+  onOpenTask: (type: "call" | "whatsapp" | "email") => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          Acciones
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onOpenTask("whatsapp"); }}>
+          <MessageCircle className="h-4 w-4 mr-2 text-emerald-600" /> Enviar WhatsApp
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onOpenTask("email"); }}>
+          <Mail className="h-4 w-4 mr-2 text-blue-600" /> Enviar correo
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onOpenTask("call"); }}>
+          <ListPlus className="h-4 w-4 mr-2 text-violet-600" /> Registrar tarea
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
