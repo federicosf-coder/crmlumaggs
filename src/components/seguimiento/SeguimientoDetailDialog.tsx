@@ -703,27 +703,20 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function DocGroup({
-  title,
-  icon,
   docs,
   numKey,
   showCobranza,
+  showEntrega,
 }: {
-  title: string;
-  icon: React.ReactNode;
   docs: any[];
   numKey: "numero_cotizacion" | "numero_pedido" | "numero_factura";
   showCobranza?: boolean;
+  showEntrega?: boolean;
 }) {
   return (
     <div>
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="text-muted-foreground">{icon}</span>
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{title}</p>
-        <Badge variant="outline" className="text-[10px] h-4 px-1.5">{docs.length}</Badge>
-      </div>
       {docs.length === 0 ? (
-        <p className="text-xs text-muted-foreground font-light">—</p>
+        <p className="text-xs text-muted-foreground font-light">Sin registros.</p>
       ) : (
         <div className="space-y-1">
           {docs.slice(0, 10).map((d) => (
@@ -732,6 +725,11 @@ function DocGroup({
                 <span className="font-medium truncate">{d[numKey] || "(sin folio)"}</span>
                 {d.fecha_documento && (
                   <span className="text-muted-foreground text-[11px]">{formatDate(d.fecha_documento)}</span>
+                )}
+                {showEntrega && (
+                  <span className="text-[11px] text-muted-foreground">
+                    {d.fecha_entrega_real ? `Entrega: ${formatDate(d.fecha_entrega_real)}` : "Entrega: —"}
+                  </span>
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -746,6 +744,40 @@ function DocGroup({
             <p className="text-[11px] text-muted-foreground font-light">+{docs.length - 10} más…</p>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+function ProductosTable({ rows }: { rows: Array<{ producto_id: string; nombre: string; codigo: string | null; cantidad: number; ultima: string | null }> }) {
+  if (!rows || rows.length === 0) {
+    return <p className="text-xs text-muted-foreground font-light">Sin productos comprados.</p>;
+  }
+  return (
+    <div className="rounded-md border bg-background overflow-hidden">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/50">
+          <tr className="text-left">
+            <th className="px-2.5 py-1.5 font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">Producto</th>
+            <th className="px-2.5 py-1.5 font-semibold uppercase tracking-wide text-[10px] text-muted-foreground text-right">Cantidad acum.</th>
+            <th className="px-2.5 py-1.5 font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">Última compra</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.slice(0, 50).map((r) => (
+            <tr key={r.producto_id} className="border-t hover:bg-blue-50/40">
+              <td className="px-2.5 py-1.5">
+                <div className="font-medium truncate">{r.nombre}</div>
+                {r.codigo && <div className="text-[10px] text-muted-foreground">{r.codigo}</div>}
+              </td>
+              <td className="px-2.5 py-1.5 text-right tabular-nums">{r.cantidad.toLocaleString("es-MX", { maximumFractionDigits: 2 })}</td>
+              <td className="px-2.5 py-1.5 text-muted-foreground">{r.ultima ? formatDate(r.ultima) : "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {rows.length > 50 && (
+        <p className="text-[11px] text-muted-foreground font-light px-2.5 py-1.5">+{rows.length - 50} más…</p>
       )}
     </div>
   );
