@@ -66,7 +66,7 @@ function fmtMoney(n: number | null | undefined): string {
   return Number(n).toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
 }
 
-export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpenChange }: Props) {
+export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog, onOpenChange }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
