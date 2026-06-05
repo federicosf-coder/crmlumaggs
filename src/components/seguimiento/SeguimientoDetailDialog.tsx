@@ -614,9 +614,6 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
                 <Button variant="outline" size="sm" className="justify-start" onClick={() => openCreate("call")}>
                   <CalendarIcon className="h-3.5 w-3.5 mr-2" /> Agregar actividad
                 </Button>
-                <Button variant="outline" size="sm" className="justify-start" onClick={() => openCreate(undefined)}>
-                  <ClipboardList className="h-3.5 w-3.5 mr-2" /> Agregar tarea
-                </Button>
               </div>
               <p className="text-[11px] text-muted-foreground mt-2 font-light">
                 Se pre-cargará con esta empresa, contacto y marca.
