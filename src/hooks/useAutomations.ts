@@ -7,7 +7,16 @@ export type Automation = {
   name: string;
   description: string | null;
   is_active: boolean;
-  entity_type: "deal" | "company" | "document" | "contact" | "task";
+  entity_type:
+    | "deal"
+    | "company"
+    | "document"
+    | "contact"
+    | "task"
+    | "seguimiento_venta"
+    | "payment"
+    | "credit_request"
+    | "entrega";
   trigger_type: string;
   trigger_config: any;
   conditions: any;
