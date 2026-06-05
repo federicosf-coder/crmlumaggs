@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -401,7 +402,34 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                     style={{ backgroundColor: effective.color }}
                   />
                 )}
-                <span>{row.companies?.name || "—"}</span>
+                {row.company_id ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const brandSlug =
+                        empresaVendedora === "lumaggs_chevron"
+                          ? "chevron"
+                          : empresaVendedora === "galsa_phillips66"
+                          ? "phillips66"
+                          : "";
+                      // Replace current URL so browser-back reopens this seguimiento record
+                      window.history.replaceState(
+                        null,
+                        "",
+                        `/seguimiento/${brandSlug}?seguimiento_id=${row.id}`
+                      );
+                      onOpenChange(false);
+                      navigate(`/directory?select=${row.company_id}`);
+                    }}
+                    className="inline-flex items-center gap-1 hover:underline focus:underline focus:outline-none"
+                    title="Abrir empresa en Directorio"
+                  >
+                    <span>{row.companies?.name || "—"}</span>
+                    <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+                  </button>
+                ) : (
+                  <span>{row.companies?.name || "—"}</span>
+                )}
                 <Badge variant="outline" className="text-xs font-semibold bg-white/80 border-foreground/10 shadow-sm">
                   {marcaLabel}
                 </Badge>
