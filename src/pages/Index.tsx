@@ -51,7 +51,6 @@ const groups: { title: string; subtitle: string; items: Mod[] }[] = [
     subtitle: "Clientes, ventas y seguimiento",
     items: [
       { title: "Documentos",            description: "Cotizaciones, pedidos y facturas",     icon: FileText,      url: "/documents",  accent: A.violet },
-      { title: "CRM",                   description: "Ventas Chevron y Phillips 66",         icon: ShoppingCart,  url: "/crm",        accent: A.red    },
       { title: "Productos",             description: "Catálogo y existencias",               icon: Package,       url: "/inventory",  accent: A.amber  },
       { title: "Actividades",           description: "Pendientes y seguimiento del equipo",  icon: FolderKanban,  url: "/activities", accent: A.pink   },
       { title: "Directorio",            description: "Empresas y contactos",                 icon: BookOpen,      url: "/directory",  accent: A.blue   },
