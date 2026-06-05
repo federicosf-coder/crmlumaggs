@@ -111,6 +111,46 @@ export function CreateCrmTaskDialog({
   // Diálogos "+ Nuevo" para Empresa y Contacto
   const [companyFormOpen, setCompanyFormOpen] = useState(false);
   const [contactFormOpen, setContactFormOpen] = useState(false);
+  const [brands, setBrands] = useState<Brand[]>(defaultBrands || []);
+
+  const toggleBrand = (b: Brand) => {
+    setBrands((prev) => (prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]));
+  };
+
+  const linkSeguimientos = async (taskId: string, companyIdFinal: string) => {
+    for (const ev of brands) {
+      try {
+        await supabase.rpc("recompute_seguimiento_ventas", { _company_id: companyIdFinal, _ev: ev });
+        const { data: seg } = await supabase
+          .from("seguimiento_ventas")
+          .select("id")
+          .eq("company_id", companyIdFinal)
+          .eq("empresa_vendedora", ev)
+          .maybeSingle();
+        if (seg?.id) {
+          await supabase
+            .from("crm_task_seguimiento")
+            .upsert({ task_id: taskId, seguimiento_venta_id: seg.id }, { onConflict: "task_id,seguimiento_venta_id" });
+        }
+      } catch (err) {
+        console.warn("[seguimiento link] failed", ev, err);
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+  };
+
+  const validateBrandAndCompany = (): { ok: true; companyId: string } | { ok: false } => {
+    if (brands.length === 0) {
+      toast({ title: "Selecciona al menos una marca", description: "Marca Lumaggs y/o Galsa antes de guardar.", variant: "destructive" });
+      return { ok: false };
+    }
+    const cid = companyId && companyId !== "none" ? companyId : "";
+    if (!cid) {
+      toast({ title: "Selecciona una empresa", description: "Se requiere para vincular el seguimiento por marca.", variant: "destructive" });
+      return { ok: false };
+    }
+    return { ok: true, companyId: cid };
+  };
 
   const isWhatsApp = taskType === "whatsapp";
   const isVisit = taskType === "field_visit";
