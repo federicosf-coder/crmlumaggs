@@ -427,6 +427,32 @@ export default function CreditoPortal() {
 
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
+  const OPT_IN_DOC_COLS: Record<string, string> = {
+    "Poder del Representante Legal": "poder_representante_requerido",
+    "Registro Público de la Propiedad": "registro_publico_requerido",
+    "Estado de cuenta bancario": "estado_cuenta_requerido",
+  };
+  const isOptInDoc = (nombre: string) => nombre in OPT_IN_DOC_COLS;
+  const optInChecked = (nombre: string) => {
+    const col = OPT_IN_DOC_COLS[nombre];
+    return col ? (form as any)[col] === true : false;
+  };
+  const toggleOptInDoc = async (nombre: string) => {
+    const col = OPT_IN_DOC_COLS[nombre];
+    if (!col || !token) return;
+    const actual = (form as any)[col] === true;
+    const nuevo = !actual;
+    set(col, nuevo);
+    try {
+      await callPortal("update_form", token, { fields: { [col]: nuevo } });
+      toast.success(nuevo ? `${nombre} marcado como requerido` : `${nombre} marcado como no requerido`);
+      load();
+    } catch (e: any) {
+      set(col, actual);
+      toast.error(e.message || "No se pudo guardar");
+    }
+  };
+
   const saveForm = async () => {
     setSaving(true);
     try {
