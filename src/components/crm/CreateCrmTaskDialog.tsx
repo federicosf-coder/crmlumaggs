@@ -44,12 +44,16 @@ interface CreateCrmTaskDialogProps {
   defaultTitle?: string;
   /** Si se define, el diálogo opera en modo edición sobre esta tarea existente. */
   editTask?: CrmTask | null;
+  /** Marcas pre-seleccionadas (uno o ambos). */
+  defaultBrands?: Array<"lumaggs_chevron" | "galsa_phillips66">;
 }
+
+type Brand = "lumaggs_chevron" | "galsa_phillips66";
 
 export function CreateCrmTaskDialog({
   open, onOpenChange, defaultContactId, defaultCompanyId,
   parentTaskId = null, defaultParentCategory = null, defaultTaskType = null, defaultTitle = "",
-  editTask = null,
+  editTask = null, defaultBrands,
 }: CreateCrmTaskDialogProps) {
   const { session } = useAuth();
   const createTask = useCreateCrmTask();
