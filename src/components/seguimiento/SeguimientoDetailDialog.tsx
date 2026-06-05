@@ -747,10 +747,10 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
             <Separator />
 
             <div>
-              <h4 className="text-sm font-semibold mb-2 inline-flex items-center gap-1.5">
-                <Plus className="h-4 w-4" /> Agregar
-              </h4>
-              <div className="flex flex-col gap-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground font-light inline-flex items-center gap-1.5">
+                <Plus className="h-3.5 w-3.5" /> Agregar
+              </Label>
+              <div className="flex flex-col gap-2 mt-1">
                 <Button variant="default" size="sm" className="justify-start" onClick={handleNuevaCotizacion}>
                   <FileSignature className="h-3.5 w-3.5 mr-2" /> Nueva cotización
                 </Button>
@@ -758,7 +758,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                   <CalendarIcon className="h-3.5 w-3.5 mr-2" /> Agregar actividad
                 </Button>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-2 font-light">
+              <p className="text-[11px] text-muted-foreground mt-1 font-light">
                 Se pre-cargará con esta empresa, contacto y marca.
               </p>
             </div>
