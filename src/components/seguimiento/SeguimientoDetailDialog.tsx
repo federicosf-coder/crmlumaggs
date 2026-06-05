@@ -719,3 +719,226 @@ function DocGroup({
     </div>
   );
 }
+
+// ===== Dialog: Marcar como perdido (pérdida TOTAL) =====
+function MarcarPerdidoDialog({
+  open,
+  onOpenChange,
+  row,
+  motivos,
+  userId,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  row: SeguimientoVentasRow;
+  motivos: any[];
+  userId: string | null;
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const [motivoId, setMotivoId] = useState<string>("");
+  const [fecha, setFecha] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [nota, setNota] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!motivoId) { toast({ title: "Selecciona un motivo", variant: "destructive" }); return; }
+    setSaving(true);
+    try {
+      const { error: upErr } = await supabase
+        .from("seguimiento_ventas")
+        .update({
+          perdido: true,
+          motivo_perdida_id: motivoId,
+          fecha_perdida: fecha,
+          nota_perdida: nota || null,
+        })
+        .eq("id", row.id);
+      if (upErr) throw upErr;
+      const { error: insErr } = await supabase
+        .from("seguimiento_perdidas")
+        .insert({
+          seguimiento_venta_id: row.id,
+          tipo: "total",
+          motivo_id: motivoId,
+          fecha,
+          nota: nota || null,
+          created_by: userId,
+        });
+      if (insErr) throw insErr;
+      toast({ title: "Registro marcado como perdido" });
+      onSaved();
+      onOpenChange(false);
+      setMotivoId(""); setNota("");
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-base">Marcar como perdido</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Motivo</Label>
+            <Select value={motivoId} onValueChange={setMotivoId}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Selecciona un motivo" /></SelectTrigger>
+              <SelectContent>
+                {motivos.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: m.color || "#999" }} />
+                      {m.nombre}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Fecha</Label>
+            <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Nota</Label>
+            <Textarea value={nota} onChange={(e) => setNota(e.target.value)} rows={3} className="mt-1" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-rose-600 hover:bg-rose-600/90">
+            {saving ? "Guardando…" : "Marcar como perdido"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ===== Dialog: Registrar pérdida (evento total o parcial) =====
+function RegistrarPerdidaDialog({
+  open,
+  onOpenChange,
+  rowId,
+  motivosAll,
+  userId,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  rowId: string;
+  motivosAll: any[];
+  userId: string | null;
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const [tipo, setTipo] = useState<"total" | "parcial">("parcial");
+  const [motivoId, setMotivoId] = useState<string>("");
+  const [fecha, setFecha] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [unidades, setUnidades] = useState<string>("");
+  const [nota, setNota] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  const motivosFiltrados = useMemo(
+    () => motivosAll.filter((m) => m.tipo === tipo),
+    [motivosAll, tipo],
+  );
+
+  const handleSave = async () => {
+    if (!motivoId) { toast({ title: "Selecciona un motivo", variant: "destructive" }); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("seguimiento_perdidas")
+        .insert({
+          seguimiento_venta_id: rowId,
+          tipo,
+          motivo_id: motivoId,
+          fecha,
+          unidades_estimadas: unidades ? Number(unidades) : null,
+          nota: nota || null,
+          created_by: userId,
+        });
+      if (error) throw error;
+      toast({ title: "Pérdida registrada" });
+      onSaved();
+      onOpenChange(false);
+      setMotivoId(""); setNota(""); setUnidades(""); setTipo("parcial");
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-base">Registrar pérdida</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Tipo</Label>
+            <Select value={tipo} onValueChange={(v: any) => { setTipo(v); setMotivoId(""); }}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="parcial">Parcial</SelectItem>
+                <SelectItem value="total">Total</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Motivo</Label>
+            <Select value={motivoId} onValueChange={setMotivoId}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Selecciona un motivo" /></SelectTrigger>
+              <SelectContent>
+                {motivosFiltrados.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: m.color || "#999" }} />
+                      {m.nombre}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs uppercase tracking-wide font-light">Fecha</Label>
+              <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wide font-light">Unidades estimadas</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={unidades}
+                onChange={(e) => setUnidades(e.target.value)}
+                placeholder="Opcional"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Nota</Label>
+            <Textarea value={nota} onChange={(e) => setNota(e.target.value)} rows={3} className="mt-1" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Guardando…" : "Guardar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
