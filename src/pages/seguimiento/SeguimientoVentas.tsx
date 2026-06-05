@@ -46,8 +46,7 @@ import {
 import { SeguimientoDetailDialog } from "@/components/seguimiento/SeguimientoDetailDialog";
 import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { useQuery } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useToast } from "@/hooks/use-toast";
