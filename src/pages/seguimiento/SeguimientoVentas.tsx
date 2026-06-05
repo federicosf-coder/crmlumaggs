@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -15,8 +17,9 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X, GripVertical, RotateCcw } from "lucide-react";
+import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X, GripVertical, RotateCcw, MoreHorizontal, MessageCircle, Mail, ListPlus, UserCog, Loader2 } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -41,9 +44,12 @@ import {
   type SeguimientoEstatus,
 } from "@/hooks/useSeguimientoVentas";
 import { SeguimientoDetailDialog } from "@/components/seguimiento/SeguimientoDetailDialog";
-import { useQuery } from "@tanstack/react-query";
+import { CreateCrmTaskDialog } from "@/components/crm/CreateCrmTaskDialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { useToast } from "@/hooks/use-toast";
 
 type SortDir = "asc" | "desc";
 interface SortState {
@@ -303,6 +309,24 @@ export default function SeguimientoVentas() {
   const [fPlaza, setFPlaza] = useState<string[]>([]);
 
   const tieneVenta = tab === "con_venta";
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Selección múltiple
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  useEffect(() => { setSelectedIds(new Set()); }, [tieneVenta, empresaVendedora]);
+
+  // Diálogo crear tarea / actividad
+  const [taskDialog, setTaskDialog] = useState<null | {
+    companyId: string;
+    contactId?: string;
+    type: "call" | "whatsapp" | "email";
+  }>(null);
+
+  // Reasignar ejecutivo
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [reassignUserId, setReassignUserId] = useState<string>("");
+  const [reassigning, setReassigning] = useState(false);
 
   // Al cambiar pestaña, limpiar filtros que no aplican
   useEffect(() => {
@@ -631,7 +655,10 @@ export default function SeguimientoVentas() {
 
     if (fEstatus.length > 0) {
       base = base.filter((r) => {
-        const id = tieneVenta ? r.estatus_riesgo_id : r.estatus_gestion_id;
+        // Usa el estatus EFECTIVO (manual si está activo, si no el calculado).
+        const id = r.estatus_manual && r.estatus_manual_id
+          ? r.estatus_manual_id
+          : (tieneVenta ? r.estatus_riesgo_id : r.estatus_gestion_id);
         return id ? fEstatus.includes(id) : false;
       });
     }
@@ -816,6 +843,70 @@ export default function SeguimientoVentas() {
             Clientes sin Venta
           </button>
         </div>
+        {/* Botones de filtro siempre visibles (desde catálogo) */}
+        <div className="w-full space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">Estatus</span>
+            {estatusOptions.length === 0 ? (
+              <span className="text-xs text-muted-foreground italic">Sin opciones</span>
+            ) : estatusOptions.map((o) => {
+              const sel = fEstatus.includes(o.id);
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setFEstatus((arr) => toggleInArray(arr, o.id))}
+                  className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
+                  style={
+                    sel
+                      ? { backgroundColor: o.color, color: "white", borderColor: o.color }
+                      : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
+                  }
+                  aria-pressed={sel}
+                >
+                  {o.es_urgente && <AlertTriangle className="h-3 w-3" />}
+                  {o.nombre}
+                </button>
+              );
+            })}
+            {fEstatus.length > 0 && (
+              <button type="button" onClick={() => setFEstatus([])}
+                className="text-[10px] text-muted-foreground hover:text-foreground underline ml-1">
+                Limpiar
+              </button>
+            )}
+          </div>
+          {tieneVenta && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">Ritmo</span>
+              {ritmoOptions.map((o) => {
+                const sel = fRitmo.includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => setFRitmo((arr) => toggleInArray(arr, o.id))}
+                    className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
+                    style={
+                      sel
+                        ? { backgroundColor: o.color, color: "white", borderColor: o.color }
+                        : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
+                    }
+                    aria-pressed={sel}
+                  >
+                    {o.nombre}
+                  </button>
+                );
+              })}
+              {fRitmo.length > 0 && (
+                <button type="button" onClick={() => setFRitmo([])}
+                  className="text-[10px] text-muted-foreground hover:text-foreground underline ml-1">
+                  Limpiar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-72">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -963,6 +1054,23 @@ export default function SeguimientoVentas() {
         </CollapsibleContent>
       </Collapsible>
 
+      {/* Barra de acciones masivas */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-violet-50 dark:bg-violet-950/30 px-3 py-2">
+          <div className="text-xs font-semibold uppercase tracking-wide text-violet-900 dark:text-violet-200">
+            {selectedIds.size} seleccionado{selectedIds.size === 1 ? "" : "s"}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setReassignUserId(""); setReassignOpen(true); }}>
+              <UserCog className="h-3.5 w-3.5" /> Reasignar ejecutivo
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8 gap-1" onClick={() => setSelectedIds(new Set())}>
+              <X className="h-3.5 w-3.5" /> Limpiar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Lista mobile (cards) */}
       <div className="grid gap-3 md:hidden">
         {isLoading ? (
@@ -1073,6 +1181,16 @@ export default function SeguimientoVentas() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={filtered.length > 0 && filtered.every((r) => selectedIds.has(r.id))}
+                      onCheckedChange={(v) => {
+                        if (v) setSelectedIds(new Set(filtered.map((r) => r.id)));
+                        else setSelectedIds(new Set());
+                      }}
+                      aria-label="Seleccionar todos"
+                    />
+                  </TableHead>
                   <SortableContext items={orderedColumns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
                     {orderedColumns.map((col) => (
                       <DraggableSortableHead
@@ -1086,24 +1204,38 @@ export default function SeguimientoVentas() {
                       />
                     ))}
                   </SortableContext>
+                  <TableHead className="w-14 text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + 2} className="text-center text-muted-foreground py-8">
                       Cargando…
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + 2} className="text-center text-muted-foreground py-8">
                       Sin registros.
                     </TableCell>
                   </TableRow>
                 ) : (
                   filtered.map((r) => (
                     <TableRow key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
+                      <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedIds.has(r.id)}
+                          onCheckedChange={(v) => {
+                            setSelectedIds((prev) => {
+                              const next = new Set(prev);
+                              if (v) next.add(r.id); else next.delete(r.id);
+                              return next;
+                            });
+                          }}
+                          aria-label={`Seleccionar ${r.companies?.name || ""}`}
+                        />
+                      </TableCell>
                       {orderedColumns.map((col) => (
                         <TableCell
                           key={col.id}
@@ -1112,6 +1244,12 @@ export default function SeguimientoVentas() {
                           {col.render(r)}
                         </TableCell>
                       ))}
+                      <TableCell className="w-14 text-center" onClick={(e) => e.stopPropagation()}>
+                        <RowActionsMenu
+                          row={r}
+                          onOpenTask={(type) => setTaskDialog({ companyId: r.company_id, type })}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -1127,6 +1265,122 @@ export default function SeguimientoVentas() {
         onOpenChange={(o) => { if (!o) setSelected(null); }}
         catalog={catalog}
       />
+
+      {/* Diálogo crear tarea/actividad pre-cargado */}
+      {taskDialog && (
+        <CreateCrmTaskDialog
+          open={!!taskDialog}
+          onOpenChange={(o) => { if (!o) setTaskDialog(null); }}
+          defaultCompanyId={taskDialog.companyId}
+          defaultTaskType={taskDialog.type}
+          defaultBrands={[empresaVendedora]}
+        />
+      )}
+
+      {/* Diálogo reasignar ejecutivo */}
+      <Dialog open={reassignOpen} onOpenChange={(o) => { if (!reassigning) setReassignOpen(o); }}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                <UserCog className="h-4 w-4" /> Reasignar ejecutivo
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5 font-light">
+                Se actualizará el ejecutivo de {selectedIds.size} cliente{selectedIds.size === 1 ? "" : "s"} y se recalculará su seguimiento.
+              </p>
+            </DialogHeader>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Nuevo ejecutivo</p>
+              <SearchableSelect
+                value={reassignUserId || "none"}
+                onValueChange={(v) => setReassignUserId(v === "none" ? "" : v)}
+                options={[
+                  { value: "none", label: "Selecciona…" },
+                  ...profiles.map((p) => ({ value: p.user_id, label: p.full_name || p.user_id })),
+                ]}
+                placeholder="Buscar ejecutivo…"
+              />
+            </div>
+          </div>
+          <DialogFooter className="px-5 py-3 bg-muted/30 border-t">
+            <Button variant="outline" onClick={() => setReassignOpen(false)} disabled={reassigning}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={!reassignUserId || reassigning}
+              onClick={async () => {
+                if (!reassignUserId) return;
+                setReassigning(true);
+                try {
+                  const rowsToUpdate = filtered.filter((r) => selectedIds.has(r.id));
+                  const companyIds = Array.from(new Set(rowsToUpdate.map((r) => r.company_id)));
+                  // Reemplaza ejecutivos por el nuevo (patrón usado en CompanyFormDialog)
+                  for (const cid of companyIds) {
+                    await (supabase as any).from("company_ejecutivos").delete().eq("company_id", cid);
+                    await (supabase as any).from("company_ejecutivos").insert({ company_id: cid, user_id: reassignUserId });
+                  }
+                  // Recalcula seguimiento por cada (company, empresa_vendedora)
+                  for (const r of rowsToUpdate) {
+                    try {
+                      await (supabase as any).rpc("recompute_seguimiento_ventas", {
+                        _company_id: r.company_id,
+                        _ev: r.empresa_vendedora,
+                      });
+                    } catch (err) {
+                      console.warn("[recompute] failed", r.company_id, err);
+                    }
+                  }
+                  toast({ title: "Ejecutivo reasignado", description: `${rowsToUpdate.length} cliente${rowsToUpdate.length === 1 ? "" : "s"} actualizado${rowsToUpdate.length === 1 ? "" : "s"}.` });
+                  setSelectedIds(new Set());
+                  setReassignOpen(false);
+                  queryClient.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+                  queryClient.invalidateQueries({ queryKey: ["company_ejecutivos"] });
+                } catch (e: any) {
+                  toast({ title: "Error al reasignar", description: e?.message || "Intenta de nuevo.", variant: "destructive" });
+                } finally {
+                  setReassigning(false);
+                }
+              }}
+            >
+              {reassigning ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function RowActionsMenu({
+  row, onOpenTask,
+}: {
+  row: SeguimientoVentasRow;
+  onOpenTask: (type: "call" | "whatsapp" | "email") => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          Acciones
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onOpenTask("whatsapp"); }}>
+          <MessageCircle className="h-4 w-4 mr-2 text-emerald-600" /> Enviar WhatsApp
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onOpenTask("email"); }}>
+          <Mail className="h-4 w-4 mr-2 text-blue-600" /> Enviar correo
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onOpenTask("call"); }}>
+          <ListPlus className="h-4 w-4 mr-2 text-violet-600" /> Registrar tarea
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
