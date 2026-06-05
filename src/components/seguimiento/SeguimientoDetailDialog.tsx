@@ -416,6 +416,28 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
                    <XCircle className="h-3 w-3 mr-1" /> Perdido{motivoPerdidaActual ? ` · ${motivoPerdidaActual.nombre}` : ""}
                  </Badge>
                )}
+               {isPerdido ? (
+                 <Button variant="outline" size="sm" className="h-7 text-xs bg-white/80" onClick={handleReactivar}>
+                   <RotateCcw className="h-3 w-3 mr-1" /> Reactivar
+                 </Button>
+               ) : (
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   className="h-7 text-xs bg-white/80 border-rose-300 text-rose-700 hover:bg-rose-50"
+                   onClick={() => setPerderDialogOpen(true)}
+                 >
+                   <XCircle className="h-3 w-3 mr-1" /> Marcar como perdido
+                 </Button>
+               )}
+               <Button
+                 variant="outline"
+                 size="sm"
+                 className="h-7 text-xs bg-white/80"
+                 onClick={() => setRegistrarPerdidaOpen(true)}
+               >
+                 <Plus className="h-3 w-3 mr-1" /> Registrar pérdida
+               </Button>
             </div>
           </div>
         </DialogHeader>
