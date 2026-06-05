@@ -20,6 +20,7 @@ import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityT
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { EstadoCobranzaBadge } from "@/components/cobranza/EstadoCobranzaBadge";
 import { openWhatsApp, normalizePhoneForWhatsApp } from "@/lib/whatsapp";
+import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
 import type { TaskTypeKey } from "@/lib/taskTypes";
 import {
   TrendingUp,
@@ -81,6 +82,8 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
   const [showAllContacts, setShowAllContacts] = useState(false);
   const [perderDialogOpen, setPerderDialogOpen] = useState(false);
   const [registrarPerdidaOpen, setRegistrarPerdidaOpen] = useState(false);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [whatsappTarget, setWhatsappTarget] = useState<{ phone: string; contact: any | null } | null>(null);
 
   const open = !!row;
   const tieneVenta = !!row?.tiene_venta;
@@ -323,9 +326,8 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
       toast({ title: "Sin número de WhatsApp", variant: "destructive" });
       return;
     }
-    const msg = `Hola${contact?.first_name ? ` ${contact.first_name}` : ""}, te contacto de ${marcaLabel}.`;
-    openWhatsApp(phone, msg);
-    void logSeguimientoActivity("whatsapp", contact, phone);
+    setWhatsappTarget({ phone, contact: contact || null });
+    setWhatsappOpen(true);
     void fireAutomation({
       trigger_type: "existing_button_click",
       entity_type: "seguimiento_venta",
