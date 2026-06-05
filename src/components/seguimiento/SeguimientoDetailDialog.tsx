@@ -526,7 +526,29 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                     return (
                       <div key={c.id} className="rounded-md border bg-background px-2 py-1.5 flex items-center justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-xs font-medium truncate leading-tight">{name || "—"}</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const brandSlug =
+                                empresaVendedora === "lumaggs_chevron"
+                                  ? "chevron"
+                                  : empresaVendedora === "galsa_phillips66"
+                                  ? "phillips66"
+                                  : "";
+                              window.history.replaceState(
+                                null,
+                                "",
+                                `/seguimiento/${brandSlug}?seguimiento_id=${row.id}`
+                              );
+                              onOpenChange(false);
+                              navigate(`/directory?tab=contacts&select=${c.id}`);
+                            }}
+                            className="text-xs font-medium truncate leading-tight inline-flex items-center gap-1 hover:underline focus:underline focus:outline-none max-w-full"
+                            title="Ver / editar contacto"
+                          >
+                            <span className="truncate">{name || "—"}</span>
+                            <ExternalLink className="h-3 w-3 opacity-60 shrink-0" />
+                          </button>
                           <div className="flex flex-wrap gap-x-2 gap-y-0 text-[10px] text-muted-foreground leading-tight">
                             {c.job_title && <span className="truncate">{c.job_title}</span>}
                             {(c.mobile || c.phone) && <span className="inline-flex items-center gap-0.5"><Phone className="h-2.5 w-2.5" />{c.mobile || c.phone}</span>}
