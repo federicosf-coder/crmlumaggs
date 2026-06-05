@@ -33,6 +33,10 @@ const ENTITY_META: Record<string, { label: string; className: string }> = {
   document: { label: "Documento", className: "bg-orange-100 text-orange-800 hover:bg-orange-100" },
   contact: { label: "Contacto", className: "bg-green-100 text-green-800 hover:bg-green-100" },
   task: { label: "Tarea", className: "bg-gray-100 text-gray-800 hover:bg-gray-100" },
+  seguimiento_venta: { label: "Seguimiento a Ventas", className: "bg-amber-100 text-amber-800 hover:bg-amber-100" },
+  payment: { label: "Cobranza", className: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100" },
+  credit_request: { label: "Solicitud de crédito", className: "bg-cyan-100 text-cyan-800 hover:bg-cyan-100" },
+  entrega: { label: "Entrega", className: "bg-rose-100 text-rose-800 hover:bg-rose-100" },
 };
 
 const TRIGGER_META: Record<string, { label: string; icon: React.ElementType }> = {

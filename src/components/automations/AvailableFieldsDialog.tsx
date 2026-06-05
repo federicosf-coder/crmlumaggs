@@ -64,6 +64,20 @@ const DATE_FIELDS_EXTRA: Record<EntityType, { value: string; label: string }[]> 
   ],
   contact: [],
   task: [{ value: "due_date", label: "Fecha límite" }],
+  seguimiento_venta: [
+    { value: "proxima_fecha_seguimiento", label: "Próximo seguimiento" },
+    { value: "fecha_ultimo_contacto", label: "Último contacto" },
+    { value: "fecha_perdida", label: "Fecha de pérdida" },
+  ],
+  payment: [{ value: "fecha_pago", label: "Fecha de pago" }],
+  credit_request: [
+    { value: "fecha_solicitud", label: "Fecha de solicitud" },
+    { value: "fecha_resolucion", label: "Fecha de resolución" },
+  ],
+  entrega: [
+    { value: "fecha_entrega_programada", label: "Fecha entrega programada" },
+    { value: "fecha_entrega_real", label: "Fecha entrega real" },
+  ],
 };
 
 export function getAvailableFields(entityType: EntityType) {
