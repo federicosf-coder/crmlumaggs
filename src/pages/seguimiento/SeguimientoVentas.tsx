@@ -1467,6 +1467,69 @@ export default function SeguimientoVentas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo cambiar estatus masivo */}
+      <Dialog open={bulkStatusOpen} onOpenChange={(o) => { if (!bulkStatusSaving) setBulkStatusOpen(o); }}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                <Filter className="h-4 w-4" /> Cambiar estatus
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5 font-light">
+                Se fijará el estatus manual de {selectedIds.size} cliente{selectedIds.size === 1 ? "" : "s"}.
+              </p>
+            </DialogHeader>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Nuevo estatus</p>
+              <SearchableSelect
+                value={bulkStatusId || "__auto__"}
+                onValueChange={(v) => setBulkStatusId(v)}
+                options={[
+                  { value: "__auto__", label: "Automático (quitar manual)" },
+                  ...estatusOptions.map((o) => ({ value: o.id, label: o.nombre })),
+                ]}
+                placeholder="Selecciona estatus…"
+              />
+            </div>
+          </div>
+          <DialogFooter className="px-5 py-3 bg-muted/30 border-t">
+            <Button variant="outline" onClick={() => setBulkStatusOpen(false)} disabled={bulkStatusSaving}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={!bulkStatusId || bulkStatusSaving}
+              onClick={async () => {
+                const ids = Array.from(selectedIds);
+                if (ids.length === 0) return;
+                setBulkStatusSaving(true);
+                try {
+                  const payload = bulkStatusId === "__auto__"
+                    ? { estatus_manual: false, estatus_manual_id: null }
+                    : { estatus_manual: true, estatus_manual_id: bulkStatusId };
+                  const { error } = await supabase
+                    .from("seguimiento_ventas")
+                    .update(payload as any)
+                    .in("id", ids);
+                  if (error) throw error;
+                  toast({ title: "Estatus actualizado", description: `${ids.length} cliente${ids.length === 1 ? "" : "s"} actualizado${ids.length === 1 ? "" : "s"}.` });
+                  setSelectedIds(new Set());
+                  setBulkStatusOpen(false);
+                  queryClient.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+                } catch (e: any) {
+                  toast({ title: "Error al actualizar", description: e?.message || "Intenta de nuevo.", variant: "destructive" });
+                } finally {
+                  setBulkStatusSaving(false);
+                }
+              }}
+            >
+              {bulkStatusSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
