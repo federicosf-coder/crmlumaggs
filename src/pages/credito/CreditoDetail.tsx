@@ -1281,9 +1281,11 @@ export default function CreditoDetail() {
     refetchDocs();
   };
 
+  // Liga pública del portal: SIEMPRE sobre el dominio publicado.
+  const PORTAL_BASE = "https://portal.lumaggs.com.mx";
   const portalUrl = form.short_code
-    ? `${window.location.origin}/p/${form.short_code}`
-    : `${window.location.origin}/portal/credito/${form.client_token}`;
+    ? `${PORTAL_BASE}/p/${form.short_code}`
+    : `${PORTAL_BASE}/portal/credito/${form.client_token}`;
 
   const updateCompany = async (patch: any) => {
     if (!companyId) return;
