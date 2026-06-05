@@ -472,68 +472,62 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
               </div>
             </div>
 
-            {/* Actividades vinculadas a este seguimiento */}
+            {/* Actividades y tareas vinculadas (unificado) */}
             <div className="rounded-lg shadow-sm bg-muted/30 p-4">
               <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
-                <CalendarIcon className="h-4 w-4" /> Actividades vinculadas
+                <ClipboardList className="h-4 w-4" /> Actividades y tareas vinculadas
               </h4>
-              {!linkedActivities?.length ? (
-                <p className="text-sm text-muted-foreground">Sin actividades vinculadas a este seguimiento.</p>
+              {(!linkedActivities?.length && !linkedTasks?.length) ? (
+                <p className="text-sm text-muted-foreground">Sin actividades ni tareas vinculadas a este seguimiento.</p>
               ) : (
                 <div className="space-y-2">
-                  {linkedActivities.map((a: any) => (
-                    <CrmActivityItem key={a.id} activity={a} />
+                  {(linkedActivities || []).map((a: any) => (
+                    <CrmActivityItem key={`a-${a.id}`} activity={a} />
+                  ))}
+                  {(linkedTasks || []).map((t: any) => (
+                    <CrmTaskItem key={`t-${t.id}`} task={t} />
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Tareas vinculadas a este seguimiento */}
-            <div className="rounded-lg shadow-sm bg-muted/30 p-4">
-              <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
-                <ClipboardList className="h-4 w-4" /> Tareas vinculadas
-              </h4>
-              {!linkedTasks?.length ? (
-                <p className="text-sm text-muted-foreground">Sin tareas vinculadas a este seguimiento.</p>
-              ) : (
-                <div className="space-y-2">
-                  {linkedTasks.map((t: any) => (
-                    <CrmTaskItem key={t.id} task={t} />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Documentos relacionados (empresa + marca) */}
+            {/* Documentos relacionados — Tabs (empresa + marca) */}
             <div className="rounded-lg shadow-sm bg-muted/30 p-4">
               <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
                 <FileText className="h-4 w-4" /> Documentos relacionados
               </h4>
-              {(!documentos || documentos.length === 0) ? (
-                <p className="text-sm text-muted-foreground">Sin documentos para esta empresa y marca.</p>
-              ) : (
-                <div className="space-y-4">
-                  <DocGroup
-                    title="Cotizaciones"
-                    icon={<FileSignature className="h-3.5 w-3.5" />}
-                    docs={docsByTipo.cotizacion}
-                    numKey="numero_cotizacion"
-                  />
-                  <DocGroup
-                    title="Pedidos"
-                    icon={<PackageCheck className="h-3.5 w-3.5" />}
-                    docs={docsByTipo.pedido}
-                    numKey="numero_pedido"
-                  />
-                  <DocGroup
-                    title="Facturas"
-                    icon={<Receipt className="h-3.5 w-3.5" />}
-                    docs={docsByTipo.factura}
-                    numKey="numero_factura"
-                    showCobranza
-                  />
-                </div>
-              )}
+              <Tabs defaultValue="cotizaciones" className="w-full">
+                <TabsList className="grid grid-cols-4 w-full h-9">
+                  <TabsTrigger value="cotizaciones" className="text-xs gap-1">
+                    <FileSignature className="h-3 w-3" /> Cotizaciones
+                    <span className="text-[10px] opacity-70">({docsByTipo.cotizacion.length})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="pedidos" className="text-xs gap-1">
+                    <PackageCheck className="h-3 w-3" /> Pedidos
+                    <span className="text-[10px] opacity-70">({docsByTipo.pedido.length})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="facturas" className="text-xs gap-1">
+                    <Receipt className="h-3 w-3" /> Facturas
+                    <span className="text-[10px] opacity-70">({docsByTipo.factura.length})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="productos" className="text-xs gap-1">
+                    <Package className="h-3 w-3" /> Productos
+                    <span className="text-[10px] opacity-70">({(productosComprados || []).length})</span>
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="cotizaciones" className="mt-3">
+                  <DocGroup docs={docsByTipo.cotizacion} numKey="numero_cotizacion" />
+                </TabsContent>
+                <TabsContent value="pedidos" className="mt-3">
+                  <DocGroup docs={docsByTipo.pedido} numKey="numero_pedido" showEntrega />
+                </TabsContent>
+                <TabsContent value="facturas" className="mt-3">
+                  <DocGroup docs={docsByTipo.factura} numKey="numero_factura" showCobranza />
+                </TabsContent>
+                <TabsContent value="productos" className="mt-3">
+                  <ProductosTable rows={productosComprados || []} />
+                </TabsContent>
+              </Tabs>
             </div>
 
             {/* Pérdidas */}
