@@ -1,4 +1,13 @@
-export type EntityType = "deal" | "company" | "document" | "contact" | "task";
+export type EntityType =
+  | "deal"
+  | "company"
+  | "document"
+  | "contact"
+  | "task"
+  | "seguimiento_venta"
+  | "payment"
+  | "credit_request"
+  | "entrega";
 
 export type AutomationDraft = {
   name: string;
@@ -32,6 +41,10 @@ export const ENTITY_OPTIONS: { value: EntityType; label: string }[] = [
   { value: "document", label: "Documento" },
   { value: "contact", label: "Contacto" },
   { value: "task", label: "Tarea" },
+  { value: "seguimiento_venta", label: "Seguimiento a Ventas" },
+  { value: "payment", label: "Cobranza" },
+  { value: "credit_request", label: "Solicitud de crédito" },
+  { value: "entrega", label: "Entrega" },
 ];
 
 export const DATE_FIELDS_BY_ENTITY: Record<EntityType, { value: string; label: string }[]> = {
@@ -52,6 +65,22 @@ export const DATE_FIELDS_BY_ENTITY: Record<EntityType, { value: string; label: s
   ],
   contact: [],
   task: [{ value: "due_date", label: "Fecha límite" }],
+  seguimiento_venta: [
+    { value: "proxima_fecha_seguimiento", label: "Próximo seguimiento" },
+    { value: "fecha_ultimo_contacto", label: "Último contacto" },
+    { value: "fecha_perdida", label: "Fecha de pérdida" },
+  ],
+  payment: [
+    { value: "fecha_pago", label: "Fecha de pago" },
+  ],
+  credit_request: [
+    { value: "fecha_solicitud", label: "Fecha de solicitud" },
+    { value: "fecha_resolucion", label: "Fecha de resolución" },
+  ],
+  entrega: [
+    { value: "fecha_entrega_programada", label: "Fecha entrega programada" },
+    { value: "fecha_entrega_real", label: "Fecha entrega real" },
+  ],
 };
 
 export const FILTER_FIELDS_BY_ENTITY: Record<
@@ -85,6 +114,34 @@ export const FILTER_FIELDS_BY_ENTITY: Record<
   ],
   contact: [{ value: "no_contactar", label: "No contactar", type: "boolean" }],
   task: [],
+  seguimiento_venta: [
+    { value: "estatus_id", label: "Estatus", type: "text" },
+    { value: "marca", label: "Marca", type: "text" },
+    { value: "perdido", label: "Perdido", type: "boolean" },
+    { value: "motivo_perdida_id", label: "Motivo de pérdida", type: "text" },
+    { value: "unidades_estimadas", label: "Unidades estimadas", type: "number" },
+    { value: "valor_estimado", label: "Valor estimado", type: "number" },
+  ],
+  payment: [
+    { value: "estado_pago", label: "Estado del pago", type: "text" },
+    { value: "estatus_pago", label: "Estatus del pago", type: "text" },
+    { value: "tipo_pago", label: "Tipo de pago", type: "text" },
+    { value: "monto_total", label: "Monto total", type: "number" },
+    { value: "monto_aplicado", label: "Monto aplicado", type: "number" },
+    { value: "monto_disponible", label: "Monto disponible", type: "number" },
+  ],
+  credit_request: [
+    { value: "estatus", label: "Estatus", type: "text" },
+    { value: "monto_solicitado", label: "Monto solicitado", type: "number" },
+    { value: "monto_aprobado", label: "Monto aprobado", type: "number" },
+    { value: "plazo_dias", label: "Plazo (días)", type: "number" },
+  ],
+  entrega: [
+    { value: "estatus", label: "Estatus", type: "text" },
+    { value: "ruta_id", label: "Ruta", type: "text" },
+    { value: "repartidor_id", label: "Repartidor", type: "text" },
+    { value: "vehiculo_id", label: "Vehículo", type: "text" },
+  ],
 };
 
 export type FieldDef = { value: string; label: string; type: "text" | "number" | "boolean" };
