@@ -20,6 +20,14 @@ import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { useQueryClient } from "@tanstack/react-query";
 
+// Convierte a "Nombre Propio": primera letra de cada palabra en mayúscula, resto en minúsculas.
+const toProperCase = (s: string): string => {
+  if (!s) return s;
+  return s
+    .toLowerCase()
+    .replace(/(^|[\s\-'’])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase());
+};
+
 export interface ContactEditData {
   id: string;
   first_name: string;
