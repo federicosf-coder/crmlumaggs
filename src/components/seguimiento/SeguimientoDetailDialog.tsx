@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { fireAutomation } from "@/hooks/useFireAutomation";
 import { CrmTaskItem } from "@/components/crm/CrmTaskItem";
 import { CrmActivityItem } from "@/components/crm/CrmActivityItem";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
@@ -325,6 +326,19 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
     const msg = `Hola${contact?.first_name ? ` ${contact.first_name}` : ""}, te contacto de ${marcaLabel}.`;
     openWhatsApp(phone, msg);
     void logSeguimientoActivity("whatsapp", contact, phone);
+    void fireAutomation({
+      trigger_type: "existing_button_click",
+      entity_type: "seguimiento_venta",
+      entity_id: row.id,
+      trigger_key: "seguimiento.contacto.whatsapp",
+      context: {
+        contact_id: contact?.id ?? null,
+        company_id: row.company_id ?? null,
+        phone,
+        marca: marcaLabel,
+      },
+      silent: true,
+    });
   };
 
   const handleCall = (raw?: string | null, contact?: any) => {
