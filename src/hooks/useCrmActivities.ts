@@ -99,9 +99,7 @@ export function useCreateCrmActivity() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["crm_activities"] });
-    },
+    onSuccess: () => invalidateActivitySeguimiento(queryClient),
   });
 }
 
@@ -113,9 +111,7 @@ export function useUpdateCrmActivity() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["crm_activities"] });
-    },
+    onSuccess: () => invalidateActivitySeguimiento(queryClient),
   });
 }
 
@@ -126,8 +122,13 @@ export function useDeleteCrmActivity() {
       const { error } = await supabase.from("crm_activities").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["crm_activities"] });
-    },
+    onSuccess: () => invalidateActivitySeguimiento(queryClient),
   });
+}
+
+function invalidateActivitySeguimiento(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ["crm_activities"] });
+  qc.invalidateQueries({ queryKey: ["seguimiento_activities_linked"] });
+  qc.invalidateQueries({ queryKey: ["seguimiento_tasks_linked"] });
+  qc.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
 }
