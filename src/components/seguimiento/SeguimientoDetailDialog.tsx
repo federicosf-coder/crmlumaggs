@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +38,7 @@ import {
   XCircle,
   RotateCcw,
   TrendingDown,
+  Package,
 } from "lucide-react";
 import { formatDate, formatRelativeDate } from "@/lib/formatters";
 import {
@@ -142,7 +144,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
     queryFn: async () => {
       const { data } = await supabase
         .from("documentos")
-        .select("id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, fecha_documento, total, estado_cobranza, estatus_factura, saldo_pendiente_cobranza")
+        .select("id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, fecha_documento, fecha_entrega_real, total, estado_cobranza, estatus_factura, saldo_pendiente_cobranza")
         .eq("empresa_id", row!.company_id)
         .eq("empresa_vendedora", empresaVendedora)
         .order("fecha_documento", { ascending: false })
@@ -161,6 +163,44 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
     }
     return groups;
   }, [documentos]);
+
+  // ---- Productos comprados (agregado desde facturas de esta empresa+marca) ----
+  const { data: productosComprados } = useQuery({
+    queryKey: ["seguimiento_productos_comprados", row?.company_id, empresaVendedora],
+    enabled: !!row?.company_id,
+    queryFn: async () => {
+      const { data: facturas } = await supabase
+        .from("documentos")
+        .select("id, fecha_documento")
+        .eq("empresa_id", row!.company_id)
+        .eq("empresa_vendedora", empresaVendedora)
+        .eq("tipo_documento", "factura")
+        .eq("is_active", true);
+      const facMap = new Map<string, string>();
+      for (const f of facturas || []) facMap.set(f.id, f.fecha_documento);
+      const ids = Array.from(facMap.keys());
+      if (ids.length === 0) return [];
+      const { data: lineas } = await supabase
+        .from("documento_productos")
+        .select("documento_id, producto_id, cantidad, productos(id, nombre_producto, codigo)")
+        .in("documento_id", ids);
+      const agg = new Map<string, { producto_id: string; nombre: string; codigo: string | null; cantidad: number; ultima: string | null }>();
+      for (const l of lineas || []) {
+        if (!l.producto_id) continue;
+        const fecha = facMap.get(l.documento_id) || null;
+        const prev = agg.get(l.producto_id);
+        const nombre = (l as any).productos?.nombre_producto || "—";
+        const codigo = (l as any).productos?.codigo || null;
+        if (prev) {
+          prev.cantidad += Number(l.cantidad || 0);
+          if (fecha && (!prev.ultima || fecha > prev.ultima)) prev.ultima = fecha;
+        } else {
+          agg.set(l.producto_id, { producto_id: l.producto_id, nombre, codigo, cantidad: Number(l.cantidad || 0), ultima: fecha });
+        }
+      }
+      return Array.from(agg.values()).sort((a, b) => b.cantidad - a.cantidad);
+    },
+  });
 
   // ---- Motivos de pérdida ----
   const { data: motivosPerdida } = useQuery({
@@ -432,68 +472,62 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
               </div>
             </div>
 
-            {/* Actividades vinculadas a este seguimiento */}
+            {/* Actividades y tareas vinculadas (unificado) */}
             <div className="rounded-lg shadow-sm bg-muted/30 p-4">
               <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
-                <CalendarIcon className="h-4 w-4" /> Actividades vinculadas
+                <ClipboardList className="h-4 w-4" /> Actividades y tareas vinculadas
               </h4>
-              {!linkedActivities?.length ? (
-                <p className="text-sm text-muted-foreground">Sin actividades vinculadas a este seguimiento.</p>
+              {(!linkedActivities?.length && !linkedTasks?.length) ? (
+                <p className="text-sm text-muted-foreground">Sin actividades ni tareas vinculadas a este seguimiento.</p>
               ) : (
                 <div className="space-y-2">
-                  {linkedActivities.map((a: any) => (
-                    <CrmActivityItem key={a.id} activity={a} />
+                  {(linkedActivities || []).map((a: any) => (
+                    <CrmActivityItem key={`a-${a.id}`} activity={a} />
+                  ))}
+                  {(linkedTasks || []).map((t: any) => (
+                    <CrmTaskItem key={`t-${t.id}`} task={t} />
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Tareas vinculadas a este seguimiento */}
-            <div className="rounded-lg shadow-sm bg-muted/30 p-4">
-              <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
-                <ClipboardList className="h-4 w-4" /> Tareas vinculadas
-              </h4>
-              {!linkedTasks?.length ? (
-                <p className="text-sm text-muted-foreground">Sin tareas vinculadas a este seguimiento.</p>
-              ) : (
-                <div className="space-y-2">
-                  {linkedTasks.map((t: any) => (
-                    <CrmTaskItem key={t.id} task={t} />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Documentos relacionados (empresa + marca) */}
+            {/* Documentos relacionados — Tabs (empresa + marca) */}
             <div className="rounded-lg shadow-sm bg-muted/30 p-4">
               <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
                 <FileText className="h-4 w-4" /> Documentos relacionados
               </h4>
-              {(!documentos || documentos.length === 0) ? (
-                <p className="text-sm text-muted-foreground">Sin documentos para esta empresa y marca.</p>
-              ) : (
-                <div className="space-y-4">
-                  <DocGroup
-                    title="Cotizaciones"
-                    icon={<FileSignature className="h-3.5 w-3.5" />}
-                    docs={docsByTipo.cotizacion}
-                    numKey="numero_cotizacion"
-                  />
-                  <DocGroup
-                    title="Pedidos"
-                    icon={<PackageCheck className="h-3.5 w-3.5" />}
-                    docs={docsByTipo.pedido}
-                    numKey="numero_pedido"
-                  />
-                  <DocGroup
-                    title="Facturas"
-                    icon={<Receipt className="h-3.5 w-3.5" />}
-                    docs={docsByTipo.factura}
-                    numKey="numero_factura"
-                    showCobranza
-                  />
-                </div>
-              )}
+              <Tabs defaultValue="cotizaciones" className="w-full">
+                <TabsList className="grid grid-cols-4 w-full h-9">
+                  <TabsTrigger value="cotizaciones" className="text-xs gap-1">
+                    <FileSignature className="h-3 w-3" /> Cotizaciones
+                    <span className="text-[10px] opacity-70">({docsByTipo.cotizacion.length})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="pedidos" className="text-xs gap-1">
+                    <PackageCheck className="h-3 w-3" /> Pedidos
+                    <span className="text-[10px] opacity-70">({docsByTipo.pedido.length})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="facturas" className="text-xs gap-1">
+                    <Receipt className="h-3 w-3" /> Facturas
+                    <span className="text-[10px] opacity-70">({docsByTipo.factura.length})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="productos" className="text-xs gap-1">
+                    <Package className="h-3 w-3" /> Productos
+                    <span className="text-[10px] opacity-70">({(productosComprados || []).length})</span>
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="cotizaciones" className="mt-3">
+                  <DocGroup docs={docsByTipo.cotizacion} numKey="numero_cotizacion" />
+                </TabsContent>
+                <TabsContent value="pedidos" className="mt-3">
+                  <DocGroup docs={docsByTipo.pedido} numKey="numero_pedido" showEntrega />
+                </TabsContent>
+                <TabsContent value="facturas" className="mt-3">
+                  <DocGroup docs={docsByTipo.factura} numKey="numero_factura" showCobranza />
+                </TabsContent>
+                <TabsContent value="productos" className="mt-3">
+                  <ProductosTable rows={productosComprados || []} />
+                </TabsContent>
+              </Tabs>
             </div>
 
             {/* Pérdidas */}
@@ -669,27 +703,20 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function DocGroup({
-  title,
-  icon,
   docs,
   numKey,
   showCobranza,
+  showEntrega,
 }: {
-  title: string;
-  icon: React.ReactNode;
   docs: any[];
   numKey: "numero_cotizacion" | "numero_pedido" | "numero_factura";
   showCobranza?: boolean;
+  showEntrega?: boolean;
 }) {
   return (
     <div>
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="text-muted-foreground">{icon}</span>
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{title}</p>
-        <Badge variant="outline" className="text-[10px] h-4 px-1.5">{docs.length}</Badge>
-      </div>
       {docs.length === 0 ? (
-        <p className="text-xs text-muted-foreground font-light">—</p>
+        <p className="text-xs text-muted-foreground font-light">Sin registros.</p>
       ) : (
         <div className="space-y-1">
           {docs.slice(0, 10).map((d) => (
@@ -698,6 +725,11 @@ function DocGroup({
                 <span className="font-medium truncate">{d[numKey] || "(sin folio)"}</span>
                 {d.fecha_documento && (
                   <span className="text-muted-foreground text-[11px]">{formatDate(d.fecha_documento)}</span>
+                )}
+                {showEntrega && (
+                  <span className="text-[11px] text-muted-foreground">
+                    {d.fecha_entrega_real ? `Entrega: ${formatDate(d.fecha_entrega_real)}` : "Entrega: —"}
+                  </span>
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -712,6 +744,40 @@ function DocGroup({
             <p className="text-[11px] text-muted-foreground font-light">+{docs.length - 10} más…</p>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+function ProductosTable({ rows }: { rows: Array<{ producto_id: string; nombre: string; codigo: string | null; cantidad: number; ultima: string | null }> }) {
+  if (!rows || rows.length === 0) {
+    return <p className="text-xs text-muted-foreground font-light">Sin productos comprados.</p>;
+  }
+  return (
+    <div className="rounded-md border bg-background overflow-hidden">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/50">
+          <tr className="text-left">
+            <th className="px-2.5 py-1.5 font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">Producto</th>
+            <th className="px-2.5 py-1.5 font-semibold uppercase tracking-wide text-[10px] text-muted-foreground text-right">Cantidad acum.</th>
+            <th className="px-2.5 py-1.5 font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">Última compra</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.slice(0, 50).map((r) => (
+            <tr key={r.producto_id} className="border-t hover:bg-blue-50/40">
+              <td className="px-2.5 py-1.5">
+                <div className="font-medium truncate">{r.nombre}</div>
+                {r.codigo && <div className="text-[10px] text-muted-foreground">{r.codigo}</div>}
+              </td>
+              <td className="px-2.5 py-1.5 text-right tabular-nums">{r.cantidad.toLocaleString("es-MX", { maximumFractionDigits: 2 })}</td>
+              <td className="px-2.5 py-1.5 text-muted-foreground">{r.ultima ? formatDate(r.ultima) : "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {rows.length > 50 && (
+        <p className="text-[11px] text-muted-foreground font-light px-2.5 py-1.5">+{rows.length - 50} más…</p>
       )}
     </div>
   );
