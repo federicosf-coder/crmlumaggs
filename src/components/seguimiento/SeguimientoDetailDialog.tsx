@@ -51,6 +51,7 @@ import {
 interface Props {
   row: SeguimientoVentasRow | null;
   empresaVendedora: EmpresaVendedora;
+  brand?: string;
   catalog: SeguimientoEstatus[];
   onOpenChange: (open: boolean) => void;
 }
@@ -65,7 +66,7 @@ function fmtMoney(n: number | null | undefined): string {
   return Number(n).toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
 }
 
-export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpenChange }: Props) {
+export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog, onOpenChange }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -599,13 +600,13 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="cotizaciones" className="mt-3">
-                  <DocGroup docs={docsByTipo.cotizacion} numKey="numero_cotizacion" />
+                  <DocGroup docs={docsByTipo.cotizacion} numKey="numero_cotizacion" seguimientoId={row?.id} brand={brand} />
                 </TabsContent>
                 <TabsContent value="pedidos" className="mt-3">
-                  <DocGroup docs={docsByTipo.pedido} numKey="numero_pedido" showEntrega />
+                  <DocGroup docs={docsByTipo.pedido} numKey="numero_pedido" showEntrega seguimientoId={row?.id} brand={brand} />
                 </TabsContent>
                 <TabsContent value="facturas" className="mt-3">
-                  <DocGroup docs={docsByTipo.factura} numKey="numero_factura" showCobranza />
+                  <DocGroup docs={docsByTipo.factura} numKey="numero_factura" showCobranza seguimientoId={row?.id} brand={brand} />
                 </TabsContent>
                 <TabsContent value="productos" className="mt-3">
                   <ProductosTable rows={productosComprados || []} />
@@ -790,11 +791,15 @@ function DocGroup({
   numKey,
   showCobranza,
   showEntrega,
+  seguimientoId,
+  brand,
 }: {
   docs: any[];
   numKey: "numero_cotizacion" | "numero_pedido" | "numero_factura";
   showCobranza?: boolean;
   showEntrega?: boolean;
+  seguimientoId?: string;
+  brand?: string;
 }) {
   const navigate = useNavigate();
   return (
@@ -806,7 +811,7 @@ function DocGroup({
           {docs.slice(0, 10).map((d) => (
             <div
               key={d.id}
-              onClick={() => navigate(`/documents/${d.id}`)}
+              onClick={() => navigate(`/documents/${d.id}?seguimiento_id=${seguimientoId || ""}&brand=${brand || ""}`)}
               className="flex items-center justify-between gap-2 text-xs rounded-md bg-background border px-2.5 py-1.5 cursor-pointer hover:bg-blue-50/40 transition-colors"
             >
               <div className="min-w-0 flex items-center gap-2">

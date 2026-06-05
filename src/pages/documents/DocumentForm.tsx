@@ -102,6 +102,8 @@ export default function DocumentForm() {
   const initialEmpresaVendedora = searchParams.get("empresa_vendedora") || "";
   const initialEjecutivoId = searchParams.get("ejecutivo_venta_id") || "";
   const initialNotas = searchParams.get("notas") || "";
+  const backSeguimientoId = searchParams.get("seguimiento_id");
+  const backBrand = searchParams.get("brand");
   const qc = useQueryClient();
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const { user, profile, hasRole } = useAuth();
@@ -800,7 +802,13 @@ export default function DocumentForm() {
         </div>
       )}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => {
+          if (backSeguimientoId && backBrand) {
+            navigate(`/seguimiento/${backBrand}?seguimiento_id=${backSeguimientoId}`);
+          } else {
+            navigate(-1);
+          }
+        }}><ArrowLeft className="h-5 w-5" /></Button>
         <h1 className="text-2xl font-bold text-foreground">
           {viewMode ? "Ver Documento" : isEdit ? "Editar Documento" : "Nuevo Documento"}
         </h1>
