@@ -774,6 +774,29 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
         defaultCompanyId={row.company_id}
       />
 
+      <WhatsAppActionDialog
+        open={whatsappOpen}
+        onOpenChange={(o) => {
+          setWhatsappOpen(o);
+          if (!o) setWhatsappTarget(null);
+        }}
+        phone={whatsappTarget?.phone}
+        variables={{
+          contacto_nombre: `${whatsappTarget?.contact?.first_name || ""} ${whatsappTarget?.contact?.last_name || ""}`.trim(),
+          empresa_nombre: row.companies?.name || "",
+          marca: marcaLabel,
+        } as any}
+        context={{
+          company_id: row.company_id ?? null,
+          contact_id: whatsappTarget?.contact?.id ?? null,
+        }}
+        onSent={() => {
+          if (whatsappTarget) {
+            void logSeguimientoActivity("whatsapp", whatsappTarget.contact, whatsappTarget.phone);
+          }
+        }}
+      />
+
       <MarcarPerdidoDialog
         open={perderDialogOpen}
         onOpenChange={setPerderDialogOpen}
