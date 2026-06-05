@@ -845,21 +845,65 @@ function DocGroup({
 }
 
 function ProductosTable({ rows }: { rows: Array<{ producto_id: string; nombre: string; codigo: string | null; presentacion: string | null; cantidad: number; ultima: string | null }> }) {
+  const [sort, setSort] = useState<{ key: "nombre" | "cantidad" | "ultima"; dir: "asc" | "desc" } | null>(null);
+
   if (!rows || rows.length === 0) {
     return <p className="text-xs text-muted-foreground font-light">Sin productos comprados.</p>;
   }
+
+  const sorted = useMemo(() => {
+    if (!sort) return rows;
+    const dir = sort.dir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      if (sort.key === "nombre") return dir * a.nombre.localeCompare(b.nombre);
+      if (sort.key === "cantidad") return dir * (a.cantidad - b.cantidad);
+      if (sort.key === "ultima") {
+        const da = a.ultima ? new Date(a.ultima).getTime() : 0;
+        const db = b.ultima ? new Date(b.ultima).getTime() : 0;
+        return dir * (da - db);
+      }
+      return 0;
+    });
+  }, [rows, sort]);
+
+  function toggle(key: "nombre" | "cantidad" | "ultima") {
+    setSort((prev) => {
+      if (prev?.key === key) {
+        return prev.dir === "asc" ? { key, dir: "desc" } : null;
+      }
+      return { key, dir: "asc" };
+    });
+  }
+
+  const thBase = "px-2.5 py-1.5 font-semibold uppercase tracking-wide text-[10px] text-muted-foreground select-none cursor-pointer hover:text-foreground transition-colors";
+
   return (
     <div className="rounded-md border bg-background overflow-hidden">
       <table className="w-full text-xs">
         <thead className="bg-muted/50">
           <tr className="text-left">
-            <th className="px-2.5 py-1.5 font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">Producto</th>
-            <th className="px-2.5 py-1.5 font-semibold uppercase tracking-wide text-[10px] text-muted-foreground text-right">Cantidad acum.</th>
-            <th className="px-2.5 py-1.5 font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">Última compra</th>
+            <th className={`${thBase} ${sort?.key === "nombre" ? "text-foreground" : ""}`} onClick={() => toggle("nombre")}>
+              <span className="inline-flex items-center gap-1">
+                Producto
+                {sort?.key === "nombre" && (sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+              </span>
+            </th>
+            <th className={`${thBase} text-right ${sort?.key === "cantidad" ? "text-foreground" : ""}`} onClick={() => toggle("cantidad")}>
+              <span className="inline-flex items-center gap-1 justify-end">
+                Cantidad acum.
+                {sort?.key === "cantidad" && (sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+              </span>
+            </th>
+            <th className={`${thBase} ${sort?.key === "ultima" ? "text-foreground" : ""}`} onClick={() => toggle("ultima")}>
+              <span className="inline-flex items-center gap-1">
+                Última compra
+                {sort?.key === "ultima" && (sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+              </span>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {rows.slice(0, 50).map((r) => (
+          {sorted.slice(0, 50).map((r) => (
             <tr key={r.producto_id} className="border-t hover:bg-blue-50/40">
               <td className="px-2.5 py-1.5">
                 <div className="font-medium truncate">{r.nombre}</div>
@@ -877,8 +921,8 @@ function ProductosTable({ rows }: { rows: Array<{ producto_id: string; nombre: s
           ))}
         </tbody>
       </table>
-      {rows.length > 50 && (
-        <p className="text-[11px] text-muted-foreground font-light px-2.5 py-1.5">+{rows.length - 50} más…</p>
+      {sorted.length > 50 && (
+        <p className="text-[11px] text-muted-foreground font-light px-2.5 py-1.5">+{sorted.length - 50} más…</p>
       )}
     </div>
   );
