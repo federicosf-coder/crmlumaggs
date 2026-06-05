@@ -3,7 +3,16 @@ import { toast } from "sonner";
 
 export type FireAutomationArgs = {
   trigger_type: string; // e.g. "existing_button_click"
-  entity_type: "deal" | "company" | "document" | "contact" | "task";
+  entity_type:
+    | "deal"
+    | "company"
+    | "document"
+    | "contact"
+    | "task"
+    | "seguimiento_venta"
+    | "payment"
+    | "credit_request"
+    | "entrega";
   entity_id?: string | null;
   trigger_key?: string | null; // e.g. button id
   context?: Record<string, any>;
