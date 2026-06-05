@@ -198,6 +198,7 @@ function OptionsTab() {
 // ─── Products Tab ────────────────────────────────────────────
 function ProductosTab() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   const canImportExport = isAdmin || hasRole("manager");
