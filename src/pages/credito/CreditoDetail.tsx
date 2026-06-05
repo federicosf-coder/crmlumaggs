@@ -2767,7 +2767,11 @@ export default function CreditoDetail() {
               </Button>
             </div>
             {form.correo_contacto && (
-              <Button size="sm" className="w-full" onClick={() => window.location.href = `mailto:${form.correo_contacto}?subject=Solicitud de crédito ${form.folio}&body=Hola,%0D%0A%0D%0AAccede a tu portal para continuar con tu solicitud:%0D%0A${encodeURIComponent(portalUrl)}`}>
+              <Button
+                size="sm"
+                className="w-full"
+                onClick={() => { setShareOpen(false); setSendEmailOpen(true); }}
+              >
                 <Send className="h-4 w-4 mr-2" />Enviar por correo
               </Button>
             )}
