@@ -382,6 +382,32 @@ export default function SeguimientoVentas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deepCompanyId, empresaVendedora, invalidBrand]);
 
+  // Deep-link: ?seguimiento_id=<uuid> abre la ficha de ese seguimiento
+  const deepSeguimientoId = searchParams.get("seguimiento_id");
+  useEffect(() => {
+    if (!deepSeguimientoId || invalidBrand) return;
+    let cancel = false;
+    (async () => {
+      const { data: existing } = await (supabase as any)
+        .from("seguimiento_ventas")
+        .select("*, companies:company_id(id, name)")
+        .eq("id", deepSeguimientoId)
+        .eq("empresa_vendedora", empresaVendedora)
+        .maybeSingle();
+      if (cancel) return;
+      if (existing) {
+        setTab(existing.tiene_venta ? "con_venta" : "sin_venta");
+        setSelected(existing as any);
+      }
+      const next = new URLSearchParams(searchParams);
+      next.delete("seguimiento_id");
+      next.delete("brand");
+      setSearchParams(next, { replace: true });
+    })();
+    return () => { cancel = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepSeguimientoId, empresaVendedora, invalidBrand]);
+
   // Filtro por matriz de permisos del módulo Seguimiento a Ventas (según ejecutivo / owner_id)
   const access = useModuleAccess("seguimiento_ventas");
 
