@@ -1149,6 +1149,38 @@ export default function SeguimientoVentas() {
             <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setReassignUserId(""); setReassignOpen(true); }}>
               <UserCog className="h-3.5 w-3.5" /> Reasignar ejecutivo
             </Button>
+            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setBulkStatusId(""); setBulkStatusOpen(true); }}>
+              <Filter className="h-3.5 w-3.5" /> Cambiar estatus
+            </Button>
+            {isPerdidos && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                disabled={bulkReactivating}
+                onClick={async () => {
+                  const ids = Array.from(selectedIds);
+                  if (ids.length === 0) return;
+                  setBulkReactivating(true);
+                  try {
+                    const { error } = await supabase
+                      .from("seguimiento_ventas")
+                      .update({ perdido: false, fecha_perdida: null } as any)
+                      .in("id", ids);
+                    if (error) throw error;
+                    toast({ title: "Registros reactivados", description: `${ids.length} cliente${ids.length === 1 ? "" : "s"} reactivado${ids.length === 1 ? "" : "s"}.` });
+                    setSelectedIds(new Set());
+                    queryClient.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+                  } catch (e: any) {
+                    toast({ title: "Error al reactivar", description: e?.message || "Intenta de nuevo.", variant: "destructive" });
+                  } finally {
+                    setBulkReactivating(false);
+                  }
+                }}
+              >
+                {bulkReactivating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Reactivar
+              </Button>
+            )}
             <Button size="sm" variant="ghost" className="h-8 gap-1" onClick={() => setSelectedIds(new Set())}>
               <X className="h-3.5 w-3.5" /> Limpiar
             </Button>
