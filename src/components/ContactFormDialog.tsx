@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
@@ -132,7 +132,24 @@ function phoneDigitCount(v: string): number {
 }
 
 export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaultEjecutivoIds, editData, onCreated, pendingCompanyName }: Props) {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!editData?.id) return;
+    if (!window.confirm(`¿Eliminar definitivamente el contacto "${editData.first_name} ${editData.last_name}"? Esta acción no se puede deshacer.`)) return;
+    setDeleting(true);
+    const { error } = await supabase.from("contacts").delete().eq("id", editData.id);
+    setDeleting(false);
+    if (error) {
+      toast.error("No se pudo eliminar: " + error.message);
+      return;
+    }
+    toast.success("Contacto eliminado");
+    await queryClient.invalidateQueries();
+    onOpenChange(false);
+  };
   const [saving, setSaving] = useState(false);
   const isEdit = !!editData;
 
@@ -452,7 +469,21 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
               <Button type="button" size="sm" variant="outline" onClick={() => { reset(); onOpenChange(false); }}>
                 Cancelar
               </Button>
-              <div className="ml-auto"><AutosaveIndicator status={autosave.status} /></div>
+              <div className="ml-auto flex items-center gap-2">
+                <AutosaveIndicator status={autosave.status} />
+                {isAdmin && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    {deleting ? "Eliminando..." : "Eliminar"}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
           <div className="flex-1 min-h-0 overflow-y-auto">
