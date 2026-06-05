@@ -875,6 +875,17 @@ function ProductosTab() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ProductClientsDialog
+        product={clientsProduct}
+        onClose={() => setClientsProduct(null)}
+        onOpenSeguimiento={(companyId, marca) => {
+          const brand = String(marca || "").toLowerCase().includes("phillips") ? "phillips66" : "chevron";
+          setClientsProduct(null);
+          setViewProduct(null);
+          navigate(`/seguimiento/${brand}?company=${companyId}`);
+        }}
+      />
     </Card>
   );
 }
