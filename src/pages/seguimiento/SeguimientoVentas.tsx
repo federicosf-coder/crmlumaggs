@@ -1303,6 +1303,7 @@ export default function SeguimientoVentas() {
       <SeguimientoDetailDialog
         row={selected}
         empresaVendedora={empresaVendedora}
+        brand={brand}
         onOpenChange={(o) => { if (!o) setSelected(null); }}
         catalog={catalog}
       />
