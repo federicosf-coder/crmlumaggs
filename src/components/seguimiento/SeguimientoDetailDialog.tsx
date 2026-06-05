@@ -600,13 +600,13 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="cotizaciones" className="mt-3">
-                  <DocGroup docs={docsByTipo.cotizacion} numKey="numero_cotizacion" />
+                  <DocGroup docs={docsByTipo.cotizacion} numKey="numero_cotizacion" seguimientoId={row?.id} brand={brand} />
                 </TabsContent>
                 <TabsContent value="pedidos" className="mt-3">
-                  <DocGroup docs={docsByTipo.pedido} numKey="numero_pedido" showEntrega />
+                  <DocGroup docs={docsByTipo.pedido} numKey="numero_pedido" showEntrega seguimientoId={row?.id} brand={brand} />
                 </TabsContent>
                 <TabsContent value="facturas" className="mt-3">
-                  <DocGroup docs={docsByTipo.factura} numKey="numero_factura" showCobranza />
+                  <DocGroup docs={docsByTipo.factura} numKey="numero_factura" showCobranza seguimientoId={row?.id} brand={brand} />
                 </TabsContent>
                 <TabsContent value="productos" className="mt-3">
                   <ProductosTable rows={productosComprados || []} />
