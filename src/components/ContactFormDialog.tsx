@@ -132,7 +132,24 @@ function phoneDigitCount(v: string): number {
 }
 
 export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaultEjecutivoIds, editData, onCreated, pendingCompanyName }: Props) {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!editData?.id) return;
+    if (!window.confirm(`¿Eliminar definitivamente el contacto "${editData.first_name} ${editData.last_name}"? Esta acción no se puede deshacer.`)) return;
+    setDeleting(true);
+    const { error } = await supabase.from("contacts").delete().eq("id", editData.id);
+    setDeleting(false);
+    if (error) {
+      toast.error("No se pudo eliminar: " + error.message);
+      return;
+    }
+    toast.success("Contacto eliminado");
+    await queryClient.invalidateQueries();
+    onOpenChange(false);
+  };
   const [saving, setSaving] = useState(false);
   const isEdit = !!editData;
 
