@@ -1042,8 +1042,8 @@ export default function SeguimientoVentas() {
                 </Button>
               </div>
             </div>
-            <CardContent className="p-4">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <CardContent className="p-3">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 justify-items-start">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
                     Estatus
