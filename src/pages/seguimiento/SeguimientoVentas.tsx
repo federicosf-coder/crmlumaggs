@@ -296,7 +296,7 @@ export default function SeguimientoVentas() {
   const brandTitle = brand === "phillips66" ? "Seguimiento — Phillips 66" : "Seguimiento — Chevron";
   const brandSubtitle = brand === "phillips66" ? "Galsa" : "Lumaggs";
 
-  const [tab, setTab] = useState<"con_venta" | "sin_venta">("con_venta");
+  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos">("con_venta");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<SeguimientoVentasRow | null>(null);
   const [sort, setSort] = useState<SortState | null>(null);
@@ -308,13 +308,14 @@ export default function SeguimientoVentas() {
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
   const [fPlaza, setFPlaza] = useState<string[]>([]);
 
-  const tieneVenta = tab === "con_venta";
+  const isPerdidos = tab === "perdidos";
+  const tieneVenta = tab === "con_venta" || tab === "perdidos";
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Selección múltiple
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  useEffect(() => { setSelectedIds(new Set()); }, [tieneVenta, empresaVendedora]);
+  useEffect(() => { setSelectedIds(new Set()); }, [tab, empresaVendedora]);
 
   // Diálogo crear tarea / actividad
   const [taskDialog, setTaskDialog] = useState<null | {
@@ -328,6 +329,13 @@ export default function SeguimientoVentas() {
   const [reassignUserId, setReassignUserId] = useState<string>("");
   const [reassigning, setReassigning] = useState(false);
 
+  // Cambiar estatus masivo (para Perdidos)
+  const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
+  const [bulkStatusId, setBulkStatusId] = useState<string>("");
+  const [bulkStatusSaving, setBulkStatusSaving] = useState(false);
+  // Reactivar masivo
+  const [bulkReactivating, setBulkReactivating] = useState(false);
+
   // Al cambiar pestaña, limpiar filtros que no aplican
   useEffect(() => {
     setFEstatus([]);
@@ -336,9 +344,9 @@ export default function SeguimientoVentas() {
     setFPotencial([]);
     setFEjecutivo([]);
     setFPlaza([]);
-  }, [tieneVenta]);
+  }, [tab]);
 
-  const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
+  const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta, perdidos: isPerdidos });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
 
   // Deep-link: ?company=<uuid> abre la ficha de esa empresa (crea registro si no existe)
