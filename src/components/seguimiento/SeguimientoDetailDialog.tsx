@@ -144,7 +144,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
     queryFn: async () => {
       const { data } = await supabase
         .from("documentos")
-        .select("id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, fecha_documento, total, estado_cobranza, estatus_factura, saldo_pendiente_cobranza")
+        .select("id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, fecha_documento, fecha_entrega_real, total, estado_cobranza, estatus_factura, saldo_pendiente_cobranza")
         .eq("empresa_id", row!.company_id)
         .eq("empresa_vendedora", empresaVendedora)
         .order("fecha_documento", { ascending: false })
