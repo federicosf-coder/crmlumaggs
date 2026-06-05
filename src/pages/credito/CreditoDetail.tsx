@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { useIndustriasCatalog } from "@/hooks/useIndustriasCatalog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { SendCreditoLinkDialog } from "@/components/credito/SendCreditoLinkDialog";
 
 // Bandera temporal para ocultar visualmente las secciones de
 // Beneficiario Controlador (LFPIORPI) sin eliminar el código.
