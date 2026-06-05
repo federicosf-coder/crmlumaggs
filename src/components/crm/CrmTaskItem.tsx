@@ -12,6 +12,7 @@ import { TaskTypeKey, ParentCategoryKey, PARENT_CATEGORY_META } from "@/lib/task
 import { Trash2, Calendar, LinkIcon } from "lucide-react";
 import { formatDistanceToNow, isPast, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
 
 interface CrmTaskItemProps {
   task: CrmTask;
@@ -28,7 +29,9 @@ export function CrmTaskItem({ task, onClick }: CrmTaskItemProps) {
   const updateTask = useUpdateCrmTask();
   const deleteTask = useDeleteCrmTask();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [createNextOpen, setCreateNextOpen] = useState(false);
+  const { toast } = useToast();
   const overdue = task.due_date && !task.completed && isPast(parseISO(task.due_date));
 
   const doComplete = (alsoCreate: boolean) => {
@@ -84,11 +87,47 @@ export function CrmTaskItem({ task, onClick }: CrmTaskItemProps) {
           )}
         </div>
       </div>
-      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); deleteTask.mutate(task.id); }}>
-        <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 shrink-0"
+        disabled={deleteTask.isPending}
+        onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}
+      >
+        <Trash2 className="h-3.5 w-3.5 text-destructive" />
       </Button>
 
       <div onClick={(e) => e.stopPropagation()}>
+        <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar tarea?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Se eliminará "{task.title}" de forma permanente. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  deleteTask.mutate(task.id, {
+                    onSuccess: () => {
+                      toast({ title: "Tarea eliminada" });
+                      setDeleteOpen(false);
+                    },
+                    onError: (err: any) => {
+                      toast({ title: "Error al eliminar", description: err?.message || "No se pudo eliminar la tarea.", variant: "destructive" });
+                    },
+                  });
+                }}
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
