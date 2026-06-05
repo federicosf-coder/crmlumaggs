@@ -409,7 +409,11 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
                   <Label className="flex items-center gap-2">Empresa / Cliente {lockCompany && <span className="text-[10px] text-muted-foreground">(prellenada)</span>}</Label>
                   <SearchableSelect
                     value={companyId || "none"}
-                    onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
+                    onValueChange={(v) => {
+                      const next = v === "none" ? "" : v;
+                      setCompanyId(next);
+                      setContactId("");
+                    }}
                     options={[
                       { value: "none", label: "Ninguna" },
                       ...(companies?.map((c) => ({ value: c.id, label: c.name })) || []),
