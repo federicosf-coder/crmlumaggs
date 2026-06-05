@@ -169,7 +169,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
       if (k === "ejecutivo_ids" || k === "interes_ids") continue;
       const v = changes[k];
       if (k === "first_name" || k === "last_name") {
-        dbPayload[k] = (v ?? "").toString();
+        dbPayload[k] = toProperCase((v ?? "").toString());
       } else if (k.startsWith("comm_")) {
         dbPayload[k] = !!v;
       } else {
@@ -379,7 +379,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
     setSaving(true);
 
     const payload: any = {
-      first_name: form.first_name, last_name: form.last_name,
+      first_name: toProperCase(form.first_name.trim()),
+      last_name: toProperCase(form.last_name.trim()),
       email: form.email || null,
       email2: form.email2 || null,
       whatsapp_phone: form.whatsapp_phone || null,
