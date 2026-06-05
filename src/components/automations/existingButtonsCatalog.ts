@@ -133,4 +133,11 @@ export const EXISTING_BUTTONS: ExistingButton[] = [
     location: "WhatsApp › Inbox",
     path: "/whatsapp",
   },
+  {
+    id: "seguimiento.contacto.whatsapp",
+    name: "WhatsApp a contacto (Seguimiento)",
+    description: "Abre WhatsApp al contacto desde la ficha de Seguimiento a Ventas.",
+    location: "Seguimiento a Ventas › Detalle › Contactos",
+    path: "/seguimiento",
+  },
 ];
