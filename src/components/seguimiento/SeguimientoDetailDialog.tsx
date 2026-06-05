@@ -449,6 +449,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
                   {visibleContacts.map((c: any) => {
                     const name = `${c.first_name || ""} ${c.last_name || ""}`.trim();
                     const wa = c.whatsapp_phone || c.mobile || c.phone;
+                    const tel = c.mobile || c.phone || c.whatsapp_phone;
                     return (
                       <div key={c.id} className="rounded-md border bg-background px-2 py-1.5 flex items-center justify-between gap-2">
                         <div className="min-w-0">
@@ -459,17 +460,30 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
                             {c.email && <span className="inline-flex items-center gap-0.5 truncate"><Mail className="h-2.5 w-2.5" />{c.email}</span>}
                           </div>
                         </div>
-                        {wa && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 shrink-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                            title="Abrir WhatsApp"
-                            onClick={() => handleWhatsApp(wa, c.first_name)}
-                          >
-                            <MessageCircle className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          {tel && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              title="Llamar"
+                              onClick={() => handleCall(tel, c)}
+                            >
+                              <Phone className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {wa && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                              title="Abrir WhatsApp"
+                              onClick={() => handleWhatsApp(wa, c)}
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
