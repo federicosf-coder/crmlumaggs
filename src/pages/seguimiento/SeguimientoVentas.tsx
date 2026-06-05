@@ -1055,6 +1055,23 @@ export default function SeguimientoVentas() {
         </CollapsibleContent>
       </Collapsible>
 
+      {/* Barra de acciones masivas */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-violet-50 dark:bg-violet-950/30 px-3 py-2">
+          <div className="text-xs font-semibold uppercase tracking-wide text-violet-900 dark:text-violet-200">
+            {selectedIds.size} seleccionado{selectedIds.size === 1 ? "" : "s"}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setReassignUserId(""); setReassignOpen(true); }}>
+              <UserCog className="h-3.5 w-3.5" /> Reasignar ejecutivo
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8 gap-1" onClick={() => setSelectedIds(new Set())}>
+              <X className="h-3.5 w-3.5" /> Limpiar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Lista mobile (cards) */}
       <div className="grid gap-3 md:hidden">
         {isLoading ? (
