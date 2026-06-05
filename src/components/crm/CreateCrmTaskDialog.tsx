@@ -166,6 +166,8 @@ export function CreateCrmTaskDialog({
 
   const persistEmailTask = (sentOk: boolean) => {
     if (!session?.user) return;
+    const v = validateBrandAndCompany();
+    if (!v.ok) return;
     const subject = emailSubject || "(sin asunto)";
     const finalTitle = `Email · ${subject}`;
     const header = [
@@ -192,7 +194,10 @@ export function CreateCrmTaskDialog({
         completed: sentOk,
         completed_at: sentOk ? new Date().toISOString() : null,
       } as any,
-      { onSuccess: () => onOpenChange(false) }
+      { onSuccess: async (data: any) => {
+          if (data?.id) await linkSeguimientos(data.id, v.companyId);
+          onOpenChange(false);
+        } }
     );
   };
 
