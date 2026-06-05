@@ -713,6 +713,7 @@ function DocGroup({
   showCobranza?: boolean;
   showEntrega?: boolean;
 }) {
+  const navigate = useNavigate();
   return (
     <div>
       {docs.length === 0 ? (
@@ -720,7 +721,11 @@ function DocGroup({
       ) : (
         <div className="space-y-1">
           {docs.slice(0, 10).map((d) => (
-            <div key={d.id} className="flex items-center justify-between gap-2 text-xs rounded-md bg-background border px-2.5 py-1.5">
+            <div
+              key={d.id}
+              onClick={() => navigate(`/documents/${d.id}`)}
+              className="flex items-center justify-between gap-2 text-xs rounded-md bg-background border px-2.5 py-1.5 cursor-pointer hover:bg-blue-50/40 transition-colors"
+            >
               <div className="min-w-0 flex items-center gap-2">
                 <span className="font-medium truncate">{d[numKey] || "(sin folio)"}</span>
                 {d.fecha_documento && (
