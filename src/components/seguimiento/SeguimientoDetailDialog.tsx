@@ -39,6 +39,8 @@ import {
   RotateCcw,
   TrendingDown,
   Package,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { formatDate, formatRelativeDate } from "@/lib/formatters";
 import {
