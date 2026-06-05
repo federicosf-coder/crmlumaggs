@@ -1043,7 +1043,7 @@ export default function SeguimientoVentas() {
               </div>
             </div>
             <CardContent className="p-3">
-              <div className="flex flex-wrap gap-x-4 gap-y-2 sm:gap-x-6 lg:gap-x-10 justify-start">
+              <div className="grid grid-flow-row sm:grid-flow-col sm:grid-rows-3 lg:grid-rows-2 gap-x-4 gap-y-2 sm:gap-x-6 lg:gap-x-10 justify-start">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
                     Estatus
