@@ -708,6 +708,23 @@ export function CreateCrmTaskDialog({
               })}
             </div>
           </section>
+          <section className="space-y-2">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Marca * (puede seleccionar una o ambas)</div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { key: "lumaggs_chevron" as Brand, label: "Lumaggs (Chevron)", soft: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100", active: "bg-blue-600 text-white border-blue-600 hover:bg-blue-600" },
+                { key: "galsa_phillips66" as Brand, label: "Galsa (Phillips 66)", soft: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100", active: "bg-red-600 text-white border-red-600 hover:bg-red-600" },
+              ].map((b) => {
+                const sel = brands.includes(b.key);
+                return (
+                  <button key={b.key} type="button" onClick={() => toggleBrand(b.key)} aria-pressed={sel}
+                    className={cn("rounded-md border px-3 py-2 text-sm font-medium transition-all", sel ? b.active : b.soft)}>
+                    {b.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
           <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-2 min-w-0">
               <div className="flex items-center justify-between gap-2">
