@@ -422,7 +422,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-white shadow-sm"
                   style={{ backgroundColor: ritmo.color }}
                 >
-                  Ritmo: {ritmo.nombre}
+                  Avance: {ritmo.nombre}
                 </span>
               )}
               {row.estatus_manual && (

@@ -302,7 +302,7 @@ export default function SeguimientoVentas() {
   const [sort, setSort] = useState<SortState | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [fEstatus, setFEstatus] = useState<string[]>([]);
-  const [fRitmo, setFRitmo] = useState<string[]>([]);
+  const [fAvance, setFAvance] = useState<string[]>([]);
   const [fDias, setFDias] = useState<string[]>([]);
   const [fPotencial, setFPotencial] = useState<string[]>([]);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
@@ -331,7 +331,7 @@ export default function SeguimientoVentas() {
   // Al cambiar pestaña, limpiar filtros que no aplican
   useEffect(() => {
     setFEstatus([]);
-    setFRitmo([]);
+    setFAvance([]);
     setFDias([]);
     setFPotencial([]);
     setFEjecutivo([]);

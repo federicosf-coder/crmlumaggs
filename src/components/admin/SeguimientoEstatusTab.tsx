@@ -24,7 +24,7 @@ import { Plus, Pencil, Trash2, Activity, RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Ambito = "con_venta" | "sin_venta";
-type Familia = "riesgo" | "ritmo" | "gestion";
+type Familia = "riesgo" | "avance" | "gestion";
 type Unidad = "multiplo_ciclo" | "porcentaje" | "dias";
 
 type Row = {
@@ -43,7 +43,7 @@ type Row = {
 
 const UNIDAD_BY_FAMILIA: Record<Familia, Unidad> = {
   riesgo: "multiplo_ciclo",
-  ritmo: "porcentaje",
+  avance: "porcentaje",
   gestion: "dias",
 };
 
@@ -59,8 +59,8 @@ const FAMILIA_INFO: Record<Familia, { titulo: string; descripcion: string; ejemp
     descripcion: "El umbral es un múltiplo del ciclo de compra del cliente.",
     ejemplo: "Ej. 0 a 1 = al día · 1 a 1.5 = por contactar · 1.5 a 2.5 = en riesgo · 2.5+ = dormido.",
   },
-  ritmo: {
-    titulo: "Ritmo (volumen del mes)",
+  avance: {
+    titulo: "Avance (volumen del mes)",
     descripcion: "El umbral es el porcentaje de avance contra la meta mensual prorrateada.",
     ejemplo: "Ej. 0 a 25, 25 a 50, 50 a 75, 75 a 100, 100+.",
   },
@@ -420,7 +420,7 @@ export function SeguimientoEstatusTab() {
             <section className="space-y-4">
               <h2 className="text-base font-semibold">Clientes con Venta</h2>
               <FamiliaBlock ambito="con_venta" familia="riesgo" rows={rows} onEdit={setEditing} onDelete={(r) => del.mutate(r)} />
-              <FamiliaBlock ambito="con_venta" familia="ritmo" rows={rows} onEdit={setEditing} onDelete={(r) => del.mutate(r)} />
+              <FamiliaBlock ambito="con_venta" familia="avance" rows={rows} onEdit={setEditing} onDelete={(r) => del.mutate(r)} />
             </section>
             <section className="space-y-4">
               <h2 className="text-base font-semibold">Clientes sin Venta</h2>
@@ -454,7 +454,7 @@ export function SeguimientoEstatusTab() {
                     {addAmbito === "con_venta" ? (
                       <>
                         <SelectItem value="riesgo">Riesgo (recencia)</SelectItem>
-                        <SelectItem value="ritmo">Ritmo (volumen)</SelectItem>
+                        <SelectItem value="avance">Avance (volumen)</SelectItem>
                       </>
                     ) : (
                       <SelectItem value="gestion">Gestión (días)</SelectItem>
