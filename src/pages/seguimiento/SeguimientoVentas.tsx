@@ -500,8 +500,8 @@ export default function SeguimientoVentas() {
     () => catalog.filter((c) => c.ambito === ambito && c.familia === (tieneVenta ? "riesgo" : "gestion")),
     [catalog, ambito, tieneVenta]
   );
-  const ritmoOptions = useMemo(
-    () => catalog.filter((c) => c.ambito === "con_venta" && c.familia === "ritmo"),
+  const avanceOptions = useMemo(
+    () => catalog.filter((c) => c.ambito === "con_venta" && c.familia === "avance"),
     [catalog]
   );
 
@@ -509,11 +509,11 @@ export default function SeguimientoVentas() {
     arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
   const activeFiltersCount =
-    fEstatus.length + fRitmo.length + fDias.length + fPotencial.length + fEjecutivo.length + fPlaza.length;
+    fEstatus.length + fAvance.length + fDias.length + fPotencial.length + fEjecutivo.length + fPlaza.length;
 
   const clearAllFilters = () => {
     setFEstatus([]);
-    setFRitmo([]);
+    setFAvance([]);
     setFDias([]);
     setFPotencial([]);
     setFEjecutivo([]);
@@ -584,9 +584,9 @@ export default function SeguimientoVentas() {
       return [
         ...base,
         {
-          id: "ritmo",
-          label: "Ritmo",
-          sortKey: "ritmo",
+          id: "avance",
+          label: "Avance",
+          sortKey: "avance",
           render: (r) => <StatusBadge estatus={r.estatus_ritmo_id ? catalogMap.get(r.estatus_ritmo_id) : null} />,
         },
         {
@@ -729,8 +729,8 @@ export default function SeguimientoVentas() {
         return id ? fEstatus.includes(id) : false;
       });
     }
-    if (tieneVenta && fRitmo.length > 0) {
-      base = base.filter((r) => (r.estatus_ritmo_id ? fRitmo.includes(r.estatus_ritmo_id) : false));
+    if (tieneVenta && fAvance.length > 0) {
+      base = base.filter((r) => (r.estatus_ritmo_id ? fAvance.includes(r.estatus_ritmo_id) : false));
     }
     if (fDias.length > 0) {
       base = base.filter((r) => {
@@ -809,7 +809,7 @@ export default function SeguimientoVentas() {
           vb = eb?.orden ?? 999;
           break;
         }
-        case "ritmo": {
+        case "avance": {
           const ra = catalogMap.get(a.estatus_ritmo_id || "");
           const rb = catalogMap.get(b.estatus_ritmo_id || "");
           va = ra?.orden ?? 999;
@@ -868,7 +868,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fRitmo, fDias, fPotencial, fEjecutivo, fPlaza, profileMap, companyPlazaMap, plazaNameMap, access.accessLevel, access.teamMemberIds, access.userId]);
+  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza, profileMap, companyPlazaMap, plazaNameMap, access.accessLevel, access.teamMemberIds, access.userId]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
@@ -945,14 +945,14 @@ export default function SeguimientoVentas() {
           </div>
           {tieneVenta && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">Ritmo</span>
-              {ritmoOptions.map((o) => {
-                const sel = fRitmo.includes(o.id);
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">Avance</span>
+              {avanceOptions.map((o) => {
+                const sel = fAvance.includes(o.id);
                 return (
                   <button
                     key={o.id}
                     type="button"
-                    onClick={() => setFRitmo((arr) => toggleInArray(arr, o.id))}
+                    onClick={() => setFAvance((arr) => toggleInArray(arr, o.id))}
                     className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
                     style={
                       sel
@@ -965,8 +965,8 @@ export default function SeguimientoVentas() {
                   </button>
                 );
               })}
-              {fRitmo.length > 0 && (
-                <button type="button" onClick={() => setFRitmo([])}
+              {fAvance.length > 0 && (
+                <button type="button" onClick={() => setFAvance([])}
                   className="text-[10px] text-muted-foreground hover:text-foreground underline ml-1">
                   Limpiar
                 </button>
@@ -1042,14 +1042,14 @@ export default function SeguimientoVentas() {
                 {tieneVenta && (
                   <div>
                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
-                      Ritmo
+                      Avance
                     </p>
                     <MultiSelectFilter
-                      label="Ritmo"
-                      options={ritmoOptions.map((o) => ({ id: o.id, label: o.nombre, color: o.color }))}
-                      selected={fRitmo}
-                      onToggle={(id) => setFRitmo((arr) => toggleInArray(arr, id))}
-                      onClear={() => setFRitmo([])}
+                      label="Avance"
+                      options={avanceOptions.map((o) => ({ id: o.id, label: o.nombre, color: o.color }))}
+                      selected={fAvance}
+                      onToggle={(id) => setFAvance((arr) => toggleInArray(arr, id))}
+                      onClear={() => setFAvance([])}
                     />
                   </div>
                 )}
@@ -1174,7 +1174,7 @@ export default function SeguimientoVentas() {
                         </p>
                       </div>
                       <div>
-                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Ritmo</span>
+                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Avance</span>
                         <div><StatusBadge estatus={ritmo} /></div>
                       </div>
                       <div>
