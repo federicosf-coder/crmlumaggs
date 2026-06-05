@@ -844,6 +844,70 @@ export default function SeguimientoVentas() {
             Clientes sin Venta
           </button>
         </div>
+        {/* Botones de filtro siempre visibles (desde catálogo) */}
+        <div className="w-full space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">Estatus</span>
+            {estatusOptions.length === 0 ? (
+              <span className="text-xs text-muted-foreground italic">Sin opciones</span>
+            ) : estatusOptions.map((o) => {
+              const sel = fEstatus.includes(o.id);
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setFEstatus((arr) => toggleInArray(arr, o.id))}
+                  className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
+                  style={
+                    sel
+                      ? { backgroundColor: o.color, color: "white", borderColor: o.color }
+                      : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
+                  }
+                  aria-pressed={sel}
+                >
+                  {o.es_urgente && <AlertTriangle className="h-3 w-3" />}
+                  {o.nombre}
+                </button>
+              );
+            })}
+            {fEstatus.length > 0 && (
+              <button type="button" onClick={() => setFEstatus([])}
+                className="text-[10px] text-muted-foreground hover:text-foreground underline ml-1">
+                Limpiar
+              </button>
+            )}
+          </div>
+          {tieneVenta && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">Ritmo</span>
+              {ritmoOptions.map((o) => {
+                const sel = fRitmo.includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => setFRitmo((arr) => toggleInArray(arr, o.id))}
+                    className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
+                    style={
+                      sel
+                        ? { backgroundColor: o.color, color: "white", borderColor: o.color }
+                        : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
+                    }
+                    aria-pressed={sel}
+                  >
+                    {o.nombre}
+                  </button>
+                );
+              })}
+              {fRitmo.length > 0 && (
+                <button type="button" onClick={() => setFRitmo([])}
+                  className="text-[10px] text-muted-foreground hover:text-foreground underline ml-1">
+                  Limpiar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-72">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
