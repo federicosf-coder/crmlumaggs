@@ -761,6 +761,7 @@ export default function CreditoDetail() {
   const [tab, setTab] = useState("datos");
   const [formTab, setFormTab] = useState("empresa");
   const [shareOpen, setShareOpen] = useState(false);
+  const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
   const [newCommentVis, setNewCommentVis] = useState<"interna" | "publica">("interna");
   const [uploadCtx, setUploadCtx] = useState<{ docTypeId: string | null; docTypeName: string } | null>(null);
