@@ -310,6 +310,24 @@ export default function SeguimientoVentas() {
   const [fPlaza, setFPlaza] = useState<string[]>([]);
 
   const tieneVenta = tab === "con_venta";
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Selección múltiple
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  useEffect(() => { setSelectedIds(new Set()); }, [tieneVenta, empresaVendedora]);
+
+  // Diálogo crear tarea / actividad
+  const [taskDialog, setTaskDialog] = useState<null | {
+    companyId: string;
+    contactId?: string;
+    type: "call" | "whatsapp" | "email";
+  }>(null);
+
+  // Reasignar ejecutivo
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [reassignUserId, setReassignUserId] = useState<string>("");
+  const [reassigning, setReassigning] = useState(false);
 
   // Al cambiar pestaña, limpiar filtros que no aplican
   useEffect(() => {
@@ -638,7 +656,10 @@ export default function SeguimientoVentas() {
 
     if (fEstatus.length > 0) {
       base = base.filter((r) => {
-        const id = tieneVenta ? r.estatus_riesgo_id : r.estatus_gestion_id;
+        // Usa el estatus EFECTIVO (manual si está activo, si no el calculado).
+        const id = r.estatus_manual && r.estatus_manual_id
+          ? r.estatus_manual_id
+          : (tieneVenta ? r.estatus_riesgo_id : r.estatus_gestion_id);
         return id ? fEstatus.includes(id) : false;
       });
     }
