@@ -495,6 +495,8 @@ export function CreateCrmTaskDialog({
       toast({ title: "Falta fecha", description: "Selecciona la fecha (y hora) para programar.", variant: "destructive" });
       return;
     }
+    const v = validateBrandAndCompany();
+    if (!v.ok) return;
     const reopenForNew = status === "no_contesto" || status === "reagendada" || status === "reprogramada";
     const completed = status === "realizada" || status === "enviado" || status === "guardado" || reopenForNew;
     const statusLabel = STATUS_LABEL[status];
@@ -542,6 +544,9 @@ export function CreateCrmTaskDialog({
           parent_task_id: parentTaskId || null,
           ...payload,
         } as any);
+      }
+      if (created?.id) {
+        await linkSeguimientos(created.id, v.companyId);
       }
       toast({ title: statusLabel ? `Actividad ${statusLabel}` : (isEditing ? "Cambios guardados" : "Tarea creada") });
       if (reopenForNew) {
