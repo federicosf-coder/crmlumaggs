@@ -509,7 +509,7 @@ export default function SeguimientoVentas() {
     [catalog, ambito, tieneVenta]
   );
   const avanceOptions = useMemo(
-    () => catalog.filter((c) => c.ambito === "con_venta" && (c.familia as string) === "avance"),
+    () => catalog.filter((c) => c.ambito === "con_venta" && ["avance", "ritmo"].includes(c.familia as string)),
     [catalog]
   );
 
