@@ -791,11 +791,15 @@ function DocGroup({
   numKey,
   showCobranza,
   showEntrega,
+  seguimientoId,
+  brand,
 }: {
   docs: any[];
   numKey: "numero_cotizacion" | "numero_pedido" | "numero_factura";
   showCobranza?: boolean;
   showEntrega?: boolean;
+  seguimientoId?: string;
+  brand?: string;
 }) {
   const navigate = useNavigate();
   return (
@@ -807,7 +811,7 @@ function DocGroup({
           {docs.slice(0, 10).map((d) => (
             <div
               key={d.id}
-              onClick={() => navigate(`/documents/${d.id}?seguimiento_id=${row?.id}&brand=${brand || ""}`)}
+              onClick={() => navigate(`/documents/${d.id}?seguimiento_id=${seguimientoId || ""}&brand=${brand || ""}`)}
               className="flex items-center justify-between gap-2 text-xs rounded-md bg-background border px-2.5 py-1.5 cursor-pointer hover:bg-blue-50/40 transition-colors"
             >
               <div className="min-w-0 flex items-center gap-2">
