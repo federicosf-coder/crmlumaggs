@@ -14,6 +14,7 @@ import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityT
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { EstadoCobranzaBadge } from "@/components/cobranza/EstadoCobranzaBadge";
 import { openWhatsApp, normalizePhoneForWhatsApp } from "@/lib/whatsapp";
+import type { TaskTypeKey } from "@/lib/taskTypes";
 import {
   TrendingUp,
   Calendar as CalendarIcon,
@@ -59,7 +60,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
   const { toast } = useToast();
   const updateManual = useUpdateSeguimientoEstatusManual();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [createDefaultType, setCreateDefaultType] = useState<"call" | "email" | "meeting" | "note" | "field_visit" | "whatsapp" | "follow_up" | undefined>(undefined);
+  const [createDefaultType, setCreateDefaultType] = useState<TaskTypeKey | undefined>(undefined);
   const [newContactOpen, setNewContactOpen] = useState(false);
   const [showAllContacts, setShowAllContacts] = useState(false);
 
@@ -191,7 +192,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
 
   const manualValue = row.estatus_manual && row.estatus_manual_id ? row.estatus_manual_id : "__auto__";
 
-  const openCreate = (type?: typeof createDefaultType) => {
+  const openCreate = (type?: TaskTypeKey) => {
     setCreateDefaultType(type);
     setCreateDialogOpen(true);
   };
