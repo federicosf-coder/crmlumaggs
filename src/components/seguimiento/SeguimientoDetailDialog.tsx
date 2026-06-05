@@ -51,6 +51,7 @@ import {
 interface Props {
   row: SeguimientoVentasRow | null;
   empresaVendedora: EmpresaVendedora;
+  brand?: string;
   catalog: SeguimientoEstatus[];
   onOpenChange: (open: boolean) => void;
 }
