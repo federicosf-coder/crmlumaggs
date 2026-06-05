@@ -459,8 +459,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
             <div className="px-6 py-4 space-y-4">
               {/* Identidad */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Nombre *</Label><Input value={form.first_name} onChange={e => setAndSchedule("first_name", e.target.value)} onBlur={e => autosave.saveNow("first_name", e.target.value)} required /></div>
-                <div className="space-y-2"><Label>Apellido *</Label><Input value={form.last_name} onChange={e => setAndSchedule("last_name", e.target.value)} onBlur={e => autosave.saveNow("last_name", e.target.value)} required /></div>
+                <div className="space-y-2"><Label>Nombre *</Label><Input value={form.first_name} onChange={e => setAndSchedule("first_name", toProperCase(e.target.value))} onBlur={e => autosave.saveNow("first_name", toProperCase(e.target.value))} required /></div>
+                <div className="space-y-2"><Label>Apellido *</Label><Input value={form.last_name} onChange={e => setAndSchedule("last_name", toProperCase(e.target.value))} onBlur={e => autosave.saveNow("last_name", toProperCase(e.target.value))} required /></div>
                 <div className="space-y-2"><Label>Puesto</Label><Input value={form.job_title} onChange={e => setAndSchedule("job_title", e.target.value)} onBlur={e => autosave.saveNow("job_title", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Departamento</Label><Input value={form.department} onChange={e => setAndSchedule("department", e.target.value)} onBlur={e => autosave.saveNow("department", e.target.value)} /></div>
               </div>
