@@ -68,8 +68,24 @@ export function renderTemplate(template: string, vars: WhatsAppVariables): strin
   });
 }
 
+function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /android|iphone|ipad|ipod|iemobile|blackberry|opera mini/i.test(navigator.userAgent);
+}
+
+/**
+ * Construye el enlace adecuado según la plataforma:
+ *  - Móvil → wa.me (abre la app nativa).
+ *  - Escritorio → web.whatsapp.com/send (evita el redirect a api.whatsapp.com
+ *    que en algunos navegadores/redes corporativas se bloquea con
+ *    ERR_BLOCKED_BY_RESPONSE).
+ */
 export function buildWaMeLink(phone: string, message: string): string {
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  const text = encodeURIComponent(message);
+  if (isMobileDevice()) {
+    return `https://wa.me/${phone}?text=${text}`;
+  }
+  return `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
 }
 
 /** Open WhatsApp Web/App in a new tab. */
