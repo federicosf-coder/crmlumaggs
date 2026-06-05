@@ -74,16 +74,21 @@ export function useSeguimientoEstatusCatalogo() {
 export function useSeguimientoVentas(params: {
   empresaVendedora: EmpresaVendedora;
   tieneVenta: boolean;
+  perdidos?: boolean;
 }) {
   return useQuery({
-    queryKey: ["seguimiento_ventas", params.empresaVendedora, params.tieneVenta],
+    queryKey: ["seguimiento_ventas", params.empresaVendedora, params.tieneVenta, params.perdidos ? "perdidos" : "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("seguimiento_ventas")
         .select("*, companies:company_id(id, name)")
-        .eq("empresa_vendedora", params.empresaVendedora)
-        .eq("tiene_venta", params.tieneVenta)
-        .limit(5000);
+        .eq("empresa_vendedora", params.empresaVendedora);
+      if (params.perdidos) {
+        q = q.eq("perdido", true);
+      } else {
+        q = q.eq("tiene_venta", params.tieneVenta);
+      }
+      const { data, error } = await q.limit(5000);
       if (error) throw error;
       return (data || []) as unknown as SeguimientoVentasRow[];
     },

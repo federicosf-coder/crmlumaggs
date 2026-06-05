@@ -296,7 +296,7 @@ export default function SeguimientoVentas() {
   const brandTitle = brand === "phillips66" ? "Seguimiento — Phillips 66" : "Seguimiento — Chevron";
   const brandSubtitle = brand === "phillips66" ? "Galsa" : "Lumaggs";
 
-  const [tab, setTab] = useState<"con_venta" | "sin_venta">("con_venta");
+  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos">("con_venta");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<SeguimientoVentasRow | null>(null);
   const [sort, setSort] = useState<SortState | null>(null);
@@ -308,13 +308,14 @@ export default function SeguimientoVentas() {
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
   const [fPlaza, setFPlaza] = useState<string[]>([]);
 
-  const tieneVenta = tab === "con_venta";
+  const isPerdidos = tab === "perdidos";
+  const tieneVenta = tab === "con_venta" || tab === "perdidos";
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Selección múltiple
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  useEffect(() => { setSelectedIds(new Set()); }, [tieneVenta, empresaVendedora]);
+  useEffect(() => { setSelectedIds(new Set()); }, [tab, empresaVendedora]);
 
   // Diálogo crear tarea / actividad
   const [taskDialog, setTaskDialog] = useState<null | {
@@ -328,6 +329,13 @@ export default function SeguimientoVentas() {
   const [reassignUserId, setReassignUserId] = useState<string>("");
   const [reassigning, setReassigning] = useState(false);
 
+  // Cambiar estatus masivo (para Perdidos)
+  const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
+  const [bulkStatusId, setBulkStatusId] = useState<string>("");
+  const [bulkStatusSaving, setBulkStatusSaving] = useState(false);
+  // Reactivar masivo
+  const [bulkReactivating, setBulkReactivating] = useState(false);
+
   // Al cambiar pestaña, limpiar filtros que no aplican
   useEffect(() => {
     setFEstatus([]);
@@ -336,9 +344,9 @@ export default function SeguimientoVentas() {
     setFPotencial([]);
     setFEjecutivo([]);
     setFPlaza([]);
-  }, [tieneVenta]);
+  }, [tab]);
 
-  const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
+  const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta, perdidos: isPerdidos });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
 
   // Deep-link: ?company=<uuid> abre la ficha de esa empresa (crea registro si no existe)
@@ -909,6 +917,16 @@ export default function SeguimientoVentas() {
           >
             Clientes sin Venta
           </button>
+          <button
+            onClick={() => setTab("perdidos")}
+            className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-md transition-colors ${
+              tab === "perdidos"
+                ? "bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Clientes Perdidos
+          </button>
         </div>
         {/* Botones de filtro siempre visibles (desde catálogo) */}
         <div className="w-full space-y-2">
@@ -1131,6 +1149,38 @@ export default function SeguimientoVentas() {
             <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setReassignUserId(""); setReassignOpen(true); }}>
               <UserCog className="h-3.5 w-3.5" /> Reasignar ejecutivo
             </Button>
+            <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setBulkStatusId(""); setBulkStatusOpen(true); }}>
+              <Filter className="h-3.5 w-3.5" /> Cambiar estatus
+            </Button>
+            {isPerdidos && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                disabled={bulkReactivating}
+                onClick={async () => {
+                  const ids = Array.from(selectedIds);
+                  if (ids.length === 0) return;
+                  setBulkReactivating(true);
+                  try {
+                    const { error } = await supabase
+                      .from("seguimiento_ventas")
+                      .update({ perdido: false, fecha_perdida: null } as any)
+                      .in("id", ids);
+                    if (error) throw error;
+                    toast({ title: "Registros reactivados", description: `${ids.length} cliente${ids.length === 1 ? "" : "s"} reactivado${ids.length === 1 ? "" : "s"}.` });
+                    setSelectedIds(new Set());
+                    queryClient.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+                  } catch (e: any) {
+                    toast({ title: "Error al reactivar", description: e?.message || "Intenta de nuevo.", variant: "destructive" });
+                  } finally {
+                    setBulkReactivating(false);
+                  }
+                }}
+              >
+                {bulkReactivating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Reactivar
+              </Button>
+            )}
             <Button size="sm" variant="ghost" className="h-8 gap-1" onClick={() => setSelectedIds(new Set())}>
               <X className="h-3.5 w-3.5" /> Limpiar
             </Button>
@@ -1413,6 +1463,69 @@ export default function SeguimientoVentas() {
               }}
             >
               {reassigning ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo cambiar estatus masivo */}
+      <Dialog open={bulkStatusOpen} onOpenChange={(o) => { if (!bulkStatusSaving) setBulkStatusOpen(o); }}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                <Filter className="h-4 w-4" /> Cambiar estatus
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5 font-light">
+                Se fijará el estatus manual de {selectedIds.size} cliente{selectedIds.size === 1 ? "" : "s"}.
+              </p>
+            </DialogHeader>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Nuevo estatus</p>
+              <SearchableSelect
+                value={bulkStatusId || "__auto__"}
+                onValueChange={(v) => setBulkStatusId(v)}
+                options={[
+                  { value: "__auto__", label: "Automático (quitar manual)" },
+                  ...estatusOptions.map((o) => ({ value: o.id, label: o.nombre })),
+                ]}
+                placeholder="Selecciona estatus…"
+              />
+            </div>
+          </div>
+          <DialogFooter className="px-5 py-3 bg-muted/30 border-t">
+            <Button variant="outline" onClick={() => setBulkStatusOpen(false)} disabled={bulkStatusSaving}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={!bulkStatusId || bulkStatusSaving}
+              onClick={async () => {
+                const ids = Array.from(selectedIds);
+                if (ids.length === 0) return;
+                setBulkStatusSaving(true);
+                try {
+                  const payload = bulkStatusId === "__auto__"
+                    ? { estatus_manual: false, estatus_manual_id: null }
+                    : { estatus_manual: true, estatus_manual_id: bulkStatusId };
+                  const { error } = await supabase
+                    .from("seguimiento_ventas")
+                    .update(payload as any)
+                    .in("id", ids);
+                  if (error) throw error;
+                  toast({ title: "Estatus actualizado", description: `${ids.length} cliente${ids.length === 1 ? "" : "s"} actualizado${ids.length === 1 ? "" : "s"}.` });
+                  setSelectedIds(new Set());
+                  setBulkStatusOpen(false);
+                  queryClient.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+                } catch (e: any) {
+                  toast({ title: "Error al actualizar", description: e?.message || "Intenta de nuevo.", variant: "destructive" });
+                } finally {
+                  setBulkStatusSaving(false);
+                }
+              }}
+            >
+              {bulkStatusSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>
