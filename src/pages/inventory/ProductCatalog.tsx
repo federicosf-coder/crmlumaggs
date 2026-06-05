@@ -804,7 +804,19 @@ function ProductosTab() {
       {/* View Product Dialog */}
       <Dialog open={!!viewProduct} onOpenChange={(v) => { if (!v) setViewProduct(null); }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Detalle del Producto</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-8">
+              <DialogTitle>Detalle del Producto</DialogTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={() => setClientsProduct(viewProduct)}
+              >
+                <Users className="h-4 w-4" /> Clientes que lo compran
+              </Button>
+            </div>
+          </DialogHeader>
           {viewProduct && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-x-6 gap-y-3">
