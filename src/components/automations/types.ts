@@ -36,15 +36,15 @@ export type ActionDraft = {
 };
 
 export const ENTITY_OPTIONS: { value: EntityType; label: string }[] = [
-  { value: "deal", label: "Negocio" },
-  { value: "company", label: "Empresa" },
-  { value: "document", label: "Documento" },
-  { value: "contact", label: "Contacto" },
-  { value: "task", label: "Tarea" },
-  { value: "seguimiento_venta", label: "Seguimiento a Ventas" },
   { value: "payment", label: "Cobranza" },
-  { value: "credit_request", label: "Solicitud de crédito" },
+  { value: "contact", label: "Contacto" },
+  { value: "document", label: "Documento" },
+  { value: "company", label: "Empresa" },
   { value: "entrega", label: "Entrega" },
+  { value: "deal", label: "Negocio" },
+  { value: "seguimiento_venta", label: "Seguimiento a Ventas" },
+  { value: "credit_request", label: "Solicitud de crédito" },
+  { value: "task", label: "Tarea" },
 ];
 
 export const DATE_FIELDS_BY_ENTITY: Record<EntityType, { value: string; label: string }[]> = {
