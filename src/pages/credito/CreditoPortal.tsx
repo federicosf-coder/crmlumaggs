@@ -817,6 +817,48 @@ export default function CreditoPortal() {
           </CardHeader>
         </Card>
 
+        {/* Instrucciones — colapsable */}
+        <Card>
+          <Collapsible open={instructionsOpen} onOpenChange={setInstructionsOpen}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+              >
+                <span className="flex items-center gap-2 text-sm font-medium text-violet-800">
+                  <Sparkles className="h-4 w-4 text-violet-600" />
+                  Instrucciones
+                </span>
+                {instructionsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-4 pb-4 space-y-3 text-xs text-slate-700 leading-relaxed border-t pt-3">
+                <div>
+                  <p className="font-semibold text-violet-700 uppercase tracking-wide text-[11px] mb-1">Documentos</p>
+                  <p>
+                    Suban en PDF legible todos los documentos marcados como obligatorios. Con la Constancia
+                    de Situación Fiscal (CSF), la identificación, el comprobante de domicilio y el acta
+                    constitutiva, el sistema puede extraer datos y autocompletar campos — por favor revisen
+                    que la información quede correcta.
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold text-blue-700 uppercase tracking-wide text-[11px] mb-1">Formularios</p>
+                  <p>Llenen las tres secciones: Empresa, Representación y Financiero.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-emerald-700 uppercase tracking-wide text-[11px] mb-1">Formatos y Firmas</p>
+                  <p>
+                    Descarguen todos los formatos, fírmenlos y súbanlos. De preferencia suban cada uno en su
+                    sección; si no pueden, usen el campo de "subir todos".
+                  </p>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
             <TabsTrigger value="docs" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[11px] sm:text-sm px-2 py-2 leading-tight whitespace-normal break-words min-w-0 h-auto">
