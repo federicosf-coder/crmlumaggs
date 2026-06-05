@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { fireAutomation } from "@/hooks/useFireAutomation";
 import { CrmTaskItem } from "@/components/crm/CrmTaskItem";
 import { CrmActivityItem } from "@/components/crm/CrmActivityItem";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
