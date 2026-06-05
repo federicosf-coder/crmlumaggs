@@ -533,7 +533,14 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
               )}
             </div>
 
-            <div className="rounded-lg shadow-sm bg-muted/30 p-4 border-l-4" style={{ borderLeftColor: effective?.color || "hsl(var(--primary))" }}>
+            <div
+              className="rounded-lg shadow-sm p-4 border-l-4"
+              style={{
+                borderLeftColor: effective?.color || "hsl(var(--primary))",
+                backgroundImage: `linear-gradient(135deg, ${effective?.color || "hsl(var(--primary))"}22 0%, ${effective?.color || "hsl(var(--primary))"}0D 45%, transparent 100%)`,
+                backgroundColor: "hsl(var(--muted) / 0.30)",
+              }}
+            >
               <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
                 <TrendingUp className="h-4 w-4" /> Métricas
               </h4>
