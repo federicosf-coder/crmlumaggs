@@ -2782,6 +2782,17 @@ export default function CreditoDetail() {
         </DialogContent>
       </Dialog>
 
+      <SendCreditoLinkDialog
+        open={sendEmailOpen}
+        onOpenChange={setSendEmailOpen}
+        portalUrl={portalUrl}
+        folio={form.folio || ""}
+        empresa={(form.companies as any)?.name || ""}
+        contactoNombre={(form as any).client_nombre_contacto || ""}
+        contactoEmail={form.correo_contacto || ""}
+        creditRequestId={id!}
+      />
+
       {/* Upload dialog */}
       <Dialog open={!!uploadCtx} onOpenChange={(o) => { if (!o) { setUploadCtx(null); setUploadFile(null); setUploadName(""); } }}>
         <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
