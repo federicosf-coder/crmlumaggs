@@ -406,6 +406,7 @@ export default function CreditoPortal() {
   const [multiPickerMap, setMultiPickerMap] = useState<Record<number, string>>({});
   const [autofilling, setAutofilling] = useState<string | null>(null);
   const [autofillCollapsed, setAutofillCollapsed] = useState(true);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
 
   const load = async () => {
     if (!token) return;
@@ -425,6 +426,32 @@ export default function CreditoPortal() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [token]);
 
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+
+  const OPT_IN_DOC_COLS: Record<string, string> = {
+    "Poder del Representante Legal": "poder_representante_requerido",
+    "Registro Público de la Propiedad": "registro_publico_requerido",
+    "Estado de cuenta bancario": "estado_cuenta_requerido",
+  };
+  const isOptInDoc = (nombre: string) => nombre in OPT_IN_DOC_COLS;
+  const optInChecked = (nombre: string) => {
+    const col = OPT_IN_DOC_COLS[nombre];
+    return col ? (form as any)[col] === true : false;
+  };
+  const toggleOptInDoc = async (nombre: string) => {
+    const col = OPT_IN_DOC_COLS[nombre];
+    if (!col || !token) return;
+    const actual = (form as any)[col] === true;
+    const nuevo = !actual;
+    set(col, nuevo);
+    try {
+      await callPortal("update_form", token, { fields: { [col]: nuevo } });
+      toast.success(nuevo ? `${nombre} marcado como requerido` : `${nombre} marcado como no requerido`);
+      load();
+    } catch (e: any) {
+      set(col, actual);
+      toast.error(e.message || "No se pudo guardar");
+    }
+  };
 
   const saveForm = async () => {
     setSaving(true);
@@ -663,6 +690,11 @@ export default function CreditoPortal() {
     return true;
   });
   const hasDocs = (dt: any) => docs.some((d) => d.doc_type_id === dt.id);
+  const isRequerido = (dt: any) => {
+    if (!dt.requerido) return false;
+    if (isOptInDoc(dt.nombre)) return optInChecked(dt.nombre);
+    return true;
+  };
   const order = ["fiscal", "identidad", "domicilio", "legal", "negocio", "bancario", "aval", "otros"];
   const groups: Record<string, { label: string; items: any[] }> = {};
   for (const dt of visibleDocTypes) {
@@ -670,8 +702,8 @@ export default function CreditoPortal() {
     if (!groups[g.key]) groups[g.key] = { label: g.label, items: [] };
     groups[g.key].items.push(dt);
   }
-  const totalReq = visibleDocTypes.filter((d) => d.requerido).length;
-  const doneReq = visibleDocTypes.filter((d) => d.requerido && hasDocs(d)).length;
+  const totalReq = visibleDocTypes.filter((d) => isRequerido(d)).length;
+  const doneReq = visibleDocTypes.filter((d) => isRequerido(d) && hasDocs(d)).length;
   const pct = totalReq > 0 ? Math.round((doneReq / totalReq) * 100) : 0;
 
   // === Autofill helpers ===
@@ -783,6 +815,48 @@ export default function CreditoPortal() {
               </div>
             </div>
           </CardHeader>
+        </Card>
+
+        {/* Instrucciones — colapsable */}
+        <Card>
+          <Collapsible open={instructionsOpen} onOpenChange={setInstructionsOpen}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+              >
+                <span className="flex items-center gap-2 text-sm font-medium text-violet-800">
+                  <Sparkles className="h-4 w-4 text-violet-600" />
+                  Instrucciones
+                </span>
+                {instructionsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-4 pb-4 space-y-3 text-xs text-slate-700 leading-relaxed border-t pt-3">
+                <div>
+                  <p className="font-semibold text-violet-700 uppercase tracking-wide text-[11px] mb-1">Documentos</p>
+                  <p>
+                    Suban en PDF legible todos los documentos marcados como obligatorios. Con la Constancia
+                    de Situación Fiscal (CSF), la identificación, el comprobante de domicilio y el acta
+                    constitutiva, el sistema puede extraer datos y autocompletar campos — por favor revisen
+                    que la información quede correcta.
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold text-blue-700 uppercase tracking-wide text-[11px] mb-1">Formularios</p>
+                  <p>Llenen las tres secciones: Empresa, Representación y Financiero.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-emerald-700 uppercase tracking-wide text-[11px] mb-1">Formatos y Firmas</p>
+                  <p>
+                    Descarguen todos los formatos, fírmenlos y súbanlos. De preferencia suban cada uno en su
+                    sección; si no pueden, usen el campo de "subir todos".
+                  </p>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </Card>
 
         <Tabs value={tab} onValueChange={setTab}>
@@ -1208,9 +1282,9 @@ export default function CreditoPortal() {
 
                   {order.filter((k) => groups[k]).map((k) => {
                     const g = groups[k];
-                    const reqCount = g.items.filter((d) => d.requerido).length;
-                    const reqDone = g.items.filter((d) => d.requerido && hasDocs(d)).length;
-                    const allDone = g.items.every((d) => !d.requerido || hasDocs(d));
+                    const reqCount = g.items.filter((d) => isRequerido(d)).length;
+                    const reqDone = g.items.filter((d) => isRequerido(d) && hasDocs(d)).length;
+                    const allDone = g.items.every((d) => !isRequerido(d) || hasDocs(d));
                     return (
                       <div key={k} className="space-y-2">
                         <div className="flex items-center justify-between gap-2 border-b pb-1.5">
@@ -1229,9 +1303,9 @@ export default function CreditoPortal() {
                             const canAdd = dt.permite_multiples || items.length === 0;
                             const hasItems = items.length > 0;
                             return (
-                              <div key={dt.id} className={`rounded-lg border-2 ${hasItems ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : (dt.requerido ? "border-amber-300 bg-gradient-to-br from-amber-50/60 to-white" : palette.border + " " + palette.bg)} p-3 flex flex-col gap-2 relative`}>
-                                <span className={`absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${hasItems ? "bg-emerald-500 text-white border-emerald-600" : (dt.requerido ? "bg-amber-500 text-white border-amber-600" : "bg-slate-200 text-slate-700 border-slate-300")}`}>
-                                  {hasItems ? (<><Check className="h-2.5 w-2.5" />Subido{items.length > 1 ? ` (${items.length})` : ""}</>) : (dt.requerido ? "Pendiente" : "Opcional")}
+                              <div key={dt.id} className={`rounded-lg border-2 ${hasItems ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : (isRequerido(dt) ? "border-amber-300 bg-gradient-to-br from-amber-50/60 to-white" : palette.border + " " + palette.bg)} p-3 flex flex-col gap-2 relative`}>
+                                <span className={`absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${hasItems ? "bg-emerald-500 text-white border-emerald-600" : (isRequerido(dt) ? "bg-amber-500 text-white border-amber-600" : "bg-slate-200 text-slate-700 border-slate-300")}`}>
+                                  {hasItems ? (<><Check className="h-2.5 w-2.5" />Subido{items.length > 1 ? ` (${items.length})` : ""}</>) : (isRequerido(dt) ? "Pendiente" : "Opcional")}
                                 </span>
                                 <div className="flex items-start gap-2.5 min-w-0 pr-20">
                                   <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palette.iconBg}`}>
@@ -1239,12 +1313,22 @@ export default function CreditoPortal() {
                                   </div>
                                   <div className="min-w-0">
                                     <p className="font-medium text-sm leading-tight">
-                                      {dt.nombre} {dt.requerido && <span className="text-red-600">*</span>}
+                                      {dt.nombre} {isRequerido(dt) && <span className="text-red-600">*</span>}
                                       {dt.permite_multiples && (
                                         <span className="ml-1 text-[10px] text-muted-foreground font-normal">(múltiples)</span>
                                       )}
                                     </p>
                                     {dt.instrucciones_cliente && <p className="text-[11px] text-muted-foreground mt-0.5">{dt.instrucciones_cliente}</p>}
+                                    {isOptInDoc(dt.nombre) && (
+                                      <label className="mt-1.5 inline-flex items-center gap-1.5 cursor-pointer rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700 hover:bg-indigo-100 transition-colors">
+                                        <Switch
+                                          checked={optInChecked(dt.nombre)}
+                                          onCheckedChange={() => toggleOptInDoc(dt.nombre)}
+                                          className="scale-75"
+                                        />
+                                        <span>Requerido</span>
+                                      </label>
+                                    )}
                                   </div>
                                 </div>
                                 {canAdd && (

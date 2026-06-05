@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { useIndustriasCatalog } from "@/hooks/useIndustriasCatalog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { SendCreditoLinkDialog } from "@/components/credito/SendCreditoLinkDialog";
 
 // Bandera temporal para ocultar visualmente las secciones de
 // Beneficiario Controlador (LFPIORPI) sin eliminar el código.
@@ -760,6 +761,7 @@ export default function CreditoDetail() {
   const [tab, setTab] = useState("datos");
   const [formTab, setFormTab] = useState("empresa");
   const [shareOpen, setShareOpen] = useState(false);
+  const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
   const [newCommentVis, setNewCommentVis] = useState<"interna" | "publica">("interna");
   const [uploadCtx, setUploadCtx] = useState<{ docTypeId: string | null; docTypeName: string } | null>(null);
@@ -1279,9 +1281,11 @@ export default function CreditoDetail() {
     refetchDocs();
   };
 
+  // Liga pública del portal: SIEMPRE sobre el dominio publicado.
+  const PORTAL_BASE = "https://portal.lumaggs.com.mx";
   const portalUrl = form.short_code
-    ? `${window.location.origin}/p/${form.short_code}`
-    : `${window.location.origin}/portal/credito/${form.client_token}`;
+    ? `${PORTAL_BASE}/p/${form.short_code}`
+    : `${PORTAL_BASE}/portal/credito/${form.client_token}`;
 
   const updateCompany = async (patch: any) => {
     if (!companyId) return;
@@ -2763,7 +2767,11 @@ export default function CreditoDetail() {
               </Button>
             </div>
             {form.correo_contacto && (
-              <Button size="sm" className="w-full" onClick={() => window.location.href = `mailto:${form.correo_contacto}?subject=Solicitud de crédito ${form.folio}&body=Hola,%0D%0A%0D%0AAccede a tu portal para continuar con tu solicitud:%0D%0A${encodeURIComponent(portalUrl)}`}>
+              <Button
+                size="sm"
+                className="w-full"
+                onClick={() => { setShareOpen(false); setSendEmailOpen(true); }}
+              >
                 <Send className="h-4 w-4 mr-2" />Enviar por correo
               </Button>
             )}
@@ -2773,6 +2781,17 @@ export default function CreditoDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SendCreditoLinkDialog
+        open={sendEmailOpen}
+        onOpenChange={setSendEmailOpen}
+        portalUrl={portalUrl}
+        folio={form.folio || ""}
+        empresa={(form.companies as any)?.name || ""}
+        contactoNombre={(form as any).client_nombre_contacto || ""}
+        contactoEmail={form.correo_contacto || ""}
+        creditRequestId={id!}
+      />
 
       {/* Upload dialog */}
       <Dialog open={!!uploadCtx} onOpenChange={(o) => { if (!o) { setUploadCtx(null); setUploadFile(null); setUploadName(""); } }}>

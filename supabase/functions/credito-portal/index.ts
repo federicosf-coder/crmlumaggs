@@ -50,6 +50,7 @@ const FORM_FIELDS = [
   'lfpiorpi_beneficiario_controlador','lfpiorpi_tiene_documentacion',
   'lfpiorpi_fecha_firma','lfpiorpi_lugar_firma',
   'bc_data','bc_es_representante_legal','bc_confirmacion_no_existe','bc_tipo_persona',
+  'poder_representante_requerido','registro_publico_requerido','estado_cuenta_requerido',
 ] as const
 
 const SIGN_MAP: Record<string, { fechaCol: string; nombreCol: string }> = {
