@@ -1,13 +1,17 @@
 import { useMemo, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { CrmTaskItem } from "@/components/crm/CrmTaskItem";
 import { CrmActivityItem } from "@/components/crm/CrmActivityItem";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
@@ -30,6 +34,9 @@ import {
   Receipt,
   PackageCheck,
   UserPlus,
+  XCircle,
+  RotateCcw,
+  TrendingDown,
 } from "lucide-react";
 import { formatDate, formatRelativeDate } from "@/lib/formatters";
 import {
@@ -57,12 +64,17 @@ function fmtMoney(n: number | null | undefined): string {
 }
 
 export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpenChange }: Props) {
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const qc = useQueryClient();
   const updateManual = useUpdateSeguimientoEstatusManual();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createDefaultType, setCreateDefaultType] = useState<TaskTypeKey | undefined>(undefined);
   const [newContactOpen, setNewContactOpen] = useState(false);
   const [showAllContacts, setShowAllContacts] = useState(false);
+  const [perderDialogOpen, setPerderDialogOpen] = useState(false);
+  const [registrarPerdidaOpen, setRegistrarPerdidaOpen] = useState(false);
 
   const open = !!row;
   const tieneVenta = !!row?.tiene_venta;
@@ -150,6 +162,34 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
     return groups;
   }, [documentos]);
 
+  // ---- Motivos de pérdida ----
+  const { data: motivosPerdida } = useQuery({
+    queryKey: ["motivos_perdida_activos"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("motivos_perdida")
+        .select("id, nombre, tipo, color, activo, orden")
+        .eq("activo", true)
+        .order("orden");
+      return (data || []) as any[];
+    },
+  });
+
+  // ---- Bitácora de pérdidas de este registro ----
+  const { data: perdidasLog } = useQuery({
+    queryKey: ["seguimiento_perdidas_log", row?.id],
+    enabled: !!row?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("seguimiento_perdidas")
+        .select("id, tipo, motivo_id, fecha, unidades_estimadas, nota, created_at, motivo:motivos_perdida(id, nombre, color)")
+        .eq("seguimiento_venta_id", row!.id)
+        .order("fecha", { ascending: false })
+        .order("created_at", { ascending: false });
+      return (data || []) as any[];
+    },
+  });
+
   const ambito = tieneVenta ? "con_venta" : "sin_venta";
   const familiaManual = tieneVenta ? "riesgo" : "gestion";
   const statusOptions = useMemo(
@@ -209,6 +249,36 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
 
   const visibleContacts = showAllContacts ? (contacts || []) : (contacts || []).slice(0, 3);
 
+  const motivoPerdidaActual = (motivosPerdida || []).find((m) => m.id === row.motivo_perdida_id) || null;
+  const isPerdido = !!row.perdido;
+
+  // ---- Acciones de Pérdida ----
+  const handleNuevaCotizacion = () => {
+    const params = new URLSearchParams();
+    params.set("tipo", "cotizacion");
+    if (row.company_id) params.set("empresa_id", row.company_id);
+    if (primaryContact?.id) params.set("contacto_id", primaryContact.id);
+    if (empresaVendedora) params.set("empresa_vendedora", empresaVendedora);
+    if (row.owner_id) params.set("ejecutivo_venta_id", row.owner_id);
+    onOpenChange(false);
+    navigate(`/documents/new?${params.toString()}`);
+  };
+
+  const invalidatePerdidas = () => {
+    qc.invalidateQueries({ queryKey: ["seguimiento_perdidas_log", row.id] });
+    qc.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+  };
+
+  const handleReactivar = async () => {
+    const { error } = await supabase
+      .from("seguimiento_ventas")
+      .update({ perdido: false, fecha_perdida: null })
+      .eq("id", row.id);
+    if (error) { toast({ title: "Error al reactivar", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Registro reactivado" });
+    invalidatePerdidas();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
@@ -254,6 +324,11 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
                   Estatus manual
                 </Badge>
               )}
+               {isPerdido && (
+                 <Badge className="text-xs bg-rose-600 hover:bg-rose-600/90 text-white border-transparent">
+                   <XCircle className="h-3 w-3 mr-1" /> Perdido{motivoPerdidaActual ? ` · ${motivoPerdidaActual.nombre}` : ""}
+                 </Badge>
+               )}
             </div>
           </div>
         </DialogHeader>
@@ -420,6 +495,78 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
                 </div>
               )}
             </div>
+
+            {/* Pérdidas */}
+            <div className="rounded-lg shadow-sm bg-muted/30 p-4 border-l-4 border-rose-300">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <h4 className="text-sm font-semibold inline-flex items-center gap-1.5">
+                  <TrendingDown className="h-4 w-4 text-rose-600" /> Pérdidas
+                </h4>
+                <div className="flex items-center gap-2">
+                  {isPerdido ? (
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleReactivar}>
+                      <RotateCcw className="h-3 w-3 mr-1" /> Reactivar
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs border-rose-300 text-rose-700 hover:bg-rose-50"
+                      onClick={() => setPerderDialogOpen(true)}
+                    >
+                      <XCircle className="h-3 w-3 mr-1" /> Marcar como perdido
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setRegistrarPerdidaOpen(true)}>
+                    <Plus className="h-3 w-3 mr-1" /> Registrar pérdida
+                  </Button>
+                </div>
+              </div>
+              {isPerdido && (
+                <div className="mb-3 rounded-md bg-rose-50 border border-rose-200 px-3 py-2 text-xs text-rose-900">
+                  <p className="font-medium">
+                    Marcado como perdido{row.fecha_perdida ? ` el ${formatDate(row.fecha_perdida)}` : ""}.
+                  </p>
+                  {motivoPerdidaActual && (
+                    <p className="font-light">Motivo: {motivoPerdidaActual.nombre}</p>
+                  )}
+                  {row.nota_perdida && <p className="font-light mt-0.5">{row.nota_perdida}</p>}
+                </div>
+              )}
+              {(!perdidasLog || perdidasLog.length === 0) ? (
+                <p className="text-xs text-muted-foreground">Sin eventos registrados.</p>
+              ) : (
+                <div className="space-y-2">
+                  {perdidasLog.map((p: any) => (
+                    <div key={p.id} className="rounded-md border bg-background px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant="outline"
+                          className={
+                            p.tipo === "total"
+                              ? "text-[10px] border-rose-300 text-rose-700 bg-rose-50"
+                              : "text-[10px] border-amber-300 text-amber-700 bg-amber-50"
+                          }
+                        >
+                          {p.tipo === "total" ? "Total" : "Parcial"}
+                        </Badge>
+                        {p.motivo && (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.motivo.color || "#999" }} />
+                            <span className="font-medium">{p.motivo.nombre}</span>
+                          </span>
+                        )}
+                        <span className="text-muted-foreground">{formatDate(p.fecha)}</span>
+                        {p.unidades_estimadas != null && (
+                          <span className="text-muted-foreground">· {fmtNum(p.unidades_estimadas)} u.</span>
+                        )}
+                      </div>
+                      {p.nota && <p className="text-muted-foreground font-light mt-1">{p.nota}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right: Estatus + acciones */}
@@ -461,6 +608,9 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
                 <Plus className="h-4 w-4" /> Agregar
               </h4>
               <div className="flex flex-col gap-2">
+                <Button variant="default" size="sm" className="justify-start" onClick={handleNuevaCotizacion}>
+                  <FileSignature className="h-3.5 w-3.5 mr-2" /> Nueva cotización
+                </Button>
                 <Button variant="outline" size="sm" className="justify-start" onClick={() => openCreate("call")}>
                   <CalendarIcon className="h-3.5 w-3.5 mr-2" /> Agregar actividad
                 </Button>
@@ -489,6 +639,24 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
         open={newContactOpen}
         onOpenChange={setNewContactOpen}
         defaultCompanyId={row.company_id}
+      />
+
+      <MarcarPerdidoDialog
+        open={perderDialogOpen}
+        onOpenChange={setPerderDialogOpen}
+        row={row}
+        motivos={(motivosPerdida || []).filter((m) => m.tipo === "total")}
+        userId={user?.id || null}
+        onSaved={invalidatePerdidas}
+      />
+
+      <RegistrarPerdidaDialog
+        open={registrarPerdidaOpen}
+        onOpenChange={setRegistrarPerdidaOpen}
+        rowId={row.id}
+        motivosAll={motivosPerdida || []}
+        userId={user?.id || null}
+        onSaved={invalidatePerdidas}
       />
     </Dialog>
   );
