@@ -2059,6 +2059,39 @@ export type Database = {
           },
         ]
       }
+      crm_activity_seguimiento: {
+        Row: {
+          activity_id: string
+          created_at: string
+          seguimiento_venta_id: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          seguimiento_venta_id: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          seguimiento_venta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_activity_seguimiento_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "crm_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activity_seguimiento_seguimiento_venta_id_fkey"
+            columns: ["seguimiento_venta_id"]
+            isOneToOne: false
+            referencedRelation: "seguimiento_ventas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_deal_change_logs: {
         Row: {
           action: string
@@ -2257,6 +2290,39 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "crm_task_collaborators_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_task_seguimiento: {
+        Row: {
+          created_at: string
+          seguimiento_venta_id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          seguimiento_venta_id: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          seguimiento_venta_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_task_seguimiento_seguimiento_venta_id_fkey"
+            columns: ["seguimiento_venta_id"]
+            isOneToOne: false
+            referencedRelation: "seguimiento_ventas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_task_seguimiento_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "crm_tasks"
@@ -3502,6 +3568,39 @@ export type Database = {
         }
         Relationships: []
       }
+      motivos_perdida: {
+        Row: {
+          activo: boolean
+          color: string
+          created_at: string
+          id: string
+          nombre: string
+          orden: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          color?: string
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          color?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       plazas: {
         Row: {
           created_at: string
@@ -4132,6 +4231,57 @@ export type Database = {
         }
         Relationships: []
       }
+      seguimiento_perdidas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fecha: string
+          id: string
+          motivo_id: string | null
+          nota: string | null
+          seguimiento_venta_id: string
+          tipo: string
+          unidades_estimadas: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          motivo_id?: string | null
+          nota?: string | null
+          seguimiento_venta_id: string
+          tipo: string
+          unidades_estimadas?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          motivo_id?: string | null
+          nota?: string | null
+          seguimiento_venta_id?: string
+          tipo?: string
+          unidades_estimadas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seguimiento_perdidas_motivo_id_fkey"
+            columns: ["motivo_id"]
+            isOneToOne: false
+            referencedRelation: "motivos_perdida"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimiento_perdidas_seguimiento_venta_id_fkey"
+            columns: ["seguimiento_venta_id"]
+            isOneToOne: false
+            referencedRelation: "seguimiento_ventas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seguimiento_ventas: {
         Row: {
           actividades_activas: number
@@ -4152,9 +4302,13 @@ export type Database = {
           estatus_manual_id: string | null
           estatus_riesgo_id: string | null
           estatus_ritmo_id: string | null
+          fecha_perdida: string | null
           fecha_ultima_compra: string | null
           id: string
+          motivo_perdida_id: string | null
+          nota_perdida: string | null
           owner_id: string | null
+          perdido: boolean
           potencial: number
           promedio_historico_mensual: number
           proxima_tarea_fecha: string | null
@@ -4184,9 +4338,13 @@ export type Database = {
           estatus_manual_id?: string | null
           estatus_riesgo_id?: string | null
           estatus_ritmo_id?: string | null
+          fecha_perdida?: string | null
           fecha_ultima_compra?: string | null
           id?: string
+          motivo_perdida_id?: string | null
+          nota_perdida?: string | null
           owner_id?: string | null
+          perdido?: boolean
           potencial?: number
           promedio_historico_mensual?: number
           proxima_tarea_fecha?: string | null
@@ -4216,9 +4374,13 @@ export type Database = {
           estatus_manual_id?: string | null
           estatus_riesgo_id?: string | null
           estatus_ritmo_id?: string | null
+          fecha_perdida?: string | null
           fecha_ultima_compra?: string | null
           id?: string
+          motivo_perdida_id?: string | null
+          nota_perdida?: string | null
           owner_id?: string | null
+          perdido?: boolean
           potencial?: number
           promedio_historico_mensual?: number
           proxima_tarea_fecha?: string | null
@@ -4263,6 +4425,13 @@ export type Database = {
             columns: ["estatus_ritmo_id"]
             isOneToOne: false
             referencedRelation: "seguimiento_estatus_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimiento_ventas_motivo_perdida_id_fkey"
+            columns: ["motivo_perdida_id"]
+            isOneToOne: false
+            referencedRelation: "motivos_perdida"
             referencedColumns: ["id"]
           },
         ]
