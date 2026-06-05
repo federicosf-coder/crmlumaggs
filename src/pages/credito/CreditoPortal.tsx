@@ -406,6 +406,7 @@ export default function CreditoPortal() {
   const [multiPickerMap, setMultiPickerMap] = useState<Record<number, string>>({});
   const [autofilling, setAutofilling] = useState<string | null>(null);
   const [autofillCollapsed, setAutofillCollapsed] = useState(true);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
 
   const load = async () => {
     if (!token) return;
