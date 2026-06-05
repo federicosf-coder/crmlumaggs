@@ -427,6 +427,84 @@ function StageSelect({ value, onChange }: { value: any; onChange: (v: string) =>
   );
 }
 
+function WhatsAppApiLocalEditor({ cfg, setCfg }: { cfg: any; setCfg: (p: any) => void }) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [waTemplates, setWaTemplates] = useState<{ id: string; nombre: string }[]>([]);
+  useEffect(() => {
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("whatsapp_message_templates")
+        .select("id,nombre,activo,orden")
+        .eq("activo", true)
+        .order("orden");
+      setWaTemplates((data || []).map((t: any) => ({ id: t.id, nombre: t.nombre })));
+    })();
+  }, []);
+  const mode = cfg.mode || "preguntar";
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <Field label="Modo de envío">
+          <SelectInline
+            value={mode}
+            onChange={(v) => setCfg({ mode: v })}
+            options={[
+              { value: "preguntar", label: "Preguntar al ejecutar (API o Local)" },
+              { value: "api", label: "Solo API (Meta Cloud)" },
+              { value: "local", label: "Solo Local (wa.me)" },
+            ]}
+          />
+        </Field>
+        <Field label="Destinatario">
+          <SelectInline
+            value={cfg.to_type || "contacto_principal"}
+            onChange={(v) => setCfg({ to_type: v })}
+            options={[
+              { value: "contacto_principal", label: "Contacto principal" },
+              { value: "campo_telefono", label: "Campo de teléfono" },
+            ]}
+          />
+        </Field>
+        {mode !== "api" && (
+          <Field label="Plantilla local (opcional)">
+            <SelectInline
+              value={cfg.template_id}
+              onChange={(v) => setCfg({ template_id: v })}
+              options={waTemplates.map((t) => ({ value: t.id, label: t.nombre }))}
+            />
+          </Field>
+        )}
+      </div>
+      {mode !== "api" && (
+        <Field label="Mensaje personalizado (si no usas plantilla)">
+          <Textarea
+            rows={3}
+            value={cfg.message || ""}
+            onChange={(e) => setCfg({ message: e.target.value })}
+            placeholder="Hola {contacto_nombre}, ..."
+          />
+        </Field>
+      )}
+      <div className="flex items-center gap-2 pt-1">
+        <Button type="button" variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+          <Eye className="h-3.5 w-3.5 mr-1" /> Vista previa del diálogo
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          Al ejecutar, se abre el cuadro de diálogo "Enviar WhatsApp" donde se elige API o Local.
+        </p>
+      </div>
+      <WhatsAppActionDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        phone={null}
+        variables={{ contacto_nombre: "{contacto_nombre}", empresa_nombre: "{empresa_nombre}" } as any}
+        defaultMessage={cfg.message || ""}
+        context={{}}
+      />
+    </div>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
