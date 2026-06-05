@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 import { useAutosaveStatus } from "@/hooks/useAutosaveStatus";
 import { AutosaveIndicator } from "@/components/AutosaveIndicator";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
