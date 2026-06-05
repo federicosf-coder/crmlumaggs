@@ -366,6 +366,9 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
     if (primaryContact?.id) params.set("contacto_id", primaryContact.id);
     if (empresaVendedora) params.set("empresa_vendedora", empresaVendedora);
     if (row.owner_id) params.set("ejecutivo_venta_id", row.owner_id);
+    params.set("seguimiento_id", row.id);
+    if (empresaVendedora === "lumaggs_chevron") params.set("brand", "chevron");
+    else if (empresaVendedora === "galsa_phillips66") params.set("brand", "phillips66");
     onOpenChange(false);
     navigate(`/documents/new?${params.toString()}`);
   };
