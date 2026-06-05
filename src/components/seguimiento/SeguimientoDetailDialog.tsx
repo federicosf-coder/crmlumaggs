@@ -19,7 +19,7 @@ import { CrmActivityItem } from "@/components/crm/CrmActivityItem";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { EstadoCobranzaBadge } from "@/components/cobranza/EstadoCobranzaBadge";
-import { openWhatsApp, normalizePhoneForWhatsApp } from "@/lib/whatsapp";
+import { normalizePhoneForWhatsApp } from "@/lib/whatsapp";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
 import type { TaskTypeKey } from "@/lib/taskTypes";
 import {
