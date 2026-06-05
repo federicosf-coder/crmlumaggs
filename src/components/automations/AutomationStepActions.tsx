@@ -24,6 +24,8 @@ import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 const supabase: any = _supabaseTyped;
 import { ACTION_GROUPS, actionLabel, type ActionDraft } from "./types";
 import { WhatsAppPersonalizadoEditor } from "./WhatsAppPersonalizadoConfig";
+import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
+import { MessageCircle, Eye } from "lucide-react";
 
 export function AutomationStepActions({
   actions, onChange,
@@ -163,6 +165,8 @@ function ActionConfigEditor({
       return <WhatsAppActionEditor cfg={cfg} setCfg={setCfg} />;
     case "send_whatsapp_personalizado":
       return <WhatsAppPersonalizadoEditor cfg={cfg as any} setCfg={(p) => setCfg(p)} />;
+    case "send_whatsapp_api_local":
+      return <WhatsAppApiLocalEditor cfg={cfg} setCfg={setCfg} />;
     case "send_notification":
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
