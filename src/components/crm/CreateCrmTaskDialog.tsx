@@ -583,6 +583,8 @@ export function CreateCrmTaskDialog({
   // Crea la tarea de WhatsApp registrando el mensaje y la marca como completada
   const persistWhatsAppTask = (channel: "wa_me" | "api") => {
     if (!session?.user) return;
+    const v = validateBrandAndCompany();
+    if (!v.ok) return;
     const finalTitle = title || buildWhatsAppTitle();
     const channelLabel = channel === "api" ? "API" : "Local";
     createTask.mutate(
@@ -601,7 +603,8 @@ export function CreateCrmTaskDialog({
         completed_at: new Date().toISOString(),
       } as any,
       {
-        onSuccess: () => {
+        onSuccess: async (data: any) => {
+          if (data?.id) await linkSeguimientos(data.id, v.companyId);
           toast({ title: "Mensaje registrado", description: `WhatsApp enviado vía ${channelLabel}.` });
           onOpenChange(false);
         },
