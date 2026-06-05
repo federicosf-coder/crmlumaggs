@@ -219,6 +219,7 @@ function ProductosTab() {
   const { data: allOptions = [] } = useOptionValues();
   const [open, setOpen] = useState(false);
   const [viewProduct, setViewProduct] = useState<any>(null);
+  const [clientsProduct, setClientsProduct] = useState<any>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
 
