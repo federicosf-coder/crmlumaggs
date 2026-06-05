@@ -521,7 +521,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedName = form.name.trim();
+    const trimmedName = form.name.trim().toUpperCase();
     if (!trimmedName) {
       toast.error("El nombre de la empresa es obligatorio");
       return;
@@ -561,7 +561,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
     const payload = {
       name: trimmedName,
-      razon_social: form.razon_social?.trim() || trimmedName,
+      razon_social: (form.razon_social?.trim().toUpperCase()) || trimmedName,
       industry: form.industry || null, website: form.website || null,
       phone: form.phone || null, email: form.email || null,
       notes: form.notes || null,
@@ -708,15 +708,15 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                   <Label className="text-xs">Nombre Comercial *</Label>
                   <Input
                     value={form.name}
-                    onChange={e => {
-                      const v = e.target.value;
+                     onChange={e => {
+                       const v = e.target.value.toUpperCase();
                       setForm(prev => {
                         const shouldSync = !prev.razon_social || prev.razon_social === prev.name;
                         return { ...prev, name: v, razon_social: shouldSync ? v : prev.razon_social };
                       });
                       autosave.scheduleSave("name", v);
                     }}
-                    onBlur={e => autosave.saveNow("name", e.target.value)}
+                    onBlur={e => autosave.saveNow("name", e.target.value.toUpperCase())}
                     required
                     className="h-9"
                   />
@@ -729,8 +729,8 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                   <Label className="text-xs">Razón Social</Label>
                   <Input
                     value={form.razon_social}
-                    onChange={e => setAndSchedule("razon_social", e.target.value)}
-                    onBlur={e => autosave.saveNow("razon_social", e.target.value)}
+                    onChange={e => setAndSchedule("razon_social", e.target.value.toUpperCase())}
+                    onBlur={e => autosave.saveNow("razon_social", e.target.value.toUpperCase())}
                     className="h-9"
                     placeholder="Nombre legal/fiscal"
                   />
