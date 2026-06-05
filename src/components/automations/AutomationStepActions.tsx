@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Plus, Trash2, Eye } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -25,7 +25,6 @@ const supabase: any = _supabaseTyped;
 import { ACTION_GROUPS, actionLabel, type ActionDraft } from "./types";
 import { WhatsAppPersonalizadoEditor } from "./WhatsAppPersonalizadoConfig";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
-import { MessageCircle, Eye } from "lucide-react";
 
 export function AutomationStepActions({
   actions, onChange,
