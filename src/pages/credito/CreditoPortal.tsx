@@ -690,6 +690,11 @@ export default function CreditoPortal() {
     return true;
   });
   const hasDocs = (dt: any) => docs.some((d) => d.doc_type_id === dt.id);
+  const isRequerido = (dt: any) => {
+    if (!dt.requerido) return false;
+    if (isOptInDoc(dt.nombre)) return optInChecked(dt.nombre);
+    return true;
+  };
   const order = ["fiscal", "identidad", "domicilio", "legal", "negocio", "bancario", "aval", "otros"];
   const groups: Record<string, { label: string; items: any[] }> = {};
   for (const dt of visibleDocTypes) {
@@ -697,8 +702,8 @@ export default function CreditoPortal() {
     if (!groups[g.key]) groups[g.key] = { label: g.label, items: [] };
     groups[g.key].items.push(dt);
   }
-  const totalReq = visibleDocTypes.filter((d) => d.requerido).length;
-  const doneReq = visibleDocTypes.filter((d) => d.requerido && hasDocs(d)).length;
+  const totalReq = visibleDocTypes.filter((d) => isRequerido(d)).length;
+  const doneReq = visibleDocTypes.filter((d) => isRequerido(d) && hasDocs(d)).length;
   const pct = totalReq > 0 ? Math.round((doneReq / totalReq) * 100) : 0;
 
   // === Autofill helpers ===
