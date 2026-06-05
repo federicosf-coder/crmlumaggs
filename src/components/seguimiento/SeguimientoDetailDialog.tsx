@@ -540,7 +540,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
                 <Metric label="Potencial" value={fmtNum(row.potencial)} />
                 <Metric label="Prom. mensual" value={fmtNum(row.promedio_historico_mensual)} />
-                <Metric label="Ritmo" value={row.ritmo_pct != null ? `${Math.round(Number(row.ritmo_pct))}%` : "—"} />
+                <Metric label="Avance" value={row.ritmo_pct != null ? `${Math.round(Number(row.ritmo_pct))}%` : "—"} />
                 <Metric label="Acum. mes" value={fmtNum(row.acum_mes)} />
                 <Metric label="Mes anterior" value={fmtNum(row.acum_mes_anterior)} />
                 <Metric label="Acum. año" value={fmtNum(row.acum_anio)} />
