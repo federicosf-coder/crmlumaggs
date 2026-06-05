@@ -182,7 +182,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
       if (ids.length === 0) return [];
       const { data: lineas } = await supabase
         .from("documento_productos")
-        .select("documento_id, producto_id, cantidad, productos(id, nombre_producto, codigo, presentacion)")
+        .select("documento_id, producto_id, cantidad, productos(id, nombre_producto, codigo, presentaciones:presentacion_id(nombre))")
         .in("documento_id", ids);
       const agg = new Map<string, { producto_id: string; nombre: string; codigo: string | null; presentacion: string | null; cantidad: number; ultima: string | null }>();
       for (const l of lineas || []) {
@@ -191,7 +191,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
         const prev = agg.get(l.producto_id);
         const nombre = (l as any).productos?.nombre_producto || "—";
         const codigo = (l as any).productos?.codigo || null;
-        const presentacion = (l as any).productos?.presentacion || null;
+        const presentacion = (l as any).productos?.presentaciones?.nombre || null;
         if (prev) {
           prev.cantidad += Number(l.cantidad || 0);
           if (fecha && (!prev.ultima || fecha > prev.ultima)) prev.ultima = fecha;
