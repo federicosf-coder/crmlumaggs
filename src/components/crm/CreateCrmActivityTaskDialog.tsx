@@ -57,13 +57,6 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
     },
   });
 
-  const { data: contacts } = useQuery({
-    queryKey: ["contacts-picker"],
-    queryFn: async () => {
-      const data = await fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, first_name, last_name").eq("is_active", true).order("first_name").range(from, to));
-      return data;
-    },
-  });
 
   const { data: users } = useQuery({
     queryKey: ["profiles-picker"],
@@ -84,6 +77,20 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   const [taskStatus, setTaskStatus] = useState<"planned" | "done" | "cancelled">("planned");
   const [companyId, setCompanyId] = useState(defaultCompanyId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
+
+  const { data: contacts } = useQuery({
+    queryKey: ["contacts-picker", companyId || "all"],
+    queryFn: async () => {
+      if (!companyId || companyId === "none") return [];
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name")
+        .eq("is_active", true)
+        .eq("company_id", companyId)
+        .order("first_name");
+      return data || [];
+    },
+  });
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
   const [brands, setBrands] = useState<Brand[]>(defaultBrands || []);
 
@@ -402,7 +409,11 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
                   <Label className="flex items-center gap-2">Empresa / Cliente {lockCompany && <span className="text-[10px] text-muted-foreground">(prellenada)</span>}</Label>
                   <SearchableSelect
                     value={companyId || "none"}
-                    onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
+                    onValueChange={(v) => {
+                      const next = v === "none" ? "" : v;
+                      setCompanyId(next);
+                      setContactId("");
+                    }}
                     options={[
                       { value: "none", label: "Ninguna" },
                       ...(companies?.map((c) => ({ value: c.id, label: c.name })) || []),
