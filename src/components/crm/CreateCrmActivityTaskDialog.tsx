@@ -77,6 +77,20 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   const [taskStatus, setTaskStatus] = useState<"planned" | "done" | "cancelled">("planned");
   const [companyId, setCompanyId] = useState(defaultCompanyId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
+
+  const { data: contacts } = useQuery({
+    queryKey: ["contacts-picker", companyId || "all"],
+    queryFn: async () => {
+      if (!companyId || companyId === "none") return [];
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, first_name, last_name")
+        .eq("is_active", true)
+        .eq("company_id", companyId)
+        .order("first_name");
+      return data || [];
+    },
+  });
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
   const [brands, setBrands] = useState<Brand[]>(defaultBrands || []);
 
