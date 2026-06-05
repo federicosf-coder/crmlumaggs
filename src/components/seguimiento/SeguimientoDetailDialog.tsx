@@ -164,6 +164,44 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
     return groups;
   }, [documentos]);
 
+  // ---- Productos comprados (agregado desde facturas de esta empresa+marca) ----
+  const { data: productosComprados } = useQuery({
+    queryKey: ["seguimiento_productos_comprados", row?.company_id, empresaVendedora],
+    enabled: !!row?.company_id,
+    queryFn: async () => {
+      const { data: facturas } = await supabase
+        .from("documentos")
+        .select("id, fecha_documento")
+        .eq("empresa_id", row!.company_id)
+        .eq("empresa_vendedora", empresaVendedora)
+        .eq("tipo_documento", "factura")
+        .eq("is_active", true);
+      const facMap = new Map<string, string>();
+      for (const f of facturas || []) facMap.set(f.id, f.fecha_documento);
+      const ids = Array.from(facMap.keys());
+      if (ids.length === 0) return [];
+      const { data: lineas } = await supabase
+        .from("documento_productos")
+        .select("documento_id, producto_id, cantidad, productos(id, nombre_producto, codigo)")
+        .in("documento_id", ids);
+      const agg = new Map<string, { producto_id: string; nombre: string; codigo: string | null; cantidad: number; ultima: string | null }>();
+      for (const l of lineas || []) {
+        if (!l.producto_id) continue;
+        const fecha = facMap.get(l.documento_id) || null;
+        const prev = agg.get(l.producto_id);
+        const nombre = (l as any).productos?.nombre_producto || "—";
+        const codigo = (l as any).productos?.codigo || null;
+        if (prev) {
+          prev.cantidad += Number(l.cantidad || 0);
+          if (fecha && (!prev.ultima || fecha > prev.ultima)) prev.ultima = fecha;
+        } else {
+          agg.set(l.producto_id, { producto_id: l.producto_id, nombre, codigo, cantidad: Number(l.cantidad || 0), ultima: fecha });
+        }
+      }
+      return Array.from(agg.values()).sort((a, b) => b.cantidad - a.cantidad);
+    },
+  });
+
   // ---- Motivos de pérdida ----
   const { data: motivosPerdida } = useQuery({
     queryKey: ["motivos_perdida_activos"],
