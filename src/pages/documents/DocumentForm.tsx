@@ -102,6 +102,8 @@ export default function DocumentForm() {
   const initialEmpresaVendedora = searchParams.get("empresa_vendedora") || "";
   const initialEjecutivoId = searchParams.get("ejecutivo_venta_id") || "";
   const initialNotas = searchParams.get("notas") || "";
+  const backSeguimientoId = searchParams.get("seguimiento_id");
+  const backBrand = searchParams.get("brand");
   const qc = useQueryClient();
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const { user, profile, hasRole } = useAuth();
