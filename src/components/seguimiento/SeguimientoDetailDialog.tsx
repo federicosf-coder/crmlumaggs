@@ -19,7 +19,8 @@ import { CrmActivityItem } from "@/components/crm/CrmActivityItem";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { EstadoCobranzaBadge } from "@/components/cobranza/EstadoCobranzaBadge";
-import { openWhatsApp, normalizePhoneForWhatsApp } from "@/lib/whatsapp";
+import { normalizePhoneForWhatsApp } from "@/lib/whatsapp";
+import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
 import type { TaskTypeKey } from "@/lib/taskTypes";
 import {
   TrendingUp,
@@ -81,6 +82,8 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
   const [showAllContacts, setShowAllContacts] = useState(false);
   const [perderDialogOpen, setPerderDialogOpen] = useState(false);
   const [registrarPerdidaOpen, setRegistrarPerdidaOpen] = useState(false);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [whatsappTarget, setWhatsappTarget] = useState<{ phone: string; contact: any | null } | null>(null);
 
   const open = !!row;
   const tieneVenta = !!row?.tiene_venta;
@@ -323,9 +326,8 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
       toast({ title: "Sin número de WhatsApp", variant: "destructive" });
       return;
     }
-    const msg = `Hola${contact?.first_name ? ` ${contact.first_name}` : ""}, te contacto de ${marcaLabel}.`;
-    openWhatsApp(phone, msg);
-    void logSeguimientoActivity("whatsapp", contact, phone);
+    setWhatsappTarget({ phone, contact: contact || null });
+    setWhatsappOpen(true);
     void fireAutomation({
       trigger_type: "existing_button_click",
       entity_type: "seguimiento_venta",
@@ -770,6 +772,29 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
         open={newContactOpen}
         onOpenChange={setNewContactOpen}
         defaultCompanyId={row.company_id}
+      />
+
+      <WhatsAppActionDialog
+        open={whatsappOpen}
+        onOpenChange={(o) => {
+          setWhatsappOpen(o);
+          if (!o) setWhatsappTarget(null);
+        }}
+        phone={whatsappTarget?.phone}
+        variables={{
+          contacto_nombre: `${whatsappTarget?.contact?.first_name || ""} ${whatsappTarget?.contact?.last_name || ""}`.trim(),
+          empresa_nombre: row.companies?.name || "",
+          marca: marcaLabel,
+        } as any}
+        context={{
+          company_id: row.company_id ?? null,
+          contact_id: whatsappTarget?.contact?.id ?? null,
+        }}
+        onSent={() => {
+          if (whatsappTarget) {
+            void logSeguimientoActivity("whatsapp", whatsappTarget.contact, whatsappTarget.phone);
+          }
+        }}
       />
 
       <MarcarPerdidoDialog
