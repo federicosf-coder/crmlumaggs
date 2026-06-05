@@ -277,14 +277,60 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
     setCreateDialogOpen(true);
   };
 
-  const handleWhatsApp = (raw?: string | null, name?: string) => {
+  const logSeguimientoActivity = async (
+    type: "whatsapp" | "call",
+    contact: any,
+    phone: string,
+  ) => {
+    if (!user || !row) return;
+    const name = `${contact?.first_name || ""} ${contact?.last_name || ""}`.trim();
+    const title = type === "whatsapp"
+      ? `WhatsApp a ${name || "contacto"}`
+      : `Llamada a ${name || "contacto"}`;
+    try {
+      const { data: act, error } = await (supabase as any)
+        .from("crm_activities")
+        .insert({
+          user_id: user.id,
+          type,
+          title,
+          company_id: row.company_id,
+          contact_id: contact?.id ?? null,
+          destinatario_phone: phone,
+          channel: type === "whatsapp" ? "wa_me" : "tel",
+          seguimiento_venta_id: row.id,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      await (supabase as any)
+        .from("crm_activity_seguimiento")
+        .insert({ activity_id: act.id, seguimiento_venta_id: row.id });
+      qc.invalidateQueries({ queryKey: ["seguimiento_activities_linked", row.id] });
+    } catch (e: any) {
+      console.warn("[seguimiento] log activity failed", e);
+    }
+  };
+
+  const handleWhatsApp = (raw?: string | null, contact?: any) => {
     const phone = normalizePhoneForWhatsApp(raw);
     if (!phone) {
       toast({ title: "Sin número de WhatsApp", variant: "destructive" });
       return;
     }
-    const msg = `Hola${name ? ` ${name}` : ""}, te contacto de ${marcaLabel}.`;
+    const msg = `Hola${contact?.first_name ? ` ${contact.first_name}` : ""}, te contacto de ${marcaLabel}.`;
     openWhatsApp(phone, msg);
+    void logSeguimientoActivity("whatsapp", contact, phone);
+  };
+
+  const handleCall = (raw?: string | null, contact?: any) => {
+    const phone = (raw || "").replace(/[^\d+]/g, "");
+    if (!phone) {
+      toast({ title: "Sin número telefónico", variant: "destructive" });
+      return;
+    }
+    window.location.href = `tel:${phone}`;
+    void logSeguimientoActivity("call", contact, phone);
   };
 
   const visibleContacts = showAllContacts ? (contacts || []) : (contacts || []).slice(0, 3);
