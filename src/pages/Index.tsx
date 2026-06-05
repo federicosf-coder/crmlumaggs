@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  ShoppingCart, FileText, Package, Truck, BookOpen, ArrowLeftRight, FolderKanban,
+  FileText, Package, Truck, BookOpen, ArrowLeftRight, FolderKanban,
   GraduationCap, BarChart3, Briefcase, Wallet, FolderOpen, FileCheck, MessageCircle,
   Zap, ArrowRight, Sparkles, TrendingUp,
 
