@@ -196,6 +196,144 @@ function OptionsTab() {
 }
 
 // ─── Products Tab ────────────────────────────────────────────
+function ProductClientsDialog({
+  product,
+  onClose,
+  onOpenSeguimiento,
+}: {
+  product: any | null;
+  onClose: () => void;
+  onOpenSeguimiento: (companyId: string, marca?: string) => void;
+}) {
+  const productId = product?.id as string | undefined;
+  const marcaValue = product?.marca?.value as string | undefined;
+  const empresaVendedora =
+    String(marcaValue || "").toLowerCase().includes("phillips")
+      ? "galsa_phillips66"
+      : "lumaggs_chevron";
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["product-clients", productId, empresaVendedora],
+    enabled: !!productId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documento_productos")
+        .select(
+          "cantidad, documentos!inner(empresa_id, empresa_vendedora, tipo_documento, is_active, fecha_documento, companies:empresa_id(id, name))"
+        )
+        .eq("producto_id", productId!)
+        .eq("documentos.tipo_documento", "factura")
+        .eq("documentos.is_active", true)
+        .eq("documentos.empresa_vendedora", empresaVendedora);
+      if (error) throw error;
+      const map = new Map<string, { company_id: string; name: string; cantidad: number; ultima: string | null }>();
+      for (const r of (data || []) as any[]) {
+        const doc = r.documentos;
+        if (!doc?.empresa_id) continue;
+        const id = doc.empresa_id as string;
+        const cur = map.get(id) || {
+          company_id: id,
+          name: doc.companies?.name || "—",
+          cantidad: 0,
+          ultima: null as string | null,
+        };
+        cur.cantidad += Number(r.cantidad || 0);
+        if (doc.fecha_documento && (!cur.ultima || doc.fecha_documento > cur.ultima)) {
+          cur.ultima = doc.fecha_documento;
+        }
+        map.set(id, cur);
+      }
+      return Array.from(map.values());
+    },
+  });
+
+  const [sort, setSort] = useState<{ key: "name" | "cantidad" | "ultima"; dir: "asc" | "desc" }>({
+    key: "cantidad",
+    dir: "desc",
+  });
+  const sorted = [...rows].sort((a, b) => {
+    let va: any = a[sort.key];
+    let vb: any = b[sort.key];
+    if (sort.key === "name") {
+      va = (va || "").toString().toLowerCase();
+      vb = (vb || "").toString().toLowerCase();
+    } else if (sort.key === "ultima") {
+      va = va || "";
+      vb = vb || "";
+    } else {
+      va = Number(va || 0);
+      vb = Number(vb || 0);
+    }
+    if (va < vb) return sort.dir === "asc" ? -1 : 1;
+    if (va > vb) return sort.dir === "asc" ? 1 : -1;
+    return 0;
+  });
+  const toggle = (key: "name" | "cantidad" | "ultima") =>
+    setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
+  const SortIcon = ({ k }: { k: "name" | "cantidad" | "ultima" }) =>
+    sort.key === k ? (
+      sort.dir === "asc" ? <ArrowUp className="inline h-3 w-3 ml-1" /> : <ArrowDown className="inline h-3 w-3 ml-1" />
+    ) : null;
+
+  return (
+    <Dialog open={!!product} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Clientes que han comprado este producto</DialogTitle>
+        </DialogHeader>
+        {product && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{product.nombre_producto}</span>
+              {" · "}
+              <span className="font-mono">{product.codigo}</span>
+            </p>
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Cargando…</p>
+            ) : sorted.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">
+                No hay facturas registradas con este producto.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggle("name")}>
+                      Cliente <SortIcon k="name" />
+                    </TableHead>
+                    <TableHead className="text-right cursor-pointer select-none" onClick={() => toggle("cantidad")}>
+                      Cantidad acum. <SortIcon k="cantidad" />
+                    </TableHead>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggle("ultima")}>
+                      Última compra <SortIcon k="ultima" />
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sorted.map((r) => (
+                    <TableRow
+                      key={r.company_id}
+                      className="cursor-pointer"
+                      onClick={() => onOpenSeguimiento(r.company_id, marcaValue)}
+                    >
+                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell className="text-right font-mono">{r.cantidad}</TableCell>
+                      <TableCell>{r.ultima || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            <div className="flex justify-end pt-2">
+              <Button variant="outline" onClick={onClose}>Cerrar</Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ProductosTab() {
   const qc = useQueryClient();
   const navigate = useNavigate();
