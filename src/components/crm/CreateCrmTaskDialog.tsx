@@ -441,6 +441,7 @@ export function CreateCrmTaskDialog({
       setShowCc(false); setShowBcc(false);
       setCallPhone("");
     }
+    setBrands(defaultBrands || []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
