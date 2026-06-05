@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { useParams, Navigate, useSearchParams } from "react-router-dom";
 import { BackButton } from "@/components/BackButton";
 import { PageBanner } from "@/components/PageBanner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -340,6 +340,47 @@ export default function SeguimientoVentas() {
 
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
+
+  // Deep-link: ?company=<uuid> abre la ficha de esa empresa (crea registro si no existe)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepCompanyId = searchParams.get("company");
+  useEffect(() => {
+    if (!deepCompanyId || invalidBrand) return;
+    let cancel = false;
+    (async () => {
+      const { data: existing } = await (supabase as any)
+        .from("seguimiento_ventas")
+        .select("*, companies:company_id(id, name)")
+        .eq("company_id", deepCompanyId)
+        .eq("empresa_vendedora", empresaVendedora)
+        .maybeSingle();
+      if (cancel) return;
+      if (existing) {
+        setTab(existing.tiene_venta ? "con_venta" : "sin_venta");
+        setSelected(existing as any);
+      } else {
+        const { data: created, error } = await (supabase as any)
+          .from("seguimiento_ventas")
+          .insert({ company_id: deepCompanyId, empresa_vendedora: empresaVendedora, tiene_venta: false })
+          .select("*, companies:company_id(id, name)")
+          .single();
+        if (cancel) return;
+        if (!error && created) {
+          setTab("sin_venta");
+          setSelected(created as any);
+          queryClient.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+        } else if (error) {
+          toast({ title: "No se pudo abrir seguimiento", description: error.message, variant: "destructive" });
+        }
+      }
+      // limpiar el query param para no reabrir al cerrar
+      const next = new URLSearchParams(searchParams);
+      next.delete("company");
+      setSearchParams(next, { replace: true });
+    })();
+    return () => { cancel = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepCompanyId, empresaVendedora, invalidBrand]);
 
   // Filtro por matriz de permisos del módulo Seguimiento a Ventas (según ejecutivo / owner_id)
   const access = useModuleAccess("seguimiento_ventas");

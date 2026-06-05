@@ -1108,6 +1108,22 @@ export default function Directory() {
                   {selectedCompany.razon_social && selectedCompany.razon_social !== selectedCompany.name && (
                     <p className="text-xs text-muted-foreground">Razón Social: {selectedCompany.razon_social}</p>
                   )}
+                  <div className="flex flex-wrap items-center gap-2 pt-1.5">
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => navigate(`/seguimiento/chevron?company=${selectedCompany.id}`)}
+                    >
+                      Seguimiento Chevron
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs bg-red-600 hover:bg-red-700 text-white"
+                      onClick={() => navigate(`/seguimiento/phillips66?company=${selectedCompany.id}`)}
+                    >
+                      Seguimiento Galsa
+                    </Button>
+                  </div>
                 </div>
                 <Button size="sm" variant="outline" className="mr-8" onClick={() => setEditCompany(selectedCompany)}>
                   <Pencil className="h-4 w-4 mr-1" /> Editar
