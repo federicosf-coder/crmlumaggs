@@ -373,64 +373,64 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, catalog, onOpen
           </div>
         </DialogHeader>
 
-        {/* Bloque de Contactos (entre encabezado y métricas) */}
-        <div className="mt-3 rounded-lg shadow-sm bg-muted/30 px-3 py-2">
-          <div className="flex items-center justify-between mb-1.5">
-            <h4 className="text-xs font-semibold inline-flex items-center gap-1">
-              <Users className="h-3 w-3" /> Contactos
-              {contacts && contacts.length > 0 && (
-                <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0 h-4">{contacts.length}</Badge>
-              )}
-            </h4>
-            <div className="flex items-center gap-1.5">
-              {contacts && contacts.length > 3 && (
-                <Button variant="ghost" size="sm" className="h-6 text-[11px] px-2" onClick={() => setShowAllContacts((v) => !v)}>
-                  {showAllContacts ? "Ver menos" : `Seleccionar más (${contacts.length - 3})`}
-                </Button>
-              )}
-              <Button variant="outline" size="sm" className="h-6 text-[11px] px-2" onClick={() => setNewContactOpen(true)}>
-                <UserPlus className="h-3 w-3 mr-1" /> Agregar contacto
-              </Button>
-            </div>
-          </div>
-          {(!contacts || contacts.length === 0) ? (
-            <p className="text-[11px] text-muted-foreground">Sin contactos registrados.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
-              {visibleContacts.map((c: any) => {
-                const name = `${c.first_name || ""} ${c.last_name || ""}`.trim();
-                const wa = c.whatsapp_phone || c.mobile || c.phone;
-                return (
-                  <div key={c.id} className="rounded-md border bg-background px-2 py-1.5 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium truncate leading-tight">{name || "—"}</p>
-                      <div className="flex flex-wrap gap-x-2 gap-y-0 text-[10px] text-muted-foreground leading-tight">
-                        {c.job_title && <span className="truncate">{c.job_title}</span>}
-                        {(c.mobile || c.phone) && <span className="inline-flex items-center gap-0.5"><Phone className="h-2.5 w-2.5" />{c.mobile || c.phone}</span>}
-                        {c.email && <span className="inline-flex items-center gap-0.5 truncate"><Mail className="h-2.5 w-2.5" />{c.email}</span>}
-                      </div>
-                    </div>
-                    {wa && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 shrink-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                        title="Abrir WhatsApp"
-                        onClick={() => handleWhatsApp(wa, c.first_name)}
-                      >
-                        <MessageCircle className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
         <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left/main: métricas */}
           <div className="lg:col-span-2 space-y-4">
+            {/* Bloque de Contactos */}
+            <div className="rounded-lg shadow-sm bg-muted/30 px-3 py-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <h4 className="text-xs font-semibold inline-flex items-center gap-1">
+                  <Users className="h-3 w-3" /> Contactos
+                  {contacts && contacts.length > 0 && (
+                    <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0 h-4">{contacts.length}</Badge>
+                  )}
+                </h4>
+                <div className="flex items-center gap-1.5">
+                  {contacts && contacts.length > 3 && (
+                    <Button variant="ghost" size="sm" className="h-6 text-[11px] px-2" onClick={() => setShowAllContacts((v) => !v)}>
+                      {showAllContacts ? "Ver menos" : `Seleccionar más (${contacts.length - 3})`}
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" className="h-6 text-[11px] px-2" onClick={() => setNewContactOpen(true)}>
+                    <UserPlus className="h-3 w-3 mr-1" /> Agregar contacto
+                  </Button>
+                </div>
+              </div>
+              {(!contacts || contacts.length === 0) ? (
+                <p className="text-[11px] text-muted-foreground">Sin contactos registrados.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {visibleContacts.map((c: any) => {
+                    const name = `${c.first_name || ""} ${c.last_name || ""}`.trim();
+                    const wa = c.whatsapp_phone || c.mobile || c.phone;
+                    return (
+                      <div key={c.id} className="rounded-md border bg-background px-2 py-1.5 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium truncate leading-tight">{name || "—"}</p>
+                          <div className="flex flex-wrap gap-x-2 gap-y-0 text-[10px] text-muted-foreground leading-tight">
+                            {c.job_title && <span className="truncate">{c.job_title}</span>}
+                            {(c.mobile || c.phone) && <span className="inline-flex items-center gap-0.5"><Phone className="h-2.5 w-2.5" />{c.mobile || c.phone}</span>}
+                            {c.email && <span className="inline-flex items-center gap-0.5 truncate"><Mail className="h-2.5 w-2.5" />{c.email}</span>}
+                          </div>
+                        </div>
+                        {wa && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 shrink-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                            title="Abrir WhatsApp"
+                            onClick={() => handleWhatsApp(wa, c.first_name)}
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             <div className="rounded-lg shadow-sm bg-muted/30 p-4 border-l-4" style={{ borderLeftColor: effective?.color || "hsl(var(--primary))" }}>
               <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
                 <TrendingUp className="h-4 w-4" /> Métricas
