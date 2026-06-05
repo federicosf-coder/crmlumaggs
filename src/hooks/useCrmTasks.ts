@@ -80,6 +80,14 @@ export function useCrmTasks(filters?: { completed?: boolean; brand?: string }) {
   });
 }
 
+const invalidateSeguimiento = (qc: ReturnType<typeof useQueryClient>) => {
+  qc.invalidateQueries({ queryKey: ["crm_tasks"] });
+  qc.invalidateQueries({ queryKey: ["seguimiento_tasks_linked"] });
+  qc.invalidateQueries({ queryKey: ["seguimiento_activities_linked"] });
+  qc.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+  qc.invalidateQueries({ queryKey: ["crm_task_timeline"] });
+};
+
 export function useCreateCrmTask() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -100,7 +108,7 @@ export function useCreateCrmTask() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["crm_tasks"] }),
+    onSuccess: () => invalidateSeguimiento(queryClient),
   });
 }
 
@@ -112,7 +120,7 @@ export function useUpdateCrmTask() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["crm_tasks"] }),
+    onSuccess: () => invalidateSeguimiento(queryClient),
   });
 }
 
@@ -123,7 +131,7 @@ export function useDeleteCrmTask() {
       const { error } = await supabase.from("crm_tasks").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["crm_tasks"] }),
+    onSuccess: () => invalidateSeguimiento(queryClient),
   });
 }
 
