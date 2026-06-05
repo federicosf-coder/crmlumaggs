@@ -57,13 +57,6 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
     },
   });
 
-  const { data: contacts } = useQuery({
-    queryKey: ["contacts-picker"],
-    queryFn: async () => {
-      const data = await fetchAllRows<any>((from, to) => supabase.from("contacts").select("id, first_name, last_name").eq("is_active", true).order("first_name").range(from, to));
-      return data;
-    },
-  });
 
   const { data: users } = useQuery({
     queryKey: ["profiles-picker"],
