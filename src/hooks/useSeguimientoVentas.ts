@@ -6,7 +6,7 @@ export type EmpresaVendedora = "lumaggs_chevron" | "galsa_phillips66";
 export interface SeguimientoEstatus {
   id: string;
   ambito: "con_venta" | "sin_venta";
-  familia: "riesgo" | "ritmo" | "gestion";
+  familia: "riesgo" | "avance" | "gestion";
   nombre: string;
   color: string;
   es_urgente: boolean;
