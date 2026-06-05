@@ -917,6 +917,16 @@ export default function SeguimientoVentas() {
           >
             Clientes sin Venta
           </button>
+          <button
+            onClick={() => setTab("perdidos")}
+            className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-md transition-colors ${
+              tab === "perdidos"
+                ? "bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Clientes Perdidos
+          </button>
         </div>
         {/* Botones de filtro siempre visibles (desde catálogo) */}
         <div className="w-full space-y-2">
