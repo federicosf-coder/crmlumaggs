@@ -497,6 +497,7 @@ export const ACTION_GROUPS: {
       { value: "send_email", label: "Enviar correo" },
       { value: "send_whatsapp", label: "Enviar WhatsApp" },
       { value: "send_whatsapp_personalizado", label: "Enviar WhatsApp personalizado" },
+      { value: "send_whatsapp_api_local", label: "Enviar WhatsApp (API o Local)" },
       { value: "send_notification", label: "Enviar notificación interna" },
     ],
   },
