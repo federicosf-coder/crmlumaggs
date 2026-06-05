@@ -469,7 +469,21 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
               <Button type="button" size="sm" variant="outline" onClick={() => { reset(); onOpenChange(false); }}>
                 Cancelar
               </Button>
-              <div className="ml-auto"><AutosaveIndicator status={autosave.status} /></div>
+              <div className="ml-auto flex items-center gap-2">
+                <AutosaveIndicator status={autosave.status} />
+                {isAdmin && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    {deleting ? "Eliminando..." : "Eliminar"}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
           <div className="flex-1 min-h-0 overflow-y-auto">
