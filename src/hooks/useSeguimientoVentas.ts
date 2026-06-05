@@ -47,6 +47,10 @@ export interface SeguimientoVentasRow {
   owner_id: string | null;
   ultima_actualizacion: string;
   companies?: { id: string; name: string } | null;
+  perdido?: boolean | null;
+  motivo_perdida_id?: string | null;
+  fecha_perdida?: string | null;
+  nota_perdida?: string | null;
 }
 
 export function useSeguimientoEstatusCatalogo() {
