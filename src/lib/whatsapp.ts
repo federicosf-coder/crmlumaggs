@@ -25,14 +25,37 @@ export interface WhatsAppVariables {
   ejecutivo_nombre?: string | null;
 }
 
-/** Strip non-digits, ensure +52 default for MX 10-digit numbers. */
+/**
+ * Normaliza un teléfono al formato que requiere wa.me:
+ *   [código de país][número local a 10 dígitos sin separadores]
+ *
+ * Reglas:
+ *  - 10 dígitos → se asume México: 52 + 10 dígitos.
+ *  - 11 dígitos que inician con "1" → US/CA, se deja tal cual (1 + 10).
+ *  - 12 dígitos que inician con "52" → MX correcto, se deja tal cual.
+ *  - 13 dígitos que inician con "521" → MX con prefijo móvil legado, se quita
+ *    el "1" intermedio → 52 + 10 dígitos (formato que wa.me/WhatsApp Web acepta).
+ *  - Cualquier otro número con código de país (≥11 dígitos) se deja como está.
+ */
 export function normalizePhoneForWhatsApp(raw?: string | null): string | null {
   if (!raw) return null;
   const digits = raw.replace(/\D/g, "");
   if (!digits) return null;
-  // already includes country code (>= 11 digits), use as-is
+  // MX legado: 521 + 10 dígitos → quitar el "1"
+  if (digits.length === 13 && digits.startsWith("521")) {
+    return `52${digits.slice(3)}`;
+  }
+  // MX correcto: 52 + 10 dígitos
+  if (digits.length === 12 && digits.startsWith("52")) {
+    return digits;
+  }
+  // US/CA: 1 + 10 dígitos
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return digits;
+  }
+  // Cualquier otro con código de país plausible
   if (digits.length >= 11) return digits;
-  // 10-digit MX number, prepend 52
+  // 10 dígitos: asumir México
   if (digits.length === 10) return `52${digits}`;
   return digits;
 }
