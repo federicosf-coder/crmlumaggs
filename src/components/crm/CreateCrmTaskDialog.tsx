@@ -44,12 +44,16 @@ interface CreateCrmTaskDialogProps {
   defaultTitle?: string;
   /** Si se define, el diálogo opera en modo edición sobre esta tarea existente. */
   editTask?: CrmTask | null;
+  /** Marcas pre-seleccionadas (uno o ambos). */
+  defaultBrands?: Array<"lumaggs_chevron" | "galsa_phillips66">;
 }
+
+type Brand = "lumaggs_chevron" | "galsa_phillips66";
 
 export function CreateCrmTaskDialog({
   open, onOpenChange, defaultContactId, defaultCompanyId,
   parentTaskId = null, defaultParentCategory = null, defaultTaskType = null, defaultTitle = "",
-  editTask = null,
+  editTask = null, defaultBrands,
 }: CreateCrmTaskDialogProps) {
   const { session } = useAuth();
   const createTask = useCreateCrmTask();
@@ -107,6 +111,46 @@ export function CreateCrmTaskDialog({
   // Diálogos "+ Nuevo" para Empresa y Contacto
   const [companyFormOpen, setCompanyFormOpen] = useState(false);
   const [contactFormOpen, setContactFormOpen] = useState(false);
+  const [brands, setBrands] = useState<Brand[]>(defaultBrands || []);
+
+  const toggleBrand = (b: Brand) => {
+    setBrands((prev) => (prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]));
+  };
+
+  const linkSeguimientos = async (taskId: string, companyIdFinal: string) => {
+    for (const ev of brands) {
+      try {
+        await supabase.rpc("recompute_seguimiento_ventas", { _company_id: companyIdFinal, _ev: ev });
+        const { data: seg } = await supabase
+          .from("seguimiento_ventas")
+          .select("id")
+          .eq("company_id", companyIdFinal)
+          .eq("empresa_vendedora", ev)
+          .maybeSingle();
+        if (seg?.id) {
+          await supabase
+            .from("crm_task_seguimiento")
+            .upsert({ task_id: taskId, seguimiento_venta_id: seg.id }, { onConflict: "task_id,seguimiento_venta_id" });
+        }
+      } catch (err) {
+        console.warn("[seguimiento link] failed", ev, err);
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+  };
+
+  const validateBrandAndCompany = (): { ok: true; companyId: string } | { ok: false } => {
+    if (brands.length === 0) {
+      toast({ title: "Selecciona al menos una marca", description: "Marca Lumaggs y/o Galsa antes de guardar.", variant: "destructive" });
+      return { ok: false };
+    }
+    const cid = companyId && companyId !== "none" ? companyId : "";
+    if (!cid) {
+      toast({ title: "Selecciona una empresa", description: "Se requiere para vincular el seguimiento por marca.", variant: "destructive" });
+      return { ok: false };
+    }
+    return { ok: true, companyId: cid };
+  };
 
   const isWhatsApp = taskType === "whatsapp";
   const isVisit = taskType === "field_visit";
@@ -122,6 +166,8 @@ export function CreateCrmTaskDialog({
 
   const persistEmailTask = (sentOk: boolean) => {
     if (!session?.user) return;
+    const v = validateBrandAndCompany();
+    if (!v.ok) return;
     const subject = emailSubject || "(sin asunto)";
     const finalTitle = `Email · ${subject}`;
     const header = [
@@ -148,7 +194,10 @@ export function CreateCrmTaskDialog({
         completed: sentOk,
         completed_at: sentOk ? new Date().toISOString() : null,
       } as any,
-      { onSuccess: () => onOpenChange(false) }
+      { onSuccess: async (data: any) => {
+          if (data?.id) await linkSeguimientos(data.id, v.companyId);
+          onOpenChange(false);
+        } }
     );
   };
 
@@ -397,6 +446,7 @@ export function CreateCrmTaskDialog({
       setShowCc(false); setShowBcc(false);
       setCallPhone("");
     }
+    setBrands(defaultBrands || []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -450,6 +500,8 @@ export function CreateCrmTaskDialog({
       toast({ title: "Falta fecha", description: "Selecciona la fecha (y hora) para programar.", variant: "destructive" });
       return;
     }
+    const v = validateBrandAndCompany();
+    if (!v.ok) return;
     const reopenForNew = status === "no_contesto" || status === "reagendada" || status === "reprogramada";
     const completed = status === "realizada" || status === "enviado" || status === "guardado" || reopenForNew;
     const statusLabel = STATUS_LABEL[status];
@@ -498,6 +550,9 @@ export function CreateCrmTaskDialog({
           ...payload,
         } as any);
       }
+      if (created?.id) {
+        await linkSeguimientos(created.id, v.companyId);
+      }
       toast({ title: statusLabel ? `Actividad ${statusLabel}` : (isEditing ? "Cambios guardados" : "Tarea creada") });
       if (reopenForNew) {
         setRescheduleCtx({
@@ -528,6 +583,8 @@ export function CreateCrmTaskDialog({
   // Crea la tarea de WhatsApp registrando el mensaje y la marca como completada
   const persistWhatsAppTask = (channel: "wa_me" | "api") => {
     if (!session?.user) return;
+    const v = validateBrandAndCompany();
+    if (!v.ok) return;
     const finalTitle = title || buildWhatsAppTitle();
     const channelLabel = channel === "api" ? "API" : "Local";
     createTask.mutate(
@@ -546,7 +603,8 @@ export function CreateCrmTaskDialog({
         completed_at: new Date().toISOString(),
       } as any,
       {
-        onSuccess: () => {
+        onSuccess: async (data: any) => {
+          if (data?.id) await linkSeguimientos(data.id, v.companyId);
           toast({ title: "Mensaje registrado", description: `WhatsApp enviado vía ${channelLabel}.` });
           onOpenChange(false);
         },
@@ -645,6 +703,23 @@ export function CreateCrmTaskDialog({
                       sel ? active : soft)}>
                     <Icon className="h-4 w-4" />
                     <span className="text-[10px] font-medium leading-tight">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+          <section className="space-y-2">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Marca * (puede seleccionar una o ambas)</div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { key: "lumaggs_chevron" as Brand, label: "Lumaggs (Chevron)", soft: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100", active: "bg-blue-600 text-white border-blue-600 hover:bg-blue-600" },
+                { key: "galsa_phillips66" as Brand, label: "Galsa (Phillips 66)", soft: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100", active: "bg-red-600 text-white border-red-600 hover:bg-red-600" },
+              ].map((b) => {
+                const sel = brands.includes(b.key);
+                return (
+                  <button key={b.key} type="button" onClick={() => toggleBrand(b.key)} aria-pressed={sel}
+                    className={cn("rounded-md border px-3 py-2 text-sm font-medium transition-all", sel ? b.active : b.soft)}>
+                    {b.label}
                   </button>
                 );
               })}
