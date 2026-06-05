@@ -15,8 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, X, Users, ArrowUp, ArrowDown } from "lucide-react";
-import { Filter } from "lucide-react";
+import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, X, Users, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
 import PreciosConfigTab, { MARGIN_LEVELS, computePricesFromCost } from "./PreciosConfigTab";
