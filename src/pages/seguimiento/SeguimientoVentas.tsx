@@ -589,6 +589,13 @@ export default function SeguimientoVentas() {
         render: (r) => getRowPlazaLabel(r.company_id) || <span className="italic">—</span>,
       },
       {
+        id: "registrada",
+        label: "Registrada",
+        sortKey: "registrada",
+        cellClassName: "text-xs font-light text-muted-foreground whitespace-nowrap",
+        render: (r) => r.companies?.created_at ? formatDate(r.companies.created_at) : <span className="italic">—</span>,
+      },
+      {
         id: "estatus",
         label: "Estatus",
         sortKey: "estatus",
