@@ -631,6 +631,30 @@ export default function SellerPortal() {
     return n;
   }, [seguimientoByCompany]);
 
+  // Empresas sin/con venta creadas en el periodo
+  const empresasSinVentaPeriodo = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => {
+      if (s.tiene_venta) return;
+      const ca = s.companies?.created_at;
+      if (!ca) return;
+      const t = new Date(ca).getTime();
+      if (t >= fromTs && t <= toTs) n += 1;
+    });
+    return n;
+  }, [seguimientoByCompany, fromTs, toTs]);
+  const empresasConVentaPeriodo = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => {
+      if (!s.tiene_venta) return;
+      const ca = s.companies?.created_at;
+      if (!ca) return;
+      const t = new Date(ca).getTime();
+      if (t >= fromTs && t <= toTs) n += 1;
+    });
+    return n;
+  }, [seguimientoByCompany, fromTs, toTs]);
+
   // Score
   const scoreTareas = tasksVencidas.length === 0 ? 20 : Math.max(0, 20 - tasksVencidas.length * 2);
   const scoreProspectos = Math.min(20, dealsEnRango.length * 5);
