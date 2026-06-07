@@ -631,6 +631,30 @@ export default function SellerPortal() {
     return n;
   }, [seguimientoByCompany]);
 
+  // Empresas sin/con venta creadas en el periodo
+  const empresasSinVentaPeriodo = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => {
+      if (s.tiene_venta) return;
+      const ca = s.companies?.created_at;
+      if (!ca) return;
+      const t = new Date(ca).getTime();
+      if (t >= fromTs && t <= toTs) n += 1;
+    });
+    return n;
+  }, [seguimientoByCompany, fromTs, toTs]);
+  const empresasConVentaPeriodo = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => {
+      if (!s.tiene_venta) return;
+      const ca = s.companies?.created_at;
+      if (!ca) return;
+      const t = new Date(ca).getTime();
+      if (t >= fromTs && t <= toTs) n += 1;
+    });
+    return n;
+  }, [seguimientoByCompany, fromTs, toTs]);
+
   // Score
   const scoreTareas = tasksVencidas.length === 0 ? 20 : Math.max(0, 20 - tasksVencidas.length * 2);
   const scoreProspectos = Math.min(20, dealsEnRango.length * 5);
@@ -677,7 +701,7 @@ export default function SellerPortal() {
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground truncate">{title}</p>
             <p className="text-2xl font-bold mt-1">{value}</p>
-            {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+            {sub && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
           </div>
           <div className={cn("p-2 rounded-md shrink-0", color)}>
             <Icon className="h-4 w-4 text-white" />
@@ -907,7 +931,20 @@ export default function SellerPortal() {
         <KpiCard
           title="Empresas registradas"
           value={empresasRegistradasTotal}
-          sub={`${empresasRegistradasPeriodo} en periodo · ${empresasSinVenta} sin venta · ${empresasConVenta} con venta`}
+          sub={
+            <div className="space-y-0.5 mt-1">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span className="text-[11px]">Sin venta: {empresasSinVenta}</span>
+                <span className="text-[10px] text-muted-foreground/70">({empresasSinVentaPeriodo} en periodo)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[11px]">Con venta: {empresasConVenta}</span>
+                <span className="text-[10px] text-muted-foreground/70">({empresasConVentaPeriodo} en periodo)</span>
+              </div>
+            </div>
+          }
           icon={UserPlus}
           color="bg-blue-600"
         />
