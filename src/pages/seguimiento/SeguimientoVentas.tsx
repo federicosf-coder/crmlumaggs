@@ -1165,6 +1165,39 @@ export default function SeguimientoVentas() {
                     emptyText="Sin plazas"
                   />
                 </div>
+
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
+                    Fecha de registro
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="date"
+                      value={fRegistroFrom}
+                      onChange={(e) => setFRegistroFrom(e.target.value)}
+                      className="h-9 w-[140px] font-light"
+                      placeholder="Desde"
+                    />
+                    <span className="text-xs text-muted-foreground">a</span>
+                    <Input
+                      type="date"
+                      value={fRegistroTo}
+                      onChange={(e) => setFRegistroTo(e.target.value)}
+                      className="h-9 w-[140px] font-light"
+                      placeholder="Hasta"
+                    />
+                    {(fRegistroFrom || fRegistroTo) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => { setFRegistroFrom(""); setFRegistroTo(""); }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
