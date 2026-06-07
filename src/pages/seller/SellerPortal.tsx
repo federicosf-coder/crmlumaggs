@@ -71,6 +71,8 @@ export default function SellerPortal() {
   const [companyPhoneMap, setCompanyPhoneMap] = useState<Record<string, { phone: string | null; name: string }>>({});
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
   const [cobradoDeVencido, setCobradoDeVencido] = useState<number>(0);
+  const [seguimientoRows, setSeguimientoRows] = useState<any[]>([]);
+  const [convertidosPeriodo, setConvertidosPeriodo] = useState<number>(0);
   const [bucketActivo, setBucketActivo] = useState<"vencidas" | "1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
   // Límites de visualización + paginación por lista (10 / 25 / 50 / "all")
