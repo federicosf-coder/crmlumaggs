@@ -196,6 +196,8 @@ export default function SellerPortal() {
         setFacturasPorVencer([]); setFacturasVencidasAll([]); setActividades([]);
         setCompanyMap({}); setCompanyPhoneMap({}); setEjecutivoMap({});
         setCobradoDeVencido(0);
+        setSeguimientoRows([]);
+        setConvertidosPeriodo(0);
         setLoading(false);
         return;
       }
