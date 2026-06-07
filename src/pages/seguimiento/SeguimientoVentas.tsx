@@ -838,6 +838,10 @@ export default function SeguimientoVentas() {
           va = getRowPlazaLabel(a.company_id).toLowerCase();
           vb = getRowPlazaLabel(b.company_id).toLowerCase();
           break;
+        case "registrada":
+          va = a.companies?.created_at ? new Date(a.companies.created_at).getTime() : 0;
+          vb = b.companies?.created_at ? new Date(b.companies.created_at).getTime() : 0;
+          break;
         case "estatus": {
           const ea = catalogMap.get(getEffectiveStatusId(a) || "");
           const eb = catalogMap.get(getEffectiveStatusId(b) || "");
