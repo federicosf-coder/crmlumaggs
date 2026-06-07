@@ -389,6 +389,50 @@ export default function SellerPortal() {
       setCompanyMap(cmap);
       setCompanyPhoneMap(cphone);
       setEjecutivoMap(emap);
+
+      // Seguimiento de ventas (empresas registradas / con-sin venta / activas)
+      try {
+        let sgQ = supabase
+          .from("seguimiento_ventas")
+          .select("id, company_id, tiene_venta, perdido, owner_id, empresa_vendedora, companies:company_id(id, created_at)")
+          .in("empresa_vendedora", marcasSeleccionadas as any)
+          .limit(20000);
+        if (uIds) sgQ = sgQ.in("owner_id", uIds);
+        const { data: sgData } = await sgQ;
+        setSeguimientoRows(sgData || []);
+      } catch (err) {
+        console.warn("[Seguimiento] error", err);
+        setSeguimientoRows([]);
+      }
+
+      // Convertidos en periodo: empresas con su PRIMERA factura cayendo dentro del rango
+      try {
+        const empresasFactPeriodo = Array.from(new Set(
+          (docsData || [])
+            .filter((d: any) => d.tipo_documento === "factura" && d.estatus_factura !== "cancelada")
+            .map((d: any) => d.empresa_id)
+            .filter(Boolean)
+        ));
+        if (empresasFactPeriodo.length === 0) {
+          setConvertidosPeriodo(0);
+        } else {
+          const { data: prevFacts } = await supabase
+            .from("documentos")
+            .select("empresa_id")
+            .eq("tipo_documento", "factura")
+            .eq("is_active", true)
+            .neq("estatus_factura", "cancelada")
+            .in("empresa_id", empresasFactPeriodo)
+            .lt("fecha_documento", fromDate)
+            .limit(20000);
+          const conPrevia = new Set((prevFacts || []).map((d: any) => d.empresa_id));
+          const convertidos = empresasFactPeriodo.filter((cid) => !conPrevia.has(cid)).length;
+          setConvertidosPeriodo(convertidos);
+        }
+      } catch (err) {
+        console.warn("[Convertidos] error", err);
+        setConvertidosPeriodo(0);
+      }
     } catch (e: any) {
       toast.error("Error cargando datos: " + e.message);
     } finally {
