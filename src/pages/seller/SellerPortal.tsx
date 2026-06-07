@@ -897,9 +897,27 @@ export default function SellerPortal() {
       {/* KPIs */}
       {/* Fila 1 — Demanda y volumen */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <KpiCard title="Prospectos nuevos" value={prospectosNuevosPeriodo} sub="Pipeline 1ª compra" icon={UserPlus} color="bg-blue-600" />
-        <KpiCard title="Clientes nuevos que compraron" value={clientesNuevosCompraron} sub="Primera compra" icon={Users} color="bg-emerald-600" />
-        <KpiCard title="Clientes con compra" value={clientesConCompra} sub="únicos en periodo" icon={Users} color="bg-emerald-700" />
+        <KpiCard
+          title="Convertidos a con venta"
+          value={convertidosPeriodo}
+          sub="empresas con 1ª factura en periodo"
+          icon={TrendingUp}
+          color="bg-emerald-600"
+        />
+        <KpiCard
+          title="Empresas registradas"
+          value={empresasRegistradasTotal}
+          sub={`${empresasRegistradasPeriodo} en periodo · ${empresasSinVenta} sin venta · ${empresasConVenta} con venta`}
+          icon={UserPlus}
+          color="bg-blue-600"
+        />
+        <KpiCard
+          title="Clientes con venta activos"
+          value={clientesConVentaActivos}
+          sub={`${clientesConCompra} vendidos en periodo`}
+          icon={Users}
+          color="bg-emerald-700"
+        />
         <KpiCard title="Unidades / cliente" value={fmtNum(unidadesPromedioCliente)} sub="promedio" icon={Package} color="bg-amber-700" />
         <KpiCard title="Facturado (Unidades)" value={fmtNum(unidadesFacturadas)} sub="u. equivalentes" icon={Package} color="bg-indigo-600" />
       </div>
