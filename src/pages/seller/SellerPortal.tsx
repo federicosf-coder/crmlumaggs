@@ -590,6 +590,47 @@ export default function SellerPortal() {
     ? (prospectosConvertidosEnPeriodo / prospectosNuevosPeriodo) * 100
     : 0;
 
+  // ===== Nuevos KPIs basados en seguimiento_ventas =====
+  // Distintas por company_id (una empresa puede tener seguimiento por marca; deduplicamos para "empresas registradas")
+  const seguimientoByCompany = useMemo(() => {
+    const m = new Map<string, any>();
+    for (const s of seguimientoRows) {
+      if (!s.company_id) continue;
+      const prev = m.get(s.company_id);
+      // Si alguna fila tiene venta y no perdida, esa gana
+      if (!prev) m.set(s.company_id, s);
+      else {
+        const prevActivo = prev.tiene_venta && !prev.perdido;
+        const curActivo = s.tiene_venta && !s.perdido;
+        if (curActivo && !prevActivo) m.set(s.company_id, s);
+        else if (s.tiene_venta && !prev.tiene_venta) m.set(s.company_id, s);
+      }
+    }
+    return m;
+  }, [seguimientoRows]);
+  const empresasRegistradasTotal = seguimientoByCompany.size;
+  const empresasRegistradasPeriodo = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => {
+      const ca = s.companies?.created_at;
+      if (!ca) return;
+      const t = new Date(ca).getTime();
+      if (t >= fromTs && t <= toTs) n += 1;
+    });
+    return n;
+  }, [seguimientoByCompany, fromTs, toTs]);
+  const empresasSinVenta = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => { if (!s.tiene_venta) n += 1; });
+    return n;
+  }, [seguimientoByCompany]);
+  const empresasConVenta = empresasRegistradasTotal - empresasSinVenta;
+  const clientesConVentaActivos = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => { if (s.tiene_venta && !s.perdido) n += 1; });
+    return n;
+  }, [seguimientoByCompany]);
+
   // Score
   const scoreTareas = tasksVencidas.length === 0 ? 20 : Math.max(0, 20 - tasksVencidas.length * 2);
   const scoreProspectos = Math.min(20, dealsEnRango.length * 5);
