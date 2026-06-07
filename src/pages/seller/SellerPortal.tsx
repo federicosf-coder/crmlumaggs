@@ -701,7 +701,7 @@ export default function SellerPortal() {
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground truncate">{title}</p>
             <p className="text-2xl font-bold mt-1">{value}</p>
-            {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+            {sub && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
           </div>
           <div className={cn("p-2 rounded-md shrink-0", color)}>
             <Icon className="h-4 w-4 text-white" />
