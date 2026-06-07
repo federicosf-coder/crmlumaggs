@@ -931,7 +931,20 @@ export default function SellerPortal() {
         <KpiCard
           title="Empresas registradas"
           value={empresasRegistradasTotal}
-          sub={`${empresasRegistradasPeriodo} en periodo · ${empresasSinVenta} sin venta · ${empresasConVenta} con venta`}
+          sub={
+            <div className="space-y-0.5 mt-1">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span className="text-[11px]">Sin venta: {empresasSinVenta}</span>
+                <span className="text-[10px] text-muted-foreground/70">({empresasSinVentaPeriodo} en periodo)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[11px]">Con venta: {empresasConVenta}</span>
+                <span className="text-[10px] text-muted-foreground/70">({empresasConVentaPeriodo} en periodo)</span>
+              </div>
+            </div>
+          }
           icon={UserPlus}
           color="bg-blue-600"
         />
