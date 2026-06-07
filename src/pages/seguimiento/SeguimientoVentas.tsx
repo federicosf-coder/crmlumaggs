@@ -307,6 +307,8 @@ export default function SeguimientoVentas() {
   const [fPotencial, setFPotencial] = useState<string[]>([]);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
   const [fPlaza, setFPlaza] = useState<string[]>([]);
+  const [fRegistroFrom, setFRegistroFrom] = useState<string>("");
+  const [fRegistroTo, setFRegistroTo] = useState<string>("");
 
   const isPerdidos = tab === "perdidos";
   const tieneVenta = tab === "con_venta" || tab === "perdidos";
@@ -344,6 +346,8 @@ export default function SeguimientoVentas() {
     setFPotencial([]);
     setFEjecutivo([]);
     setFPlaza([]);
+    setFRegistroFrom("");
+    setFRegistroTo("");
   }, [tab]);
 
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta, perdidos: isPerdidos });
@@ -517,7 +521,8 @@ export default function SeguimientoVentas() {
     arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
   const activeFiltersCount =
-    fEstatus.length + fAvance.length + fDias.length + fPotencial.length + fEjecutivo.length + fPlaza.length;
+    fEstatus.length + fAvance.length + fDias.length + fPotencial.length + fEjecutivo.length + fPlaza.length +
+    (fRegistroFrom ? 1 : 0) + (fRegistroTo ? 1 : 0);
 
   const clearAllFilters = () => {
     setFEstatus([]);
@@ -526,6 +531,8 @@ export default function SeguimientoVentas() {
     setFPotencial([]);
     setFEjecutivo([]);
     setFPlaza([]);
+    setFRegistroFrom("");
+    setFRegistroTo("");
   };
 
   const catalogMap = useMemo(() => {
