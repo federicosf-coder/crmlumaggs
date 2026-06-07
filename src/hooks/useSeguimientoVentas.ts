@@ -46,7 +46,7 @@ export interface SeguimientoVentasRow {
   estatus_manual_id: string | null;
   owner_id: string | null;
   ultima_actualizacion: string;
-  companies?: { id: string; name: string } | null;
+  companies?: { id: string; name: string; created_at?: string | null } | null;
   perdido?: boolean | null;
   motivo_perdida_id?: string | null;
   fecha_perdida?: string | null;
@@ -81,7 +81,7 @@ export function useSeguimientoVentas(params: {
     queryFn: async () => {
       let q = supabase
         .from("seguimiento_ventas")
-        .select("*, companies:company_id(id, name)")
+        .select("*, companies:company_id(id, name, created_at)")
         .eq("empresa_vendedora", params.empresaVendedora);
       if (params.perdidos) {
         q = q.eq("perdido", true);

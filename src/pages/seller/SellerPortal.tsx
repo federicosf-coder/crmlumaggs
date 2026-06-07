@@ -71,6 +71,8 @@ export default function SellerPortal() {
   const [companyPhoneMap, setCompanyPhoneMap] = useState<Record<string, { phone: string | null; name: string }>>({});
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
   const [cobradoDeVencido, setCobradoDeVencido] = useState<number>(0);
+  const [seguimientoRows, setSeguimientoRows] = useState<any[]>([]);
+  const [convertidosPeriodo, setConvertidosPeriodo] = useState<number>(0);
   const [bucketActivo, setBucketActivo] = useState<"vencidas" | "1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
   // Límites de visualización + paginación por lista (10 / 25 / 50 / "all")
@@ -194,6 +196,8 @@ export default function SellerPortal() {
         setFacturasPorVencer([]); setFacturasVencidasAll([]); setActividades([]);
         setCompanyMap({}); setCompanyPhoneMap({}); setEjecutivoMap({});
         setCobradoDeVencido(0);
+        setSeguimientoRows([]);
+        setConvertidosPeriodo(0);
         setLoading(false);
         return;
       }
@@ -385,6 +389,50 @@ export default function SellerPortal() {
       setCompanyMap(cmap);
       setCompanyPhoneMap(cphone);
       setEjecutivoMap(emap);
+
+      // Seguimiento de ventas (empresas registradas / con-sin venta / activas)
+      try {
+        let sgQ = supabase
+          .from("seguimiento_ventas")
+          .select("id, company_id, tiene_venta, perdido, owner_id, empresa_vendedora, companies:company_id(id, created_at)")
+          .in("empresa_vendedora", marcasSeleccionadas as any)
+          .limit(20000);
+        if (uIds) sgQ = sgQ.in("owner_id", uIds);
+        const { data: sgData } = await sgQ;
+        setSeguimientoRows(sgData || []);
+      } catch (err) {
+        console.warn("[Seguimiento] error", err);
+        setSeguimientoRows([]);
+      }
+
+      // Convertidos en periodo: empresas con su PRIMERA factura cayendo dentro del rango
+      try {
+        const empresasFactPeriodo = Array.from(new Set(
+          (docsData || [])
+            .filter((d: any) => d.tipo_documento === "factura" && d.estatus_factura !== "cancelada")
+            .map((d: any) => d.empresa_id)
+            .filter(Boolean)
+        ));
+        if (empresasFactPeriodo.length === 0) {
+          setConvertidosPeriodo(0);
+        } else {
+          const { data: prevFacts } = await supabase
+            .from("documentos")
+            .select("empresa_id")
+            .eq("tipo_documento", "factura")
+            .eq("is_active", true)
+            .neq("estatus_factura", "cancelada")
+            .in("empresa_id", empresasFactPeriodo)
+            .lt("fecha_documento", fromDate)
+            .limit(20000);
+          const conPrevia = new Set((prevFacts || []).map((d: any) => d.empresa_id));
+          const convertidos = empresasFactPeriodo.filter((cid) => !conPrevia.has(cid)).length;
+          setConvertidosPeriodo(convertidos);
+        }
+      } catch (err) {
+        console.warn("[Convertidos] error", err);
+        setConvertidosPeriodo(0);
+      }
     } catch (e: any) {
       toast.error("Error cargando datos: " + e.message);
     } finally {
@@ -541,6 +589,47 @@ export default function SellerPortal() {
   const pctConversionProspectos = prospectosNuevosPeriodo > 0
     ? (prospectosConvertidosEnPeriodo / prospectosNuevosPeriodo) * 100
     : 0;
+
+  // ===== Nuevos KPIs basados en seguimiento_ventas =====
+  // Distintas por company_id (una empresa puede tener seguimiento por marca; deduplicamos para "empresas registradas")
+  const seguimientoByCompany = useMemo(() => {
+    const m = new Map<string, any>();
+    for (const s of seguimientoRows) {
+      if (!s.company_id) continue;
+      const prev = m.get(s.company_id);
+      // Si alguna fila tiene venta y no perdida, esa gana
+      if (!prev) m.set(s.company_id, s);
+      else {
+        const prevActivo = prev.tiene_venta && !prev.perdido;
+        const curActivo = s.tiene_venta && !s.perdido;
+        if (curActivo && !prevActivo) m.set(s.company_id, s);
+        else if (s.tiene_venta && !prev.tiene_venta) m.set(s.company_id, s);
+      }
+    }
+    return m;
+  }, [seguimientoRows]);
+  const empresasRegistradasTotal = seguimientoByCompany.size;
+  const empresasRegistradasPeriodo = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => {
+      const ca = s.companies?.created_at;
+      if (!ca) return;
+      const t = new Date(ca).getTime();
+      if (t >= fromTs && t <= toTs) n += 1;
+    });
+    return n;
+  }, [seguimientoByCompany, fromTs, toTs]);
+  const empresasSinVenta = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => { if (!s.tiene_venta) n += 1; });
+    return n;
+  }, [seguimientoByCompany]);
+  const empresasConVenta = empresasRegistradasTotal - empresasSinVenta;
+  const clientesConVentaActivos = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => { if (s.tiene_venta && !s.perdido) n += 1; });
+    return n;
+  }, [seguimientoByCompany]);
 
   // Score
   const scoreTareas = tasksVencidas.length === 0 ? 20 : Math.max(0, 20 - tasksVencidas.length * 2);
@@ -808,9 +897,27 @@ export default function SellerPortal() {
       {/* KPIs */}
       {/* Fila 1 — Demanda y volumen */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <KpiCard title="Prospectos nuevos" value={prospectosNuevosPeriodo} sub="Pipeline 1ª compra" icon={UserPlus} color="bg-blue-600" />
-        <KpiCard title="Clientes nuevos que compraron" value={clientesNuevosCompraron} sub="Primera compra" icon={Users} color="bg-emerald-600" />
-        <KpiCard title="Clientes con compra" value={clientesConCompra} sub="únicos en periodo" icon={Users} color="bg-emerald-700" />
+        <KpiCard
+          title="Convertidos a con venta"
+          value={convertidosPeriodo}
+          sub="empresas con 1ª factura en periodo"
+          icon={TrendingUp}
+          color="bg-emerald-600"
+        />
+        <KpiCard
+          title="Empresas registradas"
+          value={empresasRegistradasTotal}
+          sub={`${empresasRegistradasPeriodo} en periodo · ${empresasSinVenta} sin venta · ${empresasConVenta} con venta`}
+          icon={UserPlus}
+          color="bg-blue-600"
+        />
+        <KpiCard
+          title="Clientes con venta activos"
+          value={clientesConVentaActivos}
+          sub={`${clientesConCompra} vendidos en periodo`}
+          icon={Users}
+          color="bg-emerald-700"
+        />
         <KpiCard title="Unidades / cliente" value={fmtNum(unidadesPromedioCliente)} sub="promedio" icon={Package} color="bg-amber-700" />
         <KpiCard title="Facturado (Unidades)" value={fmtNum(unidadesFacturadas)} sub="u. equivalentes" icon={Package} color="bg-indigo-600" />
       </div>

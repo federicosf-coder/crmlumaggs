@@ -307,6 +307,8 @@ export default function SeguimientoVentas() {
   const [fPotencial, setFPotencial] = useState<string[]>([]);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
   const [fPlaza, setFPlaza] = useState<string[]>([]);
+  const [fRegistroFrom, setFRegistroFrom] = useState<string>("");
+  const [fRegistroTo, setFRegistroTo] = useState<string>("");
 
   const isPerdidos = tab === "perdidos";
   const tieneVenta = tab === "con_venta" || tab === "perdidos";
@@ -344,6 +346,8 @@ export default function SeguimientoVentas() {
     setFPotencial([]);
     setFEjecutivo([]);
     setFPlaza([]);
+    setFRegistroFrom("");
+    setFRegistroTo("");
   }, [tab]);
 
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta, perdidos: isPerdidos });
@@ -517,7 +521,8 @@ export default function SeguimientoVentas() {
     arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
   const activeFiltersCount =
-    fEstatus.length + fAvance.length + fDias.length + fPotencial.length + fEjecutivo.length + fPlaza.length;
+    fEstatus.length + fAvance.length + fDias.length + fPotencial.length + fEjecutivo.length + fPlaza.length +
+    (fRegistroFrom ? 1 : 0) + (fRegistroTo ? 1 : 0);
 
   const clearAllFilters = () => {
     setFEstatus([]);
@@ -526,6 +531,8 @@ export default function SeguimientoVentas() {
     setFPotencial([]);
     setFEjecutivo([]);
     setFPlaza([]);
+    setFRegistroFrom("");
+    setFRegistroTo("");
   };
 
   const catalogMap = useMemo(() => {
@@ -580,6 +587,13 @@ export default function SeguimientoVentas() {
         sortKey: "plaza",
         cellClassName: "text-xs font-light text-muted-foreground",
         render: (r) => getRowPlazaLabel(r.company_id) || <span className="italic">—</span>,
+      },
+      {
+        id: "registrada",
+        label: "Registrada",
+        sortKey: "registrada",
+        cellClassName: "text-xs font-light text-muted-foreground whitespace-nowrap",
+        render: (r) => r.companies?.created_at ? formatDate(r.companies.created_at) : <span className="italic">—</span>,
       },
       {
         id: "estatus",
@@ -777,6 +791,20 @@ export default function SeguimientoVentas() {
         return ids.some((id) => fPlaza.includes(id));
       });
     }
+    if (fRegistroFrom) {
+      const fromTs = new Date(fRegistroFrom + "T00:00:00").getTime();
+      base = base.filter((r) => {
+        const ca = r.companies?.created_at;
+        return ca ? new Date(ca).getTime() >= fromTs : false;
+      });
+    }
+    if (fRegistroTo) {
+      const toTs = new Date(fRegistroTo + "T23:59:59").getTime();
+      base = base.filter((r) => {
+        const ca = r.companies?.created_at;
+        return ca ? new Date(ca).getTime() <= toTs : false;
+      });
+    }
 
     if (!sort) {
       // Default: urgencia primero, luego recencia
@@ -809,6 +837,10 @@ export default function SeguimientoVentas() {
         case "plaza":
           va = getRowPlazaLabel(a.company_id).toLowerCase();
           vb = getRowPlazaLabel(b.company_id).toLowerCase();
+          break;
+        case "registrada":
+          va = a.companies?.created_at ? new Date(a.companies.created_at).getTime() : 0;
+          vb = b.companies?.created_at ? new Date(b.companies.created_at).getTime() : 0;
           break;
         case "estatus": {
           const ea = catalogMap.get(getEffectiveStatusId(a) || "");
@@ -876,7 +908,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza, profileMap, companyPlazaMap, plazaNameMap, access.accessLevel, access.teamMemberIds, access.userId]);
+  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza, fRegistroFrom, fRegistroTo, profileMap, companyPlazaMap, plazaNameMap, access.accessLevel, access.teamMemberIds, access.userId]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
@@ -1132,6 +1164,39 @@ export default function SeguimientoVentas() {
                     onClear={() => setFPlaza([])}
                     emptyText="Sin plazas"
                   />
+                </div>
+
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
+                    Fecha de registro
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="date"
+                      value={fRegistroFrom}
+                      onChange={(e) => setFRegistroFrom(e.target.value)}
+                      className="h-9 w-[140px] font-light"
+                      placeholder="Desde"
+                    />
+                    <span className="text-xs text-muted-foreground">a</span>
+                    <Input
+                      type="date"
+                      value={fRegistroTo}
+                      onChange={(e) => setFRegistroTo(e.target.value)}
+                      className="h-9 w-[140px] font-light"
+                      placeholder="Hasta"
+                    />
+                    {(fRegistroFrom || fRegistroTo) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => { setFRegistroFrom(""); setFRegistroTo(""); }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
