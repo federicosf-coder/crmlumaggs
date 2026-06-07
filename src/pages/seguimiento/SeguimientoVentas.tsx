@@ -791,6 +791,20 @@ export default function SeguimientoVentas() {
         return ids.some((id) => fPlaza.includes(id));
       });
     }
+    if (fRegistroFrom) {
+      const fromTs = new Date(fRegistroFrom + "T00:00:00").getTime();
+      base = base.filter((r) => {
+        const ca = r.companies?.created_at;
+        return ca ? new Date(ca).getTime() >= fromTs : false;
+      });
+    }
+    if (fRegistroTo) {
+      const toTs = new Date(fRegistroTo + "T23:59:59").getTime();
+      base = base.filter((r) => {
+        const ca = r.companies?.created_at;
+        return ca ? new Date(ca).getTime() <= toTs : false;
+      });
+    }
 
     if (!sort) {
       // Default: urgencia primero, luego recencia
