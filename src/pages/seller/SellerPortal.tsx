@@ -792,6 +792,11 @@ export default function SellerPortal() {
             <Button size="sm" variant="outline" asChild><Link to="/documents/new"><ShoppingCart className="h-3.5 w-3.5" /> Pedido</Link></Button>
             <Button size="sm" variant="outline" asChild><Link to="/cobranza?from=seller-portal"><Wallet className="h-3.5 w-3.5" /> Pago</Link></Button>
             <Button size="sm" variant="outline" onClick={exportCsv}><Download className="h-3.5 w-3.5" /> Exportar</Button>
+            {hasAnyRole(["admin", "manager"]) && (
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/admin/catalogs?cat=linea_margenes"><Percent className="h-3.5 w-3.5" /> Márgenes</Link>
+              </Button>
+            )}
           </div>
         </div>
 
