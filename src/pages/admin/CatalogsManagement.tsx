@@ -1997,7 +1997,7 @@ function LineaMargenesTab() {
           <DialogFooter className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end shrink-0">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={() => save.mutate()} disabled={save.isPending}>
-              {save.isPending ? "Guardando..." : editingId ? "Actualizar" : "Crear"}
+              {save.isPending ? "Guardando..." : editingId ? "Actualizar" : isDuplicating ? "Duplicar" : "Crear"}
             </Button>
           </DialogFooter>
         </DialogContent>
