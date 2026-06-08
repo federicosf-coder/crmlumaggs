@@ -1745,6 +1745,266 @@ function IndustriasTab() {
 }
 
 // ─── Main Page ───────────────────────────────────────────────
+// ─── Márgenes por Línea de Producto ──────────────────────────
+const LINEA_MARGIN_LEVELS = [
+  { key: "margen_uf1", label: "UF1" },
+  { key: "margen_uf2", label: "UF2" },
+  { key: "margen_uf3", label: "UF3" },
+  { key: "margen_uf4", label: "UF4" },
+  { key: "margen_r1",  label: "R1" },
+  { key: "margen_r2",  label: "R2" },
+  { key: "margen_r3",  label: "R3" },
+  { key: "margen_r4",  label: "R4" },
+] as const;
+
+function LineaMargenesTab() {
+  const qc = useQueryClient();
+
+  const { data: lineas = [] } = useQuery({
+    queryKey: ["product_option_values_linea_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_option_values")
+        .select("id,value,is_active")
+        .eq("option_type", "linea")
+        .eq("is_active", true)
+        .order("value");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["producto_linea_margenes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("producto_linea_margenes")
+        .select("*")
+        .order("nombre");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const lineasUsadas = new Set(rows.map((r: any) => r.linea_id).filter(Boolean));
+  const hasGeneral = rows.some((r: any) => r.linea_id === null);
+
+  const emptyForm: any = {
+    linea_id: "", nombre: "", activo: true,
+    margen_uf1: 0, margen_uf2: 0, margen_uf3: 0, margen_uf4: 0,
+    margen_r1: 0, margen_r2: 0, margen_r3: 0, margen_r4: 0,
+  };
+  const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<any>(emptyForm);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const openNew = () => { setEditingId(null); setForm(emptyForm); setOpen(true); };
+  const openEdit = (r: any) => {
+    setEditingId(r.id);
+    setForm({
+      linea_id: r.linea_id || "",
+      nombre: r.nombre || "",
+      activo: r.activo,
+      ...Object.fromEntries(LINEA_MARGIN_LEVELS.map(l => [l.key, Number(r[l.key] ?? 0)])),
+    });
+    setOpen(true);
+  };
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const isGeneral = !form.linea_id;
+      const payload: any = {
+        linea_id: form.linea_id || null,
+        nombre: (form.nombre || "").trim() || (isGeneral ? "General" : (lineas.find((l: any) => l.id === form.linea_id)?.value ?? "")),
+        activo: form.activo,
+      };
+      for (const l of LINEA_MARGIN_LEVELS) payload[l.key] = Number(form[l.key] ?? 0);
+      if (!payload.nombre) throw new Error("El nombre es requerido");
+      if (editingId) {
+        const { error } = await supabase.from("producto_linea_margenes").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("producto_linea_margenes").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["producto_linea_margenes"] });
+      setOpen(false); setEditingId(null); setForm(emptyForm);
+      toast.success(editingId ? "Márgenes actualizados" : "Márgenes creados");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("producto_linea_margenes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["producto_linea_margenes"] });
+      setConfirmDelete(null);
+      toast.success("Eliminado");
+    },
+    onError: (e: any) => { toast.error(e.message); setConfirmDelete(null); },
+  });
+
+  const lineasDisponibles = lineas.filter((l: any) =>
+    !lineasUsadas.has(l.id) || (editingId && form.linea_id === l.id)
+  );
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Tags className="h-4 w-4" /> Márgenes por Línea de Producto
+          </CardTitle>
+          <p className="text-xs text-muted-foreground font-light mt-1">
+            Define los 8 porcentajes de utilidad (UF1-UF4, R1-R4) por Línea. La fila <strong>General</strong> se usa como fallback cuando un producto no tiene línea o su línea no está en este catálogo. Fórmula: <code>Precio = Costo / (1 - margen%/100)</code>.
+          </p>
+        </div>
+        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nuevo</Button>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <p className="text-muted-foreground text-sm">Cargando...</p> : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Línea</TableHead>
+                <TableHead>Nombre</TableHead>
+                <TableHead className="text-xs">Márgenes UF</TableHead>
+                <TableHead className="text-xs">Márgenes R</TableHead>
+                <TableHead>Activo</TableHead>
+                <TableHead className="w-24 text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r: any) => {
+                const lineaName = r.linea_id ? (lineas.find((l: any) => l.id === r.linea_id)?.value ?? "—") : "—";
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">
+                      {r.linea_id === null ? <Badge variant="secondary">General</Badge> : lineaName}
+                    </TableCell>
+                    <TableCell className="text-sm">{r.nombre}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      UF1: {Number(r.margen_uf1).toFixed(1)}% · UF2: {Number(r.margen_uf2).toFixed(1)}%<br/>
+                      UF3: {Number(r.margen_uf3).toFixed(1)}% · UF4: {Number(r.margen_uf4).toFixed(1)}%
+                    </TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      R1: {Number(r.margen_r1).toFixed(1)}% · R2: {Number(r.margen_r2).toFixed(1)}%<br/>
+                      R3: {Number(r.margen_r3).toFixed(1)}% · R4: {Number(r.margen_r4).toFixed(1)}%
+                    </TableCell>
+                    <TableCell><Badge variant={r.activo ? "default" : "secondary"}>{r.activo ? "Sí" : "No"}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setConfirmDelete(r.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {rows.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin registros</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyForm); } }}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b shrink-0">
+            <DialogTitle className="text-lg font-semibold tracking-tight">
+              {editingId ? "Editar márgenes" : "Nuevos márgenes por línea"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-light">
+              Selecciona la Línea de Producto o deja vacío para usar la fila General.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5 px-5 py-5 overflow-y-auto flex-1 font-light">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Línea de Producto</Label>
+                <Select
+                  value={form.linea_id || "__general__"}
+                  onValueChange={v => setForm({ ...form, linea_id: v === "__general__" ? "" : v })}
+                  disabled={!!editingId}
+                >
+                  <SelectTrigger className="h-9 font-light"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__general__" disabled={hasGeneral && !(editingId && !form.linea_id)}>
+                      General (fallback){hasGeneral && !(editingId && !form.linea_id) ? " — ya existe" : ""}
+                    </SelectItem>
+                    {lineasDisponibles.map((l: any) => (
+                      <SelectItem key={l.id} value={l.id}>{l.value}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end gap-2">
+                <Switch checked={form.activo} onCheckedChange={v => setForm({ ...form, activo: v })} />
+                <Label>Activo</Label>
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Nombre</Label>
+                <Input
+                  className="h-9 font-light"
+                  value={form.nombre}
+                  placeholder={form.linea_id ? (lineas.find((l: any) => l.id === form.linea_id)?.value ?? "") : "General"}
+                  onChange={e => setForm({ ...form, nombre: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground mb-2 block">Márgenes de utilidad (%)</Label>
+              <div className="grid grid-cols-4 gap-3">
+                {LINEA_MARGIN_LEVELS.map(lvl => (
+                  <div key={lvl.key}>
+                    <Label className="text-xs">{lvl.label}</Label>
+                    <Input
+                      type="number" step="0.01" min={0} max={99.99}
+                      className="h-9 font-light"
+                      value={form[lvl.key] ?? 0}
+                      onChange={e => setForm({ ...form, [lvl.key]: Number(e.target.value) })}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end shrink-0">
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => save.mutate()} disabled={save.isPending}>
+              {save.isPending ? "Guardando..." : editingId ? "Actualizar" : "Crear"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar registro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Los productos con esa línea usarán la fila General al recalcular precios.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmDelete && remove.mutate(confirmDelete)}>Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+}
+
 type CatalogKey =
   | "plazas" | "vehiculos" | "repartidores" | "tipos_direccion"
   | "presentaciones" | "clasificaciones" | "empresa_marcas"
