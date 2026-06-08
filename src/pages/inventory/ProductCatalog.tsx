@@ -653,7 +653,29 @@ function ProductosTab() {
     try {
       const costo = Number(form.costo_actual ?? 0);
       let margins: any = null;
-      if (form.precio_clasificacion_id) {
+      // 1) Buscar por Línea de Producto en el catálogo "Márgenes por Línea"
+      if (form.linea_id) {
+        const { data, error } = await supabase
+          .from("producto_linea_margenes")
+          .select("*")
+          .eq("linea_id", form.linea_id)
+          .eq("activo", true)
+          .maybeSingle();
+        if (error) throw error;
+        margins = data;
+      }
+      // 2) Fallback: fila "General" del mismo catálogo (linea_id NULL)
+      if (!margins) {
+        const { data, error } = await supabase
+          .from("producto_linea_margenes")
+          .select("*")
+          .is("linea_id", null)
+          .maybeSingle();
+        if (error) throw error;
+        margins = data;
+      }
+      // 3) Compatibilidad: si tampoco existe, intentar la clasificación legacy o márgenes globales
+      if (!margins && form.precio_clasificacion_id) {
         margins = clasificaciones.find((c: any) => c.id === form.precio_clasificacion_id) || null;
       }
       if (!margins) {

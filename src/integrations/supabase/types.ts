@@ -3789,6 +3789,65 @@ export type Database = {
           },
         ]
       }
+      producto_linea_margenes: {
+        Row: {
+          activo: boolean
+          created_at: string
+          id: string
+          linea_id: string | null
+          margen_r1: number
+          margen_r2: number
+          margen_r3: number
+          margen_r4: number
+          margen_uf1: number
+          margen_uf2: number
+          margen_uf3: number
+          margen_uf4: number
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          linea_id?: string | null
+          margen_r1?: number
+          margen_r2?: number
+          margen_r3?: number
+          margen_r4?: number
+          margen_uf1?: number
+          margen_uf2?: number
+          margen_uf3?: number
+          margen_uf4?: number
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          linea_id?: string | null
+          margen_r1?: number
+          margen_r2?: number
+          margen_r3?: number
+          margen_r4?: number
+          margen_uf1?: number
+          margen_uf2?: number
+          margen_uf3?: number
+          margen_uf4?: number
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producto_linea_margenes_linea_id_fkey"
+            columns: ["linea_id"]
+            isOneToOne: true
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productos: {
         Row: {
           aplicacion_id: string | null
