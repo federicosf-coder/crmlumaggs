@@ -2103,7 +2103,10 @@ function renderCatalog(key: CatalogKey) {
 }
 
 export default function CatalogsManagement() {
-  const [active, setActive] = useState<CatalogKey>("plazas");
+  const initial = (typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("cat")
+    : null) as CatalogKey | null;
+  const [active, setActive] = useState<CatalogKey>(initial ?? "plazas");
   const [search, setSearch] = useState("");
 
   const flat = CATALOG_GROUPS.flatMap(g => g.items.map(i => ({ ...i, group: g.label, groupId: g.id })));
