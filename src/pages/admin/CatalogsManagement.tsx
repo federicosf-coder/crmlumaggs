@@ -1796,15 +1796,28 @@ function LineaMargenesTab() {
   };
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   const [form, setForm] = useState<any>(emptyForm);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  const openNew = () => { setEditingId(null); setForm(emptyForm); setOpen(true); };
+  const openNew = () => { setIsDuplicating(false); setEditingId(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (r: any) => {
+    setIsDuplicating(false);
     setEditingId(r.id);
     setForm({
       linea_id: r.linea_id || "",
       nombre: r.nombre || "",
+      activo: r.activo,
+      ...Object.fromEntries(LINEA_MARGIN_LEVELS.map(l => [l.key, Number(r[l.key] ?? 0)])),
+    });
+    setOpen(true);
+  };
+  const openDuplicate = (r: any) => {
+    setIsDuplicating(true);
+    setEditingId(null);
+    setForm({
+      linea_id: "",
+      nombre: r.nombre ? `Copia de ${r.nombre}` : "",
       activo: r.activo,
       ...Object.fromEntries(LINEA_MARGIN_LEVELS.map(l => [l.key, Number(r[l.key] ?? 0)])),
     });
