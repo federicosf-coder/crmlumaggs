@@ -1933,14 +1933,14 @@ function LineaMargenesTab() {
         )}
       </CardContent>
 
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyForm); } }}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setIsDuplicating(false); setForm(emptyForm); } }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b shrink-0">
             <DialogTitle className="text-lg font-semibold tracking-tight">
-              {editingId ? "Editar márgenes" : "Nuevos márgenes por línea"}
+              {editingId ? "Editar márgenes" : isDuplicating ? "Duplicar márgenes" : "Nuevos márgenes por línea"}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground font-light">
-              Selecciona la Línea de Producto o deja vacío para usar la fila General.
+              {isDuplicating ? "Selecciona una nueva Línea de Producto para duplicar los márgenes." : "Selecciona la Línea de Producto o deja vacío para usar la fila General."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5 px-5 py-5 overflow-y-auto flex-1 font-light">
