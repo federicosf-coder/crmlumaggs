@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText, Building2, Truck, User, Mail, Factory, Search, Settings2 } from "lucide-react";
+import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, ChevronRight, Image, Upload, Loader2, FileText, Building2, Truck, User, Mail, Factory, Search, Settings2, Copy } from "lucide-react";
 import { EmailGroupsTab } from "@/components/admin/EmailGroupsTab";
 import { SystemSettingsTab } from "@/components/admin/SystemSettingsTab";
 import { SeguimientoEstatusTab } from "@/components/admin/SeguimientoEstatusTab";
@@ -1796,15 +1796,28 @@ function LineaMargenesTab() {
   };
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   const [form, setForm] = useState<any>(emptyForm);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  const openNew = () => { setEditingId(null); setForm(emptyForm); setOpen(true); };
+  const openNew = () => { setIsDuplicating(false); setEditingId(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (r: any) => {
+    setIsDuplicating(false);
     setEditingId(r.id);
     setForm({
       linea_id: r.linea_id || "",
       nombre: r.nombre || "",
+      activo: r.activo,
+      ...Object.fromEntries(LINEA_MARGIN_LEVELS.map(l => [l.key, Number(r[l.key] ?? 0)])),
+    });
+    setOpen(true);
+  };
+  const openDuplicate = (r: any) => {
+    setIsDuplicating(true);
+    setEditingId(null);
+    setForm({
+      linea_id: "",
+      nombre: r.nombre ? `Copia de ${r.nombre}` : "",
       activo: r.activo,
       ...Object.fromEntries(LINEA_MARGIN_LEVELS.map(l => [l.key, Number(r[l.key] ?? 0)])),
     });
@@ -1902,6 +1915,9 @@ function LineaMargenesTab() {
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDuplicate(r)} title="Duplicar">
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setConfirmDelete(r.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -1917,14 +1933,14 @@ function LineaMargenesTab() {
         )}
       </CardContent>
 
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyForm); } }}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setIsDuplicating(false); setForm(emptyForm); } }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b shrink-0">
             <DialogTitle className="text-lg font-semibold tracking-tight">
-              {editingId ? "Editar márgenes" : "Nuevos márgenes por línea"}
+              {editingId ? "Editar márgenes" : isDuplicating ? "Duplicar márgenes" : "Nuevos márgenes por línea"}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground font-light">
-              Selecciona la Línea de Producto o deja vacío para usar la fila General.
+              {isDuplicating ? "Selecciona una nueva Línea de Producto para duplicar los márgenes." : "Selecciona la Línea de Producto o deja vacío para usar la fila General."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5 px-5 py-5 overflow-y-auto flex-1 font-light">
@@ -1934,7 +1950,7 @@ function LineaMargenesTab() {
                 <Select
                   value={form.linea_id || "__general__"}
                   onValueChange={v => setForm({ ...form, linea_id: v === "__general__" ? "" : v })}
-                  disabled={!!editingId}
+                  disabled={!!editingId && !isDuplicating}
                 >
                   <SelectTrigger className="h-9 font-light"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -1981,7 +1997,7 @@ function LineaMargenesTab() {
           <DialogFooter className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end shrink-0">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={() => save.mutate()} disabled={save.isPending}>
-              {save.isPending ? "Guardando..." : editingId ? "Actualizar" : "Crear"}
+              {save.isPending ? "Guardando..." : editingId ? "Actualizar" : isDuplicating ? "Duplicar" : "Crear"}
             </Button>
           </DialogFooter>
         </DialogContent>
