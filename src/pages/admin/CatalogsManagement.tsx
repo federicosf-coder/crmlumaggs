@@ -1950,7 +1950,7 @@ function LineaMargenesTab() {
                 <Select
                   value={form.linea_id || "__general__"}
                   onValueChange={v => setForm({ ...form, linea_id: v === "__general__" ? "" : v })}
-                  disabled={!!editingId}
+                  disabled={!!editingId && !isDuplicating}
                 >
                   <SelectTrigger className="h-9 font-light"><SelectValue /></SelectTrigger>
                   <SelectContent>
