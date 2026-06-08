@@ -1748,6 +1748,7 @@ function IndustriasTab() {
 type CatalogKey =
   | "plazas" | "vehiculos" | "repartidores" | "tipos_direccion"
   | "presentaciones" | "clasificaciones" | "empresa_marcas"
+  | "linea_margenes"
   | "industrias" | "embudos" | "condiciones"
   | "logos"
   | "seguimiento_estatus"
@@ -1776,6 +1777,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     items: [
       { key: "presentaciones", label: "Presentaciones" },
       { key: "clasificaciones", label: "Clasificaciones de Producto" },
+      { key: "linea_margenes", label: "Márgenes por Línea de Producto", description: "Define los 8 % de utilidad por línea" },
       { key: "empresa_marcas", label: "Marcas por Empresa" },
     ],
   },
@@ -1813,6 +1815,7 @@ function renderCatalog(key: CatalogKey) {
     case "tipos_direccion": return <TiposDireccionTab />;
     case "presentaciones": return <PresentacionesTab />;
     case "clasificaciones": return <OptionsTab />;
+    case "linea_margenes": return <LineaMargenesTab />;
     case "empresa_marcas": return <EmpresaMarcasTab />;
     case "industrias": return <IndustriasTab />;
     case "condiciones": return <CondicionesTab />;
