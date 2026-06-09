@@ -394,7 +394,7 @@ export default function SellerPortal() {
       try {
         let sgQ = supabase
           .from("seguimiento_ventas")
-          .select("id, company_id, tiene_venta, perdido, owner_id, empresa_vendedora, companies:company_id(id, created_at)")
+          .select("id, company_id, tiene_venta, perdido, fecha_perdida, owner_id, empresa_vendedora, companies:company_id(id, created_at)")
           .in("empresa_vendedora", marcasSeleccionadas as any)
           .limit(20000);
         if (uIds) sgQ = sgQ.in("owner_id", uIds);
@@ -654,6 +654,61 @@ export default function SellerPortal() {
     });
     return n;
   }, [seguimientoByCompany, fromTs, toTs]);
+
+  // Clientes perdidos (total y en periodo según fecha_perdida)
+  const empresasPerdidasTotal = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => { if (s.perdido) n += 1; });
+    return n;
+  }, [seguimientoByCompany]);
+  const empresasPerdidasPeriodo = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => {
+      if (!s.perdido) return;
+      const fp = s.fecha_perdida;
+      if (!fp) return;
+      const t = new Date(fp).getTime();
+      if (t >= fromTs && t <= toTs) n += 1;
+    });
+    return n;
+  }, [seguimientoByCompany, fromTs, toTs]);
+
+  // Conversión por segmento de Seguimiento a Ventas (sin venta / con venta activos)
+  const companiesSinVentaSet = useMemo(() => {
+    const s = new Set<string>();
+    seguimientoByCompany.forEach((r, cid) => { if (!r.tiene_venta) s.add(cid); });
+    return s;
+  }, [seguimientoByCompany]);
+  const companiesConVentaActivasSet = useMemo(() => {
+    const s = new Set<string>();
+    seguimientoByCompany.forEach((r, cid) => { if (r.tiene_venta && !r.perdido) s.add(cid); });
+    return s;
+  }, [seguimientoByCompany]);
+
+  const buildConvFromCompanies = (companyIds: Set<string>) => {
+    const docsDe = (tipo: string) =>
+      docs.filter((d: any) =>
+        d.tipo_documento === tipo &&
+        (tipo !== "factura" || d.estatus_factura !== "cancelada") &&
+        companyIds.has(d.empresa_id)
+      );
+    const distinct = (rows: any[]) =>
+      new Set(rows.map((r: any) => r.empresa_id).filter(Boolean)).size;
+    const cotDocs = docsDe("cotizacion");
+    const pedDocs = docsDe("pedido");
+    const facDocs = docsDe("factura");
+    return {
+      activos: companyIds.size,
+      cotizados: distinct(cotDocs),
+      pedidos: distinct(pedDocs),
+      facturados: distinct(facDocs),
+      uCot: cotDocs.reduce((a: number, b: any) => a + Number(b.unidades_equivalentes_total || 0), 0),
+      uPed: pedDocs.reduce((a: number, b: any) => a + Number(b.unidades_equivalentes_total || 0), 0),
+      uFac: facDocs.reduce((a: number, b: any) => a + Number(b.unidades_equivalentes_total || 0), 0),
+    };
+  };
+  const convSinVenta = buildConvFromCompanies(companiesSinVentaSet);
+  const convConVenta = buildConvFromCompanies(companiesConVentaActivasSet);
 
   // Score
   const scoreTareas = tasksVencidas.length === 0 ? 20 : Math.max(0, 20 - tasksVencidas.length * 2);
@@ -920,7 +975,7 @@ export default function SellerPortal() {
 
       {/* KPIs */}
       {/* Fila 1 — Demanda y volumen */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <KpiCard
           title="Convertidos a con venta"
           value={convertidosPeriodo}
@@ -955,6 +1010,13 @@ export default function SellerPortal() {
           icon={Users}
           color="bg-emerald-700"
         />
+        <KpiCard
+          title="Clientes perdidos"
+          value={empresasPerdidasTotal}
+          sub={`${empresasPerdidasPeriodo} perdidos en periodo`}
+          icon={AlertTriangle}
+          color="bg-rose-700"
+        />
         <KpiCard title="Unidades / cliente" value={fmtNum(unidadesPromedioCliente)} sub="promedio" icon={Package} color="bg-amber-700" />
         <KpiCard title="Facturado (Unidades)" value={fmtNum(unidadesFacturadas)} sub="u. equivalentes" icon={Package} color="bg-indigo-600" />
       </div>
@@ -980,23 +1042,23 @@ export default function SellerPortal() {
       {/* Conversiones */}
       <div className="grid md:grid-cols-2 gap-3">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Conversión · Clientes nuevos (Primera compra)</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Conversión · Clientes sin venta</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <ConvBar label="Activos" value={convNuevos.activos} max={convNuevos.activos} color="bg-blue-500" />
-            <ConvBar label="Cotizados" value={convNuevos.cotizados} max={convNuevos.activos} color="bg-blue-600" />
-            <ConvBar label="Pedido" value={convNuevos.pedidos} max={convNuevos.activos} color="bg-indigo-600" />
-            <ConvBar label="Facturados" value={convNuevos.facturados} max={convNuevos.activos} color="bg-green-600" />
-            <p className="text-xs text-muted-foreground pt-2">Unid. equiv: {fmtNum(convNuevos.uCot)} cot · {fmtNum(convNuevos.uPed)} ped · {fmtNum(convNuevos.uFac)} fact</p>
+            <ConvBar label="Activos" value={convSinVenta.activos} max={convSinVenta.activos} color="bg-amber-500" />
+            <ConvBar label="Cotizados" value={convSinVenta.cotizados} max={convSinVenta.activos} color="bg-blue-600" />
+            <ConvBar label="Pedido" value={convSinVenta.pedidos} max={convSinVenta.activos} color="bg-indigo-600" />
+            <ConvBar label="Facturados" value={convSinVenta.facturados} max={convSinVenta.activos} color="bg-green-600" />
+            <p className="text-xs text-muted-foreground pt-2">Unid. equiv: {fmtNum(convSinVenta.uCot)} cot · {fmtNum(convSinVenta.uPed)} ped · {fmtNum(convSinVenta.uFac)} fact</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Conversión · Recompra</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Conversión · Clientes con venta</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <ConvBar label="Activos" value={convRecompra.activos} max={convRecompra.activos} color="bg-purple-500" />
-            <ConvBar label="Cotizados" value={convRecompra.cotizados} max={convRecompra.activos} color="bg-purple-600" />
-            <ConvBar label="Pedido" value={convRecompra.pedidos} max={convRecompra.activos} color="bg-indigo-600" />
-            <ConvBar label="Facturados" value={convRecompra.facturados} max={convRecompra.activos} color="bg-green-600" />
-            <p className="text-xs text-muted-foreground pt-2">Unid. equiv: {fmtNum(convRecompra.uCot)} cot · {fmtNum(convRecompra.uPed)} ped · {fmtNum(convRecompra.uFac)} fact</p>
+            <ConvBar label="Activos" value={convConVenta.activos} max={convConVenta.activos} color="bg-emerald-500" />
+            <ConvBar label="Cotizados" value={convConVenta.cotizados} max={convConVenta.activos} color="bg-blue-600" />
+            <ConvBar label="Pedido" value={convConVenta.pedidos} max={convConVenta.activos} color="bg-indigo-600" />
+            <ConvBar label="Facturados" value={convConVenta.facturados} max={convConVenta.activos} color="bg-green-600" />
+            <p className="text-xs text-muted-foreground pt-2">Unid. equiv: {fmtNum(convConVenta.uCot)} cot · {fmtNum(convConVenta.uPed)} ped · {fmtNum(convConVenta.uFac)} fact</p>
           </CardContent>
         </Card>
       </div>
