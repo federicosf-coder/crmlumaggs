@@ -975,7 +975,7 @@ export default function SellerPortal() {
 
       {/* KPIs */}
       {/* Fila 1 — Demanda y volumen */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <KpiCard
           title="Convertidos a con venta"
           value={convertidosPeriodo}
@@ -1010,6 +1010,13 @@ export default function SellerPortal() {
           icon={Users}
           color="bg-emerald-700"
         />
+        <KpiCard
+          title="Clientes perdidos"
+          value={empresasPerdidasTotal}
+          sub={`${empresasPerdidasPeriodo} perdidos en periodo`}
+          icon={AlertTriangle}
+          color="bg-rose-700"
+        />
         <KpiCard title="Unidades / cliente" value={fmtNum(unidadesPromedioCliente)} sub="promedio" icon={Package} color="bg-amber-700" />
         <KpiCard title="Facturado (Unidades)" value={fmtNum(unidadesFacturadas)} sub="u. equivalentes" icon={Package} color="bg-indigo-600" />
       </div>
@@ -1035,23 +1042,23 @@ export default function SellerPortal() {
       {/* Conversiones */}
       <div className="grid md:grid-cols-2 gap-3">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Conversión · Clientes nuevos (Primera compra)</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Conversión · Clientes sin venta</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <ConvBar label="Activos" value={convNuevos.activos} max={convNuevos.activos} color="bg-blue-500" />
-            <ConvBar label="Cotizados" value={convNuevos.cotizados} max={convNuevos.activos} color="bg-blue-600" />
-            <ConvBar label="Pedido" value={convNuevos.pedidos} max={convNuevos.activos} color="bg-indigo-600" />
-            <ConvBar label="Facturados" value={convNuevos.facturados} max={convNuevos.activos} color="bg-green-600" />
-            <p className="text-xs text-muted-foreground pt-2">Unid. equiv: {fmtNum(convNuevos.uCot)} cot · {fmtNum(convNuevos.uPed)} ped · {fmtNum(convNuevos.uFac)} fact</p>
+            <ConvBar label="Activos" value={convSinVenta.activos} max={convSinVenta.activos} color="bg-amber-500" />
+            <ConvBar label="Cotizados" value={convSinVenta.cotizados} max={convSinVenta.activos} color="bg-blue-600" />
+            <ConvBar label="Pedido" value={convSinVenta.pedidos} max={convSinVenta.activos} color="bg-indigo-600" />
+            <ConvBar label="Facturados" value={convSinVenta.facturados} max={convSinVenta.activos} color="bg-green-600" />
+            <p className="text-xs text-muted-foreground pt-2">Unid. equiv: {fmtNum(convSinVenta.uCot)} cot · {fmtNum(convSinVenta.uPed)} ped · {fmtNum(convSinVenta.uFac)} fact</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Conversión · Recompra</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Conversión · Clientes con venta</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <ConvBar label="Activos" value={convRecompra.activos} max={convRecompra.activos} color="bg-purple-500" />
-            <ConvBar label="Cotizados" value={convRecompra.cotizados} max={convRecompra.activos} color="bg-purple-600" />
-            <ConvBar label="Pedido" value={convRecompra.pedidos} max={convRecompra.activos} color="bg-indigo-600" />
-            <ConvBar label="Facturados" value={convRecompra.facturados} max={convRecompra.activos} color="bg-green-600" />
-            <p className="text-xs text-muted-foreground pt-2">Unid. equiv: {fmtNum(convRecompra.uCot)} cot · {fmtNum(convRecompra.uPed)} ped · {fmtNum(convRecompra.uFac)} fact</p>
+            <ConvBar label="Activos" value={convConVenta.activos} max={convConVenta.activos} color="bg-emerald-500" />
+            <ConvBar label="Cotizados" value={convConVenta.cotizados} max={convConVenta.activos} color="bg-blue-600" />
+            <ConvBar label="Pedido" value={convConVenta.pedidos} max={convConVenta.activos} color="bg-indigo-600" />
+            <ConvBar label="Facturados" value={convConVenta.facturados} max={convConVenta.activos} color="bg-green-600" />
+            <p className="text-xs text-muted-foreground pt-2">Unid. equiv: {fmtNum(convConVenta.uCot)} cot · {fmtNum(convConVenta.uPed)} ped · {fmtNum(convConVenta.uFac)} fact</p>
           </CardContent>
         </Card>
       </div>
