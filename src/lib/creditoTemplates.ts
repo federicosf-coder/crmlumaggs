@@ -157,13 +157,6 @@ export function renderTemplate(html: string, tokens: Record<string, string>): st
 // Plantilla por defecto para "Recursos de Procedencia Lícita" (LFPIORPI).
 // Se usa cuando no existe un registro en credit_doc_templates para la key "lfpiorpi".
 export const LFPIORPI_DEFAULT_HTML = `
-<div class="header">
-  <div class="header-title" style="text-align:center;width:100%">
-    <div class="empresa">{{empresa_vendedora_nombre_largo}}</div>
-    <div class="doc-name">Declaración de Origen y Licitud de Recursos (LFPIORPI)</div>
-  </div>
-</div>
-
 <p class="doc-right"><strong>LUGAR Y FECHA:</strong> {{ciudad_firma}}, a {{fecha_firma}}</p>
 
 <p style="text-align:center;margin-top:10pt"><strong>ASUNTO: DECLARACIÓN DE ORIGEN Y LICITUD DE RECURSOS</strong></p>
