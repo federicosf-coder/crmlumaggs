@@ -655,6 +655,61 @@ export default function SellerPortal() {
     return n;
   }, [seguimientoByCompany, fromTs, toTs]);
 
+  // Clientes perdidos (total y en periodo según fecha_perdida)
+  const empresasPerdidasTotal = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => { if (s.perdido) n += 1; });
+    return n;
+  }, [seguimientoByCompany]);
+  const empresasPerdidasPeriodo = useMemo(() => {
+    let n = 0;
+    seguimientoByCompany.forEach((s) => {
+      if (!s.perdido) return;
+      const fp = s.fecha_perdida;
+      if (!fp) return;
+      const t = new Date(fp).getTime();
+      if (t >= fromTs && t <= toTs) n += 1;
+    });
+    return n;
+  }, [seguimientoByCompany, fromTs, toTs]);
+
+  // Conversión por segmento de Seguimiento a Ventas (sin venta / con venta activos)
+  const companiesSinVentaSet = useMemo(() => {
+    const s = new Set<string>();
+    seguimientoByCompany.forEach((r, cid) => { if (!r.tiene_venta) s.add(cid); });
+    return s;
+  }, [seguimientoByCompany]);
+  const companiesConVentaActivasSet = useMemo(() => {
+    const s = new Set<string>();
+    seguimientoByCompany.forEach((r, cid) => { if (r.tiene_venta && !r.perdido) s.add(cid); });
+    return s;
+  }, [seguimientoByCompany]);
+
+  const buildConvFromCompanies = (companyIds: Set<string>) => {
+    const docsDe = (tipo: string) =>
+      docs.filter((d: any) =>
+        d.tipo_documento === tipo &&
+        (tipo !== "factura" || d.estatus_factura !== "cancelada") &&
+        companyIds.has(d.empresa_id)
+      );
+    const distinct = (rows: any[]) =>
+      new Set(rows.map((r: any) => r.empresa_id).filter(Boolean)).size;
+    const cotDocs = docsDe("cotizacion");
+    const pedDocs = docsDe("pedido");
+    const facDocs = docsDe("factura");
+    return {
+      activos: companyIds.size,
+      cotizados: distinct(cotDocs),
+      pedidos: distinct(pedDocs),
+      facturados: distinct(facDocs),
+      uCot: cotDocs.reduce((a: number, b: any) => a + Number(b.unidades_equivalentes_total || 0), 0),
+      uPed: pedDocs.reduce((a: number, b: any) => a + Number(b.unidades_equivalentes_total || 0), 0),
+      uFac: facDocs.reduce((a: number, b: any) => a + Number(b.unidades_equivalentes_total || 0), 0),
+    };
+  };
+  const convSinVenta = buildConvFromCompanies(companiesSinVentaSet);
+  const convConVenta = buildConvFromCompanies(companiesConVentaActivasSet);
+
   // Score
   const scoreTareas = tasksVencidas.length === 0 ? 20 : Math.max(0, 20 - tasksVencidas.length * 2);
   const scoreProspectos = Math.min(20, dealsEnRango.length * 5);
