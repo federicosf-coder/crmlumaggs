@@ -1042,7 +1042,7 @@ export default function SellerPortal() {
       {/* Conversiones */}
       <div className="grid md:grid-cols-2 gap-3">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Conversión · Clientes sin venta</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Clientes sin venta</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             <ConvBar label="Activos" value={convSinVenta.activos} max={convSinVenta.activos} color="bg-amber-500" />
             <ConvBar label="Cotizados" value={convSinVenta.cotizados} max={convSinVenta.activos} color="bg-blue-600" />
@@ -1052,7 +1052,7 @@ export default function SellerPortal() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Conversión · Clientes con venta</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Clientes con venta</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             <ConvBar label="Activos" value={convConVenta.activos} max={convConVenta.activos} color="bg-emerald-500" />
             <ConvBar label="Cotizados" value={convConVenta.cotizados} max={convConVenta.activos} color="bg-blue-600" />
