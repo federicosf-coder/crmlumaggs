@@ -361,6 +361,57 @@ export type Database = {
         }
         Relationships: []
       }
+      catalogo_externo_productos: {
+        Row: {
+          aplicacion: string | null
+          codigo_proveedor: string | null
+          created_at: string
+          empaque: string | null
+          empresa_vendedora: string
+          familia: string | null
+          id: string
+          is_active: boolean
+          nombre: string
+          precio_lista_mxn: number | null
+          precio_lista_usd: number | null
+          precio_por_uom: number | null
+          uom: string | null
+          updated_at: string
+        }
+        Insert: {
+          aplicacion?: string | null
+          codigo_proveedor?: string | null
+          created_at?: string
+          empaque?: string | null
+          empresa_vendedora: string
+          familia?: string | null
+          id?: string
+          is_active?: boolean
+          nombre: string
+          precio_lista_mxn?: number | null
+          precio_lista_usd?: number | null
+          precio_por_uom?: number | null
+          uom?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aplicacion?: string | null
+          codigo_proveedor?: string | null
+          created_at?: string
+          empaque?: string | null
+          empresa_vendedora?: string
+          familia?: string | null
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          precio_lista_mxn?: number | null
+          precio_lista_usd?: number | null
+          precio_por_uom?: number | null
+          uom?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cobranza_aplicaciones: {
         Row: {
           creado_por: string | null
@@ -3857,6 +3908,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           descripcion: string | null
+          es_para_cotizar: boolean
           formula_id: string | null
           id: string
           is_active: boolean
@@ -3886,6 +3938,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
+          es_para_cotizar?: boolean
           formula_id?: string | null
           id?: string
           is_active?: boolean
@@ -3915,6 +3968,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
+          es_para_cotizar?: boolean
           formula_id?: string | null
           id?: string
           is_active?: boolean
@@ -4491,6 +4545,83 @@ export type Database = {
             columns: ["motivo_perdida_id"]
             isOneToOne: false
             referencedRelation: "motivos_perdida"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solicitudes_producto: {
+        Row: {
+          aprobado_por: string | null
+          cantidad_solicitada: number
+          catalogo_producto_id: string | null
+          created_at: string
+          descripcion_adicional: string | null
+          empresa_vendedora: string
+          estatus: string
+          fecha_aprobacion: string | null
+          fecha_pedido: string | null
+          fecha_recepcion: string | null
+          fotos_urls: string[]
+          id: string
+          justificacion: string
+          marca_externa: string | null
+          motivo_rechazo: string | null
+          nombre_producto: string
+          notas_internas: string | null
+          solicitado_por: string | null
+          unidad: string
+          updated_at: string
+        }
+        Insert: {
+          aprobado_por?: string | null
+          cantidad_solicitada: number
+          catalogo_producto_id?: string | null
+          created_at?: string
+          descripcion_adicional?: string | null
+          empresa_vendedora: string
+          estatus?: string
+          fecha_aprobacion?: string | null
+          fecha_pedido?: string | null
+          fecha_recepcion?: string | null
+          fotos_urls?: string[]
+          id?: string
+          justificacion: string
+          marca_externa?: string | null
+          motivo_rechazo?: string | null
+          nombre_producto: string
+          notas_internas?: string | null
+          solicitado_por?: string | null
+          unidad?: string
+          updated_at?: string
+        }
+        Update: {
+          aprobado_por?: string | null
+          cantidad_solicitada?: number
+          catalogo_producto_id?: string | null
+          created_at?: string
+          descripcion_adicional?: string | null
+          empresa_vendedora?: string
+          estatus?: string
+          fecha_aprobacion?: string | null
+          fecha_pedido?: string | null
+          fecha_recepcion?: string | null
+          fotos_urls?: string[]
+          id?: string
+          justificacion?: string
+          marca_externa?: string | null
+          motivo_rechazo?: string | null
+          nombre_producto?: string
+          notas_internas?: string | null
+          solicitado_por?: string | null
+          unidad?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_producto_catalogo_producto_id_fkey"
+            columns: ["catalogo_producto_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_externo_productos"
             referencedColumns: ["id"]
           },
         ]
@@ -5843,6 +5974,7 @@ export type Database = {
         | "biblioteca"
         | "credito"
         | "seguimiento_ventas"
+        | "catalogo_extendido"
       app_role:
         | "admin"
         | "manager"
@@ -6177,6 +6309,7 @@ export const Constants = {
         "biblioteca",
         "credito",
         "seguimiento_ventas",
+        "catalogo_extendido",
       ],
       app_role: [
         "admin",
