@@ -375,6 +375,8 @@ export type Database = {
           precio_lista_mxn: number | null
           precio_lista_usd: number | null
           precio_por_uom: number | null
+          precio_por_uom_mxn: number | null
+          precio_por_uom_usd: number | null
           uom: string | null
           updated_at: string
         }
@@ -391,6 +393,8 @@ export type Database = {
           precio_lista_mxn?: number | null
           precio_lista_usd?: number | null
           precio_por_uom?: number | null
+          precio_por_uom_mxn?: number | null
+          precio_por_uom_usd?: number | null
           uom?: string | null
           updated_at?: string
         }
@@ -407,6 +411,8 @@ export type Database = {
           precio_lista_mxn?: number | null
           precio_lista_usd?: number | null
           precio_por_uom?: number | null
+          precio_por_uom_mxn?: number | null
+          precio_por_uom_usd?: number | null
           uom?: string | null
           updated_at?: string
         }
@@ -5759,6 +5765,10 @@ export type Database = {
       brand_from_empresa_vendedora: {
         Args: { _ev: Database["public"]["Enums"]["empresa_vendedora"] }
         Returns: string
+      }
+      calcular_precios_catalogo_externo: {
+        Args: { p_clasificacion_id?: string; p_costo: number }
+        Returns: Json
       }
       can_view_company: {
         Args: { _company_id: string; _created_by: string; _user_id: string }
