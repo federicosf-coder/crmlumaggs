@@ -10,6 +10,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 28;
+  const topMargin = 43; // 1.5 cm
   const brandColor: [number, number, number] = [56, 84, 186];
   const destructive: [number, number, number] = [200, 40, 40];
   const warning: [number, number, number] = [200, 130, 20];
@@ -19,20 +20,20 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
 
   // Header (compact)
   doc.setFillColor(...brandColor);
-  doc.rect(0, 0, pageW, 44, "F");
+  doc.rect(0, topMargin, pageW, 44, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text(d.empresaNombre, margin, 20);
+  doc.text(d.empresaNombre, margin, topMargin + 20);
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("Crédito y Cobranza", margin, 36);
+  doc.text("Crédito y Cobranza", margin, topMargin + 36);
   doc.setFontSize(9);
-  doc.text(`Fecha: ${d.fechaGeneracion}`, pageW - margin, 20, { align: "right" });
-  if (d.razonSocial) doc.text(d.razonSocial, pageW - margin, 34, { align: "right" });
+  doc.text(`Fecha: ${d.fechaGeneracion}`, pageW - margin, topMargin + 20, { align: "right" });
+  if (d.razonSocial) doc.text(d.razonSocial, pageW - margin, topMargin + 34, { align: "right" });
 
   doc.setTextColor(0, 0, 0);
-  let y = 56;
+  let y = topMargin + 56;
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.text(`Límite: ${fmt(d.limiteCredito)}`, margin, y);
