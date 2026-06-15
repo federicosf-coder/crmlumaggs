@@ -25,6 +25,8 @@ export interface FacturaRow {
   tipoPago: string;
   total: number;
   saldo: number;
+  /** Días vencida (positivo) o días para vencer (positivo) según contexto de la tabla. */
+  dias?: number;
 }
 
 export interface CobranzaReportInput {
@@ -38,6 +40,8 @@ export interface CobranzaReportInput {
   buckets: BucketData[];   // 3
   /** Facturas vencidas */
   facturas: FacturaRow[];
+  /** Facturas por vencer en 1-5 días */
+  facturasPorVencer?: FacturaRow[];
 }
 
 const fmtCurrency = (n: number) =>
