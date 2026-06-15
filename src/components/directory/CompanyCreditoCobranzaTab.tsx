@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, FileDown, Save, CreditCard, TrendingUp, AlertTriangle, Wallet } from "lucide-react";
+import { Loader2, FileDown, Save, CreditCard, TrendingUp, AlertTriangle, Wallet, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,10 +101,17 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard title="Total Facturado" value={formatCurrency(data.totalFacturadoImporte)} subtitle={`${data.totalFacturadoCount} facturas`} icon={<TrendingUp className="h-4 w-4" />} accent="text-primary" />
         <KpiCard title="Vigente" value={formatCurrency(data.vigenteImporte)} subtitle={`${data.vigenteCount} facturas`} icon={<Wallet className="h-4 w-4" />} accent="text-emerald-600" />
         <KpiCard title="Vencido" value={formatCurrency(data.vencidoImporte)} subtitle={`${data.vencidoCount} facturas`} icon={<AlertTriangle className="h-4 w-4" />} accent="text-destructive" />
+        <KpiCard
+          title="Total Facturas Pagadas"
+          value={String(data.pagadasCount)}
+          subtitle={`${data.pagadasVencidasPct.toFixed(1)}% pagadas vencidas · ${data.pagadasVigentesPct.toFixed(1)}% pagadas vigentes`}
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          accent="text-blue-600"
+        />
       </div>
 
       {/* Buckets */}

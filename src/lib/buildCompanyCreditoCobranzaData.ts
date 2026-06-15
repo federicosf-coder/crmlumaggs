@@ -31,6 +31,12 @@ export interface CompanyCreditoCobranzaData {
   vigenteCount: number;
   vencidoImporte: number;
   vencidoCount: number;
+  pagadasCount: number;
+  pagadasImporte: number;
+  pagadasVencidasCount: number;
+  pagadasVigentesCount: number;
+  pagadasVencidasPct: number;
+  pagadasVigentesPct: number;
   buckets: BucketRow[];
   vencidas: CompanyCobranzaFactura[];
   porVencer: CompanyCobranzaFactura[];
@@ -71,6 +77,35 @@ export async function buildCompanyCreditoCobranzaData(companyId: string): Promis
   const noCanceladas = facturas.filter(f => (f.estatus_factura || "").toLowerCase() !== "cancelada");
   const abiertas = noCanceladas.filter(f => Number(f.saldo_pendiente_cobranza || 0) > 0
     && (f.estatus_factura || "").toLowerCase() !== "pagada");
+
+  const pagadasArr = noCanceladas.filter(f => (f.estatus_factura || "").toLowerCase() === "pagada");
+
+  // Determinar si cada factura pagada se pagó vencida o vigente, según última aplicación
+  let pagadasVencidasCount = 0;
+  let pagadasVigentesCount = 0;
+  if (pagadasArr.length > 0) {
+    const ids = pagadasArr.map(f => f.id);
+    const { data: apps } = await (supabase as any)
+      .from("cobranza_aplicaciones")
+      .select("documento_id, fecha_aplicacion")
+      .eq("tipo_documento", "factura")
+      .in("documento_id", ids);
+    const lastByDoc = new Map<string, string>();
+    (apps || []).forEach((a: any) => {
+      const cur = lastByDoc.get(a.documento_id);
+      if (!cur || (a.fecha_aplicacion && a.fecha_aplicacion > cur)) {
+        lastByDoc.set(a.documento_id, a.fecha_aplicacion);
+      }
+    });
+    pagadasArr.forEach(f => {
+      const last = lastByDoc.get(f.id);
+      if (last && f.fecha_vencimiento && last > f.fecha_vencimiento) pagadasVencidasCount++;
+      else pagadasVigentesCount++;
+    });
+  }
+  const pagadasTotal = pagadasArr.length;
+  const pagadasVencidasPct = pagadasTotal ? (pagadasVencidasCount / pagadasTotal) * 100 : 0;
+  const pagadasVigentesPct = pagadasTotal ? (pagadasVigentesCount / pagadasTotal) * 100 : 0;
 
   const isVencida = (f: any) => (f.estatus_factura || "").toLowerCase() === "vencida";
   const vencidasArr = abiertas.filter(isVencida);
@@ -135,6 +170,12 @@ export async function buildCompanyCreditoCobranzaData(companyId: string): Promis
     vigenteCount: vigenteArr.length,
     vencidoImporte: sumSaldo(vencidasArr),
     vencidoCount: vencidasArr.length,
+    pagadasCount: pagadasTotal,
+    pagadasImporte: sumTotal(pagadasArr),
+    pagadasVencidasCount,
+    pagadasVigentesCount,
+    pagadasVencidasPct,
+    pagadasVigentesPct,
     buckets,
     vencidas,
     porVencer,
