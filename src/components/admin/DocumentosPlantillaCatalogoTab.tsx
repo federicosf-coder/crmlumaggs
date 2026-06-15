@@ -34,9 +34,9 @@ export function DocumentosPlantillaCatalogoTab() {
   const fileRef = useRef<HTMLInputElement>(null);
   const editFileRef = useRef<HTMLInputElement>(null);
 
-  const { data: items = [], isLoading } = useQuery({
+  const { data: items = [], isLoading } = useQuery<TemplateCatalogDocument[]>({
     queryKey: ["template-document-catalog"],
-    queryFn: listTemplateDocumentCatalog,
+    queryFn: () => listTemplateDocumentCatalog(),
   });
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["template-document-catalog"] });
