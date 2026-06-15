@@ -5,12 +5,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Paperclip, Upload, Trash2, Eye, Download, FileText, Loader2, FileDown } from "lucide-react";
+import { Paperclip, Upload, Trash2, Eye, Download, FileText, Loader2, FolderOpen } from "lucide-react";
 import {
   ALLOWED_ATTACHMENT_MIME, MAX_ATTACHMENT_SIZE, TEMPLATE_ATTACHMENTS_BUCKET,
   TemplateAttachment, getAttachmentPublicUrl, isImageMime, listTemplateAttachments,
 } from "@/lib/templates";
-import { AttachCobranzaReportDialog } from "./AttachCobranzaReportDialog";
+import { SelectCatalogDocumentDialog } from "./SelectCatalogDocumentDialog";
 
 interface Props {
   templateId: string | null;
@@ -29,7 +29,7 @@ export function TemplateAttachmentsManager({ templateId, readOnly = false }: Pro
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [openCobranza, setOpenCobranza] = useState(false);
+  const [openCatalog, setOpenCatalog] = useState(false);
 
   const { data: attachments = [], isLoading } = useQuery({
     queryKey: ["template-attachments", templateId],
@@ -105,12 +105,12 @@ export function TemplateAttachmentsManager({ templateId, readOnly = false }: Pro
           <div className="flex gap-2">
             <Button
               type="button" variant="outline" size="sm"
-              onClick={() => setOpenCobranza(true)}
+              onClick={() => setOpenCatalog(true)}
               disabled={uploading}
-              title="Genera el reporte con los datos actuales y lo adjunta"
+              title="Elegir documentos del catálogo"
             >
-              <FileDown className="h-4 w-4 mr-1" />
-              Dashboard de Cobranza
+              <FolderOpen className="h-4 w-4 mr-1" />
+              Catálogo de Documentos
             </Button>
             <Button
               type="button" variant="outline" size="sm"
@@ -181,9 +181,9 @@ export function TemplateAttachmentsManager({ templateId, readOnly = false }: Pro
       )}
 
       {templateId && (
-        <AttachCobranzaReportDialog
-          open={openCobranza}
-          onOpenChange={setOpenCobranza}
+        <SelectCatalogDocumentDialog
+          open={openCatalog}
+          onOpenChange={setOpenCatalog}
           templateId={templateId}
           onAttached={refresh}
         />
