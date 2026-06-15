@@ -92,6 +92,10 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
                 <span className="ml-1">Guardar</span>
               </Button>
             </div>
+            <div className="flex gap-4 text-xs text-muted-foreground pt-1">
+              <span>Utilizado: <span className="font-mono font-semibold text-foreground">{formatCurrency(data.creditoUtilizado)}</span></span>
+              <span>Disponible: <span className="font-mono font-semibold text-foreground">{formatCurrency(data.creditoDisponible)}</span></span>
+            </div>
           </div>
           <Button variant="outline" size="sm" onClick={handleDownload} disabled={downloading}>
             {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}

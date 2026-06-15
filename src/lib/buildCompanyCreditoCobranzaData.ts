@@ -24,6 +24,8 @@ export interface CompanyCreditoCobranzaData {
   empresaNombre: string;
   razonSocial?: string | null;
   limiteCredito: number;
+  creditoUtilizado: number;
+  creditoDisponible: number;
   // KPIs (excluye canceladas)
   totalFacturadoImporte: number;
   totalFacturadoCount: number;
@@ -164,6 +166,8 @@ export async function buildCompanyCreditoCobranzaData(companyId: string): Promis
     empresaNombre: empresa?.name || "Empresa",
     razonSocial: empresa?.razon_social || null,
     limiteCredito: Number(empresa?.limite_credito || 0),
+    creditoUtilizado: sumSaldo(abiertas),
+    creditoDisponible: Number(empresa?.limite_credito || 0) - sumSaldo(abiertas),
     totalFacturadoImporte: sumTotal(noCanceladas),
     totalFacturadoCount: noCanceladas.length,
     vigenteImporte: sumSaldo(vigenteArr),
