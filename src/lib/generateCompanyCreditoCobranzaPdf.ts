@@ -45,7 +45,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   // KPI cards
   const cards: { title: string; value: string; subtitle: string; color: [number, number, number] }[] = [
     { title: "Total Facturado", value: fmt(d.totalFacturadoImporte), subtitle: `${d.totalFacturadoCount} facturas`, color: brandColor },
-    { title: "Vigente", value: fmt(d.vigenteImporte), subtitle: `${d.vigenteCount} facturas`, color: success },
+    { title: "En Tiempo", value: fmt(d.vigenteImporte), subtitle: `${d.vigenteCount} facturas`, color: success },
     { title: "Vencido", value: fmt(d.vencidoImporte), subtitle: `${d.vencidoCount} facturas`, color: destructive },
     { title: "Total Facturas Pagadas", value: String(d.pagadasCount), subtitle: `${d.pagadasVencidasPct.toFixed(1)}% vencidas / ${d.pagadasVigentesPct.toFixed(1)}% vigentes`, color: brandColor },
   ];
