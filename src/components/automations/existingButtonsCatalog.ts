@@ -15,6 +15,27 @@ export const EXISTING_BUTTONS: ExistingButton[] = [
     path: "/cobranza",
   },
   {
+    id: "cobranza.enviar_correo_contado",
+    name: "Enviar correo Contado",
+    description: "Envía la solicitud de validación de pago Contado al área de cobranza/contabilidad. Usa la plantilla editable 'Validación de pago — Contado'.",
+    location: "Cobranza › Detalle de pago",
+    path: "/cobranza",
+  },
+  {
+    id: "cobranza.enviar_correo_credito_directo",
+    name: "Enviar correo Crédito Directo",
+    description: "Envía la solicitud de validación de pago Crédito Directo al área de cobranza/contabilidad. Usa la plantilla editable 'Validación de pago — Crédito Directo'.",
+    location: "Cobranza › Detalle de pago",
+    path: "/cobranza",
+  },
+  {
+    id: "cobranza.enviar_correo_credito_cescemex",
+    name: "Enviar correo Crédito Cescemex",
+    description: "Envía la solicitud de validación de pago Crédito Cescemex al área de cobranza/contabilidad. Usa la plantilla editable 'Validación de pago — Crédito Cescemex'.",
+    location: "Cobranza › Detalle de pago",
+    path: "/cobranza",
+  },
+  {
     id: "cobranza.registrar_pago",
     name: "Registrar pago",
     description: "Abre el formulario para registrar un nuevo pago.",

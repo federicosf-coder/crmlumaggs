@@ -1467,8 +1467,17 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
       liga_documento: signedComprobantes[0]?.url ?? "",
     };
 
-    const systemKey = flow === "general" ? "pago_registrado_contabilidad" : "pago_validacion";
-    const dbTpl = await loadSystemTemplate(systemKey);
+    const perFlowKey =
+      flow === "contado" ? "pago_validacion_contado" :
+      flow === "credito" ? "pago_validacion_credito_directo" :
+      flow === "credito_cescemex" ? "pago_validacion_credito_cescemex" :
+      "pago_registrado_contabilidad";
+    // Try the per-flow editable template first; fall back to the generic
+    // "pago_validacion" template for backwards compatibility.
+    let dbTpl = await loadSystemTemplate(perFlowKey);
+    if (!dbTpl && flow !== "general") {
+      dbTpl = await loadSystemTemplate("pago_validacion");
+    }
     let resolvedSubject = dbTpl?.subject || "";
     let resolvedBody = dbTpl?.body || "";
     if (dbTpl) {
