@@ -24,6 +24,8 @@ export interface CompanyCreditoCobranzaData {
   empresaNombre: string;
   razonSocial?: string | null;
   limiteCredito: number;
+  creditoUtilizado: number;
+  creditoDisponible: number;
   // KPIs (excluye canceladas)
   totalFacturadoImporte: number;
   totalFacturadoCount: number;

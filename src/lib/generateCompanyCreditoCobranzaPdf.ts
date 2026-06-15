@@ -37,6 +37,10 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   doc.setFont("helvetica", "bold");
   doc.text(`Límite de Crédito: ${fmt(d.limiteCredito)}`, margin, y);
   doc.setFont("helvetica", "normal");
+  y += 14;
+  doc.text(`Crédito Utilizado: ${fmt(d.creditoUtilizado)}`, margin, y);
+  y += 14;
+  doc.text(`Crédito Disponible: ${fmt(d.creditoDisponible)}`, margin, y);
   y += 16;
 
   // KPI cards
