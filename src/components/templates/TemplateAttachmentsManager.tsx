@@ -5,11 +5,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Paperclip, Upload, Trash2, Eye, Download, FileText, Loader2 } from "lucide-react";
+import { Paperclip, Upload, Trash2, Eye, Download, FileText, Loader2, FileDown } from "lucide-react";
 import {
   ALLOWED_ATTACHMENT_MIME, MAX_ATTACHMENT_SIZE, TEMPLATE_ATTACHMENTS_BUCKET,
   TemplateAttachment, getAttachmentPublicUrl, isImageMime, listTemplateAttachments,
 } from "@/lib/templates";
+import { AttachCobranzaReportDialog } from "./AttachCobranzaReportDialog";
 
 interface Props {
   templateId: string | null;
@@ -28,6 +29,7 @@ export function TemplateAttachmentsManager({ templateId, readOnly = false }: Pro
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [openCobranza, setOpenCobranza] = useState(false);
 
   const { data: attachments = [], isLoading } = useQuery({
     queryKey: ["template-attachments", templateId],
@@ -100,14 +102,25 @@ export function TemplateAttachmentsManager({ templateId, readOnly = false }: Pro
           <Paperclip className="h-4 w-4" /> Adjuntos de plantilla
         </Label>
         {!readOnly && templateId && (
-          <Button
-            type="button" variant="outline" size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
-            Subir archivos
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              type="button" variant="outline" size="sm"
+              onClick={() => setOpenCobranza(true)}
+              disabled={uploading}
+              title="Genera el reporte con los datos actuales y lo adjunta"
+            >
+              <FileDown className="h-4 w-4 mr-1" />
+              Dashboard de Cobranza
+            </Button>
+            <Button
+              type="button" variant="outline" size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+              Subir archivos
+            </Button>
+          </div>
         )}
         <input
           ref={fileInputRef}
@@ -165,6 +178,15 @@ export function TemplateAttachmentsManager({ templateId, readOnly = false }: Pro
             );
           })}
         </div>
+      )}
+
+      {templateId && (
+        <AttachCobranzaReportDialog
+          open={openCobranza}
+          onOpenChange={setOpenCobranza}
+          templateId={templateId}
+          onAttached={refresh}
+        />
       )}
     </div>
   );
