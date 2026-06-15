@@ -1479,7 +1479,17 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
       }
     }
     const subjectOverride = dbTpl ? renderTemplate(resolvedSubject, tplVars) : undefined;
-    const htmlOverride = dbTpl ? renderTemplate(resolvedBody, tplVars) : undefined;
+    let htmlOverride = dbTpl ? renderTemplate(resolvedBody, tplVars) : undefined;
+    // Append cualquier adjunto definido en la plantilla como enlaces de descarga.
+    if (dbTpl?.id && htmlOverride) {
+      try {
+        const { buildTemplateAttachmentsBlock } = await import("@/lib/templates");
+        const att = await buildTemplateAttachmentsBlock(dbTpl.id);
+        if (att.html) htmlOverride = htmlOverride + att.html;
+      } catch (e) {
+        console.warn("[cobranza] No se pudieron anexar adjuntos de plantilla", e);
+      }
+    }
 
     // Resolve template-level recipients (to + cc + bcc + reply_to)
     const tplToEmails = dbTpl ? await resolveEmailRecipients(dbTpl.to_emails) : [];
