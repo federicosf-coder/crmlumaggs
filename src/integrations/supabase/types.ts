@@ -4777,6 +4777,48 @@ export type Database = {
           },
         ]
       }
+      template_document_catalog: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          is_active: boolean
+          mime_type: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number
+          id?: string
+          is_active?: boolean
+          mime_type: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          is_active?: boolean
+          mime_type?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       template_placeholders: {
         Row: {
           applies_to: Database["public"]["Enums"]["placeholder_scope"]

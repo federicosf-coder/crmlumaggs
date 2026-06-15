@@ -20,6 +20,7 @@ import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, Che
 import { EmailGroupsTab } from "@/components/admin/EmailGroupsTab";
 import { SystemSettingsTab } from "@/components/admin/SystemSettingsTab";
 import { SeguimientoEstatusTab } from "@/components/admin/SeguimientoEstatusTab";
+import { DocumentosPlantillaCatalogoTab } from "@/components/admin/DocumentosPlantillaCatalogoTab";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
 
@@ -2028,6 +2029,7 @@ type CatalogKey =
   | "industrias" | "embudos" | "condiciones"
   | "logos"
   | "seguimiento_estatus"
+  | "documentos_plantilla"
   | "email_groups" | "system_settings";
 
 type CatalogGroup = {
@@ -2077,6 +2079,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: "sistema",
     label: "Sistema",
     items: [
+      { key: "documentos_plantilla", label: "Documentos para Plantillas", description: "Biblioteca enviable por email y WhatsApp" },
       { key: "email_groups", label: "Grupos de Correo" },
       { key: "system_settings", label: "Parámetros" },
     ],
@@ -2097,6 +2100,7 @@ function renderCatalog(key: CatalogKey) {
     case "condiciones": return <CondicionesTab />;
     case "logos": return <LogosTab />;
     case "seguimiento_estatus": return <SeguimientoEstatusTab />;
+    case "documentos_plantilla": return <DocumentosPlantillaCatalogoTab />;
     case "email_groups": return <EmailGroupsTab />;
     case "system_settings": return <SystemSettingsTab />;
   }
