@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Save, X, Copy, AlertTriangle } from "lucide-react";
+import { Save, X, Copy, AlertTriangle, Eye, Send } from "lucide-react";
 import {
   CATEGORY_LABELS, Template, TemplateCategory, TemplatePlaceholder, TemplateType,
   unknownPlaceholders,
@@ -22,6 +22,8 @@ import {
 import { TemplateAttachmentsManager } from "@/components/templates/TemplateAttachmentsManager";
 import { EmailRecipientsInput } from "@/components/templates/EmailRecipientsInput";
 import { RichTextEditor } from "@/components/templates/RichTextEditor";
+import { TemplatePreviewDialog } from "@/components/templates/TemplatePreviewDialog";
+import { resolveTemplate } from "@/lib/resolveTemplate";
 
 interface Props {
   open: boolean;
@@ -49,11 +51,13 @@ const empty = (): Partial<Template> => ({
 });
 
 export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Props) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [form, setForm] = useState<Partial<Template>>(empty());
   const [replyToItems, setReplyToItems] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [executing, setExecuting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -154,6 +158,74 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
     onSaved();
     // Keep dialog open if it's a new template so the user can add attachments
     if (editing || createdId) onOpenChange(false);
+  };
+
+  const buildPseudoTemplate = (): Template => ({
+    id: editing?.id || createdId || "draft",
+    name: form.name || "Sin nombre",
+    type: (form.type as TemplateType) || "whatsapp",
+    category: (form.category as TemplateCategory) || "general",
+    subject: form.subject || null,
+    body: form.body || "",
+    description: form.description || null,
+    is_active: !!form.is_active,
+    created_by: null,
+    updated_by: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    to_emails: (form.to_emails as any) || [],
+    cc_emails: (form.cc_emails as any) || [],
+    bcc_emails: (form.bcc_emails as any) || [],
+    reply_to: null,
+  });
+
+  const handleExecuteNow = async () => {
+    if (!form.body || !form.body.trim()) {
+      toast.error("El mensaje está vacío");
+      return;
+    }
+    setExecuting(true);
+    try {
+      const resolvedBody = await resolveTemplate(form.body || "", {});
+      if (form.type === "email") {
+        if (!profile?.email) {
+          toast.error("Tu perfil no tiene email para recibir la prueba");
+          return;
+        }
+        if (!form.subject || !form.subject.trim()) {
+          toast.error("Falta el asunto del email");
+          return;
+        }
+        const resolvedSubject = await resolveTemplate(form.subject || "", {});
+        const { error } = await supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "raw-html",
+            recipientEmail: profile.email,
+            subjectOverride: `[PRUEBA] ${resolvedSubject}`,
+            htmlOverride: resolvedBody,
+            idempotencyKey: `template-test-${editing?.id || createdId || "draft"}-${Date.now()}`,
+            templateData: {},
+          },
+        });
+        if (error) throw error;
+        toast.success(`Email de prueba enviado a ${profile.email}`);
+      } else {
+        const phone = (profile?.phone || "").replace(/\D/g, "");
+        const plain = resolvedBody.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        if (!phone) {
+          await navigator.clipboard.writeText(plain).catch(() => {});
+          toast.info("Tu perfil no tiene teléfono. Mensaje copiado al portapapeles.");
+          return;
+        }
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(plain)}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+        toast.success("Abriendo WhatsApp con tu número para enviar la prueba");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo ejecutar la prueba");
+    } finally {
+      setExecuting(false);
+    }
   };
 
   return (
@@ -310,11 +382,22 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
           </div>
         </div>
 
-        <DialogFooter className="px-6 pb-6 pt-2 border-t">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}><X className="h-4 w-4 mr-1" /> Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}><Save className="h-4 w-4 mr-1" /> Guardar</Button>
+        <DialogFooter className="px-6 pb-6 pt-2 border-t gap-2 sm:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={() => setPreviewOpen(true)} disabled={!form.body}>
+              <Eye className="h-4 w-4 mr-1" /> Previsualizar
+            </Button>
+            <Button type="button" variant="outline" onClick={handleExecuteNow} disabled={executing || !form.body}>
+              <Send className="h-4 w-4 mr-1" /> {executing ? "Enviando…" : "Ejecutar ahora"}
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => onOpenChange(false)}><X className="h-4 w-4 mr-1" /> Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving}><Save className="h-4 w-4 mr-1" /> Guardar</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
+      <TemplatePreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} template={previewOpen ? buildPseudoTemplate() : null} />
     </Dialog>
   );
 }
