@@ -135,19 +135,19 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   doc.text("Facturas por Vencer (orden ascendente)", margin, y);
   autoTable(doc, {
     startY: y + 4,
-    head: [["No. Factura", "F. Documento", "F. Vencimiento", "Días para Vencer", "Tipo Pago", "Total", "Saldo"]],
+    head: [["No. Factura", "F. Documento", "F. Vencimiento", "Días para Vencer", "Total", "Saldo"]],
     body: d.porVencer.length === 0
-      ? [[{ content: "Sin facturas por vencer.", colSpan: 7, styles: { halign: "center", textColor: muted } }]]
+      ? [[{ content: "Sin facturas por vencer.", colSpan: 6, styles: { halign: "center", textColor: muted } }]]
       : d.porVencer.map(f => [
           f.numero, f.fechaDocumento, f.fechaVencimiento,
           { content: f.dias != null ? String(f.dias) : "-", styles: { halign: "center", textColor: warning, fontStyle: "bold" } },
-          f.tipoPago,
           { content: fmt(f.total), styles: { halign: "right" } },
           { content: fmt(f.saldo), styles: { halign: "right", fontStyle: "bold" } },
         ]),
     theme: "grid",
     styles: { fontSize: 7.5, cellPadding: 2, lineColor: border, lineWidth: 0.3 },
     headStyles: { fillColor: brandColor, textColor: 255 },
+    columnStyles: { 4: { halign: "right" }, 5: { halign: "right" } },
     margin: { left: margin, right: margin },
     didDrawPage: () => {
       doc.setFontSize(8); doc.setTextColor(...muted);
