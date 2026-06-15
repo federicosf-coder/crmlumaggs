@@ -10,6 +10,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 28;
+  const topMargin = 43; // 1.5 cm
   const brandColor: [number, number, number] = [56, 84, 186];
   const destructive: [number, number, number] = [200, 40, 40];
   const warning: [number, number, number] = [200, 130, 20];
@@ -19,20 +20,20 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
 
   // Header (compact)
   doc.setFillColor(...brandColor);
-  doc.rect(0, 0, pageW, 44, "F");
+  doc.rect(0, topMargin, pageW, 44, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text(d.empresaNombre, margin, 20);
+  doc.text(d.empresaNombre, margin, topMargin + 20);
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("Crédito y Cobranza", margin, 36);
+  doc.text("Crédito y Cobranza", margin, topMargin + 36);
   doc.setFontSize(9);
-  doc.text(`Fecha: ${d.fechaGeneracion}`, pageW - margin, 20, { align: "right" });
-  if (d.razonSocial) doc.text(d.razonSocial, pageW - margin, 34, { align: "right" });
+  doc.text(`Fecha: ${d.fechaGeneracion}`, pageW - margin, topMargin + 20, { align: "right" });
+  if (d.razonSocial) doc.text(d.razonSocial, pageW - margin, topMargin + 34, { align: "right" });
 
   doc.setTextColor(0, 0, 0);
-  let y = 56;
+  let y = topMargin + 56;
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.text(`Límite: ${fmt(d.limiteCredito)}`, margin, y);
@@ -106,19 +107,19 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   doc.text("Facturas Vencidas", margin, y);
   autoTable(doc, {
     startY: y + 4,
-    head: [["No. Factura", "F. Documento", "F. Vencimiento", "Días Vencida", "Tipo Pago", "Total", "Saldo"]],
+    head: [["No. Factura", "F. Documento", "F. Vencimiento", "Días Vencida", "Total", "Saldo"]],
     body: d.vencidas.length === 0
-      ? [[{ content: "Sin facturas vencidas.", colSpan: 7, styles: { halign: "center", textColor: muted } }]]
+      ? [[{ content: "Sin facturas vencidas.", colSpan: 6, styles: { halign: "center", textColor: muted } }]]
       : d.vencidas.map(f => [
           f.numero, f.fechaDocumento, f.fechaVencimiento,
           { content: f.dias != null ? String(f.dias) : "-", styles: { halign: "center", textColor: destructive, fontStyle: "bold" } },
-          f.tipoPago,
           { content: fmt(f.total), styles: { halign: "right" } },
           { content: fmt(f.saldo), styles: { halign: "right", textColor: destructive, fontStyle: "bold" } },
         ]),
     theme: "grid",
     styles: { fontSize: 7.5, cellPadding: 2, lineColor: border, lineWidth: 0.3 },
     headStyles: { fillColor: brandColor, textColor: 255 },
+    columnStyles: { 4: { halign: "right" }, 5: { halign: "right" } },
     margin: { left: margin, right: margin },
     didDrawPage: () => {
       doc.setFontSize(8); doc.setTextColor(...muted);
@@ -134,19 +135,19 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   doc.text("Facturas por Vencer (orden ascendente)", margin, y);
   autoTable(doc, {
     startY: y + 4,
-    head: [["No. Factura", "F. Documento", "F. Vencimiento", "Días para Vencer", "Tipo Pago", "Total", "Saldo"]],
+    head: [["No. Factura", "F. Documento", "F. Vencimiento", "Días para Vencer", "Total", "Saldo"]],
     body: d.porVencer.length === 0
-      ? [[{ content: "Sin facturas por vencer.", colSpan: 7, styles: { halign: "center", textColor: muted } }]]
+      ? [[{ content: "Sin facturas por vencer.", colSpan: 6, styles: { halign: "center", textColor: muted } }]]
       : d.porVencer.map(f => [
           f.numero, f.fechaDocumento, f.fechaVencimiento,
           { content: f.dias != null ? String(f.dias) : "-", styles: { halign: "center", textColor: warning, fontStyle: "bold" } },
-          f.tipoPago,
           { content: fmt(f.total), styles: { halign: "right" } },
           { content: fmt(f.saldo), styles: { halign: "right", fontStyle: "bold" } },
         ]),
     theme: "grid",
     styles: { fontSize: 7.5, cellPadding: 2, lineColor: border, lineWidth: 0.3 },
     headStyles: { fillColor: brandColor, textColor: 255 },
+    columnStyles: { 4: { halign: "right" }, 5: { halign: "right" } },
     margin: { left: margin, right: margin },
     didDrawPage: () => {
       doc.setFontSize(8); doc.setTextColor(...muted);
