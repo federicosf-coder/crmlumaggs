@@ -46,6 +46,7 @@ function tipoPagoLabel(value: string | null | undefined): string {
 }
 
 async function loadSystemTemplate(systemKey: string): Promise<{
+  id: string;
   subject: string;
   body: string;
   to_emails: EmailRecipientItem[];
@@ -55,13 +56,14 @@ async function loadSystemTemplate(systemKey: string): Promise<{
 } | null> {
   const { data } = await (supabase as any)
     .from("templates")
-    .select("subject, body, to_emails, cc_emails, bcc_emails, reply_to")
+    .select("id, subject, body, to_emails, cc_emails, bcc_emails, reply_to")
     .eq("system_key", systemKey)
     .eq("is_active", true)
     .limit(1)
     .maybeSingle();
   if (!data || !data.body) return null;
   return {
+    id: data.id,
     subject: data.subject || "",
     body: data.body,
     to_emails: (data.to_emails as EmailRecipientItem[]) || [],
