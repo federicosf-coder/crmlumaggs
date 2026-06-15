@@ -81,13 +81,19 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
           <Label className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
             <CreditCard className="h-3 w-3" /> Límite de Crédito
           </Label>
-          <Button variant="outline" size="sm" onClick={handleDownload} disabled={downloading}>
-            {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
-            Descargar PDF
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" onClick={handleDownload} disabled={downloading}>
+              {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
+              Descargar PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSendEmail}>
+              <Mail className="h-4 w-4 mr-1" />
+              Enviar PDF por Correo
+            </Button>
+          </div>
         </div>
-        <div className="flex items-end gap-3 flex-wrap">
-          <div className="space-y-1.5 flex-1 min-w-[220px]">
+        <div className="flex items-end gap-2 flex-wrap">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">$</span>
               <Input
@@ -96,7 +102,7 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
                 min="0"
                 value={limiteInput}
                 onChange={e => setLimiteInput(e.target.value)}
-                className="h-9"
+                className="h-9 w-32"
                 placeholder="0.00"
               />
               <Button size="sm" onClick={handleSaveLimite} disabled={saving}>
@@ -109,10 +115,6 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
               <span>Disponible: <span className="font-mono font-semibold text-foreground">{formatCurrency(data.creditoDisponible)}</span></span>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleSendEmail}>
-            <Mail className="h-4 w-4 mr-1" />
-            Enviar PDF por Correo
-          </Button>
         </div>
       </div>
 
