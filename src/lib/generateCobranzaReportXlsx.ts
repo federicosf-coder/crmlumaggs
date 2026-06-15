@@ -124,3 +124,68 @@ export function generateCobranzaReportXlsx(input: CobranzaReportInput): void {
   // suppress unused warning for parseMoney (kept for future use)
   void parseMoney;
 }
+
+/** Build the xlsx workbook for the Cobranza report and return it as a Blob.
+ *  Used to attach the generated report to a template (instead of downloading). */
+export function generateCobranzaReportXlsxBlob(input: CobranzaReportInput): Blob {
+  // Re-run the same logic but capture the binary instead of writing to disk.
+  // Easiest way: rebuild via a thin replica of the function using XLSX.write.
+  // To avoid duplication, we re-implement the build via the existing pieces.
+  const wb = XLSX.utils.book_new();
+
+  const aoa: any[][] = [];
+  aoa.push([input.empresaNombre]);
+  aoa.push(["Reporte de Cobranza"]);
+  aoa.push([`Fecha: ${input.fecha}`]);
+  aoa.push([`Plaza: ${input.plaza}`]);
+  aoa.push([]);
+
+  const pushKpiRow = (label: string, kpis: typeof input.kpisRow1) => {
+    aoa.push([label]);
+    aoa.push(["KPI", "Valor", "Detalle", "Línea 1", "Línea 2"]);
+    kpis.forEach((c) => {
+      const l1 = c.lines?.[0] ? `${c.lines[0].label}: ${c.lines[0].value}` : "";
+      const l2 = c.lines?.[1] ? `${c.lines[1].label}: ${c.lines[1].value}` : "";
+      aoa.push([c.title, c.value, c.subtitle || "", l1, l2]);
+    });
+    aoa.push([]);
+  };
+
+  pushKpiRow("Cartera por tipo de crédito", input.kpisRow1);
+  pushKpiRow("Cartera vencida", input.kpisRow2);
+  pushKpiRow("Cobranza y clientes", input.kpisRow3);
+
+  input.buckets.forEach((b) => {
+    aoa.push([b.title]);
+    aoa.push(["Rango", "Facturas", "Monto"]);
+    b.rows.forEach((r) => aoa.push([r.label, r.count, r.monto]));
+    aoa.push([]);
+  });
+
+  const wsResumen = XLSX.utils.aoa_to_sheet(aoa);
+  wsResumen["!cols"] = [{ wch: 32 }, { wch: 22 }, { wch: 28 }, { wch: 36 }, { wch: 36 }];
+  XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+
+  const headers = [
+    "Cliente","No. Factura","Ejecutivo","Plaza","F. Documento","F. Vencimiento","Tipo Pago","Total","Saldo",
+  ];
+  const facAoa: any[][] = [headers];
+  let totalGral = 0, saldoGral = 0;
+  for (const f of input.facturas) {
+    facAoa.push([f.cliente, f.numero, f.ejecutivo, f.plaza, f.fechaDocumento, f.fechaVencimiento, f.tipoPago, f.total, f.saldo]);
+    totalGral += f.total; saldoGral += f.saldo;
+  }
+  facAoa.push([]);
+  facAoa.push(["TOTAL GENERAL","","","","","","", totalGral, saldoGral]);
+  const wsFac = XLSX.utils.aoa_to_sheet(facAoa);
+  wsFac["!cols"] = [
+    { wch: 36 }, { wch: 14 }, { wch: 22 }, { wch: 16 },
+    { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 14 },
+  ];
+  XLSX.utils.book_append_sheet(wb, wsFac, "Facturas Vencidas");
+
+  const out = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+  return new Blob([out], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+}

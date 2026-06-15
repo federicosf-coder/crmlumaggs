@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { FileText, Pencil, Plus, Trash2, Upload, Eye, Download, Loader2 } from "lucide-react";
+import { FileText, Pencil, Plus, Trash2, Upload, Eye, Download, Loader2, Sparkles } from "lucide-react";
 import {
   TEMPLATE_DOCUMENT_CATALOG_BUCKET,
   ALLOWED_CATALOG_MIME,
@@ -21,6 +21,7 @@ import {
   openTemplateDocumentCatalogSignedUrl,
   type TemplateCatalogDocument,
 } from "@/lib/templateDocumentCatalog";
+import { BUILTIN_GENERATORS } from "@/lib/templateDocumentGenerators";
 
 function formatBytes(b: number): string {
   if (b < 1024) return `${b} B`;
@@ -149,6 +150,39 @@ export function DocumentosPlantillaCatalogoTab() {
         <Button size="sm" onClick={() => setOpen(true)}><Plus className="mr-1 h-4 w-4" /> Nuevo</Button>
       </CardHeader>
       <CardContent>
+        <div className="mb-6 rounded border bg-amber-50/40">
+          <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-amber-800 bg-amber-100/60 border-b border-amber-200 flex items-center gap-1.5">
+            <Sparkles className="h-3 w-3" /> Generados por la aplicación (siempre disponibles en plantillas)
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Formato</TableHead>
+                <TableHead>Origen</TableHead>
+                <TableHead className="w-20 text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {BUILTIN_GENERATORS.map((g) => (
+                <TableRow key={g.id}>
+                  <TableCell>
+                    <div className="font-medium flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-600" /> {g.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{g.description}</div>
+                  </TableCell>
+                  <TableCell className="text-xs uppercase">{g.format}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">Generado al adjuntar a una plantilla</TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant="secondary">Sistema</Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
           <Table>
             <TableHeader>
