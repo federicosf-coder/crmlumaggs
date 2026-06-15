@@ -82,12 +82,12 @@ export async function buildCobranzaReportInput(opts: {
 
   // Pagos del mes (para Cobrado del mes y facturas pagadas del mes)
   const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
-  let pq: any = supabase
+  let pq: any = (supabase as any)
     .from("cobranza_pagos")
     .select("id, monto_total, fecha_pago, estado_pago")
     .gte("fecha_pago", inicioMes.toISOString())
     .neq("estado_pago", "cancelado")
-    .eq("empresa_vendedora" as any, empresaVendedora as any);
+    .eq("empresa_vendedora", empresaVendedora);
   if (plazaId) pq = pq.eq("plaza_id", plazaId);
   const pagosMesRes = await pq;
   const pagosMes = (pagosMesRes.data || []) as any[];
