@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { renderTemplate, resolveEmailRecipients, type EmailRecipientItem } from "@/lib/templates";
 import { generateCobranzaReportPdf } from "@/lib/generateCobranzaReportPdf";
 import { generateCobranzaReportXlsx } from "@/lib/generateCobranzaReportXlsx";
+import { fireAutomation } from "@/hooks/useFireAutomation";
 
 const FORMA_PAGO_TPL_LABEL: Record<string, string> = {
   contado: "Contado",
