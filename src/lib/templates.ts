@@ -113,6 +113,60 @@ export async function listTemplateAttachments(templateId: string): Promise<Templ
   return (data || []) as TemplateAttachment[];
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function formatBytes(b: number): string {
+  if (!b) return "";
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+  return `${(b / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/**
+ * Construye un bloque HTML "📎 Documentos adjuntos" con enlaces de descarga
+ * a los adjuntos de la plantilla, y un bloque equivalente en texto plano
+ * para WhatsApp / fallback. El email transaccional no soporta adjuntos reales,
+ * por lo que los anexamos como enlaces firmados (bucket público).
+ */
+export async function buildTemplateAttachmentsBlock(
+  templateId: string | null | undefined
+): Promise<{ html: string; text: string; items: TemplateAttachment[] }> {
+  if (!templateId) return { html: "", text: "", items: [] };
+  let items: TemplateAttachment[] = [];
+  try {
+    items = await listTemplateAttachments(templateId);
+  } catch (e) {
+    console.warn("[templates] No se pudieron cargar adjuntos", e);
+    return { html: "", text: "", items: [] };
+  }
+  if (items.length === 0) return { html: "", text: "", items: [] };
+
+  const html =
+    `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-family:Arial,sans-serif;font-size:14px;color:#333">
+      <div style="font-weight:600;margin-bottom:10px;color:#111">📎 Documentos adjuntos</div>
+      <ul style="padding-left:18px;margin:0">
+        ${items
+          .map((a) => {
+            const url = getAttachmentPublicUrl(a.file_path);
+            const label = escapeHtml(a.file_name);
+            const meta = escapeHtml(
+              [a.mime_type.split("/").pop()?.toUpperCase(), formatBytes(a.file_size)].filter(Boolean).join(" · ")
+            );
+            return `<li style="margin:4px 0"><a href="${url}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline">${label}</a>${meta ? ` <span style="color:#6b7280;font-size:12px">(${meta})</span>` : ""}</li>`;
+          })
+          .join("")}
+      </ul>
+    </div>`;
+
+  const text =
+    "\n\n📎 Documentos adjuntos:\n" +
+    items.map((a) => `• ${a.file_name}: ${getAttachmentPublicUrl(a.file_path)}`).join("\n");
+
+  return { html, text, items };
+}
+
 export const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   seguimiento_cotizacion: "Seguimiento de cotización",
   recompra: "Recompra",
