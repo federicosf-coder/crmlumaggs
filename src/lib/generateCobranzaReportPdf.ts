@@ -47,7 +47,9 @@ export interface CobranzaReportInput {
 const fmtCurrency = (n: number) =>
   "$" + n.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
+/** Build the jsPDF document (without saving). Use this when you need
+ * a Blob or Uint8Array (e.g. to upload as a template attachment). */
+export function buildCobranzaReportPdfDoc(input: CobranzaReportInput): jsPDF {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -332,6 +334,17 @@ export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
     doc.text(`Total general: ${fmtCurrency(totalG2)}   ·   Saldo total por vencer: ${fmtCurrency(saldoG2)}`, margin, finalY2);
   }
 
+  return doc;
+}
+
+export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
+  const doc = buildCobranzaReportPdfDoc(input);
   const fname = `Reporte_Cobranza_${input.brand}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(fname);
+}
+
+/** Return the report as a PDF Blob, ready to upload. */
+export function generateCobranzaReportPdfBlob(input: CobranzaReportInput): Blob {
+  const doc = buildCobranzaReportPdfDoc(input);
+  return doc.output("blob");
 }
