@@ -308,11 +308,11 @@ export default function DocumentForm() {
     }));
   }, [form.empresa_id, companies, isEdit]);
 
-  // Auto-calculate fecha_vencimiento for Facturas based on tipo_pago
+  // Auto-calculate fecha_vencimiento for Pedidos y Facturas based on tipo_pago
   // Contado => same day; Crédito / Crédito Cescemex => +30 days
   useEffect(() => {
     if (isEdit) return;
-    if (form.tipo_documento !== "factura") return;
+    if (form.tipo_documento !== "factura" && form.tipo_documento !== "pedido") return;
     if (!form.fecha_documento || !form.tipo_pago) return;
     const base = new Date(form.fecha_documento + "T12:00:00");
     // El día del documento cuenta como día 1 del crédito, por eso sumamos (días - 1)
