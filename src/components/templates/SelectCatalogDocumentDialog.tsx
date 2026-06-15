@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Search, FileText, X, Check } from "lucide-react";
+import { Loader2, Search, FileText, X, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { TEMPLATE_ATTACHMENTS_BUCKET } from "@/lib/templates";
 import {
@@ -15,6 +15,8 @@ import {
   listTemplateDocumentCatalog,
   type TemplateCatalogDocument,
 } from "@/lib/templateDocumentCatalog";
+import { BUILTIN_GENERATORS, type GeneratorId } from "@/lib/templateDocumentGenerators";
+import { RunGeneratorDialog } from "./RunGeneratorDialog";
 
 interface Props {
   open: boolean;
@@ -28,6 +30,7 @@ export function SelectCatalogDocumentDialog({ open, onOpenChange, templateId, on
   const [filter, setFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [generatorOpen, setGeneratorOpen] = useState<GeneratorId | null>(null);
 
   const { data: items = [], isLoading } = useQuery<TemplateCatalogDocument[]>({
     queryKey: ["template-document-catalog", "active"],
@@ -44,6 +47,14 @@ export function SelectCatalogDocumentDialog({ open, onOpenChange, templateId, on
       it.file_name.toLowerCase().includes(q)
     );
   }, [items, filter]);
+
+  const filteredGenerators = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return BUILTIN_GENERATORS;
+    return BUILTIN_GENERATORS.filter((g) =>
+      g.name.toLowerCase().includes(q) || g.description.toLowerCase().includes(q) || g.id.includes(q)
+    );
+  }, [filter]);
 
   const toggle = (id: string) => {
     setSelectedIds((prev) => {
@@ -113,6 +124,41 @@ export function SelectCatalogDocumentDialog({ open, onOpenChange, templateId, on
           </div>
 
           <div className="max-h-[420px] overflow-y-auto rounded border">
+            {filteredGenerators.length > 0 && (
+              <div>
+                <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 border-b">
+                  Generados por la aplicación
+                </div>
+                <ul className="divide-y">
+                  {filteredGenerators.map((g) => (
+                    <li key={g.id}>
+                      <button
+                        type="button"
+                        onClick={() => setGeneratorOpen(g.id)}
+                        className="w-full flex items-start gap-3 text-left px-3 py-2.5 hover:bg-amber-50/50"
+                      >
+                        <div className="mt-0.5 h-5 w-5 rounded border flex items-center justify-center bg-amber-100 border-amber-300 text-amber-700">
+                          <Sparkles className="h-3 w-3" />
+                        </div>
+                        <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{g.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">{g.description}</div>
+                          <div className="text-[11px] text-amber-700 mt-0.5 truncate uppercase tracking-wide">
+                            {g.format.toUpperCase()} · generado al adjuntar
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 border-y">
+              Catálogo de archivos cargados
+            </div>
+
             {isLoading ? (
               <div className="p-6 text-center text-sm text-muted-foreground">Cargando...</div>
             ) : filtered.length === 0 ? (
@@ -158,6 +204,14 @@ export function SelectCatalogDocumentDialog({ open, onOpenChange, templateId, on
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <RunGeneratorDialog
+        open={generatorOpen !== null}
+        onOpenChange={(o) => { if (!o) setGeneratorOpen(null); }}
+        templateId={templateId}
+        generatorId={generatorOpen}
+        onAttached={() => { onAttached(); onOpenChange(false); }}
+      />
     </Dialog>
   );
 }
