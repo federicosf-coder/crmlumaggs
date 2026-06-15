@@ -6,7 +6,7 @@ const fmt = (n: number) =>
   "$" + n.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData): jsPDF {
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 28;
@@ -39,7 +39,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   doc.setFont("helvetica", "normal");
   doc.text(`Utilizado: ${fmt(d.creditoUtilizado)}`, margin + 160, y);
   doc.text(`Disponible: ${fmt(d.creditoDisponible)}`, margin + 320, y);
-  y += 8;
+  y += 24;
 
   // KPI cards
   const cards: { title: string; value: string; subtitle: string; color: [number, number, number] }[] = [
@@ -69,7 +69,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
     doc.setTextColor(...muted);
     doc.text(c.subtitle, x + 10, y + 44);
   });
-  y += cardH + 8;
+  y += cardH + 24;
 
   // Buckets table
   doc.setFont("helvetica", "bold");
@@ -97,7 +97,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
       }
     },
   });
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = (doc as any).lastAutoTable.finalY + 24;
 
   // Vencidas (continúa en la misma página si cabe)
   doc.setFont("helvetica", "bold");
@@ -125,7 +125,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
       doc.text(`Página ${doc.getCurrentPageInfo().pageNumber}`, pageW - margin, pageH - 12, { align: "right" });
     },
   });
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = (doc as any).lastAutoTable.finalY + 24;
 
   // Por vencer (todas, asc por días) — continúa, autoTable salta página solo si es necesario
   doc.setFont("helvetica", "bold");
