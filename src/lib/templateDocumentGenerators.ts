@@ -3,13 +3,16 @@ import { TEMPLATE_ATTACHMENTS_BUCKET } from "@/lib/templates";
 import { buildCobranzaReportInput, type ReportBrand } from "@/lib/buildCobranzaReportInput";
 import { generateCobranzaReportPdfBlob } from "@/lib/generateCobranzaReportPdf";
 import { generateCobranzaReportXlsxBlob } from "@/lib/generateCobranzaReportXlsx";
+import { buildCompanyCreditoCobranzaData } from "@/lib/buildCompanyCreditoCobranzaData";
+import { generateCompanyCreditoCobranzaPdfBlob } from "@/lib/generateCompanyCreditoCobranzaPdf";
 
 /** Built-in "documentos generados por la aplicación" que aparecen en el
  *  catálogo de documentos para plantillas, junto con los archivos cargados. */
 export type GeneratorId =
   | "cobranza_pdf"
   | "cobranza_xlsx"
-  | "cotizacion_pdf";
+  | "cotizacion_pdf"
+  | "company_credito_cobranza_pdf";
 
 export interface BuiltinGenerator {
   id: GeneratorId;
@@ -43,6 +46,14 @@ export const BUILTIN_GENERATORS: BuiltinGenerator[] = [
     id: "cotizacion_pdf",
     name: "Cotización (PDF)",
     description: "PDF de una cotización específica generada por el sistema.",
+    mime_type: "application/pdf",
+    extension: "pdf",
+    format: "pdf",
+  },
+  {
+    id: "company_credito_cobranza_pdf",
+    name: "Crédito y Cobranza por Empresa (PDF)",
+    description: "Dashboard de Crédito y Cobranza para una empresa específica: límite, KPIs, antigüedad, vencidas y por vencer.",
     mime_type: "application/pdf",
     extension: "pdf",
     format: "pdf",
@@ -94,6 +105,13 @@ export async function generateCotizacionPdfArtifact(documentoId: string): Promis
   const cliente = String(clientRaw).replace(/[^A-Za-z0-9 ]+/g, "").trim().replace(/\s+/g, "_") || "Cliente";
   const folio = (docAny?.numero_cotizacion || documentoId.slice(0, 8)).toString().replace(/[^A-Za-z0-9-]+/g, "");
   return { blob, fileName: `Cotizacion-${cliente}-${folio}.pdf` };
+}
+
+export async function generateCompanyCreditoCobranzaPdfArtifact(companyId: string): Promise<{ blob: Blob; fileName: string }> {
+  const data = await buildCompanyCreditoCobranzaData(companyId);
+  const blob = generateCompanyCreditoCobranzaPdfBlob(data);
+  const clean = data.empresaNombre.replace(/[^A-Za-z0-9 ]+/g, "").trim().replace(/\s+/g, "_");
+  return { blob, fileName: `Credito_Cobranza_${clean}_${new Date().toISOString().slice(0, 10)}.pdf` };
 }
 
 /** Sube el blob generado al bucket de adjuntos y registra la fila en template_attachments. */

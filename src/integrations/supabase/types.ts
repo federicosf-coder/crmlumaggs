@@ -631,6 +631,7 @@ export type Database = {
           industrias: string[] | null
           industry: string | null
           is_active: boolean
+          limite_credito: number | null
           lista_precios: string | null
           metodo_pago: Database["public"]["Enums"]["metodo_pago_sat"] | null
           name: string
@@ -695,6 +696,7 @@ export type Database = {
           industrias?: string[] | null
           industry?: string | null
           is_active?: boolean
+          limite_credito?: number | null
           lista_precios?: string | null
           metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
           name: string
@@ -759,6 +761,7 @@ export type Database = {
           industrias?: string[] | null
           industry?: string | null
           is_active?: boolean
+          limite_credito?: number | null
           lista_precios?: string | null
           metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
           name?: string

@@ -32,6 +32,7 @@ import { AddressDisplay } from "@/components/AddressDisplay";
 import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDialog";
 import { MergeContactsDialog } from "@/components/directory/MergeContactsDialog";
 import { CompanyMetricsPanel } from "@/components/directory/CompanyMetricsPanel";
+import { CompanyCreditoCobranzaTab } from "@/components/directory/CompanyCreditoCobranzaTab";
 
 interface Company {
   id: string; name: string; razon_social: string | null; industry: string | null; phone: string | null;
@@ -1141,7 +1142,7 @@ export default function Directory() {
                   <TabsTrigger value="direcciones" className="flex-1">Direcciones</TabsTrigger>
                   <TabsTrigger value="clasificacion" className="flex-1">Clasificación</TabsTrigger>
                   <TabsTrigger value="facturacion" className="flex-1">Detalles Facturación</TabsTrigger>
-                  <TabsTrigger value="decision" className="flex-1">Proceso Decisión</TabsTrigger>
+                  <TabsTrigger value="credito" className="flex-1">Crédito y Cobranza</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="general" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
@@ -1315,19 +1316,11 @@ export default function Directory() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="decision" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
-                  <div className="rounded-lg border p-3 space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                      <Users className="h-3.5 w-3.5" /> Proceso de Decisión
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <DetailRow label="Tomador de decisión" value={selectedCompany.tomador_decision} />
-                      <DetailRow label="Riesgo cambio de marca" value={selectedCompany.riesgo_cambio_marca} />
-                      <DetailRow label="Origen contacto" value={selectedCompany.origen_contacto} />
-                      <DetailRow label="Evaluación lubricante" value={selectedCompany.evaluacion_lubricante} />
-                      <DetailRow label="Rol del lubricante" value={selectedCompany.rol_lubricante} />
-                    </div>
-                  </div>
+                <TabsContent value="credito" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
+                  <CompanyCreditoCobranzaTab
+                    companyId={selectedCompany.id}
+                    initialLimiteCredito={(selectedCompany as any).limite_credito ?? null}
+                  />
                 </TabsContent>
 
                 <TabsContent value="evaluacion" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">

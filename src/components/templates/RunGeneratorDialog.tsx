@@ -15,6 +15,7 @@ import {
   generateCobranzaPdfArtifact,
   generateCobranzaXlsxArtifact,
   generateCotizacionPdfArtifact,
+  generateCompanyCreditoCobranzaPdfArtifact,
   getGeneratorById,
   type GeneratorId,
 } from "@/lib/templateDocumentGenerators";
@@ -38,10 +39,14 @@ export function RunGeneratorDialog({ open, onOpenChange, templateId, generatorId
   // Cotización params
   const [cotizacionId, setCotizacionId] = useState<string>("");
 
+  // Empresa (Crédito y Cobranza por empresa)
+  const [companyId, setCompanyId] = useState<string>("");
+
   const [busy, setBusy] = useState(false);
 
   const isCobranza = generatorId === "cobranza_pdf" || generatorId === "cobranza_xlsx";
   const isCotizacion = generatorId === "cotizacion_pdf";
+  const isCompanyCredito = generatorId === "company_credito_cobranza_pdf";
 
   const { data: plazas = [] } = useQuery({
     queryKey: ["plazas-for-generators"],
@@ -66,6 +71,20 @@ export function RunGeneratorDialog({ open, onOpenChange, templateId, generatorId
     enabled: open && isCotizacion,
   });
 
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["empresas-for-generator"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("companies")
+        .select("id, name, razon_social")
+        .eq("is_active", true)
+        .order("name")
+        .limit(2000);
+      return data || [];
+    },
+    enabled: open && isCompanyCredito,
+  });
+
   const cotizacionOptions = useMemo(
     () =>
       (cotizaciones as any[]).map((d) => ({
@@ -74,6 +93,16 @@ export function RunGeneratorDialog({ open, onOpenChange, templateId, generatorId
         searchText: `${d.numero_cotizacion || ""} ${d.companies?.name || ""} ${d.fecha_documento || ""}`,
       })),
     [cotizaciones]
+  );
+
+  const empresaOptions = useMemo(
+    () =>
+      (empresas as any[]).map((e) => ({
+        value: e.id,
+        label: e.name + (e.razon_social && e.razon_social !== e.name ? ` — ${e.razon_social}` : ""),
+        searchText: `${e.name} ${e.razon_social || ""}`,
+      })),
+    [empresas]
   );
 
   const handleRun = async () => {
@@ -88,6 +117,9 @@ export function RunGeneratorDialog({ open, onOpenChange, templateId, generatorId
       } else if (generatorId === "cotizacion_pdf") {
         if (!cotizacionId) { toast.error("Selecciona una cotización"); setBusy(false); return; }
         artifact = await generateCotizacionPdfArtifact(cotizacionId);
+      } else if (generatorId === "company_credito_cobranza_pdf") {
+        if (!companyId) { toast.error("Selecciona una empresa"); setBusy(false); return; }
+        artifact = await generateCompanyCreditoCobranzaPdfArtifact(companyId);
       } else {
         toast.error("Generador no soportado"); return;
       }
@@ -155,6 +187,18 @@ export function RunGeneratorDialog({ open, onOpenChange, templateId, generatorId
             </div>
           )}
 
+          {isCompanyCredito && (
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Empresa</Label>
+              <SearchableSelect
+                value={companyId}
+                onValueChange={setCompanyId}
+                options={empresaOptions}
+                placeholder="Buscar empresa por nombre..."
+              />
+            </div>
+          )}
+
           <p className="text-[11px] text-muted-foreground font-light">
             El documento se genera con la información disponible al momento. Para mantener cifras actualizadas,
             vuelve a generarlo antes de enviar la plantilla.
@@ -165,7 +209,7 @@ export function RunGeneratorDialog({ open, onOpenChange, templateId, generatorId
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
             <X className="h-4 w-4 mr-1" /> Cancelar
           </Button>
-          <Button onClick={handleRun} disabled={busy || !gen || (isCotizacion && !cotizacionId)}>
+          <Button onClick={handleRun} disabled={busy || !gen || (isCotizacion && !cotizacionId) || (isCompanyCredito && !companyId)}>
             {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
             Generar y adjuntar
           </Button>
