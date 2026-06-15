@@ -27,7 +27,10 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   doc.text(d.empresaNombre, margin, topMargin + 20);
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("Crédito y Cobranza", margin, topMargin + 36);
+  const subtitle = d.brandLabel
+    ? `Crédito y Cobranza · ${d.brandLabel}`
+    : "Crédito y Cobranza";
+  doc.text(subtitle, margin, topMargin + 36);
   doc.setFontSize(9);
   doc.text(`Fecha: ${d.fechaGeneracion}`, pageW - margin, topMargin + 20, { align: "right" });
   if (d.razonSocial) doc.text(d.razonSocial, pageW - margin, topMargin + 34, { align: "right" });
@@ -47,7 +50,12 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
     { title: "Total Facturado", value: fmt(d.totalFacturadoImporte), subtitle: `${d.totalFacturadoCount} facturas`, color: brandColor },
     { title: "En Tiempo", value: fmt(d.vigenteImporte), subtitle: `${d.vigenteCount} facturas`, color: success },
     { title: "Vencido", value: fmt(d.vencidoImporte), subtitle: `${d.vencidoCount} facturas`, color: destructive },
-    { title: "Total Facturas Pagadas", value: String(d.pagadasCount), subtitle: `${d.pagadasVencidasPct.toFixed(1)}% vencidas / ${d.pagadasVigentesPct.toFixed(1)}% vigentes`, color: brandColor },
+    {
+      title: "Pagadas (Histórico)",
+      value: `${d.pagadasCount} / ${d.pagadasHistFacturadoCount}`,
+      subtitle: `Facturado ${fmt(d.pagadasHistFacturadoImporte)} · ${d.pagadasVigentesPct.toFixed(1)}% en tiempo · ${d.pagadasVencidasPct.toFixed(1)}% a destiempo`,
+      color: brandColor,
+    },
   ];
   const gap = 8;
   const cardW = (pageW - margin * 2 - gap * 3) / 4;

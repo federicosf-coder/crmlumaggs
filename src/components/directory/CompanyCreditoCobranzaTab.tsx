@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
-import { buildCompanyCreditoCobranzaData } from "@/lib/buildCompanyCreditoCobranzaData";
+import { buildCompanyCreditoCobranzaData, type BrandKey } from "@/lib/buildCompanyCreditoCobranzaData";
 import { generateCompanyCreditoCobranzaPdf } from "@/lib/generateCompanyCreditoCobranzaPdf";
 
 interface Props {
@@ -51,11 +51,22 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
   };
 
   const handleDownload = async () => {
-    if (!data) return;
     setDownloading(true);
     try {
-      generateCompanyCreditoCobranzaPdf(data);
-      toast.success("PDF descargado");
+      const brands: BrandKey[] = ["lumaggs_chevron", "galsa_phillips66"];
+      let generated = 0;
+      for (const brand of brands) {
+        const brandData = await buildCompanyCreditoCobranzaData(companyId, brand);
+        // Solo generar PDF si la empresa tiene actividad con esa marca
+        if (brandData.pagadasHistFacturadoCount === 0 && brandData.totalFacturadoCount === 0) continue;
+        generateCompanyCreditoCobranzaPdf(brandData);
+        generated++;
+      }
+      if (generated === 0) {
+        toast.info("Sin facturación registrada para generar el PDF");
+      } else {
+        toast.success(`${generated} PDF${generated > 1 ? "s" : ""} descargado${generated > 1 ? "s" : ""}`);
+      }
     } finally {
       setDownloading(false);
     }
@@ -123,8 +134,8 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
         <KpiCard title="Vencido" value={formatCurrency(data.vencidoImporte)} subtitle={`${data.vencidoCount} facturas`} icon={<AlertTriangle className="h-4 w-4" />} accent="text-destructive" />
         <KpiCard
           title="Total Facturas Pagadas"
-          value={String(data.pagadasCount)}
-          subtitle={`${data.pagadasVencidasPct.toFixed(1)}% pagadas vencidas · ${data.pagadasVigentesPct.toFixed(1)}% pagadas vigentes`}
+          value={`${data.pagadasCount} / ${data.pagadasHistFacturadoCount}`}
+          subtitle={`Histórico ${formatCurrency(data.pagadasHistFacturadoImporte)} · ${data.pagadasVigentesPct.toFixed(1)}% en tiempo · ${data.pagadasVencidasPct.toFixed(1)}% a destiempo`}
           icon={<CheckCircle2 className="h-4 w-4" />}
           accent="text-blue-600"
         />
