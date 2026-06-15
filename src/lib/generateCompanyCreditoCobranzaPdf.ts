@@ -9,7 +9,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const margin = 28;
+  const margin = 43; // 1.5 cm
   const topMargin = 43; // 1.5 cm
   const brandColor: [number, number, number] = [56, 84, 186];
   const destructive: [number, number, number] = [200, 40, 40];
