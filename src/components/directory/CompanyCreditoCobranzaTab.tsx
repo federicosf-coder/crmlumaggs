@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
-import { buildCompanyCreditoCobranzaData, BRAND_LABELS, type BrandKey } from "@/lib/buildCompanyCreditoCobranzaData";
+import { buildCompanyCreditoCobranzaData, type BrandKey } from "@/lib/buildCompanyCreditoCobranzaData";
 import { generateCompanyCreditoCobranzaPdf } from "@/lib/generateCompanyCreditoCobranzaPdf";
 
 interface Props {
