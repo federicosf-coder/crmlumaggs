@@ -80,32 +80,41 @@ export async function buildCompanyCreditoCobranzaData(companyId: string): Promis
   const abiertas = noCanceladas.filter(f => Number(f.saldo_pendiente_cobranza || 0) > 0
     && (f.estatus_factura || "").toLowerCase() !== "pagada");
 
-  const pagadasArr = noCanceladas.filter(f => (f.estatus_factura || "").toLowerCase() === "pagada");
-
-  // Determinar si cada factura pagada se pagó vencida o vigente, según última aplicación
+  // Para el KPI "Total Facturas Pagadas" consideramos cualquier factura no cancelada
+  // con al menos una aplicación de pago (pagadas totalmente o con pagos parciales).
+  // Se clasifica como "pagada vencida" si tuvo cualquier aplicación posterior a la
+  // fecha de vencimiento; en caso contrario "pagada en tiempo".
   let pagadasVencidasCount = 0;
   let pagadasVigentesCount = 0;
-  if (pagadasArr.length > 0) {
-    const ids = pagadasArr.map(f => f.id);
+  let pagadasTotal = 0;
+  let pagadasImporte = 0;
+  const pagadasArr = noCanceladas.filter(f => (f.estatus_factura || "").toLowerCase() === "pagada");
+  if (noCanceladas.length > 0) {
+    const ids = noCanceladas.map(f => f.id);
     const { data: apps } = await (supabase as any)
       .from("cobranza_aplicaciones")
       .select("documento_id, fecha_aplicacion")
       .eq("tipo_documento", "factura")
       .in("documento_id", ids);
-    const lastByDoc = new Map<string, string>();
+    const appsByDoc = new Map<string, string[]>();
     (apps || []).forEach((a: any) => {
-      const cur = lastByDoc.get(a.documento_id);
-      if (!cur || (a.fecha_aplicacion && a.fecha_aplicacion > cur)) {
-        lastByDoc.set(a.documento_id, a.fecha_aplicacion);
-      }
+      if (!a.fecha_aplicacion) return;
+      const arr = appsByDoc.get(a.documento_id) || [];
+      arr.push(a.fecha_aplicacion);
+      appsByDoc.set(a.documento_id, arr);
     });
-    pagadasArr.forEach(f => {
-      const last = lastByDoc.get(f.id);
-      if (last && f.fecha_vencimiento && last > f.fecha_vencimiento) pagadasVencidasCount++;
+    noCanceladas.forEach(f => {
+      const fechas = appsByDoc.get(f.id);
+      if (!fechas || fechas.length === 0) return;
+      pagadasTotal++;
+      pagadasImporte += Number(f.total || 0);
+      const tieneTarde = f.fecha_vencimiento
+        ? fechas.some(d => d > f.fecha_vencimiento)
+        : false;
+      if (tieneTarde) pagadasVencidasCount++;
       else pagadasVigentesCount++;
     });
   }
-  const pagadasTotal = pagadasArr.length;
   const pagadasVencidasPct = pagadasTotal ? (pagadasVencidasCount / pagadasTotal) * 100 : 0;
   const pagadasVigentesPct = pagadasTotal ? (pagadasVigentesCount / pagadasTotal) * 100 : 0;
 
@@ -175,7 +184,7 @@ export async function buildCompanyCreditoCobranzaData(companyId: string): Promis
     vencidoImporte: sumSaldo(vencidasArr),
     vencidoCount: vencidasArr.length,
     pagadasCount: pagadasTotal,
-    pagadasImporte: sumTotal(pagadasArr),
+    pagadasImporte,
     pagadasVencidasCount,
     pagadasVigentesCount,
     pagadasVencidasPct,
