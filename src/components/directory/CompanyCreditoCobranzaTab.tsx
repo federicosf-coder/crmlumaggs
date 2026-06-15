@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, FileDown, Save, CreditCard, TrendingUp, AlertTriangle, Wallet, CheckCircle2 } from "lucide-react";
+import { Loader2, FileDown, Save, CreditCard, TrendingUp, AlertTriangle, Wallet, CheckCircle2, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +61,12 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
     }
   };
 
+  const handleSendEmail = async () => {
+    // TODO (acción para automatizar): generar el PDF y enviarlo por correo
+    // usando la Edge Function `process-email-queue`.
+    toast.info("Próximamente: envío automático del PDF por correo");
+  };
+
   if (isLoading || !data) {
     return <div className="space-y-3"><Skeleton className="h-20 w-full" /><Skeleton className="h-32 w-full" /><Skeleton className="h-60 w-full" /></div>;
   }
@@ -69,13 +75,19 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
 
   return (
     <div className="space-y-4">
-      {/* Límite + Descargar PDF */}
+      {/* Límite + Acciones PDF */}
       <div className="rounded-lg border bg-muted/40 p-3">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+            <CreditCard className="h-3 w-3" /> Límite de Crédito
+          </Label>
+          <Button variant="outline" size="sm" onClick={handleDownload} disabled={downloading}>
+            {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
+            Descargar PDF
+          </Button>
+        </div>
         <div className="flex items-end gap-3 flex-wrap">
           <div className="space-y-1.5 flex-1 min-w-[220px]">
-            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-              <CreditCard className="h-3 w-3" /> Límite de Crédito
-            </Label>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">$</span>
               <Input
@@ -97,9 +109,9 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
               <span>Disponible: <span className="font-mono font-semibold text-foreground">{formatCurrency(data.creditoDisponible)}</span></span>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleDownload} disabled={downloading}>
-            {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
-            Descargar PDF
+          <Button variant="outline" size="sm" onClick={handleSendEmail}>
+            <Mail className="h-4 w-4 mr-1" />
+            Enviar PDF por Correo
           </Button>
         </div>
       </div>
