@@ -628,17 +628,47 @@ export default function Cobranza() {
 
     const facturasVencidas = facturas
       .filter(isVencida)
-      .map((f) => ({
-        numero: f.numero_factura || "-",
-        cliente: f.empresa?.name || "Sin cliente",
-        ejecutivo: ejecutivoNombre((f as any).ejecutivo_venta_id),
-        plaza: f.plaza?.nombre || "-",
-        fechaDocumento: fmtDate(f.fecha_documento),
-        fechaVencimiento: fmtDate(fechaVencimientoEfectiva(f)),
-        tipoPago: tipoPagoLabel(f.tipo_pago),
-        total: Number(f.total || 0),
-        saldo: Number(f.saldo_pendiente_cobranza || 0),
-      }));
+      .map((f) => {
+        const fv = fechaVencimientoEfectiva(f);
+        const dv = diasParaVencer(fv ?? null);
+        return {
+          numero: f.numero_factura || "-",
+          cliente: f.empresa?.name || "Sin cliente",
+          ejecutivo: ejecutivoNombre((f as any).ejecutivo_venta_id),
+          plaza: f.plaza?.nombre || "-",
+          fechaDocumento: fmtDate(f.fecha_documento),
+          fechaVencimiento: fmtDate(fv),
+          tipoPago: tipoPagoLabel(f.tipo_pago),
+          total: Number(f.total || 0),
+          saldo: Number(f.saldo_pendiente_cobranza || 0),
+          dias: dv != null ? Math.max(0, -dv) : undefined,
+        };
+      });
+
+    const facturasPorVencer = facturas
+      .filter((f) => {
+        if (isVencida(f)) return false;
+        if (Number(f.saldo_pendiente_cobranza) <= 0) return false;
+        const fv = fechaVencimientoEfectiva(f);
+        const d = diasParaVencer(fv ?? null);
+        return d != null && d >= 1 && d <= 5;
+      })
+      .map((f) => {
+        const fv = fechaVencimientoEfectiva(f);
+        const d = diasParaVencer(fv ?? null);
+        return {
+          numero: f.numero_factura || "-",
+          cliente: f.empresa?.name || "Sin cliente",
+          ejecutivo: ejecutivoNombre((f as any).ejecutivo_venta_id),
+          plaza: f.plaza?.nombre || "-",
+          fechaDocumento: fmtDate(f.fecha_documento),
+          fechaVencimiento: fmtDate(fv),
+          tipoPago: tipoPagoLabel(f.tipo_pago),
+          total: Number(f.total || 0),
+          saldo: Number(f.saldo_pendiente_cobranza || 0),
+          dias: d ?? undefined,
+        };
+      });
 
     return {
       brand: empresaVendedora === "galsa_phillips66" ? "galsa" : "lumaggs",
@@ -733,6 +763,7 @@ export default function Cobranza() {
         { title: "Crédito Cescemex", rows: bucketsCreditoCescemex },
       ],
       facturas: facturasVencidas,
+      facturasPorVencer,
     } as const;
   };
 
