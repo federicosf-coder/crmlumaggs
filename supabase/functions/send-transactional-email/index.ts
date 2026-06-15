@@ -369,6 +369,62 @@ Deno.serve(async (req) => {
     })
   }
 
+  // Workaround: the Lovable email provider does not support cc/bcc fields,
+  // so we enqueue an additional copy of the message for each cc/bcc recipient.
+  // Each copy is independent (own message_id + idempotency key) but carries
+  // the same rendered subject/html/text.
+  const extraRecipients = [
+    ...((cc || []).map((e) => ({ addr: e, kind: 'cc' as const }))),
+    ...((bcc || []).map((e) => ({ addr: e, kind: 'bcc' as const }))),
+  ].filter(
+    (r) =>
+      typeof r.addr === 'string' &&
+      r.addr.trim() &&
+      r.addr.trim().toLowerCase() !== effectiveRecipient.trim().toLowerCase()
+  )
+  for (const extra of extraRecipients) {
+    const extraMessageId = crypto.randomUUID()
+    await supabase.from('email_send_log').insert({
+      message_id: extraMessageId,
+      template_name: templateName,
+      recipient_email: extra.addr,
+      status: 'pending',
+      metadata: { copy_of: messageId, role: extra.kind, reply_to: replyTo || undefined },
+    })
+    const { error: extraErr } = await supabase.rpc('enqueue_email', {
+      queue_name: 'transactional_emails',
+      payload: {
+        message_id: extraMessageId,
+        to: extra.addr,
+        from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+        sender_domain: SENDER_DOMAIN,
+        subject: resolvedSubject,
+        html,
+        text: plainText,
+        purpose: 'transactional',
+        label: templateName,
+        idempotency_key: `${idempotencyKey || messageId}-${extra.kind}-${extra.addr}`,
+        unsubscribe_token: unsubscribeToken,
+        queued_at: new Date().toISOString(),
+        reply_to: replyTo || undefined,
+      },
+    })
+    if (extraErr) {
+      console.error('Failed to enqueue cc/bcc copy', {
+        error: extraErr,
+        templateName,
+        recipient: extra.addr,
+      })
+      await supabase.from('email_send_log').insert({
+        message_id: extraMessageId,
+        template_name: templateName,
+        recipient_email: extra.addr,
+        status: 'failed',
+        error_message: 'Failed to enqueue cc/bcc copy',
+      })
+    }
+  }
+
   console.log('Transactional email enqueued', { templateName, effectiveRecipient })
 
   return new Response(
