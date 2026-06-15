@@ -173,11 +173,29 @@ export default function TemplatesManagement() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{new Date(t.updated_at).toLocaleString()}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => { setPreviewing(t); setPreviewOpen(true); }} title="Previsualizar"><Eye className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(t)} title="Editar"><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => duplicate(t)} title="Duplicar"><Copy className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => toggleActive(t)} title={t.is_active ? "Desactivar" : "Activar"}><Power className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => remove(t)} title="Eliminar"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setPreviewing(t); setPreviewOpen(true); }}>
+                          <Eye className="h-4 w-4 mr-2" /> Previsualizar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEdit(t)}>
+                          <Pencil className="h-4 w-4 mr-2" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => duplicate(t)}>
+                          <Copy className="h-4 w-4 mr-2" /> Duplicar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toggleActive(t)}>
+                          <Power className="h-4 w-4 mr-2" /> {t.is_active ? "Desactivar" : "Activar"}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => remove(t)} className="text-destructive focus:text-destructive">
+                          <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
