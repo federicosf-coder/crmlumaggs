@@ -76,24 +76,12 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
   return (
     <div className="space-y-4">
       {/* Límite + Acciones PDF */}
-      <div className="rounded-lg border bg-muted/40 p-3">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-            <CreditCard className="h-3 w-3" /> Límite de Crédito
-          </Label>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" onClick={handleDownload} disabled={downloading}>
-              {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
-              Descargar PDF
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleSendEmail}>
-              <Mail className="h-4 w-4 mr-1" />
-              Enviar PDF por Correo
-            </Button>
-          </div>
-        </div>
-        <div className="flex items-end gap-2 flex-wrap">
-          <div className="space-y-1.5">
+      <div className="rounded-lg border bg-muted/40 p-2">
+        <div className="flex items-end justify-between gap-2">
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+              <CreditCard className="h-3 w-3" /> Límite de Crédito
+            </Label>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">$</span>
               <Input
@@ -102,18 +90,28 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
                 min="0"
                 value={limiteInput}
                 onChange={e => setLimiteInput(e.target.value)}
-                className="h-9 w-32"
+                className="h-8 w-32"
                 placeholder="0.00"
               />
-              <Button size="sm" onClick={handleSaveLimite} disabled={saving}>
+              <Button size="sm" className="h-8" onClick={handleSaveLimite} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 <span className="ml-1">Guardar</span>
               </Button>
             </div>
-            <div className="flex gap-4 text-xs text-muted-foreground pt-1">
+            <div className="flex gap-4 text-xs text-muted-foreground">
               <span>Utilizado: <span className="font-mono font-semibold text-foreground">{formatCurrency(data.creditoUtilizado)}</span></span>
               <span>Disponible: <span className="font-mono font-semibold text-foreground">{formatCurrency(data.creditoDisponible)}</span></span>
             </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" className="h-8" onClick={handleDownload} disabled={downloading}>
+              {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
+              Descargar PDF
+            </Button>
+            <Button variant="outline" size="sm" className="h-8" onClick={handleSendEmail}>
+              <Mail className="h-4 w-4 mr-1" />
+              Enviar PDF por Correo
+            </Button>
           </div>
         </div>
       </div>
