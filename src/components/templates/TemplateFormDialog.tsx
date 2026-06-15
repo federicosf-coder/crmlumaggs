@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { Save, X, Copy, AlertTriangle, Eye, Send } from "lucide-react";
 import {
   CATEGORY_LABELS, Template, TemplateCategory, TemplatePlaceholder, TemplateType,
-  unknownPlaceholders,
+  unknownPlaceholders, buildTemplateAttachmentsBlock,
 } from "@/lib/templates";
 import { TemplateAttachmentsManager } from "@/components/templates/TemplateAttachmentsManager";
 import { EmailRecipientsInput } from "@/components/templates/EmailRecipientsInput";
@@ -187,6 +187,9 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
     setExecuting(true);
     try {
       const resolvedBody = await resolveTemplate(form.body || "", {});
+      // Adjuntar enlaces de descarga de los adjuntos guardados en la plantilla
+      const tplId = editing?.id || createdId || null;
+      const att = await buildTemplateAttachmentsBlock(tplId);
       if (form.type === "email") {
         if (!profile?.email) {
           toast.error("Tu perfil no tiene email para recibir la prueba");
@@ -197,21 +200,24 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
           return;
         }
         const resolvedSubject = await resolveTemplate(form.subject || "", {});
+        const finalHtml = resolvedBody + att.html;
         const { error } = await supabase.functions.invoke("send-transactional-email", {
           body: {
             templateName: "raw-html",
             recipientEmail: profile.email,
             subjectOverride: `[PRUEBA] ${resolvedSubject}`,
-            htmlOverride: resolvedBody,
+            htmlOverride: finalHtml,
             idempotencyKey: `template-test-${editing?.id || createdId || "draft"}-${Date.now()}`,
             templateData: {},
           },
         });
         if (error) throw error;
-        toast.success(`Email de prueba enviado a ${profile.email}`);
+        toast.success(
+          `Email de prueba enviado a ${profile.email}${att.items.length ? ` (con ${att.items.length} adjunto(s) como enlaces)` : ""}`
+        );
       } else {
         const phone = (profile?.phone || "").replace(/\D/g, "");
-        const plain = resolvedBody.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        const plain = (resolvedBody.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()) + att.text;
         if (!phone) {
           await navigator.clipboard.writeText(plain).catch(() => {});
           toast.info("Tu perfil no tiene teléfono. Mensaje copiado al portapapeles.");

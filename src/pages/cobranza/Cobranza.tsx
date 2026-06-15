@@ -46,6 +46,7 @@ function tipoPagoLabel(value: string | null | undefined): string {
 }
 
 async function loadSystemTemplate(systemKey: string): Promise<{
+  id: string;
   subject: string;
   body: string;
   to_emails: EmailRecipientItem[];
@@ -55,13 +56,14 @@ async function loadSystemTemplate(systemKey: string): Promise<{
 } | null> {
   const { data } = await (supabase as any)
     .from("templates")
-    .select("subject, body, to_emails, cc_emails, bcc_emails, reply_to")
+    .select("id, subject, body, to_emails, cc_emails, bcc_emails, reply_to")
     .eq("system_key", systemKey)
     .eq("is_active", true)
     .limit(1)
     .maybeSingle();
   if (!data || !data.body) return null;
   return {
+    id: data.id,
     subject: data.subject || "",
     body: data.body,
     to_emails: (data.to_emails as EmailRecipientItem[]) || [],
@@ -1479,7 +1481,17 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
       }
     }
     const subjectOverride = dbTpl ? renderTemplate(resolvedSubject, tplVars) : undefined;
-    const htmlOverride = dbTpl ? renderTemplate(resolvedBody, tplVars) : undefined;
+    let htmlOverride = dbTpl ? renderTemplate(resolvedBody, tplVars) : undefined;
+    // Append cualquier adjunto definido en la plantilla como enlaces de descarga.
+    if (dbTpl?.id && htmlOverride) {
+      try {
+        const { buildTemplateAttachmentsBlock } = await import("@/lib/templates");
+        const att = await buildTemplateAttachmentsBlock(dbTpl.id);
+        if (att.html) htmlOverride = htmlOverride + att.html;
+      } catch (e) {
+        console.warn("[cobranza] No se pudieron anexar adjuntos de plantilla", e);
+      }
+    }
 
     // Resolve template-level recipients (to + cc + bcc + reply_to)
     const tplToEmails = dbTpl ? await resolveEmailRecipients(dbTpl.to_emails) : [];

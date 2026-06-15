@@ -1,7 +1,9 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { CATEGORY_LABELS, Template, EmailRecipientItem } from "@/lib/templates";
+import { CATEGORY_LABELS, Template, EmailRecipientItem, listTemplateAttachments, getAttachmentPublicUrl, type TemplateAttachment } from "@/lib/templates";
 import { useResolvedTemplate } from "@/hooks/useResolvedTemplate";
+import { useQuery } from "@tanstack/react-query";
+import { Paperclip } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -36,6 +38,12 @@ export function TemplatePreviewDialog({ open, onOpenChange, template }: Props) {
   const previewBody = resolved?.resolvedBody ?? template.body ?? "";
   const previewSubject = resolved?.resolvedSubject ?? template.subject ?? "";
 
+  const { data: attachments = [] } = useQuery<TemplateAttachment[]>({
+    queryKey: ["template-attachments-preview", template.id],
+    queryFn: () => listTemplateAttachments(template.id),
+    enabled: open && !!template.id,
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
@@ -63,6 +71,28 @@ export function TemplatePreviewDialog({ open, onOpenChange, template }: Props) {
                 className="bg-white rounded-md p-4 text-sm leading-relaxed prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{ __html: highlight(previewBody) }}
               />
+              {attachments.length > 0 && (
+                <div className="bg-white rounded-md p-4 border-t text-sm">
+                  <div className="flex items-center gap-1.5 font-semibold text-gray-800 mb-2">
+                    <Paperclip className="h-3.5 w-3.5" /> Documentos adjuntos
+                  </div>
+                  <ul className="space-y-1 pl-5 list-disc">
+                    {attachments.map((a) => (
+                      <li key={a.id}>
+                        <a href={getAttachmentPublicUrl(a.file_path)} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          {a.file_name}
+                        </a>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({a.mime_type.split("/").pop()?.toUpperCase()})
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-[11px] text-muted-foreground mt-2 italic">
+                    Los adjuntos se envían como enlaces de descarga dentro del cuerpo del correo.
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-gray-100 rounded-lg p-6 flex justify-center">
@@ -74,6 +104,16 @@ export function TemplatePreviewDialog({ open, onOpenChange, template }: Props) {
                       className="text-[13px] text-[#303030] whitespace-pre-wrap leading-snug"
                       dangerouslySetInnerHTML={{ __html: highlight(previewBody) }}
                     />
+                    {attachments.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-[#bfd9b3] text-[12px] text-[#303030]">
+                        <div className="font-semibold mb-0.5">📎 Adjuntos</div>
+                        {attachments.map((a) => (
+                          <div key={a.id} className="truncate">
+                            • <a href={getAttachmentPublicUrl(a.file_path)} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">{a.file_name}</a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
