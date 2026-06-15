@@ -88,7 +88,6 @@ export async function buildCompanyCreditoCobranzaData(companyId: string): Promis
   let pagadasVigentesCount = 0;
   let pagadasTotal = 0;
   let pagadasImporte = 0;
-  const pagadasArr = noCanceladas.filter(f => (f.estatus_factura || "").toLowerCase() === "pagada");
   if (noCanceladas.length > 0) {
     const ids = noCanceladas.map(f => f.id);
     const { data: apps } = await (supabase as any)
@@ -122,7 +121,6 @@ export async function buildCompanyCreditoCobranzaData(companyId: string): Promis
   const vencidasArr = abiertas.filter(isVencida);
   const vigenteArr = abiertas.filter(f => !isVencida(f));
 
-  const sumTotal = (a: any[]) => a.reduce((s, f) => s + Number(f.total || 0), 0);
   const sumSaldo = (a: any[]) => a.reduce((s, f) => s + Number(f.saldo_pendiente_cobranza || 0), 0);
 
   // Buckets sobre las abiertas
