@@ -51,9 +51,9 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
     { title: "En Tiempo", value: fmt(d.vigenteImporte), subtitle: `${d.vigenteCount} facturas`, color: success },
     { title: "Vencido", value: fmt(d.vencidoImporte), subtitle: `${d.vencidoCount} facturas`, color: destructive },
     {
-      title: "Pagadas (Histórico)",
-      value: `${d.pagadasCount} / ${d.pagadasHistFacturadoCount}`,
-      subtitle: `Facturado ${fmt(d.pagadasHistFacturadoImporte)} · ${d.pagadasVigentesPct.toFixed(1)}% en tiempo · ${d.pagadasVencidasPct.toFixed(1)}% a destiempo`,
+      title: "Total Facturas Pagadas",
+      value: `${d.pagadasCount}`,
+      subtitle: "Facturas pagadas en total",
       color: brandColor,
     },
   ];

@@ -134,8 +134,8 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
         <KpiCard title="Vencido" value={formatCurrency(data.vencidoImporte)} subtitle={`${data.vencidoCount} facturas`} icon={<AlertTriangle className="h-4 w-4" />} accent="text-destructive" />
         <KpiCard
           title="Total Facturas Pagadas"
-          value={`${data.pagadasCount} / ${data.pagadasHistFacturadoCount}`}
-          subtitle={`Histórico ${formatCurrency(data.pagadasHistFacturadoImporte)} · ${data.pagadasVigentesPct.toFixed(1)}% en tiempo · ${data.pagadasVencidasPct.toFixed(1)}% a destiempo`}
+          value={`${data.pagadasCount}`}
+          subtitle={`Facturas pagadas en total`}
           icon={<CheckCircle2 className="h-4 w-4" />}
           accent="text-blue-600"
         />
