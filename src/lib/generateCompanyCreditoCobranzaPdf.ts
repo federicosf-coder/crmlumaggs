@@ -17,31 +17,29 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   const border: [number, number, number] = [220, 220, 220];
   const muted: [number, number, number] = [110, 110, 110];
 
-  // Header
+  // Header (compact)
   doc.setFillColor(...brandColor);
-  doc.rect(0, 0, pageW, 60, "F");
+  doc.rect(0, 0, pageW, 44, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
-  doc.text(d.empresaNombre, margin, 28);
-  doc.setFontSize(13);
+  doc.setFontSize(14);
+  doc.text(d.empresaNombre, margin, 20);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("Crédito y Cobranza", margin, 48);
+  doc.text("Crédito y Cobranza", margin, 36);
+  doc.setFontSize(9);
+  doc.text(`Fecha: ${d.fechaGeneracion}`, pageW - margin, 20, { align: "right" });
+  if (d.razonSocial) doc.text(d.razonSocial, pageW - margin, 34, { align: "right" });
 
   doc.setTextColor(0, 0, 0);
-  let y = 78;
-  doc.setFontSize(10);
-  doc.text(`Fecha: ${d.fechaGeneracion}`, margin, y);
-  if (d.razonSocial) { y += 14; doc.text(`Razón Social: ${d.razonSocial}`, margin, y); }
-  y += 14;
+  let y = 56;
+  doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text(`Límite de Crédito: ${fmt(d.limiteCredito)}`, margin, y);
+  doc.text(`Límite: ${fmt(d.limiteCredito)}`, margin, y);
   doc.setFont("helvetica", "normal");
-  y += 14;
-  doc.text(`Crédito Utilizado: ${fmt(d.creditoUtilizado)}`, margin, y);
-  y += 14;
-  doc.text(`Crédito Disponible: ${fmt(d.creditoDisponible)}`, margin, y);
-  y += 16;
+  doc.text(`Utilizado: ${fmt(d.creditoUtilizado)}`, margin + 160, y);
+  doc.text(`Disponible: ${fmt(d.creditoDisponible)}`, margin + 320, y);
+  y += 8;
 
   // KPI cards
   const cards: { title: string; value: string; subtitle: string; color: [number, number, number] }[] = [
@@ -50,9 +48,9 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
     { title: "Vencido", value: fmt(d.vencidoImporte), subtitle: `${d.vencidoCount} facturas`, color: destructive },
     { title: "Total Facturas Pagadas", value: String(d.pagadasCount), subtitle: `${d.pagadasVencidasPct.toFixed(1)}% vencidas / ${d.pagadasVigentesPct.toFixed(1)}% vigentes`, color: brandColor },
   ];
-  const gap = 10;
+  const gap = 8;
   const cardW = (pageW - margin * 2 - gap * 3) / 4;
-  const cardH = 72;
+  const cardH = 52;
   cards.forEach((c, i) => {
     const x = margin + i * (cardW + gap);
     doc.setDrawColor(...border);
@@ -60,25 +58,24 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
     doc.setFillColor(...c.color);
     doc.rect(x, y, 4, cardH, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(...c.color);
-    doc.text(c.title, x + 12, y + 20);
-    doc.setFontSize(17);
-    doc.setTextColor(0, 0, 0);
-    doc.text(c.value, x + 12, y + 42);
-    doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
+    doc.setTextColor(...c.color);
+    doc.text(c.title, x + 10, y + 14);
+    doc.setFontSize(13);
+    doc.setTextColor(0, 0, 0);
+    doc.text(c.value, x + 10, y + 30);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
     doc.setTextColor(...muted);
-    doc.text(c.subtitle, x + 12, y + 58);
+    doc.text(c.subtitle, x + 10, y + 44);
   });
-  y += cardH + 14;
+  y += cardH + 8;
 
   // Buckets table
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
+  doc.setFontSize(10);
   doc.setTextColor(...brandColor);
   doc.text("Cartera por Antigüedad", margin, y);
-  y += 6;
   autoTable(doc, {
     startY: y + 4,
     head: [["Bucket", "Facturas", "Importe"]],
@@ -88,7 +85,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
       { content: fmt(b.monto), styles: { halign: "right" } },
     ]),
     theme: "grid",
-    styles: { fontSize: 9, cellPadding: 4, lineColor: border, lineWidth: 0.3 },
+    styles: { fontSize: 8, cellPadding: 2, lineColor: border, lineWidth: 0.3 },
     headStyles: { fillColor: brandColor, textColor: 255 },
     columnStyles: { 1: { halign: "center" }, 2: { halign: "right" } },
     margin: { left: margin, right: margin },
@@ -100,15 +97,15 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
       }
     },
   });
+  y = (doc as any).lastAutoTable.finalY + 8;
 
-  // Vencidas
-  doc.addPage();
+  // Vencidas (continúa en la misma página si cabe)
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
+  doc.setFontSize(10);
   doc.setTextColor(...brandColor);
-  doc.text("Facturas Vencidas", margin, 36);
+  doc.text("Facturas Vencidas", margin, y);
   autoTable(doc, {
-    startY: 50,
+    startY: y + 4,
     head: [["No. Factura", "F. Documento", "F. Vencimiento", "Días Vencida", "Tipo Pago", "Total", "Saldo"]],
     body: d.vencidas.length === 0
       ? [[{ content: "Sin facturas vencidas.", colSpan: 7, styles: { halign: "center", textColor: muted } }]]
@@ -120,7 +117,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
           { content: fmt(f.saldo), styles: { halign: "right", textColor: destructive, fontStyle: "bold" } },
         ]),
     theme: "grid",
-    styles: { fontSize: 8, cellPadding: 3, lineColor: border, lineWidth: 0.3 },
+    styles: { fontSize: 7.5, cellPadding: 2, lineColor: border, lineWidth: 0.3 },
     headStyles: { fillColor: brandColor, textColor: 255 },
     margin: { left: margin, right: margin },
     didDrawPage: () => {
@@ -128,15 +125,15 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
       doc.text(`Página ${doc.getCurrentPageInfo().pageNumber}`, pageW - margin, pageH - 12, { align: "right" });
     },
   });
+  y = (doc as any).lastAutoTable.finalY + 8;
 
-  // Por vencer (todas, asc por días)
-  doc.addPage();
+  // Por vencer (todas, asc por días) — continúa, autoTable salta página solo si es necesario
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
+  doc.setFontSize(10);
   doc.setTextColor(...brandColor);
-  doc.text("Facturas por Vencer (orden ascendente)", margin, 36);
+  doc.text("Facturas por Vencer (orden ascendente)", margin, y);
   autoTable(doc, {
-    startY: 50,
+    startY: y + 4,
     head: [["No. Factura", "F. Documento", "F. Vencimiento", "Días para Vencer", "Tipo Pago", "Total", "Saldo"]],
     body: d.porVencer.length === 0
       ? [[{ content: "Sin facturas por vencer.", colSpan: 7, styles: { halign: "center", textColor: muted } }]]
@@ -148,7 +145,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
           { content: fmt(f.saldo), styles: { halign: "right", fontStyle: "bold" } },
         ]),
     theme: "grid",
-    styles: { fontSize: 8, cellPadding: 3, lineColor: border, lineWidth: 0.3 },
+    styles: { fontSize: 7.5, cellPadding: 2, lineColor: border, lineWidth: 0.3 },
     headStyles: { fillColor: brandColor, textColor: 255 },
     margin: { left: margin, right: margin },
     didDrawPage: () => {
