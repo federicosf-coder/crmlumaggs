@@ -204,7 +204,7 @@ export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
     body.push([
       {
         content: `${cliente}  (${facs.length})`,
-        colSpan: 6,
+        colSpan: 7,
         styles: { fillColor: [240, 240, 245], fontStyle: "bold", textColor: [40, 40, 40] },
       },
       { content: fmtCurrency(subT), styles: { fillColor: [240, 240, 245], fontStyle: "bold", halign: "right" } },
@@ -217,6 +217,7 @@ export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
         f.plaza,
         f.fechaDocumento,
         f.fechaVencimiento,
+        { content: f.dias != null ? String(f.dias) : "-", styles: { halign: "center", textColor: destructive, fontStyle: "bold" } },
         f.tipoPago,
         { content: fmtCurrency(f.total), styles: { halign: "right" } },
         { content: fmtCurrency(f.saldo), styles: { halign: "right", textColor: destructive, fontStyle: "bold" } },
@@ -226,14 +227,15 @@ export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
 
   autoTable(doc, {
     startY: 50,
-    head: [["No. Factura", "Ejecutivo", "Plaza", "F. Documento", "F. Vencimiento", "Tipo Pago", "Total", "Saldo"]],
+    head: [["No. Factura", "Ejecutivo", "Plaza", "F. Documento", "F. Vencimiento", "Días Vencida", "Tipo Pago", "Total", "Saldo"]],
     body,
     theme: "grid",
     styles: { fontSize: 8, cellPadding: 3, lineColor: borderColor, lineWidth: 0.3 },
     headStyles: { fillColor: brandColor, textColor: 255, fontStyle: "bold" },
     columnStyles: {
-      6: { halign: "right" },
+      5: { halign: "center" },
       7: { halign: "right" },
+      8: { halign: "right" },
     },
     margin: { left: margin, right: margin },
     didDrawPage: () => {
@@ -250,6 +252,85 @@ export function generateCobranzaReportPdf(input: CobranzaReportInput): void {
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
   doc.text(`Total general: ${fmtCurrency(totalGral)}   ·   Saldo total vencido: ${fmtCurrency(saldoGral)}`, margin, finalY);
+
+  // ===== Facturas por Vencer (1-5 días) =====
+  const porVencer = input.facturasPorVencer || [];
+  if (porVencer.length > 0) {
+    doc.addPage();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(...brandColor);
+    doc.text("Facturas por Vencer — Próximas 1 a 5 días", margin, 36);
+    doc.setTextColor(0, 0, 0);
+
+    const map2 = new Map<string, FacturaRow[]>();
+    for (const f of porVencer) {
+      const k = f.cliente || "Sin cliente";
+      if (!map2.has(k)) map2.set(k, []);
+      map2.get(k)!.push(f);
+    }
+    const grouped2 = Array.from(map2.entries()).sort((a, b) => a[0].localeCompare(b[0], "es"));
+
+    const body2: any[] = [];
+    let totalG2 = 0;
+    let saldoG2 = 0;
+    const accent: [number, number, number] = [200, 130, 20];
+    grouped2.forEach(([cliente, facs]) => {
+      const subT = facs.reduce((s, f) => s + f.total, 0);
+      const subS = facs.reduce((s, f) => s + f.saldo, 0);
+      totalG2 += subT;
+      saldoG2 += subS;
+      body2.push([
+        {
+          content: `${cliente}  (${facs.length})`,
+          colSpan: 7,
+          styles: { fillColor: [240, 240, 245], fontStyle: "bold", textColor: [40, 40, 40] },
+        },
+        { content: fmtCurrency(subT), styles: { fillColor: [240, 240, 245], fontStyle: "bold", halign: "right" } },
+        { content: fmtCurrency(subS), styles: { fillColor: [240, 240, 245], fontStyle: "bold", halign: "right" } },
+      ]);
+      facs.forEach((f) => {
+        body2.push([
+          f.numero,
+          f.ejecutivo,
+          f.plaza,
+          f.fechaDocumento,
+          f.fechaVencimiento,
+          { content: f.dias != null ? String(f.dias) : "-", styles: { halign: "center", textColor: accent, fontStyle: "bold" } },
+          f.tipoPago,
+          { content: fmtCurrency(f.total), styles: { halign: "right" } },
+          { content: fmtCurrency(f.saldo), styles: { halign: "right", fontStyle: "bold" } },
+        ]);
+      });
+    });
+
+    autoTable(doc, {
+      startY: 50,
+      head: [["No. Factura", "Ejecutivo", "Plaza", "F. Documento", "F. Vencimiento", "Días para Vencer", "Tipo Pago", "Total", "Saldo"]],
+      body: body2,
+      theme: "grid",
+      styles: { fontSize: 8, cellPadding: 3, lineColor: borderColor, lineWidth: 0.3 },
+      headStyles: { fillColor: brandColor, textColor: 255, fontStyle: "bold" },
+      columnStyles: {
+        5: { halign: "center" },
+        7: { halign: "right" },
+        8: { halign: "right" },
+      },
+      margin: { left: margin, right: margin },
+      didDrawPage: () => {
+        const pStr = `Página ${doc.getCurrentPageInfo().pageNumber}`;
+        doc.setFontSize(8);
+        doc.setTextColor(...mutedText);
+        doc.text(pStr, pageW - margin, pageH - 12, { align: "right" });
+      },
+    });
+
+    const finalY2 = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total general: ${fmtCurrency(totalG2)}   ·   Saldo total por vencer: ${fmtCurrency(saldoG2)}`, margin, finalY2);
+  }
 
   const fname = `Reporte_Cobranza_${input.brand}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(fname);
