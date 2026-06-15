@@ -132,21 +132,26 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
     if (!empresaId) { setDocs([]); setSeleccion({}); return; }
     setLoadingDocs(true);
     supabase.from("documentos")
-      .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,total,saldo_pendiente_cobranza")
+      .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,total,saldo_pendiente_cobranza,estatus_factura")
       .eq("empresa_id", empresaId)
       .eq("is_active", true)
       .gt("total", 0)
       .in("tipo_documento", ["factura", "pedido", "cotizacion"])
       .order("fecha_documento", { ascending: false })
       .then(({ data }) => {
-        const mapped: DocOption[] = (data || []).map((d: any) => ({
-          id: d.id,
-          tipo_documento: d.tipo_documento,
-          numero: d.numero_factura || d.numero_pedido || d.numero_cotizacion || "—",
-          fecha_documento: d.fecha_documento,
-          total: Number(d.total || 0),
-          saldo: Number(d.saldo_pendiente_cobranza ?? d.total ?? 0),
-        }));
+        const mapped: DocOption[] = (data || [])
+          .filter((d: any) => {
+            const status = (d.estatus_factura || "").toLowerCase();
+            return status !== "pagada" && status !== "cancelada";
+          })
+          .map((d: any) => ({
+            id: d.id,
+            tipo_documento: d.tipo_documento,
+            numero: d.numero_factura || d.numero_pedido || d.numero_cotizacion || "—",
+            fecha_documento: d.fecha_documento,
+            total: Number(d.total || 0),
+            saldo: Number(d.saldo_pendiente_cobranza ?? d.total ?? 0),
+          }));
         setDocs(mapped);
         setSeleccion({});
         setLoadingDocs(false);
