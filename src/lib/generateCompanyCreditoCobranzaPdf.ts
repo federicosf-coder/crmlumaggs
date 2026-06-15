@@ -79,7 +79,7 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
   doc.text("Cartera por Antigüedad", margin, y);
   autoTable(doc, {
     startY: y + 4,
-    head: [["Bucket", "Facturas", "Importe"]],
+    head: [["Días Vencimiento", "Facturas", "Importe"]],
     body: d.buckets.map(b => [
       b.label,
       String(b.count),
