@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
@@ -124,10 +124,8 @@ export default function DocumentForm() {
   const canConvertToFactura = isAdmin || isManager || isAccounting || (!isSales && !isDelivery);
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
-  // Anchors used to portal interactive elements (Contpaq, Núm. Factura)
-  // outside the disabled <fieldset>, so they keep working in view mode.
-  const [contpaqAnchor, setContpaqAnchor] = useState<HTMLDivElement | null>(null);
-  const [numFacturaAnchor, setNumFacturaAnchor] = useState<HTMLDivElement | null>(null);
+  // contpaq inline and numero_factura input are rendered directly inline
+  // outside disabled fieldsets so they remain editable in view mode.
   const [savingNumFactura, setSavingNumFactura] = useState(false);
 
   const today = format(new Date(), "yyyy-MM-dd");
@@ -905,160 +903,170 @@ export default function DocumentForm() {
         )}
       </div>
 
-      <fieldset disabled={viewMode} className="space-y-6">
+      
       {/* General Info */}
       <Card>
         <CardHeader><CardTitle>Información General</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <Label>Empresa Vendedora *</Label>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {(["lumaggs_chevron", "galsa_phillips66"] as const).map((v) => {
-                const st = EMPRESA_STYLES[v];
-                const isActive = form.empresa_vendedora === v;
-                return (
-                  <button
-                    key={v}
-                    type="button"
-                    disabled={viewMode}
-                    onClick={() => set("empresa_vendedora", v)}
-                    className={`inline-flex items-center h-9 px-4 rounded-full border text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isActive ? st.active + " shadow-sm" : st.idle}`}
-                  >
-                    {st.label}
-                  </button>
-                );
-              })}
+          <fieldset disabled={viewMode} className="contents">
+            <div>
+              <Label>Empresa Vendedora *</Label>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {(["lumaggs_chevron", "galsa_phillips66"] as const).map((v) => {
+                  const st = EMPRESA_STYLES[v];
+                  const isActive = form.empresa_vendedora === v;
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      disabled={viewMode}
+                      onClick={() => set("empresa_vendedora", v)}
+                      className={`inline-flex items-center h-9 px-4 rounded-full border text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isActive ? st.active + " shadow-sm" : st.idle}`}
+                    >
+                      {st.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-          <div>
-            <Label>Tipo de Documento *</Label>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {(["cotizacion", "pedido", "factura", "entrega_corporativa"] as const).map((v) => {
-                const st = TIPO_DOC_STYLES[v];
-                const isActive = form.tipo_documento === v;
-                return (
-                  <button
-                    key={v}
-                    type="button"
-                    disabled={viewMode}
-                    onClick={() => set("tipo_documento", v)}
-                    className={`inline-flex items-center h-9 px-4 rounded-full border text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isActive ? st.active + " shadow-sm" : st.idle}`}
-                  >
-                    {st.label}
-                  </button>
-                );
-              })}
+            <div>
+              <Label>Tipo de Documento *</Label>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {(["cotizacion", "pedido", "factura", "entrega_corporativa"] as const).map((v) => {
+                  const st = TIPO_DOC_STYLES[v];
+                  const isActive = form.tipo_documento === v;
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      disabled={viewMode}
+                      onClick={() => set("tipo_documento", v)}
+                      className={`inline-flex items-center h-9 px-4 rounded-full border text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isActive ? st.active + " shadow-sm" : st.idle}`}
+                    >
+                      {st.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-          <div>
-            <Label>Plaza *</Label>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {plazas.map((p: any) => {
-                const c = plazaColor(p.id);
-                const isActive = form.plaza_id === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    disabled={viewMode}
-                    onClick={() => set("plaza_id", p.id)}
-                    className={`inline-flex items-center h-8 px-3 rounded-full border text-xs font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isActive ? c.active + " shadow-sm" : c.idle}`}
-                  >
-                    {p.nombre}
-                  </button>
-                );
-              })}
+            <div>
+              <Label>Plaza *</Label>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {plazas.map((p: any) => {
+                  const c = plazaColor(p.id);
+                  const isActive = form.plaza_id === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      disabled={viewMode}
+                      onClick={() => set("plaza_id", p.id)}
+                      className={`inline-flex items-center h-8 px-3 rounded-full border text-xs font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed ${isActive ? c.active + " shadow-sm" : c.idle}`}
+                    >
+                      {p.nombre}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-          <div>
-            <Label>Ejecutivo de Venta</Label>
-            <SearchableSelect
-              value={form.ejecutivo_venta_id}
-              onValueChange={v => set("ejecutivo_venta_id", v)}
-              placeholder="Seleccionar"
-              options={users.map((u: any) => ({ value: u.user_id, label: u.full_name || u.user_id }))}
-            />
-          </div>
+            <div>
+              <Label>Ejecutivo de Venta</Label>
+              <SearchableSelect
+                value={form.ejecutivo_venta_id}
+                onValueChange={v => set("ejecutivo_venta_id", v)}
+                placeholder="Seleccionar"
+                options={users.map((u: any) => ({ value: u.user_id, label: u.full_name || u.user_id }))}
+              />
+            </div>
+          </fieldset>
 
           {/* Empresa (Cliente) with + button */}
           <div>
-            <Label className="flex items-center gap-1">
-              Empresa (Cliente) <span className="text-destructive">*</span>
-              {form.empresa_id && (
-                <Link
-                  to={`/directory?tab=companies&select=${form.empresa_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline inline-flex"
-                  title="Abrir empresa para editar"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-              )}
-            </Label>
-            <div className="flex gap-1">
-              <SearchableSelect
-                value={form.empresa_id}
-                onValueChange={v => { set("empresa_id", v); set("contacto_id", ""); set("direccion_envio", ""); }}
-                placeholder="Seleccionar"
-                options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
-                className="flex-1"
-              />
-              <Button variant="outline" size="icon" onClick={() => setShowNewCompany(true)}><Plus className="h-4 w-4" /></Button>
-            </div>
+            <fieldset disabled={viewMode} className="contents">
+              <Label className="flex items-center gap-1">
+                Empresa (Cliente) <span className="text-destructive">*</span>
+                {form.empresa_id && (
+                  <Link
+                    to={`/directory?tab=companies&select=${form.empresa_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline inline-flex"
+                    title="Abrir empresa para editar"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                )}
+              </Label>
+              <div className="flex gap-1">
+                <SearchableSelect
+                  value={form.empresa_id}
+                  onValueChange={v => { set("empresa_id", v); set("contacto_id", ""); set("direccion_envio", ""); }}
+                  placeholder="Seleccionar"
+                  options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
+                  className="flex-1"
+                />
+                <Button variant="outline" size="icon" onClick={() => setShowNewCompany(true)}><Plus className="h-4 w-4" /></Button>
+              </div>
+            </fieldset>
             {form.empresa_id && (
-              <div ref={setContpaqAnchor} />
+              <CompanyContpaqInline
+                companyId={form.empresa_id}
+                initial={(companies.find((c: any) => c.id === form.empresa_id) as any)?.id_contpaq || ""}
+                onSaved={() => refetchCompanies()}
+              />
             )}
           </div>
 
-          {/* Contacto with + button, filtered by empresa */}
-          <div>
-            <Label className="flex items-center gap-1">
-              Contacto <span className="text-destructive">*</span>
-              {form.contacto_id && (
-                <Link
-                  to={`/directory?tab=contacts&select=${form.contacto_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline inline-flex"
-                  title="Abrir contacto para editar"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-              )}
-            </Label>
-            <div className="flex gap-1">
-              <SearchableSelect
-                value={form.contacto_id}
-                onValueChange={v => set("contacto_id", v)}
-                placeholder={form.empresa_id ? "Seleccionar" : "Selecciona empresa primero"}
-                disabled={!form.empresa_id}
-                options={contacts.map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
-                className="flex-1"
-              />
-              <Button variant="outline" size="icon" onClick={() => setShowNewContact(true)} disabled={!form.empresa_id}><Plus className="h-4 w-4" /></Button>
+          <fieldset disabled={viewMode} className="contents">
+            {/* Contacto with + button, filtered by empresa */}
+            <div>
+              <Label className="flex items-center gap-1">
+                Contacto <span className="text-destructive">*</span>
+                {form.contacto_id && (
+                  <Link
+                    to={`/directory?tab=contacts&select=${form.contacto_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline inline-flex"
+                    title="Abrir contacto para editar"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                )}
+              </Label>
+              <div className="flex gap-1">
+                <SearchableSelect
+                  value={form.contacto_id}
+                  onValueChange={v => set("contacto_id", v)}
+                  placeholder={form.empresa_id ? "Seleccionar" : "Selecciona empresa primero"}
+                  disabled={!form.empresa_id}
+                  options={contacts.map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
+                  className="flex-1"
+                />
+                <Button variant="outline" size="icon" onClick={() => setShowNewContact(true)} disabled={!form.empresa_id}><Plus className="h-4 w-4" /></Button>
+              </div>
+              {form.contacto_id && (() => {
+                const c: any = contacts.find((x: any) => x.id === form.contacto_id);
+                if (!c) return null;
+                const wa = (c.whatsapp_phone || "").toString().trim();
+                const em = (c.email || "").toString().trim();
+                const waDigits = wa.replace(/\D/g, "");
+                const hasWa = waDigits.length >= 8;
+                const hasEm = !!em;
+                return (
+                  <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                    <div>Whatsapp: {hasWa ? wa : <span className="text-destructive">No registrado</span>}</div>
+                    <div>Email Principal: {hasEm ? em : <span className="text-destructive">No registrado</span>}</div>
+                    {!hasWa && !hasEm && (
+                      <div className="text-destructive">Este contacto requiere Whatsapp o Email Principal antes de guardar.</div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
-            {form.contacto_id && (() => {
-              const c: any = contacts.find((x: any) => x.id === form.contacto_id);
-              if (!c) return null;
-              const wa = (c.whatsapp_phone || "").toString().trim();
-              const em = (c.email || "").toString().trim();
-              const waDigits = wa.replace(/\D/g, "");
-              const hasWa = waDigits.length >= 8;
-              const hasEm = !!em;
-              return (
-                <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
-                  <div>Whatsapp: {hasWa ? wa : <span className="text-destructive">No registrado</span>}</div>
-                  <div>Email Principal: {hasEm ? em : <span className="text-destructive">No registrado</span>}</div>
-                  {!hasWa && !hasEm && (
-                    <div className="text-destructive">Este contacto requiere Whatsapp o Email Principal antes de guardar.</div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
+          </fieldset>
         </CardContent>
       </Card>
 
@@ -1066,110 +1074,139 @@ export default function DocumentForm() {
       <Card>
         <CardHeader><CardTitle>Fechas y Números</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <Label>Fecha Documento</Label>
-            <Input type="date" value={form.fecha_documento} onChange={e => set("fecha_documento", e.target.value)} />
-          </div>
-          <div>
-            <Label>Fecha Vencimiento</Label>
-            <Input
-              type="date"
-              value={form.fecha_vencimiento}
-              onChange={e => set("fecha_vencimiento", e.target.value)}
-              disabled={form.tipo_documento === "factura" && !isAdmin}
-            />
-            {form.tipo_documento === "factura" && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Se calcula automáticamente según la forma de pago{!isAdmin ? " (sólo admin puede editar)" : ""}.
-              </p>
-            )}
-          </div>
-          <div>
-            <Label>IVA %</Label>
-            <Select value={form.iva_porcentaje} onValueChange={v => set("iva_porcentaje", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="8">8%</SelectItem>
-                <SelectItem value="16">16%</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <fieldset disabled={viewMode} className="contents">
+            <div>
+              <Label>Fecha Documento</Label>
+              <Input type="date" value={form.fecha_documento} onChange={e => set("fecha_documento", e.target.value)} />
+            </div>
+            <div>
+              <Label>Fecha Vencimiento</Label>
+              <Input
+                type="date"
+                value={form.fecha_vencimiento}
+                onChange={e => set("fecha_vencimiento", e.target.value)}
+                disabled={form.tipo_documento === "factura" && !isAdmin}
+              />
+              {form.tipo_documento === "factura" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Se calcula automáticamente según la forma de pago{!isAdmin ? " (sólo admin puede editar)" : ""}.
+                </p>
+              )}
+            </div>
+            <div>
+              <Label>IVA %</Label>
+              <Select value={form.iva_porcentaje} onValueChange={v => set("iva_porcentaje", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="8">8%</SelectItem>
+                  <SelectItem value="16">16%</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Show only fields relevant to the selected document type */}
-          {td === "cotizacion" && (
-            <>
-              <div>
-                <Label>Número Cotización</Label>
-                <Input value={form.numero_cotizacion || "(Se asignará automáticamente)"} disabled className="bg-muted" />
-              </div>
-              <div>
-                <Label>Estatus Cotización</Label>
-                <Select value={form.estatus_cotizacion} onValueChange={v => set("estatus_cotizacion", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{ESTATUS_COT.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </>
-          )}
-          {td === "pedido" && (
-            <>
-              <div>
-                <Label>Número Pedido</Label>
-                <Input value={form.numero_pedido} onChange={e => set("numero_pedido", e.target.value)} />
-              </div>
-              <div>
-                <Label>Estatus Pedido</Label>
-                <Select value={form.estatus_pedido} onValueChange={v => set("estatus_pedido", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{ESTATUS_PED.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Fecha Entrega Programada</Label>
-                <Input type="date" value={form.fecha_entrega_programada} onChange={e => set("fecha_entrega_programada", e.target.value)} />
-              </div>
-            </>
-          )}
+            {/* Show only fields relevant to the selected document type */}
+            {td === "cotizacion" && (
+              <>
+                <div>
+                  <Label>Número Cotización</Label>
+                  <Input value={form.numero_cotizacion || "(Se asignará automáticamente)"} disabled className="bg-muted" />
+                </div>
+                <div>
+                  <Label>Estatus Cotización</Label>
+                  <Select value={form.estatus_cotizacion} onValueChange={v => set("estatus_cotizacion", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{ESTATUS_COT.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+            {td === "pedido" && (
+              <>
+                <div>
+                  <Label>Número Pedido</Label>
+                  <Input value={form.numero_pedido} onChange={e => set("numero_pedido", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Estatus Pedido</Label>
+                  <Select value={form.estatus_pedido} onValueChange={v => set("estatus_pedido", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{ESTATUS_PED.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Fecha Entrega Programada</Label>
+                  <Input type="date" value={form.fecha_entrega_programada} onChange={e => set("fecha_entrega_programada", e.target.value)} />
+                </div>
+              </>
+            )}
+          </fieldset>
           {td === "factura" && (
             <>
               <div>
-                <Label>Número Factura</Label>
-                <div ref={setNumFacturaAnchor} />
+                <fieldset disabled={viewMode} className="contents">
+                  <Label>Número Factura</Label>
+                </fieldset>
+                <Input
+                  value={form.numero_factura}
+                  onChange={(e) => set("numero_factura", e.target.value.replace(/\s+/g, ""))}
+                  onBlur={async (e) => {
+                    const val = e.target.value.replace(/\s+/g, "");
+                    if (!id) return;
+                    if (val === (existingDoc?.numero_factura || "")) return;
+                    setSavingNumFactura(true);
+                    const { error } = await supabase
+                      .from("documentos")
+                      .update({ numero_factura: val || null })
+                      .eq("id", id);
+                    setSavingNumFactura(false);
+                    if (error) { toast.error(error.message); return; }
+                    toast.success("Número de Factura guardado");
+                    qc.invalidateQueries({ queryKey: ["documento", id] });
+                    qc.invalidateQueries({ queryKey: ["documentos"] });
+                  }}
+                  disabled={savingNumFactura}
+                  placeholder="Capturar número de factura"
+                />
               </div>
-              <div>
-                <Label>Estatus Factura</Label>
-                <Select value={form.estatus_factura} onValueChange={v => set("estatus_factura", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{ESTATUS_FAC.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+              <fieldset disabled={viewMode} className="contents">
+                <div>
+                  <Label>Estatus Factura</Label>
+                  <Select value={form.estatus_factura} onValueChange={v => set("estatus_factura", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{ESTATUS_FAC.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </fieldset>
             </>
           )}
           {td === "entrega_corporativa" && (
-            <>
-              <div>
-                <Label>Estatus Entrega <span className="text-destructive">*</span></Label>
-                <Select value={form.estatus_entrega_corporativa} onValueChange={v => set("estatus_entrega_corporativa", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{ESTATUS_ENT_CORP.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Núm. OC Cliente <span className="text-destructive">*</span></Label>
-                <Input value={form.numero_oc_cliente} onChange={e => set("numero_oc_cliente", e.target.value)} />
-              </div>
-              <div>
-                <Label>Fecha OC Cliente <span className="text-destructive">*</span></Label>
-                <Input type="date" value={form.fecha_oc_cliente} onChange={e => set("fecha_oc_cliente", e.target.value)} />
-              </div>
-              <div>
-                <Label>Fecha Entrega Solicitada <span className="text-destructive">*</span></Label>
-                <Input type="date" value={form.fecha_entrega_programada} onChange={e => set("fecha_entrega_programada", e.target.value)} />
-              </div>
-            </>
+            <fieldset disabled={viewMode} className="contents">
+              <>
+                <div>
+                  <Label>Estatus Entrega <span className="text-destructive">*</span></Label>
+                  <Select value={form.estatus_entrega_corporativa} onValueChange={v => set("estatus_entrega_corporativa", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{ESTATUS_ENT_CORP.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Núm. OC Cliente <span className="text-destructive">*</span></Label>
+                  <Input value={form.numero_oc_cliente} onChange={e => set("numero_oc_cliente", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Fecha OC Cliente <span className="text-destructive">*</span></Label>
+                  <Input type="date" value={form.fecha_oc_cliente} onChange={e => set("fecha_oc_cliente", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Fecha Entrega Solicitada <span className="text-destructive">*</span></Label>
+                  <Input type="date" value={form.fecha_entrega_programada} onChange={e => set("fecha_entrega_programada", e.target.value)} />
+                </div>
+              </>
+            </fieldset>
           )}
         </CardContent>
       </Card>
+      <fieldset disabled={viewMode} className="space-y-6">
 
       {/* Products */}
       <Card>
