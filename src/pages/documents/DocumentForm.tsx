@@ -124,6 +124,11 @@ export default function DocumentForm() {
   const canConvertToFactura = isAdmin || isManager || isAccounting || (!isSales && !isDelivery);
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
+  // Anchors used to portal interactive elements (Contpaq, Núm. Factura)
+  // outside the disabled <fieldset>, so they keep working in view mode.
+  const [contpaqAnchor, setContpaqAnchor] = useState<HTMLDivElement | null>(null);
+  const [numFacturaAnchor, setNumFacturaAnchor] = useState<HTMLDivElement | null>(null);
+  const [savingNumFactura, setSavingNumFactura] = useState(false);
 
   const today = format(new Date(), "yyyy-MM-dd");
   const defaultVencimiento = format(addDays(new Date(), 7), "yyyy-MM-dd");
