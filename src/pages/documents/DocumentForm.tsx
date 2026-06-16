@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
@@ -123,6 +124,11 @@ export default function DocumentForm() {
   const canConvertToFactura = isAdmin || isManager || isAccounting || (!isSales && !isDelivery);
   const [viewMode, setViewMode] = useState(isEdit);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
+  // Anchors used to portal interactive elements (Contpaq, Núm. Factura)
+  // outside the disabled <fieldset>, so they keep working in view mode.
+  const [contpaqAnchor, setContpaqAnchor] = useState<HTMLDivElement | null>(null);
+  const [numFacturaAnchor, setNumFacturaAnchor] = useState<HTMLDivElement | null>(null);
+  const [savingNumFactura, setSavingNumFactura] = useState(false);
 
   const today = format(new Date(), "yyyy-MM-dd");
   const defaultVencimiento = format(addDays(new Date(), 7), "yyyy-MM-dd");
@@ -1002,11 +1008,7 @@ export default function DocumentForm() {
               <Button variant="outline" size="icon" onClick={() => setShowNewCompany(true)}><Plus className="h-4 w-4" /></Button>
             </div>
             {form.empresa_id && (
-              <CompanyContpaqInline
-                companyId={form.empresa_id}
-                initial={(companies.find((c: any) => c.id === form.empresa_id) as any)?.id_contpaq || ""}
-                onSaved={() => refetchCompanies()}
-              />
+              <div ref={setContpaqAnchor} />
             )}
           </div>
 
@@ -1132,7 +1134,7 @@ export default function DocumentForm() {
             <>
               <div>
                 <Label>Número Factura</Label>
-                <Input value={form.numero_factura} onChange={e => set("numero_factura", e.target.value.replace(/\s+/g, ""))} />
+                <div ref={setNumFacturaAnchor} />
               </div>
               <div>
                 <Label>Estatus Factura</Label>
@@ -1355,6 +1357,41 @@ export default function DocumentForm() {
         </CardContent>
       </Card>
       </fieldset>
+
+      {/* Portals: render interactive controls outside the disabled fieldset
+          so they remain clickable / editable even in view mode. */}
+      {contpaqAnchor && form.empresa_id && createPortal(
+        <CompanyContpaqInline
+          companyId={form.empresa_id}
+          initial={(companies.find((c: any) => c.id === form.empresa_id) as any)?.id_contpaq || ""}
+          onSaved={() => refetchCompanies()}
+        />,
+        contpaqAnchor
+      )}
+      {numFacturaAnchor && td === "factura" && createPortal(
+        <Input
+          value={form.numero_factura}
+          onChange={(e) => set("numero_factura", e.target.value.replace(/\s+/g, ""))}
+          onBlur={async (e) => {
+            const val = e.target.value.replace(/\s+/g, "");
+            if (!id) return;
+            if (val === (existingDoc?.numero_factura || "")) return;
+            setSavingNumFactura(true);
+            const { error } = await supabase
+              .from("documentos")
+              .update({ numero_factura: val || null })
+              .eq("id", id);
+            setSavingNumFactura(false);
+            if (error) { toast.error(error.message); return; }
+            toast.success("Número de Factura guardado");
+            qc.invalidateQueries({ queryKey: ["documento", id] });
+            qc.invalidateQueries({ queryKey: ["documentos"] });
+          }}
+          disabled={savingNumFactura}
+          placeholder="Capturar número de factura"
+        />,
+        numFacturaAnchor
+      )}
 
       {/* Pagos relacionados — solo en modo vista para Facturas/Pedidos/Cotizaciones */}
       {viewMode && isEdit && id && form.tipo_documento !== "entrega_corporativa" && (
