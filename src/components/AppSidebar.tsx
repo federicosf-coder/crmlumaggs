@@ -5,7 +5,7 @@ import {
   Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet,
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
   Briefcase, Zap, FolderOpen, TrendingUp,
-  FileCheck,
+  FileCheck, Boxes, ChevronDown,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
 
@@ -73,6 +74,8 @@ export function AppSidebar() {
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
   const whatsappAccess = useModuleAccess("whatsapp");
+  const inventarioAccess = useModuleAccess("inventario");
+  const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
 
   useEffect(() => {
     if (!hasRole("admin")) return;
