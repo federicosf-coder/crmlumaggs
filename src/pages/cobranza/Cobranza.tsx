@@ -1734,7 +1734,15 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Razón Social</p>
-                <p className="font-medium">{(pago.empresa as any)?.razon_social || "—"}</p>
+                {pago.empresa?.id ? (
+                  <CobranzaRazonSocialInline
+                    companyId={pago.empresa.id}
+                    initial={(pago.empresa as any)?.razon_social || ""}
+                    onSaved={onChanged}
+                  />
+                ) : (
+                  <p className="font-medium">{(pago.empresa as any)?.razon_social || "—"}</p>
+                )}
               </div>
               <div><p className="text-muted-foreground text-xs">Plaza</p><p>{pago.plaza?.nombre || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Fecha</p><p>{formatDate(pago.fecha_pago)}</p></div>
@@ -2108,6 +2116,55 @@ function CobranzaContpaqInline({ companyId, initial, onSaved }: { companyId: str
         onChange={(e) => setValue(e.target.value)}
         className="h-7 text-xs w-32"
         placeholder="ID"
+        autoFocus
+      />
+      <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={save} disabled={saving}>
+        {saving ? "..." : "Guardar"}
+      </Button>
+      <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setValue(initial); setEditing(false); }}>
+        Cancelar
+      </Button>
+    </div>
+  );
+}
+
+function CobranzaRazonSocialInline({ companyId, initial, onSaved }: { companyId: string; initial: string; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(initial);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setValue(initial); setEditing(false); }, [companyId, initial]);
+
+  const save = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("companies")
+      .update({ razon_social: value.trim() || null } as any)
+      .eq("id", companyId);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Razón Social actualizada");
+    setEditing(false);
+    onSaved();
+  };
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <p className="font-medium">{initial || "—"}</p>
+        <button type="button" className="text-xs text-primary hover:underline" onClick={() => setEditing(true)}>
+          Editar
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="h-7 text-xs w-52"
+        placeholder="Razón Social"
         autoFocus
       />
       <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={save} disabled={saving}>
