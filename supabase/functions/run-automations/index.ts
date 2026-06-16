@@ -20,7 +20,7 @@ function renderTemplate(body: string, vars: Record<string, any>): string {
   if (!body) return ''
   return body.replace(/\{([a-z0-9_]+)\}/gi, (m, key) => {
     const v = vars[key.toLowerCase()]
-    return v === undefined || v === null || v === '' ? m : String(v)
+    return v === undefined || v === null ? m : String(v)
   })
 }
 
