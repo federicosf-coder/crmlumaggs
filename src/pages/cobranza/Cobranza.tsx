@@ -1502,6 +1502,11 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     }
     const subjectOverride = dbTpl ? renderTemplate(resolvedSubject, tplVars) : undefined;
     let htmlOverride = dbTpl ? renderTemplate(resolvedBody, tplVars) : undefined;
+    // Reemplazar URLs públicas del bucket privado "document-files" por URLs firmadas
+    // (el bucket es privado, los enlaces /public/... devuelven 404).
+    if (htmlOverride) {
+      htmlOverride = await signDocFilesUrlsInHtml(htmlOverride);
+    }
     // Append cualquier adjunto definido en la plantilla como enlaces de descarga.
     if (dbTpl?.id && htmlOverride) {
       try {
