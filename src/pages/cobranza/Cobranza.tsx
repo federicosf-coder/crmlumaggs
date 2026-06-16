@@ -30,6 +30,8 @@ import { renderTemplate, resolveEmailRecipients, type EmailRecipientItem } from 
 import { generateCobranzaReportPdf } from "@/lib/generateCobranzaReportPdf";
 import { generateCobranzaReportXlsx } from "@/lib/generateCobranzaReportXlsx";
 import { fireAutomation } from "@/hooks/useFireAutomation";
+import { useLastAutomationRuns } from "@/hooks/useLastAutomationRuns";
+import { LastSendStamp } from "@/components/automations/LastSendStamp";
 
 const FORMA_PAGO_TPL_LABEL: Record<string, string> = {
   contado: "Contado",
