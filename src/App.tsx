@@ -20,6 +20,11 @@ import Directory from "@/pages/Directory";
 import ProductCatalog from "@/pages/inventory/ProductCatalog";
 import NivelesInventario from "@/pages/inventario/NivelesInventario";
 import KardexCarga from "@/pages/inventario/KardexCarga";
+import Pedidos from "@/pages/inventario/Pedidos";
+import PedidosSugeridos from "@/pages/inventario/pedidos/PedidosSugeridos";
+import PedidosElaborados from "@/pages/inventario/pedidos/PedidosElaborados";
+import PedidosRecibidos from "@/pages/inventario/pedidos/PedidosRecibidos";
+import PedidosReclamos from "@/pages/inventario/pedidos/PedidosReclamos";
 import DocumentsList from "@/pages/documents/DocumentsList";
 import DocumentForm from "@/pages/documents/DocumentForm";
 import DeliverySchedule from "@/pages/documents/DeliverySchedule";
@@ -109,7 +114,13 @@ const App = () => (
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/inventario/niveles" element={<ProtectedRoute><NivelesInventario /></ProtectedRoute>} />
             <Route path="/inventario/kardex" element={<ProtectedRoute><KardexCarga /></ProtectedRoute>} />
-            <Route path="/inventario/pedidos" element={<ProtectedRoute><ModulePlaceholder title="Pedidos de Inventario" description="Próximamente." /></ProtectedRoute>} />
+            <Route path="/inventario/pedidos" element={<ProtectedRoute><Pedidos /></ProtectedRoute>}>
+              <Route index element={<PedidosSugeridos />} />
+              <Route path="sugeridos" element={<PedidosSugeridos />} />
+              <Route path="elaborados" element={<PedidosElaborados />} />
+              <Route path="recibidos" element={<PedidosRecibidos />} />
+              <Route path="reclamos" element={<PedidosReclamos />} />
+            </Route>
             <Route path="/delivery" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/schedule" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/entrega/:id" element={<ProtectedRoute><EntregaDetalle /></ProtectedRoute>} />
