@@ -58,6 +58,7 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [executing, setExecuting] = useState(false);
+  const [phSearch, setPhSearch] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -89,6 +90,16 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
     () => (placeholders || []).filter(p => p.applies_to === "ambos" || p.applies_to === form.type),
     [placeholders, form.type]
   );
+
+  const filteredPlaceholders = useMemo(() => {
+    const q = phSearch.trim().toLowerCase();
+    if (!q) return visiblePlaceholders;
+    return visiblePlaceholders.filter(p =>
+      p.key.toLowerCase().includes(q) ||
+      p.label.toLowerCase().includes(q) ||
+      (p.description || "").toLowerCase().includes(q)
+    );
+  }, [visiblePlaceholders, phSearch]);
 
   const unknown = useMemo(
     () => unknownPlaceholders(form.body || "", placeholders || []),
@@ -362,9 +373,17 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
 
             <div className="md:col-span-1 space-y-2">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Placeholders disponibles</Label>
-              <ScrollArea className="h-[450px] rounded border bg-muted/30 p-2">
+              <div className="relative">
+                <Input
+                  placeholder="Buscar placeholder..."
+                  className="h-8 text-xs"
+                  value={phSearch}
+                  onChange={(e) => setPhSearch(e.target.value)}
+                />
+              </div>
+              <ScrollArea className="h-[420px] rounded border bg-muted/30 p-2">
                 <div className="space-y-1">
-                  {visiblePlaceholders.map(p => (
+                  {filteredPlaceholders.map(p => (
                     <div key={p.id} className="group flex items-start gap-2 rounded p-2 hover:bg-background border border-transparent hover:border-border">
                       <div className="flex-1 min-w-0">
                         <code className="text-xs font-mono text-primary block truncate">{p.key}</code>
@@ -378,7 +397,7 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
                       </Button>
                     </div>
                   ))}
-                  {visiblePlaceholders.length === 0 && (
+                  {filteredPlaceholders.length === 0 && (
                     <p className="text-xs text-muted-foreground p-2">Sin placeholders.</p>
                   )}
                 </div>
