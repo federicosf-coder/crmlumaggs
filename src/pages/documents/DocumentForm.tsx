@@ -28,6 +28,8 @@ import { fetchAllRows } from "@/lib/supabasePagination";
 import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 import { fireAutomation } from "@/hooks/useFireAutomation";
+import { useLastAutomationRuns } from "@/hooks/useLastAutomationRuns";
+import { LastSendStamp } from "@/components/automations/LastSendStamp";
 import { EntregaCorporativaSection } from "@/components/documentos/EntregaCorporativaSection";
 import { EMPRESA_STYLES, TIPO_DOC_STYLES, plazaColor } from "./documentStyles";
 
