@@ -314,6 +314,137 @@ Deno.serve(async (req) => {
   // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
   // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
 
+  // If cc/bcc are present, route this email through Resend so the message
+  // carries real Cc/Bcc headers and Reply-All works in recipients' clients.
+  // The Lovable email provider does not support cc/bcc, so we bypass the queue.
+  const hasCcBcc = (cc && cc.length > 0) || (bcc && bcc.length > 0)
+  if (hasCcBcc) {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+
+    if (!LOVABLE_API_KEY || !RESEND_API_KEY) {
+      console.error('Resend not configured for cc/bcc send', {
+        hasLovable: !!LOVABLE_API_KEY,
+        hasResend: !!RESEND_API_KEY,
+      })
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: templateName,
+        recipient_email: effectiveRecipient,
+        status: 'failed',
+        error_message: 'Resend connector not configured (missing LOVABLE_API_KEY or RESEND_API_KEY)',
+      })
+      return new Response(
+        JSON.stringify({ error: 'Email provider for cc/bcc is not configured' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: templateName,
+      recipient_email: effectiveRecipient,
+      status: 'pending',
+      metadata: {
+        provider: 'resend',
+        cc: cc && cc.length ? cc : undefined,
+        bcc: bcc && bcc.length ? bcc : undefined,
+        reply_to: replyTo || undefined,
+      },
+    })
+
+    const fromAddress = `${SITE_NAME} <noreply@${FROM_DOMAIN}>`
+    const resendBody: Record<string, unknown> = {
+      from: fromAddress,
+      to: [effectiveRecipient],
+      subject: resolvedSubject,
+      html,
+      text: plainText,
+    }
+    if (cc && cc.length) resendBody.cc = cc
+    if (bcc && bcc.length) resendBody.bcc = bcc
+    if (replyTo) resendBody.reply_to = replyTo
+
+    try {
+      const resp = await fetch('https://connector-gateway.lovable.dev/resend/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'X-Connection-Api-Key': RESEND_API_KEY,
+        },
+        body: JSON.stringify(resendBody),
+      })
+
+      const respText = await resp.text()
+      if (!resp.ok) {
+        console.error('Resend send failed', { status: resp.status, body: respText })
+        await supabase.from('email_send_log').insert({
+          message_id: messageId,
+          template_name: templateName,
+          recipient_email: effectiveRecipient,
+          status: 'failed',
+          error_message: `Resend ${resp.status}: ${respText.slice(0, 500)}`,
+        })
+        return new Response(
+          JSON.stringify({ error: 'Failed to send email via Resend', details: respText }),
+          {
+            status: 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: templateName,
+        recipient_email: effectiveRecipient,
+        status: 'sent',
+        metadata: {
+          provider: 'resend',
+          cc: cc && cc.length ? cc : undefined,
+          bcc: bcc && bcc.length ? bcc : undefined,
+          reply_to: replyTo || undefined,
+        },
+      })
+
+      console.log('Transactional email sent via Resend', {
+        templateName,
+        effectiveRecipient,
+        ccCount: cc?.length || 0,
+        bccCount: bcc?.length || 0,
+      })
+
+      return new Response(
+        JSON.stringify({ success: true, provider: 'resend', sent: true }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    } catch (err) {
+      console.error('Resend request threw', err)
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: templateName,
+        recipient_email: effectiveRecipient,
+        status: 'failed',
+        error_message: `Resend request error: ${String(err).slice(0, 500)}`,
+      })
+      return new Response(
+        JSON.stringify({ error: 'Failed to send email via Resend' }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+  }
+
+  // Default path: no cc/bcc — use Lovable's queued email infrastructure.
   // Log pending BEFORE enqueue so we have a record even if enqueue crashes
   await supabase.from('email_send_log').insert({
     message_id: messageId,
@@ -321,8 +452,6 @@ Deno.serve(async (req) => {
     recipient_email: effectiveRecipient,
     status: 'pending',
     metadata: {
-      cc: cc && cc.length ? cc : undefined,
-      bcc: bcc && bcc.length ? bcc : undefined,
       reply_to: replyTo || undefined,
     },
   })
@@ -342,8 +471,6 @@ Deno.serve(async (req) => {
       idempotency_key: idempotencyKey,
       unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
-      cc: cc && cc.length ? cc : undefined,
-      bcc: bcc && bcc.length ? bcc : undefined,
       reply_to: replyTo || undefined,
     },
   })
@@ -367,62 +494,6 @@ Deno.serve(async (req) => {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-  }
-
-  // Workaround: the Lovable email provider does not support cc/bcc fields,
-  // so we enqueue an additional copy of the message for each cc/bcc recipient.
-  // Each copy is independent (own message_id + idempotency key) but carries
-  // the same rendered subject/html/text.
-  const extraRecipients = [
-    ...((cc || []).map((e) => ({ addr: e, kind: 'cc' as const }))),
-    ...((bcc || []).map((e) => ({ addr: e, kind: 'bcc' as const }))),
-  ].filter(
-    (r) =>
-      typeof r.addr === 'string' &&
-      r.addr.trim() &&
-      r.addr.trim().toLowerCase() !== effectiveRecipient.trim().toLowerCase()
-  )
-  for (const extra of extraRecipients) {
-    const extraMessageId = crypto.randomUUID()
-    await supabase.from('email_send_log').insert({
-      message_id: extraMessageId,
-      template_name: templateName,
-      recipient_email: extra.addr,
-      status: 'pending',
-      metadata: { copy_of: messageId, role: extra.kind, reply_to: replyTo || undefined },
-    })
-    const { error: extraErr } = await supabase.rpc('enqueue_email', {
-      queue_name: 'transactional_emails',
-      payload: {
-        message_id: extraMessageId,
-        to: extra.addr,
-        from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-        sender_domain: SENDER_DOMAIN,
-        subject: resolvedSubject,
-        html,
-        text: plainText,
-        purpose: 'transactional',
-        label: templateName,
-        idempotency_key: `${idempotencyKey || messageId}-${extra.kind}-${extra.addr}`,
-        unsubscribe_token: unsubscribeToken,
-        queued_at: new Date().toISOString(),
-        reply_to: replyTo || undefined,
-      },
-    })
-    if (extraErr) {
-      console.error('Failed to enqueue cc/bcc copy', {
-        error: extraErr,
-        templateName,
-        recipient: extra.addr,
-      })
-      await supabase.from('email_send_log').insert({
-        message_id: extraMessageId,
-        template_name: templateName,
-        recipient_email: extra.addr,
-        status: 'failed',
-        error_message: 'Failed to enqueue cc/bcc copy',
-      })
-    }
   }
 
   console.log('Transactional email enqueued', { templateName, effectiveRecipient })
