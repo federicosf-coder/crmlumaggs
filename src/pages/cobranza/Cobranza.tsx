@@ -1734,7 +1734,15 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Razón Social</p>
-                <p className="font-medium">{(pago.empresa as any)?.razon_social || "—"}</p>
+                {pago.empresa?.id ? (
+                  <CobranzaRazonSocialInline
+                    companyId={pago.empresa.id}
+                    initial={(pago.empresa as any)?.razon_social || ""}
+                    onSaved={onChanged}
+                  />
+                ) : (
+                  <p className="font-medium">{(pago.empresa as any)?.razon_social || "—"}</p>
+                )}
               </div>
               <div><p className="text-muted-foreground text-xs">Plaza</p><p>{pago.plaza?.nombre || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Fecha</p><p>{formatDate(pago.fecha_pago)}</p></div>
