@@ -344,7 +344,7 @@ Deno.serve(async (req) => {
       ? pagoAplicaciones.map((a: any) => {
           const folio = a.documento?.numero_factura || a.documento?.numero_pedido || a.documento?.numero_cotizacion || (a.documento_id ? String(a.documento_id).slice(0, 8) : '')
           const tipo = TIPO_DOC_LABEL[a.tipo_documento] || a.tipo_documento || 'Documento'
-          return `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="font-size:13px;color:#0f172a;"><strong>${tipo}</strong> ${folio}</span><span style="font-size:13px;color:#0f172a;font-weight:600;">${moneyFmt(a.monto_aplicado)}</span></div>`
+          return `<div style="display:flex;align-items:center;gap:24px;padding:4px 0;"><span style="min-width:110px;font-size:13px;color:#0f172a;"><strong>${tipo}</strong></span><span style="min-width:140px;font-size:13px;color:#334155;">${folio}</span><span style="font-size:13px;color:#0f172a;font-weight:600;margin-left:auto;">${moneyFmt(a.monto_aplicado)}</span></div>`
         }).join('')
       : '<span style="color:#94a3b8;">Sin documentos relacionados</span>'
     const compsHtml = pagoComprobantes.length
