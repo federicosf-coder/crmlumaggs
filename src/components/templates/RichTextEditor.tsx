@@ -10,8 +10,39 @@ import { FontFamily } from "@tiptap/extension-font-family";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
-import { TableCell } from "@tiptap/extension-table-cell";
-import { TableHeader } from "@tiptap/extension-table-header";
+import { TableCell as TiptapTableCell } from "@tiptap/extension-table-cell";
+import { TableHeader as TiptapTableHeader } from "@tiptap/extension-table-header";
+
+// Extiende TableCell para soportar atributo cellPadding inline
+const TableCell = TiptapTableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      cellPadding: {
+        default: "6px 10px",
+        parseHTML: (el: HTMLElement) => el.style.padding || "6px 10px",
+        renderHTML: (attrs: any) => ({
+          style: `padding: ${attrs.cellPadding || "6px 10px"}`,
+        }),
+      },
+    };
+  },
+});
+
+const TableHeader = TiptapTableHeader.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      cellPadding: {
+        default: "6px 10px",
+        parseHTML: (el: HTMLElement) => el.style.padding || "6px 10px",
+        renderHTML: (attrs: any) => ({
+          style: `padding: ${attrs.cellPadding || "6px 10px"}`,
+        }),
+      },
+    };
+  },
+});
 import { Button } from "@/components/ui/button";
 import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered,
@@ -97,6 +128,12 @@ const LINE_HEIGHTS: { label: string; value: string }[] = [
   { label: "Normal (1.5)", value: "1.5" },
   { label: "Doble (2)", value: "2" },
   { label: "Amplio (2.5)", value: "2.5" },
+];
+
+const CELL_PADDINGS: { label: string; value: string }[] = [
+  { label: "Compacto (2px 6px)", value: "2px 6px" },
+  { label: "Normal (6px 10px)", value: "6px 10px" },
+  { label: "Amplio (12px 16px)", value: "12px 16px" },
 ];
 
 const COLORS = [
@@ -189,6 +226,20 @@ export function RichTextEditor({ value, onChange, placeholders = [], placeholder
     [placeholders]
   );
 
+  const applyTableCellPadding = (padding: string) => {
+    if (!editor) return;
+    const { state, dispatch } = editor.view;
+    const { tr, doc } = state;
+    let changed = false;
+    doc.descendants((node, pos) => {
+      if (node.type.name === "tableCell" || node.type.name === "tableHeader") {
+        tr.setNodeMarkup(pos, undefined, { ...node.attrs, cellPadding: padding });
+        changed = true;
+      }
+    });
+    if (changed) dispatch(tr);
+  };
+
   if (!editor) return null;
 
   const currentFontFamily = (editor.getAttributes("textStyle") as any).fontFamily || "";
@@ -197,7 +248,7 @@ export function RichTextEditor({ value, onChange, placeholders = [], placeholder
 
   const tableStyles = `
     .ProseMirror table { border-collapse: collapse; width: 100%; margin: 8px 0; }
-    .ProseMirror th, .ProseMirror td { border: 1px solid #d1d5db; padding: 6px 10px; min-width: 60px; vertical-align: top; }
+    .ProseMirror th, .ProseMirror td { border: 1px solid #d1d5db; min-width: 60px; vertical-align: middle; }
     .ProseMirror th { background: #f3f4f6; font-weight: 600; }
     .ProseMirror .selectedCell::after { background: rgba(59,130,246,0.15); content: ""; position: absolute; inset: 0; pointer-events: none; }
   `;
@@ -363,6 +414,18 @@ export function RichTextEditor({ value, onChange, placeholders = [], placeholder
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem disabled className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide cursor-default">
+              Alto de fila (padding)
+            </DropdownMenuItem>
+            {CELL_PADDINGS.map((p) => (
+              <DropdownMenuItem key={p.value} onSelect={() => applyTableCellPadding(p.value)}>
+                {p.label}
+              </DropdownMenuItem>
+            ))}
+            <div className="my-1 h-px bg-border" />
+            <DropdownMenuItem disabled className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide cursor-default">
+              Estructura
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
               Insertar tabla 3×3
             </DropdownMenuItem>
