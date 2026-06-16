@@ -170,6 +170,7 @@ export interface CompanyData {
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
   uso_cfdi?: string | null; metodo_pago?: string | null; tipo_pago?: string | null; forma_pago?: string | null;
   id_contpaq?: string | null;
+  limite_credito?: number | null;
 }
 
 interface Props {
@@ -189,6 +190,7 @@ const emptyForm = {
   evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
   uso_cfdi: "", metodo_pago: "", tipo_pago: "", forma_pago: "",
   id_contpaq: "",
+  limite_credito: 0,
   plaza_ids: [] as string[],
   ejecutivo_ids: [] as string[],
 };
@@ -466,6 +468,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         tipo_pago: (editData as any).tipo_pago || "",
         forma_pago: (editData as any).forma_pago || "",
         id_contpaq: (editData as any).id_contpaq || "",
+        limite_credito: Number((editData as any).limite_credito ?? 0),
         plaza_ids: [],
         ejecutivo_ids: [],
       });
@@ -493,6 +496,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         tipo_pago: (editData as any).tipo_pago || "",
         forma_pago: (editData as any).forma_pago || "",
         id_contpaq: (editData as any).id_contpaq || "",
+        limite_credito: Number((editData as any).limite_credito ?? 0),
         plaza_ids: [],
         ejecutivo_ids: [],
       });
@@ -581,6 +585,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       tipo_pago: form.tipo_pago || null,
       forma_pago: form.forma_pago || null,
       id_contpaq: form.id_contpaq?.trim() || null,
+      limite_credito: Number((form as any).limite_credito ?? 0),
     } as any;
 
     let result;
@@ -1041,6 +1046,15 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
             </TabsContent>
 
             <TabsContent value="facturacion" className="space-y-4 mt-4 min-h-[580px] overflow-y-auto">
+              {/* Límite de crédito */}
+              <LimiteCreditoField
+                companyId={isEdit ? editData?.id : undefined}
+                value={Number((form as any).limite_credito ?? 0)}
+                onChange={(v) => {
+                  setForm(prev => ({ ...prev, limite_credito: v } as any));
+                  autosave.saveNow("limite_credito", v);
+                }}
+              />
               <div className="grid grid-cols-2 gap-3">
                 {renderEnumSelect("Tipo de Pago", form.tipo_pago, "tipo_pago", TIPO_PAGO_OPTS)}
                 {renderEnumSelect("Forma de Pago (SAT)", form.forma_pago, "forma_pago", FORMA_PAGO_OPTS)}
@@ -1105,5 +1119,73 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function LimiteCreditoField({
+  companyId,
+  value,
+  onChange,
+}: {
+  companyId?: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const [inputVal, setInputVal] = useState(value > 0 ? value.toString() : "");
+  const [saving, setSaving] = useState(false);
+  const [creditoUtilizado, setCreditoUtilizado] = useState<number | null>(null);
+
+  useEffect(() => { setInputVal(value > 0 ? value.toString() : ""); }, [value]);
+
+  useEffect(() => {
+    if (!companyId) return;
+    supabase
+      .from("documentos")
+      .select("saldo_pendiente_cobranza")
+      .eq("empresa_id", companyId)
+      .neq("estatus_factura", "cancelada")
+      .then(({ data }) => {
+        const total = (data || []).reduce((s: number, d: any) => s + Number(d.saldo_pendiente_cobranza || 0), 0);
+        setCreditoUtilizado(total);
+      });
+  }, [companyId]);
+
+  const handleSave = async () => {
+    const num = parseFloat(inputVal.replace(/,/g, "")) || 0;
+    setSaving(true);
+    onChange(num);
+    setSaving(false);
+    toast.success("Límite de crédito actualizado");
+  };
+
+  const limite = value;
+  const utilizado = creditoUtilizado ?? 0;
+  const disponible = Math.max(0, limite - utilizado);
+
+  return (
+    <div className="space-y-2 rounded-md border p-3 bg-muted/20">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Límite de crédito</p>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium">$</span>
+        <Input
+          type="number"
+          min={0}
+          step={100}
+          value={inputVal}
+          onChange={(e) => setInputVal(e.target.value)}
+          className="h-9 w-44"
+          placeholder="0.00"
+        />
+        <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
+          {saving ? "..." : "Guardar"}
+        </Button>
+      </div>
+      {companyId && creditoUtilizado !== null && (
+        <div className="flex gap-4 text-xs text-muted-foreground">
+          <span>Utilizado: <span className="font-medium text-foreground">${utilizado.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span></span>
+          <span>Disponible: <span className={`font-medium ${disponible <= 0 ? "text-destructive" : "text-primary"}`}>${disponible.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span></span>
+        </div>
+      )}
+    </div>
   );
 }
