@@ -58,6 +58,7 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [executing, setExecuting] = useState(false);
+  const [phSearch, setPhSearch] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -89,6 +90,16 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
     () => (placeholders || []).filter(p => p.applies_to === "ambos" || p.applies_to === form.type),
     [placeholders, form.type]
   );
+
+  const filteredPlaceholders = useMemo(() => {
+    const q = phSearch.trim().toLowerCase();
+    if (!q) return visiblePlaceholders;
+    return visiblePlaceholders.filter(p =>
+      p.key.toLowerCase().includes(q) ||
+      p.label.toLowerCase().includes(q) ||
+      (p.description || "").toLowerCase().includes(q)
+    );
+  }, [visiblePlaceholders, phSearch]);
 
   const unknown = useMemo(
     () => unknownPlaceholders(form.body || "", placeholders || []),
