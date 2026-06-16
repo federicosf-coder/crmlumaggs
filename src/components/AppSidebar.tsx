@@ -212,6 +212,38 @@ export function AppSidebar() {
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+                    {!collapsed && (
+                      <>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild>
+                            <NavLink to="/inventario/pedidos/sugeridos" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                              <span>· Sugeridos</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild>
+                            <NavLink to="/inventario/pedidos/elaborados" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                              <span>· Elaborados</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild>
+                            <NavLink to="/inventario/pedidos/recibidos" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                              <span>· Recibidos</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild>
+                            <NavLink to="/inventario/pedidos/reclamos" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                              <span>· Reclamos</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </>
+                    )}
                   </CollapsibleContent>
                 </Collapsible>
               </SidebarMenu>
