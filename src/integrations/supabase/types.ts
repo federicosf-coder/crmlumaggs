@@ -3628,6 +3628,645 @@ export type Database = {
         }
         Relationships: []
       }
+      inv_kardex_cargas: {
+        Row: {
+          creado_por: string | null
+          created_at: string | null
+          empresa_vendedora: string
+          estatus: string
+          fecha_archivo: string | null
+          fecha_vencimiento: string | null
+          id: string
+          nombre_archivo: string
+          notas: string | null
+          tipo: string
+          total_skus_actualizados: number | null
+          total_skus_error: number | null
+          total_skus_procesados: number | null
+          updated_at: string | null
+          url_archivo: string | null
+        }
+        Insert: {
+          creado_por?: string | null
+          created_at?: string | null
+          empresa_vendedora: string
+          estatus?: string
+          fecha_archivo?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          nombre_archivo: string
+          notas?: string | null
+          tipo: string
+          total_skus_actualizados?: number | null
+          total_skus_error?: number | null
+          total_skus_procesados?: number | null
+          updated_at?: string | null
+          url_archivo?: string | null
+        }
+        Update: {
+          creado_por?: string | null
+          created_at?: string | null
+          empresa_vendedora?: string
+          estatus?: string
+          fecha_archivo?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          nombre_archivo?: string
+          notas?: string | null
+          tipo?: string
+          total_skus_actualizados?: number | null
+          total_skus_error?: number | null
+          total_skus_procesados?: number | null
+          updated_at?: string | null
+          url_archivo?: string | null
+        }
+        Relationships: []
+      }
+      inv_kardex_lineas: {
+        Row: {
+          carga_id: string
+          codigo_producto: string
+          costo_promedio: number | null
+          created_at: string | null
+          estatus_linea: string | null
+          id: string
+          mensaje_error: string | null
+          nombre_producto: string | null
+          stock_almacen_1001: number | null
+          stock_almacen_1002: number | null
+          stock_almacen_1003: number | null
+          stock_almacen_1004: number | null
+          stock_total: number | null
+          valor_total: number | null
+        }
+        Insert: {
+          carga_id: string
+          codigo_producto: string
+          costo_promedio?: number | null
+          created_at?: string | null
+          estatus_linea?: string | null
+          id?: string
+          mensaje_error?: string | null
+          nombre_producto?: string | null
+          stock_almacen_1001?: number | null
+          stock_almacen_1002?: number | null
+          stock_almacen_1003?: number | null
+          stock_almacen_1004?: number | null
+          stock_total?: number | null
+          valor_total?: number | null
+        }
+        Update: {
+          carga_id?: string
+          codigo_producto?: string
+          costo_promedio?: number | null
+          created_at?: string | null
+          estatus_linea?: string | null
+          id?: string
+          mensaje_error?: string | null
+          nombre_producto?: string | null
+          stock_almacen_1001?: number | null
+          stock_almacen_1002?: number | null
+          stock_almacen_1003?: number | null
+          stock_almacen_1004?: number | null
+          stock_total?: number | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_kardex_lineas_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "inv_kardex_cargas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_niveles_inventario: {
+        Row: {
+          clasificacion_abc: string | null
+          codigo_producto: string
+          coeficiente_variacion: number | null
+          consumo_hub_mensual: number | null
+          costo_promedio: number | null
+          created_at: string | null
+          dias_cobertura: number | null
+          empresa_vendedora: string | null
+          estatus_inventario: string | null
+          fecha_ultimo_kardex: string | null
+          fuente_suministro: string | null
+          id: string
+          lead_time_dias: number | null
+          nombre_producto: string | null
+          piezas_por_tarima: number | null
+          presentacion: string | null
+          rotacion_anual: number | null
+          stock_almacen_1001: number | null
+          stock_almacen_1002: number | null
+          stock_almacen_1003: number | null
+          stock_almacen_1004: number | null
+          stock_total: number | null
+          unidad: string | null
+          updated_at: string | null
+          valor_total_inventario: number | null
+          venta_mensual_promedio: number | null
+        }
+        Insert: {
+          clasificacion_abc?: string | null
+          codigo_producto: string
+          coeficiente_variacion?: number | null
+          consumo_hub_mensual?: number | null
+          costo_promedio?: number | null
+          created_at?: string | null
+          dias_cobertura?: number | null
+          empresa_vendedora?: string | null
+          estatus_inventario?: string | null
+          fecha_ultimo_kardex?: string | null
+          fuente_suministro?: string | null
+          id?: string
+          lead_time_dias?: number | null
+          nombre_producto?: string | null
+          piezas_por_tarima?: number | null
+          presentacion?: string | null
+          rotacion_anual?: number | null
+          stock_almacen_1001?: number | null
+          stock_almacen_1002?: number | null
+          stock_almacen_1003?: number | null
+          stock_almacen_1004?: number | null
+          stock_total?: number | null
+          unidad?: string | null
+          updated_at?: string | null
+          valor_total_inventario?: number | null
+          venta_mensual_promedio?: number | null
+        }
+        Update: {
+          clasificacion_abc?: string | null
+          codigo_producto?: string
+          coeficiente_variacion?: number | null
+          consumo_hub_mensual?: number | null
+          costo_promedio?: number | null
+          created_at?: string | null
+          dias_cobertura?: number | null
+          empresa_vendedora?: string | null
+          estatus_inventario?: string | null
+          fecha_ultimo_kardex?: string | null
+          fuente_suministro?: string | null
+          id?: string
+          lead_time_dias?: number | null
+          nombre_producto?: string | null
+          piezas_por_tarima?: number | null
+          presentacion?: string | null
+          rotacion_anual?: number | null
+          stock_almacen_1001?: number | null
+          stock_almacen_1002?: number | null
+          stock_almacen_1003?: number | null
+          stock_almacen_1004?: number | null
+          stock_total?: number | null
+          unidad?: string | null
+          updated_at?: string | null
+          valor_total_inventario?: number | null
+          venta_mensual_promedio?: number | null
+        }
+        Relationships: []
+      }
+      inv_pedido_archivos: {
+        Row: {
+          created_at: string | null
+          datos_extraidos: Json | null
+          extraido_por_ia: boolean | null
+          id: string
+          nombre_archivo: string
+          pedido_id: string
+          tipo_archivo: string | null
+          url_archivo: string
+          usuario_carga: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          datos_extraidos?: Json | null
+          extraido_por_ia?: boolean | null
+          id?: string
+          nombre_archivo: string
+          pedido_id: string
+          tipo_archivo?: string | null
+          url_archivo: string
+          usuario_carga?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          datos_extraidos?: Json | null
+          extraido_por_ia?: boolean | null
+          id?: string
+          nombre_archivo?: string
+          pedido_id?: string
+          tipo_archivo?: string | null
+          url_archivo?: string
+          usuario_carga?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_pedido_archivos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "inv_pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_pedido_lineas: {
+        Row: {
+          cantidad_confirmada: number | null
+          cantidad_recibida: number | null
+          cantidad_solicitada: number
+          codigo_producto: string
+          created_at: string | null
+          estatus_linea: string | null
+          id: string
+          moneda: string | null
+          nombre_producto: string | null
+          notas: string | null
+          pedido_id: string
+          piezas_por_tarima: number | null
+          precio_neto: number | null
+          precio_unitario: number | null
+          presentacion: string | null
+          tarimas: number | null
+          unidad_pedido: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cantidad_confirmada?: number | null
+          cantidad_recibida?: number | null
+          cantidad_solicitada: number
+          codigo_producto: string
+          created_at?: string | null
+          estatus_linea?: string | null
+          id?: string
+          moneda?: string | null
+          nombre_producto?: string | null
+          notas?: string | null
+          pedido_id: string
+          piezas_por_tarima?: number | null
+          precio_neto?: number | null
+          precio_unitario?: number | null
+          presentacion?: string | null
+          tarimas?: number | null
+          unidad_pedido?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cantidad_confirmada?: number | null
+          cantidad_recibida?: number | null
+          cantidad_solicitada?: number
+          codigo_producto?: string
+          created_at?: string | null
+          estatus_linea?: string | null
+          id?: string
+          moneda?: string | null
+          nombre_producto?: string | null
+          notas?: string | null
+          pedido_id?: string
+          piezas_por_tarima?: number | null
+          precio_neto?: number | null
+          precio_unitario?: number | null
+          presentacion?: string | null
+          tarimas?: number | null
+          unidad_pedido?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_pedido_lineas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "inv_pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_pedidos: {
+        Row: {
+          almacen_destino: string
+          creado_por: string | null
+          created_at: string | null
+          empresa_vendedora: string
+          estatus: string
+          fecha_despacho: string | null
+          fecha_entrega_estimada: string | null
+          fecha_entrega_real: string | null
+          fecha_pedido: string | null
+          fuente: string | null
+          generado_desde_sugeridos: boolean | null
+          id: string
+          moneda: string | null
+          notas: string | null
+          numero_orden_proveedor: string | null
+          numero_po_interno: string | null
+          proveedor: string
+          total_monto: number | null
+          total_tarimas: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          almacen_destino: string
+          creado_por?: string | null
+          created_at?: string | null
+          empresa_vendedora: string
+          estatus?: string
+          fecha_despacho?: string | null
+          fecha_entrega_estimada?: string | null
+          fecha_entrega_real?: string | null
+          fecha_pedido?: string | null
+          fuente?: string | null
+          generado_desde_sugeridos?: boolean | null
+          id?: string
+          moneda?: string | null
+          notas?: string | null
+          numero_orden_proveedor?: string | null
+          numero_po_interno?: string | null
+          proveedor: string
+          total_monto?: number | null
+          total_tarimas?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          almacen_destino?: string
+          creado_por?: string | null
+          created_at?: string | null
+          empresa_vendedora?: string
+          estatus?: string
+          fecha_despacho?: string | null
+          fecha_entrega_estimada?: string | null
+          fecha_entrega_real?: string | null
+          fecha_pedido?: string | null
+          fuente?: string | null
+          generado_desde_sugeridos?: boolean | null
+          id?: string
+          moneda?: string | null
+          notas?: string | null
+          numero_orden_proveedor?: string | null
+          numero_po_interno?: string | null
+          proveedor?: string
+          total_monto?: number | null
+          total_tarimas?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inv_recepcion_lineas: {
+        Row: {
+          cantidad_pedida: number
+          cantidad_recibida: number
+          codigo_producto: string
+          created_at: string | null
+          diferencia: number | null
+          id: string
+          nombre_producto: string | null
+          notas: string | null
+          pedido_linea_id: string | null
+          recepcion_id: string
+          tipo_diferencia: string | null
+        }
+        Insert: {
+          cantidad_pedida: number
+          cantidad_recibida?: number
+          codigo_producto: string
+          created_at?: string | null
+          diferencia?: number | null
+          id?: string
+          nombre_producto?: string | null
+          notas?: string | null
+          pedido_linea_id?: string | null
+          recepcion_id: string
+          tipo_diferencia?: string | null
+        }
+        Update: {
+          cantidad_pedida?: number
+          cantidad_recibida?: number
+          codigo_producto?: string
+          created_at?: string | null
+          diferencia?: number | null
+          id?: string
+          nombre_producto?: string | null
+          notas?: string | null
+          pedido_linea_id?: string | null
+          recepcion_id?: string
+          tipo_diferencia?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_recepcion_lineas_pedido_linea_id_fkey"
+            columns: ["pedido_linea_id"]
+            isOneToOne: false
+            referencedRelation: "inv_pedido_lineas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_recepcion_lineas_recepcion_id_fkey"
+            columns: ["recepcion_id"]
+            isOneToOne: false
+            referencedRelation: "inv_recepciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_recepciones: {
+        Row: {
+          almacen_recepcion: string
+          created_at: string | null
+          fecha_recepcion: string
+          id: string
+          notas: string | null
+          pedido_id: string
+          recibido_por: string | null
+          tiene_reclamo: boolean | null
+          total_skus_con_diferencia: number | null
+          total_skus_pedidos: number | null
+          total_skus_recibidos_completos: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          almacen_recepcion: string
+          created_at?: string | null
+          fecha_recepcion?: string
+          id?: string
+          notas?: string | null
+          pedido_id: string
+          recibido_por?: string | null
+          tiene_reclamo?: boolean | null
+          total_skus_con_diferencia?: number | null
+          total_skus_pedidos?: number | null
+          total_skus_recibidos_completos?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          almacen_recepcion?: string
+          created_at?: string | null
+          fecha_recepcion?: string
+          id?: string
+          notas?: string | null
+          pedido_id?: string
+          recibido_por?: string | null
+          tiene_reclamo?: boolean | null
+          total_skus_con_diferencia?: number | null
+          total_skus_pedidos?: number | null
+          total_skus_recibidos_completos?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_recepciones_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "inv_pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_reclamo_archivos: {
+        Row: {
+          created_at: string | null
+          id: string
+          nombre_archivo: string
+          reclamo_id: string
+          tipo_archivo: string | null
+          url_archivo: string
+          usuario_carga: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nombre_archivo: string
+          reclamo_id: string
+          tipo_archivo?: string | null
+          url_archivo: string
+          usuario_carga?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nombre_archivo?: string
+          reclamo_id?: string
+          tipo_archivo?: string | null
+          url_archivo?: string
+          usuario_carga?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_reclamo_archivos_reclamo_id_fkey"
+            columns: ["reclamo_id"]
+            isOneToOne: false
+            referencedRelation: "inv_reclamos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_reclamo_lineas: {
+        Row: {
+          cantidad_afectada: number
+          codigo_producto: string
+          created_at: string | null
+          descripcion_problema: string | null
+          id: string
+          nombre_producto: string | null
+          reclamo_id: string
+          tipo_problema: string | null
+        }
+        Insert: {
+          cantidad_afectada: number
+          codigo_producto: string
+          created_at?: string | null
+          descripcion_problema?: string | null
+          id?: string
+          nombre_producto?: string | null
+          reclamo_id: string
+          tipo_problema?: string | null
+        }
+        Update: {
+          cantidad_afectada?: number
+          codigo_producto?: string
+          created_at?: string | null
+          descripcion_problema?: string | null
+          id?: string
+          nombre_producto?: string | null
+          reclamo_id?: string
+          tipo_problema?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_reclamo_lineas_reclamo_id_fkey"
+            columns: ["reclamo_id"]
+            isOneToOne: false
+            referencedRelation: "inv_reclamos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_reclamos: {
+        Row: {
+          creado_por: string | null
+          created_at: string | null
+          descripcion: string | null
+          empresa_vendedora: string
+          estatus: string
+          fecha_envio_proveedor: string | null
+          fecha_resolucion: string | null
+          id: string
+          pedido_id: string
+          recepcion_id: string
+          resolucion: string | null
+          tipo_reclamo: string
+          total_skus_afectados: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          creado_por?: string | null
+          created_at?: string | null
+          descripcion?: string | null
+          empresa_vendedora: string
+          estatus?: string
+          fecha_envio_proveedor?: string | null
+          fecha_resolucion?: string | null
+          id?: string
+          pedido_id: string
+          recepcion_id: string
+          resolucion?: string | null
+          tipo_reclamo: string
+          total_skus_afectados?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          creado_por?: string | null
+          created_at?: string | null
+          descripcion?: string | null
+          empresa_vendedora?: string
+          estatus?: string
+          fecha_envio_proveedor?: string | null
+          fecha_resolucion?: string | null
+          id?: string
+          pedido_id?: string
+          recepcion_id?: string
+          resolucion?: string | null
+          tipo_reclamo?: string
+          total_skus_afectados?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_reclamos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "inv_pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_reclamos_recepcion_id_fkey"
+            columns: ["recepcion_id"]
+            isOneToOne: false
+            referencedRelation: "inv_recepciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       motivos_perdida: {
         Row: {
           activo: boolean
