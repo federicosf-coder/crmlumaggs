@@ -1460,6 +1460,8 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
       nombre_cliente: pago.empresa?.name || "",
       cliente: pago.empresa?.name || "",
       empresa: pago.empresa?.name || "",
+      razon_social: (pago.empresa as any)?.razon_social || "",
+      id_contpaq: (pago.empresa as any)?.id_contpaq || "",
       monto_pago: `${formatCurrency(Number(pago.monto_total))} ${pago.moneda || "MXN"}`,
       monto_total: formatCurrency(Number(pago.monto_total)),
       moneda: pago.moneda || "MXN",
