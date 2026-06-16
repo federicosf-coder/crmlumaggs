@@ -179,6 +179,23 @@ export const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   general: "General",
 };
 
+export type TemplateModule =
+  | "cotizacion"
+  | "cobranza"
+  | "entrega"
+  | "seguimiento"
+  | "empresa"
+  | "general";
+
+export const MODULE_LABELS: Record<TemplateModule, string> = {
+  cotizacion: "Cotización / Documento",
+  cobranza: "Cobranza",
+  entrega: "Entrega / Pedido",
+  seguimiento: "Seguimiento de Ventas",
+  empresa: "Empresa / Contacto",
+  general: "General (todos)",
+};
+
 /** Replace {placeholder} tokens with values from a record. Missing keys stay literal. */
 export function renderTemplate(body: string, vars: Record<string, string | number | null | undefined>): string {
   if (!body) return "";
