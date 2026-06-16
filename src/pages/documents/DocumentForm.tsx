@@ -94,6 +94,10 @@ interface LineItem {
 
 export default function DocumentForm() {
   const { id } = useParams();
+  const { data: lastDocSends, refetch: refetchDocSends } = useLastAutomationRuns(
+    id ?? null,
+    ["documents.enviar_acuse"],
+  );
   const isEdit = !!id;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
