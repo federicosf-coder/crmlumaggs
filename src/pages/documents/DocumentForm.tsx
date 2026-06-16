@@ -859,26 +859,30 @@ export default function DocumentForm() {
               </Button>
             )}
             {isEntregaCorp && (
-            <Button
-              onClick={async () => {
-                toast.success("Acuse enviado");
-                if (id) {
-                  const res = await fireAutomation({
-                    trigger_type: "existing_button_click",
-                    entity_type: "document",
-                    entity_id: id,
-                    trigger_key: "documents.enviar_acuse",
-                  });
-                  if (res && res.matched > 0) {
-                    const ok = res.runs.filter((r: any) => r.status === "success").length;
-                    if (ok > 0) toast.success(`Automatización ejecutada (${ok})`);
+            <div className="flex flex-col items-stretch">
+              <Button
+                onClick={async () => {
+                  toast.success("Acuse enviado");
+                  if (id) {
+                    const res = await fireAutomation({
+                      trigger_type: "existing_button_click",
+                      entity_type: "document",
+                      entity_id: id,
+                      trigger_key: "documents.enviar_acuse",
+                    });
+                    if (res && res.matched > 0) {
+                      const ok = res.runs.filter((r: any) => r.status === "success").length;
+                      if (ok > 0) toast.success(`Automatización ejecutada (${ok})`);
+                    }
+                    setTimeout(() => refetchDocSends(), 800);
                   }
-                }
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Send className="mr-2 h-4 w-4" /> Enviar Acuse
-            </Button>
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Send className="mr-2 h-4 w-4" /> Enviar Acuse
+              </Button>
+              <LastSendStamp at={lastDocSends?.["documents.enviar_acuse"]} />
+            </div>
             )}
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
