@@ -18,6 +18,8 @@ import TemplatesManagement from "@/pages/admin/TemplatesManagement";
 import ModulePlaceholder from "@/pages/ModulePlaceholder";
 import Directory from "@/pages/Directory";
 import ProductCatalog from "@/pages/inventory/ProductCatalog";
+import NivelesInventario from "@/pages/inventario/NivelesInventario";
+import KardexCarga from "@/pages/inventario/KardexCarga";
 import DocumentsList from "@/pages/documents/DocumentsList";
 import DocumentForm from "@/pages/documents/DocumentForm";
 import DeliverySchedule from "@/pages/documents/DeliverySchedule";
@@ -105,6 +107,9 @@ const App = () => (
             <Route path="/documents/:id" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
+            <Route path="/inventario/niveles" element={<ProtectedRoute><NivelesInventario /></ProtectedRoute>} />
+            <Route path="/inventario/kardex" element={<ProtectedRoute><KardexCarga /></ProtectedRoute>} />
+            <Route path="/inventario/pedidos" element={<ProtectedRoute><ModulePlaceholder title="Pedidos de Inventario" description="Próximamente." /></ProtectedRoute>} />
             <Route path="/delivery" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/schedule" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/entrega/:id" element={<ProtectedRoute><EntregaDetalle /></ProtectedRoute>} />
