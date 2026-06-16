@@ -1393,42 +1393,6 @@ export default function DocumentForm() {
           </div>
         </CardContent>
       </Card>
-      </fieldset>
-
-      {/* Portals: render interactive controls outside the disabled fieldset
-          so they remain clickable / editable even in view mode. */}
-      {contpaqAnchor && form.empresa_id && createPortal(
-        <CompanyContpaqInline
-          companyId={form.empresa_id}
-          initial={(companies.find((c: any) => c.id === form.empresa_id) as any)?.id_contpaq || ""}
-          onSaved={() => refetchCompanies()}
-        />,
-        contpaqAnchor
-      )}
-      {numFacturaAnchor && td === "factura" && createPortal(
-        <Input
-          value={form.numero_factura}
-          onChange={(e) => set("numero_factura", e.target.value.replace(/\s+/g, ""))}
-          onBlur={async (e) => {
-            const val = e.target.value.replace(/\s+/g, "");
-            if (!id) return;
-            if (val === (existingDoc?.numero_factura || "")) return;
-            setSavingNumFactura(true);
-            const { error } = await supabase
-              .from("documentos")
-              .update({ numero_factura: val || null })
-              .eq("id", id);
-            setSavingNumFactura(false);
-            if (error) { toast.error(error.message); return; }
-            toast.success("Número de Factura guardado");
-            qc.invalidateQueries({ queryKey: ["documento", id] });
-            qc.invalidateQueries({ queryKey: ["documentos"] });
-          }}
-          disabled={savingNumFactura}
-          placeholder="Capturar número de factura"
-        />,
-        numFacturaAnchor
-      )}
 
       {/* Pagos relacionados — solo en modo vista para Facturas/Pedidos/Cotizaciones */}
       {viewMode && isEdit && id && form.tipo_documento !== "entrega_corporativa" && (
