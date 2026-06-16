@@ -10,8 +10,39 @@ import { FontFamily } from "@tiptap/extension-font-family";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
-import { TableCell } from "@tiptap/extension-table-cell";
-import { TableHeader } from "@tiptap/extension-table-header";
+import { TableCell as TiptapTableCell } from "@tiptap/extension-table-cell";
+import { TableHeader as TiptapTableHeader } from "@tiptap/extension-table-header";
+
+// Extiende TableCell para soportar atributo cellPadding inline
+const TableCell = TiptapTableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      cellPadding: {
+        default: "6px 10px",
+        parseHTML: (el: HTMLElement) => el.style.padding || "6px 10px",
+        renderHTML: (attrs: any) => ({
+          style: `padding: ${attrs.cellPadding || "6px 10px"}`,
+        }),
+      },
+    };
+  },
+});
+
+const TableHeader = TiptapTableHeader.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      cellPadding: {
+        default: "6px 10px",
+        parseHTML: (el: HTMLElement) => el.style.padding || "6px 10px",
+        renderHTML: (attrs: any) => ({
+          style: `padding: ${attrs.cellPadding || "6px 10px"}`,
+        }),
+      },
+    };
+  },
+});
 import { Button } from "@/components/ui/button";
 import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered,
