@@ -274,6 +274,8 @@ Deno.serve(async (req) => {
   const vars: Record<string, any> = {
     nombre_empresa: company?.name || '',
     nombre_cliente: company?.name || '',
+    razon_social: company?.razon_social || '',
+    id_contpaq: company?.id_contpaq || '',
     rfc_cliente: company?.rfc || '',
     nombre_contacto: [contact?.first_name, contact?.last_name].filter(Boolean).join(' '),
     correo_contacto: contact?.email || '',
@@ -366,6 +368,8 @@ Deno.serve(async (req) => {
       comprobantes_lista: compsHtml,
       nombre_empresa: company?.name || vars.nombre_empresa || '',
       nombre_cliente: company?.name || vars.nombre_cliente || '',
+      razon_social: company?.razon_social || vars.razon_social || '',
+      id_contpaq: company?.id_contpaq || vars.id_contpaq || '',
       ...(body.context || {}),
     })
   }
