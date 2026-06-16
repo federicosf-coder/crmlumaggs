@@ -8,12 +8,16 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import { FontFamily } from "@tiptap/extension-font-family";
 import { TextAlign } from "@tiptap/extension-text-align";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
 import { Button } from "@/components/ui/button";
 import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered,
   Heading1, Heading2, Link as LinkIcon, Minus, ChevronDown,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Type, Palette,
-  Strikethrough, RemoveFormatting,
+  Strikethrough, RemoveFormatting, Table as TableIcon,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -138,6 +142,10 @@ export function RichTextEditor({ value, onChange, placeholders = [], placeholder
       FontSize,
       LineHeight,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: value || "",
     editorProps: {
@@ -187,8 +195,16 @@ export function RichTextEditor({ value, onChange, placeholders = [], placeholder
   const currentFontSize = (editor.getAttributes("textStyle") as any).fontSize || "";
   const currentColor = (editor.getAttributes("textStyle") as any).color || "";
 
+  const tableStyles = `
+    .ProseMirror table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+    .ProseMirror th, .ProseMirror td { border: 1px solid #d1d5db; padding: 6px 10px; min-width: 60px; vertical-align: top; }
+    .ProseMirror th { background: #f3f4f6; font-weight: 600; }
+    .ProseMirror .selectedCell::after { background: rgba(59,130,246,0.15); content: ""; position: absolute; inset: 0; pointer-events: none; }
+  `;
+
   return (
     <div className="rounded-md border bg-background">
+      <style>{tableStyles}</style>
       <div className="flex flex-wrap items-center gap-0.5 border-b p-1">
         {/* Font family */}
         <DropdownMenu>
@@ -339,6 +355,40 @@ export function RichTextEditor({ value, onChange, placeholders = [], placeholder
         <ToolbarButton title="Quitar formato" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>
           <RemoveFormatting className="h-4 w-4" />
         </ToolbarButton>
+        <span className="mx-1 h-5 w-px bg-border" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 px-2 text-xs" title="Tabla">
+              <TableIcon className="h-3.5 w-3.5" /> Tabla <ChevronDown className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem onSelect={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+              Insertar tabla 3×3
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => editor.chain().focus().insertTable({ rows: 2, cols: 2, withHeaderRow: true }).run()}>
+              Insertar tabla 2×2
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => editor.chain().focus().insertTable({ rows: 4, cols: 4, withHeaderRow: true }).run()}>
+              Insertar tabla 4×4
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => editor.chain().focus().addColumnAfter().run()}>
+              Agregar columna →
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => editor.chain().focus().addRowAfter().run()}>
+              Agregar fila ↓
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => editor.chain().focus().deleteColumn().run()}>
+              Eliminar columna
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => editor.chain().focus().deleteRow().run()}>
+              Eliminar fila
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => editor.chain().focus().deleteTable().run()} className="text-destructive focus:text-destructive">
+              Eliminar tabla
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <span className="mx-1 h-5 w-px bg-border" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
