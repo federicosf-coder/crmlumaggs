@@ -1706,7 +1706,34 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
           )}
           <Card>
             <CardContent className="p-4 grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-muted-foreground text-xs">Cliente</p><p className="font-medium">{pago.empresa?.name}</p></div>
+              <div className="col-span-2 md:col-span-1">
+                <p className="text-muted-foreground text-xs">Cliente (Nombre Comercial)</p>
+                <p className="font-medium flex items-center gap-1">
+                  {pago.empresa?.name || "—"}
+                  {pago.empresa?.id && (
+                    <Link
+                      to={`/directory?tab=companies&select=${pago.empresa.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline inline-flex"
+                      title="Abrir empresa para ver/editar"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Link>
+                  )}
+                </p>
+                {pago.empresa?.id && (
+                  <CobranzaContpaqInline
+                    companyId={pago.empresa.id}
+                    initial={(pago.empresa as any)?.id_contpaq || ""}
+                    onSaved={onChanged}
+                  />
+                )}
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Razón Social</p>
+                <p className="font-medium">{(pago.empresa as any)?.razon_social || "—"}</p>
+              </div>
               <div><p className="text-muted-foreground text-xs">Plaza</p><p>{pago.plaza?.nombre || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Fecha</p><p>{formatDate(pago.fecha_pago)}</p></div>
               <div><p className="text-muted-foreground text-xs">Forma de pago</p><p>{FORMA_PAGO_LABEL[pago.tipo_pago || ""] || pago.tipo_pago || "—"}</p></div>
