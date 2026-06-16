@@ -292,6 +292,24 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
                 </div>
               </div>
 
+              <div className="space-y-1">
+                <Label>Módulo base *</Label>
+                <Select
+                  value={(form as any).source_module || "general"}
+                  onValueChange={(v: TemplateModule) => setForm({ ...form, source_module: v } as any)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(MODULE_LABELS).map(([k, l]) => (
+                      <SelectItem key={k} value={k}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Define qué campos están disponibles en los placeholders.
+                </p>
+              </div>
+
               {form.type === "email" && (
                 <div className="space-y-1">
                   <Label>Asunto *</Label>
