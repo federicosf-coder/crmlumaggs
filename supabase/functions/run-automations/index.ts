@@ -217,12 +217,12 @@ Deno.serve(async (req) => {
       const raw = (a as any).url_archivo || ''
       let signed = raw
       try {
-        const marker = '/cobranza-pagos/'
-        let path = raw
-        const idx = raw.indexOf(marker)
-        if (idx >= 0) path = decodeURIComponent(raw.slice(idx + marker.length))
+        const marker = '/document-files/'
+        let path = raw.split('?')[0]
+        const idx = path.indexOf(marker)
+        if (idx >= 0) path = decodeURIComponent(path.slice(idx + marker.length))
         const { data: s } = await supabase.storage
-          .from('cobranza-pagos')
+          .from('document-files')
           .createSignedUrl(path, 60 * 60 * 24 * 7)
         if (s?.signedUrl) signed = s.signedUrl
       } catch (_) { /* keep raw */ }

@@ -30,6 +30,34 @@ function generateToken(): string {
     .join('')
 }
 
+async function signStorageUrlsInHtml(
+  html: string,
+  supabase: ReturnType<typeof createClient>,
+  expiresIn = 60 * 60 * 24 * 7
+): Promise<string> {
+  if (!html) return html
+  const re = /https?:\/\/[^\s"'<>]*\/storage\/v1\/object\/(?:public|sign)\/(document-files|template-attachments)\/[^\s"'<>)]+/gi
+  const matches = Array.from(new Set(html.match(re) || []))
+  if (matches.length === 0) return html
+  const replacements = new Map<string, string>()
+  await Promise.all(matches.map(async (url) => {
+    try {
+      const clean = url.split('?')[0]
+      const match = clean.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/i)
+      if (!match) return
+      const bucket = match[1]
+      const path = decodeURIComponent(match[2])
+      const { data } = await supabase.storage.from(bucket).createSignedUrl(path, expiresIn)
+      if (data?.signedUrl) replacements.set(url, data.signedUrl)
+    } catch (err) {
+      console.warn('Could not sign storage URL in email HTML', { url, err })
+    }
+  }))
+  let out = html
+  for (const [from, to] of replacements) out = out.split(from).join(to)
+  return out
+}
+
 // Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
 // gateway validates the caller's JWT (anon or service_role) before the request
 // reaches this code. No in-function auth check is needed.
@@ -294,11 +322,12 @@ Deno.serve(async (req) => {
   }
 
   // 4. Render React Email template to HTML and plain text
-  const html = htmlOverride
+  const rawHtml = htmlOverride
     ? htmlOverride
     : await renderAsync(React.createElement(template.component, templateData))
+  const html = await signStorageUrlsInHtml(rawHtml, supabase)
   const plainText = htmlOverride
-    ? htmlOverride.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    ? html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
     : await renderAsync(
         React.createElement(template.component, templateData),
         { plainText: true }
