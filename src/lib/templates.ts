@@ -29,6 +29,7 @@ export interface Template {
   cc_emails?: EmailRecipientItem[];
   bcc_emails?: EmailRecipientItem[];
   reply_to?: string | null;
+  source_module?: string;
 }
 
 export type EmailRecipientItem =
@@ -177,6 +178,23 @@ export const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   pago: "Pago",
   credito: "Crédito",
   general: "General",
+};
+
+export type TemplateModule =
+  | "cotizacion"
+  | "cobranza"
+  | "entrega"
+  | "seguimiento"
+  | "empresa"
+  | "general";
+
+export const MODULE_LABELS: Record<TemplateModule, string> = {
+  cotizacion: "Cotización / Documento",
+  cobranza: "Cobranza",
+  entrega: "Entrega / Pedido",
+  seguimiento: "Seguimiento de Ventas",
+  empresa: "Empresa / Contacto",
+  general: "General (todos)",
 };
 
 /** Replace {placeholder} tokens with values from a record. Missing keys stay literal. */

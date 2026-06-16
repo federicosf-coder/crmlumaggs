@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { Save, X, Copy, AlertTriangle, Eye, Send } from "lucide-react";
 import {
   CATEGORY_LABELS, Template, TemplateCategory, TemplatePlaceholder, TemplateType,
-  unknownPlaceholders, buildTemplateAttachmentsBlock,
+  unknownPlaceholders, buildTemplateAttachmentsBlock, TemplateModule, MODULE_LABELS,
 } from "@/lib/templates";
 import { TemplateAttachmentsManager } from "@/components/templates/TemplateAttachmentsManager";
 import { EmailRecipientsInput } from "@/components/templates/EmailRecipientsInput";
@@ -48,6 +48,7 @@ const empty = (): Partial<Template> => ({
   name: "", type: "whatsapp", category: "general",
   subject: "", body: "", description: "", is_active: true,
   to_emails: [], cc_emails: [], bcc_emails: [], reply_to: "",
+  source_module: "general",
 });
 
 export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Props) {
@@ -68,6 +69,7 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
       cc_emails: (editing as any).cc_emails || [],
       bcc_emails: (editing as any).bcc_emails || [],
       reply_to: (editing as any).reply_to || "",
+      source_module: (editing as any).source_module || "general",
     } : empty());
     const rt = (editing as any)?.reply_to as string | null | undefined;
     setReplyToItems(rt ? [{ type: "email", value: rt, label: rt }] : []);
@@ -86,10 +88,15 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
     enabled: open,
   });
 
-  const visiblePlaceholders = useMemo(
-    () => (placeholders || []).filter(p => p.applies_to === "ambos" || p.applies_to === form.type),
-    [placeholders, form.type]
-  );
+  const visiblePlaceholders = useMemo(() => {
+    const currentModule = (form as any).source_module || "general";
+    return (placeholders || []).filter(p => {
+      const typeOk = p.applies_to === "ambos" || p.applies_to === form.type;
+      if (currentModule === "general") return typeOk;
+      const modules: string[] = (p as any).source_modules || ["general"];
+      return typeOk && modules.includes(currentModule);
+    });
+  }, [placeholders, form.type, (form as any).source_module]);
 
   const filteredPlaceholders = useMemo(() => {
     const q = phSearch.trim().toLowerCase();
@@ -147,6 +154,7 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
       cc_emails: parsed.data.type === "email" ? (form.cc_emails || []) : [],
       bcc_emails: parsed.data.type === "email" ? (form.bcc_emails || []) : [],
       reply_to: parsed.data.type === "email" ? resolvedReplyTo : null,
+      source_module: (form as any).source_module || "general",
     };
     let error;
     let savedId = editing?.id || createdId;
@@ -282,6 +290,24 @@ export function TemplateFormDialog({ open, onOpenChange, editing, onSaved }: Pro
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label>Módulo base *</Label>
+                <Select
+                  value={(form as any).source_module || "general"}
+                  onValueChange={(v: TemplateModule) => setForm({ ...form, source_module: v } as any)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(MODULE_LABELS).map(([k, l]) => (
+                      <SelectItem key={k} value={k}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Define qué campos están disponibles en los placeholders.
+                </p>
               </div>
 
               {form.type === "email" && (
