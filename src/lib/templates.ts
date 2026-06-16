@@ -29,6 +29,7 @@ export interface Template {
   cc_emails?: EmailRecipientItem[];
   bcc_emails?: EmailRecipientItem[];
   reply_to?: string | null;
+  source_module?: string;
 }
 
 export type EmailRecipientItem =
