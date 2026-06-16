@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams, useNavigate, useParams, Navigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams, Navigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1706,7 +1706,34 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
           )}
           <Card>
             <CardContent className="p-4 grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-muted-foreground text-xs">Cliente</p><p className="font-medium">{pago.empresa?.name}</p></div>
+              <div className="col-span-2 md:col-span-1">
+                <p className="text-muted-foreground text-xs">Cliente (Nombre Comercial)</p>
+                <p className="font-medium flex items-center gap-1">
+                  {pago.empresa?.name || "—"}
+                  {pago.empresa?.id && (
+                    <Link
+                      to={`/directory?tab=companies&select=${pago.empresa.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline inline-flex"
+                      title="Abrir empresa para ver/editar"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Link>
+                  )}
+                </p>
+                {pago.empresa?.id && (
+                  <CobranzaContpaqInline
+                    companyId={pago.empresa.id}
+                    initial={(pago.empresa as any)?.id_contpaq || ""}
+                    onSaved={onChanged}
+                  />
+                )}
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Razón Social</p>
+                <p className="font-medium">{(pago.empresa as any)?.razon_social || "—"}</p>
+              </div>
               <div><p className="text-muted-foreground text-xs">Plaza</p><p>{pago.plaza?.nombre || "—"}</p></div>
               <div><p className="text-muted-foreground text-xs">Fecha</p><p>{formatDate(pago.fecha_pago)}</p></div>
               <div><p className="text-muted-foreground text-xs">Forma de pago</p><p>{FORMA_PAGO_LABEL[pago.tipo_pago || ""] || pago.tipo_pago || "—"}</p></div>
@@ -2027,5 +2054,66 @@ function _LegacyBucketTable({ facturas }: { facturas: any[] }) {
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+function CobranzaContpaqInline({ companyId, initial, onSaved }: { companyId: string; initial: string; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(initial);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setValue(initial); setEditing(false); }, [companyId, initial]);
+
+  const save = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("companies")
+      .update({ id_contpaq: value.trim() || null })
+      .eq("id", companyId);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("ID Contpaq actualizado");
+    setEditing(false);
+    onSaved();
+  };
+
+  if (!editing && initial) {
+    return (
+      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+        <span>ID Contpaq:</span>
+        <span className="font-mono font-medium text-foreground">{initial}</span>
+        <button type="button" className="text-primary hover:underline" onClick={() => setEditing(true)}>
+          Editar
+        </button>
+      </div>
+    );
+  }
+  if (!editing && !initial) {
+    return (
+      <div className="mt-1 flex items-center gap-2 text-xs">
+        <span className="text-muted-foreground">ID Contpaq: —</span>
+        <button type="button" className="text-primary hover:underline" onClick={() => setEditing(true)}>
+          Capturar
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-1 flex items-center gap-1">
+      <span className="text-xs text-muted-foreground">ID Contpaq:</span>
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="h-7 text-xs w-32"
+        placeholder="ID"
+        autoFocus
+      />
+      <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={save} disabled={saving}>
+        {saving ? "..." : "Guardar"}
+      </Button>
+      <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setValue(initial); setEditing(false); }}>
+        Cancelar
+      </Button>
+    </div>
   );
 }

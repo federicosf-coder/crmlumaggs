@@ -90,7 +90,7 @@ export function useCobranzaPagos(filters: CobranzaFilters = {}) {
     setLoading(true);
     let q: any = supabase
       .from("cobranza_pagos")
-      .select("*, empresa:companies(id,name,email), plaza:plazas(id,nombre)")
+      .select("*, empresa:companies(id,name,razon_social,id_contpaq,email), plaza:plazas(id,nombre)")
       .order("fecha_pago", { ascending: false });
     if (empresaVendedora) q = q.eq("empresa_vendedora" as any, empresaVendedora as any);
     if (plazaId) q = q.eq("plaza_id", plazaId);
