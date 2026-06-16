@@ -1008,11 +1008,7 @@ export default function DocumentForm() {
               <Button variant="outline" size="icon" onClick={() => setShowNewCompany(true)}><Plus className="h-4 w-4" /></Button>
             </div>
             {form.empresa_id && (
-              <CompanyContpaqInline
-                companyId={form.empresa_id}
-                initial={(companies.find((c: any) => c.id === form.empresa_id) as any)?.id_contpaq || ""}
-                onSaved={() => refetchCompanies()}
-              />
+              <div ref={setContpaqAnchor} />
             )}
           </div>
 
