@@ -6,7 +6,7 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type',
 }
 
-type EntityType = 'deal' | 'company' | 'document' | 'contact' | 'task'
+type EntityType = 'deal' | 'company' | 'document' | 'contact' | 'task' | 'payment'
 
 interface Body {
   trigger_type: string
@@ -118,6 +118,9 @@ Deno.serve(async (req) => {
   let creador: any = null
   let plaza: any = null
   let entityLabel = ''
+  let pago: any = null
+  let pagoAplicaciones: any[] = []
+  let pagoComprobantes: { nombre: string; url: string }[] = []
 
   if (entity_id && entity_type === 'document') {
     const { data } = await supabase
@@ -165,6 +168,67 @@ Deno.serve(async (req) => {
     const { data } = await supabase.from('crm_tasks').select('*').eq('id', entity_id).maybeSingle()
     entity = data
     entityLabel = data?.title || ''
+  } else if (entity_id && entity_type === 'payment') {
+    const { data: p } = await supabase
+      .from('cobranza_pagos')
+      .select('*')
+      .eq('id', entity_id)
+      .maybeSingle()
+    pago = p
+    entity = p
+    if (p?.empresa_id) {
+      const { data: c } = await supabase.from('companies').select('*').eq('id', p.empresa_id).maybeSingle()
+      company = c
+    }
+    if (p?.creado_por) {
+      const { data: cr } = await supabase.from('profiles').select('full_name').eq('user_id', p.creado_por).maybeSingle()
+      creador = cr
+    }
+    if (p?.plaza_id) {
+      const { data: pl } = await supabase.from('plazas').select('nombre').eq('id', p.plaza_id).maybeSingle()
+      plaza = pl
+    }
+    // Aplicaciones (documentos relacionados)
+    const { data: aps } = await supabase
+      .from('cobranza_aplicaciones')
+      .select('id, tipo_documento, documento_id, monto_aplicado, estatus_aplicacion')
+      .eq('pago_id', entity_id)
+      .eq('estatus_aplicacion', 'activa')
+    pagoAplicaciones = aps || []
+    if (pagoAplicaciones.length > 0) {
+      const docIds = Array.from(new Set(pagoAplicaciones.map((a: any) => a.documento_id).filter(Boolean)))
+      const { data: docs } = await supabase
+        .from('documentos')
+        .select('id, numero_factura, numero_pedido, numero_cotizacion')
+        .in('id', docIds)
+      const docMap = new Map<string, any>((docs || []).map((d: any) => [d.id, d]))
+      pagoAplicaciones = pagoAplicaciones.map((a: any) => ({
+        ...a,
+        documento: docMap.get(a.documento_id) || null,
+      }))
+    }
+    // Comprobantes (archivos del pago) → URLs firmadas
+    const { data: arch } = await supabase
+      .from('cobranza_pago_archivos')
+      .select('url_archivo, nombre_archivo')
+      .eq('pago_id', entity_id)
+      .order('fecha_carga', { ascending: false })
+    for (const a of arch || []) {
+      const raw = (a as any).url_archivo || ''
+      let signed = raw
+      try {
+        const marker = '/cobranza-pagos/'
+        let path = raw
+        const idx = raw.indexOf(marker)
+        if (idx >= 0) path = decodeURIComponent(raw.slice(idx + marker.length))
+        const { data: s } = await supabase.storage
+          .from('cobranza-pagos')
+          .createSignedUrl(path, 60 * 60 * 24 * 7)
+        if (s?.signedUrl) signed = s.signedUrl
+      } catch (_) { /* keep raw */ }
+      pagoComprobantes.push({ nombre: (a as any).nombre_archivo || 'Comprobante', url: signed })
+    }
+    entityLabel = company?.name || p?.referencia_pago || (p?.id ? String(p.id).slice(0, 8) : '')
   }
 
   const entityScope: Record<string, any> = {}
@@ -246,6 +310,64 @@ Deno.serve(async (req) => {
       ? `<a href="${ordenCompraUrlSigned}" style="color:#2563eb;text-decoration:underline;" target="_blank" rel="noopener noreferrer">Ver Orden de Compra</a>`
       : '',
     ...(body.context || {}),
+  }
+
+  // Variables específicas de pagos (sólo si el evento corresponde a un pago)
+  if (entity_type === 'payment' && pago) {
+    const FORMA_PAGO_LABEL: Record<string, string> = {
+      transferencia: 'Transferencia',
+      deposito: 'Depósito',
+      efectivo: 'Efectivo',
+      cheque: 'Cheque',
+      tarjeta: 'Tarjeta',
+      contado: 'Contado',
+      credito: 'Crédito Directo',
+      credito_cescemex: 'Crédito Cescemex',
+    }
+    const TIPO_DOC_LABEL: Record<string, string> = {
+      factura: 'Factura',
+      pedido: 'Pedido',
+      cotizacion: 'Cotización',
+    }
+    const moneyFmt = (n: any) => {
+      const num = Number(n || 0)
+      return num.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+    }
+    const tipoPagoKey = String(pago.tipo_pago || '').toLowerCase()
+    const formaPagoLabel = FORMA_PAGO_LABEL[tipoPagoKey] || pago.tipo_pago || '—'
+    const fechaPagoFmt = pago.fecha_pago
+      ? new Date(pago.fecha_pago).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : ''
+    const docsHtml = pagoAplicaciones.length
+      ? pagoAplicaciones.map((a: any) => {
+          const folio = a.documento?.numero_factura || a.documento?.numero_pedido || a.documento?.numero_cotizacion || (a.documento_id ? String(a.documento_id).slice(0, 8) : '')
+          const tipo = TIPO_DOC_LABEL[a.tipo_documento] || a.tipo_documento || 'Documento'
+          return `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="font-size:13px;color:#0f172a;"><strong>${tipo}</strong> ${folio}</span><span style="font-size:13px;color:#0f172a;font-weight:600;">${moneyFmt(a.monto_aplicado)}</span></div>`
+        }).join('')
+      : '<span style="color:#94a3b8;">Sin documentos relacionados</span>'
+    const compsHtml = pagoComprobantes.length
+      ? pagoComprobantes.map((c) => `<div style="padding:4px 0;"><a href="${c.url}" style="color:#2563eb;text-decoration:underline;" target="_blank" rel="noopener noreferrer">${c.nombre}</a></div>`).join('')
+      : '<span style="color:#94a3b8;">Sin comprobantes</span>'
+    Object.assign(vars, {
+      empresa: company?.name || '',
+      cliente: company?.name || '',
+      fecha_pago: fechaPagoFmt,
+      monto_total: moneyFmt(pago.monto_total),
+      monto_pago: `${moneyFmt(pago.monto_total)} ${pago.moneda || 'MXN'}`,
+      moneda: pago.moneda || 'MXN',
+      referencia: pago.referencia_pago || '—',
+      referencia_pago: pago.referencia_pago || '—',
+      tipo_pago: formaPagoLabel,
+      forma_pago: formaPagoLabel,
+      banco: pago.banco || '—',
+      observaciones: pago.observaciones || '—',
+      registrado_por: creador?.full_name || vars.registrado_por || '—',
+      documentos_lista: docsHtml,
+      comprobantes_lista: compsHtml,
+      nombre_empresa: company?.name || vars.nombre_empresa || '',
+      nombre_cliente: company?.name || vars.nombre_cliente || '',
+      ...(body.context || {}),
+    })
   }
 
   const summary: any[] = []
