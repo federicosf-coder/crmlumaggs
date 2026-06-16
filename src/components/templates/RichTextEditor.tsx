@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { Extension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -225,6 +225,17 @@ export function RichTextEditor({ value, onChange, placeholders = [], placeholder
     () => [...placeholders].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
     [placeholders]
   );
+
+  const [phSearch, setPhSearch] = useState("");
+  const filteredPlaceholders = useMemo(() => {
+    const q = phSearch.trim().toLowerCase();
+    if (!q) return sortedPlaceholders;
+    return sortedPlaceholders.filter((p) =>
+      p.key.toLowerCase().includes(q) ||
+      p.label.toLowerCase().includes(q) ||
+      (p.description || "").toLowerCase().includes(q)
+    );
+  }, [sortedPlaceholders, phSearch]);
 
   const applyTableCellPadding = (padding: string) => {
     if (!editor) return;
@@ -460,11 +471,22 @@ export function RichTextEditor({ value, onChange, placeholders = [], placeholder
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-72 p-0">
+            <div className="p-2 border-b">
+              <input
+                type="text"
+                value={phSearch}
+                onChange={(e) => setPhSearch(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+                placeholder="Buscar placeholder..."
+                className="w-full h-8 px-2 text-xs rounded border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                autoFocus
+              />
+            </div>
             <ScrollArea className="h-72">
-              {sortedPlaceholders.length === 0 && (
-                <div className="p-3 text-xs text-muted-foreground">Sin placeholders</div>
+              {filteredPlaceholders.length === 0 && (
+                <div className="p-3 text-xs text-muted-foreground">Sin resultados</div>
               )}
-              {sortedPlaceholders.map((p) => (
+              {filteredPlaceholders.map((p) => (
                 <DropdownMenuItem key={p.id} onSelect={() => insertPlaceholder(p.key)} className="flex flex-col items-start gap-0.5 py-2">
                   <code className="text-[11px] font-mono text-primary">{p.key}</code>
                   <span className="text-[11px] text-muted-foreground truncate w-full">{p.label}</span>
