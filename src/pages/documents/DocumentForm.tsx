@@ -1393,6 +1393,7 @@ export default function DocumentForm() {
           </div>
         </CardContent>
       </Card>
+      </fieldset>
 
       {/* Pagos relacionados — solo en modo vista para Facturas/Pedidos/Cotizaciones */}
       {viewMode && isEdit && id && form.tipo_documento !== "entrega_corporativa" && (
