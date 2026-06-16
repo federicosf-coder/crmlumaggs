@@ -173,6 +173,54 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {visibleAdmin.length > 0 && (
+          <></>
+        )}
+        {inventarioAccess.canView && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Inventario</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <Collapsible open={inventarioOpen} onOpenChange={setInventarioOpen}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="hover:bg-sidebar-accent/50">
+                        <Boxes className="mr-2 h-4 w-4" />
+                        {!collapsed && <span className="flex-1 text-left">Inventario</span>}
+                        {!collapsed && <ChevronDown className={`h-4 w-4 transition-transform ${inventarioOpen ? "rotate-180" : ""}`} />}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                  </SidebarMenuItem>
+                  <CollapsibleContent>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/inventario/niveles" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <BarChart3 className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Niveles de Inventario</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/inventario/kardex" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <FileSpreadsheetIcon />
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/inventario/pedidos" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <ShoppingCart className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Pedidos</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </CollapsibleContent>
+                </Collapsible>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+        {visibleAdmin.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel>Administración</SidebarGroupLabel>
             <SidebarGroupContent>
