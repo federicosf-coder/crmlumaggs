@@ -6011,7 +6011,7 @@ export type Database = {
       validate_credit_token: { Args: { _token: string }; Returns: string }
     }
     Enums: {
-      access_level: "todos" | "equipo" | "propio" | "ninguno"
+      access_level: "todos" | "equipo" | "propio" | "ninguno" | "lectura"
       app_module:
         | "directorio"
         | "crm_chevron"
@@ -6036,6 +6036,13 @@ export type Database = {
         | "credito"
         | "seguimiento_ventas"
         | "catalogo_extendido"
+        | "inventario.kardex"
+        | "inventario.niveles"
+        | "inventario.pedidos"
+        | "inventario.pedidos.sugeridos"
+        | "inventario.pedidos.elaborados"
+        | "inventario.pedidos.recibidos"
+        | "inventario.pedidos.reclamos"
       app_role:
         | "admin"
         | "manager"
@@ -6346,7 +6353,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      access_level: ["todos", "equipo", "propio", "ninguno"],
+      access_level: ["todos", "equipo", "propio", "ninguno", "lectura"],
       app_module: [
         "directorio",
         "crm_chevron",
@@ -6371,6 +6378,13 @@ export const Constants = {
         "credito",
         "seguimiento_ventas",
         "catalogo_extendido",
+        "inventario.kardex",
+        "inventario.niveles",
+        "inventario.pedidos",
+        "inventario.pedidos.sugeridos",
+        "inventario.pedidos.elaborados",
+        "inventario.pedidos.recibidos",
+        "inventario.pedidos.reclamos",
       ],
       app_role: [
         "admin",
