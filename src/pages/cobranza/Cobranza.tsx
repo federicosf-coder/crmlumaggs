@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams, useNavigate, useParams, Navigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams, Navigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
