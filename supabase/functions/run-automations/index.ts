@@ -20,7 +20,7 @@ function renderTemplate(body: string, vars: Record<string, any>): string {
   if (!body) return ''
   return body.replace(/\{([a-z0-9_]+)\}/gi, (m, key) => {
     const v = vars[key.toLowerCase()]
-    return v === undefined || v === null || v === '' ? m : String(v)
+    return v === undefined || v === null ? m : String(v)
   })
 }
 
@@ -274,6 +274,8 @@ Deno.serve(async (req) => {
   const vars: Record<string, any> = {
     nombre_empresa: company?.name || '',
     nombre_cliente: company?.name || '',
+    razon_social: company?.razon_social || '',
+    id_contpaq: company?.id_contpaq || '',
     rfc_cliente: company?.rfc || '',
     nombre_contacto: [contact?.first_name, contact?.last_name].filter(Boolean).join(' '),
     correo_contacto: contact?.email || '',
@@ -342,7 +344,7 @@ Deno.serve(async (req) => {
       ? pagoAplicaciones.map((a: any) => {
           const folio = a.documento?.numero_factura || a.documento?.numero_pedido || a.documento?.numero_cotizacion || (a.documento_id ? String(a.documento_id).slice(0, 8) : '')
           const tipo = TIPO_DOC_LABEL[a.tipo_documento] || a.tipo_documento || 'Documento'
-          return `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="font-size:13px;color:#0f172a;"><strong>${tipo}</strong> ${folio}</span><span style="font-size:13px;color:#0f172a;font-weight:600;">${moneyFmt(a.monto_aplicado)}</span></div>`
+          return `<div style="display:flex;align-items:center;gap:24px;padding:4px 0;"><span style="min-width:110px;font-size:13px;color:#0f172a;"><strong>${tipo}</strong></span><span style="min-width:140px;font-size:13px;color:#334155;">${folio}</span><span style="font-size:13px;color:#0f172a;font-weight:600;margin-left:auto;">${moneyFmt(a.monto_aplicado)}</span></div>`
         }).join('')
       : '<span style="color:#94a3b8;">Sin documentos relacionados</span>'
     const compsHtml = pagoComprobantes.length
@@ -366,6 +368,8 @@ Deno.serve(async (req) => {
       comprobantes_lista: compsHtml,
       nombre_empresa: company?.name || vars.nombre_empresa || '',
       nombre_cliente: company?.name || vars.nombre_cliente || '',
+      razon_social: company?.razon_social || vars.razon_social || '',
+      id_contpaq: company?.id_contpaq || vars.id_contpaq || '',
       ...(body.context || {}),
     })
   }
