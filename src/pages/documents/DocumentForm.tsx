@@ -28,6 +28,8 @@ import { fetchAllRows } from "@/lib/supabasePagination";
 import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
 import { fireAutomation } from "@/hooks/useFireAutomation";
+import { useLastAutomationRuns } from "@/hooks/useLastAutomationRuns";
+import { LastSendStamp } from "@/components/automations/LastSendStamp";
 import { EntregaCorporativaSection } from "@/components/documentos/EntregaCorporativaSection";
 import { EMPRESA_STYLES, TIPO_DOC_STYLES, plazaColor } from "./documentStyles";
 
@@ -92,6 +94,10 @@ interface LineItem {
 
 export default function DocumentForm() {
   const { id } = useParams();
+  const { data: lastDocSends, refetch: refetchDocSends } = useLastAutomationRuns(
+    id ?? null,
+    ["documents.enviar_acuse"],
+  );
   const isEdit = !!id;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -853,26 +859,30 @@ export default function DocumentForm() {
               </Button>
             )}
             {isEntregaCorp && (
-            <Button
-              onClick={async () => {
-                toast.success("Acuse enviado");
-                if (id) {
-                  const res = await fireAutomation({
-                    trigger_type: "existing_button_click",
-                    entity_type: "document",
-                    entity_id: id,
-                    trigger_key: "documents.enviar_acuse",
-                  });
-                  if (res && res.matched > 0) {
-                    const ok = res.runs.filter((r: any) => r.status === "success").length;
-                    if (ok > 0) toast.success(`Automatización ejecutada (${ok})`);
+            <div className="flex flex-col items-stretch">
+              <Button
+                onClick={async () => {
+                  toast.success("Acuse enviado");
+                  if (id) {
+                    const res = await fireAutomation({
+                      trigger_type: "existing_button_click",
+                      entity_type: "document",
+                      entity_id: id,
+                      trigger_key: "documents.enviar_acuse",
+                    });
+                    if (res && res.matched > 0) {
+                      const ok = res.runs.filter((r: any) => r.status === "success").length;
+                      if (ok > 0) toast.success(`Automatización ejecutada (${ok})`);
+                    }
+                    setTimeout(() => refetchDocSends(), 800);
                   }
-                }
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Send className="mr-2 h-4 w-4" /> Enviar Acuse
-            </Button>
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Send className="mr-2 h-4 w-4" /> Enviar Acuse
+              </Button>
+              <LastSendStamp at={lastDocSends?.["documents.enviar_acuse"]} />
+            </div>
             )}
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
