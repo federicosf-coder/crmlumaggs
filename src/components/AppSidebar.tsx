@@ -172,9 +172,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {visibleAdmin.length > 0 && (
-          <></>
-        )}
         {inventarioAccess.canView && (
           <SidebarGroup>
             <SidebarGroupLabel>Inventario</SidebarGroupLabel>
@@ -202,7 +199,8 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
                         <NavLink to="/inventario/kardex" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                          <FileSpreadsheetIcon />
+                          <FileStack className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Carga de Kárdex</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
