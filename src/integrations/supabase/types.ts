@@ -4834,6 +4834,7 @@ export type Database = {
           label: string
           sort_order: number
           source_field: string | null
+          source_modules: string[]
           source_table: string | null
           updated_at: string
         }
@@ -4848,6 +4849,7 @@ export type Database = {
           label: string
           sort_order?: number
           source_field?: string | null
+          source_modules?: string[]
           source_table?: string | null
           updated_at?: string
         }
@@ -4862,6 +4864,7 @@ export type Database = {
           label?: string
           sort_order?: number
           source_field?: string | null
+          source_modules?: string[]
           source_table?: string | null
           updated_at?: string
         }
@@ -4880,6 +4883,7 @@ export type Database = {
           is_active: boolean
           name: string
           reply_to: string | null
+          source_module: string
           subject: string | null
           system_key: string | null
           to_emails: Json
@@ -4899,6 +4903,7 @@ export type Database = {
           is_active?: boolean
           name: string
           reply_to?: string | null
+          source_module?: string
           subject?: string | null
           system_key?: string | null
           to_emails?: Json
@@ -4918,6 +4923,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           reply_to?: string | null
+          source_module?: string
           subject?: string | null
           system_key?: string | null
           to_emails?: Json
