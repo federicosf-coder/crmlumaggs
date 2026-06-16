@@ -1438,7 +1438,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
       ? documentosLigados
           .map(
             (d) =>
-              `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span><strong>${d.tipo}</strong> ${d.numero}</span><span style="font-weight:600;">${d.monto}</span></div>`
+              `<div style="display:flex;align-items:center;gap:24px;padding:4px 0;"><span style="min-width:110px;"><strong>${d.tipo}</strong></span><span style="min-width:140px;color:#334155;">${d.numero}</span><span style="font-weight:600;margin-left:auto;">${d.monto}</span></div>`
           )
           .join("")
       : '<span style="color:#94a3b8;">Sin documentos ligados</span>';
