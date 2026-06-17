@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { FileText, Loader2, ListChecks, Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createCotizacionDraft } from "@/lib/createCotizacionDraft";
@@ -161,15 +160,6 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId,
         plazaId: defaultPlazaId || null,
         userId: user?.id,
       });
-      // Si vino de una solicitud, marcarla como cotizada y vincular
-      if (source !== "interest") {
-        await sb.from("cliente_solicitudes")
-          .update({ estatus: "cotizada", documento_id: docId })
-          .eq("id", source);
-        qc.invalidateQueries({ queryKey: ["cliente-solicitudes", companyId] });
-      } else {
-        setInterestIds([]);
-      }
       toast.success("Cotización creada");
       const back = conversationId ? `&back=whatsapp&conversation_id=${conversationId}` : "";
       navigate(`/documents/${docId}/edit?edit=1${back}`);
@@ -178,11 +168,6 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId,
     } finally {
       setCreatingFor(null);
     }
-  };
-
-  const cerrarSolicitud = async (id: string) => {
-    await sb.from("cliente_solicitudes").update({ estatus: "cerrada" }).eq("id", id);
-    refetchSolicitudes();
   };
 
   return (
@@ -204,82 +189,7 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId,
         </Button>
       </div>
 
-      {/* Bloque 2: solicitudes acumuladas */}
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="text-xs text-muted-foreground">Solicitudes del cliente</div>
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setNuevaOpen(true)}>
-            <Plus className="h-3 w-3 mr-1" /> Nueva
-          </Button>
-        </div>
-        {solicitudes.length === 0 ? (
-          <div className="text-xs text-muted-foreground italic">Sin solicitudes registradas.</div>
-        ) : (
-          <div className="space-y-1.5">
-            {solicitudes.map((s) => {
-              const expanded = expandedId === s.id;
-              const fecha = new Date(s.created_at).toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
-              return (
-                <div key={s.id} className="rounded-md border bg-card/50">
-                  <button
-                    type="button"
-                    className="w-full px-2 py-1.5 flex items-center gap-2 text-left hover:bg-muted/40"
-                    onClick={() => setExpandedId(expanded ? null : s.id)}
-                  >
-                    {expanded ? <ChevronDown className="h-3 w-3 shrink-0" /> : <ChevronRight className="h-3 w-3 shrink-0" />}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium truncate">
-                        {s.titulo || `Solicitud ${fecha}`}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {fecha} · {s.lineas.length} producto{s.lineas.length === 1 ? "" : "s"}
-                      </div>
-                    </div>
-                    <Badge variant={statusBadgeVariant(s.estatus)} className="text-[10px] capitalize">{s.estatus}</Badge>
-                  </button>
-                  {expanded && (
-                    <div className="px-2 pb-2 space-y-2 border-t">
-                      <ul className="text-xs space-y-0.5 mt-2">
-                        {s.lineas.map((l) => (
-                          <li key={l.id} className="truncate text-muted-foreground">
-                            • {l.productos?.codigo} — {l.productos?.nombre_producto}
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="flex gap-1.5">
-                        {s.documento_id ? (
-                          <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => navigate(`/documents/${s.documento_id}/edit`)}>
-                            Ver cotización
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            className="h-7 text-xs flex-1"
-                            disabled={creatingFor === s.id || !s.lineas.length}
-                            onClick={() => ensureListaThen(() =>
-                              handleCreateCotizacion(s.lineas.map((l) => l.producto_id), (s.empresa_vendedora || defaultBrand), s.id)
-                            )}
-                          >
-                            {creatingFor === s.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileText className="h-3 w-3 mr-1" />}
-                            + Cotización
-                          </Button>
-                        )}
-                        {s.estatus !== "cerrada" && (
-                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => cerrarSolicitud(s.id)}>
-                            Cerrar
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Bloque 3: cotizaciones PDF para reenviar por WhatsApp */}
+      {/* Bloque 2: cotizaciones PDF para reenviar por WhatsApp */}
       {onSendDocPdf && (
         <div>
           <div className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
@@ -320,18 +230,6 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId,
           )}
         </div>
       )}
-
-      <NuevaSolicitudDialog
-        open={nuevaOpen}
-        onOpenChange={setNuevaOpen}
-        empresaId={companyId}
-        contactoId={contactoId}
-        conversationId={conversationId}
-        empresaVendedora={defaultBrand}
-        productos={productos}
-        userId={user?.id}
-        onCreated={() => refetchSolicitudes()}
-      />
 
       <AssignListaPreciosDialog
         open={!!listaDialog}
