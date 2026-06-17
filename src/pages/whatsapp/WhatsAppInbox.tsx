@@ -1257,6 +1257,7 @@ export default function WhatsAppInbox() {
                   companyId={companyData.id}
                   contactoId={contactData?.id ?? null}
                   conversationId={active?.id ?? null}
+                  onSendDocPdf={sendDocPdfToActive}
                 />
               </div>
             ) : null}
