@@ -4012,6 +4012,56 @@ export type Database = {
         }
         Relationships: []
       }
+      inv_producto_proveedor: {
+        Row: {
+          codigo_contpaqi: string
+          codigo_proveedor: string
+          confirmado: boolean | null
+          creado_por: string | null
+          created_at: string | null
+          id: string
+          notas: string | null
+          piezas_por_tarima: number | null
+          producto_id: string | null
+          proveedor: string
+          updated_at: string | null
+        }
+        Insert: {
+          codigo_contpaqi: string
+          codigo_proveedor: string
+          confirmado?: boolean | null
+          creado_por?: string | null
+          created_at?: string | null
+          id?: string
+          notas?: string | null
+          piezas_por_tarima?: number | null
+          producto_id?: string | null
+          proveedor: string
+          updated_at?: string | null
+        }
+        Update: {
+          codigo_contpaqi?: string
+          codigo_proveedor?: string
+          confirmado?: boolean | null
+          creado_por?: string | null
+          created_at?: string | null
+          id?: string
+          notas?: string | null
+          piezas_por_tarima?: number | null
+          producto_id?: string | null
+          proveedor?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_producto_proveedor_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inv_recepcion_lineas: {
         Row: {
           cantidad_pedida: number
@@ -6682,6 +6732,7 @@ export type Database = {
         | "inventario.pedidos.elaborados"
         | "inventario.pedidos.recibidos"
         | "inventario.pedidos.reclamos"
+        | "inventario.mapeo"
       app_role:
         | "admin"
         | "manager"
@@ -7024,6 +7075,7 @@ export const Constants = {
         "inventario.pedidos.elaborados",
         "inventario.pedidos.recibidos",
         "inventario.pedidos.reclamos",
+        "inventario.mapeo",
       ],
       app_role: [
         "admin",
