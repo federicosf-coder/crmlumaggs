@@ -7,6 +7,7 @@ export interface ProductOption {
   id: string;
   codigo: string;
   nombre_producto: string;
+  presentacion?: string | null;
 }
 
 interface Props {
