@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import {
   MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus,
   FileText, Search, Paperclip, Image as ImageIcon, File as FileIcon, Download, Play, X,
-  FileSpreadsheet, FileType, AlertCircle, ArrowLeft, Info,
+  FileSpreadsheet, FileType, AlertCircle, ArrowLeft, Info, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
