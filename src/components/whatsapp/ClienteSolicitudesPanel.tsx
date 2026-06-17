@@ -80,10 +80,15 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId 
     queryFn: async () => {
       const { data } = await sb
         .from("productos")
-        .select("id, codigo, nombre_producto")
+        .select("id, codigo, nombre_producto, presentaciones(nombre)")
         .eq("is_active", true)
         .order("codigo");
-      return (data || []) as ProductOption[];
+      return (data || []).map((p: any) => ({
+        id: p.id,
+        codigo: p.codigo,
+        nombre_producto: p.nombre_producto,
+        presentacion: p.presentaciones?.nombre,
+      })) as ProductOption[];
     },
     staleTime: 5 * 60 * 1000,
   });

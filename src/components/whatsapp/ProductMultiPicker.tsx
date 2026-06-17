@@ -7,6 +7,7 @@ export interface ProductOption {
   id: string;
   codigo: string;
   nombre_producto: string;
+  presentacion?: string | null;
 }
 
 interface Props {
@@ -24,7 +25,8 @@ export function ProductMultiPicker({ productos, value, onChange, placeholder = "
     .map((p) => ({
       value: p.id,
       label: `${p.codigo} — ${p.nombre_producto}`,
-      searchText: `${p.codigo} ${p.nombre_producto}`,
+      detail: p.presentacion || undefined,
+      searchText: `${p.codigo} ${p.nombre_producto} ${p.presentacion || ""}`,
     })), [productos, value]);
 
   const selected = value
