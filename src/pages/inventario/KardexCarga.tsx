@@ -216,11 +216,13 @@ export default function KardexCarga() {
           const valor = Object.values(e.valores).reduce((a, b) => a + b, 0);
           const total = ex?.stock_total ?? 0;
           row.valor_total_inventario = valor;
-          row.costo_promedio = total > 0 ? valor / total : 0;
+          row.costo_promedio = total > 0 ? valor / total : null;
         }
         if (!ex) created++; else updated++;
         upserts.push(row);
       }
+
+      console.log('Upserts sample:', JSON.stringify(upserts.slice(0, 2), null, 2));
 
       // Upsert por lotes
       const batchSize = 200;
