@@ -1019,6 +1019,48 @@ export default function CreditoDetail() {
     }
   };
 
+  // Re-ejecutar extracción IA sobre un documento ya subido
+  const extractFromDoc = async (doc: any, kind: string, label: string) => {
+    if (!doc?.url_archivo) return;
+    setAutofilling(kind);
+    toast.loading(`Leyendo ${label}...`, { id: "af-re" });
+    try {
+      const { data: blob, error: dlErr } = await supabase.storage.from("credit-docs").download(doc.url_archivo);
+      if (dlErr || !blob) throw new Error(dlErr?.message || "No se pudo descargar el archivo");
+      const buf = new Uint8Array(await blob.arrayBuffer());
+      let bin = ""; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+      const b64 = btoa(bin);
+      const mime = doc.tipo_archivo || blob.type || "application/pdf";
+      const { data, error } = await supabase.functions.invoke("credito-autofill", {
+        body: { request_id: id, kind, file_b64: b64, mime },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const filled = Object.keys((data as any)?.updated || {}).length;
+      toast.success(filled > 0 ? `${label}: ${filled} campos autocompletados` : `${label}: sin campos nuevos`, { id: "af-re" });
+      qc.invalidateQueries({ queryKey: ["credit_request", id] });
+    } catch (e: any) {
+      toast.error(e?.message || `No se pudo leer ${label}`, { id: "af-re" });
+    } finally {
+      setAutofilling(null);
+    }
+  };
+
+  // Inferir el "kind" de autofill a partir del nombre del tipo de documento
+  const kindForDocTypeName = (dtNombre: string): string | null => {
+    const n = (dtNombre || "").toLowerCase();
+    const isAval = n.includes("aval");
+    if (n.includes("csf") || n.includes("situación fiscal") || n.includes("situacion fiscal")) return "csf";
+    if (n.includes("comprobante de domicilio")) return isAval ? "aval_comprobante_domicilio" : "comprobante_domicilio";
+    if (n.includes("identificación") || n.includes("identificacion") || n.includes("ine") || n.includes("pasaporte")) {
+      return isAval ? "aval_ine_full" : "ine_full";
+    }
+    if (n.includes("acta constitutiva")) return "acta_constitutiva";
+    if (n.includes("curp")) return "curp";
+    if (n.includes("poderes")) return "poderes";
+    return null;
+  };
+
   const openDoc = async (path: string) => {
     const { data } = await supabase.storage.from("credit-docs").createSignedUrl(path, 600);
     if (data?.signedUrl) window.open(data.signedUrl, "_blank");
