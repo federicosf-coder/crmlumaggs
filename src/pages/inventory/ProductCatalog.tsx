@@ -657,8 +657,12 @@ function ProductosTab() {
   });
 
   const handleSaveClick = () => {
-    if (Number(form.costo_actual ?? 0) > 0) setRecalcOpen(true);
-    else save.mutate(undefined);
+    save.mutate(undefined);
+  };
+
+  const ceilTo5 = (n: number) => {
+    if (!isFinite(n) || n <= 0) return 0;
+    return Math.ceil(n / 5) * 5;
   };
 
   const saveWithRecalc = async () => {
@@ -698,7 +702,9 @@ function ProductosTab() {
       }
       const marginRecord: Record<string, number> = {};
       for (const lvl of MARGIN_LEVELS) marginRecord[lvl.key] = Number(margins?.[lvl.key] ?? 0);
-      const newPrices = computePricesFromCost(costo, marginRecord);
+      const raw = computePricesFromCost(costo, marginRecord);
+      const newPrices: Record<string, number> = {};
+      for (const [k, v] of Object.entries(raw)) newPrices[k] = ceilTo5(Number(v));
       setForm(prev => ({ ...prev, ...newPrices } as any));
       save.mutate(newPrices);
     } catch (e: any) {
