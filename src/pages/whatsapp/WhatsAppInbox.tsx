@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import {
   MessageCircle, Send, UserPlus, Lock, Zap, Inbox, Pencil, Building2, Eye, Briefcase, Plus,
   FileText, Search, Paperclip, Image as ImageIcon, File as FileIcon, Download, Play, X,
-  FileSpreadsheet, FileType, AlertCircle, ArrowLeft, Info,
+  FileSpreadsheet, FileType, AlertCircle, ArrowLeft, Info, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
@@ -163,6 +163,7 @@ export default function WhatsAppInbox() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [qrOpen, setQrOpen] = useState(false);
+  const [listCollapsed, setListCollapsed] = useState(false);
   const [tplPickerOpen, setTplPickerOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [tplName, setTplName] = useState("");
@@ -712,16 +713,27 @@ export default function WhatsAppInbox() {
     <div className="flex flex-col md:grid md:grid-cols-12 md:gap-4 h-[calc(100vh-8rem)] overflow-hidden">
       {/* Conversaciones */}
       <Card
-        className={`${mobileView === "list" ? "flex" : "hidden"} md:flex md:col-span-3 flex-col h-full w-full overflow-hidden`}
+        className={`${mobileView === "list" ? "flex" : "hidden"} ${listCollapsed ? "md:hidden" : "md:flex"} md:col-span-3 flex-col h-full w-full overflow-hidden`}
       >
         <div className="p-3 border-b space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 font-medium">
               <MessageCircle className="h-4 w-4 text-primary" /> WhatsApp
             </div>
-            <Button size="sm" variant="outline" onClick={syncTemplates}>
-              Sync templates
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="outline" onClick={syncTemplates}>
+                Sync templates
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="hidden md:inline-flex h-8 w-8"
+                onClick={() => setListCollapsed(true)}
+                title="Ocultar lista"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           {/* Inbox tabs por línea */}
           {accounts.length > 0 && (
@@ -816,7 +828,7 @@ export default function WhatsAppInbox() {
 
       {/* Chat */}
       <Card
-        className={`${mobileView === "chat" ? "flex" : "hidden"} md:flex md:col-span-6 flex-col h-full w-full overflow-hidden`}
+        className={`${mobileView === "chat" ? "flex" : "hidden"} md:flex ${listCollapsed ? "md:col-span-8" : "md:col-span-6"} flex-col h-full w-full overflow-hidden`}
       >
         {!active ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -826,6 +838,15 @@ export default function WhatsAppInbox() {
           <>
             <div className="p-3 border-b shrink-0 bg-card">
               <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`hidden ${listCollapsed ? "md:inline-flex" : "md:hidden"} h-8 w-8 -ml-1 shrink-0`}
+                  onClick={() => setListCollapsed(false)}
+                  title="Mostrar lista"
+                >
+                  <PanelLeftOpen className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1191,7 +1212,7 @@ export default function WhatsAppInbox() {
         );
         return (
           <>
-            <Card className="hidden md:flex md:col-span-3 flex-col h-full overflow-hidden">
+            <Card className={`hidden md:flex ${listCollapsed ? "md:col-span-4" : "md:col-span-3"} flex-col h-full overflow-hidden`}>
               <div className="p-3 overflow-y-auto flex-1 min-h-0">
                 {sidePanelContent}
               </div>
