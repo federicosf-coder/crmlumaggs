@@ -967,7 +967,7 @@ function ProductosTab() {
 
             {ALL_OPTION_TYPES.map(t => (
               <div key={t}>
-                <Label>{OPTION_TYPE_LABELS[t]}</Label>
+                <Label>{t === "linea" ? "Línea - Cálculo de precios" : OPTION_TYPE_LABELS[t]}</Label>
                 <Select value={(form as any)[`${t}_id`] || ""} onValueChange={v => set(`${t}_id`, v)}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>{optionsFor(t).map(o => <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>)}</SelectContent>
@@ -975,21 +975,6 @@ function ProductosTab() {
               </div>
             ))}
 
-            <div className="md:col-span-2">
-              <Label>Clasificación de Precio</Label>
-              <Select
-                value={form.precio_clasificacion_id || "__none__"}
-                onValueChange={v => set("precio_clasificacion_id", v === "__none__" ? "" : v)}
-              >
-                <SelectTrigger><SelectValue placeholder="Sin clasificación (usa márgenes generales)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Sin clasificación (márgenes generales)</SelectItem>
-                  {clasificaciones.map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="md:col-span-2 border-t pt-3 mt-2">
               <h4 className="font-semibold text-sm mb-3">Precios</h4>
