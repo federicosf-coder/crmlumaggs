@@ -852,14 +852,12 @@ function ProductosTab() {
                     <TableCell>{p.marca?.value ?? "—"}</TableCell>
                     <TableCell className="text-xs tabular-nums whitespace-nowrap">
                       {stock ? (
-                        <div className="space-y-0.5">
-                          <div className="flex gap-1.5">
-                            <span className="text-muted-foreground">TJ:</span><span className="font-medium">{stock.stock_almacen_1002 ?? 0}</span>
-                            <span className="text-muted-foreground ml-1">MXL:</span><span className="font-medium">{stock.stock_almacen_1001 ?? 0}</span>
-                          </div>
-                          <div className="flex gap-1.5">
-                            <span className="text-muted-foreground">MOR:</span><span className="font-medium">{stock.stock_almacen_1003 ?? 0}</span>
-                            <span className="text-muted-foreground ml-1">ENS:</span><span className="font-medium">{stock.stock_almacen_1004 ?? 0}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="space-y-0.5">
+                            <div><span className="text-muted-foreground">TJ:</span> <span className="font-medium">{stock.stock_almacen_1002 ?? 0}</span></div>
+                            <div><span className="text-muted-foreground">MXL:</span> <span className="font-medium">{stock.stock_almacen_1001 ?? 0}</span></div>
+                            <div><span className="text-muted-foreground">MOR:</span> <span className="font-medium">{stock.stock_almacen_1003 ?? 0}</span></div>
+                            <div><span className="text-muted-foreground">ENS:</span> <span className="font-medium">{stock.stock_almacen_1004 ?? 0}</span></div>
                           </div>
                           <Badge variant="outline" className={
                             stock.estatus_inventario === 'pedir' ? 'bg-red-50 text-red-700 text-[10px]' :
