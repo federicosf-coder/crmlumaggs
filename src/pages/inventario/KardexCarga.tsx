@@ -359,7 +359,7 @@ export default function KardexCarga() {
                       <TableCell className="text-xs">{c.created_at ? new Date(c.created_at).toLocaleString("es-MX") : "—"}</TableCell>
                       <TableCell><Badge variant="outline" className="uppercase">{c.tipo}</Badge></TableCell>
                       <TableCell>{c.empresa_vendedora === "lumaggs" ? "Lumaggs" : c.empresa_vendedora === "galsa" ? "Galsa" : c.empresa_vendedora}</TableCell>
-                      <TableCell className="text-xs">{c.fecha_archivo || "—"}</TableCell>
+                      <TableCell className="text-xs">{c.fecha_inicio || "—"} → {c.fecha_archivo || "—"}</TableCell>
                       <TableCell className="text-xs truncate max-w-[260px]">{c.nombre_archivo}</TableCell>
                       <TableCell className="text-right">{c.total_skus_procesados ?? 0}</TableCell>
                       <TableCell className="text-right">{c.total_skus_actualizados ?? 0}</TableCell>
