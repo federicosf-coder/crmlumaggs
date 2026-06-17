@@ -1570,6 +1570,38 @@ export type Database = {
           },
         ]
       }
+      credit_request_responsables: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          credit_request_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          credit_request_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          credit_request_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_request_responsables_credit_request_id_fkey"
+            columns: ["credit_request_id"]
+            isOneToOne: false
+            referencedRelation: "credit_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_requests: {
         Row: {
           accionistas: Json
@@ -6604,6 +6636,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_credit_request_responsable: {
+        Args: { _req_id: string; _user_id: string }
         Returns: boolean
       }
       merge_companies: {
