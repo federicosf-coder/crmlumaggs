@@ -164,6 +164,31 @@ Deno.serve(async (req) => {
   // Create Supabase client with service role (bypasses RLS)
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+  // Idempotency guard: if this exact send was already accepted recently, do not send again.
+  if (idempotencyKey) {
+    const { data: existingSend, error: existingSendError } = await supabase
+      .from('email_send_log')
+      .select('id, status')
+      .eq('metadata->>idempotency_key', idempotencyKey)
+      .in('status', ['pending', 'sent'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existingSendError) {
+      console.warn('Idempotency lookup failed; continuing send', { error: existingSendError, idempotencyKey })
+    } else if (existingSend) {
+      console.log('Skipping duplicate email send by idempotency key', { templateName, effectiveRecipient, idempotencyKey })
+      return new Response(
+        JSON.stringify({ success: true, duplicate: true, status: existingSend.status }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+  }
+
   // 2. Check suppression list (fail-closed: if we can't verify, don't send)
   const { data: suppressed, error: suppressionError } = await supabase
     .from('suppressed_emails')
