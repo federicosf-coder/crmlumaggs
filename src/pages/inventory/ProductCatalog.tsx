@@ -360,6 +360,8 @@ function ProductosTab() {
     linea: [] as string[],
     activo: ["true"] as string[],
   });
+  const [precioMin, setPrecioMin] = useState<number | "">("");
+  const [precioMax, setPrecioMax] = useState<number | "">("");
   const { data: productos = [], isLoading } = useProductos(search);
   const { data: presentaciones = [] } = usePresentaciones();
   const { data: allOptions = [] } = useOptionValues();
@@ -553,7 +555,9 @@ function ProductosTab() {
       matchesMultiFilter(p.viscosidad_id, selectedFilters.viscosidad) &&
       matchesMultiFilter(p.categoria_id, selectedFilters.categoria) &&
       matchesMultiFilter(p.linea_id, selectedFilters.linea) &&
-      matchesMultiFilter(String(!!p.is_active), selectedFilters.activo)
+      matchesMultiFilter(String(!!p.is_active), selectedFilters.activo) &&
+      (precioMin === "" || Number(p.precio_base_uf1 ?? 0) >= precioMin) &&
+      (precioMax === "" || Number(p.precio_base_uf1 ?? 0) <= precioMax)
     )
     .sort((a: any, b: any) => {
       switch (productSort) {
@@ -715,7 +719,8 @@ function ProductosTab() {
     { key: "linea", label: "Línea", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("linea").map(o => ({ id: o.id, value: o.value }))] },
     { key: "activo", label: "Estado", opts: [{ id: "true", value: "Activo" }, { id: "false", value: "Inactivo" }] },
   ];
-  const totalActiveFilters = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0);
+  const totalActiveFilters = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0) +
+    (precioMin !== "" ? 1 : 0) + (precioMax !== "" ? 1 : 0);
   const addFilter = (key: keyof typeof selectedFilters, id: string) => {
     if (!id) return;
     setSelectedFilters(prev => prev[key].includes(id) ? prev : { ...prev, [key]: [...prev[key], id] });
@@ -723,7 +728,11 @@ function ProductosTab() {
   const removeFilter = (key: keyof typeof selectedFilters, id: string) => {
     setSelectedFilters(prev => ({ ...prev, [key]: prev[key].filter(x => x !== id) }));
   };
-  const clearAllFilters = () => setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [], activo: [] });
+  const clearAllFilters = () => {
+    setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [], activo: [] });
+    setPrecioMin("");
+    setPrecioMax("");
+  };
 
   return (
     <Card>
@@ -764,6 +773,28 @@ function ProductosTab() {
                     </Select>
                   </div>
                 ))}
+                <div className="col-span-2 flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Rango de precio (UF1)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Desde"
+                      value={precioMin}
+                      onChange={e => setPrecioMin(e.target.value === "" ? "" : Number(e.target.value))}
+                      className="h-8 text-xs"
+                    />
+                    <span className="text-xs text-muted-foreground">—</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Hasta"
+                      value={precioMax}
+                      onChange={e => setPrecioMax(e.target.value === "" ? "" : Number(e.target.value))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
@@ -807,6 +838,22 @@ function ProductosTab() {
                   </Badge>
                 );
               })
+            )}
+            {precioMin !== "" && (
+              <Badge variant="secondary" className="gap-1">
+                <span className="text-xs">Precio min: ${precioMin}</span>
+                <button type="button" onClick={() => setPrecioMin("")} className="ml-1 hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {precioMax !== "" && (
+              <Badge variant="secondary" className="gap-1">
+                <span className="text-xs">Precio max: ${precioMax}</span>
+                <button type="button" onClick={() => setPrecioMax("")} className="ml-1 hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
             )}
             <Button size="sm" variant="ghost" className="h-7" onClick={clearAllFilters}>Limpiar filtros</Button>
           </div>
