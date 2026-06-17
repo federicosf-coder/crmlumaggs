@@ -11,6 +11,7 @@ interface SearchableSelectOption {
   label: string;
   searchText?: string;
   description?: string;
+  detail?: string;
 }
 
 interface SearchableSelectProps {
