@@ -418,6 +418,119 @@ export type Database = {
         }
         Relationships: []
       }
+      cliente_solicitud_lineas: {
+        Row: {
+          cantidad: number
+          created_at: string
+          id: string
+          notas: string | null
+          producto_id: string
+          solicitud_id: string
+        }
+        Insert: {
+          cantidad?: number
+          created_at?: string
+          id?: string
+          notas?: string | null
+          producto_id: string
+          solicitud_id: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          id?: string
+          notas?: string | null
+          producto_id?: string
+          solicitud_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_solicitud_lineas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_solicitud_lineas_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "cliente_solicitudes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cliente_solicitudes: {
+        Row: {
+          contacto_id: string | null
+          created_at: string
+          created_by: string | null
+          documento_id: string | null
+          empresa_id: string
+          empresa_vendedora: string | null
+          estatus: string
+          id: string
+          titulo: string | null
+          updated_at: string
+          whatsapp_conversation_id: string | null
+        }
+        Insert: {
+          contacto_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_id?: string | null
+          empresa_id: string
+          empresa_vendedora?: string | null
+          estatus?: string
+          id?: string
+          titulo?: string | null
+          updated_at?: string
+          whatsapp_conversation_id?: string | null
+        }
+        Update: {
+          contacto_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_id?: string | null
+          empresa_id?: string
+          empresa_vendedora?: string | null
+          estatus?: string
+          id?: string
+          titulo?: string | null
+          updated_at?: string
+          whatsapp_conversation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_solicitudes_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_solicitudes_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_solicitudes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_solicitudes_whatsapp_conversation_id_fkey"
+            columns: ["whatsapp_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cobranza_aplicaciones: {
         Row: {
           creado_por: string | null
