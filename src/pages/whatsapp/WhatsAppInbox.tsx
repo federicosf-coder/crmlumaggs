@@ -32,7 +32,8 @@ import { ContactFormDialog, type ContactEditData } from "@/components/ContactFor
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
 import { ClienteSolicitudesPanel } from "@/components/whatsapp/ClienteSolicitudesPanel";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { extractDocFilesPath } from "@/lib/storageSignedUrl";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { Lock as LockIcon } from "lucide-react";
 
@@ -145,6 +146,7 @@ function extractTemplateVars(body: string): number {
 
 export default function WhatsAppInbox() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const access = useModuleAccess("whatsapp");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
