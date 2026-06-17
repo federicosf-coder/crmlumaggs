@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronRight, FileText, Loader2, Plus, ListChecks } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Loader2, Plus, ListChecks, Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createCotizacionDraft } from "@/lib/createCotizacionDraft";
 import { AssignListaPreciosDialog } from "./AssignListaPreciosDialog";
@@ -16,6 +16,7 @@ interface Props {
   companyId: string;
   contactoId?: string | null;
   conversationId?: string | null;
+  onSendDocPdf?: (docId: string, pdfUrl: string, label: string) => Promise<void> | void;
 }
 
 type SolicitudRow = {
@@ -34,7 +35,7 @@ function statusBadgeVariant(s: string): "default" | "secondary" | "outline" {
   return "secondary";
 }
 
-export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId }: Props) {
+export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId, onSendDocPdf }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -45,6 +46,7 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId 
   const [nuevaOpen, setNuevaOpen] = useState(false);
   const [listaDialog, setListaDialog] = useState<null | { onContinue: () => void }>(null);
   const [creatingFor, setCreatingFor] = useState<string | null>(null); // "interest" or solicitud id
+  const [sendingPdfId, setSendingPdfId] = useState<string | null>(null);
 
   // Company info (lista_precios + brand)
   const { data: company } = useQuery({
@@ -71,6 +73,37 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId 
         .eq("company_id", companyId)
         .limit(1);
       return data?.[0]?.user_id ?? null;
+    },
+  });
+
+  // Plaza por defecto: la del ejecutivo asignado, o del usuario actual
+  const { data: defaultPlazaId } = useQuery<string | null>({
+    queryKey: ["wa-cliente-plaza", ejecutivoId || user?.id || null],
+    enabled: !!(ejecutivoId || user?.id),
+    queryFn: async () => {
+      const uid = ejecutivoId || user?.id;
+      if (!uid) return null;
+      const { data } = await sb.from("profiles").select("plaza_id").eq("id", uid).maybeSingle();
+      if (data?.plaza_id) return data.plaza_id;
+      const { data: pd } = await sb.from("plazas").select("id").eq("nombre", "Plaza Predeterminada").maybeSingle();
+      return pd?.id ?? null;
+    },
+  });
+
+  // Cotizaciones con PDF (para reenviar por WhatsApp)
+  const { data: cotizacionesPdf = [] } = useQuery<Array<{ id: string; numero_cotizacion: string | null; pdf_url: string; created_at: string; total: number | null }>>({
+    queryKey: ["wa-cliente-cot-pdf", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data } = await sb
+        .from("documentos")
+        .select("id, numero_cotizacion, pdf_url, created_at, total")
+        .eq("empresa_id", companyId)
+        .eq("tipo_documento", "cotizacion")
+        .not("pdf_url", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return (data || []) as any;
     },
   });
 
@@ -128,6 +161,7 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId 
         productoIds,
         empresaVendedora: brand,
         ejecutivoId: ejecutivoId || null,
+        plazaId: defaultPlazaId || null,
         userId: user?.id,
       });
       // Si vino de una solicitud, marcarla como cotizada y vincular
@@ -140,7 +174,8 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId 
         setInterestIds([]);
       }
       toast.success("Cotización creada");
-      navigate(`/documents/${docId}/edit`);
+      const back = conversationId ? `&back=whatsapp&conversation_id=${conversationId}` : "";
+      navigate(`/documents/${docId}/edit?edit=1${back}`);
     } catch (e: any) {
       toast.error("No se pudo crear la cotización: " + (e?.message || "error"));
     } finally {
@@ -246,6 +281,48 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId 
           </div>
         )}
       </div>
+
+      {/* Bloque 3: cotizaciones PDF para reenviar por WhatsApp */}
+      {onSendDocPdf && (
+        <div>
+          <div className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+            <FileText className="h-3 w-3" /> Enviar cotización PDF
+          </div>
+          {cotizacionesPdf.length === 0 ? (
+            <div className="text-xs text-muted-foreground italic">Sin cotizaciones con PDF.</div>
+          ) : (
+            <div className="space-y-1">
+              {cotizacionesPdf.map((d) => {
+                const fecha = new Date(d.created_at).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "2-digit" });
+                const label = d.numero_cotizacion ? `Cotización ${d.numero_cotizacion}` : `Cotización ${fecha}`;
+                const isSending = sendingPdfId === d.id;
+                return (
+                  <div key={d.id} className="flex items-center gap-1.5 rounded-md border bg-card/50 px-2 py-1.5">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium truncate">{label}</div>
+                      <div className="text-[10px] text-muted-foreground">{fecha}</div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={isSending}
+                      onClick={async () => {
+                        setSendingPdfId(d.id);
+                        try { await onSendDocPdf(d.id, d.pdf_url, label); }
+                        finally { setSendingPdfId(null); }
+                      }}
+                    >
+                      {isSending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                      Enviar
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <NuevaSolicitudDialog
         open={nuevaOpen}

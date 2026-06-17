@@ -111,6 +111,9 @@ export default function DocumentForm() {
   const initialNotas = searchParams.get("notas") || "";
   const backSeguimientoId = searchParams.get("seguimiento_id");
   const backBrand = searchParams.get("brand");
+  const backTarget = searchParams.get("back");
+  const backConversationId = searchParams.get("conversation_id");
+  const initialEditFlag = searchParams.get("edit") === "1";
   const qc = useQueryClient();
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const { user, profile, hasRole } = useAuth();
@@ -122,7 +125,7 @@ export default function DocumentForm() {
   // Quien puede convertir Cotización/Pedido → Factura.
   // Admin, Manager y Accounting siempre pueden, aunque también tengan rol Sales/Delivery.
   const canConvertToFactura = isAdmin || isManager || isAccounting || (!isSales && !isDelivery);
-  const [viewMode, setViewMode] = useState(isEdit);
+  const [viewMode, setViewMode] = useState(isEdit && !initialEditFlag);
   const [generatePdfAfterSave, setGeneratePdfAfterSave] = useState(false);
   // contpaq inline and numero_factura input are rendered directly inline
   // outside disabled fieldsets so they remain editable in view mode.
@@ -820,6 +823,8 @@ export default function DocumentForm() {
         <Button variant="ghost" size="icon" onClick={() => {
           if (backSeguimientoId && backBrand) {
             navigate(`/seguimiento/${backBrand}?seguimiento_id=${backSeguimientoId}`);
+          } else if (backTarget === "whatsapp") {
+            navigate(backConversationId ? `/whatsapp?conversation_id=${backConversationId}` : "/whatsapp");
           } else {
             navigate(-1);
           }
