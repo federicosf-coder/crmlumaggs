@@ -282,6 +282,48 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId,
         )}
       </div>
 
+      {/* Bloque 3: cotizaciones PDF para reenviar por WhatsApp */}
+      {onSendDocPdf && (
+        <div>
+          <div className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+            <FileText className="h-3 w-3" /> Enviar cotización PDF
+          </div>
+          {cotizacionesPdf.length === 0 ? (
+            <div className="text-xs text-muted-foreground italic">Sin cotizaciones con PDF.</div>
+          ) : (
+            <div className="space-y-1">
+              {cotizacionesPdf.map((d) => {
+                const fecha = new Date(d.created_at).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "2-digit" });
+                const label = d.numero_cotizacion ? `Cotización ${d.numero_cotizacion}` : `Cotización ${fecha}`;
+                const isSending = sendingPdfId === d.id;
+                return (
+                  <div key={d.id} className="flex items-center gap-1.5 rounded-md border bg-card/50 px-2 py-1.5">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium truncate">{label}</div>
+                      <div className="text-[10px] text-muted-foreground">{fecha}</div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={isSending}
+                      onClick={async () => {
+                        setSendingPdfId(d.id);
+                        try { await onSendDocPdf(d.id, d.pdf_url, label); }
+                        finally { setSendingPdfId(null); }
+                      }}
+                    >
+                      {isSending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                      Enviar
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       <NuevaSolicitudDialog
         open={nuevaOpen}
         onOpenChange={setNuevaOpen}
