@@ -24,7 +24,7 @@ type SolicitudRow = {
   estatus: "abierta" | "cotizada" | "cerrada";
   documento_id: string | null;
   created_at: string;
-  empresa_vendedora: "lumaggs" | "galsa" | null;
+  empresa_vendedora: "lumaggs_chevron" | "galsa_phillips66" | null;
   lineas: { id: string; producto_id: string; cantidad: number; productos: { id: string; codigo: string; nombre_producto: string } | null }[];
 };
 
@@ -108,9 +108,9 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId 
     },
   });
 
-  const defaultBrand = useMemo<"lumaggs" | "galsa">(() => {
+  const defaultBrand = useMemo<"lumaggs_chevron" | "galsa_phillips66">(() => {
     const m = company?.empresa_marcas?.[0]?.empresa_vendedora;
-    return (m === "galsa" ? "galsa" : "lumaggs");
+    return (m === "galsa_phillips66" ? "galsa_phillips66" : "lumaggs_chevron");
   }, [company]);
 
   const ensureListaThen = (cb: () => void) => {
@@ -118,7 +118,7 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId 
     setListaDialog({ onContinue: cb });
   };
 
-  const handleCreateCotizacion = async (productoIds: string[], brand: "lumaggs" | "galsa", source: string) => {
+  const handleCreateCotizacion = async (productoIds: string[], brand: "lumaggs_chevron" | "galsa_phillips66", source: string) => {
     if (!productoIds.length) { toast.error("No hay productos"); return; }
     setCreatingFor(source);
     try {
