@@ -128,6 +128,7 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId 
         productoIds,
         empresaVendedora: brand,
         ejecutivoId: ejecutivoId || null,
+        plazaId: defaultPlazaId || null,
         userId: user?.id,
       });
       // Si vino de una solicitud, marcarla como cotizada y vincular
@@ -140,7 +141,8 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId 
         setInterestIds([]);
       }
       toast.success("Cotización creada");
-      navigate(`/documents/${docId}/edit`);
+      const back = conversationId ? `&back=whatsapp&conversation_id=${conversationId}` : "";
+      navigate(`/documents/${docId}/edit?edit=1${back}`);
     } catch (e: any) {
       toast.error("No se pudo crear la cotización: " + (e?.message || "error"));
     } finally {
