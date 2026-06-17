@@ -17,22 +17,6 @@ interface Props {
   onSendDocPdf?: (docId: string, pdfUrl: string, label: string) => Promise<void> | void;
 }
 
-type SolicitudRow = {
-  id: string;
-  titulo: string | null;
-  estatus: "abierta" | "cotizada" | "cerrada";
-  documento_id: string | null;
-  created_at: string;
-  empresa_vendedora: "lumaggs_chevron" | "galsa_phillips66" | null;
-  lineas: { id: string; producto_id: string; cantidad: number; productos: { id: string; codigo: string; nombre_producto: string } | null }[];
-};
-
-function statusBadgeVariant(s: string): "default" | "secondary" | "outline" {
-  if (s === "cotizada") return "default";
-  if (s === "cerrada") return "outline";
-  return "secondary";
-}
-
 export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId, onSendDocPdf }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
