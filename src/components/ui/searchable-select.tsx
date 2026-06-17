@@ -113,7 +113,12 @@ export function SearchableSelect({
                   )}
                 />
                 <span className="flex flex-col min-w-0 flex-1">
-                  <span className="whitespace-normal break-words font-medium">{option.label}</span>
+                  <span className="whitespace-normal break-words">
+                    <span className="font-medium">{option.label}</span>
+                    {option.detail && (
+                      <span className="text-xs text-muted-foreground italic"> — {option.detail}</span>
+                    )}
+                  </span>
                   {option.description && (
                     <span className="whitespace-normal break-words text-xs text-muted-foreground">{option.description}</span>
                   )}
