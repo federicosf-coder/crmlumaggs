@@ -301,6 +301,54 @@ export default function WhatsAppInbox() {
 
   const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [activeId, conversations]);
 
+  // Si llega un ?conversation_id=... en la URL (por ejemplo al regresar de un documento),
+  // seleccionar esa conversación una vez que la lista esté cargada y limpiar el query param.
+  useEffect(() => {
+    const wanted = searchParams.get("conversation_id");
+    if (!wanted || conversations.length === 0) return;
+    if (conversations.some((c) => c.id === wanted)) {
+      setActiveId(wanted);
+      const next = new URLSearchParams(searchParams);
+      next.delete("conversation_id");
+      setSearchParams(next, { replace: true });
+    }
+  }, [conversations, searchParams, setSearchParams]);
+
+  // Reenviar una cotización PDF existente por WhatsApp.
+  // Copia el archivo del bucket privado `document-files` a `whatsapp-media` y dispara el envío.
+  const sendDocPdfToActive = async (docId: string, pdfUrl: string, label: string) => {
+    if (!active) { toast.error("Selecciona una conversación"); return; }
+    if (!active.business_phone_number_id) { toast.error("Esta conversación no tiene línea asociada"); return; }
+    try {
+      const srcPath = extractDocFilesPath(pdfUrl);
+      const { data: blob, error: dlErr } = await supabase.storage.from("document-files").download(srcPath);
+      if (dlErr || !blob) throw dlErr || new Error("No se pudo leer el PDF");
+      const filename = `${label.replace(/[^\w.\-]+/g, "_")}.pdf`;
+      const destPath = `${active.id}/out_${Date.now()}_${filename}`;
+      const { error: upErr } = await supabase.storage
+        .from("whatsapp-media")
+        .upload(destPath, blob, { contentType: "application/pdf", upsert: false });
+      if (upErr) throw upErr;
+      const { error: fnErr } = await supabase.functions.invoke("whatsapp-send-message", {
+        body: {
+          to_phone: active.wa_phone,
+          conversation_id: active.id,
+          kind: "media",
+          business_phone_number_id: active.business_phone_number_id,
+          media_storage_path: destPath,
+          media_category: "document",
+          media_mime_type: "application/pdf",
+          media_filename: filename,
+        },
+      });
+      if (fnErr) throw new Error(fnErr.message ?? "No se pudo enviar el PDF");
+      toast.success("Cotización enviada");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "No se pudo enviar la cotización");
+    }
+  };
+
   // Cargar negocios abiertos de la empresa vinculada al contacto activo
   const loadOpenDeals = async (companyId: string | null | undefined) => {
     if (!companyId) { setOpenDeals([]); return; }
