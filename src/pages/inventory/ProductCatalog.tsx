@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { SortMenu } from "@/components/SortMenu";
 import PreciosConfigTab, { MARGIN_LEVELS, computePricesFromCost } from "./PreciosConfigTab";
 import { useStockPorProducto } from "@/hooks/useMapeoProductos";
-import { ALMACEN_LABELS } from "@/hooks/useInventario";
+import { ALMACEN_LABELS, useKardexCargas } from "@/hooks/useInventario";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
