@@ -360,6 +360,8 @@ function ProductosTab() {
     linea: [] as string[],
     activo: ["true"] as string[],
   });
+  const [precioMin, setPrecioMin] = useState<number | "">("");
+  const [precioMax, setPrecioMax] = useState<number | "">("");
   const { data: productos = [], isLoading } = useProductos(search);
   const { data: presentaciones = [] } = usePresentaciones();
   const { data: allOptions = [] } = useOptionValues();
