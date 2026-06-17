@@ -713,16 +713,27 @@ export default function WhatsAppInbox() {
     <div className="flex flex-col md:grid md:grid-cols-12 md:gap-4 h-[calc(100vh-8rem)] overflow-hidden">
       {/* Conversaciones */}
       <Card
-        className={`${mobileView === "list" ? "flex" : "hidden"} md:flex md:col-span-3 flex-col h-full w-full overflow-hidden`}
+        className={`${mobileView === "list" ? "flex" : "hidden"} ${listCollapsed ? "md:hidden" : "md:flex"} md:col-span-3 flex-col h-full w-full overflow-hidden`}
       >
         <div className="p-3 border-b space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 font-medium">
               <MessageCircle className="h-4 w-4 text-primary" /> WhatsApp
             </div>
-            <Button size="sm" variant="outline" onClick={syncTemplates}>
-              Sync templates
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="outline" onClick={syncTemplates}>
+                Sync templates
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="hidden md:inline-flex h-8 w-8"
+                onClick={() => setListCollapsed(true)}
+                title="Ocultar lista"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           {/* Inbox tabs por línea */}
           {accounts.length > 0 && (
