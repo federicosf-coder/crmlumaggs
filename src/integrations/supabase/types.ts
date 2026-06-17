@@ -3667,6 +3667,7 @@ export type Database = {
           empresa_vendedora: string
           estatus: string
           fecha_archivo: string | null
+          fecha_inicio: string | null
           fecha_vencimiento: string | null
           id: string
           nombre_archivo: string
@@ -3684,6 +3685,7 @@ export type Database = {
           empresa_vendedora: string
           estatus?: string
           fecha_archivo?: string | null
+          fecha_inicio?: string | null
           fecha_vencimiento?: string | null
           id?: string
           nombre_archivo: string
@@ -3701,6 +3703,7 @@ export type Database = {
           empresa_vendedora?: string
           estatus?: string
           fecha_archivo?: string | null
+          fecha_inicio?: string | null
           fecha_vencimiento?: string | null
           id?: string
           nombre_archivo?: string
