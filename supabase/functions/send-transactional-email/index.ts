@@ -403,6 +403,7 @@ Deno.serve(async (req) => {
       recipient_email: effectiveRecipient,
       status: 'pending',
       metadata: {
+        idempotency_key: idempotencyKey,
         provider: 'resend',
         cc: cc && cc.length ? cc : undefined,
         bcc: bcc && bcc.length ? bcc : undefined,
@@ -458,6 +459,7 @@ Deno.serve(async (req) => {
         recipient_email: effectiveRecipient,
         status: 'sent',
         metadata: {
+        idempotency_key: idempotencyKey,
           provider: 'resend',
           cc: cc && cc.length ? cc : undefined,
           bcc: bcc && bcc.length ? bcc : undefined,
@@ -506,6 +508,7 @@ Deno.serve(async (req) => {
     recipient_email: effectiveRecipient,
     status: 'pending',
     metadata: {
+      idempotency_key: idempotencyKey,
       reply_to: replyTo || undefined,
     },
   })
