@@ -41,10 +41,8 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId,
   const sb: any = supabase;
 
   const [interestIds, setInterestIds] = useState<string[]>([]);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [nuevaOpen, setNuevaOpen] = useState(false);
   const [listaDialog, setListaDialog] = useState<null | { onContinue: () => void }>(null);
-  const [creatingFor, setCreatingFor] = useState<string | null>(null); // "interest" or solicitud id
+  const [creatingFor, setCreatingFor] = useState<string | null>(null); // "interest"
   const [sendingPdfId, setSendingPdfId] = useState<string | null>(null);
 
   // Company info (lista_precios + brand)
