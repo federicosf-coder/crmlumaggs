@@ -828,7 +828,7 @@ export default function WhatsAppInbox() {
 
       {/* Chat */}
       <Card
-        className={`${mobileView === "chat" ? "flex" : "hidden"} md:flex md:col-span-6 flex-col h-full w-full overflow-hidden`}
+        className={`${mobileView === "chat" ? "flex" : "hidden"} md:flex ${listCollapsed ? "md:col-span-8" : "md:col-span-6"} flex-col h-full w-full overflow-hidden`}
       >
         {!active ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -838,6 +838,15 @@ export default function WhatsAppInbox() {
           <>
             <div className="p-3 border-b shrink-0 bg-card">
               <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`hidden ${listCollapsed ? "md:inline-flex" : "md:hidden"} h-8 w-8 -ml-1 shrink-0`}
+                  onClick={() => setListCollapsed(false)}
+                  title="Mostrar lista"
+                >
+                  <PanelLeftOpen className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
