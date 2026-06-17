@@ -717,21 +717,23 @@ export default function WhatsAppInbox() {
       >
         <div className="p-3 border-b space-y-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 font-medium">
-              <MessageCircle className="h-4 w-4 text-primary" /> WhatsApp
-            </div>
-            <div className="flex items-center gap-1">
-              <Button size="sm" variant="outline" onClick={syncTemplates}>
-                Sync templates
-              </Button>
+            <div className="flex items-center gap-1.5">
               <Button
                 size="icon"
                 variant="ghost"
-                className="hidden md:inline-flex h-8 w-8"
+                className="hidden md:inline-flex h-8 w-8 -ml-1"
                 onClick={() => setListCollapsed(true)}
                 title="Ocultar lista"
               >
                 <PanelLeftClose className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-2 font-medium">
+                <MessageCircle className="h-4 w-4 text-primary" /> WhatsApp
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="outline" onClick={syncTemplates}>
+                Sync templates
               </Button>
             </div>
           </div>
