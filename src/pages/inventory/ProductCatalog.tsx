@@ -839,6 +839,22 @@ function ProductosTab() {
                 );
               })
             )}
+            {precioMin !== "" && (
+              <Badge variant="secondary" className="gap-1">
+                <span className="text-xs">Precio min: ${precioMin}</span>
+                <button type="button" onClick={() => setPrecioMin("")} className="ml-1 hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {precioMax !== "" && (
+              <Badge variant="secondary" className="gap-1">
+                <span className="text-xs">Precio max: ${precioMax}</span>
+                <button type="button" onClick={() => setPrecioMax("")} className="ml-1 hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
             <Button size="sm" variant="ghost" className="h-7" onClick={clearAllFilters}>Limpiar filtros</Button>
           </div>
         )}
