@@ -2473,6 +2473,7 @@ export default function CreditoDetail() {
                               (() => {
                                 const vs = vencStatus(it.fecha_vencimiento);
                                 const requiereVerif = it.metadata?.requiere_verificacion;
+                                const extractKind = kindForDocTypeName(dt.nombre);
                                 return (
                                   <div key={it.id} className="bg-white/70 rounded border border-white px-2 py-1.5 space-y-1">
                                     <div className="flex items-center justify-between gap-2 text-xs">
@@ -2483,6 +2484,12 @@ export default function CreditoDetail() {
                                         it.estado === "vencido" ? "bg-amber-50 text-amber-700 border-amber-200" :
                                         "bg-slate-50 text-slate-700 border-slate-200"
                                       }`}>{it.estado}</span>
+                                      {extractKind && (
+                                        <Button size="sm" variant="outline" disabled={autofilling !== null} className="h-6 px-2 text-[10px] border-violet-300 text-violet-700 hover:bg-violet-50" title="Extraer datos con IA" onClick={() => extractFromDoc(it, extractKind, dt.nombre)}>
+                                          {autofilling === extractKind ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Wand2 className="h-3 w-3 mr-1" />}
+                                          Extraer
+                                        </Button>
+                                      )}
                                       {requiereVerif && (
                                         <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setVerifyDoc(it)}>
                                           <AlertTriangle className="h-3 w-3 mr-1" />Verificar
