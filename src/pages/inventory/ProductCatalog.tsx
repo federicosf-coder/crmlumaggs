@@ -1017,10 +1017,26 @@ function ProductosTab() {
               </div>
             </div>
 
-            <div className="md:col-span-2">
-              <Button onClick={handleSaveClick} disabled={!form.codigo || !form.nombre_producto || save.isPending} className="w-full">
+            <div className="md:col-span-2 flex flex-col sm:flex-row gap-2">
+              <Button
+                onClick={handleSaveClick}
+                disabled={!form.codigo || !form.nombre_producto || save.isPending}
+                className="flex-1"
+              >
                 {save.isPending ? "Guardando..." : editingId ? "Actualizar Producto" : "Guardar Producto"}
               </Button>
+              {editingId && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setRecalcOpen(true)}
+                  disabled={save.isPending || !(Number(form.costo_actual ?? 0) > 0)}
+                  className="flex-1"
+                  title={!(Number(form.costo_actual ?? 0) > 0) ? "Requiere Costo Actual > 0" : ""}
+                >
+                  Actualizar Precios
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
@@ -1038,8 +1054,8 @@ function ProductosTab() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setRecalcOpen(false); save.mutate(undefined); }}>
-              No, guardar sin recalcular
+            <AlertDialogCancel onClick={() => setRecalcOpen(false)}>
+              Cancelar
             </AlertDialogCancel>
             <AlertDialogAction onClick={() => { saveWithRecalc(); }}>
               Sí, actualizar precios
