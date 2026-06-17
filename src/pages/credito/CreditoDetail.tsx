@@ -1801,9 +1801,15 @@ export default function CreditoDetail() {
                             </span>
                           </label>
                           {docsForKind("csf").map((it) => (
-                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-blue-700 hover:underline truncate w-full">
-                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                            </button>
+                            <div key={it.id} className="flex items-center gap-1 w-full">
+                              <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-blue-700 hover:underline truncate flex-1 min-w-0">
+                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                              </button>
+                              <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "csf", "CSF")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-blue-300 text-blue-700 bg-white hover:bg-blue-50 disabled:opacity-50">
+                                {autofilling === "csf" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                Extraer
+                              </button>
+                            </div>
                           ))}
                         </div>
                         {/* INE / Pasaporte */}
@@ -1858,9 +1864,15 @@ export default function CreditoDetail() {
                             </label>
                           </div>
                           {docsForKind("ine_front").map((it) => (
-                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate w-full">
-                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                            </button>
+                            <div key={it.id} className="flex items-center gap-1 w-full">
+                              <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate flex-1 min-w-0">
+                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                              </button>
+                              <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "ine_full", "INE / Pasaporte")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-violet-300 text-violet-700 bg-white hover:bg-violet-50 disabled:opacity-50">
+                                {autofilling === "ine_full" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                Extraer
+                              </button>
+                            </div>
                           ))}
                         </div>
                         {/* Comprobante */}
@@ -1886,9 +1898,15 @@ export default function CreditoDetail() {
                             </span>
                           </label>
                           {docsForKind("comprobante_domicilio").map((it) => (
-                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate w-full">
-                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                            </button>
+                            <div key={it.id} className="flex items-center gap-1 w-full">
+                              <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate flex-1 min-w-0">
+                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                              </button>
+                              <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "comprobante_domicilio", "Comprobante")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-amber-300 text-amber-700 bg-white hover:bg-amber-50 disabled:opacity-50">
+                                {autofilling === "comprobante_domicilio" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                Extraer
+                              </button>
+                            </div>
                           ))}
                         </div>
                         {/* Acta Constitutiva */}
@@ -1915,9 +1933,15 @@ export default function CreditoDetail() {
                               </span>
                             </label>
                             {docsForKind("acta_constitutiva").map((it) => (
-                              <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-indigo-700 hover:underline truncate w-full">
-                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                              </button>
+                              <div key={it.id} className="flex items-center gap-1 w-full">
+                                <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-indigo-700 hover:underline truncate flex-1 min-w-0">
+                                  <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                                </button>
+                                <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "acta_constitutiva", "Acta Constitutiva")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-indigo-300 text-indigo-700 bg-white hover:bg-indigo-50 disabled:opacity-50">
+                                  {autofilling === "acta_constitutiva" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                  Extraer
+                                </button>
+                              </div>
                             ))}
                           </div>
                         )}
@@ -2165,9 +2189,15 @@ export default function CreditoDetail() {
                             </label>
                           </div>
                           {docsForKind("aval_ine_front").map((it) => (
-                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate w-full">
-                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                            </button>
+                            <div key={it.id} className="flex items-center gap-1 w-full">
+                              <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate flex-1 min-w-0">
+                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                              </button>
+                              <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "aval_ine_full", "INE Aval")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-violet-300 text-violet-700 bg-white hover:bg-violet-50 disabled:opacity-50">
+                                {autofilling === "aval_ine_full" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                Extraer
+                              </button>
+                            </div>
                           ))}
                         </div>
                         {/* Comprobante de domicilio del Aval */}
@@ -2193,9 +2223,15 @@ export default function CreditoDetail() {
                             </span>
                           </label>
                           {docsForKind("aval_comprobante_domicilio").map((it) => (
-                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate w-full">
-                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                            </button>
+                            <div key={it.id} className="flex items-center gap-1 w-full">
+                              <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate flex-1 min-w-0">
+                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                              </button>
+                              <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "aval_comprobante_domicilio", "Comprobante Aval")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-amber-300 text-amber-700 bg-white hover:bg-amber-50 disabled:opacity-50">
+                                {autofilling === "aval_comprobante_domicilio" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                Extraer
+                              </button>
+                            </div>
                           ))}
                         </div>
                       </div>
