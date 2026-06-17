@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,7 +69,7 @@ function CrearEnCatalogoDialog({
   });
   const optsFor = (t: ProductOptionType) => opciones.filter((o: any) => o.option_type === t);
 
-  useMemo(() => {
+  useEffect(() => {
     if (huerfano) {
       setNombre(huerfano.nombre_producto || "");
       const prov = detectProveedor(huerfano.empresa_vendedora);
@@ -311,7 +311,7 @@ function EditarMapeoDialog({ mapeo, open, onClose }: { mapeo: any | null; open: 
   const [piezas, setPiezas] = useState<string>("");
   const [notas, setNotas] = useState<string>("");
 
-  useMemo(() => {
+  useEffect(() => {
     if (mapeo) {
       setPiezas(mapeo.piezas_por_tarima ? String(mapeo.piezas_por_tarima) : "");
       setNotas(mapeo.notas || "");
