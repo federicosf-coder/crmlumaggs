@@ -375,6 +375,7 @@ Deno.serve(async (req) => {
   }
 
   const summary: any[] = []
+  const sentEmailKeys = new Set<string>()
 
   for (const auto of filtered) {
     const runRow: any = {
@@ -443,7 +444,7 @@ Deno.serve(async (req) => {
 
             const subject = renderTemplate(tpl.subject || '', vars)
             const html = renderTemplate(tpl.body || '', vars)
-            const ts = Date.now()
+            const idempotencyBucket = Math.floor(Date.now() / (10 * 60 * 1000))
 
             const resolveList = async (list: any[]) => {
               const out: string[] = []
@@ -465,13 +466,28 @@ Deno.serve(async (req) => {
             const bccList = await resolveList((tpl.bcc_emails || []) as any[])
 
             for (const to of recipients) {
+              const emailKey = [
+                trigger_type,
+                entity_type,
+                entity_id || 'na',
+                trigger_key || 'na',
+                tplId,
+                to.trim().toLowerCase(),
+              ].join('|')
+              if (sentEmailKeys.has(emailKey)) {
+                runRow.error_message = [runRow.error_message, 'Correo duplicado omitido en esta ejecución']
+                  .filter(Boolean)
+                  .join('; ')
+                continue
+              }
+              sentEmailKeys.add(emailKey)
               const { error: invErr } = await supabase.functions.invoke(
                 'send-transactional-email',
                 {
                   body: {
                     templateName: 'raw-html',
                     recipientEmail: to,
-                    idempotencyKey: `auto-${auto.id}-${entity_id || 'na'}-${to}-${ts}`,
+                    idempotencyKey: `auto-${trigger_type}-${entity_type}-${entity_id || 'na'}-${trigger_key || 'na'}-${tplId}-${to.trim().toLowerCase()}-${idempotencyBucket}`,
                     subjectOverride: subject,
                     htmlOverride: html,
                     cc: ccList.length ? ccList : undefined,

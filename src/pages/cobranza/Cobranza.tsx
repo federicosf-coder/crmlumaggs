@@ -339,6 +339,7 @@ export default function Cobranza() {
   }, [searchParams, setSearchParams]);
 
   const [searchPagos, setSearchPagos] = useState("");
+  const [estatusPagoFilter, setEstatusPagoFilter] = useState<string>("all");
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
   const [facturasPrefilter, setFacturasPrefilter] = useState<"none" | "vencimiento" | "credito_directo" | "credito_cescemex">("none");
@@ -545,6 +546,15 @@ export default function Cobranza() {
     [pagos, breakdowns]
   );
 
+  const estatusPagoCounts = useMemo(() => {
+    const counts = { all: pagos.length } as Record<string, number>;
+    ESTATUS_PAGO_OPTIONS.forEach((o) => { counts[o.value] = 0; });
+    pagos.forEach((p) => {
+      counts[p.estatus_pago] = (counts[p.estatus_pago] || 0) + 1;
+    });
+    return counts;
+  }, [pagos]);
+
   const carteraPorPlaza = useMemo(() => {
     const map = new Map<string, number>();
     facturas.forEach((f) => {
@@ -558,7 +568,8 @@ export default function Cobranza() {
   const pagosFiltrados = useMemo(() => {
     const q = searchPagos.toLowerCase();
     const base = pagos.filter((p) =>
-      !q || p.empresa?.name?.toLowerCase().includes(q) || p.referencia_pago?.toLowerCase().includes(q)
+      (estatusPagoFilter === "all" || p.estatus_pago === estatusPagoFilter) &&
+      (!q || p.empresa?.name?.toLowerCase().includes(q) || p.referencia_pago?.toLowerCase().includes(q))
     );
     return evaluateConditions(base, pagosConditions, pagosCombinator, (p, key) => {
       const b = breakdowns[p.id];
@@ -578,7 +589,7 @@ export default function Cobranza() {
         default: return "";
       }
     });
-  }, [pagos, searchPagos, pagosConditions, pagosCombinator, breakdowns]);
+  }, [pagos, searchPagos, estatusPagoFilter, pagosConditions, pagosCombinator, breakdowns]);
 
   const facturasFiltradas = useMemo(() => {
     const q = searchFacturas.toLowerCase();
@@ -1048,6 +1059,27 @@ export default function Cobranza() {
 
         {/* PAGOS */}
         <TabsContent value="pagos" className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={estatusPagoFilter === "all" ? "default" : "outline"}
+              onClick={() => setEstatusPagoFilter("all")}
+            >
+              Todos <Badge variant="secondary" className="ml-2">{estatusPagoCounts.all || 0}</Badge>
+            </Button>
+            {ESTATUS_PAGO_OPTIONS.map((o) => (
+              <Button
+                key={o.value}
+                type="button"
+                size="sm"
+                variant={estatusPagoFilter === o.value ? "default" : "outline"}
+                onClick={() => setEstatusPagoFilter(o.value)}
+              >
+                {o.label} <Badge variant="secondary" className="ml-2">{estatusPagoCounts[o.value] || 0}</Badge>
+              </Button>
+            ))}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Input placeholder="Buscar por empresa o referencia..." value={searchPagos} onChange={(e) => setSearchPagos(e.target.value)} className="max-w-md" />
             <ColumnFilterBuilder
