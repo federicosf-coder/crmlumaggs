@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { SortMenu } from "@/components/SortMenu";
 import PreciosConfigTab, { MARGIN_LEVELS, computePricesFromCost } from "./PreciosConfigTab";
 import { useStockPorProducto } from "@/hooks/useMapeoProductos";
-import { ALMACEN_LABELS } from "@/hooks/useInventario";
+import { ALMACEN_LABELS, useKardexCargas } from "@/hooks/useInventario";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -343,6 +343,11 @@ function ProductosTab() {
   const canImportExport = isAdmin || hasRole("manager");
   const [search, setSearch] = useState("");
   const { data: stockMap = new Map<string, any>() } = useStockPorProducto();
+  const { data: kardexCargas = [] } = useKardexCargas();
+  const ultimaCargaUnidades = kardexCargas.find((c: any) => c.tipo === "unidades" && c.estatus === "completado");
+  const ultimaFechaInventario = ultimaCargaUnidades?.fecha_archivo
+    ? new Date(ultimaCargaUnidades.fecha_archivo).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })
+    : null;
   const [productSort, setProductSort] = useState("code_asc");
   const [selectedFilters, setSelectedFilters] = useState({
     marca: [] as string[],
@@ -816,7 +821,12 @@ function ProductosTab() {
                    <TableHead className="w-10"></TableHead>
                    <TableHead>Descripción</TableHead>
                    <TableHead>Marca</TableHead>
-                   <TableHead>Stock</TableHead>
+                   <TableHead>
+                     <div>Inventario</div>
+                     {ultimaFechaInventario && (
+                       <div className="text-[10px] font-normal text-muted-foreground leading-tight">{ultimaFechaInventario}</div>
+                     )}
+                   </TableHead>
                    <TableHead className="text-xs">Precios UF</TableHead>
                    <TableHead className="text-xs">Precios R</TableHead>
                    <TableHead>Activo</TableHead>
