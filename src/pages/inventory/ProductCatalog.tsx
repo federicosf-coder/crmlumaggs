@@ -555,7 +555,9 @@ function ProductosTab() {
       matchesMultiFilter(p.viscosidad_id, selectedFilters.viscosidad) &&
       matchesMultiFilter(p.categoria_id, selectedFilters.categoria) &&
       matchesMultiFilter(p.linea_id, selectedFilters.linea) &&
-      matchesMultiFilter(String(!!p.is_active), selectedFilters.activo)
+      matchesMultiFilter(String(!!p.is_active), selectedFilters.activo) &&
+      (precioMin === "" || Number(p.precio_base_uf1 ?? 0) >= precioMin) &&
+      (precioMax === "" || Number(p.precio_base_uf1 ?? 0) <= precioMax)
     )
     .sort((a: any, b: any) => {
       switch (productSort) {
