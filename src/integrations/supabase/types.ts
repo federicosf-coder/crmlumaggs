@@ -4630,6 +4630,8 @@ export type Database = {
           id: string
           is_active: boolean
           nombre: string
+          pallet_chevron: number | null
+          pallet_phillips: number | null
           unidades_equivalentes: number
           updated_at: string
         }
@@ -4638,6 +4640,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           nombre: string
+          pallet_chevron?: number | null
+          pallet_phillips?: number | null
           unidades_equivalentes?: number
           updated_at?: string
         }
@@ -4646,6 +4650,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           nombre?: string
+          pallet_chevron?: number | null
+          pallet_phillips?: number | null
           unidades_equivalentes?: number
           updated_at?: string
         }
