@@ -31,6 +31,7 @@ import {
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
+import { ClienteSolicitudesPanel } from "@/components/whatsapp/ClienteSolicitudesPanel";
 import { useNavigate } from "react-router-dom";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { Lock as LockIcon } from "lucide-react";
@@ -1177,43 +1178,15 @@ export default function WhatsAppInbox() {
                 <div className="text-sm text-muted-foreground">—</div>
               )}
             </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Negocios abiertos</div>
-              {companyData ? (
-                <div className="space-y-1 mt-1">
-                  {openDeals.length > 0 ? (
-                    openDeals.map((d) => (
-                      <div key={d.id} className="flex items-center gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{d.title}</div>
-                          <div className="text-[11px] text-muted-foreground truncate">
-                            {(d.pipeline_marca === "phillips66" ? "Phillips 66" : "Chevron")}
-                            {d.pipeline_type === "recompra" ? " · Recompra" : " · Primera Compra"}
-                            {d.pipeline_nombre ? ` · ${d.pipeline_nombre}` : ""}
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open(`/crm/${d.brand}/pipeline?deal=${d.id}`, "_blank")}
-                        >
-                          <Eye className="h-3 w-3 mr-1" /> Ver
-                        </Button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-sm text-muted-foreground">Sin negocios abiertos</div>
-                  )}
-                  {defaultPipelineId && (
-                    <Button size="sm" variant="outline" onClick={() => setCreateDealOpen(true)} className="mt-1">
-                      <Plus className="h-3 w-3 mr-1" /> Agregar negocio
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">—</div>
-              )}
-            </div>
+            {companyData ? (
+              <div className="pt-2 border-t">
+                <ClienteSolicitudesPanel
+                  companyId={companyData.id}
+                  contactoId={contactData?.id ?? null}
+                  conversationId={active?.id ?? null}
+                />
+              </div>
+            ) : null}
           </div>
         );
         return (
