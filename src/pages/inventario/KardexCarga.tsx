@@ -247,7 +247,7 @@ export default function KardexCarga() {
       }
 
       await (supabase as any).from("inv_kardex_cargas").update({
-        estatus: errors > 0 ? "con_errores" : "completado",
+        estatus: errors > 0 ? "error" : "completado",
         total_skus_actualizados: updated + created,
         total_skus_error: errors,
       }).eq("id", carga.id);
