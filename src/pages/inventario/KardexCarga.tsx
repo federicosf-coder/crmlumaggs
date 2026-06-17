@@ -207,10 +207,10 @@ export default function KardexCarga() {
           fecha_ultimo_kardex: parsed.fechaMax,
         };
         if (parsed.tipo === "unidades") {
-          row.stock_almacen_1001 = e.stocks["1001"] ?? ex?.stock_almacen_1001 ?? 0;
-          row.stock_almacen_1002 = e.stocks["1002"] ?? ex?.stock_almacen_1002 ?? 0;
-          row.stock_almacen_1003 = e.stocks["1003"] ?? ex?.stock_almacen_1003 ?? 0;
-          row.stock_almacen_1004 = e.stocks["1004"] ?? ex?.stock_almacen_1004 ?? 0;
+          row.stock_almacen_1001 = e.stocks["1001"] ?? 0;
+          row.stock_almacen_1002 = e.stocks["1002"] ?? 0;
+          row.stock_almacen_1003 = e.stocks["1003"] ?? 0;
+          row.stock_almacen_1004 = e.stocks["1004"] ?? 0;
           row.stock_total = row.stock_almacen_1001 + row.stock_almacen_1002 + row.stock_almacen_1003 + row.stock_almacen_1004;
         } else {
           const valor = Object.values(e.valores).reduce((a, b) => a + b, 0);
@@ -222,7 +222,7 @@ export default function KardexCarga() {
         upserts.push(row);
       }
 
-      console.log('Upserts sample:', JSON.stringify(upserts.slice(0, 2), null, 2));
+      
 
       // Upsert por lotes
       const batchSize = 200;
