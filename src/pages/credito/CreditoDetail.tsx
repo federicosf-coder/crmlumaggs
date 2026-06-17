@@ -1019,6 +1019,48 @@ export default function CreditoDetail() {
     }
   };
 
+  // Re-ejecutar extracción IA sobre un documento ya subido
+  const extractFromDoc = async (doc: any, kind: string, label: string) => {
+    if (!doc?.url_archivo) return;
+    setAutofilling(kind);
+    toast.loading(`Leyendo ${label}...`, { id: "af-re" });
+    try {
+      const { data: blob, error: dlErr } = await supabase.storage.from("credit-docs").download(doc.url_archivo);
+      if (dlErr || !blob) throw new Error(dlErr?.message || "No se pudo descargar el archivo");
+      const buf = new Uint8Array(await blob.arrayBuffer());
+      let bin = ""; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+      const b64 = btoa(bin);
+      const mime = doc.tipo_archivo || blob.type || "application/pdf";
+      const { data, error } = await supabase.functions.invoke("credito-autofill", {
+        body: { request_id: id, kind, file_b64: b64, mime },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const filled = Object.keys((data as any)?.updated || {}).length;
+      toast.success(filled > 0 ? `${label}: ${filled} campos autocompletados` : `${label}: sin campos nuevos`, { id: "af-re" });
+      qc.invalidateQueries({ queryKey: ["credit_request", id] });
+    } catch (e: any) {
+      toast.error(e?.message || `No se pudo leer ${label}`, { id: "af-re" });
+    } finally {
+      setAutofilling(null);
+    }
+  };
+
+  // Inferir el "kind" de autofill a partir del nombre del tipo de documento
+  const kindForDocTypeName = (dtNombre: string): string | null => {
+    const n = (dtNombre || "").toLowerCase();
+    const isAval = n.includes("aval");
+    if (n.includes("csf") || n.includes("situación fiscal") || n.includes("situacion fiscal")) return "csf";
+    if (n.includes("comprobante de domicilio")) return isAval ? "aval_comprobante_domicilio" : "comprobante_domicilio";
+    if (n.includes("identificación") || n.includes("identificacion") || n.includes("ine") || n.includes("pasaporte")) {
+      return isAval ? "aval_ine_full" : "ine_full";
+    }
+    if (n.includes("acta constitutiva")) return "acta_constitutiva";
+    if (n.includes("curp")) return "curp";
+    if (n.includes("poderes")) return "poderes";
+    return null;
+  };
+
   const openDoc = async (path: string) => {
     const { data } = await supabase.storage.from("credit-docs").createSignedUrl(path, 600);
     if (data?.signedUrl) window.open(data.signedUrl, "_blank");
@@ -1759,9 +1801,15 @@ export default function CreditoDetail() {
                             </span>
                           </label>
                           {docsForKind("csf").map((it) => (
-                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-blue-700 hover:underline truncate w-full">
-                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                            </button>
+                            <div key={it.id} className="flex items-center gap-1 w-full">
+                              <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-blue-700 hover:underline truncate flex-1 min-w-0">
+                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                              </button>
+                              <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "csf", "CSF")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-blue-300 text-blue-700 bg-white hover:bg-blue-50 disabled:opacity-50">
+                                {autofilling === "csf" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                Extraer
+                              </button>
+                            </div>
                           ))}
                         </div>
                         {/* INE / Pasaporte */}
@@ -1816,9 +1864,15 @@ export default function CreditoDetail() {
                             </label>
                           </div>
                           {docsForKind("ine_front").map((it) => (
-                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate w-full">
-                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                            </button>
+                            <div key={it.id} className="flex items-center gap-1 w-full">
+                              <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate flex-1 min-w-0">
+                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                              </button>
+                              <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "ine_full", "INE / Pasaporte")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-violet-300 text-violet-700 bg-white hover:bg-violet-50 disabled:opacity-50">
+                                {autofilling === "ine_full" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                Extraer
+                              </button>
+                            </div>
                           ))}
                         </div>
                         {/* Comprobante */}
@@ -1844,9 +1898,15 @@ export default function CreditoDetail() {
                             </span>
                           </label>
                           {docsForKind("comprobante_domicilio").map((it) => (
-                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate w-full">
-                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                            </button>
+                            <div key={it.id} className="flex items-center gap-1 w-full">
+                              <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate flex-1 min-w-0">
+                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                              </button>
+                              <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "comprobante_domicilio", "Comprobante")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-amber-300 text-amber-700 bg-white hover:bg-amber-50 disabled:opacity-50">
+                                {autofilling === "comprobante_domicilio" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                Extraer
+                              </button>
+                            </div>
                           ))}
                         </div>
                         {/* Acta Constitutiva */}
@@ -1873,9 +1933,15 @@ export default function CreditoDetail() {
                               </span>
                             </label>
                             {docsForKind("acta_constitutiva").map((it) => (
-                              <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-indigo-700 hover:underline truncate w-full">
-                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                              </button>
+                              <div key={it.id} className="flex items-center gap-1 w-full">
+                                <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-indigo-700 hover:underline truncate flex-1 min-w-0">
+                                  <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                                </button>
+                                <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "acta_constitutiva", "Acta Constitutiva")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-indigo-300 text-indigo-700 bg-white hover:bg-indigo-50 disabled:opacity-50">
+                                  {autofilling === "acta_constitutiva" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                  Extraer
+                                </button>
+                              </div>
                             ))}
                           </div>
                         )}
@@ -2123,9 +2189,15 @@ export default function CreditoDetail() {
                             </label>
                           </div>
                           {docsForKind("aval_ine_front").map((it) => (
-                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate w-full">
-                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                            </button>
+                            <div key={it.id} className="flex items-center gap-1 w-full">
+                              <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-violet-700 hover:underline truncate flex-1 min-w-0">
+                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                              </button>
+                              <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "aval_ine_full", "INE Aval")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-violet-300 text-violet-700 bg-white hover:bg-violet-50 disabled:opacity-50">
+                                {autofilling === "aval_ine_full" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                Extraer
+                              </button>
+                            </div>
                           ))}
                         </div>
                         {/* Comprobante de domicilio del Aval */}
@@ -2151,9 +2223,15 @@ export default function CreditoDetail() {
                             </span>
                           </label>
                           {docsForKind("aval_comprobante_domicilio").map((it) => (
-                            <button key={it.id} onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate w-full">
-                              <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
-                            </button>
+                            <div key={it.id} className="flex items-center gap-1 w-full">
+                              <button onClick={() => openDoc(it.url_archivo)} className="flex items-center gap-1 text-[10px] text-amber-700 hover:underline truncate flex-1 min-w-0">
+                                <Paperclip className="h-2.5 w-2.5 shrink-0" /><span className="truncate">{it.nombre_archivo}</span>
+                              </button>
+                              <button type="button" disabled={autofilling !== null} onClick={() => extractFromDoc(it, "aval_comprobante_domicilio", "Comprobante Aval")} title="Extraer datos" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-amber-300 text-amber-700 bg-white hover:bg-amber-50 disabled:opacity-50">
+                                {autofilling === "aval_comprobante_domicilio" ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Wand2 className="h-2.5 w-2.5" />}
+                                Extraer
+                              </button>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -2395,6 +2473,7 @@ export default function CreditoDetail() {
                               (() => {
                                 const vs = vencStatus(it.fecha_vencimiento);
                                 const requiereVerif = it.metadata?.requiere_verificacion;
+                                const extractKind = kindForDocTypeName(dt.nombre);
                                 return (
                                   <div key={it.id} className="bg-white/70 rounded border border-white px-2 py-1.5 space-y-1">
                                     <div className="flex items-center justify-between gap-2 text-xs">
@@ -2405,6 +2484,12 @@ export default function CreditoDetail() {
                                         it.estado === "vencido" ? "bg-amber-50 text-amber-700 border-amber-200" :
                                         "bg-slate-50 text-slate-700 border-slate-200"
                                       }`}>{it.estado}</span>
+                                      {extractKind && (
+                                        <Button size="sm" variant="outline" disabled={autofilling !== null} className="h-6 px-2 text-[10px] border-violet-300 text-violet-700 hover:bg-violet-50" title="Extraer datos con IA" onClick={() => extractFromDoc(it, extractKind, dt.nombre)}>
+                                          {autofilling === extractKind ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Wand2 className="h-3 w-3 mr-1" />}
+                                          Extraer
+                                        </Button>
+                                      )}
                                       {requiereVerif && (
                                         <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setVerifyDoc(it)}>
                                           <AlertTriangle className="h-3 w-3 mr-1" />Verificar
