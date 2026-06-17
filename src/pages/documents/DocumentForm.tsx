@@ -1232,9 +1232,9 @@ export default function DocumentForm() {
                         placeholder="Seleccionar producto"
                         options={filteredProductos.map((p: any) => {
                           const pres = (p.presentaciones as any)?.nombre || '';
-                          const label = `${p.codigo} - ${p.nombre_producto}${pres ? ` [${pres}]` : ''}`;
+                          const label = `${p.codigo} - ${p.nombre_producto}`;
                           const searchStr = `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''} ${pres}`;
-                          return { value: p.id, label, searchText: searchStr };
+                          return { value: p.id, label, detail: pres || undefined, searchText: searchStr };
                         })}
                         popoverClassName="min-w-[420px] sm:min-w-[520px]"
                         className="flex-1"
