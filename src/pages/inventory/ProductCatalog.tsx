@@ -821,7 +821,12 @@ function ProductosTab() {
                    <TableHead className="w-10"></TableHead>
                    <TableHead>Descripción</TableHead>
                    <TableHead>Marca</TableHead>
-                   <TableHead>Stock</TableHead>
+                   <TableHead>
+                     <div>Inventario</div>
+                     {ultimaFechaInventario && (
+                       <div className="text-[10px] font-normal text-muted-foreground leading-tight">{ultimaFechaInventario}</div>
+                     )}
+                   </TableHead>
                    <TableHead className="text-xs">Precios UF</TableHead>
                    <TableHead className="text-xs">Precios R</TableHead>
                    <TableHead>Activo</TableHead>
