@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,7 +15,7 @@ import { CompanyUnitsHeader } from "@/components/crm/CompanyUnitsHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, ExternalLink } from "lucide-react";
+import { X, Plus, ExternalLink, FileText } from "lucide-react";
 import { MapPin } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { AddressDisplay } from "@/components/AddressDisplay";
@@ -197,6 +198,7 @@ const emptyForm = {
 
 export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const { data: industriasCatalog = [] } = useIndustriasCatalog();
   const [form, setForm] = useState({ ...emptyForm });
@@ -688,7 +690,24 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
             <DialogTitle className="text-lg font-semibold tracking-tight">
               {isEdit ? "Editar Empresa" : "Nueva Empresa"}
             </DialogTitle>
-            {isEdit && <AutosaveIndicator status={autosave.status} />}
+            <div className="flex items-center gap-2">
+              {isEdit && editData?.id && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1.5"
+                  onClick={() => {
+                    navigate(`/documents/new?empresa_id=${editData.id}`);
+                    onOpenChange(false);
+                  }}
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  Agregar documento
+                </Button>
+              )}
+              {isEdit && <AutosaveIndicator status={autosave.status} />}
+            </div>
           </div>
           <p className="text-xs text-muted-foreground font-light mt-0.5">
             {isEdit ? "Actualiza los datos comerciales y fiscales." : "Captura los datos para registrar una nueva empresa."}
