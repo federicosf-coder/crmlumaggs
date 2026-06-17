@@ -90,7 +90,7 @@ export function useStockPorProducto() {
       for (const m of (mapeos || [])) {
         if (m.producto_id) {
           result.set(m.producto_id, {
-            ...nivelMap.get(m.codigo_contpaqi),
+            ...(nivelMap.get(m.codigo_contpaqi) || {}),
             piezas_por_tarima: m.piezas_por_tarima,
           });
         }
