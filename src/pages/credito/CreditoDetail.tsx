@@ -1445,7 +1445,7 @@ export default function CreditoDetail() {
             })()
           )}
 
-          <CreditoResponsablesPanel creditId={creditId} />
+          {id && <CreditoResponsablesPanel creditId={id} />}
         </CardHeader>
       </Card>
 
