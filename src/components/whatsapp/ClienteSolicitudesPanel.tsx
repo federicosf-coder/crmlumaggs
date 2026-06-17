@@ -106,21 +106,6 @@ export function ClienteSolicitudesPanel({ companyId, contactoId, conversationId,
     staleTime: 5 * 60 * 1000,
   });
 
-  // Solicitudes existentes
-  const { data: solicitudes = [], refetch: refetchSolicitudes } = useQuery<SolicitudRow[]>({
-    queryKey: ["cliente-solicitudes", companyId],
-    enabled: !!companyId,
-    queryFn: async () => {
-      const { data } = await sb
-        .from("cliente_solicitudes")
-        .select("id, titulo, estatus, documento_id, created_at, empresa_vendedora, lineas:cliente_solicitud_lineas(id, producto_id, cantidad, productos(id, codigo, nombre_producto))")
-        .eq("empresa_id", companyId)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      return (data || []) as SolicitudRow[];
-    },
-  });
-
   const defaultBrand = useMemo<"lumaggs_chevron" | "galsa_phillips66">(() => {
     const m = company?.empresa_marcas?.[0]?.empresa_vendedora;
     return (m === "galsa_phillips66" ? "galsa_phillips66" : "lumaggs_chevron");
