@@ -1444,6 +1444,8 @@ export default function CreditoDetail() {
               );
             })()
           )}
+
+          <CreditoResponsablesPanel creditId={creditId} />
         </CardHeader>
       </Card>
 
