@@ -773,6 +773,28 @@ function ProductosTab() {
                     </Select>
                   </div>
                 ))}
+                <div className="col-span-2 flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Rango de precio (UF1)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Desde"
+                      value={precioMin}
+                      onChange={e => setPrecioMin(e.target.value === "" ? "" : Number(e.target.value))}
+                      className="h-8 text-xs"
+                    />
+                    <span className="text-xs text-muted-foreground">—</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Hasta"
+                      value={precioMax}
+                      onChange={e => setPrecioMax(e.target.value === "" ? "" : Number(e.target.value))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
