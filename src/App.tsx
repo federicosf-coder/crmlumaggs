@@ -21,6 +21,7 @@ import ProductCatalog from "@/pages/inventory/ProductCatalog";
 import NivelesInventario from "@/pages/inventario/NivelesInventario";
 import KardexCarga from "@/pages/inventario/KardexCarga";
 import Pedidos from "@/pages/inventario/Pedidos";
+import MapeoProductos from "@/pages/inventario/MapeoProductos";
 import PedidosSugeridos from "@/pages/inventario/pedidos/PedidosSugeridos";
 import PedidosElaborados from "@/pages/inventario/pedidos/PedidosElaborados";
 import PedidosRecibidos from "@/pages/inventario/pedidos/PedidosRecibidos";
@@ -114,6 +115,7 @@ const App = () => (
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/inventario/niveles" element={<ProtectedRoute><NivelesInventario /></ProtectedRoute>} />
             <Route path="/inventario/kardex" element={<ProtectedRoute><KardexCarga /></ProtectedRoute>} />
+            <Route path="/inventario/mapeo" element={<ProtectedRoute><MapeoProductos /></ProtectedRoute>} />
             <Route path="/inventario/pedidos" element={<ProtectedRoute><Pedidos /></ProtectedRoute>}>
               <Route index element={<PedidosSugeridos />} />
               <Route path="sugeridos" element={<PedidosSugeridos />} />
