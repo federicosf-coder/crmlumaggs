@@ -14,6 +14,7 @@ export interface CreateCotizacionDraftParams {
   ejecutivoId?: string | null;
   userId?: string | null;
   ivaPorcentaje?: number;
+  plazaId?: string | null;
 }
 
 const PRICE_FIELD: Record<string, string> = {
@@ -22,7 +23,7 @@ const PRICE_FIELD: Record<string, string> = {
 };
 
 export async function createCotizacionDraft(params: CreateCotizacionDraftParams): Promise<string> {
-  const { empresaId, contactoId, productoIds, empresaVendedora, ejecutivoId, userId } = params;
+  const { empresaId, contactoId, productoIds, empresaVendedora, ejecutivoId, userId, plazaId } = params;
   const ivaPct = params.ivaPorcentaje ?? 8;
 
   if (!empresaId) throw new Error("Falta empresa");
@@ -55,6 +56,7 @@ export async function createCotizacionDraft(params: CreateCotizacionDraftParams)
       empresa_id: empresaId,
       contacto_id: contactoId || null,
       ejecutivo_venta_id: ejecutivoId || null,
+      plaza_id: plazaId || null,
       created_by: userId || null,
       estatus_cotizacion: "borrador",
       iva_porcentaje: ivaPct,
