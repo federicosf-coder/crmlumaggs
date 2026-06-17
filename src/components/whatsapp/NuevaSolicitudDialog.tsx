@@ -14,7 +14,7 @@ interface Props {
   empresaId: string;
   contactoId?: string | null;
   conversationId?: string | null;
-  empresaVendedora?: "lumaggs" | "galsa";
+  empresaVendedora?: "lumaggs_chevron" | "galsa_phillips66";
   productos: ProductOption[];
   userId?: string | null;
   onCreated: () => void;
