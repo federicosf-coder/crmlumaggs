@@ -47,20 +47,36 @@ function detectTipo(rows: any[][]): KardexTipo {
   return "unidades";
 }
 
+const MESES_ES: Record<string, string> = {
+  ENE: "01", FEB: "02", MAR: "03", ABR: "04", MAY: "05", JUN: "06",
+  JUL: "07", AGO: "08", SEP: "09", OCT: "10", NOV: "11", DIC: "12",
+};
+
 function normFecha(v: any): string {
   if (!v) return "";
+  // Fecha nativa JS (cuando xlsx parsea con cellDates:true)
   if (v instanceof Date) return v.toISOString().slice(0, 10);
+  // Número serial de Excel
   if (typeof v === "number") {
     const d = XLSX.SSF.parse_date_code(v);
     if (d) return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
   }
-  const s = String(v).trim();
-  const m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-  if (m) {
-    const yy = m[3].length === 2 ? `20${m[3]}` : m[3];
-    return `${yy}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  const s = String(v).trim().toUpperCase();
+  // Formato CONTPAQi: "01/JUN/2026" o "1/JUN/2026"
+  const mContpaqi = s.match(/^(\d{1,2})\/([A-Z]{3})\/(\d{4})$/);
+  if (mContpaqi) {
+    const mes = MESES_ES[mContpaqi[2]];
+    if (mes) return `${mContpaqi[3]}-${mes}-${mContpaqi[1].padStart(2, "0")}`;
   }
-  return s;
+  // Formato numérico DD/MM/YYYY o DD-MM-YYYY
+  const mNum = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (mNum) {
+    const yy = mNum[3].length === 2 ? `20${mNum[3]}` : mNum[3];
+    return `${yy}-${mNum[2].padStart(2, "0")}-${mNum[1].padStart(2, "0")}`;
+  }
+  // Ya viene en formato ISO
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  return "";
 }
 
 function parseFile(rows: any[][]): ParsedFile {
