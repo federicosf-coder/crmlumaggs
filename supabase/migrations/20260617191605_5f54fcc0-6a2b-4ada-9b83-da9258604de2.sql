@@ -1,0 +1,1 @@
+ALTER TABLE public.inv_kardex_cargas ADD COLUMN IF NOT EXISTS fecha_inicio date;
