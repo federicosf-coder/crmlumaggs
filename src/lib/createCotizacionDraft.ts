@@ -10,7 +10,7 @@ export interface CreateCotizacionDraftParams {
   empresaId: string;
   contactoId?: string | null;
   productoIds: string[];
-  empresaVendedora: "lumaggs" | "galsa";
+  empresaVendedora: "lumaggs_chevron" | "galsa_phillips66";
   ejecutivoId?: string | null;
   userId?: string | null;
   ivaPorcentaje?: number;
