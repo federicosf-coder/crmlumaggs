@@ -19,6 +19,8 @@ import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
 import PreciosConfigTab, { MARGIN_LEVELS, computePricesFromCost } from "./PreciosConfigTab";
+import { useStockPorProducto } from "@/hooks/useMapeoProductos";
+import { ALMACEN_LABELS } from "@/hooks/useInventario";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -340,6 +342,7 @@ function ProductosTab() {
   const isAdmin = hasRole("admin");
   const canImportExport = isAdmin || hasRole("manager");
   const [search, setSearch] = useState("");
+  const { data: stockMap = new Map<string, any>() } = useStockPorProducto();
   const [productSort, setProductSort] = useState("code_asc");
   const [selectedFilters, setSelectedFilters] = useState({
     marca: [] as string[],
@@ -813,6 +816,7 @@ function ProductosTab() {
                    <TableHead className="w-10"></TableHead>
                    <TableHead>Descripción</TableHead>
                    <TableHead>Marca</TableHead>
+                   <TableHead>Stock</TableHead>
                    <TableHead className="text-xs">Precios UF</TableHead>
                    <TableHead className="text-xs">Precios R</TableHead>
                    <TableHead>Activo</TableHead>
@@ -821,6 +825,7 @@ function ProductosTab() {
               <TableBody>
                 {filteredProductos.map((p: any) => {
                   const descripcionConcat = [p.codigo, p.nombre_producto, p.presentaciones?.nombre].filter(Boolean).join(" ");
+                  const stock = stockMap.get(p.id);
                   return (
                   <TableRow key={p.id}>
                     <TableCell>
@@ -835,6 +840,28 @@ function ProductosTab() {
                     </TableCell>
                     <TableCell className="font-medium">{descripcionConcat}</TableCell>
                     <TableCell>{p.marca?.value ?? "—"}</TableCell>
+                    <TableCell className="text-xs tabular-nums whitespace-nowrap">
+                      {stock ? (
+                        <div className="space-y-0.5">
+                          <div className="flex gap-1.5">
+                            <span className="text-muted-foreground">TJ:</span><span className="font-medium">{stock.stock_almacen_1002 ?? 0}</span>
+                            <span className="text-muted-foreground ml-1">MXL:</span><span className="font-medium">{stock.stock_almacen_1001 ?? 0}</span>
+                          </div>
+                          <div className="flex gap-1.5">
+                            <span className="text-muted-foreground">MOR:</span><span className="font-medium">{stock.stock_almacen_1003 ?? 0}</span>
+                            <span className="text-muted-foreground ml-1">ENS:</span><span className="font-medium">{stock.stock_almacen_1004 ?? 0}</span>
+                          </div>
+                          <Badge variant="outline" className={
+                            stock.estatus_inventario === 'pedir' ? 'bg-red-50 text-red-700 text-[10px]' :
+                            stock.estatus_inventario === 'sobrestock' ? 'bg-orange-50 text-orange-700 text-[10px]' :
+                            stock.estatus_inventario === 'ok' ? 'bg-green-50 text-green-700 text-[10px]' :
+                            'bg-gray-50 text-gray-600 text-[10px]'
+                          }>{stock.stock_total ?? 0} uds</Badge>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">Sin datos</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       <div><span className="text-muted-foreground">UF1:</span> ${Number(p.precio_base_uf1 ?? 0).toFixed(2)}</div>
                       <div><span className="text-muted-foreground">UF2:</span> ${Number(p.precio_uf2 ?? 0).toFixed(2)}</div>
@@ -851,7 +878,7 @@ function ProductosTab() {
                   </TableRow>
                   );
                 })}
-                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
+                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
@@ -1002,6 +1029,44 @@ function ProductosTab() {
                     <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="text-sm">{val ?? "—"}</p></div>
                   ))}
                 </div>
+              </div>
+
+              <div className="border-t pt-3">
+                <h4 className="font-semibold text-sm mb-2">Inventario</h4>
+                {(() => {
+                  const stock = stockMap.get(viewProduct.id);
+                  if (!stock) return <p className="text-sm text-muted-foreground italic">Sin datos de inventario — sube el kardex para ver existencias</p>;
+                  const rows: Array<[string, number, string]> = [
+                    [`${ALMACEN_LABELS["1002"]} (hub)`, stock.stock_almacen_1002 ?? 0, stock.estatus_inventario || ""],
+                    [`${ALMACEN_LABELS["1001"]} (hub)`, stock.stock_almacen_1001 ?? 0, stock.estatus_inventario || ""],
+                    [ALMACEN_LABELS["1003"], stock.stock_almacen_1003 ?? 0, ""],
+                    [ALMACEN_LABELS["1004"], stock.stock_almacen_1004 ?? 0, ""],
+                  ];
+                  return (
+                    <div className="space-y-1 text-sm">
+                      {rows.map(([label, val, st]) => (
+                        <div key={label} className="flex items-center justify-between border-b last:border-0 py-1">
+                          <span className="text-muted-foreground">{label}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono">{val} uds</span>
+                            {st && (
+                              <Badge variant="outline" className={
+                                st === 'pedir' ? 'bg-red-50 text-red-700 text-[10px]' :
+                                st === 'sobrestock' ? 'bg-orange-50 text-orange-700 text-[10px]' :
+                                st === 'ok' ? 'bg-green-50 text-green-700 text-[10px]' :
+                                'bg-gray-50 text-gray-600 text-[10px]'
+                              }>{st.toUpperCase()}</Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between pt-1 font-medium">
+                        <span>Total</span>
+                        <span className="font-mono">{stock.stock_total ?? 0} uds</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="border-t pt-3">
