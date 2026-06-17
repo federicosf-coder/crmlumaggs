@@ -339,6 +339,7 @@ export default function Cobranza() {
   }, [searchParams, setSearchParams]);
 
   const [searchPagos, setSearchPagos] = useState("");
+  const [estatusPagoFilter, setEstatusPagoFilter] = useState<string>("all");
   const [searchFacturas, setSearchFacturas] = useState("");
   const [bucketSel, setBucketSel] = useState<{ label: string; scope: "all" | "credito" | "credito_cescemex" } | null>(null);
   const [facturasPrefilter, setFacturasPrefilter] = useState<"none" | "vencimiento" | "credito_directo" | "credito_cescemex">("none");
@@ -558,7 +559,8 @@ export default function Cobranza() {
   const pagosFiltrados = useMemo(() => {
     const q = searchPagos.toLowerCase();
     const base = pagos.filter((p) =>
-      !q || p.empresa?.name?.toLowerCase().includes(q) || p.referencia_pago?.toLowerCase().includes(q)
+      (estatusPagoFilter === "all" || p.estatus_pago === estatusPagoFilter) &&
+      (!q || p.empresa?.name?.toLowerCase().includes(q) || p.referencia_pago?.toLowerCase().includes(q))
     );
     return evaluateConditions(base, pagosConditions, pagosCombinator, (p, key) => {
       const b = breakdowns[p.id];
@@ -578,7 +580,7 @@ export default function Cobranza() {
         default: return "";
       }
     });
-  }, [pagos, searchPagos, pagosConditions, pagosCombinator, breakdowns]);
+  }, [pagos, searchPagos, estatusPagoFilter, pagosConditions, pagosCombinator, breakdowns]);
 
   const facturasFiltradas = useMemo(() => {
     const q = searchFacturas.toLowerCase();
