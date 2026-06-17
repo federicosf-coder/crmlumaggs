@@ -1212,7 +1212,7 @@ export default function WhatsAppInbox() {
         );
         return (
           <>
-            <Card className="hidden md:flex md:col-span-3 flex-col h-full overflow-hidden">
+            <Card className={`hidden md:flex ${listCollapsed ? "md:col-span-4" : "md:col-span-3"} flex-col h-full overflow-hidden`}>
               <div className="p-3 overflow-y-auto flex-1 min-h-0">
                 {sidePanelContent}
               </div>
