@@ -5,7 +5,7 @@ import {
   Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet,
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
   Briefcase, Zap, FolderOpen, TrendingUp,
-  FileCheck, Boxes, ChevronDown,
+  FileCheck, Boxes, ChevronDown, Link2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { useHuerfanosCount } from "@/hooks/useMapeoProductos";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
@@ -76,6 +77,7 @@ export function AppSidebar() {
   const whatsappAccess = useModuleAccess("whatsapp");
   const inventarioAccess = useModuleAccess("inventario");
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
+  const { data: huerfanosCount = 0 } = useHuerfanosCount();
 
   useEffect(() => {
     if (!hasRole("admin")) return;
@@ -201,6 +203,17 @@ export function AppSidebar() {
                         <NavLink to="/inventario/kardex" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <FileStack className="mr-2 h-4 w-4" />
                           {!collapsed && <span>Carga de Kárdex</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/inventario/mapeo" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <Link2 className="mr-2 h-4 w-4" />
+                          {!collapsed && <span className="flex-1">Mapeo</span>}
+                          {!collapsed && huerfanosCount > 0 && (
+                            <Badge className="ml-auto bg-red-500 text-white text-[10px] h-4 px-1">{huerfanosCount}</Badge>
+                          )}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
