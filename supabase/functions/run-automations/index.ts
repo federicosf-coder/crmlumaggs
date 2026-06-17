@@ -375,6 +375,7 @@ Deno.serve(async (req) => {
   }
 
   const summary: any[] = []
+  const sentEmailKeys = new Set<string>()
 
   for (const auto of filtered) {
     const runRow: any = {
@@ -465,6 +466,21 @@ Deno.serve(async (req) => {
             const bccList = await resolveList((tpl.bcc_emails || []) as any[])
 
             for (const to of recipients) {
+              const emailKey = [
+                trigger_type,
+                entity_type,
+                entity_id || 'na',
+                trigger_key || 'na',
+                tplId,
+                to.trim().toLowerCase(),
+              ].join('|')
+              if (sentEmailKeys.has(emailKey)) {
+                runRow.error_message = [runRow.error_message, 'Correo duplicado omitido en esta ejecución']
+                  .filter(Boolean)
+                  .join('; ')
+                continue
+              }
+              sentEmailKeys.add(emailKey)
               const { error: invErr } = await supabase.functions.invoke(
                 'send-transactional-email',
                 {
