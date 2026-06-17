@@ -158,27 +158,44 @@ function PresentacionesTab() {
   const [open, setOpen] = useState(false);
   const [nombre, setNombre] = useState("");
   const [unidades, setUnidades] = useState("1");
+  const [palletChv, setPalletChv] = useState("");
+  const [palletPhi, setPalletPhi] = useState("");
   const [editItem, setEditItem] = useState<any>(null);
   const [editNombre, setEditNombre] = useState("");
   const [editUnidades, setEditUnidades] = useState("1");
   const [editActive, setEditActive] = useState(true);
+  const [editPalletChv, setEditPalletChv] = useState("");
+  const [editPalletPhi, setEditPalletPhi] = useState("");
 
   const add = useMutation({
-    mutationFn: async () => { const { error } = await supabase.from("presentaciones").insert({ nombre, unidades_equivalentes: Number(unidades) }); if (error) throw error; },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["presentaciones_all"] }); qc.invalidateQueries({ queryKey: ["presentaciones"] }); setOpen(false); setNombre(""); setUnidades("1"); toast.success("Presentación creada"); },
+    mutationFn: async () => {
+      const { error } = await (supabase as any).from("presentaciones").insert({
+        nombre, unidades_equivalentes: Number(unidades),
+        pallet_chevron: palletChv ? Number(palletChv) : null,
+        pallet_phillips: palletPhi ? Number(palletPhi) : null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["presentaciones_all"] }); qc.invalidateQueries({ queryKey: ["presentaciones"] }); qc.invalidateQueries({ queryKey: ["presentaciones-all"] }); setOpen(false); setNombre(""); setUnidades("1"); setPalletChv(""); setPalletPhi(""); toast.success("Presentación creada"); },
     onError: (e: any) => toast.error(e.message),
   });
 
   const update = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("presentaciones").update({ nombre: editNombre, unidades_equivalentes: Number(editUnidades), is_active: editActive }).eq("id", editItem.id);
+      const { error } = await (supabase as any).from("presentaciones").update({
+        nombre: editNombre,
+        unidades_equivalentes: Number(editUnidades),
+        is_active: editActive,
+        pallet_chevron: editPalletChv ? Number(editPalletChv) : null,
+        pallet_phillips: editPalletPhi ? Number(editPalletPhi) : null,
+      }).eq("id", editItem.id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["presentaciones_all"] }); qc.invalidateQueries({ queryKey: ["presentaciones"] }); setEditItem(null); toast.success("Presentación actualizada"); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["presentaciones_all"] }); qc.invalidateQueries({ queryKey: ["presentaciones"] }); qc.invalidateQueries({ queryKey: ["presentaciones-all"] }); setEditItem(null); toast.success("Presentación actualizada"); },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const openEdit = (item: any) => { setEditItem(item); setEditNombre(item.nombre); setEditUnidades(String(item.unidades_equivalentes)); setEditActive(item.is_active); };
+  const openEdit = (item: any) => { setEditItem(item); setEditNombre(item.nombre); setEditUnidades(String(item.unidades_equivalentes)); setEditActive(item.is_active); setEditPalletChv(item.pallet_chevron != null ? String(item.pallet_chevron) : ""); setEditPalletPhi(item.pallet_phillips != null ? String(item.pallet_phillips) : ""); };
 
   return (
     <Card>
@@ -191,6 +208,10 @@ function PresentacionesTab() {
             <div className="space-y-3">
               <div><Label>Nombre</Label><Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Cubeta 19L" /></div>
               <div><Label>Unidades Equivalentes</Label><Input type="number" value={unidades} onChange={e => setUnidades(e.target.value)} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Pallet Chevron (pzs/tarima)</Label><Input type="number" value={palletChv} onChange={e => setPalletChv(e.target.value)} /></div>
+                <div><Label>Pallet Phillips (pzs/tarima)</Label><Input type="number" value={palletPhi} onChange={e => setPalletPhi(e.target.value)} /></div>
+              </div>
               <Button onClick={() => add.mutate()} disabled={!nombre || add.isPending}>{add.isPending ? "Guardando..." : "Guardar"}</Button>
             </div>
           </DialogContent>
@@ -199,17 +220,19 @@ function PresentacionesTab() {
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
           <Table>
-            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Uds. Equiv.</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Uds. Equiv.</TableHead><TableHead>Pallet Chevron</TableHead><TableHead>Pallet Phillips</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
             <TableBody>
               {items.map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.nombre}</TableCell>
                   <TableCell>{p.unidades_equivalentes}</TableCell>
+                  <TableCell className="tabular-nums">{(p as any).pallet_chevron ?? "—"}</TableCell>
+                  <TableCell className="tabular-nums">{(p as any).pallet_phillips ?? "—"}</TableCell>
                   <TableCell><Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Sí" : "No"}</Badge></TableCell>
                   <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               ))}
-              {items.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sin presentaciones</TableCell></TableRow>}
+              {items.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin presentaciones</TableCell></TableRow>}
             </TableBody>
           </Table>
         )}
@@ -220,6 +243,10 @@ function PresentacionesTab() {
           <div className="space-y-3">
             <div><Label>Nombre</Label><Input value={editNombre} onChange={e => setEditNombre(e.target.value)} /></div>
             <div><Label>Unidades Equivalentes</Label><Input type="number" value={editUnidades} onChange={e => setEditUnidades(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Pallet Chevron (pzs/tarima)</Label><Input type="number" value={editPalletChv} onChange={e => setEditPalletChv(e.target.value)} /></div>
+              <div><Label>Pallet Phillips (pzs/tarima)</Label><Input type="number" value={editPalletPhi} onChange={e => setEditPalletPhi(e.target.value)} /></div>
+            </div>
             <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
           </div>
           <DialogFooter><Button onClick={() => update.mutate()} disabled={!editNombre || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
