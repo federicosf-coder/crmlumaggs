@@ -11,40 +11,31 @@ import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { useKardexCargas, ALMACEN_BY_NAME } from "@/hooks/useInventario";
+import { useKardexCargas } from "@/hooks/useInventario";
 import { useAuth } from "@/contexts/AuthContext";
 
-type KardexTipo = "unidades" | "valorizado" | "cedis";
+type KardexTipo = "unidades" | "valorizado";
+
+// Almacenes válidos (se ignoran 1 "Almacen Uno" y 999 "Consignación")
+const ALMACENES_VALIDOS = new Set(["1001", "1002", "1003", "1004"]);
 
 interface ParsedLinea {
   codigo: string;
   nombre: string;
-  unidad: string;
-  almacen: string; // 1001..1004
-  fecha: string;
-  serie: string;
-  folio: string;
-  concepto: string;
+  almacen: string;
+  existencia: number; // unidades o costo total
   entradas: number;
   salidas: number;
-  existencia: number; // unidades o costo total acumulado según tipo
+  inicial: number;
 }
 
 interface ParsedFile {
   tipo: KardexTipo;
   lineas: ParsedLinea[];
-  fechaMin: string | null;
-  fechaMax: string | null;
+  fechaInicio: string | null;
+  fechaFin: string | null;
   skuCount: number;
-}
-
-function detectTipo(rows: any[][]): KardexTipo {
-  for (let i = 0; i < Math.min(5, rows.length); i++) {
-    const text = (rows[i] || []).map((c) => String(c ?? "")).join(" ").toLowerCase();
-    if (text.includes("en importes") || text.includes("valorizado")) return "valorizado";
-    if (text.includes("en unidades")) return "unidades";
-  }
-  return "unidades";
+  warehousesEncontrados: string[];
 }
 
 const MESES_ES: Record<string, string> = {
@@ -52,68 +43,78 @@ const MESES_ES: Record<string, string> = {
   JUL: "07", AGO: "08", SEP: "09", OCT: "10", NOV: "11", DIC: "12",
 };
 
-function normFecha(v: any): string {
-  if (!v) return "";
-  // Fecha nativa JS (cuando xlsx parsea con cellDates:true)
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
-  // Número serial de Excel
+function normContpaqiDate(s: string): string {
+  const m = s.trim().toUpperCase().match(/^(\d{1,2})\/([A-Z]{3})\/(\d{4})$/);
+  if (!m) return "";
+  const mes = MESES_ES[m[2]];
+  if (!mes) return "";
+  return `${m[3]}-${mes}-${m[1].padStart(2, "0")}`;
+}
+
+function normalizeCodigo(v: any): string {
+  if (v === null || v === undefined) return "";
   if (typeof v === "number") {
-    const d = XLSX.SSF.parse_date_code(v);
-    if (d) return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
+    // Códigos numéricos: quitar decimales
+    return String(Math.round(v));
   }
-  const s = String(v).trim().toUpperCase();
-  // Formato CONTPAQi: "01/JUN/2026" o "1/JUN/2026"
-  const mContpaqi = s.match(/^(\d{1,2})\/([A-Z]{3})\/(\d{4})$/);
-  if (mContpaqi) {
-    const mes = MESES_ES[mContpaqi[2]];
-    if (mes) return `${mContpaqi[3]}-${mes}-${mContpaqi[1].padStart(2, "0")}`;
-  }
-  // Formato numérico DD/MM/YYYY o DD-MM-YYYY
-  const mNum = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-  if (mNum) {
-    const yy = mNum[3].length === 2 ? `20${mNum[3]}` : mNum[3];
-    return `${yy}-${mNum[2].padStart(2, "0")}-${mNum[1].padStart(2, "0")}`;
-  }
-  // Ya viene en formato ISO
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  return "";
+  return String(v).trim();
 }
 
 function parseFile(rows: any[][]): ParsedFile {
-  const tipo = detectTipo(rows);
-  const lineas: ParsedLinea[] = [];
-  let curCodigo = "", curNombre = "", curUnidad = "";
-  let fechaMin: string | null = null, fechaMax: string | null = null;
-  const skus = new Set<string>();
+  // Tipo en A3
+  const a3 = String(rows[2]?.[0] ?? "").toUpperCase();
+  const tipo: KardexTipo = a3.includes("IMPORTE") ? "valorizado" : "unidades";
 
-  for (const row of rows) {
-    if (!row) continue;
+  // Rango de fechas en A4: "Del: 01/ENE/2024 Al: 15/JUN/2026"
+  const a4 = String(rows[3]?.[0] ?? "");
+  const mRange = a4.match(/Del:\s*([\d\/A-Za-z]+)\s+Al:\s*([\d\/A-Za-z]+)/i);
+  const fechaInicio = mRange ? normContpaqiDate(mRange[1]) : null;
+  const fechaFin = mRange ? normContpaqiDate(mRange[2]) : null;
+
+  const lineas: ParsedLinea[] = [];
+  const skus = new Set<string>();
+  const warehouses = new Set<string>();
+  let curAlmacen: string | null = null;
+  let almacenValido = false;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i] || [];
     const c0 = String(row[0] ?? "").trim();
-    if (/^producto/i.test(c0)) { curCodigo = String(row[1] ?? "").trim(); continue; }
-    if (/^nombre/i.test(c0)) { curNombre = String(row[1] ?? "").trim(); continue; }
-    if (/^unidad/i.test(c0)) { curUnidad = String(row[1] ?? "").trim(); continue; }
-    if (!curCodigo) continue;
-    const fechaRaw = row[1];
-    if (!fechaRaw) continue;
-    const fecha = normFecha(fechaRaw);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) continue;
-    const almName = String(row[5] ?? "").trim().toLowerCase();
-    const almacen = ALMACEN_BY_NAME[almName];
-    if (!almacen) continue;
-    const entradas = Number(row[6]) || 0;
-    const salidas = Number(row[7]) || 0;
-    const existencia = Number(row[8]) || 0;
-    lineas.push({
-      codigo: curCodigo, nombre: curNombre, unidad: curUnidad,
-      almacen, fecha, serie: String(row[2] ?? ""), folio: String(row[3] ?? ""),
-      concepto: String(row[4] ?? ""), entradas, salidas, existencia,
-    });
-    skus.add(curCodigo);
-    if (!fechaMin || fecha < fechaMin) fechaMin = fecha;
-    if (!fechaMax || fecha > fechaMax) fechaMax = fecha;
+
+    if (/^Almac[eé]n:/i.test(c0)) {
+      const codeRaw = row[1];
+      const code = typeof codeRaw === "number" ? String(Math.round(codeRaw)) : String(codeRaw ?? "").trim();
+      curAlmacen = code;
+      almacenValido = ALMACENES_VALIDOS.has(code);
+      if (almacenValido) warehouses.add(code);
+      continue;
+    }
+    if (/^Nombre:/i.test(c0)) continue;
+    if (!curAlmacen || !almacenValido) continue;
+
+    const codigo = normalizeCodigo(row[0]);
+    const nombre = String(row[1] ?? "").trim();
+    if (!codigo || !nombre) continue;
+    // saltar headers/encabezados/totales sin valores numéricos
+    if (/^c[oó]digo/i.test(codigo) || /^total/i.test(codigo)) continue;
+
+    const inicial = Number(row[3]) || 0;
+    const entradas = Number(row[4]) || 0;
+    const salidas = Number(row[5]) || 0;
+    const existencia = Number(row[6]) || 0;
+
+    lineas.push({ codigo, nombre, almacen: curAlmacen, existencia, entradas, salidas, inicial });
+    skus.add(codigo);
   }
 
-  return { tipo, lineas, fechaMin, fechaMax, skuCount: skus.size };
+  return {
+    tipo,
+    lineas,
+    fechaInicio,
+    fechaFin,
+    skuCount: skus.size,
+    warehousesEncontrados: Array.from(warehouses).sort(),
+  };
 }
 
 export default function KardexCarga() {
@@ -162,7 +163,8 @@ export default function KardexCarga() {
           empresa_vendedora: empresa,
           tipo: parsed.tipo,
           nombre_archivo: fileName,
-          fecha_archivo: parsed.fechaMax,
+          fecha_archivo: parsed.fechaFin,
+          fecha_inicio: parsed.fechaInicio,
           estatus: "procesando",
           creado_por: user?.id ?? null,
           total_skus_procesados: parsed.skuCount,
@@ -171,18 +173,10 @@ export default function KardexCarga() {
         .single();
       if (cErr) throw cErr;
 
-      // Agrupar última fila por (codigo, almacen)
-      const lastByKey = new Map<string, ParsedLinea>();
+      // Una línea por (sku, almacén) — el reporte ya da existencia final del periodo
+      const bySku = new Map<string, { nombre: string; stocks: Record<string, number>; valores: Record<string, number> }>();
       for (const l of parsed.lineas) {
-        const k = `${l.codigo}|${l.almacen}`;
-        const prev = lastByKey.get(k);
-        if (!prev || l.fecha > prev.fecha) lastByKey.set(k, l);
-      }
-
-      // Agrupar por SKU
-      const bySku = new Map<string, { nombre: string; unidad: string; stocks: Record<string, number>; valores: Record<string, number> }>();
-      for (const [, l] of lastByKey) {
-        const e = bySku.get(l.codigo) || { nombre: l.nombre, unidad: l.unidad, stocks: {}, valores: {} };
+        const e = bySku.get(l.codigo) || { nombre: l.nombre, stocks: {}, valores: {} };
         if (parsed.tipo === "unidades") e.stocks[l.almacen] = l.existencia;
         else e.valores[l.almacen] = l.existencia;
         bySku.set(l.codigo, e);
@@ -202,9 +196,8 @@ export default function KardexCarga() {
         const row: any = {
           codigo_producto: codigo,
           nombre_producto: e.nombre || ex?.nombre_producto || null,
-          unidad: e.unidad || ex?.unidad || null,
           empresa_vendedora: empresa,
-          fecha_ultimo_kardex: parsed.fechaMax,
+          fecha_ultimo_kardex: parsed.fechaFin,
         };
         if (parsed.tipo === "unidades") {
           row.stock_almacen_1001 = e.stocks["1001"] ?? 0;
@@ -276,7 +269,7 @@ export default function KardexCarga() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-light tracking-tight">Carga de Kárdex</h1>
-        <p className="text-sm text-muted-foreground">Sube archivos CONTPAQi de Kárdex en Unidades o Valorizado</p>
+        <p className="text-sm text-muted-foreground">Sube reportes CONTPAQi "Inventario actual del almacén" en Unidades o Importes (XLS). Se ignoran los almacenes 1 "Almacen Uno" y 999 "Consignación".</p>
       </div>
 
       <Tabs defaultValue="subir">
@@ -314,9 +307,9 @@ export default function KardexCarga() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <Info label="SKUs detectados" value={parsed.skuCount} />
-                  <Info label="Movimientos" value={parsed.lineas.length} />
-                  <Info label="Desde" value={parsed.fechaMin || "—"} />
-                  <Info label="Hasta" value={parsed.fechaMax || "—"} />
+                  <Info label="Almacenes" value={parsed.warehousesEncontrados.join(", ") || "—"} />
+                  <Info label="Desde" value={parsed.fechaInicio || "—"} />
+                  <Info label="Hasta" value={parsed.fechaFin || "—"} />
                 </div>
                 <div className="flex items-center gap-3">
                   <label className="text-xs uppercase tracking-wide text-muted-foreground">Empresa</label>
