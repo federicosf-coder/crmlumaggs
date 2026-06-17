@@ -85,12 +85,12 @@ export function useStockPorProducto() {
       const { data: niveles } = await (supabase as any)
         .from("inv_niveles_inventario")
         .select("codigo_producto, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total, estatus_inventario");
-      const nivelMap = new Map((niveles || []).map((n: any) => [n.codigo_producto, n]));
+      const nivelMap = new Map<string, any>((niveles || []).map((n: any) => [n.codigo_producto, n]));
       const result = new Map<string, any>();
       for (const m of (mapeos || [])) {
         if (m.producto_id) {
           result.set(m.producto_id, {
-            ...nivelMap.get(m.codigo_contpaqi),
+            ...(nivelMap.get(m.codigo_contpaqi) || {}),
             piezas_por_tarima: m.piezas_por_tarima,
           });
         }
