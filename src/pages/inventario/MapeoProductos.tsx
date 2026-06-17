@@ -56,7 +56,7 @@ function CrearEnCatalogoDialog({
   const { data: presentaciones = [] } = useQuery({
     queryKey: ["presentaciones-all"],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("presentaciones").select("id, nombre, is_active").order("nombre");
+      const { data } = await (supabase as any).from("presentaciones").select("id, nombre, is_active, pallet_chevron, pallet_phillips").order("nombre");
       return (data || []).filter((p: any) => p.is_active);
     },
   });
@@ -77,6 +77,15 @@ function CrearEnCatalogoDialog({
       setPiezasTarima(huerfano.piezas_por_tarima ? String(huerfano.piezas_por_tarima) : (prov === "phillips66" ? "42" : "45"));
     }
   }, [huerfano?.codigo_producto]);
+
+  // Auto-actualiza piezas por tarima al cambiar presentación o proveedor según catálogo
+  useEffect(() => {
+    if (!presentacionId) return;
+    const p = (presentaciones as any[]).find((x) => x.id === presentacionId);
+    if (!p) return;
+    const v = proveedor === "phillips66" ? p.pallet_phillips : p.pallet_chevron;
+    if (v != null) setPiezasTarima(String(v));
+  }, [presentacionId, proveedor, presentaciones]);
 
   const save = useMutation({
     mutationFn: async () => {
