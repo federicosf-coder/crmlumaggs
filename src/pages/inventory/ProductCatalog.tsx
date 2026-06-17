@@ -719,7 +719,8 @@ function ProductosTab() {
     { key: "linea", label: "Línea", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("linea").map(o => ({ id: o.id, value: o.value }))] },
     { key: "activo", label: "Estado", opts: [{ id: "true", value: "Activo" }, { id: "false", value: "Inactivo" }] },
   ];
-  const totalActiveFilters = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0);
+  const totalActiveFilters = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0) +
+    (precioMin !== "" ? 1 : 0) + (precioMax !== "" ? 1 : 0);
   const addFilter = (key: keyof typeof selectedFilters, id: string) => {
     if (!id) return;
     setSelectedFilters(prev => prev[key].includes(id) ? prev : { ...prev, [key]: [...prev[key], id] });
@@ -727,7 +728,11 @@ function ProductosTab() {
   const removeFilter = (key: keyof typeof selectedFilters, id: string) => {
     setSelectedFilters(prev => ({ ...prev, [key]: prev[key].filter(x => x !== id) }));
   };
-  const clearAllFilters = () => setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [], activo: [] });
+  const clearAllFilters = () => {
+    setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [], activo: [] });
+    setPrecioMin("");
+    setPrecioMax("");
+  };
 
   return (
     <Card>
