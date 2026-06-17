@@ -657,8 +657,12 @@ function ProductosTab() {
   });
 
   const handleSaveClick = () => {
-    if (Number(form.costo_actual ?? 0) > 0) setRecalcOpen(true);
-    else save.mutate(undefined);
+    save.mutate(undefined);
+  };
+
+  const ceilTo5 = (n: number) => {
+    if (!isFinite(n) || n <= 0) return 0;
+    return Math.ceil(n / 5) * 5;
   };
 
   const saveWithRecalc = async () => {
@@ -698,7 +702,9 @@ function ProductosTab() {
       }
       const marginRecord: Record<string, number> = {};
       for (const lvl of MARGIN_LEVELS) marginRecord[lvl.key] = Number(margins?.[lvl.key] ?? 0);
-      const newPrices = computePricesFromCost(costo, marginRecord);
+      const raw = computePricesFromCost(costo, marginRecord);
+      const newPrices: Record<string, number> = {};
+      for (const [k, v] of Object.entries(raw)) newPrices[k] = ceilTo5(Number(v));
       setForm(prev => ({ ...prev, ...newPrices } as any));
       save.mutate(newPrices);
     } catch (e: any) {
@@ -1011,10 +1017,26 @@ function ProductosTab() {
               </div>
             </div>
 
-            <div className="md:col-span-2">
-              <Button onClick={handleSaveClick} disabled={!form.codigo || !form.nombre_producto || save.isPending} className="w-full">
+            <div className="md:col-span-2 flex flex-col sm:flex-row gap-2">
+              <Button
+                onClick={handleSaveClick}
+                disabled={!form.codigo || !form.nombre_producto || save.isPending}
+                className="flex-1"
+              >
                 {save.isPending ? "Guardando..." : editingId ? "Actualizar Producto" : "Guardar Producto"}
               </Button>
+              {editingId && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setRecalcOpen(true)}
+                  disabled={save.isPending || !(Number(form.costo_actual ?? 0) > 0)}
+                  className="flex-1"
+                  title={!(Number(form.costo_actual ?? 0) > 0) ? "Requiere Costo Actual > 0" : ""}
+                >
+                  Actualizar Precios
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
@@ -1032,8 +1054,8 @@ function ProductosTab() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setRecalcOpen(false); save.mutate(undefined); }}>
-              No, guardar sin recalcular
+            <AlertDialogCancel onClick={() => setRecalcOpen(false)}>
+              Cancelar
             </AlertDialogCancel>
             <AlertDialogAction onClick={() => { saveWithRecalc(); }}>
               Sí, actualizar precios
