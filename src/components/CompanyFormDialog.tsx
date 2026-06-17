@@ -198,6 +198,7 @@ const emptyForm = {
 
 export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const { data: industriasCatalog = [] } = useIndustriasCatalog();
   const [form, setForm] = useState({ ...emptyForm });
