@@ -73,16 +73,15 @@ function isMobileDevice(): boolean {
   return /android|iphone|ipad|ipod|iemobile|blackberry|opera mini/i.test(navigator.userAgent);
 }
 
-/** Construye un enlace público de WhatsApp sin apuntar directo a web.whatsapp.com. */
+/** Construye un enlace de protocolo local para abrir WhatsApp Desktop/App. */
 export function buildWaMeLink(phone: string, message: string): string {
   const text = encodeURIComponent(message);
-  // Evitamos web.whatsapp.com porque en el preview y algunos navegadores se bloquea
-  // al abrirlo en otra pestaña. api.whatsapp.com muestra el puente oficial y deja
-  // continuar hacia app/desktop/web sin cargar web.whatsapp.com como primer destino.
-  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=${text}&type=phone_number&app_absent=0`;
+  // Evitamos dominios web (web.whatsapp.com/api.whatsapp.com/wa.me) porque algunos
+  // equipos o extensiones los bloquean con ERR_BLOCKED_BY_RESPONSE.
+  return `whatsapp://send?phone=${encodeURIComponent(phone)}&text=${text}`;
 }
 
-/** Open WhatsApp Web/App in a new tab. */
+/** Open WhatsApp Desktop/App using the local protocol. */
 export function openWhatsApp(phone: string, message: string) {
   window.open(buildWaMeLink(phone, message), "_blank", "noopener,noreferrer");
 }

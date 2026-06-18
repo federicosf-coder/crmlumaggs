@@ -14,7 +14,7 @@ import { MessageCircle, Mail, ExternalLink, Send, ChevronDown, ChevronUp, FileTe
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { normalizePhoneForWhatsApp, buildWaMeLink } from "@/lib/whatsapp";
+import { normalizePhoneForWhatsApp, buildWaMeLink, copyMessage } from "@/lib/whatsapp";
 import { extractDocFilesPath } from "@/lib/storageSignedUrl";
 import { generateCompanyCreditoCobranzaPdfArtifact } from "@/lib/templateDocumentGenerators";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
@@ -300,10 +300,11 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
     const sufijoPdf = enlaces.length
       ? `\n\n📎 Documentos (válidos 7 días):\n${enlaces.map(e => `• ${e.label}: ${e.url}`).join("\n")}`
       : "";
-    const sufijoFacturas = facturasResumenTexto();
-    window.open(buildWaMeLink(telefonoDestino, waMsg + sufijoFacturas + sufijoPdf), "_blank", "noopener");
+    const mensajeFinal = waMsg + facturasResumenTexto() + sufijoPdf;
+    await copyMessage(mensajeFinal);
+    window.location.href = buildWaMeLink(telefonoDestino, mensajeFinal);
     await registrarActividad("whatsapp", `WhatsApp local a ${telefonoDestino}. ${docsResumen()}${enlaces.length ? ` · ${enlaces.length} enlace(s) PDF` : ""}`);
-    toast.success("WhatsApp abierto en pestaña nueva");
+    toast.success("Mensaje copiado y WhatsApp abierto");
     onOpenChange(false);
   };
 
