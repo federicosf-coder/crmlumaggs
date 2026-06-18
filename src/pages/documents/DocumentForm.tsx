@@ -780,7 +780,7 @@ export default function DocumentForm() {
         numero_factura: null,
         estatus_cotizacion: null,
         estatus_pedido: targetType === "pedido" ? "confirmado_cliente" : null,
-        estatus_factura: targetType === "factura" ? "pendiente" : null,
+        estatus_factura: targetType === "factura" ? "vigente" : null,
         fecha_documento: todayStr,
         fecha_vencimiento: vencStr,
         cotizacion_original_id: srcDoc.tipo_documento === "cotizacion" ? id : (srcDoc.cotizacion_original_id || null),
