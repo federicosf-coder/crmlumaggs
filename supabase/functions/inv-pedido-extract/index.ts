@@ -4,37 +4,13 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MODEL = 'google/gemini-2.5-flash';
 
-const PROMPT_CHEVRON = `Eres un asistente que extrae datos de órdenes de compra Chevron (Business Point).
-Del PDF adjunto extrae ÚNICAMENTE un JSON válido (sin texto extra) con esta forma:
-{
-  "numero_po": string,
-  "numero_orden": string,
-  "fecha_despacho": "YYYY-MM-DD",
-  "almacen_destino": string,
-  "total_monto": number,
-  "moneda": "MXN",
-  "lineas": [
-    { "codigo": string, "descripcion": string, "cantidad": number, "unidad": string, "precio_unitario": number, "precio_neto": number }
-  ]
-}
-Reglas: códigos de 9 dígitos. PL=cubeta, DR=tambor. No inventes valores; omite líneas dudosas.`;
+const PROMPT_CHEVRON = `Del PDF de orden Chevron Business Point extrae SOLO este JSON sin texto adicional ni markdown:
+{"numero_po":"string","numero_orden":"string","almacen_origen":"string","total_monto":0,"moneda":"MXN","lineas":[{"codigo":"string","descripcion":"string","cantidad":0,"unidad":"string","precio_unitario":0,"precio_neto":0}]}
+El código del producto son los primeros 9 dígitos de cada línea. La cantidad es el número antes de 'CA'. Ignora las fechas de entrega.`;
 
-const PROMPT_PHILLIPS = `Eres un asistente que extrae datos de órdenes Phillips 66 (History Orders Detail).
-Del PDF adjunto extrae ÚNICAMENTE un JSON válido (sin texto extra) con esta forma:
-{
-  "numero_orden": string,
-  "numero_po": string,
-  "fecha_pedido": "YYYY-MM-DD",
-  "fecha_despacho": "YYYY-MM-DD",
-  "planta": string,
-  "total_monto": number,
-  "moneda": "USD",
-  "lineas": [
-    { "codigo": string, "nombre": string, "precio_por_galon": number, "galones_por_empaque": number, "tipo_empaque": string, "cantidad_galones": number, "cantidad_empaques": number }
-  ]
-}
-Reglas: códigos de 8 dígitos con ceros a la izquierda. Pail=5 GAL, Drum=55 GAL, Case=3 GAL.
-cantidad_empaques = cantidad_galones / galones_por_empaque. No inventes valores.`;
+const PROMPT_PHILLIPS = `Del PDF de History Orders Detail de Phillips 66 extrae SOLO este JSON sin texto adicional ni markdown:
+{"numero_orden":"string","numero_po":"string","fecha_pedido":"YYYY-MM-DD","planta":"string","almacen_destino":"string","total_monto":0,"moneda":"USD","lineas":[{"codigo":"string","nombre":"string","precio_por_galon":0,"galones_por_empaque":0,"cantidad_empaques":0,"precio_total":0}]}
+El almacen_destino viene del campo 'Additional Bol'. El código es el número de 8 dígitos. La cantidad de empaques es el número en la columna Quantity.`;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
