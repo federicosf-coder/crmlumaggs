@@ -6,7 +6,7 @@ import {
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
   Briefcase, Zap, FolderOpen, TrendingUp,
   FileCheck, Boxes, ChevronDown, Link2,
-  Sliders, ClipboardList, ShieldAlert, Network,
+  Sliders, ClipboardList, ShieldAlert, Network, DollarSign,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
