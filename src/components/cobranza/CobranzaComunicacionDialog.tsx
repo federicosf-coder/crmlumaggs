@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase as _sb } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, Mail, ExternalLink, Send, ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { MessageCircle, Mail, ExternalLink, Send, ChevronDown, ChevronUp, FileText, Phone, UserPlus, Pencil, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +47,7 @@ function renderPlaceholders(text: string, vars: Record<string, string>): string 
 
 export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaultTab = "whatsapp", empresaNombre }: Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<"whatsapp" | "email">(defaultTab);
   useEffect(() => { setTab(defaultTab); }, [defaultTab, open]);
 
@@ -308,6 +309,16 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
             {empresaNombre ? <>{empresaNombre} · </> : null}
             Factura <span className="font-mono">{factura.numero_factura || factura.id.slice(0, 8)}</span> · Saldo {fmtMoney(Number(factura.saldo_pendiente_cobranza || 0))}
           </DialogDescription>
+          {factura.empresa_id && (
+            <a
+              href={`/directory?tab=companies&select=${factura.empresa_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1 mt-1 w-fit"
+            >
+              <ExternalLink className="h-3 w-3" /> Ver perfil de empresa
+            </a>
+          )}
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -346,6 +357,11 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
                 modo="phone"
                 telefonoManual={telefonoManual}
                 setTelefonoManual={setTelefonoManual}
+                empresaId={factura.empresa_id}
+                onContactCreated={(id) => {
+                  setContactoId(id);
+                  queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
+                }}
               />
 
               <DocumentosSection
@@ -412,6 +428,11 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
                 contactoId={contactoId}
                 onChange={setContactoId}
                 modo="email"
+                empresaId={factura.empresa_id}
+                onContactCreated={(id) => {
+                  setContactoId(id);
+                  queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
+                }}
               />
               <section className="grid sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -484,6 +505,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
 // ============================================================
 function ContactoSelector({
   contactos, contactoId, onChange, modo, telefonoManual, setTelefonoManual,
+  empresaId, onContactCreated,
 }: {
   contactos: any[];
   contactoId: string;
@@ -491,33 +513,131 @@ function ContactoSelector({
   modo: "phone" | "email";
   telefonoManual?: string;
   setTelefonoManual?: (v: string) => void;
+  empresaId?: string;
+  onContactCreated?: (id: string) => void;
 }) {
   const sel = contactos.find((c) => c.id === contactoId);
   const phone = sel?.whatsapp_phone || sel?.mobile || sel?.phone || "";
   const email = sel?.email || "";
+  const nombreCompleto = sel ? `${sel.first_name || ""} ${sel.last_name || ""}`.trim() : "";
+
+  const [modoVista, setModoVista] = useState<"ver" | "cambiar" | "nuevo">("ver");
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [nuevoTel, setNuevoTel] = useState("");
+  const [nuevoEmail, setNuevoEmail] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    if (sel) setModoVista((m) => (m === "nuevo" ? "ver" : m));
+  }, [sel?.id]);
+
+  const guardarNuevo = async () => {
+    if (!empresaId) { toast.error("Falta empresa"); return; }
+    if (!nuevoNombre.trim()) { toast.error("Ingresa el nombre"); return; }
+    setGuardando(true);
+    const parts = nuevoNombre.trim().split(/\s+/);
+    const first_name = parts[0];
+    const last_name = parts.slice(1).join(" ");
+    const { data, error } = await supabase.from("contacts").insert({
+      first_name,
+      last_name,
+      phone: nuevoTel || null,
+      mobile: nuevoTel || null,
+      email: nuevoEmail || null,
+      company_id: empresaId,
+      is_active: true,
+    }).select().single();
+    setGuardando(false);
+    if (error) { toast.error(`Error al crear contacto: ${error.message}`); return; }
+    toast.success("Contacto creado correctamente");
+    setNuevoNombre(""); setNuevoTel(""); setNuevoEmail("");
+    onContactCreated?.(data.id);
+    setModoVista("ver");
+  };
+
   return (
     <section className="space-y-2">
       <Label className="text-xs uppercase tracking-wide text-muted-foreground">Contacto destinatario</Label>
-      {contactos.length === 0 ? (
-        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-300 rounded-md px-3 py-2">
-          Esta empresa no tiene contactos activos registrados.
+
+      {/* Card del contacto seleccionado */}
+      {modoVista === "ver" && sel && (
+        <div className="border rounded-md p-3 bg-muted/20 space-y-1.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="text-sm font-medium">{nombreCompleto || "(sin nombre)"}</div>
+            <div className="flex gap-1">
+              {contactos.length > 1 && (
+                <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setModoVista("cambiar")}>
+                  <Pencil className="h-3 w-3 mr-1" /> Cambiar
+                </Button>
+              )}
+              {empresaId && (
+                <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setModoVista("nuevo")}>
+                  <UserPlus className="h-3 w-3 mr-1" /> Nuevo contacto
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground space-y-0.5">
+            {phone && <div className="flex items-center gap-1.5"><Phone className="h-3 w-3" /> {phone}</div>}
+            {email && <div className="flex items-center gap-1.5"><Mail className="h-3 w-3" /> {email}</div>}
+            {!phone && !email && <div className="italic">Sin datos de contacto</div>}
+          </div>
         </div>
-      ) : (
-        <Select value={contactoId} onValueChange={onChange}>
-          <SelectTrigger className="h-9 font-light"><SelectValue placeholder="Selecciona contacto" /></SelectTrigger>
-          <SelectContent>
-            {contactos.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {(`${c.first_name || ""} ${c.last_name || ""}`).trim() || "(sin nombre)"} —{" "}
-                <span className="text-muted-foreground">
-                  {modo === "phone" ? (c.whatsapp_phone || c.mobile || c.phone || "sin teléfono") : (c.email || "sin email")}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       )}
-      {modo === "phone" && sel && !phone && setTelefonoManual && (
+
+      {/* Sin contactos: ofrece crear */}
+      {modoVista === "ver" && !sel && (
+        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-300 rounded-md px-3 py-2 flex items-center justify-between gap-2">
+          <span>Esta empresa no tiene contactos activos registrados.</span>
+          {empresaId && (
+            <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setModoVista("nuevo")}>
+              <UserPlus className="h-3 w-3 mr-1" /> Nuevo contacto
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Modo cambiar */}
+      {modoVista === "cambiar" && (
+        <div className="space-y-2">
+          <Select value={contactoId} onValueChange={(v) => { onChange(v); setModoVista("ver"); }}>
+            <SelectTrigger className="h-9 font-light"><SelectValue placeholder="Selecciona contacto" /></SelectTrigger>
+            <SelectContent>
+              {contactos.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {(`${c.first_name || ""} ${c.last_name || ""}`).trim() || "(sin nombre)"} —{" "}
+                  <span className="text-muted-foreground">
+                    {modo === "phone" ? (c.whatsapp_phone || c.mobile || c.phone || "sin teléfono") : (c.email || "sin email")}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setModoVista("ver")}>
+            <X className="h-3 w-3 mr-1" /> Cancelar
+          </Button>
+        </div>
+      )}
+
+      {/* Modo nuevo */}
+      {modoVista === "nuevo" && (
+        <div className="border rounded-md p-3 space-y-2 bg-muted/10">
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nuevo contacto</div>
+          <Input value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} placeholder="Nombre completo" className="h-9 font-light" />
+          <Input value={nuevoTel} onChange={(e) => setNuevoTel(e.target.value)} placeholder="Teléfono" className="h-9 font-light" />
+          <Input value={nuevoEmail} onChange={(e) => setNuevoEmail(e.target.value)} placeholder="Email" className="h-9 font-light" />
+          <div className="flex gap-2 justify-end">
+            <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setModoVista("ver")} disabled={guardando}>
+              <X className="h-3 w-3 mr-1" /> Cancelar
+            </Button>
+            <Button type="button" size="sm" className="h-7 px-3 text-xs" onClick={guardarNuevo} disabled={guardando}>
+              {guardando ? "Guardando…" : "Guardar"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {modo === "phone" && sel && !phone && setTelefonoManual && modoVista === "ver" && (
         <div className="space-y-1.5">
           <div className="text-xs text-amber-700">Este contacto no tiene teléfono. Ingrésalo manualmente:</div>
           <Input
@@ -528,7 +648,7 @@ function ContactoSelector({
           />
         </div>
       )}
-      {modo === "email" && sel && !email && (
+      {modo === "email" && sel && !email && modoVista === "ver" && (
         <div className="text-xs text-amber-700">Este contacto no tiene correo. Edita el campo "Para" abajo.</div>
       )}
     </section>
