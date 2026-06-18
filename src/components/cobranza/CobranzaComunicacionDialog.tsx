@@ -270,8 +270,12 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
   const enviarWaLocal = async () => {
     if (!telefonoDestino) { toast.error("Falta teléfono del destinatario"); return; }
     if (!waMsg.trim()) { toast.error("El mensaje está vacío"); return; }
-    window.open(buildWaMeLink(telefonoDestino, waMsg), "_blank", "noopener");
-    await registrarActividad("whatsapp", `WhatsApp local a ${telefonoDestino}. ${docsResumen()}`);
+    const enlaces = await prepararEnlaces();
+    const sufijo = enlaces.length
+      ? `\n\n📎 Documentos (válidos 7 días):\n${enlaces.map(e => `• ${e.label}: ${e.url}`).join("\n")}`
+      : "";
+    window.open(buildWaMeLink(telefonoDestino, waMsg + sufijo), "_blank", "noopener");
+    await registrarActividad("whatsapp", `WhatsApp local a ${telefonoDestino}. ${docsResumen()}${enlaces.length ? ` · ${enlaces.length} enlace(s) PDF` : ""}`);
     toast.success("WhatsApp abierto en pestaña nueva");
     onOpenChange(false);
   };
