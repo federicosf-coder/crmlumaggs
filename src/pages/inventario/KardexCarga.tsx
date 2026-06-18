@@ -37,6 +37,31 @@ function normalizeCodigo(v: any): string {
   return String(v).trim();
 }
 
+function buscarRangoFechas(rows: any[][]): { fechaInicio: string | null; fechaFin: string | null } {
+  for (let i = 0; i < Math.min(15, rows.length); i++) {
+    for (let j = 0; j < (rows[i]?.length || 0); j++) {
+      const cell = String(rows[i][j] ?? "");
+      const m = cell.match(/Del[:\s]+([\d\/A-Za-z]+)\s+Al[:\s]+([\d\/A-Za-z]+)/i);
+      if (m) {
+        return {
+          fechaInicio: normContpaqiDate(m[1].trim()) || null,
+          fechaFin: normContpaqiDate(m[2].trim()) || null,
+        };
+      }
+    }
+  }
+  let primera: string | null = null;
+  let ultima: string | null = null;
+  for (const row of rows) {
+    const f = normContpaqiDate(String(row?.[1] ?? ""));
+    if (f) {
+      if (!primera) primera = f;
+      ultima = f;
+    }
+  }
+  return { fechaInicio: primera, fechaFin: ultima };
+}
+
 interface ParsedLinea {
   codigo: string;
   nombre: string;
