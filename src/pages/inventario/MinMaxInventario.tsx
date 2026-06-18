@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -393,13 +393,12 @@ function AjusteDialog({
   const [marcado, setMarcado] = useState<boolean>(false);
 
   // Resetear inputs cuando cambia editing
-  useMemo(() => {
+  useEffect(() => {
     setMinM(editing?.minimo_manual != null ? String(editing.minimo_manual) : "");
     setMaxM(editing?.maximo_manual != null ? String(editing.maximo_manual) : "");
     setReoM(editing?.cantidad_reorden_manual != null ? String(editing.cantidad_reorden_manual) : "");
     setNotas(editing?.notas ?? "");
     setMarcado(editing?.ajustado_manualmente ?? false);
-    return null;
   }, [editing]);
 
   if (!editing) return null;
