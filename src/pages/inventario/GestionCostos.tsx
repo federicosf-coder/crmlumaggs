@@ -478,11 +478,7 @@ function UploadDialog({ open, onOpenChange, userId, onUploaded }: { open: boolea
     setBusy(true);
     try {
       const tipoDef = TIPOS_ARCHIVO.find(t => t.value === tipo);
-      const path = `${tipo}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const { error: upErr } = await supabase.storage.from("inventario-archivos").upload(path, file, { upsert: false });
-      if (upErr) throw upErr;
-
-      // Pre-procesar para contar registros (solo XLSX)
+      // Pre-procesar para contar registros (solo XLSX) — sin subida a Storage
       let totalRegistros = 0;
       if (/\.xlsx?$/i.test(file.name)) {
         try { const map = await parseExcelToMap(file); totalRegistros = map.size; } catch {}
@@ -500,8 +496,8 @@ function UploadDialog({ open, onOpenChange, userId, onUploaded }: { open: boolea
         total_registros: totalRegistros,
         registros_procesados: totalRegistros,
         registros_con_error: 0,
-        estatus: "procesado",
-        storage_path: path,
+        estatus: "pendiente",
+        storage_path: null,
         subido_por: userId,
       });
       if (insErr) throw insErr;
