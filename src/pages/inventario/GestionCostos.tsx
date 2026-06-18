@@ -462,6 +462,8 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {TIPOS_ARCHIVO.map(t => {
           const a = archivosPorTipo.get(t.value);
+          const enMemoria = !!archivosEnMemoria[t.value];
+          const procesando = procesandoTipo === t.value;
           return (
             <Card key={t.value}>
               <CardHeader className="pb-2">
@@ -473,116 +475,43 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
                 {a ? (
                   <>
                     <p className="text-xs truncate" title={a.nombre_archivo}>{a.nombre_archivo}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>Vigencia: {a.fecha_vigencia_inicio}</span>
-                      {a.fecha_vigencia_fin && <span>→ {a.fecha_vigencia_fin}</span>}
-                    </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-[10px]">{a.registros_procesados ?? 0} reg.</Badge>
-                      <Badge variant={a.estatus === "procesado" ? "default" : "secondary"} className="text-[10px]">{a.estatus}</Badge>
+                      {enMemoria
+                        ? <Badge variant="default" className="text-[10px] bg-green-600">En memoria</Badge>
+                        : <Badge variant="secondary" className="text-[10px]">Re-cargar</Badge>}
                     </div>
+                    <p className="text-xs text-muted-foreground">Subido: {formatFecha(a.created_at)}</p>
                   </>
                 ) : (
-                  <p className="text-xs text-muted-foreground italic">Sin archivo activo</p>
+                  <p className="text-xs text-muted-foreground italic">Sin archivo subido</p>
                 )}
-                <Button size="sm" variant="outline" className="w-full" onClick={() => setUploadOpen(true)}>
-                  <Upload className="h-3 w-3 mr-1" /> Subir nuevo
+                <input
+                  type="file"
+                  accept=".xls,.xlsx"
+                  className="hidden"
+                  ref={el => { inputsRef.current[t.value] = el; }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelected(t.value, f); }}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  disabled={procesando}
+                  onClick={() => inputsRef.current[t.value]?.click()}
+                >
+                  {procesando ? (
+                    <><RefreshCw className="h-3 w-3 mr-1 animate-spin" /> Procesando…</>
+                  ) : (
+                    <><Upload className="h-3 w-3 mr-1" /> {a ? "Subir nuevo" : "Subir archivo"}</>
+                  )}
                 </Button>
               </CardContent>
             </Card>
           );
         })}
       </div>
-
-      <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} userId={userId} onUploaded={onRefresh} />
     </div>
-  );
-}
-
-// ─── DIALOG DE SUBIDA ───────────────────────────────────────────
-function UploadDialog({ open, onOpenChange, userId, onUploaded }: { open: boolean; onOpenChange: (b: boolean) => void; userId?: string; onUploaded: () => void }) {
-  const [tipo, setTipo] = useState<string>("");
-  const [vigenciaInicio, setVigenciaInicio] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [vigenciaFin, setVigenciaFin] = useState<string>("");
-  const [file, setFile] = useState<File | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function handleSubmit() {
-    if (!tipo || !file || !userId) { toast.error("Faltan datos"); return; }
-    setBusy(true);
-    try {
-      const tipoDef = TIPOS_ARCHIVO.find(t => t.value === tipo);
-      // Pre-procesar para contar registros (solo XLSX) — sin subida a Storage
-      let totalRegistros = 0;
-      if (/\.xlsx?$/i.test(file.name)) {
-        try { const map = await parseExcelToMap(file); totalRegistros = map.size; } catch {}
-      }
-
-      // Desactivar archivos anteriores del mismo tipo
-      await supabase.from("inv_archivos_referencia").update({ es_activo: false }).eq("tipo", tipo).eq("es_activo", true);
-
-      const { error: insErr } = await supabase.from("inv_archivos_referencia").insert({
-        tipo, empresa: tipoDef?.empresa || null,
-        nombre_archivo: file.name,
-        fecha_vigencia_inicio: vigenciaInicio,
-        fecha_vigencia_fin: vigenciaFin || null,
-        es_activo: true,
-        total_registros: totalRegistros,
-        registros_procesados: totalRegistros,
-        registros_con_error: 0,
-        estatus: "pendiente",
-        storage_path: null,
-        subido_por: userId,
-      });
-      if (insErr) throw insErr;
-      toast.success("Archivo subido");
-      onUploaded();
-      onOpenChange(false);
-      setTipo(""); setFile(null); setVigenciaFin("");
-    } catch (e: any) {
-      toast.error("Error: " + e.message);
-    } finally { setBusy(false); }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
-          <DialogTitle className="text-lg font-semibold tracking-tight">Subir archivo de referencia</DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground font-light">Sube un archivo de costos, precios especiales o lista general.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-5 px-5 py-5 overflow-y-auto flex-1">
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Tipo de archivo</Label>
-            <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger className="h-9 font-light"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
-              <SelectContent>
-                {TIPOS_ARCHIVO.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Vigencia inicio</Label>
-              <Input type="date" value={vigenciaInicio} onChange={e => setVigenciaInicio(e.target.value)} className="h-9 font-light" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Vigencia fin (opcional)</Label>
-              <Input type="date" value={vigenciaFin} onChange={e => setVigenciaFin(e.target.value)} className="h-9 font-light" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Archivo (XLS / XLSX / PDF)</Label>
-            <Input type="file" accept=".xls,.xlsx,.pdf" onChange={e => setFile(e.target.files?.[0] || null)} className="font-light" />
-            {file && <p className="text-xs text-muted-foreground">{file.name} — {(file.size / 1024).toFixed(0)} KB</p>}
-          </div>
-        </div>
-        <DialogFooter className="border-t bg-muted/30 px-5 py-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={busy || !tipo || !file}>{busy ? "Subiendo…" : "Subir"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 
