@@ -1,0 +1,2 @@
+ALTER TABLE public.inv_kardex_cargas DROP CONSTRAINT IF EXISTS inv_kardex_cargas_tipo_check;
+ALTER TABLE public.inv_kardex_cargas ADD CONSTRAINT inv_kardex_cargas_tipo_check CHECK (tipo IN ('unidades','valorizado','inventario_unidades','inventario_importe','kardex_unidades','kardex_importe'));
