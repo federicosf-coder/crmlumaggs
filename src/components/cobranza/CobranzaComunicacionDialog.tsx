@@ -80,6 +80,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
         .eq("empresa_id", factura!.empresa_id)
         .neq("id", factura!.id)
         .neq("estatus_factura", "cancelada")
+        .neq("estatus_factura", "pagada")
         .gt("saldo_pendiente_cobranza", 0)
         .order("fecha_vencimiento");
       return (data || []) as any[];
