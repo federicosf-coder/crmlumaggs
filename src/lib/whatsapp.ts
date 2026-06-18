@@ -82,10 +82,10 @@ function isMobileDevice(): boolean {
  */
 export function buildWaMeLink(phone: string, message: string): string {
   const text = encodeURIComponent(message);
-  if (isMobileDevice()) {
-    return `https://wa.me/${phone}?text=${text}`;
-  }
-  return `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
+  // Usamos siempre wa.me: en algunos entornos corporativos web.whatsapp.com
+  // se bloquea con ERR_BLOCKED_BY_RESPONSE. wa.me redirige a la app/escritorio
+  // o a WhatsApp Web según corresponda sin ser bloqueado.
+  return `https://wa.me/${phone}?text=${text}`;
 }
 
 /** Open WhatsApp Web/App in a new tab. */
