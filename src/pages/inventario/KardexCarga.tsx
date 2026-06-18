@@ -246,6 +246,118 @@ export default function KardexCarga() {
         await (supabase as any).from("inv_kardex_lineas").insert(lineasInsert.slice(i, i + batchSize));
       }
 
+      // ============================================================
+      // Cálculo de demanda por plaza + recálculo de mínimos/máximos
+      // Solo aplica al procesar kardex de UNIDADES
+      // ============================================================
+      if (parsed.tipo === "unidades" && parsed.fechaInicio && parsed.fechaFin) {
+        try {
+          const d0 = new Date(parsed.fechaInicio);
+          const d1 = new Date(parsed.fechaFin);
+          const diasPeriodo = Math.max(1, Math.round((d1.getTime() - d0.getTime()) / 86400000) + 1);
+
+          // Acumular ventas (salidas) por (codigo, almacen)
+          // Nota: el reporte CONTPAQi "Inventario actual del almacén" entrega totales
+          // agregados de salidas por SKU/almacén. Se asume que las salidas son
+          // ventas a la plaza (los traspasos en este reporte no se distinguen).
+          const ventas = new Map<string, { codigo: string; almacen: string; uds: number }>();
+          for (const l of parsed.lineas) {
+            if (!(l.salidas > 0)) continue;
+            const k = `${l.codigo}|${l.almacen}`;
+            const cur = ventas.get(k) || { codigo: l.codigo, almacen: l.almacen, uds: 0 };
+            cur.uds += l.salidas;
+            ventas.set(k, cur);
+          }
+
+          // 1) UPSERT inv_demanda_plaza
+          const demandaRows = Array.from(ventas.values()).map((v) => {
+            const ddia = v.uds / diasPeriodo;
+            return {
+              codigo_producto: v.codigo,
+              almacen: v.almacen,
+              periodo_inicio: parsed.fechaInicio,
+              periodo_fin: parsed.fechaFin,
+              dias_periodo: diasPeriodo,
+              unidades_vendidas: v.uds,
+              unidades_traspaso_salida: 0,
+              demanda_diaria_promedio: ddia,
+              demanda_mensual_promedio: ddia * 30,
+              ultima_venta: parsed.fechaFin,
+            };
+          });
+          for (let i = 0; i < demandaRows.length; i += batchSize) {
+            await (supabase as any)
+              .from("inv_demanda_plaza")
+              .upsert(demandaRows.slice(i, i + batchSize), { onConflict: "codigo_producto,almacen,periodo_inicio" });
+          }
+
+          // 2) Recalcular inv_minmax (sin pisar valores manuales)
+          const skuListMM = Array.from(new Set(Array.from(ventas.values()).map((v) => v.codigo)));
+          const { data: niveles } = await (supabase as any)
+            .from("inv_niveles_inventario")
+            .select("codigo_producto, clasificacion_abc, lead_time_dias, piezas_por_tarima, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004")
+            .in("codigo_producto", skuListMM);
+          const nivMap = new Map<string, any>((niveles || []).map((n: any) => [n.codigo_producto, n]));
+
+          const { data: existMM } = await (supabase as any)
+            .from("inv_minmax")
+            .select("codigo_producto, almacen, minimo_manual, maximo_manual, cantidad_reorden_manual")
+            .in("codigo_producto", skuListMM);
+          const mmMap = new Map<string, any>((existMM || []).map((m: any) => [`${m.codigo_producto}|${m.almacen}`, m]));
+
+          const coberturaPorAbc = (abc: string | null | undefined) => abc === "A" ? 60 : abc === "C" ? 30 : abc === "B" ? 45 : 45;
+          const seguridadPorAbc = (abc: string | null | undefined) => abc === "A" ? 15 : abc === "C" ? 7 : abc === "B" ? 10 : 10;
+          const stockAlmacen = (n: any, alm: string) => Number(n?.[`stock_almacen_${alm}`] ?? 0);
+
+          const minmaxRows: any[] = [];
+          const hoyIso = new Date().toISOString().slice(0, 10);
+          for (const v of ventas.values()) {
+            const n = nivMap.get(v.codigo);
+            const abc = n?.clasificacion_abc ?? null;
+            const lead = Number(n?.lead_time_dias ?? 32) || 32;
+            const ppt = Math.max(1, Number(n?.piezas_por_tarima ?? 1) || 1);
+            const cobertura = coberturaPorAbc(abc);
+            const seguridad = seguridadPorAbc(abc);
+            const ddia = v.uds / diasPeriodo;
+            const minRaw = ddia * (lead + seguridad);
+            const maxRaw = ddia * (lead + cobertura);
+            const minCalc = Math.ceil(minRaw / ppt) * ppt;
+            const maxCalc = Math.ceil(maxRaw / ppt) * ppt;
+            const stock = stockAlmacen(n, v.almacen);
+            const reordenCalc = Math.max(0, maxCalc - stock);
+
+            const prev = mmMap.get(`${v.codigo}|${v.almacen}`);
+            minmaxRows.push({
+              codigo_producto: v.codigo,
+              almacen: v.almacen,
+              clasificacion_abc: abc,
+              demanda_diaria_hub: ddia,
+              dias_cobertura_objetivo: cobertura,
+              dias_stock_seguridad: seguridad,
+              lead_time_dias: lead,
+              minimo_calc: minCalc,
+              maximo_calc: maxCalc,
+              cantidad_reorden_calc: reordenCalc,
+              // Preservar valores manuales
+              minimo_manual: prev?.minimo_manual ?? null,
+              maximo_manual: prev?.maximo_manual ?? null,
+              cantidad_reorden_manual: prev?.cantidad_reorden_manual ?? null,
+              ultima_actualizacion_calc: hoyIso,
+            });
+          }
+          for (let i = 0; i < minmaxRows.length; i += batchSize) {
+            await (supabase as any)
+              .from("inv_minmax")
+              .upsert(minmaxRows.slice(i, i + batchSize), { onConflict: "codigo_producto,almacen" });
+          }
+          qc.invalidateQueries({ queryKey: ["inv_demanda_plaza"] });
+          qc.invalidateQueries({ queryKey: ["inv_minmax"] });
+        } catch (demErr: any) {
+          console.error("Error al calcular demanda/minmax:", demErr);
+          toast.warning("Stock actualizado, pero el cálculo de demanda falló: " + (demErr?.message || ""));
+        }
+      }
+
       await (supabase as any).from("inv_kardex_cargas").update({
         estatus: errors > 0 ? "error" : "completado",
         total_skus_actualizados: updated + created,
