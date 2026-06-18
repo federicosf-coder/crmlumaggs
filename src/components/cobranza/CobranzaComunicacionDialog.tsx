@@ -177,6 +177,9 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
 
+  // Contacto temporal (solo para este envío, no se guarda en la empresa)
+  const [adHocContacto, setAdHocContacto] = useState<{ nombre: string; phone: string; email: string } | null>(null);
+
   const contactoSel = useMemo(
     () => (contactos || []).find((c) => c.id === contactoId) || null,
     [contactos, contactoId],
@@ -188,8 +191,9 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
   }, [open, contactos, contactoId]);
 
   useEffect(() => {
-    if (contactoSel?.email) setEmailTo(contactoSel.email);
-  }, [contactoSel]);
+    if (adHocContacto?.email) setEmailTo(adHocContacto.email);
+    else if (contactoSel?.email) setEmailTo(contactoSel.email);
+  }, [contactoSel, adHocContacto]);
 
   // Reset al cambiar de factura
   useEffect(() => {
@@ -198,12 +202,14 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
       setIncEstadoCuenta(true); setIncEstaFactura(true); setIncOtras(false); setOtrasSel({});
       setWaMetodo("local"); setWaTemplateId(""); setWaMsg(""); setWaAccountId(""); setMetaTemplateId("");
       setEmailTemplateId(""); setEmailSubject(""); setEmailBody("");
+      setAdHocContacto(null);
     }
   }, [open]);
 
   const vars = useMemo<Record<string, string>>(() => {
     const saldo = Number(factura?.saldo_pendiente_cobranza || 0);
-    const nombreContacto = contactoSel ? `${contactoSel.first_name || ""} ${contactoSel.last_name || ""}`.trim() : "";
+    const nombreContacto = adHocContacto?.nombre
+      || (contactoSel ? `${contactoSel.first_name || ""} ${contactoSel.last_name || ""}`.trim() : "");
     return {
       nombre_contacto: nombreContacto,
       contacto_nombre: nombreContacto,
@@ -231,20 +237,22 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
   };
 
   const telefonoDestino = useMemo(() => {
-    const raw = telefonoManual || contactoSel?.whatsapp_phone || contactoSel?.mobile || contactoSel?.phone || "";
+    const raw = telefonoManual || adHocContacto?.phone || contactoSel?.whatsapp_phone || contactoSel?.mobile || contactoSel?.phone || "";
     return normalizePhoneForWhatsApp(raw) || "";
-  }, [telefonoManual, contactoSel]);
+  }, [telefonoManual, contactoSel, adHocContacto]);
 
   async function registrarActividad(canal: "whatsapp" | "email", descripcion: string) {
     if (!user || !factura) return;
     try {
       await supabase.from("crm_activities").insert({
         company_id: factura.empresa_id,
-        contact_id: contactoSel?.id || null,
+        contact_id: adHocContacto ? null : (contactoSel?.id || null),
         user_id: user.id,
         type: canal,
         title: `Cobranza · Factura ${factura.numero_factura || ""}`.trim(),
-        description: descripcion,
+        description: adHocContacto
+          ? `${descripcion} · Contacto temporal: ${adHocContacto.nombre}${adHocContacto.phone ? ` (${adHocContacto.phone})` : ""}${adHocContacto.email ? ` <${adHocContacto.email}>` : ""}`
+          : descripcion,
         activity_date: new Date().toISOString(),
         documento_id: factura.id,
       });
