@@ -842,7 +842,6 @@ export default function SellerPortal() {
           </div>
           <div className="flex flex-wrap gap-1.5">
             <Button size="sm" variant="outline" asChild><Link to="/activities"><Plus className="h-3.5 w-3.5" /> Tarea</Link></Button>
-            <Button size="sm" variant="outline" asChild><Link to="/crm?from=seller-portal"><UserPlus className="h-3.5 w-3.5" /> Prospecto</Link></Button>
             <Button size="sm" variant="outline" asChild><Link to="/documents/new"><FileText className="h-3.5 w-3.5" /> Cotización</Link></Button>
             <Button size="sm" variant="outline" asChild><Link to="/documents/new"><ShoppingCart className="h-3.5 w-3.5" /> Pedido</Link></Button>
             <Button size="sm" variant="outline" asChild><Link to="/cobranza?from=seller-portal"><Wallet className="h-3.5 w-3.5" /> Pago</Link></Button>
