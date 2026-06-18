@@ -73,24 +73,18 @@ function isMobileDevice(): boolean {
   return /android|iphone|ipad|ipod|iemobile|blackberry|opera mini/i.test(navigator.userAgent);
 }
 
-/**
- * Construye el enlace adecuado según la plataforma:
- *  - Móvil → wa.me (abre la app nativa).
- *  - Escritorio → web.whatsapp.com/send (evita el redirect a api.whatsapp.com
- *    que en algunos navegadores/redes corporativas se bloquea con
- *    ERR_BLOCKED_BY_RESPONSE).
- */
+/** Construye un enlace público de WhatsApp sin apuntar directo a web.whatsapp.com. */
 export function buildWaMeLink(phone: string, message: string): string {
   const text = encodeURIComponent(message);
-  // Usamos siempre wa.me: en algunos entornos corporativos web.whatsapp.com
-  // se bloquea con ERR_BLOCKED_BY_RESPONSE. wa.me redirige a la app/escritorio
-  // o a WhatsApp Web según corresponda sin ser bloqueado.
-  return `https://wa.me/${phone}?text=${text}`;
+  // Evitamos web.whatsapp.com porque en el preview y algunos navegadores se bloquea
+  // al abrirlo en otra pestaña. api.whatsapp.com muestra el puente oficial y deja
+  // continuar hacia app/desktop/web sin cargar web.whatsapp.com como primer destino.
+  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=${text}&type=phone_number&app_absent=0`;
 }
 
 /** Open WhatsApp Web/App in a new tab. */
 export function openWhatsApp(phone: string, message: string) {
-  window.open(buildWaMeLink(phone, message), "_blank", "noopener");
+  window.open(buildWaMeLink(phone, message), "_blank", "noopener,noreferrer");
 }
 
 /** Copy message to clipboard. */
