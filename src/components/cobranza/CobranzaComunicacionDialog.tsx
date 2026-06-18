@@ -15,6 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizePhoneForWhatsApp, buildWaMeLink } from "@/lib/whatsapp";
+import { extractDocFilesPath } from "@/lib/storageSignedUrl";
+import { generateCompanyCreditoCobranzaPdfArtifact } from "@/lib/templateDocumentGenerators";
+import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase: any = _sb;
@@ -73,7 +76,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
     queryFn: async () => {
       const { data } = await supabase
         .from("documentos")
-        .select("id, numero_factura, fecha_vencimiento, saldo_pendiente_cobranza, total")
+        .select("id, numero_factura, fecha_vencimiento, saldo_pendiente_cobranza, total, pdf_url")
         .eq("tipo_documento", "factura")
         .eq("empresa_id", factura!.empresa_id)
         .neq("id", factura!.id)
@@ -81,6 +84,20 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
         .gt("saldo_pendiente_cobranza", 0)
         .order("fecha_vencimiento");
       return (data || []) as any[];
+    },
+  });
+
+  // PDF de la factura actual
+  const { data: facturaPdfUrl } = useQuery({
+    queryKey: ["cobranza-comm-factura-pdf", factura?.id],
+    enabled: !!factura?.id && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("documentos")
+        .select("pdf_url")
+        .eq("id", factura!.id)
+        .maybeSingle();
+      return (data?.pdf_url as string | null) || null;
     },
   });
 
@@ -253,8 +270,12 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
   const enviarWaLocal = async () => {
     if (!telefonoDestino) { toast.error("Falta teléfono del destinatario"); return; }
     if (!waMsg.trim()) { toast.error("El mensaje está vacío"); return; }
-    window.open(buildWaMeLink(telefonoDestino, waMsg), "_blank", "noopener");
-    await registrarActividad("whatsapp", `WhatsApp local a ${telefonoDestino}. ${docsResumen()}`);
+    const enlaces = await prepararEnlaces();
+    const sufijo = enlaces.length
+      ? `\n\n📎 Documentos (válidos 7 días):\n${enlaces.map(e => `• ${e.label}: ${e.url}`).join("\n")}`
+      : "";
+    window.open(buildWaMeLink(telefonoDestino, waMsg + sufijo), "_blank", "noopener");
+    await registrarActividad("whatsapp", `WhatsApp local a ${telefonoDestino}. ${docsResumen()}${enlaces.length ? ` · ${enlaces.length} enlace(s) PDF` : ""}`);
     toast.success("WhatsApp abierto en pestaña nueva");
     onOpenChange(false);
   };
@@ -286,14 +307,78 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
   };
 
   const [enviandoEmail, setEnviandoEmail] = useState(false);
+  const [generandoEnlaces, setGenerandoEnlaces] = useState(false);
+  const [editandoContacto, setEditandoContacto] = useState(false);
+
+  /** Genera/garantiza los PDFs y devuelve enlaces firmados con validez de 7 días. */
+  async function prepararEnlaces(): Promise<{ label: string; url: string }[]> {
+    if (!factura) return [];
+    const enlaces: { label: string; url: string }[] = [];
+    const expiraSeg = 60 * 60 * 24 * 7; // 7 días
+    setGenerandoEnlaces(true);
+    try {
+      // Estado de cuenta: generar siempre que esté seleccionado
+      if (incEstadoCuenta && factura.empresa_id) {
+        try {
+          const { blob, fileName } = await generateCompanyCreditoCobranzaPdfArtifact(factura.empresa_id);
+          const safeName = fileName.replace(/[^A-Za-z0-9._-]+/g, "_");
+          const key = `cobranza-estados-cuenta/${factura.empresa_id}/${Date.now()}-${safeName}`;
+          const up = await supabase.storage
+            .from("document-files")
+            .upload(key, blob, { contentType: "application/pdf", upsert: false });
+          if (up.error) throw up.error;
+          const { data: signed, error: serr } = await supabase.storage
+            .from("document-files")
+            .createSignedUrl(key, expiraSeg);
+          if (serr) throw serr;
+          if (signed?.signedUrl) enlaces.push({ label: "Estado de cuenta", url: signed.signedUrl });
+        } catch (e: any) {
+          console.error("[prepararEnlaces] estado de cuenta", e);
+          toast.error("No se pudo generar el estado de cuenta: " + (e?.message || e));
+        }
+      }
+
+      const items: { numero: string | null; pdf_url: string | null }[] = [];
+      if (incEstaFactura) items.push({ numero: factura.numero_factura, pdf_url: facturaPdfUrl || null });
+      for (const o of otrasIncluidas) items.push({ numero: o.numero_factura, pdf_url: o.pdf_url || null });
+
+      for (const d of items) {
+        if (!d.pdf_url) {
+          toast.warning(`Factura ${d.numero || ""} no tiene PDF cargado, no se incluyó enlace.`);
+          continue;
+        }
+        try {
+          const path = extractDocFilesPath(d.pdf_url).split("?")[0];
+          const { data: signed, error: serr } = await supabase.storage
+            .from("document-files")
+            .createSignedUrl(path, expiraSeg);
+          if (serr) throw serr;
+          if (signed?.signedUrl) enlaces.push({ label: `Factura ${d.numero || ""}`, url: signed.signedUrl });
+        } catch (e: any) {
+          console.warn("[prepararEnlaces] factura sign", d, e);
+          toast.warning(`No se pudo firmar la factura ${d.numero || ""}.`);
+        }
+      }
+    } finally {
+      setGenerandoEnlaces(false);
+    }
+    return enlaces;
+  }
 
   const enviarEmail = async () => {
     if (!emailTo.trim()) { toast.error("Falta el correo destinatario"); return; }
     if (!emailSubject.trim()) { toast.error("Falta el asunto"); return; }
     setEnviandoEmail(true);
     try {
+      const enlaces = await prepararEnlaces();
       const fmtFecha = (f: string | null | undefined) =>
         f ? new Date(f).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+      const enlacesHtml = enlaces.length
+        ? `<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:16px; margin:16px 0;">
+             <p style="margin:0 0 8px; font-weight:bold; color:#1e40af;">Documentos adjuntos (enlaces válidos por 7 días):</p>
+             ${enlaces.map(e => `<p style="margin:4px 0; font-size:14px;">📄 <a href="${e.url}" style="color:#1e40af;">${e.label}</a></p>`).join("")}
+           </div>`
+        : "";
       const cuerpoHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: #1e40af; padding: 20px; border-radius: 8px 8px 0 0; color: #fff;">
@@ -312,7 +397,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
               <p style="margin:0 0 8px; font-weight:bold; color:#1e40af;">Otras facturas pendientes:</p>
               ${otrasIncluidas.map((f: any) => `<p style="margin:2px 0; font-size:13px;">• ${f.numero_factura || ""} — ${fmtMoney(Number(f.saldo_pendiente_cobranza || 0))} — vence ${fmtFecha(f.fecha_vencimiento)}</p>`).join("")}
             </div>` : ""}
-            ${incEstadoCuenta ? `<p style="font-size:12px; color:#6b7280;">* Su estado de cuenta está disponible a solicitud con su ejecutivo de cuenta.</p>` : ""}
+            ${enlacesHtml}
             <hr style="border:none; border-top:1px solid #e5e7eb; margin:20px 0;" />
             <p style="font-size:12px; color:#9ca3af; margin:0;">
               Este correo fue enviado por LubriManager — Lumaggs / Galsa<br/>
@@ -414,6 +499,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
                   setContactoId(id);
                   queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
                 }}
+                onEditContacto={() => setEditandoContacto(true)}
               />
 
               <DocumentosSection
@@ -485,6 +571,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
                   setContactoId(id);
                   queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
                 }}
+                onEditContacto={() => setEditandoContacto(true)}
               />
               <section className="grid sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -534,8 +621,8 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
         <div className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           {tab === "whatsapp" && waMetodo === "local" && (
-            <Button onClick={enviarWaLocal} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              <ExternalLink className="h-4 w-4 mr-1.5" /> Abrir WhatsApp
+            <Button onClick={enviarWaLocal} disabled={generandoEnlaces} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <ExternalLink className="h-4 w-4 mr-1.5" /> {generandoEnlaces ? "Generando…" : "Abrir WhatsApp"}
             </Button>
           )}
           {tab === "whatsapp" && waMetodo === "api" && (
@@ -544,12 +631,36 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
             </Button>
           )}
           {tab === "email" && (
-            <Button onClick={enviarEmail} disabled={enviandoEmail}>
-              <Mail className="h-4 w-4 mr-1.5" /> {enviandoEmail ? "Enviando…" : "Enviar correo"}
+            <Button onClick={enviarEmail} disabled={enviandoEmail || generandoEnlaces}>
+              <Mail className="h-4 w-4 mr-1.5" /> {enviandoEmail || generandoEnlaces ? "Enviando…" : "Enviar correo"}
             </Button>
           )}
         </div>
       </DialogContent>
+      {editandoContacto && contactoSel && (
+        <ContactFormDialog
+          open={editandoContacto}
+          onOpenChange={setEditandoContacto}
+          editData={{
+            id: contactoSel.id,
+            first_name: contactoSel.first_name || "",
+            last_name: contactoSel.last_name || "",
+            email: contactoSel.email || null,
+            email2: contactoSel.email2 || null,
+            phone: contactoSel.phone || null,
+            mobile: contactoSel.mobile || null,
+            whatsapp_phone: contactoSel.whatsapp_phone || null,
+            job_title: null,
+            department: null,
+            company_id: factura.empresa_id,
+            notes: null,
+          } as ContactEditData}
+          onCreated={() => {
+            queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
+            setEditandoContacto(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 }
@@ -557,7 +668,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
 // ============================================================
 function ContactoSelector({
   contactos, contactoId, onChange, modo, telefonoManual, setTelefonoManual,
-  empresaId, onContactCreated,
+  empresaId, onContactCreated, onEditContacto,
 }: {
   contactos: any[];
   contactoId: string;
@@ -567,6 +678,7 @@ function ContactoSelector({
   setTelefonoManual?: (v: string) => void;
   empresaId?: string;
   onContactCreated?: (id: string) => void;
+  onEditContacto?: () => void;
 }) {
   const sel = contactos.find((c) => c.id === contactoId);
   const phone = sel?.whatsapp_phone || sel?.mobile || sel?.phone || "";
@@ -617,9 +729,14 @@ function ContactoSelector({
           <div className="flex items-start justify-between gap-2">
             <div className="text-sm font-medium">{nombreCompleto || "(sin nombre)"}</div>
             <div className="flex gap-1">
+              {sel && onEditContacto && (
+                <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={onEditContacto}>
+                  <Pencil className="h-3 w-3 mr-1" /> Editar
+                </Button>
+              )}
               {contactos.length > 1 && (
                 <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setModoVista("cambiar")}>
-                  <Pencil className="h-3 w-3 mr-1" /> Cambiar
+                  <ExternalLink className="h-3 w-3 mr-1" /> Cambiar
                 </Button>
               )}
               {empresaId && (
