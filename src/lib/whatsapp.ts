@@ -63,7 +63,7 @@ export function normalizePhoneForWhatsApp(raw?: string | null): string | null {
 /** Replace {{var}} occurrences. Missing vars become "[var]" placeholder. */
 export function renderTemplate(template: string, vars: WhatsAppVariables): string {
   return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key) => {
-    const v = (vars as any)[key];
+    const v = vars[key as keyof WhatsAppVariables];
     return v != null && v !== "" ? String(v) : `[${key}]`;
   });
 }
@@ -137,7 +137,7 @@ export async function logWhatsAppActivity(params: {
     wa_message_id: params.wa_message_id ?? null,
     wa_conversation_id: params.wa_conversation_id ?? null,
   };
-  const { error } = await supabase.from("crm_activities").insert(payload as any);
+  const { error } = await supabase.from("crm_activities").insert(payload as never);
   // No bloquear el envío si falla el registro: solo log + warning.
   if (error) {
     console.warn("[whatsapp] log activity failed (no se bloquea el envío)", error);
