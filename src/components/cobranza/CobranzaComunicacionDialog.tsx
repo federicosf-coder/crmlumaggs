@@ -299,7 +299,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
     if (!waMsg.trim()) { toast.error("El mensaje está vacío"); return; }
     const enlaces = await prepararEnlaces();
     const sufijoPdf = enlaces.length
-      ? `\n\n📎 Documentos:\n${enlaces.map(e => `• ${e.fileName || e.label}`).join("\n")}`
+      ? `\n\n📎 Documentos:\n${enlaces.map(e => `• ${e.fileName || e.label}:\n${e.url}`).join("\n")}`
       : "";
     const mensajeFinal = waMsg + facturasResumenTexto() + sufijoPdf;
     await copyMessage(mensajeFinal);
