@@ -117,6 +117,7 @@ const App = () => (
             <Route path="/inventario/niveles" element={<ProtectedRoute><NivelesInventario /></ProtectedRoute>} />
             <Route path="/inventario/kardex" element={<ProtectedRoute><KardexCarga /></ProtectedRoute>} />
             <Route path="/inventario/mapeo" element={<ProtectedRoute><MapeoProductos /></ProtectedRoute>} />
+            <Route path="/inventario/minmax" element={<ProtectedRoute><MinMaxInventario /></ProtectedRoute>} />
             <Route path="/inventario/pedidos" element={<ProtectedRoute><Pedidos /></ProtectedRoute>}>
               <Route index element={<PedidosSugeridos />} />
               <Route path="sugeridos" element={<PedidosSugeridos />} />
