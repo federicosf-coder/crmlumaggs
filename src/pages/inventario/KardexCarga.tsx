@@ -580,6 +580,7 @@ async function procesarInventario(
   const { data: existentes } = await (supabase as any)
     .from("inv_niveles_inventario")
     .select("codigo_producto, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total")
+    .eq("empresa_vendedora", empresa)
     .in("codigo_producto", skuList);
   const existMap = new Map<string, any>((existentes || []).map((r: any) => [r.codigo_producto, r]));
 
@@ -611,18 +612,26 @@ async function procesarInventario(
 
   const batchSize = 200;
   let errors = 0;
+  let firstErrShown = false;
   for (let i = 0; i < upserts.length; i += batchSize) {
     const chunk = upserts.slice(i, i + batchSize);
     const { error: upErr } = await (supabase as any)
       .from("inv_niveles_inventario")
-      .upsert(chunk, { onConflict: "codigo_producto" });
-    if (upErr) { errors += chunk.length; console.error(upErr); }
+      .upsert(chunk, { onConflict: "codigo_producto,empresa_vendedora" });
+    if (upErr) {
+      errors += chunk.length;
+      console.error("Upsert inv_niveles_inventario error:", upErr);
+      if (!firstErrShown) {
+        firstErrShown = true;
+        toast.error(`Error en upsert: ${upErr.message || upErr.code || "desconocido"}`);
+      }
+    }
     setProgress(15 + Math.round(((i + chunk.length) / upserts.length) * 75));
   }
 
   await (supabase as any).from("inv_kardex_cargas").update({
     estatus: errors > 0 ? "con_errores" : "completado",
-    total_skus_actualizados: updated + created,
+    total_skus_actualizados: Math.max(0, (updated + created) - errors),
     total_skus_error: errors,
   }).eq("id", carga.id);
 }
