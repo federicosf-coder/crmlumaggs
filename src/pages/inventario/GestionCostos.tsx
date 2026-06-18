@@ -256,6 +256,10 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
 
   async function handleFileSelected(tipo: string, file: File) {
     if (!userId) return;
+    const lowerName = file.name.toLowerCase();
+    if (lowerName.endsWith(".csv") || lowerName.endsWith(".pdf")) {
+      toast.warning("Los archivos CSV se procesarán como tabla. Para PDFs, use el flujo de extracción IA en Pedidos.");
+    }
     setProcesandoTipo(tipo);
     try {
       const tipoDef = TIPOS_ARCHIVO.find(t => t.value === tipo);
@@ -516,7 +520,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
                 )}
                 <input
                   type="file"
-                  accept=".xls,.xlsx"
+                  accept=".xls,.xlsx,.csv,.pdf"
                   className="hidden"
                   ref={el => { inputsRef.current[t.value] = el; }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelected(t.value, f); }}
