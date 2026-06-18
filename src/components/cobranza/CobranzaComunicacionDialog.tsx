@@ -299,7 +299,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
     if (!waMsg.trim()) { toast.error("El mensaje está vacío"); return; }
     const enlaces = await prepararEnlaces();
     const sufijoPdf = enlaces.length
-      ? `\n\n📎 Documentos (válidos 7 días):\n${enlaces.map(e => `• ${e.label}: ${e.url}`).join("\n")}`
+      ? `\n\n📎 Documentos:\n${enlaces.map(e => `• ${e.fileName || e.label}`).join("\n")}`
       : "";
     const mensajeFinal = waMsg + facturasResumenTexto() + sufijoPdf;
     await copyMessage(mensajeFinal);
@@ -340,9 +340,9 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
   const [editandoContacto, setEditandoContacto] = useState(false);
 
   /** Genera/garantiza los PDFs y devuelve enlaces firmados con validez de 7 días. */
-  async function prepararEnlaces(): Promise<{ label: string; url: string }[]> {
+  async function prepararEnlaces(): Promise<{ label: string; url: string; fileName?: string }[]> {
     if (!factura) return [];
-    const enlaces: { label: string; url: string }[] = [];
+    const enlaces: { label: string; url: string; fileName?: string }[] = [];
     const expiraSeg = 60 * 60 * 24 * 7; // 7 días
     setGenerandoEnlaces(true);
     try {
@@ -360,7 +360,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
             .from("document-files")
             .createSignedUrl(key, expiraSeg);
           if (serr) throw serr;
-          if (signed?.signedUrl) enlaces.push({ label: "Estado de cuenta", url: signed.signedUrl });
+          if (signed?.signedUrl) enlaces.push({ label: "Estado de cuenta", url: signed.signedUrl, fileName: safeName });
         } catch (e: any) {
           console.error("[prepararEnlaces] estado de cuenta", e);
           toast.error("No se pudo generar el estado de cuenta: " + (e?.message || e));
