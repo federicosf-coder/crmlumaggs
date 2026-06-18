@@ -198,10 +198,12 @@ export default function GestionCostos() {
 
 // ─── BIBLIOTECA ─────────────────────────────────────────────────
 function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; onRefresh: () => void; userId?: string }) {
-  const [uploadOpen, setUploadOpen] = useState(false);
   const [generando, setGenerando] = useState(false);
   const [progreso, setProgreso] = useState(0);
   const [progresoTexto, setProgresoTexto] = useState("");
+  const [archivosEnMemoria, setArchivosEnMemoria] = useState<Record<string, Map<string, any>>>({});
+  const [procesandoTipo, setProcesandoTipo] = useState<string | null>(null);
+  const inputsRef = useRef<Record<string, HTMLInputElement | null>>({});
 
   const archivosPorTipo = useMemo(() => {
     const m = new Map<string, any>();
@@ -214,34 +216,66 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
   }, [archivos]);
 
   const puedeGenerar = useMemo(() => {
-    for (const t of TIPOS_ARCHIVO) {
-      if ((t.categoria === "galper" || t.categoria === "lista") && archivosPorTipo.has(t.value)) return true;
-    }
-    return false;
-  }, [archivosPorTipo]);
+    return Object.keys(archivosEnMemoria).length > 0;
+  }, [archivosEnMemoria]);
 
-  async function descargarArchivoActivo(tipo: string): Promise<Map<string, any> | null> {
-    const a = archivosPorTipo.get(tipo);
-    if (!a?.storage_path) return null;
-    const { data, error } = await supabase.storage.from("inventario-archivos").download(a.storage_path);
-    if (error || !data) { console.warn("No se pudo descargar", tipo, error); return null; }
-    const file = new File([data], a.nombre_archivo || "x.xlsx");
-    try { return await parseExcelToMap(file); }
-    catch (e) { console.warn("Parse fail", tipo, e); return null; }
+  function formatFecha(iso?: string | null) {
+    if (!iso) return "";
+    try {
+      return new Date(iso).toLocaleString("es-MX", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch { return iso; }
+  }
+
+  async function handleFileSelected(tipo: string, file: File) {
+    if (!userId) return;
+    setProcesandoTipo(tipo);
+    try {
+      const tipoDef = TIPOS_ARCHIVO.find(t => t.value === tipo);
+      const map = await parseExcelToMap(file);
+      if (map.size === 0) { toast.error("No se detectaron registros válidos en el archivo"); return; }
+
+      await supabase.from("inv_archivos_referencia").update({ es_activo: false }).eq("tipo", tipo).eq("es_activo", true);
+
+      const hoy = new Date().toISOString().slice(0, 10);
+      const { error: insErr } = await supabase.from("inv_archivos_referencia").insert({
+        tipo, empresa: tipoDef?.empresa || null,
+        nombre_archivo: file.name,
+        fecha_vigencia_inicio: hoy,
+        fecha_vigencia_fin: null,
+        es_activo: true,
+        total_registros: map.size,
+        registros_procesados: map.size,
+        registros_con_error: 0,
+        estatus: "completado",
+        storage_path: null,
+        subido_por: userId,
+      });
+      if (insErr) throw insErr;
+
+      setArchivosEnMemoria(prev => ({ ...prev, [tipo]: map }));
+      toast.success(`${tipoDef?.label}: ${map.size} registros cargados`);
+      onRefresh();
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Error procesando archivo: " + (e?.message || e));
+    } finally {
+      setProcesandoTipo(null);
+      const inp = inputsRef.current[tipo];
+      if (inp) inp.value = "";
+    }
   }
 
   async function generarPropuesta() {
     if (!userId) return;
-    setGenerando(true); setProgreso(2); setProgresoTexto("Descargando archivos…");
+    if (Object.keys(archivosEnMemoria).length === 0) {
+      toast.error("Los archivos no están cargados en esta sesión. Por favor vuelve a seleccionar los archivos XLS antes de generar la propuesta.");
+      return;
+    }
+    setGenerando(true); setProgreso(5); setProgresoTexto("Preparando archivos…");
     try {
-      // 1) Descargar y parsear los archivos activos
-      const fuentes: Record<string, Map<string, any>> = {};
-      let i = 0;
-      for (const t of TIPOS_ARCHIVO) {
-        const m = await descargarArchivoActivo(t.value);
-        if (m) fuentes[t.value] = m;
-        i++; setProgreso(2 + Math.round((i / TIPOS_ARCHIVO.length) * 15));
-      }
+      // 1) Usar los archivos cargados en memoria
+      const fuentes: Record<string, Map<string, any>> = { ...archivosEnMemoria };
+      setProgreso(20);
       setProgresoTexto("Cargando catálogo de productos…");
       // 2) Cargar todos los productos con sus relaciones (marca, linea)
       const { data: productos, error: pe } = await supabase
