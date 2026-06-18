@@ -382,39 +382,51 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
       const enlaces = await prepararEnlaces();
       const fmtFecha = (f: string | null | undefined) =>
         f ? new Date(f).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
-      const enlacesHtml = enlaces.length
-        ? `<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:16px; margin:16px 0;">
-             <p style="margin:0 0 8px; font-weight:bold; color:#1e40af;">Documentos adjuntos (enlaces válidos por 7 días):</p>
-             ${enlaces.map(e => `<p style="margin:4px 0; font-size:14px;">📄 <a href="${e.url}" style="color:#1e40af;">${e.label}</a></p>`).join("")}
-           </div>`
+
+      // Obtener fecha de factura (fecha_documento) para la factura principal y las otras
+      let fechaDocPrincipal: string | null = null;
+      const otrasIds = otrasIncluidas.map((f: any) => f.id).filter(Boolean);
+      const idsToFetch = [factura.id, ...otrasIds];
+      const fechaDocMap: Record<string, string | null> = {};
+      if (idsToFetch.length > 0) {
+        const { data: docs } = await supabase
+          .from("documentos")
+          .select("id, fecha_documento")
+          .in("id", idsToFetch);
+        (docs || []).forEach((d: any) => { fechaDocMap[d.id] = d.fecha_documento; });
+        fechaDocPrincipal = fechaDocMap[factura.id] ?? null;
+      }
+
+      const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
+      const lineaFactura = (numero: string, fechaDoc: string | null, fechaVenc: string | null, total: number) =>
+        `Factura ${numero} — Fecha: ${fmtFecha(fechaDoc)} — Vence: ${fmtFecha(fechaVenc)} — Total: ${fmtMoney(total)}`;
+
+      const lineas: string[] = [];
+      if (incEstaFactura) {
+        lineas.push(lineaFactura(factura.numero_factura || "", fechaDocPrincipal, factura.fecha_vencimiento, Number(factura.total || 0)));
+      }
+      otrasIncluidas.forEach((f: any) => {
+        lineas.push(lineaFactura(f.numero_factura || "", fechaDocMap[f.id] ?? null, f.fecha_vencimiento, Number(f.total || 0)));
+      });
+
+      const facturasHtml = lineas.length
+        ? lineas.map((l) => `<p style="margin:4px 0;">${esc(l)}</p>`).join("")
         : "";
-      const cuerpoHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: #1e40af; padding: 20px; border-radius: 8px 8px 0 0; color: #fff;">
-            <h2 style="margin:0; font-size:18px;">LubriManager · Cobranza</h2>
-          </div>
-          <div style="padding: 24px; background: #f9fafb; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <div style="white-space: pre-wrap;">${(emailBody || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!)).replace(/\n/g, "<br/>")}</div>
-            ${incEstaFactura ? `
-            <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 16px 0;">
-              <p style="margin:0; font-weight:bold; color:#1e40af;">Factura ${factura.numero_factura || ""}</p>
-              <p style="margin:4px 0; font-size:14px;">Total: <strong>${fmtMoney(Number(factura.total || 0))}</strong></p>
-              ${factura.fecha_vencimiento ? `<p style="margin:4px 0; font-size:14px;">Fecha de vencimiento: ${fmtFecha(factura.fecha_vencimiento)}</p>` : ""}
-            </div>` : ""}
-            ${otrasIncluidas.length > 0 ? `
-            <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 16px 0;">
-              <p style="margin:0 0 8px; font-weight:bold; color:#1e40af;">Otras facturas pendientes:</p>
-              ${otrasIncluidas.map((f: any) => `<p style="margin:2px 0; font-size:13px;">• ${f.numero_factura || ""} — Total ${fmtMoney(Number(f.total || 0))} — vence ${fmtFecha(f.fecha_vencimiento)}</p>`).join("")}
-            </div>` : ""}
-            ${enlacesHtml}
-            <hr style="border:none; border-top:1px solid #e5e7eb; margin:20px 0;" />
-            <p style="font-size:12px; color:#9ca3af; margin:0;">
-              Este correo fue enviado por LubriManager — Lumaggs / Galsa<br/>
-              Si tiene dudas comuníquese con su ejecutivo de cuenta.
-            </p>
-          </div>
-        </div>
-      `;
+      const enlacesHtml = enlaces.length
+        ? enlaces.map((e) => `<p style="margin:4px 0;"><a href="${e.url}">${esc(e.label)}</a></p>`).join("")
+        : "";
+
+      const bodyHtml = (emailBody || "").trim()
+        ? `<div>${esc(emailBody).replace(/\n/g, "<br/>")}</div>`
+        : "";
+
+      const cuerpoHtml = [bodyHtml, facturasHtml, enlacesHtml].filter(Boolean).join("");
+
+      const textoLineas = [
+        emailBody || "",
+        lineas.join("\n"),
+        enlaces.map((e) => `${e.label}: ${e.url}`).join("\n"),
+      ].filter((s) => s && s.trim().length > 0).join("\n\n");
 
       const { data, error } = await supabase.functions.invoke("send-email", {
         body: {
