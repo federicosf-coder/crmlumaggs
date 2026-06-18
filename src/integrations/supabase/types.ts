@@ -7349,6 +7349,20 @@ export type Database = {
           full_name: string
         }[]
       }
+      get_company_contacts_for_cobranza: {
+        Args: { p_company_id: string }
+        Returns: {
+          email: string
+          email2: string
+          first_name: string
+          id: string
+          is_active: boolean
+          last_name: string
+          mobile: string
+          phone: string
+          whatsapp_phone: string
+        }[]
+      }
       get_company_metrics: {
         Args: { _company_id: string; _marca?: string }
         Returns: {
