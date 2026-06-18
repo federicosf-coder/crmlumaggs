@@ -349,7 +349,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
       if (incEstadoCuenta && factura.empresa_id) {
         try {
           const { blob, fileName } = await generateCompanyCreditoCobranzaPdfArtifact(factura.empresa_id);
-          const safeName = fileName.replace(/[^A-Za-z0-9._-]+/g, "_");
+          const safeName = fileName.replace(/[^A-Za-z0-9.:_-]+/g, "_");
           const key = `cobranza-estados-cuenta/${factura.empresa_id}/${Date.now()}-${safeName}`;
           const up = await supabase.storage
             .from("document-files")
