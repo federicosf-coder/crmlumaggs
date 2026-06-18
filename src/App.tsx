@@ -25,6 +25,8 @@ import MapeoProductos from "@/pages/inventario/MapeoProductos";
 import MinMaxInventario from "@/pages/inventario/MinMaxInventario";
 import PedidosActivos from "@/pages/inventario/PedidosActivos";
 import Restricciones from "@/pages/inventario/Restricciones";
+import Traspasos from "@/pages/inventario/Traspasos";
+import DashboardRed from "@/pages/inventario/DashboardRed";
 import PedidosSugeridos from "@/pages/inventario/pedidos/PedidosSugeridos";
 import PedidosElaborados from "@/pages/inventario/pedidos/PedidosElaborados";
 import PedidosRecibidos from "@/pages/inventario/pedidos/PedidosRecibidos";
@@ -122,6 +124,8 @@ const App = () => (
             <Route path="/inventario/minmax" element={<ProtectedRoute><MinMaxInventario /></ProtectedRoute>} />
             <Route path="/inventario/pedidos-activos" element={<ProtectedRoute><PedidosActivos /></ProtectedRoute>} />
             <Route path="/inventario/restricciones" element={<ProtectedRoute><Restricciones /></ProtectedRoute>} />
+            <Route path="/inventario/traspasos" element={<ProtectedRoute><Traspasos /></ProtectedRoute>} />
+            <Route path="/inventario/dashboard" element={<ProtectedRoute><DashboardRed /></ProtectedRoute>} />
             <Route path="/inventario/pedidos" element={<ProtectedRoute><Pedidos /></ProtectedRoute>}>
               <Route index element={<PedidosSugeridos />} />
               <Route path="sugeridos" element={<PedidosSugeridos />} />
