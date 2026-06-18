@@ -50,6 +50,8 @@ export interface ContactEditData {
   comm_tel_emp?: boolean | null;
   sede?: "mexicali" | "tijuana" | null;
   plaza_id?: string | null;
+  contacto_cobranza?: boolean | null;
+  contacto_credito?: boolean | null;
 }
 
 interface Props {
@@ -227,6 +229,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
     sede: "" as "" | "mexicali" | "tijuana",
     plaza_id: "",
     interes_ids: [] as string[],
+    contacto_cobranza: false,
+    contacto_credito: false,
   };
 
   const [form, setForm] = useState<any>(emptyForm);
@@ -274,6 +278,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
         sede: (editData.sede || "") as "" | "mexicali" | "tijuana",
         plaza_id: editData.plaza_id || "",
         interes_ids: [] as string[],
+        contacto_cobranza: !!editData.contacto_cobranza,
+        contacto_credito: !!editData.contacto_credito,
       };
       setForm(seeded);
       autosave.seed(seeded);
@@ -416,6 +422,8 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
       comm_tel_emp: form.comm_tel_emp,
       sede: form.sede || null,
       plaza_id: form.plaza_id || null,
+      contacto_cobranza: !!form.contacto_cobranza,
+      contacto_credito: !!form.contacto_credito,
     };
 
     let contactId: string;
@@ -582,6 +590,48 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
                       </div>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Crédito y Cobranza */}
+              <div className="rounded-md border p-3 space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold">Crédito y Cobranza</h4>
+                  <p className="text-xs text-muted-foreground">Identifica si este contacto es responsable de gestionar crédito o cobranza con la empresa</p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <label className="flex items-center gap-3 cursor-pointer flex-1 rounded-md border p-3 hover:bg-muted/30 transition-colors">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={!!form.contacto_cobranza}
+                        onChange={e => setBoolAndSaveNow("contacto_cobranza", e.target.checked)}
+                      />
+                      <div className="w-11 h-6 bg-muted rounded-full peer peer-checked:bg-primary transition-colors"></div>
+                      <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">Contacto de Cobranza</div>
+                      <div className="text-xs text-muted-foreground">Responsable de pagos y adeudos</div>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer flex-1 rounded-md border p-3 hover:bg-muted/30 transition-colors">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={!!form.contacto_credito}
+                        onChange={e => setBoolAndSaveNow("contacto_credito", e.target.checked)}
+                      />
+                      <div className="w-11 h-6 bg-muted rounded-full peer peer-checked:bg-primary transition-colors"></div>
+                      <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">Contacto de Crédito</div>
+                      <div className="text-xs text-muted-foreground">Responsable de trámites de crédito</div>
+                    </div>
+                  </label>
                 </div>
               </div>
 
