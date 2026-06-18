@@ -708,6 +708,7 @@ function ContactoSelector({
   const [modoVista, setModoVista] = useState<"ver" | "cambiar" | "nuevo">("ver");
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoTel, setNuevoTel] = useState("");
+  const [nuevoWa, setNuevoWa] = useState("");
   const [nuevoEmail, setNuevoEmail] = useState("");
   const [persistir, setPersistir] = useState<"empresa" | "ad_hoc">("empresa");
   const [guardando, setGuardando] = useState(false);
@@ -722,11 +723,11 @@ function ContactoSelector({
     if (persistir === "ad_hoc") {
       onAdHocContacto?.({
         nombre: nuevoNombre.trim(),
-        phone: nuevoTel.trim(),
+        phone: (nuevoWa.trim() || nuevoTel.trim()),
         email: nuevoEmail.trim(),
       });
       toast.success("Contacto temporal listo (solo este envío)");
-      setNuevoNombre(""); setNuevoTel(""); setNuevoEmail("");
+      setNuevoNombre(""); setNuevoTel(""); setNuevoWa(""); setNuevoEmail("");
       setModoVista("ver");
       return;
     }
@@ -740,6 +741,7 @@ function ContactoSelector({
       last_name,
       phone: nuevoTel || null,
       mobile: nuevoTel || null,
+      whatsapp_phone: nuevoWa || null,
       email: nuevoEmail || null,
       company_id: empresaId,
       is_active: true,
@@ -747,7 +749,7 @@ function ContactoSelector({
     setGuardando(false);
     if (error) { toast.error(`Error al crear contacto: ${error.message}`); return; }
     toast.success("Contacto creado correctamente");
-    setNuevoNombre(""); setNuevoTel(""); setNuevoEmail("");
+    setNuevoNombre(""); setNuevoTel(""); setNuevoWa(""); setNuevoEmail("");
     onAdHocContacto?.(null);
     onContactCreated?.(data.id);
     setModoVista("ver");
@@ -850,8 +852,19 @@ function ContactoSelector({
         <div className="border rounded-md p-3 space-y-2 bg-muted/10">
           <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nuevo contacto</div>
           <Input value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} placeholder="Nombre completo" className="h-9 font-light" />
-          <Input value={nuevoTel} onChange={(e) => setNuevoTel(e.target.value)} placeholder="Teléfono" className="h-9 font-light" />
-          <Input value={nuevoEmail} onChange={(e) => setNuevoEmail(e.target.value)} placeholder="Email" className="h-9 font-light" />
+          {modo === "phone" ? (
+            <>
+              <Input value={nuevoWa} onChange={(e) => setNuevoWa(e.target.value)} placeholder="WhatsApp (ej. +52 871 123 4567)" className="h-9 font-light" />
+              <Input value={nuevoTel} onChange={(e) => setNuevoTel(e.target.value)} placeholder="Teléfono (opcional)" className="h-9 font-light" />
+              <Input value={nuevoEmail} onChange={(e) => setNuevoEmail(e.target.value)} placeholder="Email (opcional)" className="h-9 font-light" />
+            </>
+          ) : (
+            <>
+              <Input value={nuevoEmail} onChange={(e) => setNuevoEmail(e.target.value)} placeholder="Email" className="h-9 font-light" />
+              <Input value={nuevoWa} onChange={(e) => setNuevoWa(e.target.value)} placeholder="WhatsApp (opcional)" className="h-9 font-light" />
+              <Input value={nuevoTel} onChange={(e) => setNuevoTel(e.target.value)} placeholder="Teléfono (opcional)" className="h-9 font-light" />
+            </>
+          )}
           <RadioGroup value={persistir} onValueChange={(v) => setPersistir(v as any)} className="grid sm:grid-cols-2 gap-2 pt-1">
             <label className="flex items-start gap-2 border rounded-md p-2 cursor-pointer hover:bg-muted/40">
               <RadioGroupItem value="empresa" className="mt-0.5" />
