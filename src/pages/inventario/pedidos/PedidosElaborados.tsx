@@ -168,9 +168,23 @@ function PedidoDetailSheet({ id, onClose }: { id: string | null; onClose: () => 
     if (d.numero_po) update.numero_po_interno = d.numero_po;
     if (d.numero_orden) update.numero_orden_proveedor = d.numero_orden;
     if (d.fecha_pedido) update.fecha_pedido = d.fecha_pedido;
-    if (d.fecha_despacho) update.fecha_despacho = d.fecha_despacho;
     if (d.total_monto) update.total_monto = d.total_monto;
     if (d.moneda) update.moneda = d.moneda;
+
+    // Cálculo de fecha_entrega_estimada según proveedor
+    if (p.proveedor === "phillips66") {
+      const base = d.fecha_pedido ? new Date(d.fecha_pedido) : new Date();
+      base.setDate(base.getDate() + 28);
+      update.fecha_entrega_estimada = base.toISOString().slice(0, 10);
+    } else {
+      // Chevron: lead time según tipo en el PO (IMP=32, NAL=14)
+      const po = String(d.numero_po || p.numero_po_interno || "").toUpperCase();
+      const dias = po.includes("IMP") ? 32 : po.includes("NAL") ? 14 : 14;
+      const base = new Date();
+      base.setDate(base.getDate() + dias);
+      update.fecha_entrega_estimada = base.toISOString().slice(0, 10);
+    }
+
     await (supabase as any).from("inv_pedidos").update(update).eq("id", p.id);
     toast.success("Datos aplicados");
     setExtracted(null);
