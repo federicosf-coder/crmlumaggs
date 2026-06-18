@@ -6,7 +6,7 @@ import {
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
   Briefcase, Zap, FolderOpen, TrendingUp,
   FileCheck, Boxes, ChevronDown, Link2,
-  Sliders,
+  Sliders, ClipboardList, ShieldAlert,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -223,6 +223,22 @@ export function AppSidebar() {
                         <NavLink to="/inventario/minmax" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <Sliders className="mr-2 h-4 w-4" />
                           {!collapsed && <span>Mín/Máx</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/inventario/pedidos-activos" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <ClipboardList className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Pedidos Activos</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/inventario/restricciones" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <ShieldAlert className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Restricciones</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
