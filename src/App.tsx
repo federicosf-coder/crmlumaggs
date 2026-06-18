@@ -28,6 +28,7 @@ import Restricciones from "@/pages/inventario/Restricciones";
 import Traspasos from "@/pages/inventario/Traspasos";
 import DashboardRed from "@/pages/inventario/DashboardRed";
 import GestionCostos from "@/pages/inventario/GestionCostos";
+import ReporteCostos from "@/pages/inventario/ReporteCostos";
 import PedidosSugeridos from "@/pages/inventario/pedidos/PedidosSugeridos";
 import PedidosElaborados from "@/pages/inventario/pedidos/PedidosElaborados";
 import PedidosRecibidos from "@/pages/inventario/pedidos/PedidosRecibidos";
@@ -128,6 +129,7 @@ const App = () => (
             <Route path="/inventario/traspasos" element={<ProtectedRoute><Traspasos /></ProtectedRoute>} />
             <Route path="/inventario/dashboard" element={<ProtectedRoute><DashboardRed /></ProtectedRoute>} />
             <Route path="/inventario/costos" element={<ProtectedRoute><GestionCostos /></ProtectedRoute>} />
+            <Route path="/inventario/reporte-costos" element={<ProtectedRoute><ReporteCostos /></ProtectedRoute>} />
             <Route path="/inventario/pedidos" element={<ProtectedRoute><Pedidos /></ProtectedRoute>}>
               <Route index element={<PedidosSugeridos />} />
               <Route path="sugeridos" element={<PedidosSugeridos />} />
