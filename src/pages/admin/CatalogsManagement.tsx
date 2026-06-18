@@ -1855,6 +1855,9 @@ function LineaMargenesTab() {
   const save = useMutation({
     mutationFn: async () => {
       const isGeneral = !form.linea_id;
+      if (isGeneral && !editingId && hasGeneral) {
+        throw new Error("Ya existe la fila General. Selecciona una Línea de Producto.");
+      }
       const payload: any = {
         linea_id: form.linea_id || null,
         nombre: (form.nombre || "").trim() || (isGeneral ? "General" : (lineas.find((l: any) => l.id === form.linea_id)?.value ?? "")),
