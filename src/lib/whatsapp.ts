@@ -63,7 +63,7 @@ export function normalizePhoneForWhatsApp(raw?: string | null): string | null {
 /** Replace {{var}} occurrences. Missing vars become "[var]" placeholder. */
 export function renderTemplate(template: string, vars: WhatsAppVariables): string {
   return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key) => {
-    const v = (vars as any)[key];
+    const v = vars[key as keyof WhatsAppVariables];
     return v != null && v !== "" ? String(v) : `[${key}]`;
   });
 }
@@ -73,24 +73,18 @@ function isMobileDevice(): boolean {
   return /android|iphone|ipad|ipod|iemobile|blackberry|opera mini/i.test(navigator.userAgent);
 }
 
-/**
- * Construye el enlace adecuado según la plataforma:
- *  - Móvil → wa.me (abre la app nativa).
- *  - Escritorio → web.whatsapp.com/send (evita el redirect a api.whatsapp.com
- *    que en algunos navegadores/redes corporativas se bloquea con
- *    ERR_BLOCKED_BY_RESPONSE).
- */
+/** Construye un enlace público de WhatsApp sin apuntar directo a web.whatsapp.com. */
 export function buildWaMeLink(phone: string, message: string): string {
   const text = encodeURIComponent(message);
-  // Usamos siempre wa.me: en algunos entornos corporativos web.whatsapp.com
-  // se bloquea con ERR_BLOCKED_BY_RESPONSE. wa.me redirige a la app/escritorio
-  // o a WhatsApp Web según corresponda sin ser bloqueado.
-  return `https://wa.me/${phone}?text=${text}`;
+  // Evitamos web.whatsapp.com porque en el preview y algunos navegadores se bloquea
+  // al abrirlo en otra pestaña. api.whatsapp.com muestra el puente oficial y deja
+  // continuar hacia app/desktop/web sin cargar web.whatsapp.com como primer destino.
+  return `https://api.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=${text}&type=phone_number&app_absent=0`;
 }
 
 /** Open WhatsApp Web/App in a new tab. */
 export function openWhatsApp(phone: string, message: string) {
-  window.open(buildWaMeLink(phone, message), "_blank", "noopener");
+  window.open(buildWaMeLink(phone, message), "_blank", "noopener,noreferrer");
 }
 
 /** Copy message to clipboard. */
@@ -143,7 +137,7 @@ export async function logWhatsAppActivity(params: {
     wa_message_id: params.wa_message_id ?? null,
     wa_conversation_id: params.wa_conversation_id ?? null,
   };
-  const { error } = await supabase.from("crm_activities").insert(payload as any);
+  const { error } = await supabase.from("crm_activities").insert(payload as never);
   // No bloquear el envío si falla el registro: solo log + warning.
   if (error) {
     console.warn("[whatsapp] log activity failed (no se bloquea el envío)", error);
