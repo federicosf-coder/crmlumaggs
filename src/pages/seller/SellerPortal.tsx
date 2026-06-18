@@ -214,11 +214,19 @@ export default function SellerPortal() {
       // específica esté a nombre de otro ejecutivo.
       let empresaIdsAsignadas: string[] | null = null;
       if (uIds) {
-        const { data: ce } = await supabase
-          .from("company_ejecutivos")
-          .select("company_id")
-          .in("user_id", uIds);
-        empresaIdsAsignadas = Array.from(new Set((ce || []).map((r: any) => r.company_id).filter(Boolean)));
+        const [ceRes, docsCompRes] = await Promise.all([
+          supabase.from("company_ejecutivos").select("company_id").in("user_id", uIds),
+          supabase
+            .from("documentos")
+            .select("empresa_id")
+            .eq("is_active", true)
+            .or(`ejecutivo_venta_id.in.(${uIds.join(",")}),created_by.in.(${uIds.join(",")})`)
+            .limit(10000),
+        ]);
+        const set = new Set<string>();
+        (ceRes.data || []).forEach((r: any) => { if (r.company_id) set.add(r.company_id); });
+        (docsCompRes.data || []).forEach((r: any) => { if (r.empresa_id) set.add(r.empresa_id); });
+        empresaIdsAsignadas = Array.from(set);
       }
       const empresasInList = empresaIdsAsignadas && empresaIdsAsignadas.length
         ? `(${empresaIdsAsignadas.join(",")})`
