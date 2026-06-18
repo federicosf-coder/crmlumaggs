@@ -56,10 +56,7 @@ interface ParsedInventario {
 }
 
 function parseInventario(rows: any[][]): ParsedInventario {
-  const a4 = String(rows[3]?.[0] ?? "");
-  const mRange = a4.match(/Del:\s*([\d\/A-Za-z]+)\s+Al:\s*([\d\/A-Za-z]+)/i);
-  const fechaInicio = mRange ? normContpaqiDate(mRange[1]) : null;
-  const fechaFin = mRange ? normContpaqiDate(mRange[2]) : null;
+  const { fechaInicio, fechaFin } = buscarRangoFechas(rows);
 
   const lineas: ParsedLinea[] = [];
   const skus = new Set<string>();
@@ -71,8 +68,9 @@ function parseInventario(rows: any[][]): ParsedInventario {
     const row = rows[i] || [];
     const c0 = String(row[0] ?? "").trim();
 
-    if (/^Almac[eé]n:/i.test(c0)) {
-      const codeRaw = row[1];
+    if (/^Almac[eé]n/i.test(c0)) {
+      const mInline = c0.match(/:\s*(\d+)/);
+      const codeRaw = mInline ? mInline[1] : row[1];
       const code = typeof codeRaw === "number" ? String(Math.round(codeRaw)) : String(codeRaw ?? "").trim();
       curAlmacen = code;
       almacenValido = ALMACENES_VALIDOS.has(code);
