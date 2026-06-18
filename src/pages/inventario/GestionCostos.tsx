@@ -57,63 +57,80 @@ function parseExcelToMap(file: File): Promise<Map<string, { codigo: string; cost
       try {
         const data = new Uint8Array(reader.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: "array" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-        const map = new Map<string, any>();
-
-        let headerRow = -1;
-        let iCodigo = -1, iCosto = -1, iNombre = -1;
-
-        for (let r = 0; r < Math.min(10, raw.length); r++) {
-          const row = raw[r] || [];
-          let _iCodigo = -1, _iCosto = -1, _iNombre = -1;
-          for (let c = 0; c < row.length; c++) {
-            const cell = String(row[c] ?? "").toLowerCase().trim();
-            if (cell === "codigo" || cell === "código" || cell === "sku" || cell === "clave" || cell === "code") _iCodigo = c;
-            if (cell.includes("costo") || cell === "precio" || cell === "importe" || cell === "price") _iCosto = c;
-            if (cell.includes("nombre") || cell.includes("descripcion") || cell.includes("descripción") || cell.includes("producto") || cell === "name" || cell.includes("product")) _iNombre = c;
-          }
-          if (_iCodigo >= 0 && _iCosto >= 0) {
-            headerRow = r; iCodigo = _iCodigo; iCosto = _iCosto; iNombre = _iNombre;
-            break;
-          }
+        let mejorMapa = new Map<string, any>();
+        for (const sheetName of wb.SheetNames) {
+          const ws = wb.Sheets[sheetName];
+          const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+          const mapaHoja = intentarParsearHoja(raw);
+          if (mapaHoja.size > mejorMapa.size) mejorMapa = mapaHoja;
         }
-
-        if (headerRow >= 0) {
-          for (let r = headerRow + 1; r < raw.length; r++) {
-            const row = raw[r] || [];
-            const codigoRaw = row[iCodigo];
-            const costoRaw = row[iCosto];
-            if (codigoRaw == null || costoRaw == null) continue;
-            const codigo = typeof codigoRaw === "number" ? String(Math.round(codigoRaw)) : String(codigoRaw).trim();
-            const costo = Number(String(costoRaw).replace(/[^0-9.\-]/g, ""));
-            if (!codigo || !isFinite(costo) || costo <= 0) continue;
-            const nombre = iNombre >= 0 ? String(row[iNombre] ?? "").trim() : undefined;
-            map.set(codigo, { codigo, costo, nombre });
-          }
-        } else {
-          for (const row of raw) {
-            if (!row || row.length < 2) continue;
-            const codigoRaw = row[0];
-            if (codigoRaw == null) continue;
-            const codigoStr = typeof codigoRaw === "number" ? String(Math.round(codigoRaw)) : String(codigoRaw).trim();
-            if (!/^[A-Za-z0-9]{6,12}$/.test(codigoStr)) continue;
-            const nombre = String(row[1] ?? "").trim();
-            let costo = 0;
-            for (let c = 2; c <= Math.min(8, row.length - 1); c++) {
-              const v = Number(String(row[c] ?? "").replace(/[^0-9.\-]/g, ""));
-              if (isFinite(v) && v > 0) { costo = v; break; }
-            }
-            if (!costo) continue;
-            map.set(codigoStr, { codigo: codigoStr, costo, nombre: nombre || undefined });
-          }
-        }
-
-        resolve(map);
+        resolve(mejorMapa);
       } catch (e) { reject(e); }
     };
     reader.readAsArrayBuffer(file);
   });
+}
+
+function intentarParsearHoja(raw: any[][]): Map<string, { codigo: string; costo: number; nombre?: string; fecha?: string }> {
+  const map = new Map<string, any>();
+  let headerRow = -1;
+  let iCodigo = -1, iCosto = -1, iNombre = -1;
+
+  for (let r = 0; r < Math.min(15, raw.length); r++) {
+    const row = raw[r] || [];
+    let _iCodigo = -1, _iCosto = -1, _iNombre = -1;
+    for (let c = 0; c < row.length; c++) {
+      const cell = String(row[c] ?? "").toLowerCase().trim();
+      if (cell === "codigo" || cell === "código" || cell === "sku" || cell === "clave" || cell === "code" || cell === "item" || cell === "material") _iCodigo = c;
+      if (
+        cell.includes("precio por empaque") ||
+        cell.includes("precio por uom") ||
+        cell.includes("proposed price") ||
+        cell.includes("net price") ||
+        cell.includes("unit price") ||
+        cell.includes("costo") ||
+        cell === "precio" ||
+        cell === "importe" ||
+        cell === "price"
+      ) _iCosto = c;
+      if (cell.includes("nombre") || cell.includes("descripcion") || cell.includes("descripción") || cell.includes("producto") || cell === "name" || cell.includes("product")) _iNombre = c;
+    }
+    if (_iCodigo >= 0 && _iCosto >= 0) {
+      headerRow = r; iCodigo = _iCodigo; iCosto = _iCosto; iNombre = _iNombre;
+      break;
+    }
+  }
+
+  if (headerRow >= 0) {
+    for (let r = headerRow + 1; r < raw.length; r++) {
+      const row = raw[r] || [];
+      const codigoRaw = row[iCodigo];
+      const costoRaw = row[iCosto];
+      if (codigoRaw == null || costoRaw == null) continue;
+      const codigo = typeof codigoRaw === "number" ? String(Math.round(codigoRaw)) : String(codigoRaw).trim();
+      const costo = Number(String(costoRaw).replace(/[^0-9.\-]/g, ""));
+      if (!codigo || !isFinite(costo) || costo <= 0) continue;
+      const nombre = iNombre >= 0 ? String(row[iNombre] ?? "").trim() : undefined;
+      map.set(codigo, { codigo, costo, nombre });
+    }
+  } else {
+    for (const row of raw) {
+      if (!row || row.length < 2) continue;
+      const codigoRaw = row[0];
+      if (codigoRaw == null) continue;
+      const codigoStr = typeof codigoRaw === "number" ? String(Math.round(codigoRaw)) : String(codigoRaw).trim();
+      if (!/^[A-Za-z0-9]{5,15}$/.test(codigoStr)) continue;
+      const nombre = String(row[1] ?? "").trim();
+      let costo = 0;
+      for (let c = 2; c <= Math.min(8, row.length - 1); c++) {
+        const v = Number(String(row[c] ?? "").replace(/[^0-9.\-]/g, ""));
+        if (isFinite(v) && v > 0) { costo = v; break; }
+      }
+      if (!costo) continue;
+      map.set(codigoStr, { codigo: codigoStr, costo, nombre: nombre || undefined });
+    }
+  }
+  return map;
 }
 
 // ─── Componente principal ───────────────────────────────────────
