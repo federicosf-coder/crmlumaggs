@@ -1195,6 +1195,7 @@ function ProductosTab() {
 
 // ─── Main Page ───────────────────────────────────────────────
 export default function ProductCatalog() {
+  // placeholder anchor
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   return (
