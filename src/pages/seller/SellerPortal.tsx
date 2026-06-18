@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { format, startOfDay, endOfDay, parseISO, addDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Users, Activity, TrendingUp, ListChecks, Package, Pencil, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, Search, Layers, List, CornerDownRight, ChevronRight, ChevronDown } from "lucide-react";
+import { CalendarIcon, CheckCircle2, Clock, AlertCircle, FileText, ShoppingCart, Receipt, Wallet, UserPlus, RefreshCw, Plus, Download, ExternalLink, Target, AlertTriangle, CalendarClock, MessageCircle, Mail, Users, Activity, TrendingUp, ListChecks, Package, Pencil, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, Search, Layers, List, CornerDownRight, ChevronRight, ChevronDown } from "lucide-react";
+import { CobranzaComunicacionDialog } from "@/components/cobranza/CobranzaComunicacionDialog";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase: any = _supabaseTyped;
@@ -74,6 +75,11 @@ export default function SellerPortal() {
   const [seguimientoRows, setSeguimientoRows] = useState<any[]>([]);
   const [convertidosPeriodo, setConvertidosPeriodo] = useState<number>(0);
   const [bucketActivo, setBucketActivo] = useState<"vencidas" | "1-5" | "6-10" | "11-20" | "21-30" | null>(null);
+
+  // Dialog de comunicación de cobranza
+  const [cobranzaFactura, setCobranzaFactura] = useState<any | null>(null);
+  const [cobranzaTab, setCobranzaTab] = useState<"whatsapp" | "email">("whatsapp");
+  const [cobranzaOpen, setCobranzaOpen] = useState(false);
 
   // Límites de visualización + paginación por lista (10 / 25 / 50 / "all")
   type PageLimit = "10" | "25" | "50" | "all";
@@ -1534,13 +1540,22 @@ export default function SellerPortal() {
                               <Button size="sm" variant="ghost" title="Abrir factura" onClick={() => window.open(`/documents/${f.id}`, "_blank")}>
                                 <ExternalLink className="h-3.5 w-3.5" />
                               </Button>
-                              {waUrl ? (
-                                <Button size="sm" variant="ghost" asChild title="Enviar WhatsApp">
-                                  <a href={waUrl} target="_blank" rel="noopener noreferrer"><MessageCircle className="h-3.5 w-3.5 text-green-600" /></a>
-                                </Button>
-                              ) : (
-                                <Button size="sm" variant="ghost" disabled title="Sin WhatsApp"><MessageCircle className="h-3.5 w-3.5 text-muted-foreground" /></Button>
-                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                title="Comunicar por WhatsApp"
+                                onClick={() => { setCobranzaFactura(f); setCobranzaTab("whatsapp"); setCobranzaOpen(true); }}
+                              >
+                                <MessageCircle className="h-3.5 w-3.5 text-green-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                title="Comunicar por correo"
+                                onClick={() => { setCobranzaFactura(f); setCobranzaTab("email"); setCobranzaOpen(true); }}
+                              >
+                                <Mail className="h-3.5 w-3.5 text-blue-600" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
@@ -1565,6 +1580,14 @@ export default function SellerPortal() {
             fetchData();
           }
         }}
+      />
+
+      <CobranzaComunicacionDialog
+        factura={cobranzaFactura}
+        empresaNombre={cobranzaFactura ? companyMap[cobranzaFactura.empresa_id] : undefined}
+        open={cobranzaOpen}
+        onOpenChange={(o) => { setCobranzaOpen(o); if (!o) setCobranzaFactura(null); }}
+        defaultTab={cobranzaTab}
       />
 
       <CrmActivityDetailDialog
