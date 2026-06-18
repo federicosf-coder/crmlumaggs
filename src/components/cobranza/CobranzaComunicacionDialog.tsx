@@ -509,6 +509,11 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
                   queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
                 }}
                 onEditContacto={() => setEditandoContacto(true)}
+                adHocContacto={adHocContacto}
+                onAdHocContacto={(c) => {
+                  setAdHocContacto(c);
+                  if (c?.phone) setTelefonoManual(c.phone);
+                }}
               />
 
               <DocumentosSection
@@ -581,6 +586,11 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
                   queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
                 }}
                 onEditContacto={() => setEditandoContacto(true)}
+                adHocContacto={adHocContacto}
+                onAdHocContacto={(c) => {
+                  setAdHocContacto(c);
+                  if (c?.email) setEmailTo(c.email);
+                }}
               />
               <section className="grid sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
