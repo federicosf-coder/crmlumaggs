@@ -327,7 +327,7 @@ export default function DashboardRed() {
                 <Th>Spoke</Th>
                 <Th className="text-right">Stock spoke</Th>
                 <Th className="text-right">Diferencia</Th>
-                <Th></Th>
+                <Th>{" "}</Th>
               </TableRow>
             </TableHeader>
             <TableBody>
