@@ -110,8 +110,13 @@ export async function generateCotizacionPdfArtifact(documentoId: string): Promis
 export async function generateCompanyCreditoCobranzaPdfArtifact(companyId: string): Promise<{ blob: Blob; fileName: string }> {
   const data = await buildCompanyCreditoCobranzaData(companyId);
   const blob = generateCompanyCreditoCobranzaPdfBlob(data);
-  const clean = data.empresaNombre.replace(/[^A-Za-z0-9 ]+/g, "").trim().replace(/\s+/g, "_");
-  return { blob, fileName: `Credito_Cobranza_${clean}_${new Date().toISOString().slice(0, 10)}.pdf` };
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mo = String(now.getMonth() + 1).padStart(2, "0");
+  const aaaa = now.getFullYear();
+  return { blob, fileName: `Estado_de_cuenta_${hh}:${mm}_${dd}-${mo}-${aaaa}.pdf` };
 }
 
 /** Sube el blob generado al bucket de adjuntos y registra la fila en template_attachments. */
