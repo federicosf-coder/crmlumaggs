@@ -1993,6 +1993,13 @@ function LineaMargenesTab() {
                     ))}
                   </SelectContent>
                 </Select>
+                {lineasDisponibles.length === 0 && (
+                  <p className="text-[11px] text-amber-600 mt-1 font-light">
+                    {lineas.length === 0
+                      ? "No hay Líneas de Producto activas. Crea una en el catálogo \"Líneas de Producto\"."
+                      : "Todas las Líneas ya tienen márgenes asignados. Edita uno existente o crea una nueva Línea en su catálogo."}
+                  </p>
+                )}
               </div>
               <div className="flex items-end gap-2">
                 <Switch checked={form.activo} onCheckedChange={v => setForm({ ...form, activo: v })} />
