@@ -22,6 +22,7 @@ import NivelesInventario from "@/pages/inventario/NivelesInventario";
 import KardexCarga from "@/pages/inventario/KardexCarga";
 import Pedidos from "@/pages/inventario/Pedidos";
 import MapeoProductos from "@/pages/inventario/MapeoProductos";
+import MinMaxInventario from "@/pages/inventario/MinMaxInventario";
 import PedidosSugeridos from "@/pages/inventario/pedidos/PedidosSugeridos";
 import PedidosElaborados from "@/pages/inventario/pedidos/PedidosElaborados";
 import PedidosRecibidos from "@/pages/inventario/pedidos/PedidosRecibidos";
