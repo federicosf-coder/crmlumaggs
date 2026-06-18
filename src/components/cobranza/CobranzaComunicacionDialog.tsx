@@ -285,15 +285,67 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
     }
   };
 
+  const [enviandoEmail, setEnviandoEmail] = useState(false);
+
   const enviarEmail = async () => {
     if (!emailTo.trim()) { toast.error("Falta el correo destinatario"); return; }
     if (!emailSubject.trim()) { toast.error("Falta el asunto"); return; }
-    await registrarActividad(
-      "email",
-      `Email preparado a ${emailTo}${emailCc ? ` (cc: ${emailCc})` : ""}. Asunto: "${emailSubject}". ${docsResumen()}`,
-    );
-    toast.success("Correo preparado. La integración de envío estará disponible próximamente.");
-    onOpenChange(false);
+    setEnviandoEmail(true);
+    try {
+      const fmtFecha = (f: string | null | undefined) =>
+        f ? new Date(f).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+      const cuerpoHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: #1e40af; padding: 20px; border-radius: 8px 8px 0 0; color: #fff;">
+            <h2 style="margin:0; font-size:18px;">LubriManager · Cobranza</h2>
+          </div>
+          <div style="padding: 24px; background: #f9fafb; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            <div style="white-space: pre-wrap;">${(emailBody || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!)).replace(/\n/g, "<br/>")}</div>
+            ${incEstaFactura ? `
+            <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 16px 0;">
+              <p style="margin:0; font-weight:bold; color:#1e40af;">Factura ${factura.numero_factura || ""}</p>
+              <p style="margin:4px 0; font-size:14px;">Saldo pendiente: <strong style="color:#dc2626;">${fmtMoney(Number(factura.saldo_pendiente_cobranza || 0))}</strong></p>
+              ${factura.fecha_vencimiento ? `<p style="margin:4px 0; font-size:14px;">Fecha de vencimiento: ${fmtFecha(factura.fecha_vencimiento)}</p>` : ""}
+            </div>` : ""}
+            ${otrasIncluidas.length > 0 ? `
+            <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 16px 0;">
+              <p style="margin:0 0 8px; font-weight:bold; color:#1e40af;">Otras facturas pendientes:</p>
+              ${otrasIncluidas.map((f: any) => `<p style="margin:2px 0; font-size:13px;">• ${f.numero_factura || ""} — ${fmtMoney(Number(f.saldo_pendiente_cobranza || 0))} — vence ${fmtFecha(f.fecha_vencimiento)}</p>`).join("")}
+            </div>` : ""}
+            ${incEstadoCuenta ? `<p style="font-size:12px; color:#6b7280;">* Su estado de cuenta está disponible a solicitud con su ejecutivo de cuenta.</p>` : ""}
+            <hr style="border:none; border-top:1px solid #e5e7eb; margin:20px 0;" />
+            <p style="font-size:12px; color:#9ca3af; margin:0;">
+              Este correo fue enviado por LubriManager — Lumaggs / Galsa<br/>
+              Si tiene dudas comuníquese con su ejecutivo de cuenta.
+            </p>
+          </div>
+        </div>
+      `;
+
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: emailTo.trim(),
+          cc: emailCc.trim() || undefined,
+          subject: emailSubject,
+          html: cuerpoHtml,
+          text: emailBody,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      await registrarActividad(
+        "email",
+        `Email enviado a ${emailTo}${emailCc ? ` (cc: ${emailCc})` : ""}. Asunto: "${emailSubject}". ${docsResumen()}`,
+      );
+      toast.success(`Correo enviado correctamente a ${emailTo}`);
+      onOpenChange(false);
+    } catch (e: any) {
+      console.error("Error enviando email:", e);
+      toast.error("Error al enviar: " + (e?.message || "Verifica la configuración de Resend"));
+    } finally {
+      setEnviandoEmail(false);
+    }
   };
 
   if (!factura) return null;
@@ -492,8 +544,8 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
             </Button>
           )}
           {tab === "email" && (
-            <Button onClick={enviarEmail}>
-              <Mail className="h-4 w-4 mr-1.5" /> Enviar correo
+            <Button onClick={enviarEmail} disabled={enviandoEmail}>
+              <Mail className="h-4 w-4 mr-1.5" /> {enviandoEmail ? "Enviando…" : "Enviar correo"}
             </Button>
           )}
         </div>
