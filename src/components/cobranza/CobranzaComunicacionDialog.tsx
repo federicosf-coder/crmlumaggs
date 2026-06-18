@@ -499,6 +499,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
                   setContactoId(id);
                   queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
                 }}
+                onEditContacto={() => setEditandoContacto(true)}
               />
 
               <DocumentosSection
@@ -570,6 +571,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
                   setContactoId(id);
                   queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
                 }}
+                onEditContacto={() => setEditandoContacto(true)}
               />
               <section className="grid sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -619,8 +621,8 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
         <div className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           {tab === "whatsapp" && waMetodo === "local" && (
-            <Button onClick={enviarWaLocal} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              <ExternalLink className="h-4 w-4 mr-1.5" /> Abrir WhatsApp
+            <Button onClick={enviarWaLocal} disabled={generandoEnlaces} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <ExternalLink className="h-4 w-4 mr-1.5" /> {generandoEnlaces ? "Generando…" : "Abrir WhatsApp"}
             </Button>
           )}
           {tab === "whatsapp" && waMetodo === "api" && (
@@ -629,12 +631,36 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
             </Button>
           )}
           {tab === "email" && (
-            <Button onClick={enviarEmail} disabled={enviandoEmail}>
-              <Mail className="h-4 w-4 mr-1.5" /> {enviandoEmail ? "Enviando…" : "Enviar correo"}
+            <Button onClick={enviarEmail} disabled={enviandoEmail || generandoEnlaces}>
+              <Mail className="h-4 w-4 mr-1.5" /> {enviandoEmail || generandoEnlaces ? "Enviando…" : "Enviar correo"}
             </Button>
           )}
         </div>
       </DialogContent>
+      {editandoContacto && contactoSel && (
+        <ContactFormDialog
+          open={editandoContacto}
+          onOpenChange={setEditandoContacto}
+          editData={{
+            id: contactoSel.id,
+            first_name: contactoSel.first_name || "",
+            last_name: contactoSel.last_name || "",
+            email: contactoSel.email || null,
+            email2: contactoSel.email2 || null,
+            phone: contactoSel.phone || null,
+            mobile: contactoSel.mobile || null,
+            whatsapp_phone: contactoSel.whatsapp_phone || null,
+            job_title: null,
+            department: null,
+            company_id: factura.empresa_id,
+            notes: null,
+          } as ContactEditData}
+          onCreated={() => {
+            queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
+            setEditandoContacto(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 }
