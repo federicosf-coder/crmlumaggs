@@ -1,0 +1,775 @@
+import { useRef, useState } from "react";
+import * as XLSX from "xlsx";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FileSpreadsheet, CheckCircle2, AlertCircle, Package, DollarSign, Activity, Coins, Upload } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useKardexCargas } from "@/hooks/useInventario";
+import { useAuth } from "@/contexts/AuthContext";
+
+type TipoArchivo = "inventario_unidades" | "inventario_importe" | "kardex_unidades" | "kardex_importe";
+
+const ALMACENES_VALIDOS = new Set(["1001", "1002", "1003", "1004"]);
+
+const MESES_ES: Record<string, string> = {
+  ENE: "01", FEB: "02", MAR: "03", ABR: "04", MAY: "05", JUN: "06",
+  JUL: "07", AGO: "08", SEP: "09", OCT: "10", NOV: "11", DIC: "12",
+};
+
+function normContpaqiDate(s: string): string {
+  const m = String(s).trim().toUpperCase().match(/^(\d{1,2})\/([A-Z]{3})\/(\d{4})$/);
+  if (!m) return "";
+  const mes = MESES_ES[m[2]];
+  if (!mes) return "";
+  return `${m[3]}-${mes}-${m[1].padStart(2, "0")}`;
+}
+
+function normalizeCodigo(v: any): string {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "number") return String(Math.round(v));
+  return String(v).trim();
+}
+
+interface ParsedLinea {
+  codigo: string;
+  nombre: string;
+  almacen: string;
+  existencia: number;
+  entradas: number;
+  salidas: number;
+  inicial: number;
+}
+
+interface ParsedInventario {
+  lineas: ParsedLinea[];
+  fechaInicio: string | null;
+  fechaFin: string | null;
+  skuCount: number;
+  warehousesEncontrados: string[];
+}
+
+function parseInventario(rows: any[][]): ParsedInventario {
+  const a4 = String(rows[3]?.[0] ?? "");
+  const mRange = a4.match(/Del:\s*([\d\/A-Za-z]+)\s+Al:\s*([\d\/A-Za-z]+)/i);
+  const fechaInicio = mRange ? normContpaqiDate(mRange[1]) : null;
+  const fechaFin = mRange ? normContpaqiDate(mRange[2]) : null;
+
+  const lineas: ParsedLinea[] = [];
+  const skus = new Set<string>();
+  const warehouses = new Set<string>();
+  let curAlmacen: string | null = null;
+  let almacenValido = false;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i] || [];
+    const c0 = String(row[0] ?? "").trim();
+
+    if (/^Almac[eé]n:/i.test(c0)) {
+      const codeRaw = row[1];
+      const code = typeof codeRaw === "number" ? String(Math.round(codeRaw)) : String(codeRaw ?? "").trim();
+      curAlmacen = code;
+      almacenValido = ALMACENES_VALIDOS.has(code);
+      if (almacenValido) warehouses.add(code);
+      continue;
+    }
+    if (/^Nombre:/i.test(c0)) continue;
+    if (!curAlmacen || !almacenValido) continue;
+
+    const codigo = normalizeCodigo(row[0]);
+    const nombre = String(row[1] ?? "").trim();
+    if (!codigo || !nombre) continue;
+    if (/^c[oó]digo/i.test(codigo) || /^total/i.test(codigo)) continue;
+
+    const inicial = Number(row[3]) || 0;
+    const entradas = Number(row[4]) || 0;
+    const salidas = Number(row[5]) || 0;
+    const existencia = Number(row[6]) || 0;
+
+    lineas.push({ codigo, nombre, almacen: curAlmacen, existencia, entradas, salidas, inicial });
+    skus.add(codigo);
+  }
+
+  return {
+    lineas,
+    fechaInicio,
+    fechaFin,
+    skuCount: skus.size,
+    warehousesEncontrados: Array.from(warehouses).sort(),
+  };
+}
+
+// ============================================================
+// Parser específico para Kardex en Unidades (movimientos detallados)
+// ============================================================
+interface MovimientoKardex {
+  codigo: string;
+  nombre: string;
+  almacen: string;
+  plaza: string | null; // 1001..1004 si es facturación a esa plaza
+  fecha: string;
+  concepto: string;
+  salidas: number;
+  entradas: number;
+}
+
+interface ParsedKardex {
+  movimientos: MovimientoKardex[];
+  fechaInicio: string | null;
+  fechaFin: string | null;
+  skuCount: number;
+}
+
+function detectarPlaza(concepto: string): string | null {
+  const c = concepto.toLowerCase();
+  if (!c.includes("facturaci")) return null;
+  if (c.includes("tijuana")) return "1002";
+  if (c.includes("mexicali")) return "1001";
+  if (c.includes("morelos")) return "1003";
+  if (c.includes("ensenada")) return "1004";
+  return null;
+}
+
+function parseKardexMovimientos(rows: any[][]): ParsedKardex {
+  const a4 = String(rows[3]?.[0] ?? "");
+  const mRange = a4.match(/Del:\s*([\d\/A-Za-z]+)\s+Al:\s*([\d\/A-Za-z]+)/i);
+  const fechaInicio = mRange ? normContpaqiDate(mRange[1]) : null;
+  const fechaFin = mRange ? normContpaqiDate(mRange[2]) : null;
+
+  const movimientos: MovimientoKardex[] = [];
+  const skus = new Set<string>();
+  let curCodigo: string | null = null;
+  let curNombre = "";
+  let curAlmacen: string | null = null;
+  let almacenValido = false;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i] || [];
+    const c0 = String(row[0] ?? "").trim();
+
+    // Cambio de almacén
+    if (/^Almac[eé]n:/i.test(c0)) {
+      const codeRaw = row[1];
+      const code = typeof codeRaw === "number" ? String(Math.round(codeRaw)) : String(codeRaw ?? "").trim();
+      curAlmacen = code;
+      almacenValido = ALMACENES_VALIDOS.has(code);
+      continue;
+    }
+    // Cambio de producto explícito
+    if (/^Producto:/i.test(c0)) {
+      const codeRaw = row[1];
+      curCodigo = typeof codeRaw === "number" ? String(Math.round(codeRaw)) : String(codeRaw ?? "").trim();
+      curNombre = String(row[2] ?? "").trim();
+      if (curCodigo) skus.add(curCodigo);
+      continue;
+    }
+    // Línea cabecera de SKU al estilo del kardex (código en col 0, nombre en col 1)
+    // Pero hay que distinguir de filas de movimiento. Si col[1] es fecha CONTPAQi -> es movimiento.
+    if (/^Nombre:/i.test(c0)) continue;
+    if (!curAlmacen || !almacenValido) continue;
+
+    // Intentar detectar fecha en col[1]
+    const c1 = String(row[1] ?? "").trim();
+    const esFecha = /^\d{1,2}\/[A-Za-z]{3}\/\d{4}$/.test(c1);
+
+    if (!esFecha) {
+      // Puede ser fila de cabecera de SKU: código en col[0] no numérico-fecha y nombre en col[1]
+      const codigo = normalizeCodigo(row[0]);
+      const nombre = c1;
+      if (codigo && nombre && !/^c[oó]digo/i.test(codigo) && !/^total/i.test(codigo)) {
+        curCodigo = codigo;
+        curNombre = nombre;
+        skus.add(codigo);
+      }
+      continue;
+    }
+
+    if (!curCodigo) continue;
+    const fechaIso = normContpaqiDate(c1);
+    if (!fechaIso) continue;
+
+    // Concepto: probar col[4] primero, luego col[7], luego col[3]
+    const conceptoCandidates = [row[4], row[7], row[3], row[2]].map((v) => String(v ?? "").trim());
+    const concepto = conceptoCandidates.find((s) => /facturaci|traspaso|compra|devoluci|ajuste|venta/i.test(s)) || conceptoCandidates[0] || "";
+
+    // Entradas/Salidas: heurística — buscar primero un par de números
+    const entradas = Number(row[5]) || Number(row[4]) || 0;
+    const salidas = Number(row[6]) || Number(row[7]) || 0;
+
+    const plaza = detectarPlaza(concepto);
+
+    movimientos.push({
+      codigo: curCodigo,
+      nombre: curNombre,
+      almacen: curAlmacen,
+      plaza,
+      fecha: fechaIso,
+      concepto,
+      salidas: salidas > 0 ? salidas : 0,
+      entradas: entradas > 0 ? entradas : 0,
+    });
+  }
+
+  return { movimientos, fechaInicio, fechaFin, skuCount: skus.size };
+}
+
+// ============================================================
+// Configuración de los 4 tipos de archivo
+// ============================================================
+const TIPOS: { key: TipoArchivo; titulo: string; descripcion: string; icon: any; color: string }[] = [
+  {
+    key: "inventario_unidades",
+    titulo: "Inventario en Unidades",
+    descripcion: "Stock final por almacén. Actualiza existencias en niveles de inventario.",
+    icon: Package,
+    color: "text-blue-600",
+  },
+  {
+    key: "inventario_importe",
+    titulo: "Inventario en Importe",
+    descripcion: "Valor monetario del inventario. Actualiza costo promedio y valor total.",
+    icon: DollarSign,
+    color: "text-emerald-600",
+  },
+  {
+    key: "kardex_unidades",
+    titulo: "Kárdex en Unidades",
+    descripcion: "Movimientos detallados. Calcula demanda por plaza y recalcula mín/máx.",
+    icon: Activity,
+    color: "text-violet-600",
+  },
+  {
+    key: "kardex_importe",
+    titulo: "Kárdex en Importe",
+    descripcion: "Referencia histórica de movimientos en pesos.",
+    icon: Coins,
+    color: "text-amber-600",
+  },
+];
+
+const TIPO_LABEL: Record<string, string> = {
+  inventario_unidades: "Inventario Unidades",
+  inventario_importe: "Inventario Importe",
+  kardex_unidades: "Kárdex Unidades",
+  kardex_importe: "Kárdex Importe",
+  unidades: "Inventario Unidades",
+  valorizado: "Inventario Importe",
+};
+
+export default function KardexCarga() {
+  const { data: cargas = [] } = useKardexCargas();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [empresa, setEmpresa] = useState<string>("lumaggs");
+
+  const { data: ultimasCargas } = useQuery({
+    queryKey: ["inv_kardex_cargas_ultimas"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("inv_kardex_cargas")
+        .select("tipo, created_at, total_skus_procesados, estatus")
+        .eq("estatus", "completado")
+        .order("created_at", { ascending: false });
+      const byTipo = new Map<string, any>();
+      for (const c of (data || [])) {
+        const key = c.tipo === "unidades" ? "inventario_unidades" : c.tipo === "valorizado" ? "inventario_importe" : c.tipo;
+        if (!byTipo.has(key)) byTipo.set(key, c);
+      }
+      return byTipo;
+    },
+    refetchInterval: 30_000,
+  });
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-light tracking-tight">Carga de Kárdex</h1>
+        <p className="text-sm text-muted-foreground">
+          Sube los 4 reportes de CONTPAQi (XLS). Cada tipo actualiza información diferente.
+          Se ignoran los almacenes 1 "Almacén Uno" y 999 "Consignación".
+        </p>
+      </div>
+
+      <Tabs defaultValue="subir">
+        <TabsList>
+          <TabsTrigger value="subir">Subir archivos</TabsTrigger>
+          <TabsTrigger value="historial">Historial</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="subir" className="space-y-4">
+          <div className="flex items-center gap-3">
+            <label className="text-xs uppercase tracking-wide text-muted-foreground">Empresa</label>
+            <Select value={empresa} onValueChange={setEmpresa}>
+              <SelectTrigger className="w-[240px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="lumaggs">Lumaggs — Chevron</SelectItem>
+                <SelectItem value="galsa">Galsa — Phillips 66</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {TIPOS.map((t) => (
+              <FileTypeCard
+                key={t.key}
+                tipo={t.key}
+                titulo={t.titulo}
+                descripcion={t.descripcion}
+                Icon={t.icon}
+                color={t.color}
+                empresa={empresa}
+                userId={user?.id ?? null}
+                ultimaCarga={ultimasCargas?.get(t.key) ?? null}
+                onDone={() => {
+                  qc.invalidateQueries({ queryKey: ["inv_kardex_cargas"] });
+                  qc.invalidateQueries({ queryKey: ["inv_kardex_cargas_ultimas"] });
+                  qc.invalidateQueries({ queryKey: ["inv_niveles_inventario"] });
+                  qc.invalidateQueries({ queryKey: ["inv_demanda_plaza"] });
+                  qc.invalidateQueries({ queryKey: ["inv_minmax"] });
+                }}
+              />
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="historial">
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+                  <TableRow>
+                    <TableHead className="uppercase tracking-wide text-xs font-medium">Fecha carga</TableHead>
+                    <TableHead className="uppercase tracking-wide text-xs font-medium">Tipo</TableHead>
+                    <TableHead className="uppercase tracking-wide text-xs font-medium">Empresa</TableHead>
+                    <TableHead className="uppercase tracking-wide text-xs font-medium">Periodo</TableHead>
+                    <TableHead className="uppercase tracking-wide text-xs font-medium">Archivo</TableHead>
+                    <TableHead className="uppercase tracking-wide text-xs font-medium text-right">Procesados</TableHead>
+                    <TableHead className="uppercase tracking-wide text-xs font-medium text-right">Actualizados</TableHead>
+                    <TableHead className="uppercase tracking-wide text-xs font-medium text-right">Errores</TableHead>
+                    <TableHead className="uppercase tracking-wide text-xs font-medium">Estatus</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cargas.map((c: any, i: number) => (
+                    <TableRow key={c.id} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                      <TableCell className="text-xs">{c.created_at ? new Date(c.created_at).toLocaleString("es-MX") : "—"}</TableCell>
+                      <TableCell><Badge variant="outline" className="uppercase">{TIPO_LABEL[c.tipo] || c.tipo}</Badge></TableCell>
+                      <TableCell>{c.empresa_vendedora === "lumaggs" ? "Lumaggs" : c.empresa_vendedora === "galsa" ? "Galsa" : c.empresa_vendedora}</TableCell>
+                      <TableCell className="text-xs">{c.fecha_inicio || "—"} → {c.fecha_archivo || "—"}</TableCell>
+                      <TableCell className="text-xs truncate max-w-[260px]">{c.nombre_archivo}</TableCell>
+                      <TableCell className="text-right">{c.total_skus_procesados ?? 0}</TableCell>
+                      <TableCell className="text-right">{c.total_skus_actualizados ?? 0}</TableCell>
+                      <TableCell className="text-right">{c.total_skus_error ?? 0}</TableCell>
+                      <TableCell><Badge variant={c.estatus === "completado" ? "default" : c.estatus === "con_errores" ? "destructive" : "secondary"}>{c.estatus}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                  {cargas.length === 0 && (
+                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sin cargas previas</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ============================================================
+// Card individual por tipo de archivo
+// ============================================================
+function FileTypeCard({
+  tipo, titulo, descripcion, Icon, color, empresa, userId, ultimaCarga, onDone,
+}: {
+  tipo: TipoArchivo;
+  titulo: string;
+  descripcion: string;
+  Icon: any;
+  color: string;
+  empresa: string;
+  userId: string | null;
+  ultimaCarga: any;
+  onDone: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [resultado, setResultado] = useState<{ ok: boolean; mensaje: string } | null>(null);
+
+  const procesar = async () => {
+    if (!file) return;
+    setProcessing(true);
+    setProgress(5);
+    setResultado(null);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array", cellDates: true });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: null });
+
+      if (tipo === "inventario_unidades" || tipo === "inventario_importe") {
+        await procesarInventario(tipo, rows, file.name, empresa, userId, setProgress);
+      } else if (tipo === "kardex_unidades") {
+        await procesarKardexUnidades(rows, file.name, empresa, userId, setProgress);
+      } else {
+        await procesarKardexImporte(rows, file.name, empresa, userId, setProgress);
+      }
+
+      setProgress(100);
+      setResultado({ ok: true, mensaje: "Archivo procesado correctamente" });
+      toast.success(`${titulo}: procesado`);
+      setFile(null);
+      if (inputRef.current) inputRef.current.value = "";
+      onDone();
+    } catch (e: any) {
+      console.error(e);
+      setResultado({ ok: false, mensaje: e?.message || "Error desconocido" });
+      toast.error("Error: " + (e?.message || ""));
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const estado = ultimaCarga ? "aldia" : "sin";
+
+  return (
+    <Card>
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className={`p-2 rounded-md bg-muted/50 ${color}`}>
+              <Icon className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-medium">{titulo}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{descripcion}</div>
+            </div>
+          </div>
+          {estado === "aldia" ? (
+            <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Al día</Badge>
+          ) : (
+            <Badge variant="secondary">Sin importar</Badge>
+          )}
+        </div>
+
+        <div className="text-xs text-muted-foreground border-t pt-2">
+          {ultimaCarga ? (
+            <>
+              Última: {new Date(ultimaCarga.created_at).toLocaleString("es-MX")} — {ultimaCarga.total_skus_procesados ?? 0} SKUs
+            </>
+          ) : (
+            <>Nunca importado</>
+          )}
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".xls,.xlsx"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) { setFile(f); setResultado(null); }
+          }}
+        />
+
+        {!file ? (
+          <Button variant="outline" className="w-full" onClick={() => inputRef.current?.click()} disabled={processing}>
+            <Upload className="h-4 w-4 mr-2" />
+            Subir archivo
+          </Button>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <FileSpreadsheet className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate flex-1">{file.name}</span>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={procesar} disabled={processing} className="flex-1">
+                {processing ? "Procesando…" : "Procesar"}
+              </Button>
+              <Button variant="ghost" onClick={() => { setFile(null); if (inputRef.current) inputRef.current.value = ""; }} disabled={processing}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {processing && <Progress value={progress} />}
+
+        {resultado && (
+          <div className={`flex items-center gap-2 text-sm pt-2 border-t ${resultado.ok ? "text-emerald-700" : "text-red-600"}`}>
+            {resultado.ok ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+            <span>{resultado.mensaje}</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================
+// Procesadores por tipo
+// ============================================================
+async function procesarInventario(
+  tipo: "inventario_unidades" | "inventario_importe",
+  rows: any[][],
+  fileName: string,
+  empresa: string,
+  userId: string | null,
+  setProgress: (n: number) => void,
+) {
+  const parsed = parseInventario(rows);
+
+  const { data: carga, error: cErr } = await (supabase as any)
+    .from("inv_kardex_cargas")
+    .insert({
+      empresa_vendedora: empresa,
+      tipo,
+      nombre_archivo: fileName,
+      fecha_archivo: parsed.fechaFin,
+      fecha_inicio: parsed.fechaInicio,
+      estatus: "procesando",
+      creado_por: userId,
+      total_skus_procesados: parsed.skuCount,
+    })
+    .select()
+    .single();
+  if (cErr) throw cErr;
+
+  setProgress(15);
+
+  const bySku = new Map<string, { nombre: string; stocks: Record<string, number>; valores: Record<string, number> }>();
+  for (const l of parsed.lineas) {
+    const e = bySku.get(l.codigo) || { nombre: l.nombre, stocks: {}, valores: {} };
+    if (tipo === "inventario_unidades") e.stocks[l.almacen] = l.existencia;
+    else e.valores[l.almacen] = l.existencia;
+    bySku.set(l.codigo, e);
+  }
+
+  const skuList = Array.from(bySku.keys());
+  const { data: existentes } = await (supabase as any)
+    .from("inv_niveles_inventario")
+    .select("codigo_producto, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total")
+    .in("codigo_producto", skuList);
+  const existMap = new Map<string, any>((existentes || []).map((r: any) => [r.codigo_producto, r]));
+
+  const upserts: any[] = [];
+  let updated = 0, created = 0;
+  for (const [codigo, e] of bySku) {
+    const ex = existMap.get(codigo);
+    const row: any = {
+      codigo_producto: codigo,
+      nombre_producto: e.nombre || null,
+      empresa_vendedora: empresa,
+      fecha_ultimo_kardex: parsed.fechaFin,
+    };
+    if (tipo === "inventario_unidades") {
+      row.stock_almacen_1001 = e.stocks["1001"] ?? 0;
+      row.stock_almacen_1002 = e.stocks["1002"] ?? 0;
+      row.stock_almacen_1003 = e.stocks["1003"] ?? 0;
+      row.stock_almacen_1004 = e.stocks["1004"] ?? 0;
+      row.stock_total = row.stock_almacen_1001 + row.stock_almacen_1002 + row.stock_almacen_1003 + row.stock_almacen_1004;
+    } else {
+      const valor = Object.values(e.valores).reduce((a, b) => a + b, 0);
+      const total = ex?.stock_total ?? 0;
+      row.valor_total_inventario = valor;
+      row.costo_promedio = total > 0 ? valor / total : null;
+    }
+    if (!ex) created++; else updated++;
+    upserts.push(row);
+  }
+
+  const batchSize = 200;
+  let errors = 0;
+  for (let i = 0; i < upserts.length; i += batchSize) {
+    const chunk = upserts.slice(i, i + batchSize);
+    const { error: upErr } = await (supabase as any)
+      .from("inv_niveles_inventario")
+      .upsert(chunk, { onConflict: "codigo_producto" });
+    if (upErr) { errors += chunk.length; console.error(upErr); }
+    setProgress(15 + Math.round(((i + chunk.length) / upserts.length) * 75));
+  }
+
+  await (supabase as any).from("inv_kardex_cargas").update({
+    estatus: errors > 0 ? "con_errores" : "completado",
+    total_skus_actualizados: updated + created,
+    total_skus_error: errors,
+  }).eq("id", carga.id);
+}
+
+async function procesarKardexUnidades(
+  rows: any[][],
+  fileName: string,
+  empresa: string,
+  userId: string | null,
+  setProgress: (n: number) => void,
+) {
+  const parsed = parseKardexMovimientos(rows);
+
+  const { data: carga, error: cErr } = await (supabase as any)
+    .from("inv_kardex_cargas")
+    .insert({
+      empresa_vendedora: empresa,
+      tipo: "kardex_unidades",
+      nombre_archivo: fileName,
+      fecha_archivo: parsed.fechaFin,
+      fecha_inicio: parsed.fechaInicio,
+      estatus: "procesando",
+      creado_por: userId,
+      total_skus_procesados: parsed.skuCount,
+    })
+    .select()
+    .single();
+  if (cErr) throw cErr;
+
+  setProgress(15);
+
+  if (!parsed.fechaInicio || !parsed.fechaFin) {
+    await (supabase as any).from("inv_kardex_cargas").update({
+      estatus: "con_errores",
+      total_skus_error: parsed.skuCount,
+    }).eq("id", carga.id);
+    throw new Error("No se pudo determinar el periodo del archivo");
+  }
+
+  const d0 = new Date(parsed.fechaInicio);
+  const d1 = new Date(parsed.fechaFin);
+  const diasPeriodo = Math.max(1, Math.round((d1.getTime() - d0.getTime()) / 86400000) + 1);
+
+  // Acumular ventas por (codigo, plaza) usando movimientos con plaza detectada
+  const ventas = new Map<string, { codigo: string; almacen: string; uds: number }>();
+  for (const m of parsed.movimientos) {
+    if (!m.plaza) continue; // ignorar traspasos y otros
+    if (!(m.salidas > 0)) continue;
+    const k = `${m.codigo}|${m.plaza}`;
+    const cur = ventas.get(k) || { codigo: m.codigo, almacen: m.plaza, uds: 0 };
+    cur.uds += m.salidas;
+    ventas.set(k, cur);
+  }
+
+  setProgress(35);
+
+  // 1) UPSERT inv_demanda_plaza
+  const batchSize = 200;
+  const demandaRows = Array.from(ventas.values()).map((v) => {
+    const ddia = v.uds / diasPeriodo;
+    return {
+      codigo_producto: v.codigo,
+      almacen: v.almacen,
+      periodo_inicio: parsed.fechaInicio,
+      periodo_fin: parsed.fechaFin,
+      dias_periodo: diasPeriodo,
+      unidades_vendidas: v.uds,
+      unidades_traspaso_salida: 0,
+      demanda_diaria_promedio: ddia,
+      demanda_mensual_promedio: ddia * 30,
+      ultima_venta: parsed.fechaFin,
+    };
+  });
+  for (let i = 0; i < demandaRows.length; i += batchSize) {
+    await (supabase as any)
+      .from("inv_demanda_plaza")
+      .upsert(demandaRows.slice(i, i + batchSize), { onConflict: "codigo_producto,almacen,periodo_inicio" });
+    setProgress(35 + Math.round(((i + batchSize) / Math.max(1, demandaRows.length)) * 25));
+  }
+
+  // 2) Recalcular inv_minmax
+  const skuListMM = Array.from(new Set(Array.from(ventas.values()).map((v) => v.codigo)));
+  const { data: niveles } = await (supabase as any)
+    .from("inv_niveles_inventario")
+    .select("codigo_producto, clasificacion_abc, lead_time_dias, piezas_por_tarima, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004")
+    .in("codigo_producto", skuListMM);
+  const nivMap = new Map<string, any>((niveles || []).map((n: any) => [n.codigo_producto, n]));
+
+  const { data: existMM } = await (supabase as any)
+    .from("inv_minmax")
+    .select("codigo_producto, almacen, minimo_manual, maximo_manual, cantidad_reorden_manual")
+    .in("codigo_producto", skuListMM);
+  const mmMap = new Map<string, any>((existMM || []).map((m: any) => [`${m.codigo_producto}|${m.almacen}`, m]));
+
+  const coberturaPorAbc = (abc: string | null | undefined) => abc === "A" ? 60 : abc === "C" ? 30 : abc === "B" ? 45 : 45;
+  const seguridadPorAbc = (abc: string | null | undefined) => abc === "A" ? 15 : abc === "C" ? 7 : abc === "B" ? 10 : 10;
+  const stockAlmacen = (n: any, alm: string) => Number(n?.[`stock_almacen_${alm}`] ?? 0);
+
+  const minmaxRows: any[] = [];
+  const hoyIso = new Date().toISOString().slice(0, 10);
+  for (const v of ventas.values()) {
+    const n = nivMap.get(v.codigo);
+    const abc = n?.clasificacion_abc ?? null;
+    const lead = Number(n?.lead_time_dias ?? 32) || 32;
+    const ppt = Math.max(1, Number(n?.piezas_por_tarima ?? 1) || 1);
+    const cobertura = coberturaPorAbc(abc);
+    const seguridad = seguridadPorAbc(abc);
+    const ddia = v.uds / diasPeriodo;
+    const minRaw = ddia * (lead + seguridad);
+    const maxRaw = ddia * (lead + cobertura);
+    const minCalc = Math.ceil(minRaw / ppt) * ppt;
+    const maxCalc = Math.ceil(maxRaw / ppt) * ppt;
+    const stock = stockAlmacen(n, v.almacen);
+    const reordenCalc = Math.max(0, maxCalc - stock);
+
+    const prev = mmMap.get(`${v.codigo}|${v.almacen}`);
+    minmaxRows.push({
+      codigo_producto: v.codigo,
+      almacen: v.almacen,
+      clasificacion_abc: abc,
+      demanda_diaria_hub: ddia,
+      dias_cobertura_objetivo: cobertura,
+      dias_stock_seguridad: seguridad,
+      lead_time_dias: lead,
+      minimo_calc: minCalc,
+      maximo_calc: maxCalc,
+      cantidad_reorden_calc: reordenCalc,
+      minimo_manual: prev?.minimo_manual ?? null,
+      maximo_manual: prev?.maximo_manual ?? null,
+      cantidad_reorden_manual: prev?.cantidad_reorden_manual ?? null,
+      ultima_actualizacion_calc: hoyIso,
+    });
+  }
+  for (let i = 0; i < minmaxRows.length; i += batchSize) {
+    await (supabase as any)
+      .from("inv_minmax")
+      .upsert(minmaxRows.slice(i, i + batchSize), { onConflict: "codigo_producto,almacen" });
+    setProgress(60 + Math.round(((i + batchSize) / Math.max(1, minmaxRows.length)) * 30));
+  }
+
+  await (supabase as any).from("inv_kardex_cargas").update({
+    estatus: "completado",
+    total_skus_actualizados: skuListMM.length,
+    total_skus_error: 0,
+  }).eq("id", carga.id);
+}
+
+async function procesarKardexImporte(
+  _rows: any[][],
+  fileName: string,
+  empresa: string,
+  userId: string | null,
+  setProgress: (n: number) => void,
+) {
+  setProgress(20);
+  // Solo registrar. Sin upserts en niveles.
+  const { error } = await (supabase as any)
+    .from("inv_kardex_cargas")
+    .insert({
+      empresa_vendedora: empresa,
+      tipo: "kardex_importe",
+      nombre_archivo: fileName,
+      estatus: "completado",
+      creado_por: userId,
+      total_skus_procesados: 0,
+      total_skus_actualizados: 0,
+      total_skus_error: 0,
+    });
+  if (error) throw error;
+  setProgress(90);
+}
