@@ -261,9 +261,28 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
   const docsResumen = (): string => {
     const partes: string[] = [];
     if (incEstadoCuenta) partes.push("Estado de cuenta (PDF)");
-    if (incEstaFactura) partes.push(`Factura ${factura?.numero_factura || ""}`);
-    if (otrasIncluidas.length > 0) partes.push(`+${otrasIncluidas.length} factura(s) adicionales`);
+    if (incEstaFactura) partes.push(`Factura ${factura?.numero_factura || ""} (datos)`);
+    if (otrasIncluidas.length > 0) partes.push(`+${otrasIncluidas.length} factura(s) adicionales (datos)`);
     return partes.join(" · ");
+  };
+
+  const fmtFechaCorta = (f: string | null | undefined) =>
+    f ? new Date(f).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+
+  /** Resumen de facturas (no PDF) para incluir en el cuerpo de WhatsApp. */
+  const facturasResumenTexto = (): string => {
+    const lineas: string[] = [];
+    if (incEstaFactura && factura) {
+      lineas.push(
+        `• Factura ${factura.numero_factura || ""} · vence ${fmtFechaCorta(factura.fecha_vencimiento)} · total ${fmtMoney(Number(factura.total || 0))}`,
+      );
+    }
+    for (const o of otrasIncluidas) {
+      lineas.push(
+        `• Factura ${o.numero_factura || ""} · vence ${fmtFechaCorta(o.fecha_vencimiento)} · total ${fmtMoney(Number(o.total || 0))}`,
+      );
+    }
+    return lineas.length ? `\n\n🧾 Facturas:\n${lineas.join("\n")}` : "";
   };
 
   // ---- Envíos ----
@@ -271,10 +290,11 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
     if (!telefonoDestino) { toast.error("Falta teléfono del destinatario"); return; }
     if (!waMsg.trim()) { toast.error("El mensaje está vacío"); return; }
     const enlaces = await prepararEnlaces();
-    const sufijo = enlaces.length
+    const sufijoPdf = enlaces.length
       ? `\n\n📎 Documentos (válidos 7 días):\n${enlaces.map(e => `• ${e.label}: ${e.url}`).join("\n")}`
       : "";
-    window.open(buildWaMeLink(telefonoDestino, waMsg + sufijo), "_blank", "noopener");
+    const sufijoFacturas = facturasResumenTexto();
+    window.open(buildWaMeLink(telefonoDestino, waMsg + sufijoFacturas + sufijoPdf), "_blank", "noopener");
     await registrarActividad("whatsapp", `WhatsApp local a ${telefonoDestino}. ${docsResumen()}${enlaces.length ? ` · ${enlaces.length} enlace(s) PDF` : ""}`);
     toast.success("WhatsApp abierto en pestaña nueva");
     onOpenChange(false);
@@ -338,27 +358,8 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
         }
       }
 
-      const items: { numero: string | null; pdf_url: string | null }[] = [];
-      if (incEstaFactura) items.push({ numero: factura.numero_factura, pdf_url: facturaPdfUrl || null });
-      for (const o of otrasIncluidas) items.push({ numero: o.numero_factura, pdf_url: o.pdf_url || null });
-
-      for (const d of items) {
-        if (!d.pdf_url) {
-          toast.warning(`Factura ${d.numero || ""} no tiene PDF cargado, no se incluyó enlace.`);
-          continue;
-        }
-        try {
-          const path = extractDocFilesPath(d.pdf_url).split("?")[0];
-          const { data: signed, error: serr } = await supabase.storage
-            .from("document-files")
-            .createSignedUrl(path, expiraSeg);
-          if (serr) throw serr;
-          if (signed?.signedUrl) enlaces.push({ label: `Factura ${d.numero || ""}`, url: signed.signedUrl });
-        } catch (e: any) {
-          console.warn("[prepararEnlaces] factura sign", d, e);
-          toast.warning(`No se pudo firmar la factura ${d.numero || ""}.`);
-        }
-      }
+      // Las facturas NO se envían como PDF: solo se muestran sus datos (número, fecha, total)
+      // en el cuerpo del mensaje/correo. No generamos enlaces firmados para ellas.
     } finally {
       setGenerandoEnlaces(false);
     }
@@ -389,13 +390,13 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
             ${incEstaFactura ? `
             <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 16px 0;">
               <p style="margin:0; font-weight:bold; color:#1e40af;">Factura ${factura.numero_factura || ""}</p>
-              <p style="margin:4px 0; font-size:14px;">Saldo pendiente: <strong style="color:#dc2626;">${fmtMoney(Number(factura.saldo_pendiente_cobranza || 0))}</strong></p>
+              <p style="margin:4px 0; font-size:14px;">Total: <strong>${fmtMoney(Number(factura.total || 0))}</strong></p>
               ${factura.fecha_vencimiento ? `<p style="margin:4px 0; font-size:14px;">Fecha de vencimiento: ${fmtFecha(factura.fecha_vencimiento)}</p>` : ""}
             </div>` : ""}
             ${otrasIncluidas.length > 0 ? `
             <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 16px 0;">
               <p style="margin:0 0 8px; font-weight:bold; color:#1e40af;">Otras facturas pendientes:</p>
-              ${otrasIncluidas.map((f: any) => `<p style="margin:2px 0; font-size:13px;">• ${f.numero_factura || ""} — ${fmtMoney(Number(f.saldo_pendiente_cobranza || 0))} — vence ${fmtFecha(f.fecha_vencimiento)}</p>`).join("")}
+              ${otrasIncluidas.map((f: any) => `<p style="margin:2px 0; font-size:13px;">• ${f.numero_factura || ""} — Total ${fmtMoney(Number(f.total || 0))} — vence ${fmtFecha(f.fecha_vencimiento)}</p>`).join("")}
             </div>` : ""}
             ${enlacesHtml}
             <hr style="border:none; border-top:1px solid #e5e7eb; margin:20px 0;" />
@@ -854,10 +855,11 @@ function DocumentosSection({
         <label className="flex items-start gap-2 cursor-pointer">
           <Checkbox checked={incEstaFactura} onCheckedChange={(v) => setIncEstaFactura(!!v)} className="mt-0.5" />
           <div className="text-sm font-light">
-            <div className="font-medium">Esta factura</div>
+            <div className="font-medium">Esta factura (solo datos)</div>
             <div className="text-xs text-muted-foreground">
-              {factura.numero_factura || factura.id.slice(0, 8)} · {fmtMoney(Number(factura.saldo_pendiente_cobranza || 0))} · vence {factura.fecha_vencimiento || "—"}
+              {factura.numero_factura || factura.id.slice(0, 8)} · Total {fmtMoney(Number(factura.total || 0))} · vence {factura.fecha_vencimiento || "—"}
             </div>
+            <div className="text-[11px] text-muted-foreground italic">Se incluye número, fecha y total (no se envía PDF).</div>
           </div>
         </label>
         <div>
@@ -865,7 +867,7 @@ function DocumentosSection({
             <Checkbox checked={incOtras} onCheckedChange={(v) => setIncOtras(!!v)} className="mt-0.5" />
             <div className="text-sm font-light flex-1">
               <div className="font-medium flex items-center justify-between">
-                <span>Otras facturas pendientes ({otrasFacturas.length})</span>
+                <span>Otras facturas pendientes ({otrasFacturas.length}) — solo datos</span>
                 {otrasFacturas.length > 0 && (
                   <button type="button" onClick={(e) => { e.preventDefault(); setOtrasOpen(!otrasOpen); }} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                     {otrasOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
