@@ -434,7 +434,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
           cc: emailCc.trim() || undefined,
           subject: emailSubject,
           html: cuerpoHtml,
-          text: emailBody,
+          text: textoLineas,
         },
       });
       if (error) throw error;
