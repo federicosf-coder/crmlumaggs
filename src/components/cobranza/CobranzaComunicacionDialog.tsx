@@ -687,7 +687,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
 // ============================================================
 function ContactoSelector({
   contactos, contactoId, onChange, modo, telefonoManual, setTelefonoManual,
-  empresaId, onContactCreated, onEditContacto,
+  empresaId, onContactCreated, onEditContacto, adHocContacto, onAdHocContacto,
 }: {
   contactos: any[];
   contactoId: string;
@@ -698,6 +698,8 @@ function ContactoSelector({
   empresaId?: string;
   onContactCreated?: (id: string) => void;
   onEditContacto?: () => void;
+  adHocContacto?: { nombre: string; phone: string; email: string } | null;
+  onAdHocContacto?: (c: { nombre: string; phone: string; email: string } | null) => void;
 }) {
   const sel = contactos.find((c) => c.id === contactoId);
   const phone = sel?.whatsapp_phone || sel?.mobile || sel?.phone || "";
@@ -708,15 +710,28 @@ function ContactoSelector({
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoTel, setNuevoTel] = useState("");
   const [nuevoEmail, setNuevoEmail] = useState("");
+  const [persistir, setPersistir] = useState<"empresa" | "ad_hoc">("empresa");
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
-    if (sel) setModoVista((m) => (m === "nuevo" ? "ver" : m));
-  }, [sel?.id]);
+    if (sel && !adHocContacto) setModoVista((m) => (m === "nuevo" ? "ver" : m));
+  }, [sel?.id, adHocContacto]);
 
   const guardarNuevo = async () => {
-    if (!empresaId) { toast.error("Falta empresa"); return; }
     if (!nuevoNombre.trim()) { toast.error("Ingresa el nombre"); return; }
+    // Solo esta ocasión: NO se guarda en la base de datos
+    if (persistir === "ad_hoc") {
+      onAdHocContacto?.({
+        nombre: nuevoNombre.trim(),
+        phone: nuevoTel.trim(),
+        email: nuevoEmail.trim(),
+      });
+      toast.success("Contacto temporal listo (solo este envío)");
+      setNuevoNombre(""); setNuevoTel(""); setNuevoEmail("");
+      setModoVista("ver");
+      return;
+    }
+    if (!empresaId) { toast.error("Falta empresa"); return; }
     setGuardando(true);
     const parts = nuevoNombre.trim().split(/\s+/);
     const first_name = parts[0];
@@ -734,6 +749,7 @@ function ContactoSelector({
     if (error) { toast.error(`Error al crear contacto: ${error.message}`); return; }
     toast.success("Contacto creado correctamente");
     setNuevoNombre(""); setNuevoTel(""); setNuevoEmail("");
+    onAdHocContacto?.(null);
     onContactCreated?.(data.id);
     setModoVista("ver");
   };
@@ -742,8 +758,31 @@ function ContactoSelector({
     <section className="space-y-2">
       <Label className="text-xs uppercase tracking-wide text-muted-foreground">Contacto destinatario</Label>
 
+      {/* Card del contacto temporal (ad hoc) */}
+      {modoVista === "ver" && adHocContacto && (
+        <div className="border border-amber-300 rounded-md p-3 bg-amber-50 space-y-1.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="text-sm font-medium flex items-center gap-2">
+              {adHocContacto.nombre || "(sin nombre)"}
+              <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700">Solo este envío</Badge>
+            </div>
+            <div className="flex gap-1">
+              <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                onClick={() => { onAdHocContacto?.(null); setModoVista("ver"); }}>
+                <X className="h-3 w-3 mr-1" /> Quitar
+              </Button>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground space-y-0.5">
+            {adHocContacto.phone && <div className="flex items-center gap-1.5"><Phone className="h-3 w-3" /> {adHocContacto.phone}</div>}
+            {adHocContacto.email && <div className="flex items-center gap-1.5"><Mail className="h-3 w-3" /> {adHocContacto.email}</div>}
+            <div className="italic text-amber-700">No se agregará al directorio de la empresa.</div>
+          </div>
+        </div>
+      )}
+
       {/* Card del contacto seleccionado */}
-      {modoVista === "ver" && sel && (
+      {modoVista === "ver" && sel && !adHocContacto && (
         <div className="border rounded-md p-3 bg-muted/20 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
             <div className="text-sm font-medium">{nombreCompleto || "(sin nombre)"}</div>
@@ -774,7 +813,7 @@ function ContactoSelector({
       )}
 
       {/* Sin contactos: ofrece crear */}
-      {modoVista === "ver" && !sel && (
+      {modoVista === "ver" && !sel && !adHocContacto && (
         <div className="text-xs text-amber-700 bg-amber-50 border border-amber-300 rounded-md px-3 py-2 flex items-center justify-between gap-2">
           <span>Esta empresa no tiene contactos activos registrados.</span>
           {empresaId && (
@@ -814,12 +853,28 @@ function ContactoSelector({
           <Input value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} placeholder="Nombre completo" className="h-9 font-light" />
           <Input value={nuevoTel} onChange={(e) => setNuevoTel(e.target.value)} placeholder="Teléfono" className="h-9 font-light" />
           <Input value={nuevoEmail} onChange={(e) => setNuevoEmail(e.target.value)} placeholder="Email" className="h-9 font-light" />
+          <RadioGroup value={persistir} onValueChange={(v) => setPersistir(v as any)} className="grid sm:grid-cols-2 gap-2 pt-1">
+            <label className="flex items-start gap-2 border rounded-md p-2 cursor-pointer hover:bg-muted/40">
+              <RadioGroupItem value="empresa" className="mt-0.5" />
+              <div className="text-xs font-light">
+                <div className="font-medium">Agregar a la empresa</div>
+                <div className="text-[11px] text-muted-foreground">Queda registrado en el directorio para usos futuros.</div>
+              </div>
+            </label>
+            <label className="flex items-start gap-2 border rounded-md p-2 cursor-pointer hover:bg-muted/40">
+              <RadioGroupItem value="ad_hoc" className="mt-0.5" />
+              <div className="text-xs font-light">
+                <div className="font-medium">Solo para esta ocasión</div>
+                <div className="text-[11px] text-muted-foreground">Se usa solo en este envío y no se guarda.</div>
+              </div>
+            </label>
+          </RadioGroup>
           <div className="flex gap-2 justify-end">
             <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setModoVista("ver")} disabled={guardando}>
               <X className="h-3 w-3 mr-1" /> Cancelar
             </Button>
             <Button type="button" size="sm" className="h-7 px-3 text-xs" onClick={guardarNuevo} disabled={guardando}>
-              {guardando ? "Guardando…" : "Guardar"}
+              {guardando ? "Guardando…" : persistir === "ad_hoc" ? "Usar solo este envío" : "Guardar en empresa"}
             </Button>
           </div>
         </div>
