@@ -1194,6 +1194,60 @@ function ProductosTab() {
 }
 
 // ─── Main Page ───────────────────────────────────────────────
+function ReferenciasCostoSection({ codigo }: { codigo: string }) {
+  const { data: ref } = useQuery({
+    queryKey: ["inv_costos_ref", codigo],
+    enabled: !!codigo,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("inv_costos_producto")
+        .select("*")
+        .eq("codigo_producto", codigo)
+        .in("estado", ["aplicado", "autorizado", "pendiente"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+  if (!ref) return (
+    <div className="border-t pt-3">
+      <h4 className="font-semibold text-sm mb-2">Referencias de Costo</h4>
+      <p className="text-xs text-muted-foreground italic">Sin referencias. Sube archivos en /inventario/costos para generarlas.</p>
+    </div>
+  );
+  return (
+    <div className="border-t pt-3">
+      <h4 className="font-semibold text-sm mb-2">Referencias de Costo</h4>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+        <div>
+          <p className="text-xs text-muted-foreground">Costo Galper</p>
+          <p className="font-mono">{ref.costo_galper ? `$${Number(ref.costo_galper).toFixed(2)}` : "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Precio Especial</p>
+          <p className="font-mono">{ref.costo_especial ? `$${Number(ref.costo_especial).toFixed(2)}` : "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Lista General</p>
+          <p className="font-mono">{ref.costo_lista ? `$${Number(ref.costo_lista).toFixed(2)}` : "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Costo Efectivo</p>
+          <p className="font-mono font-semibold">${Number(ref.costo_efectivo || 0).toFixed(2)}</p>
+          <Badge variant="secondary" className="text-[10px] mt-1">{ref.costo_efectivo_fuente}</Badge>
+        </div>
+        {ref.costo_manual && (
+          <div className="col-span-2 sm:col-span-4 mt-1">
+            <Badge className="bg-orange-100 text-orange-800 border-orange-300">🔒 Costo Manual: ${Number(ref.costo_manual).toFixed(2)}</Badge>
+            {ref.costo_manual_notas && <p className="text-xs text-muted-foreground mt-1">{ref.costo_manual_notas}</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ProductCatalog() {
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
