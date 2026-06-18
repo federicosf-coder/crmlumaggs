@@ -290,12 +290,13 @@ export default function KardexCarga() {
   const [empresa, setEmpresa] = useState<string>("lumaggs");
 
   const { data: ultimasCargas } = useQuery({
-    queryKey: ["inv_kardex_cargas_ultimas"],
+    queryKey: ["inv_kardex_cargas_ultimas", empresa],
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("inv_kardex_cargas")
-        .select("tipo, created_at, total_skus_procesados, estatus")
+        .select("tipo, created_at, total_skus_procesados, estatus, empresa_vendedora")
         .eq("estatus", "completado")
+        .eq("empresa_vendedora", empresa)
         .order("created_at", { ascending: false });
       const byTipo = new Map<string, any>();
       for (const c of (data || [])) {
