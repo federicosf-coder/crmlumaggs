@@ -390,13 +390,13 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
             ${incEstaFactura ? `
             <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 16px 0;">
               <p style="margin:0; font-weight:bold; color:#1e40af;">Factura ${factura.numero_factura || ""}</p>
-              <p style="margin:4px 0; font-size:14px;">Saldo pendiente: <strong style="color:#dc2626;">${fmtMoney(Number(factura.saldo_pendiente_cobranza || 0))}</strong></p>
+              <p style="margin:4px 0; font-size:14px;">Total: <strong>${fmtMoney(Number(factura.total || 0))}</strong></p>
               ${factura.fecha_vencimiento ? `<p style="margin:4px 0; font-size:14px;">Fecha de vencimiento: ${fmtFecha(factura.fecha_vencimiento)}</p>` : ""}
             </div>` : ""}
             ${otrasIncluidas.length > 0 ? `
             <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 16px 0;">
               <p style="margin:0 0 8px; font-weight:bold; color:#1e40af;">Otras facturas pendientes:</p>
-              ${otrasIncluidas.map((f: any) => `<p style="margin:2px 0; font-size:13px;">• ${f.numero_factura || ""} — ${fmtMoney(Number(f.saldo_pendiente_cobranza || 0))} — vence ${fmtFecha(f.fecha_vencimiento)}</p>`).join("")}
+              ${otrasIncluidas.map((f: any) => `<p style="margin:2px 0; font-size:13px;">• ${f.numero_factura || ""} — Total ${fmtMoney(Number(f.total || 0))} — vence ${fmtFecha(f.fecha_vencimiento)}</p>`).join("")}
             </div>` : ""}
             ${enlacesHtml}
             <hr style="border:none; border-top:1px solid #e5e7eb; margin:20px 0;" />
