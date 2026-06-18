@@ -58,29 +58,57 @@ function parseExcelToMap(file: File): Promise<Map<string, { codigo: string; cost
         const data = new Uint8Array(reader.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: null });
+        const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
         const map = new Map<string, any>();
-        for (const r of rows) {
-          const keys = Object.keys(r);
-          const findKey = (patterns: string[]) => keys.find(k => {
-            const lk = k.toLowerCase().trim();
-            return patterns.some(p => lk === p || lk.includes(p));
-          });
-          const kCodigo = findKey(["codigo", "código", "sku", "clave"]);
-          const kCosto = findKey(["costo", "precio", "importe"]);
-          const kNombre = findKey(["nombre", "descripcion", "descripción", "producto"]);
-          const kFecha = findKey(["fecha", "vigencia"]);
-          if (!kCodigo || !kCosto) continue;
-          const codigo = String(r[kCodigo]).trim();
-          const costo = Number(String(r[kCosto]).replace(/[^0-9.\-]/g, ""));
-          if (!codigo || !isFinite(costo) || costo <= 0) continue;
-          map.set(codigo, {
-            codigo,
-            costo,
-            nombre: kNombre ? String(r[kNombre] || "").trim() : undefined,
-            fecha: kFecha ? String(r[kFecha] || "").trim() : undefined,
-          });
+
+        let headerRow = -1;
+        let iCodigo = -1, iCosto = -1, iNombre = -1;
+
+        for (let r = 0; r < Math.min(10, raw.length); r++) {
+          const row = raw[r] || [];
+          let _iCodigo = -1, _iCosto = -1, _iNombre = -1;
+          for (let c = 0; c < row.length; c++) {
+            const cell = String(row[c] ?? "").toLowerCase().trim();
+            if (cell === "codigo" || cell === "código" || cell === "sku" || cell === "clave" || cell === "code") _iCodigo = c;
+            if (cell.includes("costo") || cell === "precio" || cell === "importe" || cell === "price") _iCosto = c;
+            if (cell.includes("nombre") || cell.includes("descripcion") || cell.includes("descripción") || cell.includes("producto") || cell === "name" || cell.includes("product")) _iNombre = c;
+          }
+          if (_iCodigo >= 0 && _iCosto >= 0) {
+            headerRow = r; iCodigo = _iCodigo; iCosto = _iCosto; iNombre = _iNombre;
+            break;
+          }
         }
+
+        if (headerRow >= 0) {
+          for (let r = headerRow + 1; r < raw.length; r++) {
+            const row = raw[r] || [];
+            const codigoRaw = row[iCodigo];
+            const costoRaw = row[iCosto];
+            if (codigoRaw == null || costoRaw == null) continue;
+            const codigo = typeof codigoRaw === "number" ? String(Math.round(codigoRaw)) : String(codigoRaw).trim();
+            const costo = Number(String(costoRaw).replace(/[^0-9.\-]/g, ""));
+            if (!codigo || !isFinite(costo) || costo <= 0) continue;
+            const nombre = iNombre >= 0 ? String(row[iNombre] ?? "").trim() : undefined;
+            map.set(codigo, { codigo, costo, nombre });
+          }
+        } else {
+          for (const row of raw) {
+            if (!row || row.length < 2) continue;
+            const codigoRaw = row[0];
+            if (codigoRaw == null) continue;
+            const codigoStr = typeof codigoRaw === "number" ? String(Math.round(codigoRaw)) : String(codigoRaw).trim();
+            if (!/^[A-Za-z0-9]{6,12}$/.test(codigoStr)) continue;
+            const nombre = String(row[1] ?? "").trim();
+            let costo = 0;
+            for (let c = 2; c <= Math.min(8, row.length - 1); c++) {
+              const v = Number(String(row[c] ?? "").replace(/[^0-9.\-]/g, ""));
+              if (isFinite(v) && v > 0) { costo = v; break; }
+            }
+            if (!costo) continue;
+            map.set(codigoStr, { codigo: codigoStr, costo, nombre: nombre || undefined });
+          }
+        }
+
         resolve(map);
       } catch (e) { reject(e); }
     };
@@ -228,6 +256,10 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
 
   async function handleFileSelected(tipo: string, file: File) {
     if (!userId) return;
+    const lowerName = file.name.toLowerCase();
+    if (lowerName.endsWith(".csv") || lowerName.endsWith(".pdf")) {
+      toast.warning("Los archivos CSV se procesarán como tabla. Para PDFs, use el flujo de extracción IA en Pedidos.");
+    }
     setProcesandoTipo(tipo);
     try {
       const tipoDef = TIPOS_ARCHIVO.find(t => t.value === tipo);
@@ -488,7 +520,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
                 )}
                 <input
                   type="file"
-                  accept=".xls,.xlsx"
+                  accept=".xls,.xlsx,.csv,.pdf"
                   className="hidden"
                   ref={el => { inputsRef.current[t.value] = el; }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelected(t.value, f); }}

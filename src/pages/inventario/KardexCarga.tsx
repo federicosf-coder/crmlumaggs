@@ -37,6 +37,31 @@ function normalizeCodigo(v: any): string {
   return String(v).trim();
 }
 
+function buscarRangoFechas(rows: any[][]): { fechaInicio: string | null; fechaFin: string | null } {
+  for (let i = 0; i < Math.min(15, rows.length); i++) {
+    for (let j = 0; j < (rows[i]?.length || 0); j++) {
+      const cell = String(rows[i][j] ?? "");
+      const m = cell.match(/Del[:\s]+([\d\/A-Za-z]+)\s+Al[:\s]+([\d\/A-Za-z]+)/i);
+      if (m) {
+        return {
+          fechaInicio: normContpaqiDate(m[1].trim()) || null,
+          fechaFin: normContpaqiDate(m[2].trim()) || null,
+        };
+      }
+    }
+  }
+  let primera: string | null = null;
+  let ultima: string | null = null;
+  for (const row of rows) {
+    const f = normContpaqiDate(String(row?.[1] ?? ""));
+    if (f) {
+      if (!primera) primera = f;
+      ultima = f;
+    }
+  }
+  return { fechaInicio: primera, fechaFin: ultima };
+}
+
 interface ParsedLinea {
   codigo: string;
   nombre: string;
@@ -56,10 +81,7 @@ interface ParsedInventario {
 }
 
 function parseInventario(rows: any[][]): ParsedInventario {
-  const a4 = String(rows[3]?.[0] ?? "");
-  const mRange = a4.match(/Del:\s*([\d\/A-Za-z]+)\s+Al:\s*([\d\/A-Za-z]+)/i);
-  const fechaInicio = mRange ? normContpaqiDate(mRange[1]) : null;
-  const fechaFin = mRange ? normContpaqiDate(mRange[2]) : null;
+  const { fechaInicio, fechaFin } = buscarRangoFechas(rows);
 
   const lineas: ParsedLinea[] = [];
   const skus = new Set<string>();
@@ -71,8 +93,9 @@ function parseInventario(rows: any[][]): ParsedInventario {
     const row = rows[i] || [];
     const c0 = String(row[0] ?? "").trim();
 
-    if (/^Almac[eé]n:/i.test(c0)) {
-      const codeRaw = row[1];
+    if (/^Almac[eé]n/i.test(c0)) {
+      const mInline = c0.match(/:\s*(\d+)/);
+      const codeRaw = mInline ? mInline[1] : row[1];
       const code = typeof codeRaw === "number" ? String(Math.round(codeRaw)) : String(codeRaw ?? "").trim();
       curAlmacen = code;
       almacenValido = ALMACENES_VALIDOS.has(code);
@@ -137,10 +160,7 @@ function detectarPlaza(concepto: string): string | null {
 }
 
 function parseKardexMovimientos(rows: any[][]): ParsedKardex {
-  const a4 = String(rows[3]?.[0] ?? "");
-  const mRange = a4.match(/Del:\s*([\d\/A-Za-z]+)\s+Al:\s*([\d\/A-Za-z]+)/i);
-  const fechaInicio = mRange ? normContpaqiDate(mRange[1]) : null;
-  const fechaFin = mRange ? normContpaqiDate(mRange[2]) : null;
+  const { fechaInicio, fechaFin } = buscarRangoFechas(rows);
 
   const movimientos: MovimientoKardex[] = [];
   const skus = new Set<string>();
@@ -154,8 +174,9 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
     const c0 = String(row[0] ?? "").trim();
 
     // Cambio de almacén
-    if (/^Almac[eé]n:/i.test(c0)) {
-      const codeRaw = row[1];
+    if (/^Almac[eé]n/i.test(c0)) {
+      const mInline = c0.match(/:\s*(\d+)/);
+      const codeRaw = mInline ? mInline[1] : row[1];
       const code = typeof codeRaw === "number" ? String(Math.round(codeRaw)) : String(codeRaw ?? "").trim();
       curAlmacen = code;
       almacenValido = ALMACENES_VALIDOS.has(code);
@@ -633,16 +654,19 @@ async function procesarKardexUnidades(
 
   setProgress(15);
 
-  if (!parsed.fechaInicio || !parsed.fechaFin) {
-    await (supabase as any).from("inv_kardex_cargas").update({
-      estatus: "con_errores",
-      total_skus_error: parsed.skuCount,
-    }).eq("id", carga.id);
-    throw new Error("No se pudo determinar el periodo del archivo");
+  let { fechaInicio, fechaFin } = parsed;
+  let advertenciaFechas = false;
+  if (!fechaInicio || !fechaFin) {
+    advertenciaFechas = true;
+    const hoy = new Date();
+    const hace365 = new Date(hoy.getTime() - 365 * 86400000);
+    fechaFin = fechaFin || hoy.toISOString().slice(0, 10);
+    fechaInicio = fechaInicio || hace365.toISOString().slice(0, 10);
   }
+  if (advertenciaFechas) toast.warning("No se detectó periodo en el archivo; se usó rango por defecto (último año).");
 
-  const d0 = new Date(parsed.fechaInicio);
-  const d1 = new Date(parsed.fechaFin);
+  const d0 = new Date(fechaInicio);
+  const d1 = new Date(fechaFin);
   const diasPeriodo = Math.max(1, Math.round((d1.getTime() - d0.getTime()) / 86400000) + 1);
 
   // Acumular ventas por (codigo, plaza) usando movimientos con plaza detectada
@@ -665,14 +689,14 @@ async function procesarKardexUnidades(
     return {
       codigo_producto: v.codigo,
       almacen: v.almacen,
-      periodo_inicio: parsed.fechaInicio,
-      periodo_fin: parsed.fechaFin,
+      periodo_inicio: fechaInicio,
+      periodo_fin: fechaFin,
       dias_periodo: diasPeriodo,
       unidades_vendidas: v.uds,
       unidades_traspaso_salida: 0,
       demanda_diaria_promedio: ddia,
       demanda_mensual_promedio: ddia * 30,
-      ultima_venta: parsed.fechaFin,
+      ultima_venta: fechaFin,
     };
   });
   for (let i = 0; i < demandaRows.length; i += batchSize) {
