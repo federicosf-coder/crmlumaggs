@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,14 +7,14 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Package, DollarSign, Activity, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useKardexCargas } from "@/hooks/useInventario";
 import { useAuth } from "@/contexts/AuthContext";
 
-type KardexTipo = "unidades" | "valorizado";
+type TipoArchivo = "inventario_unidades" | "inventario_importe" | "kardex_unidades" | "kardex_importe";
 
 // Almacenes válidos (se ignoran 1 "Almacen Uno" y 999 "Consignación")
 const ALMACENES_VALIDOS = new Set(["1001", "1002", "1003", "1004"]);
