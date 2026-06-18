@@ -261,9 +261,28 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
   const docsResumen = (): string => {
     const partes: string[] = [];
     if (incEstadoCuenta) partes.push("Estado de cuenta (PDF)");
-    if (incEstaFactura) partes.push(`Factura ${factura?.numero_factura || ""}`);
-    if (otrasIncluidas.length > 0) partes.push(`+${otrasIncluidas.length} factura(s) adicionales`);
+    if (incEstaFactura) partes.push(`Factura ${factura?.numero_factura || ""} (datos)`);
+    if (otrasIncluidas.length > 0) partes.push(`+${otrasIncluidas.length} factura(s) adicionales (datos)`);
     return partes.join(" · ");
+  };
+
+  const fmtFechaCorta = (f: string | null | undefined) =>
+    f ? new Date(f).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+
+  /** Resumen de facturas (no PDF) para incluir en el cuerpo de WhatsApp. */
+  const facturasResumenTexto = (): string => {
+    const lineas: string[] = [];
+    if (incEstaFactura && factura) {
+      lineas.push(
+        `• Factura ${factura.numero_factura || ""} · vence ${fmtFechaCorta(factura.fecha_vencimiento)} · total ${fmtMoney(Number(factura.total || 0))}`,
+      );
+    }
+    for (const o of otrasIncluidas) {
+      lineas.push(
+        `• Factura ${o.numero_factura || ""} · vence ${fmtFechaCorta(o.fecha_vencimiento)} · total ${fmtMoney(Number(o.total || 0))}`,
+      );
+    }
+    return lineas.length ? `\n\n🧾 Facturas:\n${lineas.join("\n")}` : "";
   };
 
   // ---- Envíos ----
@@ -271,10 +290,11 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
     if (!telefonoDestino) { toast.error("Falta teléfono del destinatario"); return; }
     if (!waMsg.trim()) { toast.error("El mensaje está vacío"); return; }
     const enlaces = await prepararEnlaces();
-    const sufijo = enlaces.length
+    const sufijoPdf = enlaces.length
       ? `\n\n📎 Documentos (válidos 7 días):\n${enlaces.map(e => `• ${e.label}: ${e.url}`).join("\n")}`
       : "";
-    window.open(buildWaMeLink(telefonoDestino, waMsg + sufijo), "_blank", "noopener");
+    const sufijoFacturas = facturasResumenTexto();
+    window.open(buildWaMeLink(telefonoDestino, waMsg + sufijoFacturas + sufijoPdf), "_blank", "noopener");
     await registrarActividad("whatsapp", `WhatsApp local a ${telefonoDestino}. ${docsResumen()}${enlaces.length ? ` · ${enlaces.length} enlace(s) PDF` : ""}`);
     toast.success("WhatsApp abierto en pestaña nueva");
     onOpenChange(false);
@@ -338,27 +358,8 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
         }
       }
 
-      const items: { numero: string | null; pdf_url: string | null }[] = [];
-      if (incEstaFactura) items.push({ numero: factura.numero_factura, pdf_url: facturaPdfUrl || null });
-      for (const o of otrasIncluidas) items.push({ numero: o.numero_factura, pdf_url: o.pdf_url || null });
-
-      for (const d of items) {
-        if (!d.pdf_url) {
-          toast.warning(`Factura ${d.numero || ""} no tiene PDF cargado, no se incluyó enlace.`);
-          continue;
-        }
-        try {
-          const path = extractDocFilesPath(d.pdf_url).split("?")[0];
-          const { data: signed, error: serr } = await supabase.storage
-            .from("document-files")
-            .createSignedUrl(path, expiraSeg);
-          if (serr) throw serr;
-          if (signed?.signedUrl) enlaces.push({ label: `Factura ${d.numero || ""}`, url: signed.signedUrl });
-        } catch (e: any) {
-          console.warn("[prepararEnlaces] factura sign", d, e);
-          toast.warning(`No se pudo firmar la factura ${d.numero || ""}.`);
-        }
-      }
+      // Las facturas NO se envían como PDF: solo se muestran sus datos (número, fecha, total)
+      // en el cuerpo del mensaje/correo. No generamos enlaces firmados para ellas.
     } finally {
       setGenerandoEnlaces(false);
     }
