@@ -220,6 +220,14 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
+                        <NavLink to="/inventario/minmax" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <Sliders className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Mín/Máx</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
                         <NavLink to="/inventario/pedidos" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <ShoppingCart className="mr-2 h-4 w-4" />
                           {!collapsed && <span>Pedidos</span>}
