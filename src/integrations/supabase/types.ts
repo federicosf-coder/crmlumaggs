@@ -3773,6 +3773,60 @@ export type Database = {
         }
         Relationships: []
       }
+      inv_demanda_plaza: {
+        Row: {
+          almacen: string
+          codigo_producto: string
+          coeficiente_variacion: number | null
+          created_at: string | null
+          demanda_diaria_promedio: number | null
+          demanda_mensual_promedio: number | null
+          dias_periodo: number
+          id: string
+          num_meses_con_venta: number | null
+          periodo_fin: string
+          periodo_inicio: string
+          ultima_venta: string | null
+          unidades_traspaso_salida: number | null
+          unidades_vendidas: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          almacen: string
+          codigo_producto: string
+          coeficiente_variacion?: number | null
+          created_at?: string | null
+          demanda_diaria_promedio?: number | null
+          demanda_mensual_promedio?: number | null
+          dias_periodo: number
+          id?: string
+          num_meses_con_venta?: number | null
+          periodo_fin: string
+          periodo_inicio: string
+          ultima_venta?: string | null
+          unidades_traspaso_salida?: number | null
+          unidades_vendidas?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          almacen?: string
+          codigo_producto?: string
+          coeficiente_variacion?: number | null
+          created_at?: string | null
+          demanda_diaria_promedio?: number | null
+          demanda_mensual_promedio?: number | null
+          dias_periodo?: number
+          id?: string
+          num_meses_con_venta?: number | null
+          periodo_fin?: string
+          periodo_inicio?: string
+          ultima_venta?: string | null
+          unidades_traspaso_salida?: number | null
+          unidades_vendidas?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       inv_kardex_cargas: {
         Row: {
           creado_por: string | null
@@ -3888,6 +3942,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      inv_minmax: {
+        Row: {
+          ajustado_manualmente: boolean | null
+          almacen: string
+          cantidad_reorden_calc: number | null
+          cantidad_reorden_efectiva: number | null
+          cantidad_reorden_manual: number | null
+          clasificacion_abc: string | null
+          codigo_producto: string
+          creado_por: string | null
+          created_at: string | null
+          demanda_diaria_hub: number | null
+          dias_cobertura_objetivo: number | null
+          dias_stock_seguridad: number | null
+          id: string
+          lead_time_dias: number | null
+          maximo_calc: number | null
+          maximo_efectivo: number | null
+          maximo_manual: number | null
+          minimo_calc: number | null
+          minimo_efectivo: number | null
+          minimo_manual: number | null
+          notas: string | null
+          ultima_actualizacion_calc: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ajustado_manualmente?: boolean | null
+          almacen: string
+          cantidad_reorden_calc?: number | null
+          cantidad_reorden_efectiva?: number | null
+          cantidad_reorden_manual?: number | null
+          clasificacion_abc?: string | null
+          codigo_producto: string
+          creado_por?: string | null
+          created_at?: string | null
+          demanda_diaria_hub?: number | null
+          dias_cobertura_objetivo?: number | null
+          dias_stock_seguridad?: number | null
+          id?: string
+          lead_time_dias?: number | null
+          maximo_calc?: number | null
+          maximo_efectivo?: number | null
+          maximo_manual?: number | null
+          minimo_calc?: number | null
+          minimo_efectivo?: number | null
+          minimo_manual?: number | null
+          notas?: string | null
+          ultima_actualizacion_calc?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ajustado_manualmente?: boolean | null
+          almacen?: string
+          cantidad_reorden_calc?: number | null
+          cantidad_reorden_efectiva?: number | null
+          cantidad_reorden_manual?: number | null
+          clasificacion_abc?: string | null
+          codigo_producto?: string
+          creado_por?: string | null
+          created_at?: string | null
+          demanda_diaria_hub?: number | null
+          dias_cobertura_objetivo?: number | null
+          dias_stock_seguridad?: number | null
+          id?: string
+          lead_time_dias?: number | null
+          maximo_calc?: number | null
+          maximo_efectivo?: number | null
+          maximo_manual?: number | null
+          minimo_calc?: number | null
+          minimo_efectivo?: number | null
+          minimo_manual?: number | null
+          notas?: string | null
+          ultima_actualizacion_calc?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       inv_niveles_inventario: {
         Row: {
@@ -4159,6 +4291,68 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      inv_pedidos_activos_config: {
+        Row: {
+          activo: boolean | null
+          auto_abrir_al_cerrar: boolean | null
+          created_at: string | null
+          dias_anticipacion_apertura: number | null
+          fuente: string
+          hub_almacen: string
+          id: string
+          lead_time_dias: number
+          minimo_tarimas: number
+          moneda: string | null
+          nombre: string
+          pedido_actual_id: string | null
+          proveedor: string
+          spokes_almacenes: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          auto_abrir_al_cerrar?: boolean | null
+          created_at?: string | null
+          dias_anticipacion_apertura?: number | null
+          fuente: string
+          hub_almacen: string
+          id: string
+          lead_time_dias?: number
+          minimo_tarimas?: number
+          moneda?: string | null
+          nombre: string
+          pedido_actual_id?: string | null
+          proveedor: string
+          spokes_almacenes?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          auto_abrir_al_cerrar?: boolean | null
+          created_at?: string | null
+          dias_anticipacion_apertura?: number | null
+          fuente?: string
+          hub_almacen?: string
+          id?: string
+          lead_time_dias?: number
+          minimo_tarimas?: number
+          moneda?: string | null
+          nombre?: string
+          pedido_actual_id?: string | null
+          proveedor?: string
+          spokes_almacenes?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_pedidos_activos_config_pedido_actual_id_fkey"
+            columns: ["pedido_actual_id"]
+            isOneToOne: false
+            referencedRelation: "inv_pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inv_producto_proveedor: {
         Row: {
@@ -4464,6 +4658,185 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      inv_restricciones: {
+        Row: {
+          activa: boolean | null
+          codigo_producto: string | null
+          creado_por: string | null
+          created_at: string | null
+          descripcion: string
+          excluir_de_pedido: boolean | null
+          fecha_fin: string | null
+          fecha_inicio: string
+          fecha_resolucion: string | null
+          id: string
+          marca: string | null
+          notas_resolucion: string | null
+          pedido_activo_id: string | null
+          permitir_override: boolean | null
+          resuelta: boolean | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          activa?: boolean | null
+          codigo_producto?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          descripcion: string
+          excluir_de_pedido?: boolean | null
+          fecha_fin?: string | null
+          fecha_inicio?: string
+          fecha_resolucion?: string | null
+          id?: string
+          marca?: string | null
+          notas_resolucion?: string | null
+          pedido_activo_id?: string | null
+          permitir_override?: boolean | null
+          resuelta?: boolean | null
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          activa?: boolean | null
+          codigo_producto?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          descripcion?: string
+          excluir_de_pedido?: boolean | null
+          fecha_fin?: string | null
+          fecha_inicio?: string
+          fecha_resolucion?: string | null
+          id?: string
+          marca?: string | null
+          notas_resolucion?: string | null
+          pedido_activo_id?: string | null
+          permitir_override?: boolean | null
+          resuelta?: boolean | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inv_traspaso_lineas: {
+        Row: {
+          cantidad_aprobada: number | null
+          cantidad_enviada: number | null
+          cantidad_recibida: number | null
+          cantidad_sugerida: number
+          codigo_producto: string
+          created_at: string | null
+          id: string
+          minimo_destino: number | null
+          motivo: string | null
+          nombre_producto: string | null
+          stock_destino_actual: number | null
+          stock_origen_actual: number | null
+          traspaso_id: string
+          unidad: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cantidad_aprobada?: number | null
+          cantidad_enviada?: number | null
+          cantidad_recibida?: number | null
+          cantidad_sugerida: number
+          codigo_producto: string
+          created_at?: string | null
+          id?: string
+          minimo_destino?: number | null
+          motivo?: string | null
+          nombre_producto?: string | null
+          stock_destino_actual?: number | null
+          stock_origen_actual?: number | null
+          traspaso_id: string
+          unidad?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cantidad_aprobada?: number | null
+          cantidad_enviada?: number | null
+          cantidad_recibida?: number | null
+          cantidad_sugerida?: number
+          codigo_producto?: string
+          created_at?: string | null
+          id?: string
+          minimo_destino?: number | null
+          motivo?: string | null
+          nombre_producto?: string | null
+          stock_destino_actual?: number | null
+          stock_origen_actual?: number | null
+          traspaso_id?: string
+          unidad?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_traspaso_lineas_traspaso_id_fkey"
+            columns: ["traspaso_id"]
+            isOneToOne: false
+            referencedRelation: "inv_traspasos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_traspasos: {
+        Row: {
+          almacen_destino: string
+          almacen_origen: string
+          aprobado_por: string | null
+          creado_por: string | null
+          created_at: string | null
+          es_consolidado: boolean | null
+          estatus: string
+          fecha_envio: string | null
+          fecha_recepcion: string | null
+          fecha_sugerida: string | null
+          generado_automaticamente: boolean | null
+          id: string
+          notas: string | null
+          total_skus: number | null
+          updated_at: string | null
+          viaje_id: string | null
+        }
+        Insert: {
+          almacen_destino: string
+          almacen_origen: string
+          aprobado_por?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          es_consolidado?: boolean | null
+          estatus?: string
+          fecha_envio?: string | null
+          fecha_recepcion?: string | null
+          fecha_sugerida?: string | null
+          generado_automaticamente?: boolean | null
+          id?: string
+          notas?: string | null
+          total_skus?: number | null
+          updated_at?: string | null
+          viaje_id?: string | null
+        }
+        Update: {
+          almacen_destino?: string
+          almacen_origen?: string
+          aprobado_por?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          es_consolidado?: boolean | null
+          estatus?: string
+          fecha_envio?: string | null
+          fecha_recepcion?: string | null
+          fecha_sugerida?: string | null
+          generado_automaticamente?: boolean | null
+          id?: string
+          notas?: string | null
+          total_skus?: number | null
+          updated_at?: string | null
+          viaje_id?: string | null
+        }
+        Relationships: []
       }
       motivos_perdida: {
         Row: {
