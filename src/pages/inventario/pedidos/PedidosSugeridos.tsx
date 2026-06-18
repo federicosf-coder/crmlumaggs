@@ -13,7 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CheckCircle2, AlertTriangle, FileText } from "lucide-react";
+import { CheckCircle2, AlertTriangle, FileText, ShieldAlert } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 import { calcSugerencia, MIN_TARIMAS_PEDIDO } from "@/hooks/usePedidosInventario";
 import { abcColor } from "@/hooks/useInventario";
 
@@ -25,6 +27,7 @@ export default function PedidosSugeridos() {
   const [empresa, setEmpresa] = useState("todas");
   const [hub, setHub] = useState("ambos");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [ocultarRestringidos, setOcultarRestringidos] = useState(false);
 
   const { data: niveles = [] } = useQuery({
     queryKey: ["inv_niveles_pedir"],
@@ -37,21 +40,56 @@ export default function PedidosSugeridos() {
     refetchInterval: 60_000,
   });
 
+  const { data: restricciones = [] } = useQuery({
+    queryKey: ["inv_restricciones_activas_sugeridos"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("inv_restricciones")
+        .select("codigo_producto, marca, descripcion, tipo")
+        .eq("activa", true).eq("excluir_de_pedido", true);
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 60_000,
+  });
+
+  const restriccionFor = useMemo(() => {
+    const bySku: Record<string, any> = {};
+    const byMarca: Record<string, any> = {};
+    (restricciones as any[]).forEach((r) => {
+      if (r.codigo_producto) bySku[r.codigo_producto] = r;
+      else if (r.marca) byMarca[r.marca] = r;
+    });
+    return (codigo: string, empresa_vendedora: string) => {
+      if (bySku[codigo]) return bySku[codigo];
+      const marca = empresa_vendedora === "galsa" ? "phillips66" : "chevron";
+      return byMarca[marca] || null;
+    };
+  }, [restricciones]);
+
   const filtered = useMemo(() => niveles.filter((n) => {
     if (empresa !== "todas" && n.empresa_vendedora !== empresa) return false;
     return true;
   }), [niveles, empresa]);
 
-  const enriched = useMemo(() => filtered.map((n) => ({ ...n, _sug: calcSugerencia(n) })), [filtered]);
+  const enriched = useMemo(() => filtered.map((n) => ({
+    ...n, _sug: calcSugerencia(n), _restr: restriccionFor(n.codigo_producto, n.empresa_vendedora),
+  })), [filtered, restriccionFor]);
+
+  const visibles = useMemo(
+    () => ocultarRestringidos ? enriched.filter((n) => !n._restr) : enriched,
+    [enriched, ocultarRestringidos]
+  );
+  const restringidosCount = enriched.filter((n) => n._restr).length;
 
   const tarimasPorPresentacion = useMemo(() => {
     const m: Record<string, number> = {};
-    enriched.forEach((n) => { const k = n.presentacion || "otro"; m[k] = (m[k] || 0) + n._sug.tarimas; });
+    enriched.filter((n) => !n._restr).forEach((n) => { const k = n.presentacion || "otro"; m[k] = (m[k] || 0) + n._sug.tarimas; });
     return m;
   }, [enriched]);
   const totalTarimas = Object.values(tarimasPorPresentacion).reduce((a, b) => a + b, 0);
 
   return (
+   <TooltipProvider>
     <div className="p-6 space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Kpi label="SKUs a pedir" value={enriched.length} />
@@ -85,6 +123,11 @@ export default function PedidosSugeridos() {
                 <SelectItem value="1002">Tijuana (1002)</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-2 pl-2 border-l">
+              <Switch id="hide-restr" checked={ocultarRestringidos} onCheckedChange={setOcultarRestringidos} />
+              <Label htmlFor="hide-restr" className="text-xs cursor-pointer">Ocultar restringidos</Label>
+              {restringidosCount > 0 && <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200 text-xs">{restringidosCount}</Badge>}
+            </div>
           </div>
           {puedeGenerar && enriched.length > 0 && (
             <Button onClick={() => setDialogOpen(true)}><FileText className="h-4 w-4 mr-2" />Generar pedido elaborado</Button>
@@ -105,10 +148,26 @@ export default function PedidosSugeridos() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {enriched.map((n, i) => (
-                <TableRow key={n.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+              {visibles.map((n, i) => (
+                <TableRow key={n.id} className={n._restr ? "bg-amber-50/70" : (i % 2 === 0 ? "" : "bg-muted/20")}>
                   <TableCell><Badge variant="outline" className={abcColor(n.clasificacion_abc)}>{n.clasificacion_abc || "—"}</Badge></TableCell>
-                  <TableCell className="font-mono text-xs">{n.codigo_producto}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-1">
+                      {n.codigo_producto}
+                      {n._restr && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] gap-1">
+                              <ShieldAlert className="h-3 w-3" />RESTRINGIDO
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <div className="text-xs"><b>{n._restr.tipo}</b>: {n._restr.descripcion}</div>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="max-w-[260px] truncate">{n.nombre_producto || "—"}</TableCell>
                   <TableCell><Badge variant="outline" className="uppercase text-xs">{n.presentacion || "—"}</Badge></TableCell>
                   <TableCell className="text-right tabular-nums">{n.stock_total ?? 0}</TableCell>
@@ -121,7 +180,7 @@ export default function PedidosSugeridos() {
                   <TableCell className="text-xs uppercase">{n.fuente_suministro || "—"}</TableCell>
                 </TableRow>
               ))}
-              {enriched.length === 0 && (
+              {visibles.length === 0 && (
                 <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">No hay SKUs por pedir</TableCell></TableRow>
               )}
             </TableBody>
@@ -149,10 +208,12 @@ export default function PedidosSugeridos() {
       )}
 
       <GenerarPedidoDialog
-        open={dialogOpen} onOpenChange={setDialogOpen} skus={enriched}
+        open={dialogOpen} onOpenChange={setDialogOpen} skus={enriched.filter((n) => !n._restr)}
+        excluidos={restringidosCount}
         onCreated={() => { qc.invalidateQueries(); navigate("/inventario/pedidos/elaborados"); }}
       />
     </div>
+   </TooltipProvider>
   );
 }
 
@@ -163,7 +224,7 @@ function Kpi({ label, value }: { label: string; value: number }) {
   return <Card><CardContent className="p-4"><div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div><div className="text-3xl font-light mt-1">{value}</div></CardContent></Card>;
 }
 
-function GenerarPedidoDialog({ open, onOpenChange, skus, onCreated }: any) {
+function GenerarPedidoDialog({ open, onOpenChange, skus, excluidos = 0, onCreated }: any) {
   const { user } = useAuth();
   const [empresa, setEmpresa] = useState("lumaggs");
   const [almacen, setAlmacen] = useState("1002");
@@ -210,6 +271,12 @@ function GenerarPedidoDialog({ open, onOpenChange, skus, onCreated }: any) {
           <DialogTitle className="font-light">Generar pedido elaborado</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
+          {excluidos > 0 && (
+            <div className="border border-amber-300 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-md px-3 py-2 text-xs flex items-start gap-2">
+              <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>Se excluirán automáticamente <b>{excluidos}</b> SKU(s) con restricciones activas.</span>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div><Label className="text-xs uppercase tracking-wide">Empresa</Label>
               <Select value={empresa} onValueChange={(v) => { setEmpresa(v); setProveedor(v === "galsa" ? "phillips66" : "chevron"); }}>
