@@ -668,7 +668,7 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
 // ============================================================
 function ContactoSelector({
   contactos, contactoId, onChange, modo, telefonoManual, setTelefonoManual,
-  empresaId, onContactCreated,
+  empresaId, onContactCreated, onEditContacto,
 }: {
   contactos: any[];
   contactoId: string;
@@ -678,6 +678,7 @@ function ContactoSelector({
   setTelefonoManual?: (v: string) => void;
   empresaId?: string;
   onContactCreated?: (id: string) => void;
+  onEditContacto?: () => void;
 }) {
   const sel = contactos.find((c) => c.id === contactoId);
   const phone = sel?.whatsapp_phone || sel?.mobile || sel?.phone || "";
@@ -728,9 +729,14 @@ function ContactoSelector({
           <div className="flex items-start justify-between gap-2">
             <div className="text-sm font-medium">{nombreCompleto || "(sin nombre)"}</div>
             <div className="flex gap-1">
+              {sel && onEditContacto && (
+                <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={onEditContacto}>
+                  <Pencil className="h-3 w-3 mr-1" /> Editar
+                </Button>
+              )}
               {contactos.length > 1 && (
                 <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setModoVista("cambiar")}>
-                  <Pencil className="h-3 w-3 mr-1" /> Cambiar
+                  <ExternalLink className="h-3 w-3 mr-1" /> Cambiar
                 </Button>
               )}
               {empresaId && (
