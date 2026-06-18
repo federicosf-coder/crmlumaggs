@@ -28,6 +28,7 @@ import Restricciones from "@/pages/inventario/Restricciones";
 import Traspasos from "@/pages/inventario/Traspasos";
 import DashboardRed from "@/pages/inventario/DashboardRed";
 import GestionCostos from "@/pages/inventario/GestionCostos";
+import ReporteCostos from "@/pages/inventario/ReporteCostos";
 import PedidosSugeridos from "@/pages/inventario/pedidos/PedidosSugeridos";
 import PedidosElaborados from "@/pages/inventario/pedidos/PedidosElaborados";
 import PedidosRecibidos from "@/pages/inventario/pedidos/PedidosRecibidos";
