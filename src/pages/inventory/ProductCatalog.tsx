@@ -1166,6 +1166,8 @@ function ProductosTab() {
                 </div>
               </div>
 
+              {isAdmin && <ReferenciasCostoSection codigo={viewProduct.codigo} />}
+
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={() => setViewProduct(null)}>Cerrar</Button>
                 <Button onClick={() => { openEdit(viewProduct); setViewProduct(null); }}>
