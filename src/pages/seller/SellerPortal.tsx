@@ -208,6 +208,22 @@ export default function SellerPortal() {
         return;
       }
 
+      // Empresas asignadas al(los) ejecutivo(s) seleccionados (company_ejecutivos).
+      // Se usa para filtrar facturas vencidas/por vencer por EMPRESA (no por ejecutivo de la factura),
+      // de modo que el vendedor vea todas las facturas de sus clientes aunque la factura
+      // específica esté a nombre de otro ejecutivo.
+      let empresaIdsAsignadas: string[] | null = null;
+      if (uIds) {
+        const { data: ce } = await supabase
+          .from("company_ejecutivos")
+          .select("company_id")
+          .in("user_id", uIds);
+        empresaIdsAsignadas = Array.from(new Set((ce || []).map((r: any) => r.company_id).filter(Boolean)));
+      }
+      const empresasInList = empresaIdsAsignadas && empresaIdsAsignadas.length
+        ? `(${empresaIdsAsignadas.join(",")})`
+        : null;
+
       // Tasks: traemos del ejecutivo (sin filtro de fecha porque necesitamos vencidas + creadas + completadas en periodo)
       let tq = supabase.from("crm_tasks").select("id, title, due_date, completed, completed_at, priority, company_id, contact_id, description, user_id, created_at, updated_at, task_type, parent_category, parent_task_id, sequence_order").order("due_date", { ascending: true, nullsFirst: false }).limit(500);
       if (uIds) tq = tq.in("user_id", uIds);
@@ -243,6 +259,26 @@ export default function SellerPortal() {
         .limit(2000);
       if (inList) fpvQ = fpvQ.or(`ejecutivo_venta_id.in.${inList},created_by.in.${inList}`);
       if (plazaId !== "all") fpvQ = fpvQ.eq("plaza_id", plazaId);
+      // Ampliar: incluir también facturas de empresas asignadas al ejecutivo.
+      if (empresaIdsAsignadas !== null) {
+        // Reemplazamos filtro: facturas mías OR de empresas asignadas a mí
+        fpvQ = supabase
+          .from("documentos")
+          .select("id, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza, estatus_factura, ejecutivo_venta_id, created_by")
+          .eq("tipo_documento", "factura")
+          .eq("is_active", true)
+          .neq("estatus_factura", "cancelada")
+          .gt("fecha_vencimiento", todayIso)
+          .lte("fecha_vencimiento", in30Iso)
+          .in("empresa_vendedora", marcasSeleccionadas as any)
+          .limit(2000);
+        if (plazaId !== "all") fpvQ = fpvQ.eq("plaza_id", plazaId);
+        const orParts: string[] = [];
+        if (inList) orParts.push(`ejecutivo_venta_id.in.${inList}`, `created_by.in.${inList}`);
+        if (empresasInList) orParts.push(`empresa_id.in.${empresasInList}`);
+        if (orParts.length) fpvQ = fpvQ.or(orParts.join(","));
+        else { fpvQ = fpvQ.eq("id", "00000000-0000-0000-0000-000000000000"); }
+      }
       const { data: fpvRaw } = await fpvQ;
 
       // Calcular saldo real por factura: total - SUM(monto_aplicado activo)
@@ -282,6 +318,21 @@ export default function SellerPortal() {
         .limit(2000);
       if (inList) venQ = venQ.or(`ejecutivo_venta_id.in.${inList},created_by.in.${inList}`);
       if (plazaId !== "all") venQ = venQ.eq("plaza_id", plazaId);
+      if (empresaIdsAsignadas !== null) {
+        venQ = supabase.from("documentos")
+          .select("id, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, empresa_id, empresa_vendedora, numero_factura, estado_cobranza, estatus_factura, ejecutivo_venta_id, created_by")
+          .eq("tipo_documento", "factura")
+          .eq("is_active", true)
+          .eq("estatus_factura", "vencida")
+          .in("empresa_vendedora", marcasSeleccionadas as any)
+          .limit(2000);
+        if (plazaId !== "all") venQ = venQ.eq("plaza_id", plazaId);
+        const orParts: string[] = [];
+        if (inList) orParts.push(`ejecutivo_venta_id.in.${inList}`, `created_by.in.${inList}`);
+        if (empresasInList) orParts.push(`empresa_id.in.${empresasInList}`);
+        if (orParts.length) venQ = venQ.or(orParts.join(","));
+        else { venQ = venQ.eq("id", "00000000-0000-0000-0000-000000000000"); }
+      }
       const { data: venRaw } = await venQ;
 
       const venIds = (venRaw || []).map((f: any) => f.id);
