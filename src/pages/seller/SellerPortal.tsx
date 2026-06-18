@@ -1540,13 +1540,22 @@ export default function SellerPortal() {
                               <Button size="sm" variant="ghost" title="Abrir factura" onClick={() => window.open(`/documents/${f.id}`, "_blank")}>
                                 <ExternalLink className="h-3.5 w-3.5" />
                               </Button>
-                              {waUrl ? (
-                                <Button size="sm" variant="ghost" asChild title="Enviar WhatsApp">
-                                  <a href={waUrl} target="_blank" rel="noopener noreferrer"><MessageCircle className="h-3.5 w-3.5 text-green-600" /></a>
-                                </Button>
-                              ) : (
-                                <Button size="sm" variant="ghost" disabled title="Sin WhatsApp"><MessageCircle className="h-3.5 w-3.5 text-muted-foreground" /></Button>
-                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                title="Comunicar por WhatsApp"
+                                onClick={() => { setCobranzaFactura(f); setCobranzaTab("whatsapp"); setCobranzaOpen(true); }}
+                              >
+                                <MessageCircle className="h-3.5 w-3.5 text-green-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                title="Comunicar por correo"
+                                onClick={() => { setCobranzaFactura(f); setCobranzaTab("email"); setCobranzaOpen(true); }}
+                              >
+                                <Mail className="h-3.5 w-3.5 text-blue-600" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
