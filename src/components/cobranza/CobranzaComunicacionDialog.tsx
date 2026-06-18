@@ -59,12 +59,11 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
     queryKey: ["cobranza-comm-contactos", factura?.empresa_id],
     enabled: !!factura?.empresa_id && open,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("contacts")
-        .select("id, first_name, last_name, phone, mobile, whatsapp_phone, email, email2, is_active")
-        .eq("company_id", factura!.empresa_id)
-        .eq("is_active", true)
-        .order("first_name");
+      // RPC con SECURITY DEFINER: devuelve los contactos activos de la empresa
+      // aunque el usuario no tenga acceso al Directorio (necesario para cobranza).
+      const { data, error } = await supabase
+        .rpc("get_company_contacts_for_cobranza", { p_company_id: factura!.empresa_id });
+      if (error) console.warn("[cobranza contactos]", error);
       return (data || []) as any[];
     },
   });
