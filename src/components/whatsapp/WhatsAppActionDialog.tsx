@@ -164,9 +164,10 @@ export function WhatsAppActionDialog({
 
   const handleSend = async () => {
     if (!normalized) { toast.error("Sin teléfono válido"); return; }
+    await copyMessage(messageWithLinks);
     openWhatsApp(normalized, messageWithLinks);
     await finishLog("enviado", { channel: "wa_me" });
-    toast.success("WhatsApp abierto. Recuerda enviar el mensaje.");
+    toast.success("Mensaje copiado y WhatsApp abierto");
     onOpenChange(false);
   };
 
