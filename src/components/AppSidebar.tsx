@@ -6,7 +6,7 @@ import {
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
   Briefcase, Zap, FolderOpen, TrendingUp,
   FileCheck, Boxes, ChevronDown, Link2,
-  Sliders, ClipboardList, ShieldAlert, Network,
+  Sliders, ClipboardList, ShieldAlert, Network, DollarSign,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -255,6 +255,14 @@ export function AppSidebar() {
                         <NavLink to="/inventario/dashboard" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <Network className="mr-2 h-4 w-4" />
                           {!collapsed && <span>Dashboard Red</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/inventario/costos" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <DollarSign className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Costos y Precios</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
