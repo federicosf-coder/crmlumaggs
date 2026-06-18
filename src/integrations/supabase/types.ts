@@ -4280,7 +4280,7 @@ export type Database = {
           costo_promedio: number | null
           created_at: string | null
           dias_cobertura: number | null
-          empresa_vendedora: string | null
+          empresa_vendedora: string
           estatus_inventario: string | null
           fecha_ultimo_kardex: string | null
           fuente_suministro: string | null
@@ -4308,7 +4308,7 @@ export type Database = {
           costo_promedio?: number | null
           created_at?: string | null
           dias_cobertura?: number | null
-          empresa_vendedora?: string | null
+          empresa_vendedora?: string
           estatus_inventario?: string | null
           fecha_ultimo_kardex?: string | null
           fuente_suministro?: string | null
@@ -4336,7 +4336,7 @@ export type Database = {
           costo_promedio?: number | null
           created_at?: string | null
           dias_cobertura?: number | null
-          empresa_vendedora?: string | null
+          empresa_vendedora?: string
           estatus_inventario?: string | null
           fecha_ultimo_kardex?: string | null
           fuente_suministro?: string | null
