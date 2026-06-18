@@ -6891,6 +6891,11 @@ export type Database = {
         | "inventario.pedidos.recibidos"
         | "inventario.pedidos.reclamos"
         | "inventario.mapeo"
+        | "inventario.demanda"
+        | "inventario.minmax"
+        | "inventario.restricciones"
+        | "inventario.traspasos"
+        | "inventario.dashboard_red"
       app_role:
         | "admin"
         | "manager"
@@ -7234,6 +7239,11 @@ export const Constants = {
         "inventario.pedidos.recibidos",
         "inventario.pedidos.reclamos",
         "inventario.mapeo",
+        "inventario.demanda",
+        "inventario.minmax",
+        "inventario.restricciones",
+        "inventario.traspasos",
+        "inventario.dashboard_red",
       ],
       app_role: [
         "admin",
