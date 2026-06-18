@@ -654,16 +654,19 @@ async function procesarKardexUnidades(
 
   setProgress(15);
 
-  if (!parsed.fechaInicio || !parsed.fechaFin) {
-    await (supabase as any).from("inv_kardex_cargas").update({
-      estatus: "con_errores",
-      total_skus_error: parsed.skuCount,
-    }).eq("id", carga.id);
-    throw new Error("No se pudo determinar el periodo del archivo");
+  let { fechaInicio, fechaFin } = parsed;
+  let advertenciaFechas = false;
+  if (!fechaInicio || !fechaFin) {
+    advertenciaFechas = true;
+    const hoy = new Date();
+    const hace365 = new Date(hoy.getTime() - 365 * 86400000);
+    fechaFin = fechaFin || hoy.toISOString().slice(0, 10);
+    fechaInicio = fechaInicio || hace365.toISOString().slice(0, 10);
   }
+  if (advertenciaFechas) toast.warning("No se detectó periodo en el archivo; se usó rango por defecto (último año).");
 
-  const d0 = new Date(parsed.fechaInicio);
-  const d1 = new Date(parsed.fechaFin);
+  const d0 = new Date(fechaInicio);
+  const d1 = new Date(fechaFin);
   const diasPeriodo = Math.max(1, Math.round((d1.getTime() - d0.getTime()) / 86400000) + 1);
 
   // Acumular ventas por (codigo, plaza) usando movimientos con plaza detectada
