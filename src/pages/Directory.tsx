@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2, Download, Upload, Mail, Globe, Briefcase, Users, Tag, FileText } from "lucide-react";
+import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2, Download, Upload, Mail, Globe, Briefcase, Users, Tag, FileText, CreditCard, DollarSign, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Merge } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1333,66 +1333,113 @@ export default function Directory() {
 
       {/* Contact Detail Dialog */}
       <Dialog open={!!selectedContact} onOpenChange={open => { if (!open) setSelectedContact(null); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {selectedContact && (
-            <>
-              <DialogHeader className="flex flex-row items-center justify-between">
-                <DialogTitle>{selectedContact.first_name} {selectedContact.last_name}</DialogTitle>
-                <Button size="sm" variant="outline" onClick={() => setEditContact(selectedContact)}>
-                  <Pencil className="h-4 w-4 mr-1" /> Editar
-                </Button>
-              </DialogHeader>
-              <div className="space-y-4 mt-4">
-                {/* Identidad */}
-                <div className="grid grid-cols-2 gap-3">
-                  <DetailRow label="Nombre" value={selectedContact.first_name} />
-                  <DetailRow label="Apellido" value={selectedContact.last_name} />
-                  <DetailRow label="Puesto" value={selectedContact.job_title} />
-                  <DetailRow label="Departamento" value={selectedContact.department} />
-                </div>
-
-                {/* Empresa + Ejecutivo */}
-                <div className="grid grid-cols-2 gap-3">
-                  <DetailRow label="Empresa" value={selectedContact.companies?.name} />
-                  <DetailRow label="Ejecutivo(s) de Venta" value={getEjecutivoNames(selectedContactEjecutivos).join(", ") || "—"} />
-                </div>
-
-                {/* Comunicación */}
-                <div className="rounded-md border p-3 space-y-2">
-                  <h4 className="text-sm font-semibold">Comunicación</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { label: "Whatsapp", value: (selectedContact as any).whatsapp_phone, active: !!(selectedContact as any).comm_whatsapp },
-                      { label: "Email", value: selectedContact.email, active: !!(selectedContact as any).comm_email },
-                      { label: "Email 2", value: (selectedContact as any).email2, active: !!(selectedContact as any).comm_email2 },
-                      { label: "Cel", value: selectedContact.mobile, active: !!(selectedContact as any).comm_cel },
-                      { label: "Tel", value: selectedContact.phone, active: !!(selectedContact as any).comm_tel },
-                      { label: "Tel Emp", value: (selectedContact as any).tel_emp, active: !!(selectedContact as any).comm_tel_emp },
-                    ].map((c) => (
-                      <DetailRow
-                        key={c.label}
-                        label={c.active ? `${c.label} ✓` : c.label}
-                        value={c.value}
-                      />
-                    ))}
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          {selectedContact && (() => {
+            const sc: any = selectedContact;
+            const comms = [
+              { label: "Whatsapp", value: sc.whatsapp_phone, active: !!sc.comm_whatsapp, icon: MessageCircle, color: "text-green-600" },
+              { label: "Email", value: sc.email, active: !!sc.comm_email, icon: Mail, color: "text-blue-600" },
+              { label: "Email 2", value: sc.email2, active: !!sc.comm_email2, icon: Mail, color: "text-blue-600" },
+              { label: "Celular", value: sc.mobile, active: !!sc.comm_cel, icon: Phone, color: "text-indigo-600" },
+              { label: "Tel.", value: sc.phone, active: !!sc.comm_tel, icon: Phone, color: "text-slate-600" },
+              { label: "Tel. Empresa", value: sc.tel_emp, active: !!sc.comm_tel_emp, icon: Phone, color: "text-slate-600" },
+            ].filter(c => c.value);
+            return (
+              <>
+                <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-6 py-5 border-b shrink-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <DialogTitle className="text-xl font-semibold tracking-tight">
+                        {selectedContact.first_name} {selectedContact.last_name}
+                      </DialogTitle>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        {selectedContact.companies?.name && (
+                          <Badge variant="secondary" className="gap-1">
+                            <Building2 className="h-3 w-3" /> {selectedContact.companies.name}
+                          </Badge>
+                        )}
+                        {selectedContact.job_title && (
+                          <Badge variant="outline" className="gap-1">
+                            <Briefcase className="h-3 w-3" /> {selectedContact.job_title}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => setEditContact(selectedContact)}>
+                      <Pencil className="h-4 w-4 mr-1" /> Editar
+                    </Button>
                   </div>
-                </div>
+                </DialogHeader>
 
-                {/* Plaza */}
-                <div className="grid grid-cols-2 gap-3">
-                  <DetailRow label="Plaza" value={(selectedContact.companies?.plazas as any)?.nombre} />
-                </div>
+                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+                  {/* Comunicación */}
+                  {comms.length > 0 && (
+                    <section className="space-y-2">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Comunicación</h4>
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        {comms.map((c) => {
+                          const Icon = c.icon;
+                          return (
+                            <div key={c.label} className="flex items-center gap-2.5 rounded-md border p-2.5 bg-muted/10">
+                              <Icon className={`h-4 w-4 shrink-0 ${c.color}`} />
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[11px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                                  {c.label}
+                                  {c.active && <span className="text-emerald-600">✓</span>}
+                                </div>
+                                <div className="text-sm truncate">{c.value}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
 
-                {/* Notas */}
-                {selectedContact.notes && (
-                  <>
-                    <Separator className="my-1" />
-                    <DetailRow label="Notas" value={selectedContact.notes} />
-                  </>
-                )}
-              </div>
-            </>
-          )}
+                  {/* Crédito y Cobranza */}
+                  {(sc.contacto_cobranza || sc.contacto_credito) && (
+                    <section className="space-y-2">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Crédito y Cobranza</h4>
+                      <div className="flex gap-2 flex-wrap">
+                        {sc.contacto_cobranza && (
+                          <Badge className="bg-orange-100 text-orange-800 border-orange-200 gap-1 hover:bg-orange-100">
+                            <DollarSign className="h-3 w-3" /> Contacto de Cobranza
+                          </Badge>
+                        )}
+                        {sc.contacto_credito && (
+                          <Badge className="bg-blue-100 text-blue-800 border-blue-200 gap-1 hover:bg-blue-100">
+                            <CreditCard className="h-3 w-3" /> Contacto de Crédito
+                          </Badge>
+                        )}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Información general */}
+                  <section className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Información general</h4>
+                    <div className="grid sm:grid-cols-2 gap-3 rounded-md border p-3 bg-muted/10">
+                      <DetailRow label="Puesto" value={selectedContact.job_title} />
+                      <DetailRow label="Departamento" value={selectedContact.department} />
+                      <DetailRow label="Empresa" value={selectedContact.companies?.name} />
+                      <DetailRow label="Plaza" value={(selectedContact.companies?.plazas as any)?.nombre} />
+                      <DetailRow label="Ejecutivo(s) de Venta" value={getEjecutivoNames(selectedContactEjecutivos).join(", ") || "—"} />
+                    </div>
+                  </section>
+
+                  {/* Notas */}
+                  {selectedContact.notes && (
+                    <section className="space-y-2">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Notas</h4>
+                      <div className="rounded-md border p-3 bg-muted/10 text-sm whitespace-pre-wrap font-light">
+                        {selectedContact.notes}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
