@@ -1193,6 +1193,8 @@ export type Database = {
           comm_tel_emp: boolean
           comm_whatsapp: boolean
           company_id: string | null
+          contacto_cobranza: boolean
+          contacto_credito: boolean
           created_at: string
           created_by: string | null
           department: string | null
@@ -1225,6 +1227,8 @@ export type Database = {
           comm_tel_emp?: boolean
           comm_whatsapp?: boolean
           company_id?: string | null
+          contacto_cobranza?: boolean
+          contacto_credito?: boolean
           created_at?: string
           created_by?: string | null
           department?: string | null
@@ -1257,6 +1261,8 @@ export type Database = {
           comm_tel_emp?: boolean
           comm_whatsapp?: boolean
           company_id?: string | null
+          contacto_cobranza?: boolean
+          contacto_credito?: boolean
           created_at?: string
           created_by?: string | null
           department?: string | null
