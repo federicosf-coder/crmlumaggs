@@ -3773,6 +3773,256 @@ export type Database = {
         }
         Relationships: []
       }
+      inv_archivos_referencia: {
+        Row: {
+          created_at: string | null
+          descripcion: string | null
+          empresa: string | null
+          es_activo: boolean | null
+          estatus: string | null
+          fecha_vigencia_fin: string | null
+          fecha_vigencia_inicio: string | null
+          id: string
+          nombre_archivo: string
+          notas: string | null
+          registros_con_error: number | null
+          registros_procesados: number | null
+          storage_path: string | null
+          subido_por: string | null
+          tipo: string
+          total_registros: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descripcion?: string | null
+          empresa?: string | null
+          es_activo?: boolean | null
+          estatus?: string | null
+          fecha_vigencia_fin?: string | null
+          fecha_vigencia_inicio?: string | null
+          id?: string
+          nombre_archivo: string
+          notas?: string | null
+          registros_con_error?: number | null
+          registros_procesados?: number | null
+          storage_path?: string | null
+          subido_por?: string | null
+          tipo: string
+          total_registros?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descripcion?: string | null
+          empresa?: string | null
+          es_activo?: boolean | null
+          estatus?: string | null
+          fecha_vigencia_fin?: string | null
+          fecha_vigencia_inicio?: string | null
+          id?: string
+          nombre_archivo?: string
+          notas?: string | null
+          registros_con_error?: number | null
+          registros_procesados?: number | null
+          storage_path?: string | null
+          subido_por?: string | null
+          tipo?: string
+          total_registros?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inv_costos_historial: {
+        Row: {
+          aplicado_at: string | null
+          aplicado_por: string | null
+          codigo_producto: string
+          costo_anterior: number | null
+          costo_nuevo: number | null
+          empresa: string
+          fuente: string | null
+          id: string
+          lote_id: string | null
+          precio_uf1_anterior: number | null
+          precio_uf1_nuevo: number | null
+        }
+        Insert: {
+          aplicado_at?: string | null
+          aplicado_por?: string | null
+          codigo_producto: string
+          costo_anterior?: number | null
+          costo_nuevo?: number | null
+          empresa: string
+          fuente?: string | null
+          id?: string
+          lote_id?: string | null
+          precio_uf1_anterior?: number | null
+          precio_uf1_nuevo?: number | null
+        }
+        Update: {
+          aplicado_at?: string | null
+          aplicado_por?: string | null
+          codigo_producto?: string
+          costo_anterior?: number | null
+          costo_nuevo?: number | null
+          empresa?: string
+          fuente?: string | null
+          id?: string
+          lote_id?: string | null
+          precio_uf1_anterior?: number | null
+          precio_uf1_nuevo?: number | null
+        }
+        Relationships: []
+      }
+      inv_costos_producto: {
+        Row: {
+          archivo_especial_id: string | null
+          archivo_galper_id: string | null
+          archivo_lista_id: string | null
+          autorizado_at: string | null
+          autorizado_por: string | null
+          codigo_producto: string
+          costo_anterior: number | null
+          costo_efectivo: number | null
+          costo_efectivo_fuente: string | null
+          costo_especial: number | null
+          costo_especial_fecha: string | null
+          costo_galper: number | null
+          costo_galper_fecha: string | null
+          costo_lista: number | null
+          costo_lista_fecha: string | null
+          costo_manual: number | null
+          costo_manual_notas: string | null
+          created_at: string | null
+          empresa: string
+          estado: string | null
+          id: string
+          lote_id: string | null
+          nivel_alerta: string | null
+          nombre_en_archivo: string | null
+          nombre_en_catalogo: string | null
+          notas_autorizacion: string | null
+          precio_propuesto_galper: number | null
+          precio_propuesto_r1: number | null
+          precio_propuesto_r2: number | null
+          precio_propuesto_r3: number | null
+          precio_propuesto_r4: number | null
+          precio_propuesto_uf1: number | null
+          precio_propuesto_uf2: number | null
+          precio_propuesto_uf3: number | null
+          precio_propuesto_uf4: number | null
+          razones_alerta: string[] | null
+          updated_at: string | null
+          variacion_absoluta: number | null
+          variacion_porcentual: number | null
+        }
+        Insert: {
+          archivo_especial_id?: string | null
+          archivo_galper_id?: string | null
+          archivo_lista_id?: string | null
+          autorizado_at?: string | null
+          autorizado_por?: string | null
+          codigo_producto: string
+          costo_anterior?: number | null
+          costo_efectivo?: number | null
+          costo_efectivo_fuente?: string | null
+          costo_especial?: number | null
+          costo_especial_fecha?: string | null
+          costo_galper?: number | null
+          costo_galper_fecha?: string | null
+          costo_lista?: number | null
+          costo_lista_fecha?: string | null
+          costo_manual?: number | null
+          costo_manual_notas?: string | null
+          created_at?: string | null
+          empresa: string
+          estado?: string | null
+          id?: string
+          lote_id?: string | null
+          nivel_alerta?: string | null
+          nombre_en_archivo?: string | null
+          nombre_en_catalogo?: string | null
+          notas_autorizacion?: string | null
+          precio_propuesto_galper?: number | null
+          precio_propuesto_r1?: number | null
+          precio_propuesto_r2?: number | null
+          precio_propuesto_r3?: number | null
+          precio_propuesto_r4?: number | null
+          precio_propuesto_uf1?: number | null
+          precio_propuesto_uf2?: number | null
+          precio_propuesto_uf3?: number | null
+          precio_propuesto_uf4?: number | null
+          razones_alerta?: string[] | null
+          updated_at?: string | null
+          variacion_absoluta?: number | null
+          variacion_porcentual?: number | null
+        }
+        Update: {
+          archivo_especial_id?: string | null
+          archivo_galper_id?: string | null
+          archivo_lista_id?: string | null
+          autorizado_at?: string | null
+          autorizado_por?: string | null
+          codigo_producto?: string
+          costo_anterior?: number | null
+          costo_efectivo?: number | null
+          costo_efectivo_fuente?: string | null
+          costo_especial?: number | null
+          costo_especial_fecha?: string | null
+          costo_galper?: number | null
+          costo_galper_fecha?: string | null
+          costo_lista?: number | null
+          costo_lista_fecha?: string | null
+          costo_manual?: number | null
+          costo_manual_notas?: string | null
+          created_at?: string | null
+          empresa?: string
+          estado?: string | null
+          id?: string
+          lote_id?: string | null
+          nivel_alerta?: string | null
+          nombre_en_archivo?: string | null
+          nombre_en_catalogo?: string | null
+          notas_autorizacion?: string | null
+          precio_propuesto_galper?: number | null
+          precio_propuesto_r1?: number | null
+          precio_propuesto_r2?: number | null
+          precio_propuesto_r3?: number | null
+          precio_propuesto_r4?: number | null
+          precio_propuesto_uf1?: number | null
+          precio_propuesto_uf2?: number | null
+          precio_propuesto_uf3?: number | null
+          precio_propuesto_uf4?: number | null
+          razones_alerta?: string[] | null
+          updated_at?: string | null
+          variacion_absoluta?: number | null
+          variacion_porcentual?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_costos_producto_archivo_especial_id_fkey"
+            columns: ["archivo_especial_id"]
+            isOneToOne: false
+            referencedRelation: "inv_archivos_referencia"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_costos_producto_archivo_galper_id_fkey"
+            columns: ["archivo_galper_id"]
+            isOneToOne: false
+            referencedRelation: "inv_archivos_referencia"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_costos_producto_archivo_lista_id_fkey"
+            columns: ["archivo_lista_id"]
+            isOneToOne: false
+            referencedRelation: "inv_archivos_referencia"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inv_demanda_plaza: {
         Row: {
           almacen: string
