@@ -689,14 +689,14 @@ async function procesarKardexUnidades(
     return {
       codigo_producto: v.codigo,
       almacen: v.almacen,
-      periodo_inicio: parsed.fechaInicio,
-      periodo_fin: parsed.fechaFin,
+      periodo_inicio: fechaInicio,
+      periodo_fin: fechaFin,
       dias_periodo: diasPeriodo,
       unidades_vendidas: v.uds,
       unidades_traspaso_salida: 0,
       demanda_diaria_promedio: ddia,
       demanda_mensual_promedio: ddia * 30,
-      ultima_venta: parsed.fechaFin,
+      ultima_venta: fechaFin,
     };
   });
   for (let i = 0; i < demandaRows.length; i += batchSize) {
