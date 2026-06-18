@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase as _sb } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, Mail, ExternalLink, Send, ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { MessageCircle, Mail, ExternalLink, Send, ChevronDown, ChevronUp, FileText, Phone, UserPlus, Pencil, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +47,7 @@ function renderPlaceholders(text: string, vars: Record<string, string>): string 
 
 export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaultTab = "whatsapp", empresaNombre }: Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<"whatsapp" | "email">(defaultTab);
   useEffect(() => { setTab(defaultTab); }, [defaultTab, open]);
 
@@ -308,6 +309,16 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
             {empresaNombre ? <>{empresaNombre} · </> : null}
             Factura <span className="font-mono">{factura.numero_factura || factura.id.slice(0, 8)}</span> · Saldo {fmtMoney(Number(factura.saldo_pendiente_cobranza || 0))}
           </DialogDescription>
+          {factura.empresa_id && (
+            <a
+              href={`/directory?tab=companies&select=${factura.empresa_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1 mt-1 w-fit"
+            >
+              <ExternalLink className="h-3 w-3" /> Ver perfil de empresa
+            </a>
+          )}
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -346,6 +357,11 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
                 modo="phone"
                 telefonoManual={telefonoManual}
                 setTelefonoManual={setTelefonoManual}
+                empresaId={factura.empresa_id}
+                onContactCreated={(id) => {
+                  setContactoId(id);
+                  queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
+                }}
               />
 
               <DocumentosSection
@@ -412,6 +428,11 @@ export function CobranzaComunicacionDialog({ factura, open, onOpenChange, defaul
                 contactoId={contactoId}
                 onChange={setContactoId}
                 modo="email"
+                empresaId={factura.empresa_id}
+                onContactCreated={(id) => {
+                  setContactoId(id);
+                  queryClient.invalidateQueries({ queryKey: ["cobranza-comm-contactos", factura.empresa_id] });
+                }}
               />
               <section className="grid sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
