@@ -1582,6 +1582,14 @@ export default function SellerPortal() {
         }}
       />
 
+      <CobranzaComunicacionDialog
+        factura={cobranzaFactura}
+        empresaNombre={cobranzaFactura ? companyMap[cobranzaFactura.empresa_id] : undefined}
+        open={cobranzaOpen}
+        onOpenChange={(o) => { setCobranzaOpen(o); if (!o) setCobranzaFactura(null); }}
+        defaultTab={cobranzaTab}
+      />
+
       <CrmActivityDetailDialog
         activity={selectedActivity}
         open={activityDialogOpen}
