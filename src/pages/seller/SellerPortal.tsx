@@ -76,6 +76,11 @@ export default function SellerPortal() {
   const [convertidosPeriodo, setConvertidosPeriodo] = useState<number>(0);
   const [bucketActivo, setBucketActivo] = useState<"vencidas" | "1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
+  // Dialog de comunicación de cobranza
+  const [cobranzaFactura, setCobranzaFactura] = useState<any | null>(null);
+  const [cobranzaTab, setCobranzaTab] = useState<"whatsapp" | "email">("whatsapp");
+  const [cobranzaOpen, setCobranzaOpen] = useState(false);
+
   // Límites de visualización + paginación por lista (10 / 25 / 50 / "all")
   type PageLimit = "10" | "25" | "50" | "all";
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
