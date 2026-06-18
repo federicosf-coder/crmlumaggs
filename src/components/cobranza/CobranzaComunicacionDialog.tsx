@@ -855,10 +855,11 @@ function DocumentosSection({
         <label className="flex items-start gap-2 cursor-pointer">
           <Checkbox checked={incEstaFactura} onCheckedChange={(v) => setIncEstaFactura(!!v)} className="mt-0.5" />
           <div className="text-sm font-light">
-            <div className="font-medium">Esta factura</div>
+            <div className="font-medium">Esta factura (solo datos)</div>
             <div className="text-xs text-muted-foreground">
-              {factura.numero_factura || factura.id.slice(0, 8)} · {fmtMoney(Number(factura.saldo_pendiente_cobranza || 0))} · vence {factura.fecha_vencimiento || "—"}
+              {factura.numero_factura || factura.id.slice(0, 8)} · Total {fmtMoney(Number(factura.total || 0))} · vence {factura.fecha_vencimiento || "—"}
             </div>
+            <div className="text-[11px] text-muted-foreground italic">Se incluye número, fecha y total (no se envía PDF).</div>
           </div>
         </label>
         <div>
@@ -866,7 +867,7 @@ function DocumentosSection({
             <Checkbox checked={incOtras} onCheckedChange={(v) => setIncOtras(!!v)} className="mt-0.5" />
             <div className="text-sm font-light flex-1">
               <div className="font-medium flex items-center justify-between">
-                <span>Otras facturas pendientes ({otrasFacturas.length})</span>
+                <span>Otras facturas pendientes ({otrasFacturas.length}) — solo datos</span>
                 {otrasFacturas.length > 0 && (
                   <button type="button" onClick={(e) => { e.preventDefault(); setOtrasOpen(!otrasOpen); }} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                     {otrasOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
