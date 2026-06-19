@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -436,17 +436,26 @@ export default function DocumentForm() {
 
   // Auto-fill commercial fields from company when selecting a new client (not on edit load)
   const [companyAutoFilled, setCompanyAutoFilled] = useState(false);
+  const prevEmpresaIdRef = useRef<string>("");
   useEffect(() => {
-    if (isEdit && !companyAutoFilled) { setCompanyAutoFilled(true); return; }
+    // En modo edición, la primera ejecución es la carga inicial del documento: la saltamos.
+    if (isEdit && !companyAutoFilled) {
+      setCompanyAutoFilled(true);
+      prevEmpresaIdRef.current = form.empresa_id;
+      return;
+    }
     if (!form.empresa_id) return;
+    // Solo actualizamos si la empresa realmente cambió (el usuario la seleccionó de nuevo)
+    if (form.empresa_id === prevEmpresaIdRef.current) return;
+    prevEmpresaIdRef.current = form.empresa_id;
     const company = companies.find((c: any) => c.id === form.empresa_id);
     if (company) {
       setForm(prev => ({
         ...prev,
-        uso_cfdi: (company as any).uso_cfdi || prev.uso_cfdi,
-        metodo_pago: (company as any).metodo_pago || prev.metodo_pago,
-        tipo_pago: (company as any).tipo_pago || prev.tipo_pago,
-        forma_pago: (company as any).forma_pago || prev.forma_pago,
+        uso_cfdi: (company as any).uso_cfdi || "",
+        metodo_pago: (company as any).metodo_pago || "",
+        tipo_pago: (company as any).tipo_pago || "",
+        forma_pago: (company as any).forma_pago || "",
       }));
     }
   }, [form.empresa_id, companies]);
