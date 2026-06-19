@@ -6,7 +6,7 @@ import {
   MessageCircle, Megaphone, FileBadge, Bot, FileStack,
   Briefcase, Zap, FolderOpen, TrendingUp,
   FileCheck, Boxes, ChevronDown, Link2,
-  Sliders, ClipboardList, ShieldAlert, Network, DollarSign, FileSpreadsheet,
+  Sliders, ClipboardList, ShieldAlert, Network, DollarSign, FileSpreadsheet, TableProperties,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -271,6 +271,14 @@ export function AppSidebar() {
                         <NavLink to="/inventario/reporte-costos" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <FileSpreadsheet className="mr-2 h-4 w-4" />
                           {!collapsed && <span>Reporte Costos</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/inventario/reporte-kardex" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <TableProperties className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Reporte Kárdex</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
