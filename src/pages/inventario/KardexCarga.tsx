@@ -784,26 +784,154 @@ async function procesarKardexUnidades(
 }
 
 async function procesarKardexImporte(
-  _rows: any[][],
+  rows: any[][],
   fileName: string,
   empresa: string,
   userId: string | null,
   setProgress: (n: number) => void,
 ) {
-  setProgress(20);
-  // Solo registrar. Sin upserts en niveles.
-  const { error } = await (supabase as any)
-    .from("inv_kardex_cargas")
-    .insert({
+  setProgress(10);
+  const { fechaInicio, fechaFin } = buscarRangoFechas(rows);
+
+  // Extraer datos de costo por producto
+  const costoMap = new Map<string, {
+    nombre: string;
+    costoTotalFinal: number;       // col[8] del último movimiento
+    ultimaCompraImporte: number;   // col[6] de la última entrada tipo COMPRA
+    ultimaCompraFecha: string;
+  }>();
+
+  let curCodigo: string | null = null;
+  let curNombre = "";
+  let curCostoTotal = 0;
+  let curUltimaCompraImporte = 0;
+  let curUltimaCompraFecha = "";
+
+  const guardarProducto = () => {
+    if (!curCodigo) return;
+    costoMap.set(curCodigo, {
+      nombre: curNombre,
+      costoTotalFinal: curCostoTotal,
+      ultimaCompraImporte: curUltimaCompraImporte,
+      ultimaCompraFecha: curUltimaCompraFecha,
+    });
+  };
+
+  for (const row of rows) {
+    const c0 = String(row[0] ?? "").trim();
+
+    if (/^Producto:/i.test(c0)) {
+      guardarProducto(); // Guardar el anterior antes de cambiar
+      curCodigo = normalizeCodigo(row[1]);
+      curNombre = "";
+      curCostoTotal = 0;
+      curUltimaCompraImporte = 0;
+      curUltimaCompraFecha = "";
+      continue;
+    }
+    if (/^Nombre:/i.test(c0)) {
+      curNombre = String(row[1] ?? "").trim();
+      continue;
+    }
+    if (!curCodigo) continue;
+
+    // Filas de movimiento: col[1] debe ser una fecha CONTPAQi
+    const c1 = String(row[1] ?? "").trim();
+    if (!/^\d{1,2}\/[A-Za-z]{3}\/\d{4}$/.test(c1)) continue;
+
+    const concepto = String(row[4] ?? "").trim();
+    const almacenTexto = String(row[5] ?? "").trim().toLowerCase();
+    const entradas = Number(String(row[6] ?? "").replace(/[^0-9.-]/g, "")) || 0;
+    const costoTotal = Number(String(row[8] ?? "").replace(/[^0-9.-]/g, "")) || 0;
+
+    // Actualizar costo total acumulado (último valor válido)
+    if (costoTotal > 0) curCostoTotal = costoTotal;
+
+    // Detectar compras (entradas reales de proveedor, no traspasos)
+    if (
+      entradas > 0 &&
+      /compra/i.test(concepto) &&
+      !/(traspaso|trasp)/i.test(concepto)
+    ) {
+      curUltimaCompraImporte = entradas;
+      curUltimaCompraFecha = normContpaqiDate(c1) || "";
+    }
+  }
+  guardarProducto(); // Guardar el último producto
+
+  setProgress(40);
+
+  const skuList = Array.from(costoMap.keys());
+  if (skuList.length === 0) {
+    await (supabase as any).from("inv_kardex_cargas").insert({
       empresa_vendedora: empresa,
       tipo: "kardex_importe",
       nombre_archivo: fileName,
+      fecha_archivo: fechaFin,
+      fecha_inicio: fechaInicio,
       estatus: "completado",
       creado_por: userId,
       total_skus_procesados: 0,
       total_skus_actualizados: 0,
       total_skus_error: 0,
     });
-  if (error) throw error;
-  setProgress(90);
+    setProgress(100);
+    return;
+  }
+
+  // Cruzar con inv_niveles_inventario para calcular costo_promedio
+  const { data: niveles } = await (supabase as any)
+    .from("inv_niveles_inventario")
+    .select("codigo_producto, stock_total, empresa_vendedora")
+    .eq("empresa_vendedora", empresa)
+    .in("codigo_producto", skuList);
+  const nivelesMap = new Map<string, number>(
+    (niveles || []).map((n: any) => [n.codigo_producto, Number(n.stock_total || 0)])
+  );
+
+  setProgress(60);
+
+  // Preparar upserts en inv_niveles_inventario
+  const upserts: any[] = [];
+  for (const [codigo, datos] of costoMap) {
+    const stock = nivelesMap.get(codigo) ?? 0;
+    const costoPromedio = stock > 0 ? datos.costoTotalFinal / stock : null;
+
+    upserts.push({
+      codigo_producto: codigo,
+      empresa_vendedora: empresa,
+      nombre_producto: datos.nombre || null,
+      valor_total_inventario: datos.costoTotalFinal,
+      costo_promedio: costoPromedio,
+      fecha_ultimo_kardex: fechaFin,
+    });
+  }
+
+  const batchSize = 200;
+  let errors = 0;
+  for (let i = 0; i < upserts.length; i += batchSize) {
+    const chunk = upserts.slice(i, i + batchSize);
+    const { error } = await (supabase as any)
+      .from("inv_niveles_inventario")
+      .upsert(chunk, { onConflict: "codigo_producto,empresa_vendedora" });
+    if (error) {
+      errors += chunk.length;
+      console.error("Upsert kardex_importe error:", error);
+      if (i === 0) toast.error(`Error al guardar: ${error.message || error.code}`);
+    }
+    setProgress(60 + Math.round(((i + chunk.length) / upserts.length) * 35));
+  }
+
+  await (supabase as any).from("inv_kardex_cargas").insert({
+    empresa_vendedora: empresa,
+    tipo: "kardex_importe",
+    nombre_archivo: fileName,
+    fecha_archivo: fechaFin,
+    fecha_inicio: fechaInicio,
+    estatus: errors > 0 ? "con_errores" : "completado",
+    creado_por: userId,
+    total_skus_procesados: skuList.length,
+    total_skus_actualizados: Math.max(0, skuList.length - errors),
+    total_skus_error: errors,
+  });
 }
