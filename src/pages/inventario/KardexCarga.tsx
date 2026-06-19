@@ -299,6 +299,34 @@ export default function KardexCarga() {
   const [limpiando, setLimpiando] = useState(false);
   const puedeLimpiarDemanda = hasAnyRole(["admin", "manager"]);
 
+  // [DIAG TEMPORAL] Mostrar estado de tablas al cargar la pantalla
+  useEffect(() => {
+    (async () => {
+      try {
+        const { count: demandaCount } = await (supabase as any)
+          .from("inv_demanda_plaza")
+          .select("*", { count: "exact", head: true });
+        const { data: ultima } = await (supabase as any)
+          .from("inv_kardex_cargas")
+          .select("created_at")
+          .eq("tipo", "kardex_unidades")
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const { count: cargasCount } = await (supabase as any)
+          .from("inv_kardex_cargas")
+          .select("*", { count: "exact", head: true })
+          .eq("tipo", "kardex_unidades");
+        toast.info(
+          `inv_demanda_plaza: ${demandaCount ?? 0} filas · kardex_unidades cargas: ${cargasCount ?? 0}` +
+            (ultima?.[0]?.created_at ? ` (última: ${new Date(ultima[0].created_at).toLocaleString("es-MX")})` : ""),
+          { duration: 8000 },
+        );
+      } catch (e: any) {
+        toast.error(`Diag error: ${e?.message || e}`);
+      }
+    })();
+  }, []);
+
   const limpiarDemanda = async () => {
     setLimpiando(true);
     try {
