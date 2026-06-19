@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Calendar } from "lucide-react";
+import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Calendar, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 type Row = {
