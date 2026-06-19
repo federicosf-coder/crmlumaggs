@@ -767,12 +767,14 @@ async function procesarKardexUnidades(
   setProgress(35);
 
   // [DIAG TEMPORAL]
+  const totalMovimientos = parsed.movimientos.length;
+  const conPlaza = parsed.movimientos.filter(m => m.plaza && m.salidas > 0).length;
   toast.info(
-    `Movimientos parseados: ${parsed.movimientos.length} · ventas agrupadas: ${ventas.size}`,
+    `Movimientos parseados: ${totalMovimientos} · ventas agrupadas: ${ventas.size} (${conPlaza} con plaza)`,
     { duration: 8000 },
   );
-  console.log("[DIAG kardex_unidades] movimientos:", parsed.movimientos.length,
-    "ventas:", ventas.size, "muestra:", parsed.movimientos.slice(0, 3));
+  console.log("[DIAG kardex_unidades] movimientos:", totalMovimientos,
+    "ventas:", ventas.size, "conPlaza:", conPlaza, "muestra:", parsed.movimientos.slice(0, 3));
 
   // 1) UPSERT inv_demanda_plaza
   const batchSize = 200;
@@ -793,7 +795,7 @@ async function procesarKardexUnidades(
   });
 
   // [DIAG TEMPORAL]
-  toast.info(`demandaRows a insertar: ${demandaRows.length}`, { duration: 8000 });
+  toast.info(`demandaRows a insertar: ${demandaRows.length} (${totalMovimientos} movimientos, ${conPlaza} con plaza)`, { duration: 8000 });
   if (demandaRows.length === 0) {
     toast.warning(
       "No se detectaron ventas con plaza asignada. Revisar parser (columnas salidas/almacén).",
