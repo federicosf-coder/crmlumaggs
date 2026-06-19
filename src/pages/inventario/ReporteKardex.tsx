@@ -96,13 +96,13 @@ export default function ReporteKardex() {
   const [sortKey, setSortKey] = useState<SortKey>("codigo");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  useEffect(() => { (async () => {
+  const recargar = async () => {
     setLoading(true);
     try {
       const [nv, dp, mm, cp] = await Promise.all([
         (supabase as any).from("inv_niveles_inventario").select("*"),
         (supabase as any).from("inv_demanda_plaza").select("codigo_producto, almacen, unidades_vendidas, demanda_diaria_promedio, periodo_inicio, periodo_fin"),
-        (supabase as any).from("inv_minmax").select("codigo_producto, almacen, minimo_calc, maximo_calc, ultima_actualizacion_calc"),
+        (supabase as any).from("inv_minmax").select("codigo_producto, almacen, minimo_calc, maximo_calc"),
         (supabase as any).from("inv_costos_producto").select("codigo_producto, costo_galper, created_at").order("created_at", { ascending: false }),
       ]);
       setNiveles(nv.data || []);
@@ -111,8 +111,12 @@ export default function ReporteKardex() {
       setCostos(cp.data || []);
     } catch (e: any) {
       toast.error("Error cargando reporte: " + e.message);
-    } finally { setLoading(false); }
-  })(); }, []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { recargar(); }, []);
 
   const empresasDisponibles = useMemo(() => {
     const s = new Set<string>();
@@ -315,9 +319,15 @@ export default function ReporteKardex() {
             Período del kárdex: {periodoGlobal.ini || "—"} → {periodoGlobal.fin || "—"}
           </p>
         </div>
-        <Button onClick={exportar} disabled={filtered.length === 0}>
-          <Download className="h-4 w-4 mr-2" /> Descargar Excel ({filtered.length})
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={recargar} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Actualizar
+          </Button>
+          <Button onClick={exportar} disabled={filtered.length === 0}>
+            <Download className="h-4 w-4 mr-2" /> Descargar Excel ({filtered.length})
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
