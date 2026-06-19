@@ -772,6 +772,14 @@ async function procesarKardexUnidades(
 
   setProgress(35);
 
+  // [DIAG TEMPORAL]
+  toast.info(
+    `Movimientos parseados: ${parsed.movimientos.length} · ventas agrupadas: ${ventas.size}`,
+    { duration: 8000 },
+  );
+  console.log("[DIAG kardex_unidades] movimientos:", parsed.movimientos.length,
+    "ventas:", ventas.size, "muestra:", parsed.movimientos.slice(0, 3));
+
   // 1) UPSERT inv_demanda_plaza
   const batchSize = 200;
   const demandaRows = Array.from(ventas.values()).map((v) => {
@@ -789,10 +797,24 @@ async function procesarKardexUnidades(
       ultima_venta: fechaFin,
     };
   });
+
+  // [DIAG TEMPORAL]
+  toast.info(`demandaRows a insertar: ${demandaRows.length}`, { duration: 8000 });
+  if (demandaRows.length === 0) {
+    toast.warning(
+      "No se detectaron ventas con plaza asignada. Revisar parser (columnas salidas/almacén).",
+      { duration: 10000 },
+    );
+  }
+
   for (let i = 0; i < demandaRows.length; i += batchSize) {
-    await (supabase as any)
+    const { error: demErr } = await (supabase as any)
       .from("inv_demanda_plaza")
       .upsert(demandaRows.slice(i, i + batchSize), { onConflict: "codigo_producto,almacen,periodo_inicio" });
+    if (demErr) {
+      console.error("[DIAG] upsert inv_demanda_plaza error:", demErr);
+      toast.error(`Upsert inv_demanda_plaza: ${demErr.message || demErr.code || "error"}`, { duration: 12000 });
+    }
     setProgress(35 + Math.round(((i + batchSize) / Math.max(1, demandaRows.length)) * 25));
   }
 
