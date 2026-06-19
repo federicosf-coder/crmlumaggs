@@ -722,6 +722,14 @@ async function procesarKardexUnidades(
 ) {
   const parsed = parseKardexMovimientos(rows);
 
+  // Filtrar solo los últimos 12 meses para demanda, minmax y pronósticos
+  const hoy = new Date();
+  const hace12Meses = new Date(hoy);
+  hace12Meses.setFullYear(hoy.getFullYear() - 1);
+  const hace12MesesIso = hace12Meses.toISOString().slice(0, 10);
+
+  const movimientos12m = parsed.movimientos.filter(m => m.fecha >= hace12MesesIso);
+
   const { data: carga, error: cErr } = await (supabase as any)
     .from("inv_kardex_cargas")
     .insert({
@@ -744,7 +752,6 @@ async function procesarKardexUnidades(
   let advertenciaFechas = false;
   if (!fechaInicio || !fechaFin) {
     advertenciaFechas = true;
-    const hoy = new Date();
     const hace365 = new Date(hoy.getTime() - 365 * 86400000);
     fechaFin = fechaFin || hoy.toISOString().slice(0, 10);
     fechaInicio = fechaInicio || hace365.toISOString().slice(0, 10);
@@ -753,11 +760,12 @@ async function procesarKardexUnidades(
 
   const d0 = new Date(fechaInicio);
   const d1 = new Date(fechaFin);
-  const diasPeriodo = Math.max(1, Math.round((d1.getTime() - d0.getTime()) / 86400000) + 1);
+  // El período para demanda diaria es máximo 365 días (12 meses)
+  const diasPeriodo = Math.min(365, Math.max(1, Math.round((d1.getTime() - Math.max(d0.getTime(), hace12Meses.getTime())) / 86400000) + 1));
 
   // Acumular ventas por (codigo, plaza) usando movimientos con plaza detectada
   const ventas = new Map<string, { codigo: string; almacen: string; uds: number }>();
-  for (const m of parsed.movimientos) {
+  for (const m of movimientos12m) {
     if (!m.plaza) continue; // ignorar traspasos y otros
     if (!(m.salidas > 0)) continue;
     const k = `${m.codigo}|${m.plaza}`;
@@ -770,9 +778,10 @@ async function procesarKardexUnidades(
 
   // [DIAG TEMPORAL]
   const totalMovimientos = parsed.movimientos.length;
-  const conPlaza = parsed.movimientos.filter(m => m.plaza && m.salidas > 0).length;
+  const movimientos12mCount = movimientos12m.length;
+  const conPlaza = movimientos12m.filter(m => m.plaza && m.salidas > 0).length;
   toast.info(
-    `Movimientos parseados: ${totalMovimientos} · ventas agrupadas: ${ventas.size} (${conPlaza} con plaza)`,
+    `Movimientos totales: ${totalMovimientos} · últimos 12m: ${movimientos12mCount} · ventas con plaza: ${conPlaza}`,
     { duration: 8000 },
   );
   console.log("[DIAG kardex_unidades] movimientos:", totalMovimientos,
