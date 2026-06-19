@@ -215,13 +215,10 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
     const fechaIso = normContpaqiDate(c1);
     if (!fechaIso) continue;
 
-    // Concepto: probar col[4] primero, luego col[7], luego col[3]
-    const conceptoCandidates = [row[4], row[7], row[3], row[2]].map((v) => String(v ?? "").trim());
-    const concepto = conceptoCandidates.find((s) => /facturaci|traspaso|compra|devoluci|ajuste|venta/i.test(s)) || conceptoCandidates[0] || "";
+    const concepto = String(row[4] ?? "").trim();
 
-    // Entradas/Salidas: heurística — buscar primero un par de números
-    const entradas = Number(row[5]) || Number(row[4]) || 0;
-    const salidas = Number(row[6]) || Number(row[7]) || 0;
+    const entradas = Number(String(row[6] ?? "").replace(/[^0-9.-]/g, "")) || 0;
+    const salidas = Number(String(row[7] ?? "").replace(/[^0-9.-]/g, "")) || 0;
 
     const plaza = detectarPlaza(concepto);
 
