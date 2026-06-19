@@ -160,16 +160,6 @@ interface ParsedKardex {
   skuCount: number;
 }
 
-function detectarPlaza(concepto: string): string | null {
-  const c = concepto.toLowerCase();
-  if (!c.includes("facturaci")) return null;
-  if (c.includes("tijuana")) return "1002";
-  if (c.includes("mexicali")) return "1001";
-  if (c.includes("morelos")) return "1003";
-  if (c.includes("ensenada")) return "1004";
-  return null;
-}
-
 function parseKardexMovimientos(rows: any[][]): ParsedKardex {
   const { fechaInicio, fechaFin } = buscarRangoFechas(rows);
 
@@ -177,55 +167,64 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
   const skus = new Set<string>();
   let curCodigo: string | null = null;
   let curNombre = "";
+  let debugCount = 0;
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i] || [];
     const c0 = String(row[0] ?? "").trim();
+    const c1 = String(row[1] ?? "").trim();
+    const c4 = String(row[4] ?? "").trim();
+    const c5 = String(row[5] ?? "").trim();
+    const c6 = String(row[6] ?? "").trim();
+    const c7 = String(row[7] ?? "").trim();
 
-    // Cambio de producto explícito
+    // Detectar inicio de producto
     if (/^Producto:/i.test(c0)) {
       const codeRaw = row[1];
-      curCodigo = typeof codeRaw === "number" ? String(Math.round(codeRaw)) : String(codeRaw ?? "").trim();
-      curNombre = String(row[2] ?? "").trim();
+      curCodigo = typeof codeRaw === "number"
+        ? String(Math.round(codeRaw))
+        : String(codeRaw ?? "").trim();
       if (curCodigo) skus.add(curCodigo);
       continue;
     }
-    if (/^Nombre:/i.test(c0)) continue;
 
-    // Intentar detectar fecha en col[1] para distinguir movimiento de cabecera
-    const c1 = String(row[1] ?? "").trim();
-    const esFecha = /^\d{1,2}\/[A-Za-z]{3}\/\d{4}$/.test(c1);
-
-    if (!esFecha) {
-      // Puede ser fila de cabecera de SKU: código en col[0] no numérico-fecha y nombre en col[1]
-      const codigo = normalizeCodigo(row[0]);
-      const nombre = c1;
-      if (codigo && nombre && !/^c[oó]digo/i.test(codigo) && !/^total/i.test(codigo)) {
-        curCodigo = codigo;
-        curNombre = nombre;
-        skus.add(codigo);
-      }
+    // Detectar nombre (solo para info)
+    if (/^Nombre:/i.test(c0)) {
+      curNombre = c1;
       continue;
     }
 
+    // Saltar filas que no son movimientos
     if (!curCodigo) continue;
+    if (!/^\d{1,2}\/[A-Za-z]{3}\/\d{4}$/.test(c1)) continue;
+
     const fechaIso = normContpaqiDate(c1);
     if (!fechaIso) continue;
 
-    const concepto = String(row[4] ?? "").trim();
+    // Determinar si es venta por facturación
+    // REGLA: col[4] debe empezar con "Facturacion" (puede tener o sin acento)
+    const esFacturacion = /^Facturaci[oó]n\s+\S/i.test(c4);
 
-    // Almacén físico viene como texto en col[5]
-    const almacenTexto = String(row[5] ?? "").trim().toLowerCase();
+    // Determinar almacén/plaza desde col[5]
+    const almacenTexto = c5.toLowerCase();
     let almacenCodigo: string | null = null;
     if (almacenTexto.includes("tijuana")) almacenCodigo = "1002";
     else if (almacenTexto.includes("mexicali")) almacenCodigo = "1001";
     else if (almacenTexto.includes("morelos")) almacenCodigo = "1003";
     else if (almacenTexto.includes("ensenada")) almacenCodigo = "1004";
 
-    const entradas = Number(String(row[6] ?? "").replace(/[^0-9.-]/g, "")) || 0;
-    const salidas = Number(String(row[7] ?? "").replace(/[^0-9.-]/g, "")) || 0;
+    // Entradas: col[6], Salidas: col[7]
+    const entradas = Number(c6.replace(/[^0-9.-]/g, "")) || 0;
+    const salidas = Number(c7.replace(/[^0-9.-]/g, "")) || 0;
 
-    const plaza = detectarPlaza(concepto);
+    // Plaza = almacén solo si es facturación
+    const plaza = esFacturacion ? almacenCodigo : null;
+
+    // Debug primeras 5 facturaciones
+    if (esFacturacion && debugCount < 5) {
+      console.log(`[KARDEX DEBUG row${i}] codigo=${curCodigo} c4=${JSON.stringify(c4)} c5=${JSON.stringify(c5)} salidas=${salidas} plaza=${plaza} esFacturacion=${esFacturacion}`);
+      debugCount++;
+    }
 
     movimientos.push({
       codigo: curCodigo,
@@ -233,11 +232,14 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
       almacen: almacenCodigo || "desconocido",
       plaza,
       fecha: fechaIso,
-      concepto,
-      salidas: salidas > 0 ? salidas : 0,
-      entradas: entradas > 0 ? entradas : 0,
+      concepto: c4,
+      salidas,
+      entradas,
     });
   }
+
+  console.log(`[KARDEX] Total movimientos: ${movimientos.length}, SKUs: ${skus.size}`);
+  console.log(`[KARDEX] Facturaciones con salidas>0: ${movimientos.filter(m => m.plaza && m.salidas > 0).length}`);
 
   return { movimientos, fechaInicio, fechaFin, skuCount: skus.size };
 }
