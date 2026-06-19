@@ -7,7 +7,18 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileSpreadsheet, CheckCircle2, AlertCircle, Package, DollarSign, Activity, Coins, Upload } from "lucide-react";
+import { FileSpreadsheet, CheckCircle2, AlertCircle, Package, DollarSign, Activity, Coins, Upload, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -282,9 +293,28 @@ const TIPO_LABEL: Record<string, string> = {
 
 export default function KardexCarga() {
   const { data: cargas = [] } = useKardexCargas();
-  const { user } = useAuth();
+  const { user, hasAnyRole } = useAuth();
   const qc = useQueryClient();
   const [empresa, setEmpresa] = useState<string>("lumaggs");
+  const [limpiando, setLimpiando] = useState(false);
+  const puedeLimpiarDemanda = hasAnyRole(["admin", "manager"]);
+
+  const limpiarDemanda = async () => {
+    setLimpiando(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("inv_demanda_plaza")
+        .delete()
+        .neq("codigo_producto", "");
+      if (error) throw error;
+      toast.success("Datos de demanda por plaza eliminados");
+      qc.invalidateQueries({ queryKey: ["inv_demanda_plaza"] });
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo limpiar la demanda");
+    } finally {
+      setLimpiando(false);
+    }
+  };
 
   const { data: ultimasCargas } = useQuery({
     queryKey: ["inv_kardex_cargas_ultimas", empresa],
@@ -355,6 +385,31 @@ export default function KardexCarga() {
               />
             ))}
           </div>
+
+          {puedeLimpiarDemanda && (
+            <div className="flex justify-end">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={limpiando}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {limpiando ? "Limpiando…" : "Limpiar datos de demanda"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Limpiar datos de demanda por plaza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esto borrará todos los registros de inv_demanda_plaza. Requiere volver a subir el Kárdex en Unidades para regenerar la demanda.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={limpiarDemanda}>Limpiar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="historial">
