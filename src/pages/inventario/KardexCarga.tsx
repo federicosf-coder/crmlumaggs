@@ -177,22 +177,11 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
   const skus = new Set<string>();
   let curCodigo: string | null = null;
   let curNombre = "";
-  let curAlmacen: string | null = null;
-  let almacenValido = false;
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i] || [];
     const c0 = String(row[0] ?? "").trim();
 
-    // Cambio de almacén
-    if (/^Almac[eé]n/i.test(c0)) {
-      const mInline = c0.match(/:\s*(\d+)/);
-      const codeRaw = mInline ? mInline[1] : row[1];
-      const code = typeof codeRaw === "number" ? String(Math.round(codeRaw)) : String(codeRaw ?? "").trim();
-      curAlmacen = code;
-      almacenValido = ALMACENES_VALIDOS.has(code);
-      continue;
-    }
     // Cambio de producto explícito
     if (/^Producto:/i.test(c0)) {
       const codeRaw = row[1];
@@ -201,12 +190,9 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
       if (curCodigo) skus.add(curCodigo);
       continue;
     }
-    // Línea cabecera de SKU al estilo del kardex (código en col 0, nombre en col 1)
-    // Pero hay que distinguir de filas de movimiento. Si col[1] es fecha CONTPAQi -> es movimiento.
     if (/^Nombre:/i.test(c0)) continue;
-    if (!curAlmacen || !almacenValido) continue;
 
-    // Intentar detectar fecha en col[1]
+    // Intentar detectar fecha en col[1] para distinguir movimiento de cabecera
     const c1 = String(row[1] ?? "").trim();
     const esFecha = /^\d{1,2}\/[A-Za-z]{3}\/\d{4}$/.test(c1);
 
@@ -228,6 +214,14 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
 
     const concepto = String(row[4] ?? "").trim();
 
+    // Almacén físico viene como texto en col[5]
+    const almacenTexto = String(row[5] ?? "").trim().toLowerCase();
+    let almacenCodigo: string | null = null;
+    if (almacenTexto.includes("tijuana")) almacenCodigo = "1002";
+    else if (almacenTexto.includes("mexicali")) almacenCodigo = "1001";
+    else if (almacenTexto.includes("morelos")) almacenCodigo = "1003";
+    else if (almacenTexto.includes("ensenada")) almacenCodigo = "1004";
+
     const entradas = Number(String(row[6] ?? "").replace(/[^0-9.-]/g, "")) || 0;
     const salidas = Number(String(row[7] ?? "").replace(/[^0-9.-]/g, "")) || 0;
 
@@ -236,7 +230,7 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
     movimientos.push({
       codigo: curCodigo,
       nombre: curNombre,
-      almacen: curAlmacen,
+      almacen: almacenCodigo || "desconocido",
       plaza,
       fecha: fechaIso,
       concepto,
