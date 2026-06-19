@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -298,6 +298,34 @@ export default function KardexCarga() {
   const [empresa, setEmpresa] = useState<string>("lumaggs");
   const [limpiando, setLimpiando] = useState(false);
   const puedeLimpiarDemanda = hasAnyRole(["admin", "manager"]);
+
+  // [DIAG TEMPORAL] Mostrar estado de tablas al cargar la pantalla
+  useEffect(() => {
+    (async () => {
+      try {
+        const { count: demandaCount } = await (supabase as any)
+          .from("inv_demanda_plaza")
+          .select("*", { count: "exact", head: true });
+        const { data: ultima } = await (supabase as any)
+          .from("inv_kardex_cargas")
+          .select("created_at")
+          .eq("tipo", "kardex_unidades")
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const { count: cargasCount } = await (supabase as any)
+          .from("inv_kardex_cargas")
+          .select("*", { count: "exact", head: true })
+          .eq("tipo", "kardex_unidades");
+        toast.info(
+          `inv_demanda_plaza: ${demandaCount ?? 0} filas · kardex_unidades cargas: ${cargasCount ?? 0}` +
+            (ultima?.[0]?.created_at ? ` (última: ${new Date(ultima[0].created_at).toLocaleString("es-MX")})` : ""),
+          { duration: 8000 },
+        );
+      } catch (e: any) {
+        toast.error(`Diag error: ${e?.message || e}`);
+      }
+    })();
+  }, []);
 
   const limpiarDemanda = async () => {
     setLimpiando(true);
@@ -744,6 +772,14 @@ async function procesarKardexUnidades(
 
   setProgress(35);
 
+  // [DIAG TEMPORAL]
+  toast.info(
+    `Movimientos parseados: ${parsed.movimientos.length} · ventas agrupadas: ${ventas.size}`,
+    { duration: 8000 },
+  );
+  console.log("[DIAG kardex_unidades] movimientos:", parsed.movimientos.length,
+    "ventas:", ventas.size, "muestra:", parsed.movimientos.slice(0, 3));
+
   // 1) UPSERT inv_demanda_plaza
   const batchSize = 200;
   const demandaRows = Array.from(ventas.values()).map((v) => {
@@ -761,10 +797,24 @@ async function procesarKardexUnidades(
       ultima_venta: fechaFin,
     };
   });
+
+  // [DIAG TEMPORAL]
+  toast.info(`demandaRows a insertar: ${demandaRows.length}`, { duration: 8000 });
+  if (demandaRows.length === 0) {
+    toast.warning(
+      "No se detectaron ventas con plaza asignada. Revisar parser (columnas salidas/almacén).",
+      { duration: 10000 },
+    );
+  }
+
   for (let i = 0; i < demandaRows.length; i += batchSize) {
-    await (supabase as any)
+    const { error: demErr } = await (supabase as any)
       .from("inv_demanda_plaza")
       .upsert(demandaRows.slice(i, i + batchSize), { onConflict: "codigo_producto,almacen,periodo_inicio" });
+    if (demErr) {
+      console.error("[DIAG] upsert inv_demanda_plaza error:", demErr);
+      toast.error(`Upsert inv_demanda_plaza: ${demErr.message || demErr.code || "error"}`, { duration: 12000 });
+    }
     setProgress(35 + Math.round(((i + batchSize) / Math.max(1, demandaRows.length)) * 25));
   }
 
