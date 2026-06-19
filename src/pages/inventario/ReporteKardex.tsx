@@ -226,7 +226,7 @@ export default function ReporteKardex() {
         dem_dia: dem,
         dias_inv: dem > 0 ? stock / dem : null,
         costo_prom: n.costo_promedio != null ? Number(n.costo_promedio) : null,
-        ultimo_costo: costoMap.get(cod) ?? null,
+        ultimo_costo: costoMap.get(cod) ?? (n.costo_promedio != null ? Number(n.costo_promedio) : null),
         minimo: mm?.min ?? null,
         maximo: mm?.max ?? null,
         alerta: calcAlerta(stock, mm?.min ?? null, mm?.max ?? null),
@@ -410,7 +410,7 @@ export default function ReporteKardex() {
                   <SortHead k="dem_dia" className="text-right">Dem/día</SortHead>
                   <SortHead k="dias_inv" className="text-right">Días inv.</SortHead>
                   <SortHead k="costo_prom" className="text-right border-l">Costo prom.</SortHead>
-                  <SortHead k="ultimo_costo" className="text-right">Último costo</SortHead>
+                  <SortHead k="ultimo_costo" className="text-right" title="Costo de lista Galper si está disponible, sino costo promedio del kardex">Último costo (Galper)</SortHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
