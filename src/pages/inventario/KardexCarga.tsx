@@ -807,15 +807,21 @@ async function procesarKardexUnidades(
     );
   }
 
+  let demandaErrors = 0;
   for (let i = 0; i < demandaRows.length; i += batchSize) {
+    const chunk = demandaRows.slice(i, i + batchSize);
     const { error: demErr } = await (supabase as any)
       .from("inv_demanda_plaza")
-      .upsert(demandaRows.slice(i, i + batchSize), { onConflict: "codigo_producto,almacen,periodo_inicio" });
+      .upsert(chunk, { onConflict: "codigo_producto,almacen,periodo_inicio" });
     if (demErr) {
-      console.error("[DIAG] upsert inv_demanda_plaza error:", demErr);
-      toast.error(`Upsert inv_demanda_plaza: ${demErr.message || demErr.code || "error"}`, { duration: 12000 });
+      demandaErrors += chunk.length;
+      console.error("Error upsert inv_demanda_plaza:", demErr);
+      if (i === 0) toast.error(`Error guardando demanda: ${demErr.message || demErr.code || JSON.stringify(demErr)}`);
     }
     setProgress(35 + Math.round(((i + batchSize) / Math.max(1, demandaRows.length)) * 25));
+  }
+  if (demandaErrors > 0) {
+    console.warn(`inv_demanda_plaza: ${demandaErrors} registros con error de ${demandaRows.length}`);
   }
 
   // 2) Recalcular inv_minmax
