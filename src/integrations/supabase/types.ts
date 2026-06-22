@@ -7461,6 +7461,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      recalcular_estatus_facturas_batch: { Args: never; Returns: undefined }
       recompute_all_seguimiento_ventas: { Args: never; Returns: undefined }
       recompute_documento_cobranza: {
         Args: { _documento_id: string }
