@@ -247,7 +247,6 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
         .order("created_at", { ascending: false });
       if (plazaId) q = q.or(`plaza_id.eq.${plazaId},plaza_id.is.null`);
       if (tipoPagoFilter === "contado") q = q.eq("tipo_pago", "contado" as any);
-      else if (tipoPagoFilter === "directo") q = q.eq("tipo_pago", "credito_directo" as any);
       else if (tipoPagoFilter === "cescemex") q = q.eq("tipo_pago", "credito_cescemex" as any);
       if (fechaDesde) q = q.gte("fecha_documento", fechaDesde);
       if (fechaHasta) q = q.lte("fecha_documento", fechaHasta);
@@ -280,6 +279,17 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
         if (ef === "cancelada" || ef === "pagada") return false;
         if (Number(d.saldo_pendiente_cobranza || 0) <= 0) return false;
       }
+      if (tipoPagoFilter === "directo") {
+        // Crédito Directo = todo lo que NO sea Cescemex (coincide con el KPI del dashboard).
+        const tp = (d.tipo_pago || "").toLowerCase();
+        if (tp.includes("cescemex")) return false;
+      } else if (tipoPagoFilter === "cescemex") {
+        const tp = (d.tipo_pago || "").toLowerCase();
+        if (!tp.includes("cescemex")) return false;
+      } else if (tipoPagoFilter === "contado") {
+        const tp = (d.tipo_pago || "").toLowerCase();
+        if (tp !== "contado") return false;
+      }
       if (prefilter === "vencidas") {
         if ((d.estatus_factura || "").toLowerCase() !== "vencida") return false;
       } else if (prefilter === "credito_directo") {
@@ -301,7 +311,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
       }
       return true;
     });
-  }, [docs, prefilter, daysBucket, onlyConSaldo]);
+  }, [docs, prefilter, daysBucket, onlyConSaldo, tipoPagoFilter]);
 
   const sortedDocs = [...filtered].sort((a: any, b: any) => {
     switch (sortBy) {
