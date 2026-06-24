@@ -283,8 +283,9 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
       if (prefilter === "vencidas") {
         if ((d.estatus_factura || "").toLowerCase() !== "vencida") return false;
       } else if (prefilter === "credito_directo") {
+        // Crédito Directo = todo lo que NO sea Cescemex (coincide con el KPI del dashboard).
         const tp = (d.tipo_pago || "").toLowerCase();
-        if (!(tp.includes("directo") || tp === "credito" || (tp.includes("credito") && !tp.includes("cescemex")))) return false;
+        if (tp.includes("cescemex")) return false;
       } else if (prefilter === "credito_cescemex") {
         const tp = (d.tipo_pago || "").toLowerCase();
         if (!tp.includes("cescemex")) return false;
