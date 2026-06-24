@@ -344,7 +344,7 @@ function ProductosTab() {
   const [search, setSearch] = useState("");
   const { data: stockMap = new Map<string, any>() } = useStockPorProducto();
   const { data: kardexCargas = [] } = useKardexCargas();
-  const ultimaCargaUnidades = kardexCargas.find((c: any) => c.tipo === "unidades" && c.estatus === "completado");
+  const ultimaCargaUnidades = kardexCargas.find((c: any) => c.tipo === "inventario_unidades" && c.estatus === "completado");
   const ultimaFechaInventario = ultimaCargaUnidades?.fecha_archivo
     ? new Date(ultimaCargaUnidades.fecha_archivo).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })
     : null;
