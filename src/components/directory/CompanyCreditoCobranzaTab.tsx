@@ -254,6 +254,16 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
         diasLabel="Días para Vencer"
         diasColor="text-amber-600"
       />
+
+      <WhatsAppActionDialog
+        open={waOpen}
+        onOpenChange={setWaOpen}
+        phone={waPhone}
+        variables={{ empresa_nombre: waCompanyName }}
+        templateType="cobranza"
+        defaultMessage={waMessage}
+        context={{ company_id: companyId, contact_id: waContactId }}
+      />
     </div>
   );
 }
