@@ -97,6 +97,10 @@ export default function Directory() {
   const selectId = searchParams.get("select");
   const { hasRole } = useAuth();
 
+  // Deep-link: subtab dentro del diálogo de empresa, y URL para "Regresar"
+  const [initialSubtab, setInitialSubtab] = useState<string>("general");
+  const [backUrl, setBackUrl] = useState<string | null>(null);
+
   const [companies, setCompanies] = useState<Company[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -387,9 +391,15 @@ export default function Directory() {
       const found = companies.find((c) => c.id === selectId);
       if (found) {
         setSelectedCompany(found);
+        const sub = searchParams.get("subtab");
+        const back = searchParams.get("back");
+        if (sub) setInitialSubtab(sub);
+        if (back) setBackUrl(back);
         setSearchParams((prev) => {
           const next = new URLSearchParams(prev);
           next.delete("select");
+          next.delete("subtab");
+          next.delete("back");
           return next;
         }, { replace: true });
       }
