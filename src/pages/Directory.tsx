@@ -1109,7 +1109,7 @@ export default function Directory() {
 
       {/* Company Detail Sheet */}
       {/* Company Detail Dialog */}
-      <Dialog open={!!selectedCompany} onOpenChange={open => { if (!open) setSelectedCompany(null); }}>
+      <Dialog open={!!selectedCompany} onOpenChange={open => { if (!open) { setSelectedCompany(null); setBackUrl(null); setInitialSubtab("general"); } }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           {selectedCompany && (
             <>
@@ -1120,6 +1120,16 @@ export default function Directory() {
                     <p className="text-xs text-muted-foreground">Razón Social: {selectedCompany.razon_social}</p>
                   )}
                   <div className="flex flex-wrap items-center gap-2 pt-1.5">
+                    {backUrl && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => { const b = backUrl; setSelectedCompany(null); setBackUrl(null); setInitialSubtab("general"); navigate(b); }}
+                      >
+                        ← Regresar a Cobranza
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
@@ -1145,7 +1155,7 @@ export default function Directory() {
                 <CompanyMetricsPanel companyId={selectedCompany.id} />
               </div>
 
-              <Tabs defaultValue="general" className="mt-4">
+              <Tabs defaultValue={initialSubtab} key={`${selectedCompany.id}-${initialSubtab}`} className="mt-4">
                 <TabsList className="w-full">
                   <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
                   <TabsTrigger value="contactos" className="flex-1">Contactos</TabsTrigger>
