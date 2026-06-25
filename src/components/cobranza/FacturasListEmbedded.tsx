@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Pencil, Trash2, CheckSquare, Columns3, Filter, X, Download, FileText, List, Users, ChevronDown, ChevronRight, MoreHorizontal, MessageCircle, Mail } from "lucide-react";
+import { Search, Pencil, Trash2, CheckSquare, Columns3, Filter, X, Download, FileText, List, Users, ChevronDown, ChevronRight, MoreHorizontal, MessageCircle, Mail, Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { fetchAllRows } from "@/lib/supabasePagination";
@@ -924,6 +924,7 @@ function RowActions({ doc }: { doc: any }) {
 }
 
 function ClientActions({ empresaId, clientName, docIds }: { empresaId: string | null; clientName: string; docIds: string[] }) {
+  const navigate = useNavigate();
   const handleFire = async (e: React.MouseEvent, key: string, label: string) => {
     e.stopPropagation();
     const res = await fireAutomation({
@@ -942,6 +943,22 @@ function ClientActions({ empresaId, clientName, docIds }: { empresaId: string | 
   };
   return (
     <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+      {empresaId && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          title="Ver Estado de Cuenta"
+          aria-label="Ver Estado de Cuenta"
+          onClick={(e) => {
+            e.stopPropagation();
+            const back = `${window.location.pathname}${window.location.search}`;
+            navigate(`/directory?tab=companies&select=${empresaId}&subtab=credito&back=${encodeURIComponent(back)}`);
+          }}
+        >
+          <Receipt className="h-4 w-4 text-primary" />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon"
