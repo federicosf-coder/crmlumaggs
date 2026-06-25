@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, FileDown, Save, CreditCard, TrendingUp, AlertTriangle, Wallet, CheckCircle2, Mail } from "lucide-react";
+import { Loader2, FileDown, Save, CreditCard, TrendingUp, AlertTriangle, Wallet, CheckCircle2, Mail, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import { buildCompanyCreditoCobranzaData, type BrandKey } from "@/lib/buildCompanyCreditoCobranzaData";
 import { generateCompanyCreditoCobranzaPdf } from "@/lib/generateCompanyCreditoCobranzaPdf";
+import { generateCompanyCreditoCobranzaPdfArtifact } from "@/lib/templateDocumentGenerators";
+import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
 
 interface Props {
   companyId: string;
@@ -24,6 +26,12 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
   );
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [preparandoWa, setPreparandoWa] = useState(false);
+  const [waOpen, setWaOpen] = useState(false);
+  const [waPhone, setWaPhone] = useState<string | null>(null);
+  const [waMessage, setWaMessage] = useState<string>("");
+  const [waCompanyName, setWaCompanyName] = useState<string>("");
+  const [waContactId, setWaContactId] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["company-credito-cobranza", companyId],
@@ -78,6 +86,65 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
     toast.info("Próximamente: envío automático del PDF por correo");
   };
 
+  const handleEnviarWhatsApp = async () => {
+    setPreparandoWa(true);
+    try {
+      // 1) Generar PDF y subir a bucket con URL firmada (7 días)
+      const { blob, fileName } = await generateCompanyCreditoCobranzaPdfArtifact(companyId);
+      const safeName = fileName.replace(/[^A-Za-z0-9.:_-]+/g, "_");
+      const key = `cobranza-estados-cuenta/${companyId}/${Date.now()}-${safeName}`;
+      const up = await supabase.storage
+        .from("document-files")
+        .upload(key, blob, { contentType: "application/pdf", upsert: false });
+      if (up.error) throw up.error;
+      const { data: signed, error: serr } = await supabase.storage
+        .from("document-files")
+        .createSignedUrl(key, 60 * 60 * 24 * 7);
+      if (serr) throw serr;
+      const url = signed?.signedUrl || "";
+
+      // 2) Buscar empresa y contacto preferente (cobranza/crédito)
+      const { data: empresa } = await (supabase as any)
+        .from("companies")
+        .select("id, name, phone")
+        .eq("id", companyId)
+        .maybeSingle();
+
+      const { data: contactos } = await (supabase as any)
+        .from("contacts")
+        .select("id, first_name, last_name, whatsapp, phone, mobile, contacto_cobranza, contacto_credito, is_primary")
+        .eq("company_id", companyId);
+
+      const list = (contactos || []) as any[];
+      const elegido =
+        list.find((c) => c.contacto_cobranza && (c.whatsapp || c.mobile || c.phone)) ||
+        list.find((c) => c.contacto_credito && (c.whatsapp || c.mobile || c.phone)) ||
+        list.find((c) => c.is_primary && (c.whatsapp || c.mobile || c.phone)) ||
+        list.find((c) => c.whatsapp || c.mobile || c.phone) ||
+        null;
+
+      const tel: string | null =
+        elegido?.whatsapp || elegido?.mobile || elegido?.phone || empresa?.phone || null;
+
+      // 3) Construir mensaje
+      const mensaje =
+        `Buen día, enviamos estado de cuenta actualizado. Agradecemos su apoyo para mantener su cuenta en buen estado.\n\n` +
+        `*Documento PDF Del estado de cuenta*\n` +
+        `${safeName}\n${url}`;
+
+      setWaCompanyName(empresa?.name || "");
+      setWaContactId(elegido?.id || null);
+      setWaPhone(tel);
+      setWaMessage(mensaje);
+      setWaOpen(true);
+    } catch (e: any) {
+      console.error("[handleEnviarWhatsApp]", e);
+      toast.error("No se pudo preparar el envío: " + (e?.message || e));
+    } finally {
+      setPreparandoWa(false);
+    }
+  };
+
   if (isLoading || !data) {
     return <div className="space-y-3"><Skeleton className="h-20 w-full" /><Skeleton className="h-32 w-full" /><Skeleton className="h-60 w-full" /></div>;
   }
@@ -115,6 +182,10 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" className="h-8" onClick={handleEnviarWhatsApp} disabled={preparandoWa}>
+              {preparandoWa ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MessageCircle className="h-4 w-4 mr-1 text-emerald-600" />}
+              Enviar PDF
+            </Button>
             <Button variant="outline" size="sm" className="h-8" onClick={handleDownload} disabled={downloading}>
               {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
               Descargar PDF
@@ -182,6 +253,16 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
         rows={data.porVencer}
         diasLabel="Días para Vencer"
         diasColor="text-amber-600"
+      />
+
+      <WhatsAppActionDialog
+        open={waOpen}
+        onOpenChange={setWaOpen}
+        phone={waPhone}
+        variables={{ empresa_nombre: waCompanyName }}
+        templateType="cobranza"
+        defaultMessage={waMessage}
+        context={{ company_id: companyId, contact_id: waContactId }}
       />
     </div>
   );
