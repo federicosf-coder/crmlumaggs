@@ -10,9 +10,16 @@ export default function CreditoShortRedirect() {
   useEffect(() => {
     if (!code) { setToken(null); return; }
     (async () => {
-      const { data, error } = await supabase.rpc("resolve_credit_short_code", { code });
-      if (error || !data) setToken(null);
-      else setToken(data as string);
+      // 1) ¿Es un código de portal de crédito?
+      const { data: creditToken } = await supabase.rpc("resolve_credit_short_code", { code });
+      if (creditToken) { setToken(creditToken as string); return; }
+      // 2) ¿Es un código genérico (PDFs, estados de cuenta, etc.)?
+      const { data: target } = await supabase.rpc("resolve_short_link" as any, { _code: code });
+      if (target && typeof target === "string") {
+        window.location.replace(target);
+        return;
+      }
+      setToken(null);
     })();
   }, [code]);
 
