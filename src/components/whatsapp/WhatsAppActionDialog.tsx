@@ -39,6 +39,7 @@ export function WhatsAppActionDialog({
   const { user } = useAuth();
   const [selectedTplId, setSelectedTplId] = useState<string>("custom");
   const [message, setMessage] = useState<string>(defaultMessage || "");
+  const [manualPhone, setManualPhone] = useState<string>("");
 
   // ─── Envío por API mediante plantilla aprobada (Meta Cloud) ───
   const [tplPickerOpen, setTplPickerOpen] = useState(false);
@@ -129,7 +130,15 @@ export function WhatsAppActionDialog({
     }
   }, [open, templates, defaultMessage]); // eslint-disable-line
 
-  const normalized = useMemo(() => normalizePhoneForWhatsApp(phone), [phone]);
+  useEffect(() => {
+    if (!open) return;
+    setManualPhone(phone ? String(phone) : "");
+  }, [open, phone]);
+
+  const normalized = useMemo(
+    () => normalizePhoneForWhatsApp(manualPhone || phone),
+    [manualPhone, phone],
+  );
 
   const handleSelectTemplate = (id: string) => {
     setSelectedTplId(id);
@@ -245,10 +254,23 @@ export function WhatsAppActionDialog({
           <DialogTitle className="flex items-center gap-2"><MessageCircle className="h-5 w-5 text-primary" /> Enviar WhatsApp</DialogTitle>
         </DialogHeader>
 
+        <div className="space-y-2">
+          <Label>Teléfono destinatario</Label>
+          <Input
+            value={manualPhone}
+            onChange={(e) => setManualPhone(e.target.value)}
+            placeholder="Ej. 6641234567 (10 dígitos MX) o internacional"
+          />
+          <p className="text-xs text-muted-foreground">
+            Puedes editar el número o capturar uno nuevo (no necesita ser un contacto registrado).
+            {normalized ? ` Se enviará a: +${normalized}` : ""}
+          </p>
+        </div>
+
         {!normalized && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>Este contacto no tiene teléfono registrado. Captura un teléfono en su ficha o usa "Copiar mensaje".</AlertDescription>
+            <AlertDescription>Captura un teléfono válido arriba para habilitar el envío.</AlertDescription>
           </Alert>
         )}
 
