@@ -112,7 +112,7 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
           { _target_url: url, _expires_at: expISO },
         );
         if (!cerr && code) {
-          shortUrl = `${window.location.origin}/p/${code}`;
+          shortUrl = `https://portal.lumaggs.com.mx/p/${code}`;
         }
       } catch { /* si falla, usamos la URL larga */ }
 
