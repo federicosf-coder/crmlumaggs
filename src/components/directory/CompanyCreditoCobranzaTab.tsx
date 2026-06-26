@@ -103,8 +103,18 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
       if (serr) throw serr;
       const url = signed?.signedUrl || "";
 
-      // Enviamos la URL firmada directa (abre el PDF sin pasar por la app)
-      const pdfUrl = url;
+      // Acortar URL usando nuestro propio dominio: /p/CÓDIGO
+      let pdfUrl = url;
+      try {
+        const expISO = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: code, error: cerr } = await supabase.rpc(
+          "create_short_link" as any,
+          { _target_url: url, _expires_at: expISO },
+        );
+        if (!cerr && code) {
+          pdfUrl = `https://portal.lumaggs.com.mx/p/${code}`;
+        }
+      } catch { /* si falla, usamos la URL larga */ }
 
       // 2) Buscar empresa y contacto preferente (cobranza/crédito)
       const { data: empresa } = await (supabase as any)
