@@ -103,13 +103,16 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
       if (serr) throw serr;
       const url = signed?.signedUrl || "";
 
-      // Acortar URL para que el mensaje sea más limpio (servicio público is.gd)
+      // Acortar URL usando nuestro propio dominio: /p/CÓDIGO
       let shortUrl = url;
       try {
-        const r = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(url)}`);
-        if (r.ok) {
-          const txt = (await r.text()).trim();
-          if (txt.startsWith("http")) shortUrl = txt;
+        const expISO = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: code, error: cerr } = await supabase.rpc(
+          "create_short_link" as any,
+          { _target_url: url, _expires_at: expISO },
+        );
+        if (!cerr && code) {
+          shortUrl = `${window.location.origin}/p/${code}`;
         }
       } catch { /* si falla, usamos la URL larga */ }
 
