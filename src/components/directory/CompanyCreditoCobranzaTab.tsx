@@ -103,6 +103,16 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
       if (serr) throw serr;
       const url = signed?.signedUrl || "";
 
+      // Acortar URL para que el mensaje sea más limpio (servicio público is.gd)
+      let shortUrl = url;
+      try {
+        const r = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(url)}`);
+        if (r.ok) {
+          const txt = (await r.text()).trim();
+          if (txt.startsWith("http")) shortUrl = txt;
+        }
+      } catch { /* si falla, usamos la URL larga */ }
+
       // 2) Buscar empresa y contacto preferente (cobranza/crédito)
       const { data: empresa } = await (supabase as any)
         .from("companies")
@@ -129,8 +139,7 @@ export function CompanyCreditoCobranzaTab({ companyId, initialLimiteCredito }: P
       // 3) Construir mensaje
       const mensaje =
         `Buen día, enviamos estado de cuenta actualizado. Agradecemos su apoyo para mantener su cuenta en buen estado.\n\n` +
-        `*Documento PDF Del estado de cuenta*\n` +
-        `${safeName}\n${url}`;
+        `${shortUrl}`;
 
       setWaCompanyName(empresa?.name || "");
       setWaContactId(elegido?.id || null);
