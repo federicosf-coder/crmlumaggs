@@ -6030,6 +6030,30 @@ export type Database = {
           },
         ]
       }
+      short_links: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          target_url: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          target_url: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          target_url?: string
+        }
+        Relationships: []
+      }
       solicitudes_producto: {
         Row: {
           aprobado_por: string | null
@@ -7331,6 +7355,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      create_short_link: {
+        Args: { _expires_at?: string; _target_url: string }
+        Returns: string
+      }
       credit_request_completeness: { Args: { req_id: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -7486,6 +7514,7 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_short_link: { Args: { _code: string }; Returns: string }
       resolve_template_placeholders: {
         Args: {
           _contacto_id?: string
