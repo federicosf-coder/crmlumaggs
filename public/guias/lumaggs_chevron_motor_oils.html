@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumaggs – Cuadro Comparativo Aceites de Motor Chevron</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@500;600;700;800&display=swap');
+:root {
+  --blue:      #003087;
+  --red:       #CF2027;
+  --gold:      #D4920A;
+  --gold-lt:   #FFF8E8;
+  --gold-brd:  #E8A020;
+  --diesel:    #1A3A6B;
+  --gas:       #0D6E3E;
+  --dual:      #5C1A75;
+  --mono:      #3A3A3A;
+  --dark:      #0F1827;
+  --mid:       #374151;
+  --muted:     #6B7280;
+  --bg:        #E8EDF5;
+  --card:      #FFFFFF;
+  --brd:       #D0D8E8;
+  /* approval pills */
+  --apr-bg:    #E8F5E9; --apr-txt: #1B5E20; --apr-brd: #A5D6A7;
+  --rec-bg:    #FFF3E0; --rec-txt: #E65100; --rec-brd: #FFCC80;
+  /* cert pills */
+  --ck4-bg:    #1A3A6B; --ck4-tx:  #fff;
+  --cj4-bg:    #2563EB; --cj4-tx:  #fff;
+  --ci4p-bg:   #0891B2; --ci4p-tx: #fff;
+  --ci4-bg:    #0E7490; --ci4-tx:  #fff;
+  --ch4-bg:    #7C3AED; --ch4-tx:  #fff;
+  --cf-bg:     #78716C;  --cf-tx:   #fff;
+  --fa4-bg:    #059669; --fa4-tx:  #fff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--dark);font-size:12px;}
+
+/* ── HEADER ── */
+.hdr{background:linear-gradient(135deg,#001f5c 0%,var(--blue) 60%,#0a2a6e 100%);
+  padding:24px 36px 20px;position:relative;overflow:hidden;}
+.hdr::before{content:'';position:absolute;right:-30px;top:-50px;width:220px;height:220px;
+  background:var(--red);clip-path:polygon(50% 0%,0% 100%,100% 100%);opacity:.14;pointer-events:none;}
+.hdr::after{content:'';position:absolute;left:0;bottom:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--red),var(--gold),var(--red));}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.brand-name{font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:800;
+  color:#fff;letter-spacing:3px;line-height:1;}
+.brand-sub{font-size:10px;color:rgba(255,255,255,.55);letter-spacing:3.5px;text-transform:uppercase;margin-top:4px;}
+.badge{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;
+  padding:9px 18px;text-align:center;}
+.badge strong{display:block;font-size:15px;color:var(--gold-brd);letter-spacing:2.5px;font-weight:800;font-family:'Barlow Condensed',sans-serif;}
+.badge span{font-size:9.5px;color:rgba(255,255,255,.7);letter-spacing:.5px;line-height:1.6;}
+.hdr-title{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15);
+  font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:600;
+  color:rgba(255,255,255,.78);letter-spacing:2px;text-transform:uppercase;}
+
+/* ── MAIN ── */
+.main{padding:24px 18px 52px;max-width:1600px;margin:0 auto;}
+
+/* ── NOTE ── */
+.note{background:#FEF9EE;border-left:4px solid var(--gold-brd);border-radius:0 8px 8px 0;
+  padding:10px 14px;margin-bottom:18px;font-size:10.5px;color:#6B4C00;line-height:1.7;
+  border:1px solid #F5D87A;border-left:4px solid var(--gold-brd);}
+.note strong{color:#92400E;}
+
+/* ── LEGEND ── */
+.legend{display:flex;align-items:center;gap:20px;margin-bottom:20px;flex-wrap:wrap;}
+.leg-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mid);font-weight:500;}
+.ldot{width:10px;height:10px;border-radius:2px;}
+
+/* ── SECTION ── */
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px 8px 0 0;}
+.sec-hdr h2{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;color:#fff;line-height:1;}
+.sec-hdr .cnt{margin-left:auto;font-size:10px;color:rgba(255,255,255,.6);font-weight:600;}
+.sh-d{background:var(--diesel);} .sh-g{background:var(--gas);}
+.sh-du{background:var(--dual);} .sh-m{background:var(--mono);}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;border-radius:0 0 10px 10px;
+  border:1px solid var(--brd);border-top:none;
+  background:var(--card);box-shadow:0 3px 14px rgba(0,0,0,.07);}
+table{width:100%;border-collapse:collapse;}
+thead th{background:#F4F7FC;padding:8px 10px;font-weight:700;font-size:9.5px;
+  text-transform:uppercase;letter-spacing:.7px;color:var(--mid);
+  border-bottom:2px solid var(--brd);border-right:1px solid var(--brd);
+  vertical-align:bottom;text-align:left;white-space:nowrap;}
+thead th.ctr{text-align:center;}
+thead th:first-child{min-width:185px;border-left:none;}
+thead th:last-child{border-right:none;}
+thead th.w-cert{min-width:130px;white-space:normal;}
+thead th.w-spec{min-width:195px;white-space:normal;line-height:1.4;}
+thead th.w-val{min-width:195px;white-space:normal;}
+thead th.w-desc{min-width:175px;white-space:normal;}
+
+tbody tr{border-bottom:1px solid var(--brd);}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover td{background:#F8FAFF;}
+tbody tr.feat td{background:var(--gold-lt) !important;}
+tbody tr.feat td:first-child{border-left:4px solid var(--gold-brd);}
+tbody tr.feat:hover td{background:#FFF2CC !important;}
+
+td{padding:9px 10px;border-right:1px solid var(--brd);vertical-align:top;
+   color:var(--mid);line-height:1.4;}
+td:first-child{border-left:none;}
+td:last-child{border-right:none;}
+
+/* ── PRODUCT NAME ── */
+.pn{font-weight:700;font-size:12.5px;color:var(--dark);line-height:1.2;}
+.ps{font-size:9.5px;color:var(--muted);margin-top:2px;font-weight:400;}
+.star{display:inline-block;background:var(--gold);color:#fff;font-size:7.5px;
+  font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;
+  text-transform:uppercase;letter-spacing:.5px;vertical-align:middle;}
+.base{font-size:9.5px;font-weight:600;}
+.bsyn{color:#6D28D9;} .bsemi{color:#0369A1;} .bmin{color:#6B7280;}
+
+/* ── VISCOSITY TAG ── */
+.vtag{display:inline-block;background:#1E40AF;color:#fff;font-size:10px;
+  font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;margin:1px;}
+.vmulti{display:flex;flex-direction:column;align-items:flex-start;gap:2px;}
+
+/* ── CERT BLOCK (all in one column) ── */
+.cert-block{display:flex;flex-direction:column;gap:3px;min-width:115px;}
+.cpill{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;
+  padding:2px 7px;border-radius:4px;white-space:nowrap;letter-spacing:.3px;}
+.c-ck4 {background:var(--ck4-bg);color:var(--ck4-tx);}
+.c-cj4 {background:var(--cj4-bg);color:var(--cj4-tx);}
+.c-ci4p{background:var(--ci4p-bg);color:var(--ci4p-tx);}
+.c-ci4 {background:var(--ci4-bg);color:var(--ci4-tx);}
+.c-ch4 {background:var(--ch4-bg);color:var(--ch4-tx);}
+.c-cf  {background:var(--cf-bg);color:var(--cf-tx);}
+.c-fa4 {background:var(--fa4-bg);color:var(--fa4-tx);}
+.c-acea{background:#1D4ED8;color:#fff;}
+.cpill .ck-ic{font-size:9px;}
+.cert-note{font-size:8.5px;color:var(--muted);margin-top:2px;font-style:italic;}
+
+/* ── APPROVAL / REC PILLS ── */
+.spec-col{display:flex;flex-direction:column;gap:5px;}
+.spec-group{}
+.sg-lbl{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+  margin-bottom:3px;display:block;}
+.sg-lbl.apr{color:var(--apr-txt);}
+.sg-lbl.rec{color:var(--rec-txt);}
+.pills-wrap{display:flex;flex-wrap:wrap;gap:3px;}
+.pill{display:inline-block;font-size:9.5px;font-weight:600;padding:2px 7px;
+  border-radius:4px;line-height:1.4;white-space:nowrap;}
+.pill-a{background:var(--apr-bg);color:var(--apr-txt);border:1px solid var(--apr-brd);}
+.pill-r{background:var(--rec-bg);color:var(--rec-txt);border:1px solid var(--rec-brd);}
+
+/* ── VALUE COLUMN ── */
+.val-col{display:flex;flex-direction:column;gap:4px;}
+.val-item{display:flex;align-items:flex-start;gap:5px;font-size:10px;color:var(--mid);line-height:1.4;}
+.val-ic{font-size:11px;flex-shrink:0;margin-top:0px;}
+.val-txt strong{color:var(--dark);font-weight:600;}
+
+/* ── DESC COLUMN ── */
+.desc-col{font-size:10px;color:var(--mid);line-height:1.55;}
+.desc-col em{color:var(--muted);font-style:normal;font-size:9.5px;}
+
+/* ── TYPE TAG ── */
+.ttype{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;
+  border-radius:3px;text-transform:uppercase;letter-spacing:.4px;}
+.td{background:#DBEAFE;color:#1E40AF;} .tg{background:#D1FAE5;color:#065F46;}
+.tdu{background:#EDE9FE;color:#5B21B6;}
+
+/* ── FOOTER ── */
+.footer{text-align:center;padding:14px 18px 28px;font-size:9.5px;color:var(--muted);
+  max-width:1600px;margin:0 auto;line-height:1.7;}
+.footer strong{color:var(--mid);}
+
+.logo-lumaggs{height:52px;width:auto;display:block;filter:brightness(0) invert(1);}
+.logo-chevron{height:56px;width:auto;display:block;filter:brightness(0) invert(1);}
+
+/* ── HEADER REDESIGN ── */
+.hdr {
+  background: #001A4D;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+.hdr-accent-top {
+  height: 4px;
+  background: linear-gradient(90deg, #CF2027 0%, #CF2027 50%, #E8A020 50%, #E8A020 100%);
+}
+.hdr-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 36px 16px;
+}
+.hdr-logo-wrap {
+  flex-shrink: 0;
+}
+.logo-distribuidor {
+  height: 64px;
+  width: auto;
+  display: block;
+}
+.hdr-divider {
+  width: 1px;
+  height: 54px;
+  background: rgba(255,255,255,0.2);
+  flex-shrink: 0;
+}
+.hdr-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.hdr-right .dist-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: #E8A020;
+}
+.hdr-right .dist-region {
+  font-size: 11px;
+  color: rgba(255,255,255,0.75);
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+.hdr-accent-bottom {
+  height: 3px;
+  background: linear-gradient(90deg, #E8A020, #CF2027 40%, #003087);
+}
+.hdr-title-bar {
+  background: #002266;
+  padding: 9px 36px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.hdr-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.82);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+.logo-lumaggs { display: none; }
+.logo-chevron { display: none; }
+.brand-name { display: none; }
+.brand-sub { display: none; }
+.badge { display: none; }
+
+
+/* ── HEADER REDESIGN v3 ── */
+.hdr {
+  background: #FFFFFF;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  border-bottom: none;
+}
+.hdr-accent-top {
+  height: 5px;
+  background: linear-gradient(90deg, #003087 0%, #003087 60%, #CF2027 60%, #CF2027 100%);
+}
+.hdr-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 36px 14px;
+  background: #FFFFFF;
+}
+.hdr-logo-wrap { flex-shrink: 0; }
+.logo-distribuidor { height: 62px; width: auto; display: block; }
+.hdr-divider {
+  width: 1px; height: 52px;
+  background: #D0D8E8; flex-shrink: 0;
+}
+.hdr-right {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 3px;
+}
+.hdr-right .dist-label {
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: #CF2027;
+}
+.hdr-right .dist-region {
+  font-size: 11px; color: #374151;
+  font-weight: 500; letter-spacing: 0.2px;
+}
+.hdr-accent-bottom {
+  height: 3px;
+  background: linear-gradient(90deg, #003087, #CF2027 50%, #E8A020);
+}
+.hdr-title-bar {
+  background: #003087;
+  padding: 9px 36px;
+}
+.hdr-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px; font-weight: 600;
+  color: rgba(255,255,255,0.88);
+  letter-spacing: 1.5px; text-transform: uppercase;
+  margin: 0; border: none; padding: 0;
+}
+.logo-lumaggs { display: none; }
+.logo-chevron { display: none; }
+.brand-name   { display: none; }
+.brand-sub    { display: none; }
+.badge        { display: none; }
+
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-accent-top"></div>
+  <div class="hdr-body">
+    <div class="hdr-logo-wrap">
+      <img src="data:image/png;base64,/9j/4AAQSkZJRgABAgAAAQABAAD/wAARCADgA9QDACIAAREBAhEB/9sAQwAIBgYHBgUIBwcHCQkICgwUDQwLCwwZEhMPFB0aHx4dGhwcICQuJyAiLCMcHCg3KSwwMTQ0NB8nOT04MjwuMzQy/9sAQwEJCQkMCwwYDQ0YMiEcITIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMAAAERAhEAPwD3+iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACivJ/iVr2q6L4mtX06/mt8wZKq3yk57qeD+IqppPxfv4NqarZRXK8AyRHY/1x0J/KuyOBqzpqpDW5xTx9GFR056WPY6K5bSfiH4c1bCrei2lI/1dyNh/PofwNdQrq67kYMD3BzXLOEoO0lY64TjNXi7i0UUVJQUUUUAFFQXN5bWURkuriKFB/FIwA/WuW1H4i6TaArarLdyDptG1c/U/0BrSnSnUdoK5lVr0qKvUkl6nYUV5FqPxB1m93LbslpGc8RDLY/3j/TFdn4AuJrrQGluJpJZDK2XkYsT+Jrpq4CrSp+0nocVDNKFesqNK78+n+f4HVUUUVxHpBRRRQAUUUUAFFISB1IFL1oAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAPFvi9/yMVr/1w/rXnleh/F7/AJGK1/64f1rzyvpsD/u8f66ny2P/AN5l/XQK0tM8QatozA6ffzQAc7A2V/75PFZ6I8hwikn2q1Hpsz8uQg9+tdUoKas1c5FV9m+ZOx32k/F6+hKpqlnHcJ0MkXytj6dD+ldzpXxB8PaqvF39nfGSk424/Hoa8Vi06FOWBc+9WlVUGFUAewriqZXRnqtDeGeVKenxep61qPxE0m03LarJdSDptGFz9T/SuR1H4gaxeErbslpG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ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/2Q==" alt="Lumaggs – Distribuidor Autorizado Chevron" class="logo-distribuidor">
+    </div>
+    <div class="hdr-divider"></div>
+    <div class="hdr-right">
+      <span class="dist-label">Distribuidor Autorizado Exclusivo</span>
+      <span class="dist-region">Baja California, México</span>
+    </div>
+  </div>
+  <div class="hdr-accent-bottom"></div>
+</div>
+<div class="hdr-title-bar"><div class="hdr-title">Cuadro Comparativo — Aceites de Motor Chevron · Certificaciones · Aprobaciones OEM · Valor Agregado</div></div></div>
+
+
+<div class="main">
+
+<div class="note">
+  <strong>★ Producto Principal:</strong> Delo® 400 XLE SB 15W-40 — mayor venta y posicionamiento prioritario. &nbsp;|&nbsp;
+  <span style="background:#E8F5E9;color:#1B5E20;border:1px solid #A5D6A7;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;">Aprobado OEM</span> = homologación oficial &nbsp;
+  <span style="background:#FFF3E0;color:#E65100;border:1px solid #FFCC80;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;">Recomendado OEM</span> = rendimiento adecuado sin homologación formal
+</div>
+
+<div class="legend">
+  <span class="leg-lbl">Grupos:</span>
+  <span class="leg-item"><span class="ldot" style="background:var(--diesel)"></span>Diesel Multigrado</span>
+  <span class="leg-item"><span class="ldot" style="background:var(--dual)"></span>Diesel + GNC Dual</span>
+  <span class="leg-item"><span class="ldot" style="background:var(--gas)"></span>Gas Natural HDAX</span>
+  <span class="leg-item"><span class="ldot" style="background:var(--mono)"></span>Monogrados Diesel</span>
+  <span class="leg-item"><span class="ldot" style="background:var(--gold)"></span>Producto Estrella</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 1 — DIESEL MULTIGRADO                          -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="sec">
+  <div class="sec-hdr sh-d"><span>🔵</span><h2>Diesel Multigrado — Servicio Pesado</h2><span class="cnt">9 Productos</span></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Producto / Base</th>
+      <th>Viscosidad</th>
+      <th class="w-cert">Certificaciones API / ACEA</th>
+      <th class="w-spec">Aprobaciones y Recomendaciones OEM</th>
+      <th class="w-val">Valor Agregado</th>
+    </tr></thead>
+    <tbody>
+    <tr class="feat">
+      <td>
+        <div class="pn">Delo® 400 XLE SB 15W-40 <span class="star">★ Principal</span></div>
+        <div class="ps">Mezcla Sintética · ISOSYN® Avanzada</div>
+        <div style="margin-top:4px"><span class="base bsemi">Semi-Sintética</span></div>
+      </td>
+      <td><span class="vtag">15W-40</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-ck4">✔ API CK-4</span>
+          <span class="cpill c-cj4">✔ API CJ-4</span>
+          <span class="cpill c-ci4p">✔ API CI-4 Plus</span>
+          <span class="cpill c-ci4">✔ API CI-4</span>
+          <span class="cpill c-ch4">✔ API CH-4</span>
+          <span class="cpill c-acea">★ ACEA E11</span>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">Allison TES-439</span>
+              <span class="pill pill-a">Cummins CES 20086</span>
+              <span class="pill pill-a">Detroit DFS 93K222</span>
+              <span class="pill pill-a">DEUTZ DQC III-18 LA</span>
+              <span class="pill pill-a">MB 228.31 (DTFR 15C100)</span>
+              <span class="pill pill-a">Mack EOS-4.5</span>
+              <span class="pill pill-a">MAN M3775</span>
+              <span class="pill pill-a">Renault RLD-3</span>
+              <span class="pill pill-a">Volvo VDS-4.5</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">ACEA E11</span>
+              <span class="pill pill-r">Caterpillar ECF-3</span>
+              <span class="pill pill-r">Ford WSS-M2C171-F1</span>
+              <span class="pill pill-r">JASO DH-2</span>
+              <span class="pill pill-r">MTU Cat. 2.1</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">⏱️</span><div class="val-txt"><strong>Drenaje extendido hasta 50%</strong> más vs. promedio OEM Clase 8</div></div>
+          <div class="val-item"><span class="val-ic">🔧</span><div class="val-txt"><strong>Control de depósitos excepcional</strong> en pistones y turbocompresor</div></div>
+          <div class="val-item"><span class="val-ic">❄️</span><div class="val-txt"><strong>Mejor bombeabilidad en frío</strong> vs. 15W-40 mineral; fluidez similar al 10W-30</div></div>
+          <div class="val-item"><span class="val-ic">💰</span><div class="val-txt"><strong>Costo operativo minimizado</strong> — menor desgaste, mayor vida útil de motor</div></div>
+          <div class="val-item"><span class="val-ic">📋</span><div class="val-txt"><strong>Flota mixta diesel + gasolina</strong> — inventario simplificado</div></div>
+          <div class="val-item"><span class="val-ic">🛡️</span><div class="val-txt"><strong>Garantía Plus Chevron</strong> — cobertura piezas y mano de obra</div></div>
+        </div>
+      </td>
+    </tr>
+
+    <!-- DELO 400 XSP -->
+    <tr>
+      <td>
+        <div class="pn">Delo® 400 XLE SB 10W-30</div>
+        <div class="ps">Mezcla Sintética · ISOSYN® Avanzada</div>
+        <div style="margin-top:4px"><span class="base bsemi">Semi-Sintética</span></div>
+      </td>
+      <td><span class="vtag">10W-30</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-ck4">✔ API CK-4</span>
+          <span class="cpill c-cj4">✔ API CJ-4</span>
+          <span class="cpill c-ci4p">✔ API CI-4 Plus</span>
+          <span class="cpill c-ci4">✔ API CI-4</span>
+          <span class="cpill c-ch4">✔ API CH-4</span>
+          <span class="cpill c-acea">Rec. ACEA E11</span>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">Cummins CES 20086</span>
+              <span class="pill pill-a">Detroit DFS 93K222</span>
+              <span class="pill pill-a">DEUTZ DQC III-18 LA</span>
+              <span class="pill pill-a">MB 228.31 (DTFR 15C100)</span>
+              <span class="pill pill-a">MB 228.51 (DTFR 15C110)</span>
+              <span class="pill pill-a">Mack EOS-4.5</span>
+              <span class="pill pill-a">MAN M3775</span>
+              <span class="pill pill-a">MTU Cat. 2.1</span>
+              <span class="pill pill-a">Renault RLD-3</span>
+              <span class="pill pill-a">Volvo VDS-4.5</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">ACEA E11</span>
+              <span class="pill pill-r">Caterpillar ECF-3</span>
+              <span class="pill pill-r">JASO DH-2</span>
+              <span class="pill pill-r">MAN M3575</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">⛽</span><div class="val-txt"><strong>Hasta 1% ahorro de combustible</strong> vs. SAE 15W-40</div></div>
+          <div class="val-item"><span class="val-ic">❄️</span><div class="val-txt"><strong>Mayor bombeabilidad a bajas temperaturas</strong> vs. SAE 15W-40 mineral</div></div>
+          <div class="val-item"><span class="val-ic">🔧</span><div class="val-txt"><strong>Control superior de depósitos</strong> y protección turbo via ISOSYN</div></div>
+          <div class="val-item"><span class="val-ic">📦</span><div class="val-txt"><strong>Flota mixta diesel + gasolina</strong> un solo aceite para todo el parque</div></div>
+        </div>
+      </td>
+    </tr>
+
+    <!-- DELO 400 ZFA -->
+    <tr>
+      <td>
+        <div class="pn">Delo® Gold Ultra S</div>
+        <div class="ps">Sintético · Especificación Europea</div>
+        <div style="margin-top:4px"><span class="base bsyn">Sintética</span></div>
+      </td>
+      <td><span class="vtag">10W-40</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-cf">✔ API CF</span>
+          <span class="cpill c-acea">✔ ACEA E4</span>
+          <span class="cpill c-acea">✔ ACEA E7</span>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">Daimler DTFR 15B120 (MB 228.5)</span>
+              <span class="pill pill-a">Mack EO-N</span>
+              <span class="pill pill-a">MAN M3277</span>
+              <span class="pill pill-a">Renault RLD-2</span>
+              <span class="pill pill-a">Scania LDF-3</span>
+              <span class="pill pill-a">Volvo VDS-3</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">DAF Drenaje extendido Euro 0-III</span>
+              <span class="pill pill-r">Mack EO-M Plus / EO-M</span>
+              <span class="pill pill-r">Renault RLD / RD</span>
+              <span class="pill pill-r">Scania LDF-2 / LDF</span>
+              <span class="pill pill-r">Volvo VDS-2 / VDS</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">🌍</span><div class="val-txt"><strong>Único en portafolio con ACEA E4 + E7</strong> — para equipos europeos importados</div></div>
+          <div class="val-item"><span class="val-ic">🚛</span><div class="val-txt"><strong>Scania, Volvo, DAF, MAN, Mercedes</strong> — aprobación directa de las marcas</div></div>
+          <div class="val-item"><span class="val-ic">⏱️</span><div class="val-txt"><strong>Diseñado para drenaje extendido</strong> en condiciones europeas exigentes (TBN 15.5)</div></div>
+        </div>
+      </td>
+    </tr>
+
+    <!-- URSA SUPER TD -->
+    <tr>
+      <td>
+        <div class="pn">Delo® 400 XSP 5W-30</div>
+        <div class="ps">Sintética Completa · ISOSYN® Avanzada</div>
+        <div style="margin-top:4px"><span class="base bsyn">100% Sintética</span></div>
+      </td>
+      <td><span class="vtag">5W-30</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-ck4">✔ API CK-4</span>
+          <span class="cpill c-cj4">✔ API CJ-4</span>
+          <span class="cpill c-ci4p">✔ API CI-4 Plus</span>
+          <span class="cpill c-ci4">✔ API CI-4</span>
+          <span class="cpill c-ch4">✔ API CH-4</span>
+          <span class="cpill c-acea">✔ ACEA E7/E8/E11</span>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">Cummins CES 20086</span>
+              <span class="pill pill-a">DEUTZ DQC IV-18 LA</span>
+              <span class="pill pill-a">Detroit DFS 93K222</span>
+              <span class="pill pill-a">MB 228.31 (DTFR 15C100)</span>
+              <span class="pill pill-a">MB 228.51 (DTFR 15C110)</span>
+              <span class="pill pill-a">Mack EOS-4.5</span>
+              <span class="pill pill-a">Volvo VDS-4.5</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">ACEA E7, E8, E11</span>
+              <span class="pill pill-r">Caterpillar ECF-3</span>
+              <span class="pill pill-r">JASO DH-2</span>
+              <span class="pill pill-r">MTU Cat. 3.1</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">⛽</span><div class="val-txt"><strong>Ahorro de combustible hasta 2%</strong> vs. SAE 15W-40</div></div>
+          <div class="val-item"><span class="val-ic">❄️</span><div class="val-txt"><strong>Arranque excepcional en frío</strong> — base sintética de muy baja viscosidad</div></div>
+          <div class="val-item"><span class="val-ic">🏭</span><div class="val-txt"><strong>Para motores modernos de bajas emisiones</strong> con SCR, DPF y EGR</div></div>
+          <div class="val-item"><span class="val-ic">🌍</span><div class="val-txt"><strong>Cumple ACEA E7, E8 y E11</strong> — flota internacional</div></div>
+        </div>
+      </td>
+    </tr>
+    <!-- DELO 400 XSP 5W-40 -->
+    <tr>
+      <td>
+        <div class="pn">Delo® 400 XSP 5W-40</div>
+        <div class="ps">Sintética Completa · ISOSYN® Avanzada</div>
+        <div style="margin-top:4px"><span class="base bsyn">100% Sintética</span></div>
+      </td>
+      <td><span class="vtag">5W-40</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-ck4">✔ API CK-4</span>
+          <span class="cpill c-cj4">✔ API CJ-4</span>
+          <span class="cpill c-ci4p">✔ API CI-4 Plus</span>
+          <span class="cpill c-ci4">✔ API CI-4</span>
+          <span class="cpill c-ch4">✔ API CH-4</span>
+          <span class="cpill c-acea">Rec. ACEA E11</span>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">Allison TES-439</span>
+              <span class="pill pill-a">Cummins CES 20086</span>
+              <span class="pill pill-a">Detroit DFS 93K222</span>
+              <span class="pill pill-a">DEUTZ DQC III-18 LA</span>
+              <span class="pill pill-a">MB 228.31 (DTFR 15C100)</span>
+              <span class="pill pill-a">Mack EOS-4.5</span>
+              <span class="pill pill-a">MAN M3575</span>
+              <span class="pill pill-a">Volvo VDS-4.5</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">ACEA E11</span>
+              <span class="pill pill-r">Caterpillar ECF-3</span>
+              <span class="pill pill-r">JASO DH-2</span>
+              <span class="pill pill-r">MTU Cat. 2.1</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">❄️</span><div class="val-txt"><strong>Arranque excepcional en frío</strong> — base sintética de muy baja viscosidad HTHS 4.2</div></div>
+          <div class="val-item"><span class="val-ic">🏆</span><div class="val-txt"><strong>Única versión con Allison TES-439</strong> en la línea XSP — ideal para camiones con transmisión automática</div></div>
+          <div class="val-item"><span class="val-ic">🔧</span><div class="val-txt"><strong>Hasta 69% mejor protección contra desgaste</strong> y 64% mejor control de depósitos en pistones vs. HDMO generación anterior</div></div>
+          <div class="val-item"><span class="val-ic">🌡️</span><div class="val-txt"><strong>Viscosidad 5W-40</strong> — equilibrio óptimo entre arranque en frío y viscosidad en caliente para climas extremos</div></div>
+        </div>
+      </td>
+    </tr>
+
+    <!-- DELO 400 XLE -->
+    <tr>
+      <td>
+        <div class="pn">Delo® 400 ZFA</div>
+        <div class="ps">Semi-Sintético · Especificación FA-4</div>
+        <div style="margin-top:4px"><span class="base bsemi">Semi-Sintética</span></div>
+      </td>
+      <td><span class="vtag">10W-30</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-fa4">✔ API FA-4</span>
+          <div class="cert-note">API FA-4 es categoría<br>exclusiva para máxima<br>eficiencia de combustible.<br>No intercambiable con CK-4.</div>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">Cummins CES 20087</span>
+              <span class="pill pill-a">Detroit DFS 93K222</span>
+              <span class="pill pill-a">MB 228.61 (DTFR 15C130)</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">Motores diesel Ford F-150 (FA-4)</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">⛽</span><div class="val-txt"><strong>Máxima eficiencia de combustible</strong> — aceite de baja viscosidad HTHS para motores FA-4</div></div>
+          <div class="val-item"><span class="val-ic">🌿</span><div class="val-txt"><strong>Menor huella de CO₂</strong> — formulado para cumplir GHG 2017</div></div>
+          <div class="val-item"><span class="val-ic">⚡</span><div class="val-txt"><strong>Motores de nueva generación</strong> diseñados específicamente para FA-4 SAE 10W-30</div></div>
+        </div>
+      </td>
+    </tr>
+
+
+    <!-- DELO GOLD ULTRA X -->
+    <tr>
+      <td>
+        <div class="pn">Delo® Gold Ultra X</div>
+        <div class="ps">Convencional · Generación CI-4 Plus</div>
+        <div style="margin-top:4px"><span class="base bmin">Mineral</span></div>
+      </td>
+      <td><span class="vtag">15W-40</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-ci4p">✔ API CI-4 Plus</span>
+          <span class="cpill c-ci4">✔ API CI-4</span>
+          <div class="cert-note">+ API SL (gasolina)</div>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">API CI-4 Plus / CI-4 / SL</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">Caterpillar ECF-2</span>
+              <span class="pill pill-r">Cummins CES 20078</span>
+              <span class="pill pill-r">DDC Poder Guardia 93K214</span>
+              <span class="pill pill-r">Deutz DQC III-18</span>
+              <span class="pill pill-r">MB 228.31 (DTFR 15B110)</span>
+              <span class="pill pill-r">Mack EO-N</span>
+              <span class="pill pill-r">MAN M3275-1</span>
+              <span class="pill pill-r">Renault RLD-2</span>
+              <span class="pill pill-r">Volvo VDS-3</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">🏚️</span><div class="val-txt"><strong>Ideal para motores pre-2016</strong> (CI-4 Plus) a precio accesible</div></div>
+          <div class="val-item"><span class="val-ic">🔁</span><div class="val-txt"><strong>Flota mixta diesel + gasolina</strong> — API SL incluido</div></div>
+          <div class="val-item"><span class="val-ic">🧹</span><div class="val-txt"><strong>Excepcional limpieza del motor</strong> y control de depósitos</div></div>
+        </div>
+      </td>
+    </tr>
+
+    <!-- DELO GOLD ULTRA S -->
+    <tr>
+      <td>
+        <div class="pn">Ursa® Super TD</div>
+        <div class="ps">Mineral · Diesel General · Entrada</div>
+        <div style="margin-top:4px"><span class="base bmin">Mineral</span></div>
+      </td>
+      <td><span class="vtag">15W-40</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-ch4">✔ API CH-4/SJ</span>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">Caterpillar ECF-1a</span>
+              <span class="pill pill-a">Cummins CES 20077</span>
+              <span class="pill pill-a">Detroit Diesel 93K215</span>
+              <span class="pill pill-a">Mack EO-M</span>
+              <span class="pill pill-a">MAN 271</span>
+              <span class="pill pill-a">MTU Cat. 2</span>
+              <span class="pill pill-a">Renault RLD-2</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">MB Approval 228.3</span>
+              <span class="pill pill-r">Volvo VDS-2</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">💲</span><div class="val-txt"><strong>Solución económica confiable</strong> para flotas con motores CH-4</div></div>
+          <div class="val-item"><span class="val-ic">🔧</span><div class="val-txt"><strong>Reduce desgaste y mantiene limpieza</strong> del motor en servicio severo</div></div>
+          <div class="val-item"><span class="val-ic">🚌</span><div class="val-txt"><strong>Apto para flotas mixtas</strong> diesel + gasolina (SJ)</div></div>
+        </div>
+      </td>
+    </tr>
+
+    <!-- URSA HD AK -->
+    <tr>
+      <td>
+        <div class="pn">Ursa® HD AK</div>
+        <div class="ps">Alto Kilometraje · Multigrado</div>
+        <div style="margin-top:4px"><span class="base bmin">Mineral</span></div>
+      </td>
+      <td><span class="vtag">20W-50</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-ch4">✔ API CH-4</span>
+          <div class="cert-note">DH-4 en México</div>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">API CH-4 (DH-4 México)</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">🔩</span><div class="val-txt"><strong>Mejora la compresión</strong> en motores con desgaste avanzado o alto km</div></div>
+          <div class="val-item"><span class="val-ic">🛢️</span><div class="val-txt"><strong>Reduce consumo de aceite</strong> en motores con tolerancias amplias</div></div>
+          <div class="val-item"><span class="val-ic">🔒</span><div class="val-txt"><strong>Acondicionador de sellos</strong> — minimiza fugas y rellenar aceite</div></div>
+        </div>
+      </td>
+    </tr>
+
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 2 — DIESEL + GNC DUAL                          -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="sec">
+  <div class="sec-hdr sh-du"><span>🟣</span><h2>Gas Natural Móvil y Diesel + GNC Dual</h2><span class="cnt">2 Productos</span></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Producto / Base</th><th>Viscosidad</th>
+      <th class="w-cert">Certificaciones API / ACEA</th>
+      <th class="w-spec">Aprobaciones y Recomendaciones OEM</th>
+      <th class="w-val">Valor Agregado</th>
+    </tr></thead>
+    <tbody>
+    <!-- DELO 400 SNG — GNC MOVIL -->
+    <tr>
+      <td>
+        <div class="pn">Delo® 400 SNG</div>
+        <div class="ps">GNC / GNL / GLP · Vehículos Móviles · ISOSYN®</div>
+        <div style="margin-top:4px"><span class="base bmin">Mineral Premium</span></div>
+      </td>
+      <td><span class="vtag">15W-40</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill" style="background:#0369A1;color:#fff;">GNC / GNL / GLP</span>
+          <span class="cpill" style="background:#475569;color:#fff;">Motor Móvil</span>
+          <div class="cert-note">Bajo en cenizas para<br>motores de encendido<br>por chispa a gas</div>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">Cummins CES 20092</span>
+              <span class="pill pill-a">Cummins CES 20085</span>
+              <span class="pill pill-a">Detroit Diesel 93K216</span>
+              <span class="pill pill-a">Hino GNC</span>
+              <span class="pill pill-a">Hyundai GNC</span>
+              <span class="pill pill-a">Isuzu GNC</span>
+              <span class="pill pill-a">Mack CNG</span>
+              <span class="pill pill-a">Renault RGD</span>
+              <span class="pill pill-a">Volvo GNC</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">Cummins ISL G / ISX12 G/N / L9 N</span>
+              <span class="pill pill-r">Detroit Series 50G / 60G</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">🚌</span><div class="val-txt"><strong>Para autobuses urbanos, camiones de residuos y reparto</strong> con motor GNC/GNL/GLP en movimiento</div></div>
+          <div class="val-item"><span class="val-ic">🌿</span><div class="val-txt"><strong>Bajo en cenizas</strong> — protege válvulas y bujías en motores de encendido por chispa</div></div>
+          <div class="val-item"><span class="val-ic">⏱️</span><div class="val-txt"><strong>Control de oxidación/nitración</strong> para intervalos de drenaje prolongados con gas natural</div></div>
+          <div class="val-item"><span class="val-ic">🛡️</span><div class="val-txt"><strong>Garantía Plus Chevron</strong> — cobertura específica para motores GNC/GNL móviles</div></div>
+        </div>
+      </td>
+    </tr>
+
+    <!-- DELO 600 ADF -->
+    <tr>
+      <td>
+        <div class="pn">Delo® 600 ADF</div>
+        <div class="ps">Ultra Bajo Cenizas · Tecnología OMNIMAX™</div>
+        <div style="margin-top:4px"><span class="base bsemi">Semi-Sintética</span></div>
+      </td>
+      <td><span class="vtag">15W-40</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-ck4">✔ API CK-4</span>
+          <span class="cpill c-cj4">✔ API CJ-4</span>
+          <span class="cpill c-ci4p">✔ API CI-4 Plus</span>
+          <span class="cpill c-ci4">✔ API CI-4</span>
+          <span class="cpill c-ch4">✔ API CH-4</span>
+          <span class="cpill c-acea">Rec. ACEA E11</span>
+          <div class="cert-note">Cenizas sulfatadas: 0.4%<br>(Ultra bajo para DPF)</div>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">Cummins CES 20086 + 20092 (CNG)</span>
+              <span class="pill pill-a">Detroit DFS 93K222</span>
+              <span class="pill pill-a">DEUTZ DQC III-18 LA</span>
+              <span class="pill pill-a">MB 228.31 (DTFR 15C100)</span>
+              <span class="pill pill-a">Mack EOS-4.5</span>
+              <span class="pill pill-a">MAN M3775</span>
+              <span class="pill pill-a">Renault RLD-3</span>
+              <span class="pill pill-a">Volvo VDS-4.5</span>
+              <span class="pill pill-a">ZF TE-ML 04C</span>
+              <span class="pill pill-a">Motores CNG Cummins (móviles)</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">ACEA E11</span>
+              <span class="pill pill-r">Caterpillar ECF-3</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">🏆</span><div class="val-txt"><strong>Vida del DPF 2.5× mayor</strong> — menos limpiezas, menos tiempo de parada</div></div>
+          <div class="val-item"><span class="val-ic">⛽</span><div class="val-txt"><strong>Retención de ahorro de combustible 3%</strong> vs. aceites convencionales</div></div>
+          <div class="val-item"><span class="val-ic">⏱️</span><div class="val-txt"><strong>Intervalo de cambio excepcionalmente largo</strong> en diesel y en CNG</div></div>
+          <div class="val-item"><span class="val-ic">🚛</span><div class="val-txt"><strong>Un solo aceite para flotas mixtas</strong> diesel + GNC — simplifica inventario</div></div>
+          <div class="val-item"><span class="val-ic">⚙️</span><div class="val-txt"><strong>Único en el portafolio con ZF TE-ML 04C</strong> — protege la transmisión</div></div>
+        </div>
+      </td>
+    </tr>
+
+
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 3 — GAS NATURAL HDAX                           -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="sec">
+  <div class="sec-hdr sh-g"><span>🟢</span><h2>Gas Natural Estacionario — HDAX</h2><span class="cnt">4 Productos</span></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Producto / Base</th><th>Viscosidad</th>
+      <th class="w-cert">Tipo / Cenizas</th>
+      <th class="w-spec">Aprobaciones y Recomendaciones OEM</th>
+      <th class="w-val">Valor Agregado</th>
+    </tr></thead>
+    <tbody>
+
+    <!-- HDAX 5200 -->
+    <tr>
+      <td>
+        <div class="pn">HDAX® 5200 Low Ash</div>
+        <div class="ps">Baja Ceniza · Deterg/Dispers · 4T</div>
+        <div style="margin-top:4px"><span class="base bmin">Mineral Premium</span></div>
+      </td>
+      <td><div class="vmulti"><span class="vtag">15W-40</span><span class="vtag">SAE 30</span><span class="vtag">SAE 40</span></div></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-fa4" style="background:#0369A1;">Baja Ceniza 0.5%</span>
+          <span class="cpill" style="background:#475569;color:#fff;">Gas Natural 4T</span>
+          <div class="cert-note">Compatible con<br>sistemas catalíticos</div>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">Caterpillar Energy Solutions CG132/170/260</span>
+              <span class="pill pill-a">INNIO Jenbacher (clases A, B, C, S + catalizador)</span>
+              <span class="pill pill-a">MAN Energy Solutions (CNG/LNG 4T)</span>
+              <span class="pill pill-a">MWM (todos los modelos)</span>
+              <span class="pill pill-a">Waukesha (gas natural + 220 GL)</span>
+              <span class="pill pill-a">Wärtsilä (gas + combustible dual)</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">Caterpillar (motores a gas)</span>
+              <span class="pill pill-r">Delaval Enterprise</span>
+              <span class="pill pill-r">Dresser-Rand (Cat. I, II y III)</span>
+              <span class="pill pill-r">Superior</span>
+              <span class="pill pill-r">Worthington</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">⚡</span><div class="val-txt"><strong>Para generación eléctrica y cogeneración</strong> con gas natural</div></div>
+          <div class="val-item"><span class="val-ic">🔬</span><div class="val-txt"><strong>Bajo fósforo</strong> — compatible con convertidores catalíticos de oxidación</div></div>
+          <div class="val-item"><span class="val-ic">🌡️</span><div class="val-txt"><strong>3 viscosidades disponibles</strong> incluyendo 15W-40 para arranque en frío</div></div>
+          <div class="val-item"><span class="val-ic">🧹</span><div class="val-txt"><strong>Pistones y carter limpios</strong> — mínima formación de lodo y barniz</div></div>
+        </div>
+      </td>
+    </tr>
+
+    <!-- HDAX 5100 -->
+    <tr>
+      <td>
+        <div class="pn">HDAX® 5100 Ashless</div>
+        <div class="ps">Sin Cenizas · 2T y 4T Selecto</div>
+        <div style="margin-top:4px"><span class="base bmin">Grupo II</span></div>
+      </td>
+      <td><div class="vmulti"><span class="vtag">15W-40</span><span class="vtag">SAE 30</span><span class="vtag">SAE 40</span></div></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill" style="background:#7C3AED;color:#fff;">Sin Cenizas (nil)</span>
+          <span class="cpill" style="background:#475569;color:#fff;">Gas Natural 2T/4T</span>
+          <div class="cert-note">Máxima compatibilidad<br>con catalizadores</div>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">Ajax</span>
+              <span class="pill pill-r">Caterpillar (exc. 3400/3500/3600)</span>
+              <span class="pill pill-r">Clark-Dresser</span>
+              <span class="pill pill-r">Cooper Bessemer (2T)</span>
+              <span class="pill pill-r">Dresser-Rand/Ingersoll-Rand (Cat. I y II)</span>
+              <span class="pill pill-r">Fairbanks-Morse / MEP</span>
+              <span class="pill pill-r">Waukesha VR e Intermedio/Clinton</span>
+              <span class="pill pill-r">Worthington (2T)</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">🚫</span><div class="val-txt"><strong>Cero cenizas (nil)</strong> — elimina pre-ignición y fallas en bujías</div></div>
+          <div class="val-item"><span class="val-ic">🔧</span><div class="val-txt"><strong>Para motores 2T de alta compresión</strong> turboalimentados sensibles a depósitos</div></div>
+          <div class="val-item"><span class="val-ic">📈</span><div class="val-txt"><strong>Mínimo incremento de viscosidad</strong> en servicio severo — drenajes extendidos</div></div>
+        </div>
+      </td>
+    </tr>
+
+    <!-- HDAX 9200 -->
+    <tr>
+      <td>
+        <div class="pn">HDAX® 9200 Low Ash</div>
+        <div class="ps">Gas Natural · Nueva Generación 4T</div>
+        <div style="margin-top:4px"><span class="base bmin">Grupo II Superior</span></div>
+      </td>
+      <td><span class="vtag">SAE 40</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill" style="background:#0369A1;color:#fff;">Baja Ceniza 0.5%</span>
+          <span class="cpill" style="background:#475569;color:#fff;">Gas Natural 4T Avanz.</span>
+          <div class="cert-note">Bajo P para catalizador<br>Grupo II puro</div>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">Caterpillar CG132/170/260</span>
+              <span class="pill pill-a">INNIO Jenbacher (clases A, B, C)</span>
+              <span class="pill pill-a">Aggreko 420B/C (50Hz, 2000 hrs)</span>
+              <span class="pill pill-a">MWM serie TCG</span>
+              <span class="pill pill-a">RMB/Energie</span>
+              <span class="pill pill-a">TEDOM 61-0-0281.1</span>
+              <span class="pill pill-a">Waukesha VGF / VGP / 220GL</span>
+            </div>
+          </div>
+          <div class="spec-group">
+            <span class="sg-lbl rec">› Recomendado</span>
+            <div class="pills-wrap">
+              <span class="pill pill-r">Caterpillar G3300/3400/3500/3600</span>
+              <span class="pill pill-r">Cummins QSV y QSK</span>
+              <span class="pill pill-r">Dresser-Rand Guascor (Cat. I y II)</span>
+              <span class="pill pill-r">MAN Diesel cogeneración</span>
+              <span class="pill pill-r">Wärtsilä 25SG-220SG / 20DF-50DF</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">🏆</span><div class="val-txt"><strong>Top de línea HDAX</strong> — máxima tecnología para 4T de nueva generación</div></div>
+          <div class="val-item"><span class="val-ic">🔬</span><div class="val-txt"><strong>Aceite base Grupo II de alta pureza</strong> — control superior de depósitos en pistones de acero</div></div>
+          <div class="val-item"><span class="val-ic">⏱️</span><div class="val-txt"><strong>Drenajes prolongados</strong> — alta retención de TBN y reserva alcalina</div></div>
+          <div class="val-item"><span class="val-ic">⚡</span><div class="val-txt"><strong>Cogeneración de alta eficiencia</strong> — protege motores de alta presión media eficaz (BMEP)</div></div>
+        </div>
+      </td>
+    </tr>
+
+    <!-- HDAX 9500 -->
+    <tr>
+      <td>
+        <div class="pn">HDAX® 9500</div>
+        <div class="ps">Biogás / Gas Residual / Gas Amargo</div>
+        <div style="margin-top:4px"><span class="base bmin">Grupo II Superior</span></div>
+      </td>
+      <td><span class="vtag">SAE 40</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill" style="background:#B45309;color:#fff;">Baja Ceniza 0.6%</span>
+          <span class="cpill" style="background:#7C3AED;color:#fff;">Biogás / Gas Amargo</span>
+          <div class="cert-note">Alto TBN para<br>neutralizar ácidos</div>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">INNIO Jenbacher TA 1000-1109 clases B y C</span>
+              <span class="pill pill-a">MAN M3271-5 (TUC 1849/21)</span>
+              <span class="pill pill-a">TEDOM 61-0-0281.1 (G/P/L/B/S)</span>
+              <span class="pill pill-a">Caterpillar (biogás / gas residual)</span>
+              <span class="pill pill-a">Waukesha (biogás / gas residual)</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">♻️</span><div class="val-txt"><strong>Diseñado para combustibles difíciles</strong> — biogás, digestor, residual y gas amargo</div></div>
+          <div class="val-item"><span class="val-ic">🛡️</span><div class="val-txt"><strong>Anti-corrosión superior</strong> — opera con condensación ácida por CFC y azufre alto</div></div>
+          <div class="val-item"><span class="val-ic">🔬</span><div class="val-txt"><strong>Bajo fósforo con TBN robusto</strong> — protege catalizador y neutraliza ácidos</div></div>
+          <div class="val-item"><span class="val-ic">⏸️</span><div class="val-txt"><strong>Operación intermitente</strong> — formulado para arranques frecuentes con condensación ácida</div></div>
+        </div>
+      </td>
+    </tr>
+
+    
+
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 4 — MONOGRADOS DIESEL                          -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="sec">
+  <div class="sec-hdr sh-m"><span>⚫</span><h2>Monogrados Diesel</h2><span class="cnt">2 Productos</span></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Producto / Base</th><th>Viscosidad</th>
+      <th class="w-cert">Certificaciones API</th>
+      <th class="w-spec">Aprobaciones y Recomendaciones OEM</th>
+      <th class="w-val">Valor Agregado</th>
+    </tr></thead>
+    <tbody>
+
+    <!-- URSA HD -->
+    <tr>
+      <td>
+        <div class="pn">Ursa® HD</div>
+        <div class="ps">Diesel 4T · Aspiración Natural</div>
+        <div style="margin-top:4px"><span class="base bmin">Mineral</span></div>
+      </td>
+      <td><div class="vmulti"><span class="vtag">SAE 40</span><span class="vtag">SAE 50</span></div></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-cf">✔ API CF</span>
+          <div class="cert-note">DF-4 en México</div>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">API CF (DF-4 en México)</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">⚙️</span><div class="val-txt"><strong>Apto para transmisiones manuales</strong> y mandos finales según OEM</div></div>
+          <div class="val-item"><span class="val-ic">💲</span><div class="val-txt"><strong>Solución más económica</strong> para equipos que especifican SAE 40 o SAE 50</div></div>
+          <div class="val-item"><span class="val-ic">🔧</span><div class="val-txt"><strong>Protección robusta</strong> contra desgaste en condiciones de servicio severo</div></div>
+        </div>
+      </td>
+    </tr>
+
+    <!-- DELO 100 MOTOR OIL -->
+    <tr>
+      <td>
+        <div class="pn">Delo® 100 Motor Oil</div>
+        <div class="ps">Diesel 2T y 4T · Equipo Fuera de Carretera</div>
+        <div style="margin-top:4px"><span class="base bmin">Mineral Parafínico</span></div>
+      </td>
+      <td><span class="vtag">SAE 40</span></td>
+      <td>
+        <div class="cert-block">
+          <span class="cpill c-cf">✔ API CF</span>
+          <span class="cpill c-cf">✔ API CF-2</span>
+          <div class="cert-note">Único en portafolio<br>con CF-2 (motores 2T)</div>
+        </div>
+      </td>
+      <td>
+        <div class="spec-col">
+          <div class="spec-group">
+            <span class="sg-lbl apr">✔ Aprobado OEM</span>
+            <div class="pills-wrap">
+              <span class="pill pill-a">API CF / CF-2</span>
+              <span class="pill pill-a">Detroit Diesel Corp. (2T, Serie 149 — máx. ceniza 0.85%)</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="val-col">
+          <div class="val-item"><span class="val-ic">🏗️</span><div class="val-txt"><strong>Único CF-2 en el portafolio</strong> — para motores diesel 2T antiguos fuera de carretera</div></div>
+          <div class="val-item"><span class="val-ic">🌡️</span><div class="val-txt"><strong>Control de depósitos a alta temperatura</strong> en motores legados</div></div>
+          <div class="val-item"><span class="val-ic">🛡️</span><div class="val-txt"><strong>Protección extrema de válvulas</strong> — base parafínica premium con EP especial</div></div>
+        </div>
+      </td>
+    </tr>
+
+    </tbody>
+  </table></div>
+</div>
+
+</div><!-- /main -->
+
+<div class="footer">
+  <strong>Procesadora de Servicios Magg's — Lumaggs</strong> · Distribuidor Autorizado Exclusivo de Lubricantes Premium Chevron en Baja California, México<br>
+  Confirme siempre que el producto seleccionado es consistente con las recomendaciones del fabricante del equipo respecto a sus condiciones de operación y prácticas de mantenimiento.<br>
+  Información extraída de las Fichas Técnicas (PDS) oficiales Chevron vigentes. © Chevron U.S.A. Inc. Todos los derechos reservados.
+</div>
+
+</body>
+</html>

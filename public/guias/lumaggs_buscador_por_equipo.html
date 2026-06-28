@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumaggs – Buscador de Aceite por Equipo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@500;600;700;800&display=swap');
+:root {
+  --blue:    #003087;
+  --red:     #CF2027;
+  --gold:    #D4920A;
+  --gold-lt: #FFF8E8;
+  --gold-brd:#E8A020;
+  --dark:    #0F1827;
+  --mid:     #374151;
+  --muted:   #6B7280;
+  --bg:      #E8EDF5;
+  --card:    #FFFFFF;
+  --brd:     #D0D8E8;
+  --apr-bg:  #E8F5E9; --apr-txt:#1B5E20; --apr-brd:#A5D6A7;
+  --rec-bg:  #FFF3E0; --rec-txt:#E65100; --rec-brd:#FFCC80;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--dark);}
+
+/* HEADER */
+.hdr{background:#fff;padding:0;position:relative;overflow:hidden;}
+.hdr-accent-top{height:5px;background:linear-gradient(90deg,#003087 0%,#003087 60%,#CF2027 60%,#CF2027 100%);}
+.hdr-body{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px 36px;background:#fff;}
+.logo-distribuidor{height:62px;width:auto;display:block;}
+.hdr-divider{width:1px;height:52px;background:#D0D8E8;flex-shrink:0;}
+.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.hdr-right .dist-label{font-size:9px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#CF2027;}
+.hdr-right .dist-region{font-size:11px;color:#374151;font-weight:500;}
+.hdr-accent-bottom{height:3px;background:linear-gradient(90deg,#003087,#CF2027 50%,#E8A020);}
+.hdr-title-bar{background:#003087;padding:9px 36px;}
+.hdr-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;
+  color:rgba(255,255,255,.88);letter-spacing:1.5px;text-transform:uppercase;}
+
+/* SEARCH BAR */
+.search-bar{background:#fff;border-bottom:2px solid var(--brd);padding:14px 36px;
+  position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.search-inner{max-width:1500px;margin:0 auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.search-input-wrap{position:relative;flex:1;min-width:260px;}
+.search-input-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;}
+#searchInput{width:100%;padding:9px 14px 9px 38px;border:1.5px solid var(--brd);border-radius:8px;
+  font-size:13.5px;font-family:'Inter',sans-serif;color:var(--dark);outline:none;transition:border-color .2s;}
+#searchInput:focus{border-color:var(--blue);}
+.filter-group{display:flex;gap:7px;flex-wrap:wrap;}
+.filter-btn{padding:5px 13px;border:1.5px solid var(--brd);border-radius:20px;font-size:11px;
+  font-weight:600;color:var(--mid);background:#fff;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.filter-btn:hover{border-color:var(--blue);color:var(--blue);}
+.filter-btn.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+#resultsCount{font-size:11px;color:var(--muted);white-space:nowrap;}
+
+/* MAIN */
+.main{padding:20px 20px 52px;max-width:1500px;margin:0 auto;}
+
+/* NOTE */
+.note{background:#FEF9EE;border:1px solid #F5D87A;border-left:4px solid var(--gold-brd);
+  border-radius:0 8px 8px 0;padding:10px 16px;margin-bottom:18px;font-size:11px;color:#6B4C00;line-height:1.7;}
+.note strong{color:#92400E;}
+
+/* BRAND SECTION */
+.brand-section{margin-bottom:24px;}
+.brand-hdr{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:8px 8px 0 0;cursor:pointer;user-select:none;}
+.brand-hdr h2{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;color:#fff;line-height:1;}
+.brand-hdr .bc{font-size:10px;color:rgba(255,255,255,.65);font-style:italic;}
+.brand-hdr .cnt{margin-left:auto;font-size:10px;color:rgba(255,255,255,.6);font-weight:600;white-space:nowrap;}
+.brand-hdr .toggle{font-size:13px;color:rgba(255,255,255,.7);transition:transform .2s;margin-left:6px;flex-shrink:0;}
+.brand-hdr.collapsed .toggle{transform:rotate(-90deg);}
+
+/* Brand colors */
+.b-cummins{background:#C0392B;} .b-detroit{background:#1a1a2e;} .b-cat{background:#FFCD11;}
+.b-cat h2,.b-cat .bc,.b-cat .cnt,.b-cat .toggle{color:#1A1A1A !important;}
+.b-mack{background:#003087;} .b-volvo{background:#003459;} .b-kw{background:#1B3A6B;}
+.b-pb{background:#C8102E;} .b-intl{background:#E87722;} .b-fl{background:#2D2D2D;}
+.b-mercedes{background:#222222;} .b-scania{background:#0D1B8C;} .b-man{background:#E2001A;}
+.b-renault{background:#EFDF00;} .b-renault h2,.b-renault .bc,.b-renault .cnt,.b-renault .toggle{color:#1A1A1A !important;}
+.b-isuzu{background:#CC0000;} .b-hino{background:#003087;} .b-ford{background:#003478;}
+.b-construccion{background:#2D5016;} .b-gas{background:#0D6E3E;}
+
+/* CARDS GRID */
+.cards-grid{border:1px solid var(--brd);border-top:none;border-radius:0 0 10px 10px;
+  background:var(--card);display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:0;}
+.cards-grid.collapsed{display:none;}
+
+.eq-card{border-right:1px solid var(--brd);border-bottom:1px solid var(--brd);padding:14px 16px;}
+.eq-card:nth-child(odd):last-child{border-right:none;}
+.eq-card.hidden{display:none;}
+
+/* Card content */
+.eq-name{font-weight:700;font-size:13px;color:var(--dark);line-height:1.2;margin-bottom:1px;}
+.eq-motor{display:inline-block;background:#EEF2FF;color:#3730A3;font-size:9.5px;font-weight:700;
+  padding:2px 7px;border-radius:4px;margin:4px 0 5px;}
+.eq-trucks{font-size:10px;color:var(--mid);margin-bottom:8px;line-height:1.5;}
+.eq-trucks strong{color:var(--dark);font-weight:600;}
+.eq-trucks .truck-list{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;}
+.truck-pill{display:inline-block;background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;
+  font-size:9px;font-weight:600;padding:1px 6px;border-radius:3px;white-space:nowrap;}
+
+.oils-sec{margin-top:8px;}
+.oils-lbl{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:3px;}
+.lbl-a{color:var(--apr-txt);} .lbl-r{color:var(--rec-txt);}
+.oils-pills{display:flex;flex-wrap:wrap;gap:3px;}
+.opill{display:inline-block;font-size:9.5px;font-weight:600;padding:2px 8px;border-radius:4px;white-space:nowrap;}
+.opill-a{background:var(--apr-bg);color:var(--apr-txt);border:1px solid var(--apr-brd);}
+.opill-r{background:var(--rec-bg);color:var(--rec-txt);border:1px solid var(--rec-brd);}
+.opill-star{background:var(--gold-lt);color:#92400E;border:1px solid var(--gold-brd);font-weight:700;}
+.sep{height:1px;background:var(--brd);margin:6px 0;}
+
+/* highlight */
+.hl{background:#FEF3C7;border-radius:2px;padding:0 1px;}
+
+/* no results */
+.no-results{text-align:center;padding:48px;color:var(--muted);font-size:14px;display:none;}
+
+/* Legend */
+.legend{display:flex;gap:14px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+.leg-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mid);}
+.ldot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* FOOTER */
+.footer{text-align:center;padding:14px 20px 28px;font-size:10px;color:var(--muted);max-width:1500px;margin:0 auto;line-height:1.7;}
+.footer strong{color:var(--mid);}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-accent-top"></div>
+  <div class="hdr-body">
+    <img src="data:image/png;base64,/9j/4AAQSkZJRgABAgAAAQABAAD/wAARCADgA9QDACIAAREBAhEB/9sAQwAIBgYHBgUIBwcHCQkICgwUDQwLCwwZEhMPFB0aHx4dGhwcICQuJyAiLCMcHCg3KSwwMTQ0NB8nOT04MjwuMzQy/9sAQwEJCQkMCwwYDQ0YMiEcITIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMAAAERAhEAPwD3+iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACivJ/iVr2q6L4mtX06/mt8wZKq3yk57qeD+IqppPxfv4NqarZRXK8AyRHY/1x0J/KuyOBqzpqpDW5xTx9GFR056WPY6K5bSfiH4c1bCrei2lI/1dyNh/PofwNdQrq67kYMD3BzXLOEoO0lY64TjNXi7i0UUVJQUUUUAFFQXN5bWURkuriKFB/FIwA/WuW1H4i6TaArarLdyDptG1c/U/0BrSnSnUdoK5lVr0qKvUkl6nYUV5FqPxB1m93LbslpGc8RDLY/3j/TFdn4AuJrrQGluJpJZDK2XkYsT+Jrpq4CrSp+0nocVDNKFesqNK78+n+f4HVUUUVxHpBRRRQAUUUUAFFISB1IFL1oAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAPFvi9/yMVr/1w/rXnleh/F7/AJGK1/64f1rzyvpsD/u8f66ny2P/AN5l/XQK0tM8QatozA6ffzQAc7A2V/75PFZ6I8hwikn2q1Hpsz8uQg9+tdUoKas1c5FV9m+ZOx32k/F6+hKpqlnHcJ0MkXytj6dD+ldzpXxB8PaqvF39nfGSk424/Hoa8Vi06FOWBc+9WlVUGFUAewriqZXRnqtDeGeVKenxep61qPxE0m03LarJdSDptGFz9T/SuR1H4gaxeErbslpG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ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/2Q==" alt="Lumaggs – Distribuidor Autorizado Chevron" class="logo-distribuidor">
+    <div class="hdr-divider"></div>
+    <div class="hdr-right">
+      <span class="dist-label">Distribuidor Autorizado Exclusivo</span>
+      <span class="dist-region">Baja California, México</span>
+    </div>
+  </div>
+  <div class="hdr-accent-bottom"></div>
+</div>
+<div class="hdr-title-bar"><div class="hdr-title">Buscador de Aceite por Motor y Modelo de Equipo — México y EE.UU.</div></div>
+
+<!-- SEARCH -->
+<div class="search-bar">
+  <div class="search-inner">
+    <div class="search-input-wrap">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="searchInput" type="text" placeholder="Buscar motor, camión o equipo… ej: X15, DD15, T680, Cascadia, ISX, Jenbacher…">
+    </div>
+    <div class="filter-group">
+      <button class="filter-btn active" data-cat="all">Todos</button>
+      <button class="filter-btn" data-cat="carretera">Carretera</button>
+      <button class="filter-btn" data-cat="mediano">Mediano / Vocacional</button>
+      <button class="filter-btn" data-cat="construccion">Construcción</button>
+      <button class="filter-btn" data-cat="agricola">Agrícola</button>
+      <button class="filter-btn" data-cat="gas-movil">Gas Móvil</button>
+      <button class="filter-btn" data-cat="gas-estacionario">Gas Estacionario</button>
+      <button class="filter-btn" data-cat="europeo">Europeo</button>
+    </div>
+    <span id="resultsCount"></span>
+  </div>
+</div>
+
+<div class="main">
+
+<div class="note">
+  <strong>Cómo usar:</strong> Escribe el motor (X15, DD15, ISX), el modelo de camión (T680, Cascadia, NPR) o la marca. &nbsp;|&nbsp;
+  <span class="opill opill-star" style="cursor:default">★ Principal</span> = Delo 400 XLE SB, mayor venta Lumaggs &nbsp;
+  <span class="opill opill-a" style="cursor:default">✔ Aprobado</span> = homologación oficial &nbsp;
+  <span class="opill opill-r" style="cursor:default">› Recomendado</span> = adecuado sin homologación formal
+</div>
+
+<div class="legend">
+  <span class="leg-lbl">Segmentos:</span>
+  <span class="leg-item"><span class="ldot" style="background:#C0392B"></span>Cummins</span>
+  <span class="leg-item"><span class="ldot" style="background:#1a1a2e"></span>Detroit Diesel</span>
+  <span class="leg-item"><span class="ldot" style="background:#FFCD11;border:1px solid #ccc"></span>Caterpillar</span>
+  <span class="leg-item"><span class="ldot" style="background:#003087"></span>Mack / Volvo</span>
+  <span class="leg-item"><span class="ldot" style="background:#1B3A6B"></span>KW / Peterbilt / Intl</span>
+  <span class="leg-item"><span class="ldot" style="background:#2D5016"></span>Construcción / Agrícola</span>
+  <span class="leg-item"><span class="ldot" style="background:#0D6E3E"></span>Gas Natural</span>
+</div>
+
+<div id="noResults" class="no-results">No se encontraron resultados. Intenta con el nombre del motor (ISX, DD15, ACERT) o la marca del camión.</div>
+
+
+<!-- ═══════════════ CUMMINS ═══════════════ -->
+<div class="brand-section" data-brand="cummins" data-cats="carretera mediano gas-movil construccion agricola">
+<div class="brand-hdr b-cummins" onclick="toggleBrand(this)">
+  <span>🔴</span><h2>Cummins</h2>
+  <span class="bc">El motor diesel más usado en México y EE.UU. en Clase 8, medianos y autobuses</span>
+  <span class="cnt">7 motores</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="cummins x15 isx15 efficiency performance clase 8 pesado carretera kenworth t680 t880 peterbilt 579 389 freightliner cascadia western star 49x 5700">
+  <div class="eq-name">Cummins X15 Efficiency / Performance (ISX15)</div>
+  <div class="eq-motor">15L — 400–565 hp — EPA 2010 / GHG 2017</div>
+  <div class="eq-trucks"><strong>Camiones más comunes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Kenworth T680</span><span class="truck-pill">Kenworth T880</span>
+      <span class="truck-pill">Peterbilt 579</span><span class="truck-pill">Peterbilt 389</span>
+      <span class="truck-pill">Freightliner Cascadia (opt.)</span><span class="truck-pill">Western Star 49X (opt.)</span>
+      <span class="truck-pill">International LT (opt.)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (CES 20086)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="cummins x12 isx12 clase 8 pesado freightliner cascadia peterbilt 579 kenworth t680">
+  <div class="eq-name">Cummins X12 / ISX12</div>
+  <div class="eq-motor">12L — 370–500 hp — EPA 2010 / GHG 2017</div>
+  <div class="eq-trucks"><strong>Camiones más comunes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Freightliner Cascadia</span><span class="truck-pill">Peterbilt 579</span>
+      <span class="truck-pill">Kenworth T680</span><span class="truck-pill">International LT (opt.)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (CES 20086)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="cummins l9 isl9 camion mediano autobus kenworth t370 t270 peterbilt 337 365 international mv hv blue bird thomas ic bus escolar urbano">
+  <div class="eq-name">Cummins L9 / ISL9</div>
+  <div class="eq-motor">8.9L — 260–380 hp — Clase 6-7 / Autobús</div>
+  <div class="eq-trucks"><strong>Camiones y autobuses más comunes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Kenworth T370</span><span class="truck-pill">Kenworth T270</span>
+      <span class="truck-pill">Peterbilt 365</span><span class="truck-pill">Peterbilt 337</span>
+      <span class="truck-pill">International MV / HV</span><span class="truck-pill">Blue Bird All American</span>
+      <span class="truck-pill">Thomas Built Saf-T-Liner</span><span class="truck-pill">IC Bus CE Series</span>
+      <span class="truck-pill">Freightliner M2 (opt.)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (CES 20086)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="cummins b6.7 isb isb6.7 camion mediano pickup ram 2500 3500 super duty international mv freightliner m2">
+  <div class="eq-name">Cummins B6.7 / ISB6.7</div>
+  <div class="eq-motor">6.7L — 200–325 hp — Clase 4-6 / Pick-up</div>
+  <div class="eq-trucks"><strong>Camiones y pick-ups más comunes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">RAM 2500 / 3500 Cummins</span><span class="truck-pill">Freightliner M2</span>
+      <span class="truck-pill">International MV</span><span class="truck-pill">Kenworth T270</span>
+      <span class="truck-pill">Peterbilt 337</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (CES 20086)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="cummins x15 x12 fa4 2017 eficiencia combustible freightliner cascadia peterbilt 579 kenworth t680 fa-4 10w30">
+  <div class="eq-name">Cummins X15 / X12 — Especificación FA-4</div>
+  <div class="eq-motor">Modelos 2017+ que autorizan FA-4 SAE 10W-30</div>
+  <div class="eq-trucks"><strong>Verificar manual — motores 2017+ seleccionados:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Freightliner Cascadia 2017+</span><span class="truck-pill">Peterbilt 579 2017+</span>
+      <span class="truck-pill">Kenworth T680 2017+</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (CES 20087 — FA-4)</span>
+    <div class="oils-pills"><span class="opill opill-a">Delo 400 ZFA 10W-30</span></div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="cummins isl g l9n x12n x12g gnc gas natural autobus camion residuos recoleccion municipal blue bird ic bus">
+  <div class="eq-name">Cummins ISL G / L9N / ISX12 G/N (Gas Natural)</div>
+  <div class="eq-motor">GNC/GNL — 250–400 hp — Autobús y Camión Urbano</div>
+  <div class="eq-trucks"><strong>Camiones y autobuses más comunes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Blue Bird All American CNG</span><span class="truck-pill">IC Bus CE CNG</span>
+      <span class="truck-pill">Kenworth T370 CNG</span><span class="truck-pill">Peterbilt 320 CNG</span>
+      <span class="truck-pill">McNeilus Refuse (recolección)</span><span class="truck-pill">Heil CNG</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (CES 20092 / CES 20085)</span>
+    <div class="oils-pills">
+      <span class="opill opill-a">Delo 400 SNG 15W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="cummins qsk qsv generador planta electrica industrial estacionario gas natural mineria hospital">
+  <div class="eq-name">Cummins QSK / QSV (Gas Estacionario)</div>
+  <div class="eq-motor">Gas Natural Estacionario — Generación Industrial</div>
+  <div class="eq-trucks"><strong>Aplicaciones típicas:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Plantas de generación eléctrica</span><span class="truck-pill">Hospitales</span>
+      <span class="truck-pill">Minería</span><span class="truck-pill">Parques industriales</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-r">› Recomendado</span>
+    <div class="oils-pills"><span class="opill opill-r">HDAX 9200 Low Ash SAE 40</span></div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ═══════════════ DETROIT DIESEL ═══════════════ -->
+<div class="brand-section" data-brand="detroit diesel daimler" data-cats="carretera gas-movil">
+<div class="brand-hdr b-detroit" onclick="toggleBrand(this)">
+  <span>⚫</span><h2>Detroit Diesel (Daimler)</h2>
+  <span class="bc">Motor exclusivo de Freightliner y Western Star</span>
+  <span class="cnt">4 motores</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="detroit dd15 gen5 freightliner cascadia western star 49x 5700 clase 8 carretera">
+  <div class="eq-name">Detroit DD15 / DD15 Gen 5</div>
+  <div class="eq-motor">14.8L — 455–505 hp — EPA 2010 / GHG 2017</div>
+  <div class="eq-trucks"><strong>Camiones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Freightliner Cascadia (estándar)</span>
+      <span class="truck-pill">Western Star 49X (estándar)</span>
+      <span class="truck-pill">Western Star 5700XE</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (DFS 93K222)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <div class="oils-sec"><span class="oils-lbl lbl-r">› Recomendado (FA-4, verificar año modelo)</span>
+    <div class="oils-pills"><span class="opill opill-r">Delo 400 ZFA 10W-30</span></div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="detroit dd13 freightliner cascadia mercedes actros clase 8 mediano">
+  <div class="eq-name">Detroit DD13</div>
+  <div class="eq-motor">12.8L — 350–525 hp — Distribución Regional</div>
+  <div class="eq-trucks"><strong>Camiones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Freightliner Cascadia (opt.)</span>
+      <span class="truck-pill">Mercedes Actros (Europa)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (DFS 93K222)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="detroit series 60 antiguo generacion anterior camion viejo freightliner kenworth peterbilt">
+  <div class="eq-name">Detroit Series 60 (Pre-2007)</div>
+  <div class="eq-motor">11.1L / 12.7L / 14L — 330–515 hp</div>
+  <div class="eq-trucks"><strong>Camiones (flota antigua México):</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Freightliner Classic</span><span class="truck-pill">Kenworth W900</span>
+      <span class="truck-pill">Peterbilt 379</span><span class="truck-pill">Western Star 4900</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (93K215 — CH-4)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo Gold Ultra X 15W-40</span>
+      <span class="opill opill-a">Ursa Super TD 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="detroit series 50g 60g gas natural gnc autobus urbano camion recoleccion basura residuos">
+  <div class="eq-name">Detroit Series 50G / 60G (Gas Natural)</div>
+  <div class="eq-motor">GNC — Autobús Urbano / Camión de Residuos</div>
+  <div class="eq-trucks"><strong>Aplicaciones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Autobuses urbanos GNC</span><span class="truck-pill">Camiones de residuos GNC</span>
+      <span class="truck-pill">Sistemas BRT México</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (93K216)</span>
+    <div class="oils-pills">
+      <span class="opill opill-a">Delo 400 SNG 15W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ═══════════════ CATERPILLAR ═══════════════ -->
+<div class="brand-section" data-brand="caterpillar cat" data-cats="construccion agricola gas-estacionario carretera">
+<div class="brand-hdr b-cat" onclick="toggleBrand(this)">
+  <span>🟡</span><h2>Caterpillar</h2>
+  <span class="bc">Maquinaria pesada de construcción, minería y generación</span>
+  <span class="cnt">5 motores</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="caterpillar 3406 3406e camion kenworth peterbilt antiguo clasico motor">
+  <div class="eq-name">Caterpillar 3406 / 3406E</div>
+  <div class="eq-motor">14.6L — 310–550 hp — Motor Clásico (Pre-2003)</div>
+  <div class="eq-trucks"><strong>Camiones y equipos (flota antigua):</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Kenworth W900 Cat</span><span class="truck-pill">Peterbilt 379 Cat</span>
+      <span class="truck-pill">Equipos construcción Cat 3406</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-r">› Recomendado (ECF-2 / ECF-1a)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-r">Delo Gold Ultra X 15W-40</span>
+      <span class="opill opill-r">Ursa Super TD 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="caterpillar c7 c9 c13 c15 c18 acert excavadora cargador bulldozer motoniveladora retroexcavadora maquinaria pesada construccion">
+  <div class="eq-name">Caterpillar C7 / C9 / C13 / C15 / C18 (ACERT)</div>
+  <div class="eq-motor">7–18L — Maquinaria Pesada Tier IV</div>
+  <div class="eq-trucks"><strong>Equipos más comunes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Excavadoras 320 / 336 / 390</span><span class="truck-pill">Cargadores 950 / 966 / 980 / 992</span>
+      <span class="truck-pill">Bulldozers D6 / D8 / D9 / D11</span><span class="truck-pill">Motoniveladoras 120 / 140 / 160</span>
+      <span class="truck-pill">Retroexcavadoras 420 / 430</span><span class="truck-pill">Camiones articulados 740</span>
+      <span class="truck-pill">Tractores Track D3 / D5</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (ECF-3)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-30</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="caterpillar c27 c32 mineria camion minero 777 785 789 793 haul truck">
+  <div class="eq-name">Caterpillar C27 / C32 — Minería</div>
+  <div class="eq-motor">27–32L — Camiones Mineros / Equipos de Gran Tonelaje</div>
+  <div class="eq-trucks"><strong>Equipos:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Camión minero 777 / 785 / 789</span>
+      <span class="truck-pill">Camión minero 793 / 797</span>
+      <span class="truck-pill">Excavadora 6015 / 6020</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (ECF-3)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="caterpillar cg132 cg170 cg260 generador gas natural planta electrica cogeneracion industrial parque">
+  <div class="eq-name">Caterpillar CG132 / CG170 / CG260 (Gas)</div>
+  <div class="eq-motor">Gas Natural Estacionario — Generación Eléctrica</div>
+  <div class="eq-trucks"><strong>Aplicaciones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Parques industriales</span><span class="truck-pill">Hospitales</span>
+      <span class="truck-pill">Centros comerciales</span><span class="truck-pill">Cogeneración</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado</span>
+    <div class="oils-pills">
+      <span class="opill opill-a">HDAX 5200 Low Ash SAE 40</span>
+      <span class="opill opill-a">HDAX 9200 Low Ash SAE 40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="caterpillar g3300 g3400 g3500 g3600 gas estacionario compresora petroleo yacimiento">
+  <div class="eq-name">Caterpillar G3300 / G3400 / G3500 / G3600</div>
+  <div class="eq-motor">Gas Estacionario — Alta Potencia / Petróleo y Gas</div>
+  <div class="eq-trucks"><strong>Aplicaciones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Compresoras de gas natural</span><span class="truck-pill">Sitios remotos off-grid</span>
+      <span class="truck-pill">Plataformas petrolíferas</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-r">› Recomendado</span>
+    <div class="oils-pills">
+      <span class="opill opill-r">HDAX 9200 Low Ash SAE 40</span>
+      <span class="opill opill-r">HDAX 5100 Ashless SAE 40</span>
+    </div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ═══════════════ MACK ═══════════════ -->
+<div class="brand-section" data-brand="mack trucks" data-cats="carretera construccion gas-movil">
+<div class="brand-hdr b-mack" onclick="toggleBrand(this)">
+  <span>🔵</span><h2>Mack Trucks (Volvo Group)</h2>
+  <span class="bc">Motor MP propio — camiones de carga, volteo, mezcladoras y residuos</span>
+  <span class="cnt">3 motores</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="mack mp8 mp7 mp10 anthem pinnacle granite vocacional volteo cargador mezcladoras camion carretera pesado">
+  <div class="eq-name">Mack MP7 / MP8 / MP10</div>
+  <div class="eq-motor">11–13L — 325–605 hp — EPA 2010 / GHG 2017</div>
+  <div class="eq-trucks"><strong>Camiones más comunes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Mack Anthem (carretera)</span><span class="truck-pill">Mack Pinnacle (carretera)</span>
+      <span class="truck-pill">Mack Granite (construcción)</span><span class="truck-pill">Mack TerraPro (volteo)</span>
+      <span class="truck-pill">Mack LR (residuos)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Mack EOS-4.5)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="mack e7 e-tech aset eo-m camion antiguo generacion anterior viejo ch-4">
+  <div class="eq-name">Mack E7 / E-Tech / ASET (Pre-2007)</div>
+  <div class="eq-motor">12L — 300–460 hp — Flota Antigua</div>
+  <div class="eq-trucks"><strong>Camiones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Mack CH / CX (clásico)</span><span class="truck-pill">Mack Vision</span>
+      <span class="truck-pill">Mack RD (vocacional)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Mack EO-M / EO-N)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo Gold Ultra X 15W-40</span>
+      <span class="opill opill-a">Ursa Super TD 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="mack gnc gas natural lr md camion residuos compactador basura municipal recoleccion">
+  <div class="eq-name">Mack LR / MD (Motor CNG)</div>
+  <div class="eq-motor">Gas Natural — Residuos y Distribución Urbana</div>
+  <div class="eq-trucks"><strong>Camiones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Mack LR (recolección residuos)</span>
+      <span class="truck-pill">Mack MD (distribución urbana)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Mack CNG)</span>
+    <div class="oils-pills">
+      <span class="opill opill-a">Delo 400 SNG 15W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ═══════════════ VOLVO TRUCKS ═══════════════ -->
+<div class="brand-section" data-brand="volvo trucks" data-cats="carretera europeo gas-movil">
+<div class="brand-hdr b-volvo" onclick="toggleBrand(this)">
+  <span>🔵</span><h2>Volvo Trucks</h2>
+  <span class="bc">Motores D-series — presencia creciente en México y rutas internacionales</span>
+  <span class="cnt">3 motores</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="volvo d13 d11 vnl 760 780 860 fh fm clase 8 carretera largo recorrido tracto">
+  <div class="eq-name">Volvo D13 / D11</div>
+  <div class="eq-motor">13L / 11L — 375–500 hp — EPA 2010 / GHG 2017</div>
+  <div class="eq-trucks"><strong>Camiones más comunes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Volvo VNL 760</span><span class="truck-pill">Volvo VNL 780</span>
+      <span class="truck-pill">Volvo VNL 860</span><span class="truck-pill">Volvo FH (importado)</span>
+      <span class="truck-pill">Volvo FM (importado)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Volvo VDS-4.5)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-30</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <div class="oils-sec"><span class="oils-lbl lbl-r">› Recomendado (VDS-3)</span>
+    <div class="oils-pills">
+      <span class="opill opill-r">Delo Gold Ultra S 10W-40</span>
+      <span class="opill opill-r">Delo Gold Ultra X 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="volvo d16 vnx 860 gran potencia mineria construccion pesado">
+  <div class="eq-name">Volvo D16</div>
+  <div class="eq-motor">16L — 550–600 hp — Gran Potencia</div>
+  <div class="eq-trucks"><strong>Camiones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Volvo VNX 860</span><span class="truck-pill">Volvo FH16 (importado)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Volvo VDS-4.5)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="volvo g13c gas natural gnl gnc fh fm largo recorrido ecologico">
+  <div class="eq-name">Volvo G13C (Gas Natural)</div>
+  <div class="eq-motor">GNL / GNC — Larga Distancia Ecológica</div>
+  <div class="eq-trucks"><strong>Camiones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Volvo FH GNC</span><span class="truck-pill">Volvo FM GNC</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Volvo GNC)</span>
+    <div class="oils-pills"><span class="opill opill-a">Delo 400 SNG 15W-40</span></div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ═══════════════ KENWORTH / PETERBILT ═══════════════ -->
+<div class="brand-section" data-brand="kenworth peterbilt paccar mx" data-cats="carretera mediano">
+<div class="brand-hdr b-kw" onclick="toggleBrand(this)">
+  <span>🔵</span><h2>Kenworth / Peterbilt (PACCAR)</h2>
+  <span class="bc">Los camiones Clase 8 más icónicos de México — motores PACCAR MX, Cummins o Detroit</span>
+  <span class="cnt">3 configuraciones</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="kenworth t680 t880 w990 peterbilt 579 389 paccar mx13 mx11 clase 8 carretera largo recorrido">
+  <div class="eq-name">PACCAR MX-13 / MX-11</div>
+  <div class="eq-motor">13L / 11L — 380–510 hp — Motor PACCAR (DAF)</div>
+  <div class="eq-trucks"><strong>Camiones más comunes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Kenworth T680</span><span class="truck-pill">Kenworth T880</span>
+      <span class="truck-pill">Kenworth W990</span><span class="truck-pill">Peterbilt 579</span>
+      <span class="truck-pill">Peterbilt 589</span><span class="truck-pill">Peterbilt 389</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (CES 20086 equivalente)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="kenworth t680 t880 peterbilt 579 cummins x15 motor opcion configuracion">
+  <div class="eq-name">KW T680 / T880 · PB 579 — Motor Cummins X15</div>
+  <div class="eq-motor">Opción Cummins X15 — 400–565 hp</div>
+  <div class="eq-trucks"><strong>Camiones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Kenworth T680 (motor Cummins)</span>
+      <span class="truck-pill">Peterbilt 579 (motor Cummins)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (CES 20086)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="kenworth t370 t270 peterbilt 365 337 567 vocacional camion mediano construccion volteo cummins l9">
+  <div class="eq-name">KW T370 / T270 · PB 365 / 337 / 567</div>
+  <div class="eq-motor">Vocacional — Motor Cummins L9 / B6.7</div>
+  <div class="eq-trucks"><strong>Camiones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Kenworth T370 (volteo, grúa)</span><span class="truck-pill">Kenworth T270 (distribución)</span>
+      <span class="truck-pill">Peterbilt 365 (construcción)</span><span class="truck-pill">Peterbilt 337 (distribución)</span>
+      <span class="truck-pill">Peterbilt 567 (vocacional)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (CES 20086)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+    </div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ═══════════════ INTERNATIONAL / NAVISTAR ═══════════════ -->
+<div class="brand-section" data-brand="international navistar a26" data-cats="carretera mediano">
+<div class="brand-hdr b-intl" onclick="toggleBrand(this)">
+  <span>🟠</span><h2>International (Navistar)</h2>
+  <span class="bc">Camiones vocacionales, medianos y de largo recorrido — motores A26 y Cummins</span>
+  <span class="cnt">3 configuraciones</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="international lt lts carretera a26 s13 cummins x15 clase 8 largo recorrido">
+  <div class="eq-name">International LT / LTS — Motor A26</div>
+  <div class="eq-motor">A26 13L — 400–500 hp / S13 Integrated Powertrain</div>
+  <div class="eq-trucks"><strong>Camiones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">International LT625</span><span class="truck-pill">International LT680</span>
+      <span class="truck-pill">International LTS (sleeper)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (API CK-4)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="international hx mv vocacional construccion volteo cummins l9 b6.7 camion mediano">
+  <div class="eq-name">International HX / MV / CV</div>
+  <div class="eq-motor">Vocacional — Cummins L9 / B6.7</div>
+  <div class="eq-trucks"><strong>Camiones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">International HX515 (volteo)</span><span class="truck-pill">International HX620</span>
+      <span class="truck-pill">International MV (distribución)</span><span class="truck-pill">International CV (clase 4-5)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (CES 20086)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="ic bus blue bird autobus escolar urbano cummins b6.7 l9 thomas navistar">
+  <div class="eq-name">IC Bus / Blue Bird (Autobús)</div>
+  <div class="eq-motor">Cummins B6.7 / L9 — Autobús Escolar y Urbano</div>
+  <div class="eq-trucks"><strong>Autobuses:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">IC Bus CE / RE</span><span class="truck-pill">Blue Bird All American</span>
+      <span class="truck-pill">Thomas Built Saf-T-Liner</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (CES 20086)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+    </div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ═══════════════ FREIGHTLINER ═══════════════ -->
+<div class="brand-section" data-brand="freightliner daimler cascadia" data-cats="carretera mediano">
+<div class="brand-hdr b-fl" onclick="toggleBrand(this)">
+  <span>⚫</span><h2>Freightliner (Daimler Truck)</h2>
+  <span class="bc">El camión de carga más vendido de EE.UU. — Cascadia con DD15</span>
+  <span class="cnt">2 modelos</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="freightliner cascadia dd15 dd13 cummins x15 clase 8 carretera mas vendido estados unidos">
+  <div class="eq-name">Freightliner Cascadia (114 / 126)</div>
+  <div class="eq-motor">DD15 estándar / DD13 o Cummins X15 opcional</div>
+  <div class="eq-trucks"><strong>Variantes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Cascadia 114 (day cab)</span><span class="truck-pill">Cascadia 126 (sleeper)</span>
+      <span class="truck-pill">Cascadia Evolution</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (DFS 93K222 / CES 20086)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="freightliner m2 business class camion mediano reparto local grua servicio detroit dd8 cummins b6.7">
+  <div class="eq-name">Freightliner M2 Business Class</div>
+  <div class="eq-motor">Detroit DD8 / Cummins B6.7 — Clase 6-7</div>
+  <div class="eq-trucks"><strong>Aplicaciones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">M2 106 (distribución local)</span><span class="truck-pill">M2 112 (grúa / servicio)</span>
+      <span class="truck-pill">M2 106V (vocacional)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (DFS 93K222 / CES 20086)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+    </div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ═══════════════ EUROPEOS ═══════════════ -->
+<div class="brand-section" data-brand="mercedes benz actros arocs scania man renault daf europeo" data-cats="europeo carretera">
+<div class="brand-hdr b-mercedes" onclick="toggleBrand(this)">
+  <span>⭐</span><h2>Marcas Europeas — Mercedes / Scania / MAN / Renault</h2>
+  <span class="bc">Camiones importados a México — especificaciones MB Approval, Scania LDF, MAN M-series</span>
+  <span class="cnt">4 motores</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="mercedes benz actros arocs atego om471 om470 om936 camion europeo importado mineria construccion">
+  <div class="eq-name">Mercedes-Benz Actros / Arocs / Atego</div>
+  <div class="eq-motor">OM471 / OM470 / OM936 — Euro V / VI</div>
+  <div class="eq-trucks"><strong>Modelos importados a México:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Actros (carretera)</span><span class="truck-pill">Arocs (construcción / minería)</span>
+      <span class="truck-pill">Atego (distribución)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (MB 228.31 / DTFR 15C100)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (MB 228.5 / DTFR 15B120)</span>
+    <div class="oils-pills"><span class="opill opill-a">Delo Gold Ultra S 10W-40</span></div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="scania r s g p dc13 dc16 euro vi ldf3 camion europeo importado">
+  <div class="eq-name">Scania R / S / G / P Series</div>
+  <div class="eq-motor">DC13 / DC16 — 280–770 hp — Euro VI</div>
+  <div class="eq-trucks"><strong>Modelos importados a México:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Scania R500 / R580 (carretera)</span>
+      <span class="truck-pill">Scania G460 (distribución)</span>
+      <span class="truck-pill">Scania P360 (vocacional)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Scania LDF-3)</span>
+    <div class="oils-pills"><span class="opill opill-a">Delo Gold Ultra S 10W-40</span></div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="man tgx tgs tgm d26 d20 m3775 camion europeo importado construccion">
+  <div class="eq-name">MAN TGX / TGS / TGM</div>
+  <div class="eq-motor">D26 / D20 / D08 — Euro V / VI</div>
+  <div class="eq-trucks"><strong>Modelos:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">MAN TGX (carretera)</span><span class="truck-pill">MAN TGS (construcción)</span>
+      <span class="truck-pill">MAN TGM (distribución)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (MAN M3775)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (MAN M3277)</span>
+    <div class="oils-pills"><span class="opill opill-a">Delo Gold Ultra S 10W-40</span></div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="renault t c k d dti11 dti13 rld3 camion europeo importado refrigerado">
+  <div class="eq-name">Renault T / C / K / D Series</div>
+  <div class="eq-motor">DTI 11 / DTI 13 — Euro V / VI</div>
+  <div class="eq-trucks"><strong>Modelos:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Renault T (carretera)</span><span class="truck-pill">Renault C (construcción)</span>
+      <span class="truck-pill">Renault K (minería)</span><span class="truck-pill">Renault D (distribución)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Renault RLD-3)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ═══════════════ ISUZU / HINO / FORD ═══════════════ -->
+<div class="brand-section" data-brand="isuzu hino ford pickup" data-cats="mediano carretera">
+<div class="brand-hdr b-isuzu" onclick="toggleBrand(this)">
+  <span>🔴</span><h2>Isuzu / Hino / Ford</h2>
+  <span class="bc">Camiones japoneses y pick-up diesels — líderes en distribución y trabajo en México</span>
+  <span class="cnt">4 modelos</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="isuzu npr nqr nrr fsr fvr camion mediano reparto distribucion local mas vendido mexico 4hk1 6hk1">
+  <div class="eq-name">Isuzu NPR / NQR / NRR / FSR / FVR</div>
+  <div class="eq-motor">4HK1 / 6HK1 / 6WG1 — 175–360 hp</div>
+  <div class="eq-trucks"><strong>Modelos más comunes en México:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Isuzu NPR (más vendido clase 4)</span>
+      <span class="truck-pill">Isuzu NQR (carga media)</span>
+      <span class="truck-pill">Isuzu FSR / FVR (carga pesada)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (API CK-4)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Isuzu GNC)</span>
+    <div class="oils-pills"><span class="opill opill-a">Delo 400 SNG 15W-40</span></div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="hino 195 258 268 338 500 700 serie camion mediano japon toyota reparto supermercado refresquera">
+  <div class="eq-name">Hino 195 / 258 / 268 / 338 / 500 / 700</div>
+  <div class="eq-motor">J05E / J08E / E13C — 210–460 hp</div>
+  <div class="eq-trucks"><strong>Modelos comunes en México:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Hino 195 (clase 4)</span><span class="truck-pill">Hino 268 (clase 6)</span>
+      <span class="truck-pill">Hino 338 (clase 7)</span><span class="truck-pill">Hino 700 (clase 8)</span>
+      <span class="truck-pill">Hino Serie 500 (distribución)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (API CK-4 / CJ-4)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Hino GNC)</span>
+    <div class="oils-pills"><span class="opill opill-a">Delo 400 SNG 15W-40</span></div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="ford f250 f350 super duty power stroke 6.7 diesel pick-up trabajo ck4">
+  <div class="eq-name">Ford F-250 / F-350 Super Duty (Power Stroke 6.7L)</div>
+  <div class="eq-motor">Power Stroke 6.7L — 270–475 hp</div>
+  <div class="eq-trucks"><strong>Modelos:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">F-250 Super Duty</span><span class="truck-pill">F-350 Super Duty</span>
+      <span class="truck-pill">F-450 / F-550 (chasis)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Ford WSS-M2C171-F1)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="ford f150 diesel power stroke 3.0 fa4 10w30 pick-up eficiencia">
+  <div class="eq-name">Ford F-150 Diesel (Power Stroke 3.0L)</div>
+  <div class="eq-motor">Power Stroke 3.0L V6 — FA-4 10W-30</div>
+  <div class="eq-trucks"><strong>Modelos:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Ford F-150 Diesel 2018+</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Ford WSS-M2C214-B1 — FA-4)</span>
+    <div class="oils-pills"><span class="opill opill-a">Delo 400 ZFA 10W-30</span></div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ═══════════════ CONSTRUCCION / AGRICOLA ═══════════════ -->
+<div class="brand-section" data-brand="john deere komatsu deutz case new holland agricola construccion" data-cats="construccion agricola">
+<div class="brand-hdr b-construccion" onclick="toggleBrand(this)">
+  <span>🟢</span><h2>Equipo Agrícola y Construcción</h2>
+  <span class="bc">John Deere, Komatsu, DEUTZ, Case y otros con motores propios</span>
+  <span class="cnt">3 motores</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="john deere 6r 7r 8r 9r tractor cosechadora combine powertec agricola campo mexico cerales cana">
+  <div class="eq-name">John Deere PowerTech — Tractores y Cosechadoras</div>
+  <div class="eq-motor">PowerTech 4.5L / 6.8L / 9.0L / 13.5L — Tier IV</div>
+  <div class="eq-trucks"><strong>Equipos más comunes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Tractores 6R / 7R / 8R / 9R</span><span class="truck-pill">Cosechadoras S-Series</span>
+      <span class="truck-pill">Segadoras W-Series</span><span class="truck-pill">Sembradora ExactEmerge</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (API CK-4 / CJ-4)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XLE SB 10W-30</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="komatsu pc200 pc300 pc400 d65 d85 d155 excavadora bulldozer mineria construccion saa6d">
+  <div class="eq-name">Komatsu SAA6D — Excavadoras y Bulldozers</div>
+  <div class="eq-motor">SAA6D 6L–15L — Maquinaria Pesada Tier IV</div>
+  <div class="eq-trucks"><strong>Equipos más comunes:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">PC200 / PC300 / PC400 (excavadoras)</span>
+      <span class="truck-pill">D65 / D85 / D155 (bulldozers)</span>
+      <span class="truck-pill">WA380 / WA470 (cargadores)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (API CK-4 / CI-4)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo Gold Ultra X 15W-40</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="deutz tcd dqc iii-18 iv-18 claas same agco maquinaria agricola industrial">
+  <div class="eq-name">DEUTZ TCD — Maquinaria Agrícola e Industrial</div>
+  <div class="eq-motor">TCD 2.9–7.8L — Agrícola / Industrial Tier IV</div>
+  <div class="eq-trucks"><strong>Equipos con motor DEUTZ:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">CLAAS Axion / Arion</span><span class="truck-pill">Same Iron / Silver</span>
+      <span class="truck-pill">Agco-Allis</span><span class="truck-pill">Fendt (opt.)</span>
+      <span class="truck-pill">Grupos electrógenos DEUTZ</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (DEUTZ DQC III-18 LA / IV-18 LA)</span>
+    <div class="oils-pills">
+      <span class="opill opill-star">★ Delo 400 XLE SB 15W-40</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-30</span>
+      <span class="opill opill-a">Delo 400 XSP 5W-40</span>
+      <span class="opill opill-a">Delo 600 ADF 15W-40</span>
+    </div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ═══════════════ GAS NATURAL ESTACIONARIO ═══════════════ -->
+<div class="brand-section" data-brand="jenbacher innio waukesha wartsila mwm man energy gas estacionario generador planta" data-cats="gas-estacionario">
+<div class="brand-hdr b-gas" onclick="toggleBrand(this)">
+  <span>🟢</span><h2>Motores Estacionarios de Gas Natural</h2>
+  <span class="bc">Generación eléctrica, cogeneración y biogás — INNIO Jenbacher, Waukesha, Wärtsilä, MWM</span>
+  <span class="cnt">4 motores</span><span class="toggle">▾</span>
+</div>
+<div class="cards-grid">
+
+<div class="eq-card" data-search="jenbacher innio j208 j312 j412 j416 j420 j612 j616 generador gas biogas cogeneracion planta industrial vertedero">
+  <div class="eq-name">INNIO Jenbacher J208 / J312 / J412 / J612 / J616</div>
+  <div class="eq-motor">Gas Natural / Biogás / Gas Vertedero — 250 kW a 10 MW</div>
+  <div class="eq-trucks"><strong>Aplicaciones típicas en México:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Parques industriales</span><span class="truck-pill">Plantas de tratamiento de agua</span>
+      <span class="truck-pill">Rellenos sanitarios (biogás)</span><span class="truck-pill">Industria azucarera</span>
+      <span class="truck-pill">Hospitales de alta complejidad</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado (Jenbacher TA 1000-0300 / TA 1000-1109)</span>
+    <div class="oils-pills">
+      <span class="opill opill-a">HDAX 5200 Low Ash SAE 40</span>
+      <span class="opill opill-a">HDAX 9200 Low Ash SAE 40</span>
+      <span class="opill opill-a">HDAX 9500 SAE 40 (biogás)</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="waukesha vgf vgp 220gl generador gas natural estacionario cogeneracion petroleo gas compresora">
+  <div class="eq-name">Waukesha VGF / VGP / 220GL</div>
+  <div class="eq-motor">Gas Natural Estacionario — 200 kW a 6.5 MW</div>
+  <div class="eq-trucks"><strong>Aplicaciones típicas:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Compresoras de gas natural</span><span class="truck-pill">Cogeneración industrial</span>
+      <span class="truck-pill">Sector petróleo y gas</span><span class="truck-pill">Minería (off-grid)</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado</span>
+    <div class="oils-pills">
+      <span class="opill opill-a">HDAX 5200 Low Ash SAE 40</span>
+      <span class="opill opill-a">HDAX 9200 Low Ash SAE 40</span>
+      <span class="opill opill-a">HDAX 9500 SAE 40 (biogás)</span>
+    </div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="wartsila 20sg 34sg 50sg combustible dual biocombustible generacion electrica marino maritimo">
+  <div class="eq-name">Wärtsilä 20SG / 34SG / 50SG / 20DF / 50DF</div>
+  <div class="eq-motor">Gas / Combustible Dual — 2 MW a 100 MW</div>
+  <div class="eq-trucks"><strong>Aplicaciones:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Plantas de generación a gran escala</span>
+      <span class="truck-pill">Buques y embarcaciones marítimas</span>
+      <span class="truck-pill">Islas y zonas remotas</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-r">› Recomendado</span>
+    <div class="oils-pills"><span class="opill opill-r">HDAX 9200 Low Ash SAE 40</span></div>
+  </div>
+</div>
+
+<div class="eq-card" data-search="mwm tcg deutz power systems cogeneracion industrial planta electrica hospital biogas">
+  <div class="eq-name">MWM TCG 2016 / 2020 (DEUTZ Power Systems)</div>
+  <div class="eq-motor">Gas Natural / Biogás — 400 kW a 4.5 MW</div>
+  <div class="eq-trucks"><strong>Aplicaciones en México:</strong>
+    <div class="truck-list">
+      <span class="truck-pill">Hospitales y clínicas</span><span class="truck-pill">Centros comerciales</span>
+      <span class="truck-pill">Manufactura automotriz</span><span class="truck-pill">Agroindustria</span>
+    </div>
+  </div>
+  <div class="oils-sec"><span class="oils-lbl lbl-a">✔ Aprobado</span>
+    <div class="oils-pills">
+      <span class="opill opill-a">HDAX 5200 Low Ash SAE 30/40</span>
+      <span class="opill opill-a">HDAX 9200 Low Ash SAE 40</span>
+    </div>
+  </div>
+</div>
+
+</div></div>
+
+</div><!-- /main -->
+
+<div class="footer">
+  <strong>Procesadora de Servicios Magg's — Lumaggs</strong> · Distribuidor Autorizado Exclusivo de Lubricantes Premium Chevron en Baja California, México<br>
+  La asignación de aceite se basa en las especificaciones del fabricante del motor según las Fichas Técnicas oficiales Chevron vigentes. Confirme siempre con el manual del operador del equipo específico.<br>
+  © Chevron U.S.A. Inc. Todos los derechos reservados.
+</div>
+
+<script>
+function normalize(s){ return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+function applyFilters(){
+  const q = normalize(document.getElementById('searchInput').value.trim());
+  const cat = document.querySelector('.filter-btn.active')?.dataset.cat || 'all';
+
+  let visible = 0;
+  document.querySelectorAll('.brand-section').forEach(sec => {
+    const secCats = (sec.dataset.cats || '');
+    const secBrand = normalize(sec.dataset.brand || '');
+    let secHasVisible = false;
+
+    sec.querySelectorAll('.eq-card').forEach(card => {
+      const text = normalize([
+        card.dataset.search || '',
+        card.querySelector('.eq-name')?.textContent || '',
+        card.querySelector('.eq-motor')?.textContent || '',
+        card.querySelector('.eq-trucks')?.textContent || '',
+        sec.dataset.brand || ''
+      ].join(' '));
+
+      const matchQ = !q || text.includes(q);
+      const matchC = cat === 'all' || secCats.includes(cat);
+      const show = matchQ && matchC;
+      card.classList.toggle('hidden', !show);
+      if(show){ secHasVisible = true; visible++; }
+    });
+
+    sec.style.display = secHasVisible ? '' : 'none';
+  });
+
+  // Highlight
+  document.querySelectorAll('.eq-name,.eq-motor').forEach(el => {
+    if(!q){ el.innerHTML = el.textContent; return; }
+    const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    el.innerHTML = el.textContent.replace(re, '<span class="hl">$1</span>');
+  });
+
+  const total = document.querySelectorAll('.eq-card').length;
+  document.getElementById('resultsCount').textContent =
+    visible === total ? `${total} equipos` : `${visible} de ${total} equipos`;
+  document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+}
+
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilters();
+  });
+});
+
+function toggleBrand(hdr){
+  hdr.classList.toggle('collapsed');
+  hdr.nextElementSibling.classList.toggle('collapsed');
+}
+
+// Init count
+const total = document.querySelectorAll('.eq-card').length;
+document.getElementById('resultsCount').textContent = `${total} equipos`;
+</script>
+</body>
+</html>

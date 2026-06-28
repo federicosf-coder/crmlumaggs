@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumaggs – Aceites Hidráulicos Chevron · Cuadro Comparativo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@600;700;800&display=swap');
+:root{
+  --blue:#003087;--red:#CF2027;--gold:#D4920A;--gold-lt:#FFF8E8;--gold-brd:#E8A020;
+  --dark:#0F1827;--mid:#374151;--muted:#6B7280;--bg:#E8EDF5;--card:#fff;--brd:#D0D8E8;
+  --hid:#0369A1;--syn:#5C1A75;--eco:#0D6E3E;--aero:#B45309;--spec:#3A3A3A;
+  --apr-bg:#E8F5E9;--apr-tx:#1B5E20;--apr-brd:#A5D6A7;
+  --rec-bg:#FFF3E0;--rec-tx:#E65100;--rec-brd:#FFCC80;
+  --plas-bg:#EFF6FF;--plas-tx:#1E40AF;--plas-brd:#BFDBFE;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--dark);font-size:11.5px;}
+.hdr{background:#fff;}
+.hdr-accent-top{height:5px;background:linear-gradient(90deg,#003087 60%,#CF2027 60%);}
+.hdr-body{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:13px 28px;}
+.logo-dist{height:58px;width:auto;}
+.hdr-divider{width:1px;height:44px;background:#D0D8E8;flex-shrink:0;}
+.hdr-right{text-align:right;}
+.hdr-right .lbl{font-size:8px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#CF2027;}
+.hdr-right .reg{font-size:10px;color:#374151;font-weight:500;}
+.hdr-accent-bottom{height:3px;background:linear-gradient(90deg,#003087,#CF2027 50%,#E8A020);}
+.hdr-title-bar{background:#003087;padding:8px 28px;}
+.hdr-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:rgba(255,255,255,.9);letter-spacing:1.5px;text-transform:uppercase;}
+.hdr-sub{font-size:9px;color:rgba(255,255,255,.6);margin-top:1px;}
+/* LEGEND */
+.legend{background:#F4F7FC;border-bottom:1px solid var(--brd);padding:8px 20px;}
+.legend-inner{max-width:1700px;margin:0 auto;display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+.leg-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--mid);}
+.ldot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.pill-s{display:inline-block;font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px;}
+.pa{background:var(--apr-bg);color:var(--apr-tx);border:1px solid var(--apr-brd);}
+.pr{background:var(--rec-bg);color:var(--rec-tx);border:1px solid var(--rec-brd);}
+.pp{background:var(--plas-bg);color:var(--plas-tx);border:1px solid var(--plas-brd);}
+/* MAIN */
+.main{padding:14px 16px 36px;max-width:1700px;margin:0 auto;}
+/* PLASTIX BOX */
+.plastics-box{background:var(--plas-bg);border:1.5px solid var(--plas-brd);border-radius:8px;
+  padding:12px 16px;margin-bottom:16px;display:flex;gap:14px;align-items:flex-start;}
+.plastics-box .pi{font-size:26px;flex-shrink:0;}
+.plastics-box h3{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;
+  color:var(--plas-tx);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;}
+.plastics-box p{font-size:10.5px;color:var(--mid);line-height:1.6;}
+/* SECTION */
+.sec{margin-bottom:20px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:8px 8px 0 0;}
+.sec-hdr h2{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#fff;}
+.sec-hdr .cnt{margin-left:auto;font-size:9px;color:rgba(255,255,255,.65);}
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--brd);border-top:none;border-radius:0 0 10px 10px;background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.05);}
+table{width:100%;border-collapse:collapse;}
+thead th{background:#F4F7FC;padding:7px 9px;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--mid);border-bottom:2px solid var(--brd);border-right:1px solid var(--brd);vertical-align:bottom;text-align:left;white-space:nowrap;}
+thead th.w-cert{min-width:118px;white-space:normal;line-height:1.3;}
+thead th.w-spec{min-width:185px;white-space:normal;}
+thead th.w-val{min-width:165px;white-space:normal;}
+thead th.w-plas{min-width:175px;white-space:normal;background:#EFF6FF;}
+thead th:first-child{min-width:165px;} thead th:last-child{border-right:none;}
+tbody tr{border-bottom:1px solid var(--brd);} tbody tr:last-child{border-bottom:none;}
+tbody tr:hover td{background:#F8FAFF;}
+td{padding:8px 9px;border-right:1px solid var(--brd);vertical-align:top;color:var(--mid);}
+td:first-child{border-left:none;} td:last-child{border-right:none;}
+.pn{font-weight:700;font-size:12px;color:var(--dark);line-height:1.2;}
+.ps{font-size:9px;color:var(--muted);margin-top:2px;}
+.vtag{display:inline-block;background:#1E40AF;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;margin:1px;}
+.vmulti{display:flex;flex-wrap:wrap;gap:2px;}
+.base{font-size:9px;font-weight:600;margin-top:3px;}
+.bsyn{color:#6D28D9;} .bmin{color:#6B7280;} .beco{color:#0D6E3E;}
+/* CERT */
+.cert-block{display:flex;flex-direction:column;gap:2px;}
+.cpill{display:inline-flex;align-items:center;font-size:8.5px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap;}
+.c-din{background:#0369A1;color:#fff;} .c-iso{background:#0891B2;color:#fff;}
+.c-astm{background:#475569;color:#fff;} .c-nsf{background:#059669;color:#fff;}
+.c-eco{background:#0D6E3E;color:#fff;} .c-agma{background:#7C3AED;color:#fff;}
+.cert-note{font-size:8px;color:var(--muted);margin-top:2px;font-style:italic;}
+/* SPECS */
+.spec-col{display:flex;flex-direction:column;gap:4px;}
+.sg-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:2px;}
+.sg-lbl.a{color:var(--apr-tx);} .sg-lbl.r{color:var(--rec-tx);}
+.pills-wrap{display:flex;flex-wrap:wrap;gap:2px;}
+.pill{display:inline-block;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;line-height:1.3;white-space:nowrap;}
+.pill-a{background:var(--apr-bg);color:var(--apr-tx);border:1px solid var(--apr-brd);}
+.pill-r{background:var(--rec-bg);color:var(--rec-tx);border:1px solid var(--rec-brd);}
+/* PLASTICS CELL */
+.plas-cell{background:#F0F7FF;}
+.plas-item{display:flex;align-items:flex-start;gap:4px;font-size:9.5px;color:var(--plas-tx);line-height:1.4;margin-bottom:4px;}
+.plas-item .vic{font-size:10px;flex-shrink:0;}
+.plas-item strong{font-weight:700;color:#1E40AF;}
+.plas-badge{display:inline-block;background:var(--plas-bg);color:var(--plas-tx);border:1px solid var(--plas-brd);font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:3px;margin-bottom:4px;}
+.plas-na{font-size:9.5px;color:var(--muted);font-style:italic;}
+/* VAL */
+.val-col{display:flex;flex-direction:column;gap:3px;}
+.vi{display:flex;align-items:flex-start;gap:4px;font-size:9.5px;color:var(--mid);line-height:1.4;}
+.vi strong{color:var(--dark);font-weight:600;}
+.vic{font-size:10px;flex-shrink:0;}
+/* GLOSARIO */
+.glosario{background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:14px 18px;margin-bottom:14px;}
+.glosario h3{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--blue);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid var(--blue);}
+.glos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:5px 18px;}
+.glos-item{font-size:9.5px;line-height:1.5;color:var(--mid);}
+.glos-item strong{color:var(--dark);font-weight:700;}
+/* FOOTER */
+.footer{text-align:center;padding:10px 16px 20px;font-size:9px;color:var(--muted);line-height:1.7;}
+.footer strong{color:var(--mid);}
+/* DATA TABLE */
+.data-tbl{width:100%;border-collapse:collapse;font-size:9px;margin-top:5px;}
+.data-tbl td,.data-tbl th{padding:2px 5px;border:1px solid #DBEAFE;}
+.data-tbl th{background:#DBEAFE;color:#1E40AF;font-weight:700;text-align:center;}
+.data-tbl td{text-align:center;color:var(--mid);}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-accent-top"></div>
+  <div class="hdr-body">
+    <img src="data:image/png;base64,/9j/4AAQSkZJRgABAgAAAQABAAD/wAARCADgA9QDACIAAREBAhEB/9sAQwAIBgYHBgUIBwcHCQkICgwUDQwLCwwZEhMPFB0aHx4dGhwcICQuJyAiLCMcHCg3KSwwMTQ0NB8nOT04MjwuMzQy/9sAQwEJCQkMCwwYDQ0YMiEcITIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMAAAERAhEAPwD3+iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACivJ/iVr2q6L4mtX06/mt8wZKq3yk57qeD+IqppPxfv4NqarZRXK8AyRHY/1x0J/KuyOBqzpqpDW5xTx9GFR056WPY6K5bSfiH4c1bCrei2lI/1dyNh/PofwNdQrq67kYMD3BzXLOEoO0lY64TjNXi7i0UUVJQUUUUAFFQXN5bWURkuriKFB/FIwA/WuW1H4i6TaArarLdyDptG1c/U/0BrSnSnUdoK5lVr0qKvUkl6nYUV5FqPxB1m93LbslpGc8RDLY/3j/TFdn4AuJrrQGluJpJZDK2XkYsT+Jrpq4CrSp+0nocVDNKFesqNK78+n+f4HVUUUVxHpBRRRQAUUUUAFFISB1IFL1oAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAPFvi9/yMVr/1w/rXnleh/F7/AJGK1/64f1rzyvpsD/u8f66ny2P/AN5l/XQK0tM8QatozA6ffzQAc7A2V/75PFZ6I8hwikn2q1Hpsz8uQg9+tdUoKas1c5FV9m+ZOx32k/F6+hKpqlnHcJ0MkXytj6dD+ldzpXxB8PaqvF39nfGSk424/Hoa8Vi06FOWBc+9WlVUGFUAewriqZXRnqtDeGeVKenxep61qPxE0m03LarJdSDptGFz9T/SuR1H4gaxeErbslpGe0Yy2Pqa5SitKWW0KerV35nNXznFVdE+VeX+e5LPcz3UnmXE0kr/AN6Rix/WoqKK7lFRVkeXKUpPmk7sK9Z+HP8AyLZ/66tXk1es/Dn/AJFs/wDXVq4Mz/3d/I9XJP8AfF6M6+iiivmT7UKKK85+MHj1vBnhsQ2TgapfZSA/3F/if8M/maADx98X9G8Fs1lCv2/VMf6iNsLGf9s9vp1rwbXvjN401x3A1I2MDceVaKEwP9772fxrg5ppbmd5ppGklkYs7sclie5rZ8L+D9a8X332XR7RpSv35DwifU0AQSeKfEMxzLrupuR/eu5D/Wrdh478V6bcJNbeIdRDp0Elw0i/98tkfpXqth+zbetFu1DXIUcj7sMZOPzqnq/7OeuW0byaZqdrdkfdicFGP49KAPbfBOr6hffDzTNX1hhJeS23nSMi7dw5IOPUrivE/Ef7RWr3ZeHQdPiso+QJp/3kmPXHQH8699isV0vwhHp6gBbaxEIx/spj+lfC560AfTnwH8R6x4kh1u61jUJruUSoAZDwvHYDgfgK9jrwj9mv/kG65/11T+Ver6r448L6JN5Oo65Z28v91pMn9KAOgorD0fxj4d8QSGPStYtLqQfwI/P5HrW5QAUUVDdXdtZQNNdTxwRL1eRgo/M0ATUVxF78XPBFk+xtchlYcERAtirelfEvwfrMqQ2muWvnP0jkbYf1oA6yikBDAEEEHoRVa41KxtJBHc3ttC5GQskqqceuCaALVFUBrekk4GqWWf8Ar4T/ABq8CGAIIIPII70ALRTXkSKNnkdURRksxwAKpf25pH/QUsv/AAIT/GgC/RVaDUbK6Dm3vLeYIMv5cqttHvg8VD/bmkf9BSy/8CE/xoAv0VFb3Vvdx+ZbTxTIDjdG4YZ+orH1Pxp4a0afydQ1qzt5f7jSZI/KgDdoqCzvLbULOK7tJkmt5V3JIhyGHqKdcXEFrC01xNHDEvV5GCgfiaAJaK4q++LXgiwco+uwSMDgiLLYqXTfil4M1SRYoNdtllc4VJTtJ/OgDsKKbHJHNGskTq6MMhlOQfxp1ABRVKTWNMhkaOTUbRHU4ZWnUEH3GakttQsrxmW1vLedlGSIpVYgfgaALNFZeseJNF0CMPqup21oD0818H8utZth8Q/COqXK21n4gspZm6Lvxn86AOmooBBAIOQehooAKKKKACiiigAooooAKKKKACivn7xh8RfFOmeL9UsrTUzHbwzskaeWpwPxFek/CzXtS8Q+FZbzVLgzzi5ZAxUD5Qq8cfU10Sw040/aPYXNrY7iiiiucYUUUUAFFcH8VvEGp+HfDltdaXcmCZ7kIzBQcrtY45+lefeCPiH4n1bxlplje6kZLaaXa6eWoyMH0FdFPDTqQc1shN2PfaKKK5xhRRTZSVicjqFJFADqK+Zpfil4wWZ1GrNgMQP3Sf4V734L1C51Xwfpl9eSebcTQ7pHwBk5PpXRVw06UeaQlK5vUV538XPFWo+G9Gs4tMlMM93IwMwHKqoHT3ORXGfDf4lamPEEWm65fvcWt0diSTHJjkPTn0PSiGGnOHOtgclex7vRRRXOMKKKKACiqOsarbaJpFzqV222C3Qu2Op9APc9K+cL34n+KrnV3vYtTlgTeSkCY2KOwx3/ABrejh51r8vQTdj6dorL8N6q+t+G9P1KRAklxCruo6A98fjWpWMouLaYwooopAFFY2sayNOubeJcElt0g/2a10dZEV0IKsMgjuKAHUUUUAFFFY/iXxJYeFtHk1G/c7R8qRr96RuwFNJt2QGxRXzpq/xk8TX1yzWLw2MGfkREDNj3J6/pWd/wtTxj/wBBc/8AfpP8K61garV9ETzI+nKK+Y/+FqeMf+guf+/Sf4Uf8LU8Y/8AQXP/AH6T/Cq+oVe6DnR9OUV8x/8AC1PGP/QXb/v0n+FbXhH4jeKdT8XaVZXepmS3nuUSRPLUZBPI6UngKqV7oOdH0FRRXFePPiHaeDYkgjjFzqMq7kh3YCD+83+HeuSMXJ8sdyjtaK+abn4t+MLiYuuoRwg/wRQrgfmCah/4Wp4x/wCguf8Av0n+FdawFXyJ5kfTlFfMf/C1PGP/AEFz/wB+k/wo/wCFqeMf+guf+/Sf4U/qFXug50fTlFfMf/C1PGP/AEFz/wB+k/wr0H4TeMdd8Sa1fQarem4jitw6LsUYO7HYVE8FUhFybWgKSZ63RR0Ga8m8ZfGSLTbmXT9AhjuJoyVe5k5QHvtA+99elc8Kcqj5Yobdj1mivmWT4r+MZJCw1QJn+FYUAH6U3/hanjH/AKC5/wC/Sf4V1fUKvdC50fTlFfMf/C1PGP8A0Fz/AN+k/wAKP+FqeMf+guf+/Sf4U/qFXug50fTlFeR/CbxjrviTXL631W9NxFFbb0XYow24DPA969crmq0pUpcshp3CiiishhRRRQAUUUUAFFFFABRRRQB5l8SfCuqazqkF7Zw+ZCkW1tvLA59K88OkLayFLiJxIOqyDH6V6J47+IepeEPE0FtDBDcWjwh2Rxgg57EU2y+KHhDxBGIdZtDaOevnJ5iZ/wB4c/pXp4XMlRiqc43SPPxvD+JxC+sUXv8AP8tV9xwioqDCqAPalr0uTwRoOtQG50TUFCnvFIJUB9+c/rXNal4E1qwy0cS3UY53QnJx9Dz+Wa9iljqFTaVvXQ+UxGWYui/ejfzWv/B+85minywyQSGOWN43HVXGCPwpldZ5wUUVZtNPvL+Ty7S2lmb/AGFJx9fSgZWorstO+HGqXID3ksVqh/h++35Dj9a230Xwb4XXfqt3E8q87Z33N/3wP8K46uYYelvK/pr/AMA9LDZRi8Q0owtfvp+G/wCB53aafeX8gS1tpJmzj5VyPzr13wXpd3pOhCC8j8uUuW25zgVx2o/F3S7GMwaHpjSYGFeQBEH4Dkj8q6nwD4hvfEuhyX17sEnnMoVFwFHpXi4vNFiI+zitD63B8LYnAx+t1rq3y3023/I6qiiivPOwK+Q/jVrj6x8Sb+PeTDY4toxngYGW/Un8q+vD0r4d8au0njnXmf7x1Cf/ANGGgDJs7WS+vYLSEZkmkWNfqTivtjwX4Ws/CHhq10y1jVXVAZnA5dz1Jr5H+HSJJ8RNBSTG03aZzX2xQAUUUUAVdT/5BV3/ANcW/lXwUetfeup/8gq7/wCuLfyr4KPWgDo9F8aar4e8P3+laZKbf7a4aWZDhtoGMD0rnnd5HLyMzMxyWY5Jr1X4IeA7DxZrN1fatEJ7OyAxC33Xc+vtXu3iP4Z+Gdd0OexXSbS3m8siCaKMK0bY4II7ZoA+N7a6nsrmO4tpnhmjO5HQ4INfXvwk8ayeNPByzXbA6jZv5Fyf75xlX/EfqDXyFdQNa3c1u/3onKH6g4r2z9mu8dNf1yyydklqkpHurY/9nNAHuXi3xRZeEPD1xq98cpEMIg6yOeiivkLxf461vxnqL3Go3T+Tk+XbIcIg9Md/rXpX7R2uyTa3puhI5EMEX2iRR0LMSB+QB/OvGtLtorzVbW2nlSGKSVVeR2wFUnkk9qALukeFde19WfStKurpF6uifL+Z4qhfafe6XdtbX1tNbTr1SVSpH519k6R4k8EaJpVvp1jr2jxW8CBFVbqMdO/WvNvjndeFdf8AC0V/YarptxqdrKoUQzoztGeowDk84NAHOfBz4qXmmatb+HdauWm065YRwSyHJgcngZ/uk8e1dF+0foBksNL8QQr80LG2mI/unlSfoQR/wKvnhWKsGBIIOQRX19PB/wALD+Ckfm4e4vdNVwT/AM9lHX/vtaAPkIOwIIYgivtT4c6x/bngDR70tl/IEb/Vfl/pXxUysjsjAhlOCD2NfSn7OmtfafDWoaS7fNazeYg/2W6/rQB1Hxq1n+yPhrfKrbZbtlt1x15OT+g/WvkPcfU171+0jrO650jRkbhFa4cD1PA/lXhlhZTajqFtZW67priVYkHqzHA/nQB9JfAzw4bL4bahqUq4m1UvtJ/55oCq/rvP4ivmbcfU1916ZpcOi+G7bS7cYitbYRL74XGa+FG4Y/WgD0XQ/iFceGfhbcaRpsxj1C8u2zIp5jj2jJHueledySPLI0kjs7sclmOSTW74O8J33jPxDDpNjhS3zSSsOI0HUmvo7TfgF4LtbNIryC5vZwPmmedkyfopAoA0PCGvWXhn4LaTq1++2C3slJA6seyj3NfN/jb4ha1421GSW8uHjswx8m0Q4RB9O59zXpHx4ng0DRdA8H6bujs4YzNsLE8D5VBJ645/OvC1UuwVQSxOAB3oAmtLG7v5TFZ2s9xIBkpDGXOPoKbcWtxZzGG5glglHVJEKsPwNfaPgPwbY+DfDFpYQQRi68sNdTY+aSQj5jn0zwPYVifF7wZZeJPBl5dLboNRsozNDKBhuOSufQigDwP4efFHVfBmoxRSzSXOkuwEtu5ztHqvoRX1vp9/b6pp9vfWkgkt50EkbDuDXwTX0/8As9a7JqHg+502ZyxsJsR5P8DDNAHh3xPQxfEvxAoyAbx2/M0/wF45m8DPq93bR77y6tPIty3Ko+4HcfXAB/GnfFf/AJKdrv8A18Gs/wAB+Gh4u8aaborOUinctKw6hFBZse+Bj8aAMjUtUvtYvpL3ULqW5uJDlpJGyaqAkHIOCK+2IPh74St9NGnpoFibfbtIaIEn3JPJPvXyn8SfC8XhHxve6ZbZ+y8SwAnJCN2/A5FAHrnwG+IF3qDyeGNUnaZ40MlrI5ydo6rmvdq+M/hRdvZ/EzRHQkbp9je4INfZlABRRRQAUUUUAFFFFABRRRQB8q/ED/kfta/6+mr2H4I/8iRN/wBfj/8AoK1498QP+R91r/r6avYfgj/yJE3/AF+P/wCgrXrVv90XojNfEek0UUV5JoFFFFAHmPxx/wCRQs/+vwf+gtXlPw3/AOShaN/12/8AZTXq3xx/5FCz/wCvwf8AoLV5T8N/+ShaN/12/wDZTXq4T/d5fP8AIzlufUlFFFeUaBTJv9RJ/un+VPpk3+ok/wB0/wAqAPjif/j4k/3j/OvqP4d/8iBo3/XuP5mvlyf/AI+ZP98/zr6j+Hf/ACIGjf8AXuP5mvXx/wDCXqZx3OF+PX/Hpon/AF0l/kteJBirAg4I5Br2349f8emif7838lrxIAnoM4rTBfwUKW59OfDbxYPFPhmMzNm+tcRXA/vejfiP1zXZV8s+AfFL+FPE8F0zt9jl/dXKjuh749R1r6jilSaJJYnDxuoZWByCD0Nedi6Ps53WzLi7ofRRXPeNPEsXhXw1cag2GnxsgQ/xSHp+A6/hXMk27Io8t+NHi03V8nh20lBhtyHuSp+9J2X8AfzPtXklSzzzXl1JPKzSTSuWZjyWJNRdDXv0KSpQUTJu7Pqn4ff8iDov/XsP610tc18Pv+RB0X/r2FdLXiVv4svVmi2Co55kt4HmkOEQZNSVn6tYzajaiCOcRKTlsrnPtWQzhb26e9vJJ36uc49BXUeFtR863azkPzx8p7rWZP4Vv4hmNopR7HB/WqEX2vR76OWSJ43U5ww4Yd6kZ6JRUdvOlzbpNGco4yKkqhBXgPxv1Wa48UW2mbiILWAOF9XbqfyAr36vnH4y/wDJQZv+veL+VdeCSdZXJlsZ/wAPvA58a6jcxyXRtra2QNI6rliSeAPyNej/APCiNI/6C99/3wn+FZnwF/12t/7sX/s1exXV/Z2IU3d3Bb7vu+bIEz9M1tisTUhUcYvQUYqx5h/wojSP+gve/wDfCf4Uf8KI0j/oL3v/AHwn+Fejf2/o3/QWsP8AwJT/ABo/t/Rv+gtYf+BKf41z/XK3835D5Uec/wDCiNI/6C97/wB8J/hV7Rfg5pmi61Z6nFql3JJayiVUZVwSOxruP7f0b/oLWH/gSn+NWLXULK+3fZLu3uNv3vKkD4+uDQ8XWf2vyDlRZr5M8YalJq3i7VLyRiS1w6rnsqnAH5AV9Z18e6v/AMhq+/6+JP8A0I1vl699vyFM9E8D/CeHxNoCatfajJAkzERRwoCcA4ySfeun/wCFEaR/0F73/vhP8K6T4U/8k70z/gf/AKGa6efV9NtZjDcahaQyjqkkyqR+BNTWxdWNRpPQairHmn/CiNI/6C97/wB8J/hSf8KI0j/oL3v/AHwn+Fej/wBv6N/0FrD/AMCU/wAaP7f0b/oLWH/gSn+NZfXK3835Byo85/4URpH/AEF73/vhP8K6Twb8OrLwZfXF1a31xcNNH5ZWVVAAzntXRf2/o3/QWsP/AAJT/GrsFxDcxCW3mjljPR42DA/iKUsVVkuVvT5D5Uch8UtZm0XwNdSW7lJrhhbqwOCN2c4/AGvmyxs59Sv4LK2XfPPII0GepJxX0F8aLZ5/Ae9ASIbqN29hhh/MivCvDWpx6N4l07UZVLR286u4HXbnnH4V3YBWptre5E9z1qy+BFn9ljN9rE/2gj5xDGAoPoM8mrH/AAojSP8AoL3v/fCf4V39n4r8P39sk9vrFiUYZG6dVI+oJyKn/t/Rv+gtYf8AgSn+Ncbxde+/4FcqPOf+FEaR/wBBe9/74T/Cj/hRGkf9Be9/74T/AAr0b+39G/6C1h/4Ep/jU1vqmn3b7La+tpm/uxyqx/Q0vrlb+b8g5Ucv4N+HNl4M1C4vLW+uLhpovKKyqoAGQc8fSuzoorGpUlUfNJ6jSsFFFFQMKKKKACiiigAooooAKKKKAPA/jZ/yNlt/17D+deaV6X8bP+Rstv8Ar2H8680rKW59flv+6w/rqyxZ393p86z2d1NbzL0eJypH4iu50b4w+JNN2x3vk6jCMA+cu18ezDv7kGvPqcsbMeAaV7HRVw1KtpON/wA/v3PeLP4o+D/EMSwazaG0kP8Az8RiRAfZxz+JArQfwP4f1mEXOjaiFQnrE4mT+ef1r58W2J+8cVds7ifT5PMtLiaCTGN8chU4/Ct6WPq0fgl/X5Hk4rg6ji9eW3r/AJrX8z3eTQ/BvhdBJqt5HJKBnFw+Sfog6/kayNS+L+lWMRt9D0xpdowryARRj6KOSPyrx13aRy7sWY8kk5JptZ1sdWrfE/69Njuy/g3A4Wzlq/LT73q396Or1f4jeJdX3K18bWI/8s7UeWPpnqfxNcqzs7FmYsT1JNJRXI5N7n0+HwlDDq1GCX5/N7sK93+EH/IoP/13avCK93+EH/IoP/13arpfEeZxD/uEvVfmegUUUV1n54FfGfxX0t9J+JetRMpCzTm4Q+of5v5kj8K+zK8T+P8A4Ik1TTYfEtjEXnsl8u5VRy0WeD+Bz+ZoA+etF1FtJ1uy1BOtvMsnHsea+5dJ1O31nSbXUbRw8FxGJFIOetfBlei/Dv4t6n4GH2KWL7bpTNnyGbDRnuUP9KAPrqivL7H4+eCLqAPcXF1aP3jkt2Yj8VyKo6z+0N4XsomGmW93qE2Pl+Ty0z7lufyBoA9U1P8A5BV3/wBcW/lXwUetfd010l94ce7j/wBXPa+Yv0Zcj+dfCJ60AfRH7Nf/ACDdc/67J/Kvd68I/Zr/AOQbrn/XZP5V7vQB8J+Iv+Rl1P8A6+pP/QjXqn7N3/I56r/2Dz/6MSvK/Ef/ACMup/8AX1J/6Ea9U/Zu/wCR01X/ALB5/wDRiUAZHx9Vl+J0pbo1rEV+nNeYojSOERSzE4AAyTXvX7R3h2Tz9N8RRITHtNrOQOndf/Zv0rwqzu5bG9gu4TiWFw6n3BzQBP8A2Nqn/QOu/wDvy3+FH9jap/0Drv8A78t/hX1f4O+L3hrxJp0P2m/hsdQCgSwXDBct/sk9RXXXHiTRLWHzp9Ws448Z3NMoFAHxF/Yuqf8AQOuv+/Lf4V9efCW3lt/hZocNxGySCJ8q4wQDIxHH0pIviv4UuvEtloNjffbLq6k8sPCMxqcEjLdDnGOM121AHxr8V/D/APwjvxE1O3RdsE7/AGmL6Pyf/Ht1b3wD1n+zfiCLR2xHfQtF9WHIruP2jfD3naZp2vxJ80DmCYgfwtyCfxGPxrwPRdVn0PWbTU7b/XW0gkXnvQB1Pxd1n+2viTqkqtujhcQJ6YUYrW+BPh/+2PiFFeSJug02Mztkcbzwo/Un8K83u7l7y8muZPvyuzt9Sc19Pfs/+H/7M8ESanImJtRlLgnr5a8L/U/jQB6vcf8AHvL/ALp/lXwK/wB9vrX31cf8e8v+6f5V8Cv99vrQB71+zXbxm51y5KjzVSNA3sST/SvoSvAP2aumvf8AbL+te/0AfMP7RQYeObMnODZrj/vo15ZoxRdc09pf9WLmMt9NwzXvv7Rvh+S407TdehQsLcm3mIHRTyp/PNfOgODkdaAPv+s/XWRdA1AyY2i3fOf901ynw5+I2l+LvDtr5t5FFqsUYS6gkYK24DBYZ6g9fxrD+MXxE0zR/C13o9ldxzaneIYtkbA+Wp6scdOOlAHyuete+/s1B/N10/wbYx+PNeBV9T/ALw9JpHgh7+dCsmoy+YoP9wDA/OgDwv4sf8lO13/r4NavwJ/5Kvp3/XKf/wBFtWV8WP8Akp2u/wDXwa1fgT/yVfTv+uM//otqAPrevlP9oH/kpf8A25RfzavqyvlP9oH/AJKX/wBuUX82oA5b4bf8lG0L/r6H8jX2rXxV8Nv+SjaF/wBfQ/ka+1aACiiigAooooAKKKKACiiigD5V+IH/ACP2tf8AX01ew/BH/kSJv+vx/wD0Fa8e+IH/ACPutf8AX01ew/BH/kSJv+vx/wD0Fa9at/ui9EZr4j0miiivJNAooooA8x+OKk+DrQjoLxf/AEFq8n+HLBPiDoxJx+/x+hr3H4raW+qeArzylLSWxW4AHovX9Ca+cNNv5tL1O1v4DiW3lWRfqDmvWwXvUXEzlufYlFZ2h6za6/o9tqVm4aKZAcA8qe4PuDWjXlNNOzNApk3+ok/3T/Kn0yb/AFEn+6f5UgPjif8A4+ZP94/zr6j+Hf8AyIGjf9e4/ma+XJ/+PmT/AHj/ADr6j+Hf/IgaN/17j+Zr18f/AAl6mcdzhPj1/wAeeif7838lrhPhlYW+qeMUsLpA8FxbzRup9CprvPj1/wAemif78v8AJa434Qf8lCtP+uUn/oNFD/dX6MH8RzPiTQrjw3r11plyDuhf5W/vqejD6ivaPg34tOp6Q2hXT5ubJcwknl4s9PwJx9MVL8YfCX9r6INZtUzd2KnzABy8Xf8ALr+deH6BrNx4f1y01O2JEkDhiM/eXup+ozTVsVQt1/UPhZ9eE4GT0r5s+Kfi3/hJPEjW9tKW0+yJjix0dv4m/oPYV6V49+INtbeBbe40uYG41aPEJ/ijQj5ifcdPrXgmnWFzqupW9jaoZLieQIijuTWGCoPmc5dByfQ734UeEzq1/ca1coPslgp8sEfflxx+XX8q86f/AFjfWvrDRdCt/DfhRNMtgMRQtvb++5HzMfqa+Tn/ANYfrXVQre1qSa2Vv1Jasj6o+H3/ACIOi/8AXsP610tc18Pv+RB0X/r2H9a6WvJrfxZerNFsRXE6W1u8znCqM1xR1C5+1POkrI7HJweK1/Ed8Sy2iHgfM/17Cuer4/O8dJ1VRpu3Lrp3/wCAvzPTwlFcvNJbnUabr6zssN0AjngOOhP9K2ZYYp0KSxq6nswzXn1dvpMrzaZA8hJbbjJ7115NmVTEN0aurSvf/MyxVCMFzxJbW0iskaOHIjJyFzkL9KsUU1XVywVgSpw2D0NfQHEOr5x+Mn/JQJv+veL+VfR1fOPxl/5KBN/17xfyrswP8UmWx0nwF/12t/7sP/s1T/Hn/UaJ/vS/yWoPgL/rtb/3Yv8A2avXb/SNO1URjULG3uhHnZ50YbbnrjNXWmqeK5n0/wAhJXifH3NHNfWn/CIeHP8AoB6f/wCA6/4Uf8Ih4c/6Aen/APgOv+FdH9oU+zFyM+S63/BOoXOneMtKltpWRmuY42weGVmAIP4GvX/it4e0bTvAs9xZaXaW8wmjAkihVWAJ9QK8X8L/API16R/1+Rf+hiuilVjWg2lpsJqx9cV8e6v/AMhm/wD+viT/ANCNfYVfHur/APIav/8Ar4k/9CNcGX/FIqZ9H/Cn/knWmf8AA/8A0M1458XP+Si3/wDuR/8AoAr2P4U/8k70z/gf/oZroLzw7ouoXLXN5pVnPO2N0kkKsxx7kVEaypYiUn5jtdHyJzRzX1p/wiHhz/oB6f8A+A6/4Uf8Ih4c/wCgHp//AIDr/hXV/aFPsyeRnyXzXqnwO1C6XxHd2Amb7LJbmQxk8bgRgj35qL406Vp+l6tpaWFlBaq8DlhDGFBO7vio/gh/yOlx/wBejf8AoS1rOcauHculmJKzPedS0621bTbiwvI99vOhR19j6e9fM/i/wBq/hS8k3wvPYZzHdIMgj/a9DX1FSMoZSrAEHgg968uhiJUXpqjRq58ZUc19by+FvD88hkl0WwZz1Jt1yf0pn/CIeHP+gHp//gOv+Fd39oU+zI5GfJfNOSR4nDxuyMOjKcEV9Zf8Ih4c/wCgHp//AIDr/hWT4h+Hfh3VtIuIYdMtrW42ExTQxhCrY46dRT+v03umHIzzL4ffFK+0++h0zXLhrmxlYIs0hy8JPTnuv16V771GRXxkylHKnqDg19WeBb2XUPA+j3EzFpDbKrMepI4z+lY46hGKU4ji+h0NFFFecWFFFFABRRRQAUUUUAFFFFAHg/xqglfxTbOsbFPs4G7HHX1rzdbY/wARx9K+ubqytb6Ix3VvHMh7OoNcZq/wp8P6jue2WSykP/PI5X8jWU4y3R9LleZ4SnTjSr3VuvT/ADPn5YUXtn61JXoGr/CTXbEM9k0V7GOcIdrfka4m902902UxXtrLA4OMSKR/+uueSktz67C18NVV6Ek/Tf8AzKtFFFSdYUUUUAFFaul+GtY1lwLHT5pQf49uF/M13ekfBu9m2vqt7HAvdIfmb8+lUot7HNiMbh8Mv300vz+7c8vr3n4Ro6eEG3qy5nYjIxmtTSPh54d0fa6WYnlHPmTncc11EcaRIEjRUUdFUYAranTcXdnyecZ3QxVF0KSbvbXb+vwHUUUVufLBTZI0ljaORQ6MMMpGQRTqKAPnz4ifAic3M2qeFFDo5LvYk4Kn/Y9vavD9Q0nUNKnaC/s57aRTgrKhXmvvOq13p1lfrtvLSCcf9NYw386APgmnxxSSuEjRnc9FUZJr7Yk+H/hKWTzH8P2Jb18utGy8OaLpxBtNKs4SvQrCuR+NAHP+CZbm5+E2mG5hkjnXT/KKOpDfKCo49wBXyCdG1TP/ACDbz/vw3+FfeNJtX+6PyoA8P/Zzs7m007Whc28sJaVMeYhXPHvXuNIAB0AFLQB8QeIdI1N/EepMunXZU3MhBELYPzH2r0/9nawvLTxjqj3NpPCp08gGSMqCfMT1r6P2r/dH5UAAdABQBQ1zRbLxDo9zpeoRCS2nXaw7j0I9xXyj45+EuveEbqSWGCS+00nKXES5IHow7Gvr6kIDAggEHsaAPgJlZWKsCCOoIpK+5b3wj4e1Ek3ejWUpPUmEDP5VDbeBvC1m26DQrFD/ANcgf50AfJHgXS9bm8WaVeaXp1zcNbXUU2UQ4wrAnnpX2vUUFtBaxiO3hjhQdFjUKP0qWgDnvHOhL4j8GapphXLywsY/ZxyD+dfGD6JqqOytpt3lTg/uG/wr7wpNq/3R+VAHwtY+HNWvr+3tE0+6VppFjBaFgBk4yeK+3NF02LR9FstOgXbHbQrGo+gq7tX0H5UtAEc/NvJ/un+VfCb6Nqm9v+Jbedf+eDf4V94Um1f7o/KgDwj9nKzurQa59ptpod3l48xCuevrXvFIAB0AFLQBT1XS7TWtLuNNvohLbXCFHU+n+NfJ/j34S634QvJZreCS90st+7niXJUdgwHQ19eUhAYEEAg9QaAPgL5lbHIIpUR5XCorO56ADJNfcN74N8N6i2670SykPqYgP5VJYeFNA0wg2Wj2cJHQrEMj8aAPm/4b/BvVPEV7DqGtQSWelIQxVxh5vYD096+o7e3itLaK3gQRwxKERF6ADoKl6UUAfH3xT0vUJ/iVrckVjcyI1wSGWJiD+OK1Pghpt9bfFLT5Z7K4ijEU2WeJlA/dt3Ir6s2qew/KgKB0AoAWvl349adfXXxH8y3s7iVPscY3RxFhnLdwK+oqQqD1ANAHxt8OtK1GL4haJJJYXSItyCWaFgBwe+K+yqTao7D8qWgAooooAKKKKACiiigAooooA+VfiB/yPutf9fTV13w8+JOleEvDsmn3ttdSStcNKDEARggDufapPiB8NfEFz4qvNR0y1N5bXb+YNjDchPUEGuV/4Vp4v/6Ak/5r/jXtR9nUoqEn0Rnqmep/8Lx8P/8APjf/APfK/wCNH/C8fD3/AD43/wD3yv8AjXln/CtPF/8A0BJ/zX/Gj/hWni//AKAk/wCa/wCNZfVMP/N+KDmZ6n/wvHw9/wA+N/8A98r/AI0f8Lx8Pf8APjf/APfK/wCNeV/8K08X/wDQEn/Nf8aX/hWni/8A6Ak/5r/jR9Uw/wDN+KDmZ9HaJq1r4m0CHUIYnFtdI3ySgZxkgg/lXzr8QfBVz4S1pykbNps7FreUDgD+4fcfrXvPgDTrvSvBOm2V9C0NzEjB426j5ia3NQ06z1Wyks763jnt5BhkcZB/wPvXJTrewqu2qKauj5a8L+M9Y8JXDPp048qQ5kgkG5H/AA7H3FepWHx2sHiUahpE8cmOTDIGU/niqniL4HsXabw/ergn/j3uj0+jD+o/GuJuPhZ4wgcr/ZLSe8cisP513SWGr+83r9zJ1R6d/wALx8Pf8+N//wB8r/jTZPjh4faNlFjf5II+6v8AjXlv/CtPF/8A0BJ/zX/Gj/hWni//AKAk/wCa/wCNR9Uw/wDN+IczOWlYPK7jozE19S/Dv/kQNG/69x/M14PB8L/F80yR/wBkSR7jjc7KFH1Oa+i/DeknQvDlhpjSCRraEIzDoT3x+NGOnF00k+oRWp5l8ev+PPRP9+X+S1xvwh/5KHaf9cpP/Qa9G+MHhzVvENtpS6VZSXJheQybCPlyFx1+hrmPhr4K8RaL41tr3UNLlgt1jcNIxGASvHeijOKwzV+jG/iPc3RZEZHUMrDBBGQRXy78QvCr+FfE80EaEWU/722bttP8P4Hj8q+o65H4ieEV8WeG3hhUfb7c+bbHpk91PsR+uK48LW9lPXZjkro+YWkd1RWdmVBhQTkKOvFez/BXwltSTxLdpycxWgI7dGb+n51wuifDfxHqetRWdxpd1aw7wJppoyqqueSCepx0xX0vY2UGnWMFnaxiOCBAiKB0AFd2MrKEOSO7Jih13/x5T/8AXNv5V8cN99vrX2RcqXtZlUZZkIA/CvmNvhr4vLk/2JP19V/xrHASUea77Dme+fD7/kQdF/69h/Wt67uUtLWSZzwo49z2rJ8GWVzp3g7S7O7iMVxFAFdG6qal1m0vL9kggVREvJZmxk15ePrOkqlSCu9bJa3NaUVJpN2OWmlaaV5HOWY5NM9q6KDwx3uLj8Ix/U1ox2Fnpyb47ZpG9Qu9q+NpZPjMRLmmrX1u/wDLc9SWKpQVlqYOnaJPdsryqYoe5I5P0rrY40ijWNAFRRgD0Fc7qXiXULZCLHwxql5J2yEjX8yxP6VwWt698UtSjeKz0F9OibjMIDyY/wB4nj8BX1OW5PHDK8dZPdvT7vI8+viXU32O48Y+OdL8I2LNPIs18ynybVG+Zj6n0HvXmnws8d3DeK7uy1SbcurSmVWJ4Wb0HsRx+Arj5/AXjS4maa40a/mlY5Z3+Zj9STzTYvAXjGCZJYtDvkkRgysq8gjoRX0VPDU4wabu2crk7n1NXz98bdOmt/F0N8VPkXVuoVu25cgj+X517Z4bvb6/8P2k+p2ktrfbNs8ci4O4cE/Q9ah8U+FrDxZpDWF8CuDuilX70beo/wAK4aM/Y1byLeqPAPh144j8GajdPc2zz210iq4jIDKQeCM/U16X/wALx8P/APPjf/8AfK/4159q3wg8UafcOtrbx30OflkhcAke6nGD+dZn/CtPF/8A0BJ/zX/GvQqUqFZ87l+JCbR6p/wvHw9/z43/AP3yv+NH/C8fD3/Pjf8A/fK/415Z/wAK08X/APQEn/Nf8aP+FaeL/wDoCT/mv+NR9Uw/834oOZnW+PfifpHinwtLplnbXcczyI4aQLjAOexrzzwv/wAjXpH/AF+Rf+hitb/hWni//oCT/mv+Nb/gz4YeIv8AhJ7G51GyaztLaZZnd2GTtOQAB6kVvT9lRg0paCd2fQdfJPiqwk0zxXqlpKCGS5fGR1BOQfyIr62rhPH3w3tfF6i8tpFttTjTaJCPllHYN/jXm4Ssqc/e2ZcldHB+A/itZeHPD0ek6jZTuIWYxywkHIJzgg+5NdR/wvHw9/z43/8A3yv+NeZ3Xwr8X2spQaWZgD9+KRWB/Wq//CtPF/8A0BJ/zX/Gu2eHw85OXNv5k3aPVP8AhePh7/nxv/8Avlf8aP8AhePh7/nxv/8Avlf8a8r/AOFaeL/+gJP+a/40v/CtPF//AEBJ/wA1/wAan6ph/wCb8Q5mXPiV4ysfGN/Y3FjDPEtvEyMJQASSc8YNafwQ/wCR0n/69G/mtc//AMK08X/9ASf81/xr0r4T+A9W0DUbnVdWiFuWi8qKEsCxycknHToK0m6dOg4RfRgrt3PQPE/iS18K6OdTvIpZIhIse2IDOT9a4n/hePh7/nxv/wDvlf8AGtv4o6Pf654Naz022a4uDcRtsXGcDOTzXiP/AArTxf8A9ASf81/xrjw1ClUhebsypNo9T/4Xj4e/58b/AP75X/Gj/hePh7/nxv8A/vlf8a8r/wCFaeL/APoCT/mv+NH/AArTxf8A9ASf81/xro+qYf8Am/FE8zPVP+F4+Hv+fG//AO+V/wAayvEHxttZ9Knt9HsbhLmVCgmmIAjz3wM5NcB/wrTxf/0BJ/zX/Gprb4WeL7iUJ/ZTRA/xSyKoH601hcOtW/xDmZyUMUlzcJDEheWRgqqOSSelfWnhjSm0Twxp2muQZLeBUcj+9jn9c1xvgT4U23huePUtUkS71FeUVR+7hPqM9T716RWGNxEZ2hHZDirBRRRXAWFFFFABRRRQAUUUUAFFFFABRRRQAVBdWVrexGK6t45kIwVdQanooGpOLumcJq/wp8P6jue2WSylP/PE/L+RrhNV+EWu2bbrGSG9jz2OxvyPH617tRWbpRZ7GGz7G0NHLmXnr+O/4njGkfBq9m2vqt9HAveOEbm/M8V3ukfDzw5o5V0shPKOfMn+Y5/pXVUUKnFE4nPMbX0c+Vdlp+O/4jUjSJAsaKqjoFGBTqKK0PJbbd2FFFFAgooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAoqtqGoWelWMt7f3MdtaxAF5ZGwq5OOT9TWCvxF8GswUeJdNyeB+/FAHT0VDaXltf263FpcRTwv92SJwyn8RUN1q2n2N5a2d1eQw3N2xW3idsNKR1CjvQBcopksscETyzSLHGg3M7nAA9Sa5hfiV4La7+yjxJp5mzjHm8Z+vT9aAOqopgmjaETLIpiK7g4OQR1zmub/4WN4MH/My6b/3/FAHT0Vztr498J3t1Fa2viDT5p5WCRxpMCWY9AKu6v4m0TQHiTVtUtbJpQTGJ5Au4Drj86ANWiuaj+IXg+WQIniTTSx6D7QtdHHLHNEssTq8bjKspyCPUGgB1FU7TVtPvry6tLW8hmuLRglxGjZaInoGHas/U/GPhvRb1rPUtasrS5VQxillCsAehxQBuUVjaZ4t8Pa1cfZ9N1qxupv+ecUwLH8K0r29ttOspby8nSC2hXdJLIcKo9SaAJ6KhtbqC9tYrq1lSaCZQ8ciHIZT0IqCTV9Pi1aHSpLyFdQmjMsduW+dkGckD04P5UAXaKpX+sadpcltHf3sNu91IIoFkbBkc/wj1PNLqeq2GjWTXmpXcVrbKQpllbaoJ6c0AXKK5lPiJ4OkcIviXTSx4A89a6K3uIbqBJ7eVJYXGVdGDKw9iKAJKKiuLmC0t3uLmaOGFBlpJGCqo9ya5uH4keDJ7v7LF4k09ps4A83AJ+p4/WgDqaKRWV1DKwZWGQQcgisLUfGvhnSb6Sy1DXLG2uo8b4pZQGXIyMj6GgDeorn7Pxz4V1C4W3tPEGnSyscKizrkn2roKACiis7Vde0rQ1hbVNQt7NZm2RmZwu8+gzQBo0UdRkVTn1bT7XUrbTp7yGO9ugxggZsNIB1wO+KALlFISFBJOAOtUrDWdN1SykvbG9guLaMsryxvlVK9QT7UAXqK5f8A4WP4M/6GXTf+/wCKmtPHnhS+u4rW18QafNcTMEjjSYEsx6ACgDoqKiubq3srd7i6mjhhQZaSRgqqPcmubg+JHg25u/ssXiTT2mJwB5uAT9TxQB1NFIrK6hlIKkZBB4NYN/438MaVfS2V/rtjbXURAeKSUBlyM8j6EUAb9FYFn448LahcLb2niDTppmOFRZ1yT7VvMwRSzEBQMknsKAFoqnpmq2Gs2S3mm3cV1bMSolibcpI4IzWNL8QvB8MrxSeI9OSRGKspnGQR1FAHS0Vg6f428MarfR2Vhrtjc3UuQkUcoLNgZOB9Aa3jwMmgAorP0vXdK1sTnTNQt7vyH2S+S4bY3ofyq7NNHbwSTzOqRRqXd2OAoAySaAH0Vy//AAsfwYf+Zl03/v8Ait3TtV0/Vrfz9OvYLuLON8MgcD8qALdFBOBk9K5i7+I3g6xuza3PiKwSYHBXzc4PuRwKAOnoqCzvbXULVLqzuIriBxlZImDKfxFT0AFFFFABRRRQAUUUUAFFFFABRRRQAUVynjbx3Z+CI9Pe8tZ7gXs3kp5WPlPHJyfeuoikEsSSAYDqGA+tAD6KK5HwL4/svHceoPZ2k9uLKRY387HzE56YPtQB11FcjL4+soviJF4ONpObuSLzRNxsAwT657V1F3cLaWc9ywLLFG0hA6kAZoAmoryCH4/adcRPND4b1eSGM4eREUgfrXfeD/GWleNdJOoaW77UfZJHIMMjdcGgDoaK57xr4utfBPh5tYu7eWeJZVj2RY3Zb61wsfx70lRFLeaDq9rayYxcPGCuD34NAHrdFVtPv7bVNPgvrOVZbadA8br0INc1rvj+y0Hxhpfhya0nkn1D7kqY2r9cnNAHXUUV594u+Lei+FtVOkx21zqWogfPBarnZ7E+tAHoNFcD4O+K+jeLNTOlG3udO1LBK290uC+OuK76gAorjvHvxF03wBb2kl9bzXD3LEJHDjIA78npWv4U8TWni7w9b6xZK6RTZ+R8blIOCDigDaopsjiOJ3IyFUn8q4vwL8TdI8dzXlvZxS211bcmGYjLL03DB6ZoA7aiuS/4T2y/4WMPBn2Sf7WYvN8/jZjZu9c9q6DV9QGk6RdagYZJxbxmTyoxlmx2HvQBdorx+f4/6dauiXHhrWImkOEDooLH25rr/Bfj+Pxjc3UKaNqFh9nRW3XSABsk8D8qAOxornvGfiy28F+Hn1i7t5Z4lkWPZFjdk/WuFi+OttMiSR+FdbZHAKsI1IIPfrQB63RUFjdC90+2uxG0YniWTY/VdwBwffmuQ8Z/E3SfB17Dp729xfajMu5ba2XLAepoA7aivP8Awn8WNL8S6yNGnsrvTNSYZSG6XG/6GvQKACiiigAoryvUfjfp9jr19pMeg6ndTWcjRyGBVYcHGevSuj8F/EjRvGzz29ms1teQDMltcLtcD1oA7Gis7X9Yi0DQrzVZ43kitYzIyJjJHtmvMYvj9pkluLo+HNY+y95gilR+OaAPX6KyvDviHTvFOiw6rpc3m20uRyMFSOoI7EVjePfH9l4Bs7S5vLO4uRdSmNVhxkEDPc0AddRXldr8bILq6hgHhXW181wgZohgZOMnmvVAcjNABRXntr8XNHuPH0nhJ7S5huVmaATuV2Mw/HPNdV4p8SWfhPw7dazfBmhtwPkTG5yTgAZ780AbFFcr4D8c2fj3R7jUbK1nt44ZzAVmxkkKGzwf9qneOPG1p4G0u3v7y2muEnnEIWLGQSCc8n2oA6iiobS4W8soLlQVWaNZAD1AIzXLw+P7Kb4hS+DxaTi6jiMhmONhGB7570AddRXJeN/Htl4HOmi8tJ7j7fKYk8rHykY65P8AtV1incob1GaAForz1vi3o8XxBPhGa0uI7gTiD7QxXyyxAI7574rrfEev2nhjQLvV73Jgt03FV6sewHvQBq0VyXgLx7ZePtOuryytJ7dLeQRss2MkkZ4wa62gAooooAKKKKACiiigAooooA4X4x/8ko13/rnH/wCjFqzofgnwrdeGdNafw5pTtJZxF2NomWJQZOcZzVb4x/8AJKNd/wCucf8A6MWreh+M/C9t4Z01ZvEWko0dnEHU3keVIQZBGc5oA5HQ7VPAPxkHhzTGdNE1m1NylqSSIZVzyueg+U/mPQVe+IX/ACU74ff9fU38lqlolynj34y/8JHpoZ9E0a0Nsl0QQs0rZyFz1A3H8h61d+IX/JTvh9/19TfyWgC58ZrLU73wKVsIpp7eO6jkvoIT88sAPzAevO0/hWbpOu/CPxDpY0iOHSbRWXZ9murYQOpx2ZgPm9wc10nxA8V6h4PtNO1KCyW4003Sx6hJtLNDGf4gB+XPtVXVf+FZ+JtHe91GXQZ7ZlybgyIki/8AAhhgfbrQBqeBfDMnhbwwukS6mNSt1kdoHKYCxNyE6nIHP51yHxd8LeH9O+Gmq3VloenW1wgj2yw2qIy5dehAzVj4JGb/AIRzVUiknl0ZNSlXS3mzuMI+vb+uav8Axq/5JVrH0j/9GLQBp+GPCfh2PRNIvE0LTVuhbQyCYWqBw20HdnGc571ynxE/swfFjwT/AGx9k+weXdeb9r2+V9zjdu4646969D8N/wDIr6T/ANecP/oArgfHVla6j8YPA9re20VzbvHd74pkDK2EyMg8daALmtzfCaLSLg3Y8MmIoci3WIyHj+HZ82fpTfghDqEPw9jF4kyW7XMrWaTAhhCTx17ZziofHXwzsvsK654T060stc08+dEkUKhJwOqMmNpOM449q6fwF4utvGfheDUYUEVwn7q5g/55SDqPp3HtQBzPw9/5KV8Qf+v2P/0E1gaxceGrb4+am/ik2AsjpcYT7cism/5cYyOuM1v/AA9/5KV8Qf8Ar9j/APQTWReSaFH+0Dqp19tOW1/smPab8ps35Xpv4zjNAGT42fwRrFxo9n4EisW8SG+iaCTTItgRQcsXZQBgda9J+J4YfCzXw5y32M5PvxXCfFW48BHwg/8AYsmknXBKhsTpZj80PuGf9XzjGev8673xBpmo618JrvT5VZ9Tn0oB17tNsBI+pYYoAufD/wD5J54e/wCwfD/6AK5LWf8Ak4zw5/2B5f5y1d+GfjPQbrwJplrJqdrbXdjbrBcQXEqxujIMEkEjjjOaydPv7bxf8eo9T0iVbjT9G0xoZbmP5o3kYt8qnofv/wDjpoAk+MP/ACG/An/Yaj/mtXPjmM/DG5B/5+Yf/Q6p/GH/AJDfgT/sNR/zWrnxz4+GNzn/AJ+Yf/Q6AOgt/AnhO50uBZfDelMHiXcfsiAngdwM1yHgq3bwV8VtV8G20rnR7q0GoWcTEnyWyAyjPbr+Qrsrfxv4Ut9LhaXxJpKhIV3D7ZGSOPQHNcd4Lnbxn8V9X8Y20bjR7W0Gn2crAgTHILMM9uv5igBPE8X/AAnfxat/CN27f2HpdqLy7hRiPPkP3Q3sMr+tdxdeB/C95pR02XQdP+y7doRLdVK+4IGQfeuH8Sy/8IH8WYfFt3G50TVbYWd3Oqk/Z5B91j7HC/r6V3l14z8N2elHUptcsPsgXcJFuFbd7AA5J9hQBxfwtuLrRtf8SeB7m4kuIdIlWSydzkiB+Qv4ZX8zWTanw4Pjh4w/4SL+y/K+z2/lf2h5e3dsXO3f3+la3wuguda8Q+JfHFxbyW8GrSrFZI4wWhTgN+OF/I1T0fR9M1j45+Mo9T0+1vEjtrYotxErhTtXkZHFAFP4lyfDVvCF3DYx6NJq0i4sl0xEMvm54/1fb1zXpvg+PUovBujx6uW/tBbSMT7z827aOvv6+9eceM/DC/DvVIPG/hbToVtImC6nYrGCpjz99AfuEe2PX1r1XSNVs9c0m11OwlEtrcxiSNh6HsfQ9qALteM+JtG/4Wj4/wBZ05HBsdC097eNz937ZIMj8sc/7teoeJtcg8N+GtQ1i4PyWsLOB/eb+FfxOB+NeaeAPAviQeGo9Vj8W3WmXGrMb2eCK0ik+Z+QSXBOcY/OgDrvhd4ifxB4ItftJP8AaFiTZXaN95ZE45+owaw/F3/JcvA3/XC6/wDQTWX4bguvh38XJdH1C/e9tfEkXnx3TxrHm4UnIIXgZ56eq1e+JdwmgfELwX4nvMrptvJNb3EoBIj3rgE+3J/I0Aeoz/8AHvJ/un+VeafA1Fk8A3SOoZW1G4BBGQRkV1Os+OvDOm6FPqEmt2DxeUzRiO4V2kOOAoBySaw/gtpt1p/w6t5LuFoZLyeW6VGGCFY/L+YGfxoAyfjB4V8P6b8MdVurHQ9OtrhDFtlhtkRlzIoOCBnpXZaB4T8OQadpl5FoOmpcrDHIsy2qBw20HIOM596xPjb/AMkm1j6w/wDo1K7PRf8AkBaf/wBe0f8A6CKAPNPEkA8d/F2Hwpfu50PS7UXc9ujFRPKem4jsMj9fWu5vPA3he+0o6bNoNgLXbtVUgVCvupAyD71w3iOf/hBPi7F4qvkcaHqtqLSe4VSRBKOhb2OBz9fSu8vPGfhuw0o6lPrdgLTbuDrOrbvZQDkn2FAHG/Cq7u9L1jxH4Ku7l549GnU2bSHLCB+QM+g4/OsPTj4cHxt8Z/8ACRf2X5XlweV/aHl4zsXO3f3+lbnwrtbrVdb8SeNrq2kgi1idVs1kGGMKcBseh4/Ks7QdG0zWPjh41j1PT7W8RIoCi3ESuFOxeRkcUAVPifJ8OG8IXMGmR6PJrL4Fiulqhl8zIx/q+3XrXp+ipfR+BrFNTJN+unoLjd13+WN2ffNeceMvDSfDbV4PG/hjT4RZIyx6nYrECvlkj50/uH6Y7e9eowanaaz4cGo2Mqy21zbGSNx3BX+dAHD/AAJ/5Jfa/wDXzP8A+hmtrxJpXgfw7o93rWraDpIiiBd2NnGWkY9hxySawfghPFbfCeK4ndY4op7h3duiqGJJP4Vzlvr2j/ErxiNT1zV7Cy8M6VL/AKDZXNyiNdSD/lo6sc7f/wBXrQBq/DPwYL7Wn8ealpltp7Tg/wBmafBEEW3iIIDEADLEH0757jHX/ErxG3hnwPf3cH/H5MBbWo7mR/lBH05P4Vq2virw5d3Edraa9pc00h2xxRXcbMx9AAea868aQ3Pjr4pab4Xsr17SDRovt9xOkYfbMcbPlPBxx19TQBR8P6U3ww8deHLZiVstesFtbo/wm7XBDH3JbH4mvVvE3/Iqax/14zf+gGvNvH3w/wDEt74TubiXxfeanLYf6ZBA9nFGS6AnhlAIOM11OneIo/FXwjn1dGDPNpkwmA/hkCMGH5g0AYfwq8KeHdR+GejXV7oWm3FxJG++WW1Rmb526kjJrO17SbT4afEXw5qugRfZbDWbj7BfWcfEZJICsB2wWz+Hua0/hT4p8P6f8M9GtrzXdNt7iON98U12iMvzt1BORWbr+qWnxJ+I3hzStBmF1YaNcfb768j5jBUgqgPckrj8fY0AbPxa1K8kh0Pwrp9w1vNr94LeWVDgrCMb/wA9w/AGum0vwJ4X0jSxp9toliYNuHMsCu0nuxIya5n4s6deRR6F4r0+3a4m0C8FxLCgyXhON+PptH4E+ldTpXjbw3rGlrqNrrNl5G3c/mTKjR+zAng/WgDgrGzT4c/F+y0jTNyaF4ihdha5O2CdATlfY4A/H2FeuV5JZ3kfxF+MFjqumbpND8OxODdY+SedwRhfYZB/D3Fet0AFFFFABRRRQAUUUUAFFFFABRRRQB4x+0D/AMe3hn/r/wD8K9hs/wDjyg/65r/KuB+K/gbVfG1npcelT28MtnOZSZiQOgxjA9qqaRo/xWt9Rs/t+uaXJYRyJ50aR/M0YPIHHXFAHp9eI/s6/wDHt4nHf7VH/J69urxy7+GHirw34kv9V8Caxb20F8xeS1uRwpJJ44IIBJx6UAVbvn9qKzx2s/8A2Rq9f1n/AJAWof8AXtJ/6Ca4HwJ8NdR0jxLceKfE2pLf6zMpVdn3UBGDyevHFeiahA11pt1boQHlhdFJ6ZIIoA+c/hZqPjK28HapD4c0S0vrd533STS4YNt6Be9dr8BDpcWianb27zDVBcbr2KVcbCeAF9uDWX4d+HXxN8K2E9jo+taXBbzSGRsgscnjIJFdp8M/h3J4Iiv7q+vRealfsGmkUYUAZOB+JPNAGd8fv+SXzf8AX3D/ADNeca58RZ9R+G2l+EB4cuIprm1gtobi4wEfaFG5f0/OvZfid4TvfGfg6TSLCSKOdp45A0pIXCnnpWV4o+G0niH4baTonmxR6tplvCsE+TtDooVueuDj+VAHReANCufDXgfS9Ju3DXEER8zByASScfhmvNviL/yXPwf9B/M16v4Yt9VtPDtna61JFJfwxiOSSIkh8cA898VyXivwHqWufEfQfENtNAtrp/8ArUcncee3FAHoZzg4614b8CIYr7xB4q1S9VZNT+0BSz8soJYnH1P8q9zryXXfhhr2neK7nxH4G1aKxuLrJntpvuMTyex4zzjFAHYax4V8M3vi3TtavXSHWLcr9nKzCNnweMj+Lk4/Suqryvwz8NNbm8XQ+KfGurJfX9sB9ngh+4hHQ/hknGOten3IlNrKINvnFDs3HAzjigD588Waxo3iT43Lba1fQwaRpcTRFpT8rPjkfmR+Va/wH1qG31LXfDEdwk0EUxntXU8MmcHH6VueCPhDb2B1K78W21jqd9eTmQHBYIDknr6k08/DC40f4m2PiPw2tpaacqBLi2GVyOhwAPoaAPTbr/jzm/65t/KvkrwZpWr6fot1460J2a70e+KzwdpICoJ49OTn257V9bzIZIJEHVlIH5VwHwr8B33grRdTsdUkt5/tdwZAIiSNpUDByKAPP/DPiGz8U/tD2OsWJPk3FhkqeqMISCp+hr6CryTw18IZvC3xUOv2E8I0fEhSEk70LqRtHbAJ/KvW6APFPjX/AMjh4N/6+l/9DFe11558Q/Auo+LNe0C+spoEj06YSSiUkEjcDxx7V6HQB5j8e/8AkmE//X1F/WsHwx4q+JMHhnSILLwdBNZJaxJFMZTl0CgBuvcc13nxM8K3vjLwdJpFhJFHO0ySBpSQuBn0rj9P8M/FzTNPtrC217SVt7aJYo1MecKowBnb6CgD16MsY1LDDEDI9DXkXjbwbr6/EGLxd4Uns7i+ijCSWc7DIx6D6GvV7FblNPtlvHV7pYlEzL0Z8DcR7ZzXnHi34feIJPF48U+EdXjtL902ywz5KP2z37e1AGXofjWC/wDHllp/jLwqmna/jFrddc9f/r17HXkmifDfxNqXjS08TeNNVtp5rMfuYLYce3Ycc163QAUUUUAfNvh7xhb+Dvi54uurixu7sTSSRhbaPcQd4OT7cV0fw40/U/EHxV1LxodLm03TZI2RElXaXJAHT8M11Pg7wDqGgfEHxDr15JbSWuo7vKRSSy5cHnI9BXowAAwBgUAcr8Sf+Sca7/16n+Yrw3w/8TW8O/CQaNJ4euZo5UmhS7fHksXLfyz+lfQXi7SJ9e8J6lpVsyLNdQmNGc8A571yWl/DV/8AhUR8Haq8L3ADsksfKo5YspH9fxoAd8FfDV74a8ApHfkCa8na7CA52KyqAPyXP41zP7RZZdJ0BkXc4vSVHqdtd98OtE1zw54Ui0jXJ4J5LZisEkTE/u+wOR25H0xWR8WPAuqeONP0yHS57eKW0uDKTMSB0wMYFAFLRvFXxInvrKC88HQQ2bsqyTCXJVPXrXqNeV2mjfF2K4gE2vaS0Csu9RHyVzyPu+leqDOBnrQB8na7pFzeeOfGmrWLMLzR7sXcePQPz/Q/ga7Pxf4hT4o3fhXw5YOfs80X2/UNp+5hTlT7jB/FhXb+Gvh7eaZ438UatqElvLYawGVY1JLbSTkHj0NVPhz8KX8F3+tXlxPFPLdKYbUrn5I8559zx+VAGb+zh/yI+p/9hJv/AEXHUv7Q/wDyJ2mf9hBf/QWrofhN4J1DwL4dvNP1GaCWWa7M6mEkjBRR3H+yaf8AFTwXf+N9Bs7HT5YY5IboTMZiQMAEdvrQB1mif8gDTv8Ar1i/9BFeP2PH7T13n/n0P8hXs2nW7WmmWls5BeGFI2I6ZCgV5346+Guo6t4lt/FPhnUlsNYiUK3mfdfHTkdKAMD9oL7/AITHf7Y/H4pXtMX+qT/dFeP2fwx8V+IvEthq3jrWLe4isXDxW1sOCQc+gAGQM17GBgYFAHyt4s0OfV/id42ubQsLvTIxexbep2mPP6E11Hi3xU3xL03wt4dsJPnvU+03+0/c2Agg/iCa73QvAN9p/wAUPEXiO7kt3sNTgMSRqSWGSnUY/wBk1n+AvhKfCGv6zqMs0Uqzq8VkFzmNGJ6+/QUAZ37PEaw6Hr0S/dS+2j6AV7LXBfC7wTqHgqx1WHUJoJGu7rzk8ok4GO+a72gAooooAKKKKACiiigAooooArahp1nqtjLZX9tHc2soAeKVdytg55H1FYC/DjwYrAjwzpeR/wBO611FFAEFpZ21hbrb2dvFbwp92OJAqj8BUN3pGn317a3l1ZwzXNoxa3ldctET1KntV2igBk0MVxC8M0aSRONrI4yGHoRXLH4ZeCWu/tJ8Naf5uc/6v5f++en6V1lFAEcEENrAkFvEkUSDaiIoVVHoAKh1HTbLV7GSy1C1iurWTG+KVdytg5GR9atUUAMhhjt4Y4YUVIo1CoqjAUDgAVWn0qwutRtdQns4ZLy1DCCdly0e4YOD2zVyigArP07QtK0ie5n07T7e1kum3ztCgXzG55OOp5P51oUUAU7TSdPsby7vLWzhhubtg9xKi4aUjoWPes/VPBvhvWr1r3U9Esbu5ZQplmiDMQOgzW5RQBg6f4K8MaVcrc2Gg6fbzrysiW6hh9Djit6iigDmtU+HvhHWbprq/wBAspp2OWk2bSx98Yz+NbGl6PpuiWgtdLsbezgznZDGFBPrx1q7RQBR1DR9N1WS2kv7KC5e1kEsDSoCY3H8Q9DxTtT0qw1qyay1Kzhu7ZiGMUy7lJHTirlFAHMJ8OvBsbh18M6WGByD9nWuit7eC0t0gtoY4YUGFjjUKqj2AqWigCK5toLy3e3uYY5oXGHjkUMrD3Brmofhr4LgvPtcfhvTxNnIJiyAfZTx+ldVRQAiIsaKiKFVRgKBgAVTg0jT7bU7nUobOGO9uVVZp1XDyAdAT3xV2igCOeCK6t5IJ41lhkUo6OMhgeCCKr6ZpVhotktnptpFa2yksIol2qCevFXKKAKep6VYazZNZ6laRXVsxBaKVdykjpxVqONIo1jjUKiAKqgYAA6CnUUAUL/RdM1S4tbi+sYLia1ffBJIgJjb1U9ugqxeWVrqNq9re28VxbuMNHKgZT9QanooA5W2+Gngu0uxdQ+G7BZgcgmPcAfYHgflXUgBVCqAAOAB2paKAKupaZZavYyWOo2sV1ayY3xSruVsHIyPqBViONIYkjjUKiAKqjoAOgp1FAEN1a297bvb3UEc8LjDRyKGVh7g1zcHw18F2159ri8N6es2cgmLIB9lPA/KuqooARVVECIoVVGAAMACqdvo+nWup3OpW9lDHe3QAnnVMPIB0ye/SrtFAEdxbw3dtJb3ESSwyqUeNxkMp4IIqtp2kadpFgLDT7OG2tBnEMS4UZ68VdooAoWeh6Xp2lvplnYQQWLhg1vGgCEN97j3zWL/AMK38F/9Cxpf/gOK6migDnrLwJ4U069ivLPw/p8FzC26OWOEBlPqDWna6PptlqF1f21lBFd3ZBuJkTDyY6ZPer1FAAQCCCMg9qzrHQNI0zT57Cx063t7ScsZYY0AVywwcj3FaNFAHLf8K38F/wDQsaX/AOA4rd07SdP0i3+z6bY29pD12QRhAfyq5RQAEAjBGQa5e7+HHg2/vPtdz4csHmJyWEe0E+4HB/GuoooAr2Vjaadapa2VtFbwJ92OJAqj8BViiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/2Q==" alt="Lumaggs" class="logo-dist">
+    <div class="hdr-divider"></div>
+    <div class="hdr-right">
+      <div class="lbl">Distribuidor Autorizado Exclusivo</div>
+      <div class="reg">Baja California, México</div>
+    </div>
+  </div>
+  <div class="hdr-accent-bottom"></div>
+</div>
+<div class="hdr-title-bar">
+  <div class="hdr-title">Cuadro Comparativo — Aceites Hidráulicos Chevron · Aprobaciones OEM · Aplicaciones en Plásticos</div>
+  <div class="hdr-sub">Rando® · Clarity® · Hydraulic Oil · Para Industria Manufacturera, Inyección de Plástico, Maquinaria Hidráulica</div>
+</div>
+
+<div class="legend">
+  <div class="legend-inner">
+    <span class="leg-lbl">Familias:</span>
+    <span class="leg-item"><span class="ldot" style="background:var(--hid)"></span>Rando HD / HDZ / MV (Mineral/VI Alto)</span>
+    <span class="leg-item"><span class="ldot" style="background:var(--syn)"></span>Clarity AW / EliteSyn (Sin Zinc)</span>
+    <span class="leg-item"><span class="ldot" style="background:var(--eco)"></span>Clarity Bio EliteSyn (Biodegradable)</span>
+    <span class="leg-item"><span class="ldot" style="background:var(--aero)"></span>Rando Especiales + Económico</span>
+    <span style="color:var(--brd);margin:0 4px">|</span>
+    <span class="pill-s pa">✔ Aprobado</span>&nbsp;
+    <span class="pill-s pr">› Recomendado</span>&nbsp;
+    <span class="pill-s pp">🏭 Plásticos</span> = desempeño en moldeo por inyección
+  </div>
+</div>
+
+<div class="main">
+
+<div class="plastics-box">
+  <div class="pi">🏭</div>
+  <div>
+    <h3>¿Por qué los aceites hidráulicos son críticos en la industria del plástico?</h3>
+    <p>Las máquinas de inyección de plástico (Arburg, Krauss-Maffei, Husky, Engel, Boy, Demag, Fanuc, Haitian, Toyo) usan sistemas hidráulicos que operan a alta presión (>5,000 psi), alta temperatura y ciclos continuos — a veces 24/7. Una falla en el sistema hidráulico detiene toda la línea de producción. Los OEM como <strong>Arburg</strong> aprueban explícitamente los aceites Rando HD y HDZ. La norma <strong>DIN 51524</strong> es el estándar de referencia más exigido por fabricantes europeos de máquinas de inyección. El aceite equivocado puede causar: desgaste prematuro de bombas y válvulas, formación de barniz en servo-válvulas, sellos dañados, pérdida de precisión en ciclos y paros no programados.</p>
+  </div>
+</div>
+
+<!-- ═══ RANDO HD — MINERAL ANTIDESGASTE ═══ -->
+<div class="sec">
+<div class="sec-hdr" style="background:#0369A1;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:10px;padding:7px 12px;">
+  <span>🔵</span><h2>Rando® HD — Mineral Antidesgaste · Entrada Premium</h2><span class="cnt">ISO 10-320</span>
+</div>
+<div class="tbl-wrap"><table>
+<thead><tr>
+  <th>Producto / Base</th><th>Viscosidades ISO</th>
+  <th class="w-cert">Normas Cumplidas</th>
+  <th class="w-spec">Aprobaciones OEM</th>
+  <th class="w-plas" style="background:#EFF6FF;">🏭 En Inyección de Plástico</th>
+  <th class="w-val">Valor Agregado</th>
+</tr></thead>
+<tbody>
+<tr>
+  <td>
+    <div class="pn">Rando® HD</div>
+    <div class="ps">Mineral Grupo II · Antidesgaste · AW clásico</div>
+    <div class="base bmin">Mineral Grupo II (ISO 32-68)</div>
+  </td>
+  <td>
+    <div class="vmulti">
+      <span class="vtag">ISO 10</span><span class="vtag">ISO 22</span><span class="vtag">ISO 32</span>
+      <span class="vtag">ISO 46</span><span class="vtag">ISO 68</span>
+      <span class="vtag" style="background:#475569;">ISO 100</span><span class="vtag" style="background:#475569;">ISO 150</span>
+      <span class="vtag" style="background:#475569;">ISO 220</span><span class="vtag" style="background:#475569;">ISO 320</span>
+    </div>
+    <div class="cert-note" style="margin-top:4px">32-68: Grupo II<br>100-320: R&amp;O para engranajes AGMA</div>
+  </td>
+  <td>
+    <div class="cert-block">
+      <span class="cpill c-din">DIN 51524-2 HLP</span>
+      <span class="cpill c-iso">ISO 11158 L-HM</span>
+      <span class="cpill c-astm">ASTM D6158 HM</span>
+      <span class="cpill c-agma">AGMA 9005 R&amp;O</span>
+      <span class="cpill c-nsf">NSF H2 (32-320)</span>
+      <div class="cert-note">FZG etapa 12 (VG32-68)<br>Estab. oxidación >6000 h</div>
+    </div>
+  </td>
+  <td>
+    <div class="spec-col">
+      <div><span class="sg-lbl a">✔ Aprobado OEM</span>
+      <div class="pills-wrap">
+        <span class="pill pill-a">Arburg Injection Molding (32,46,68)</span>
+        <span class="pill pill-a">Bosch Rexroth RDE 90245 (32,46,68)</span>
+        <span class="pill pill-a">Danfoss/Eaton E-FDGN-TB002-E</span>
+        <span class="pill pill-a">Husky Injection Molding</span>
+        <span class="pill pill-a">Parker Hannifin (Denison) HF-0,1,2</span>
+        <span class="pill pill-a">Rexnord Falk (clase A,F,J)</span>
+        <span class="pill pill-a">ZF TE-ML 04K</span>
+        <span class="pill pill-a">NSF H2 (sin contacto alimentos)</span>
+      </div></div>
+      <div><span class="sg-lbl r">› Recomendado</span>
+      <div class="pills-wrap">
+        <span class="pill pill-r">Fives Cincinnati P-68/70/69</span>
+        <span class="pill pill-r">General Motors LS2 LH</span>
+        <span class="pill pill-r">GROB Lubricants Chart</span>
+        <span class="pill pill-r">US Steel (AIST) 126/127</span>
+      </div></div>
+    </div>
+  </td>
+  <td class="plas-cell">
+    <div class="plas-badge">🏭 APROBADO — Arburg y Husky</div>
+    <div class="plas-item"><span class="vic">✔</span><div><strong>Aprobado directamente por Arburg</strong> — uno de los fabricantes más populares de inyectoras en México</div></div>
+    <div class="plas-item"><span class="vic">✔</span><div><strong>Aprobado Husky</strong> — inyectoras de alta velocidad para tapas y preformas PET</div></div>
+    <div class="plas-item"><span class="vic">⚙️</span><div><strong>ISO 46 es el más común</strong> en inyectoras de tamaño mediano. ISO 68 para prensas grandes. ISO 32 para máquinas de alta velocidad y respuesta rápida</div></div>
+    <div class="plas-item"><span class="vic">🔧</span><div><strong>FZG etapa 12</strong> — máxima protección anti-desgaste para bombas y válvulas de inyectoras en ciclos continuos</div></div>
+    <div class="plas-item"><span class="vic">📋</span><div><strong>NSF H2</strong> — apto en plásticos para envases de alimentos (sin contacto directo con el plástico)</div></div>
+  </td>
+  <td>
+    <div class="val-col">
+      <div class="vi"><span class="vic">💲</span><div><strong>El más económico del portafolio</strong> con aprobaciones OEM reales — no un aceite genérico</div></div>
+      <div class="vi"><span class="vic">📊</span><div><strong>9 viscosidades</strong> — cubre desde sistemas de baja presión (ISO 10) hasta reductores AGMA (ISO 320)</div></div>
+      <div class="vi"><span class="vic">⏱️</span><div><strong>Estabilidad oxidación >6,000 h</strong> — vida larga en sistemas de circulación continua</div></div>
+      <div class="vi"><span class="vic">💧</span><div><strong>Rápida separación del agua</strong> — crítico en ambientes de manufactura húmedos</div></div>
+    </div>
+  </td>
+</tr>
+</tbody></table></div></div>
+
+<!-- ═══ RANDO HDZ — ALTO VI ═══ -->
+<div class="sec">
+<div class="sec-hdr" style="background:#0369A1;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:10px;padding:7px 12px;">
+  <span>🔵</span><h2>Rando® HDZ — Mineral Alto Índice de Viscosidad (VI 145-160)</h2><span class="cnt">ISO 15-100</span>
+</div>
+<div class="tbl-wrap"><table>
+<thead><tr>
+  <th>Producto / Base</th><th>Viscosidades ISO</th>
+  <th class="w-cert">Normas Cumplidas</th>
+  <th class="w-spec">Aprobaciones OEM</th>
+  <th class="w-plas" style="background:#EFF6FF;">🏭 En Inyección de Plástico</th>
+  <th class="w-val">Valor Agregado</th>
+</tr></thead>
+<tbody>
+<tr>
+  <td>
+    <div class="pn">Rando® HDZ</div>
+    <div class="ps">Mineral · Alto VI (145-160) · Amplio Rango de Temperatura</div>
+    <div class="base bmin">Mineral + Mejorador VI</div>
+  </td>
+  <td>
+    <div class="vmulti">
+      <span class="vtag">ISO 15</span><span class="vtag">ISO 22</span><span class="vtag">ISO 32</span>
+      <span class="vtag">ISO 46</span><span class="vtag">ISO 68</span><span class="vtag">ISO 100</span>
+    </div>
+    <div class="cert-note" style="margin-top:4px">VI 145-160 · Escurrimiento hasta −62°C<br>Hasta 3.4% mejor eficiencia de bombeo vs. VI &lt;105</div>
+  </td>
+  <td>
+    <div class="cert-block">
+      <span class="cpill c-din">DIN 51524-2 HLP</span>
+      <span class="cpill c-din">DIN 51524-3 HVLP</span>
+      <span class="cpill c-iso">ISO 11158 L-HM / L-HV</span>
+      <span class="cpill c-astm">ASTM D6158 HM/HV</span>
+      <div class="cert-note">FZG etapa 12 · Estab. ox. >6000 h<br>Prueba T6H20C Denison húmeda</div>
+    </div>
+  </td>
+  <td>
+    <div class="spec-col">
+      <div><span class="sg-lbl a">✔ Aprobado OEM</span>
+      <div class="pills-wrap">
+        <span class="pill pill-a">Arburg Injection Molding (32,46,68)</span>
+        <span class="pill pill-a">Bosch Rexroth RDE 90245</span>
+        <span class="pill pill-a">Bosch Rexroth RA/RE 90220/90221</span>
+        <span class="pill pill-a">Danfoss/Eaton E-FDGN-TB002-E</span>
+        <span class="pill pill-a">Parker Hannifin (Denison) HF-0,1,2</span>
+        <span class="pill pill-a">ZF TE-ML 04R</span>
+      </div></div>
+      <div><span class="sg-lbl r">› Recomendado</span>
+      <div class="pills-wrap">
+        <span class="pill pill-r">Frank Mohn / Framo (bombeo hidráulico carga)</span>
+        <span class="pill pill-r">Fives Cincinnati P-68/70/69</span>
+        <span class="pill pill-r">MAN Truck &amp; Bus OEM</span>
+        <span class="pill pill-r">US Steel (AIST) 126/127</span>
+      </div></div>
+    </div>
+  </td>
+  <td class="plas-cell">
+    <div class="plas-badge">🏭 PREFERIDO — Máquinas Temperatura Variable</div>
+    <div class="plas-item"><span class="vic">🌡️</span><div><strong>Alto VI = protección uniforme</strong> sin importar si la inyectora arranca fría (madrugada) o está al límite de temperatura en turno nocturno</div></div>
+    <div class="plas-item"><span class="vic">✔</span><div><strong>Arburg aprobado en 32, 46 y 68</strong> — el VI alto del HDZ lo hace preferible al HD para inyectoras con variaciones grandes de temperatura ambiental</div></div>
+    <div class="plas-item"><span class="vic">⚡</span><div><strong>Hasta 3.4% mejor eficiencia de bombeo</strong> vs. aceite VI &lt;105 — en una planta con 20 inyectoras es significativo en la factura eléctrica</div></div>
+    <div class="plas-item"><span class="vic">❄️</span><div><strong>Punto de escurrimiento −62°C (ISO 15)</strong> — para plantas con aires acondicionados industriales o arranques en clima extremo</div></div>
+  </td>
+  <td>
+    <div class="val-col">
+      <div class="vi"><span class="vic">🌡️</span><div><strong>Doble clasificación HLP y HVLP</strong> — un solo producto para todo tipo de equipo</div></div>
+      <div class="vi"><span class="vic">📈</span><div><strong>Mejor eficiencia que el HD</strong> — recomendado cuando el cliente busca ahorro energético</div></div>
+      <div class="vi"><span class="vic">❄️</span><div><strong>VI hasta 160</strong> — para plantas con variaciones estacionales o de turno importantes</div></div>
+      <div class="vi"><span class="vic">💧</span><div><strong>Excelente separación del agua</strong> y estabilidad hidrolítica demostrada en Denison T6H20C</div></div>
+    </div>
+  </td>
+</tr>
+</tbody></table></div></div>
+
+<!-- ═══ RANDO HD PREMIUM MV + WM ═══ -->
+<div class="sec">
+<div class="sec-hdr" style="background:#B45309;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:10px;padding:7px 12px;">
+  <span>🟡</span><h2>Rando® Especiales · Hydraulic AW Económico · 5606A Frío Extremo</h2><span class="cnt">4 Productos</span>
+</div>
+<div class="tbl-wrap"><table>
+<thead><tr>
+  <th>Producto / Base</th><th>Viscosidad</th>
+  <th class="w-cert">Normas Cumplidas</th>
+  <th class="w-spec">Aprobaciones OEM</th>
+  <th class="w-plas" style="background:#EFF6FF;">🏭 En Inyección de Plástico</th>
+  <th class="w-val">Valor Agregado</th>
+</tr></thead>
+<tbody>
+<tr>
+  <td>
+    <div class="pn">Rando® HD Premium Oil MV</div>
+    <div class="ps">Mineral Multiviscosidad · VI 180 · Rango Amplio</div>
+    <div class="base bmin">Mineral + VI Mejorador</div>
+  </td>
+  <td><span class="vtag">ISO 32</span><br><span class="cert-note" style="margin-top:3px">VI 180<br>Escurrimiento −50°C</span></td>
+  <td>
+    <div class="cert-block">
+      <span class="cpill c-din">DIN 51524-3 HVLP</span>
+      <span class="cpill c-iso">ISO 6743-4 HV</span>
+      <span class="cpill c-astm">ASTM D6158 HV</span>
+    </div>
+  </td>
+  <td>
+    <div class="spec-col">
+      <div><span class="sg-lbl r">› Recomendado / Satisface</span>
+      <div class="pills-wrap">
+        <span class="pill pill-r">Bosch Rexroth RE 90220-01</span>
+        <span class="pill pill-r">Fives Cincinnati P-68</span>
+        <span class="pill pill-r">Danfoss/Eaton M-2950S / I-286</span>
+      </div></div>
+    </div>
+  </td>
+  <td class="plas-cell">
+    <div class="plas-item"><span class="vic">🌡️</span><div><strong>VI 180</strong> — transmisión de energía pareja en todo el rango de temperatura de turno</div></div>
+    <div class="plas-item"><span class="vic">❄️</span><div>Arranque sin problemas en inyectoras en planta fría al inicio del turno</div></div>
+    <div class="plas-na">Aplicable en maquinaria con variación extrema de temperatura</div>
+  </td>
+  <td>
+    <div class="val-col">
+      <div class="vi"><span class="vic">🔄</span><div><strong>Multiviscosidad real</strong> — mismo aceite todo el año sin cambio de grado estacional</div></div>
+      <div class="vi"><span class="vic">🚢</span><div><strong>Ideal para maquinaria marítima en cubierta</strong> y equipos de contenedores hidráulicos</div></div>
+      <div class="vi"><span class="vic">⚡</span><div><strong>4% mejor eficiencia de bombeo</strong> vs. aceite monogrado típico (VI &lt;105)</div></div>
+    </div>
+  </td>
+</tr>
+<tr>
+  <td>
+    <div class="pn">Rando® WM</div>
+    <div class="ps">Mineral · VI 180 · Turbinas Eólicas Vestas</div>
+    <div class="base bmin">Formulación Especial</div>
+  </td>
+  <td><span class="vtag">ISO 32</span><br><span class="cert-note" style="margin-top:3px">VI 180<br>Escurrimiento −48°C<br>FZG etapa 10</span></td>
+  <td>
+    <div class="cert-block">
+      <span class="cpill c-din">DIN 51524-3 HVLP</span>
+      <span class="cpill c-iso">ISO 6743-4 HV / 11158</span>
+      <span class="cpill c-astm">ASTM D6158</span>
+      <span class="cpill c-astm">SS 15 54 34</span>
+    </div>
+  </td>
+  <td>
+    <div class="spec-col">
+      <div><span class="sg-lbl a">✔ Aprobado OEM</span>
+      <div class="pills-wrap">
+        <span class="pill pill-a">Vestas 0000-2843</span>
+        <span class="pill pill-a">Danfoss/Eaton M-2950S</span>
+        <span class="pill pill-a">Danfoss/Eaton I-286</span>
+      </div></div>
+    </div>
+  </td>
+  <td class="plas-cell">
+    <div class="plas-na">No es su aplicación primaria. Para inyectoras usar Rando HD, HDZ o Clarity AW.</div>
+  </td>
+  <td>
+    <div class="val-col">
+      <div class="vi"><span class="vic">🌬️</span><div><strong>El único del portafolio aprobado Vestas</strong> — indispensable para parques eólicos de Baja California</div></div>
+      <div class="vi"><span class="vic">❄️</span><div><strong>Escurrimiento −48°C</strong> — arranque en zonas de alta montaña y norteñas</div></div>
+    </div>
+  </td>
+</tr>
+
+<!-- LINEA ECONOMICA Y FRIO EXTREMO — dentro del grupo Rando -->
+<tr>
+  <td>
+    <div class="pn">Chevron Hydraulic Oil AW</div>
+    <div class="ps" style="color:#B45309;font-weight:700;">⭐ Oferta Económica · Opción de Precio Muy Competitiva</div>
+    <div class="ps">Mineral Parafínico · Base Grupo I · Un grupo tecnológico abajo del Rando HD</div>
+    <div class="base bmin">Mineral Parafínico (Grupo I)</div>
+  </td>
+  <td>
+    <div class="vmulti">
+      <span class="vtag">ISO 32</span><span class="vtag">ISO 46</span><span class="vtag">ISO 68</span>
+    </div>
+    <div class="cert-note" style="margin-top:4px">VI 98-99 · Escurrimiento −22 a −25°C<br>Estab. ox. >5,000 h · NSF H2</div>
+  </td>
+  <td>
+    <div class="cert-block">
+      <span class="cpill c-din">DIN 51524-2 HLP (M)</span>
+      <span class="cpill c-iso">ISO 11158 L-HM (M)</span>
+      <span class="cpill c-astm">ASTM D6158 HM (M)</span>
+      <span class="cpill c-nsf">NSF H2 (32, 46, 68)</span>
+      <div class="cert-note">Base Grupo I parafínica · No Grupo II<br>1 grupo tecnológico por debajo del Rando HD</div>
+    </div>
+  </td>
+  <td>
+    <div class="spec-col">
+      <div><span class="sg-lbl a">✔ Aprobado / Satisface</span>
+      <div class="pills-wrap">
+        <span class="pill pill-a">NSF H2</span>
+        <span class="pill pill-a">Parker Hannifin / Denison HF-0,1,2 (M)</span>
+        <span class="pill pill-a">Bosch Rexroth Racine Modelo S (M)</span>
+      </div></div>
+      <div><span class="sg-lbl r">› Recomendado / Satisface</span>
+      <div class="pills-wrap">
+        <span class="pill pill-r">Fives Cincinnati P-68 / P-70 / P-69 (M)</span>
+        <span class="pill pill-r">DIN 51524-2 HLP</span>
+        <span class="pill pill-r">ASTM D6158 HM</span>
+      </div></div>
+    </div>
+  </td>
+  <td class="plas-cell">
+    <div class="plas-badge" style="background:#FEF3C7;color:#92400E;border-color:#F59E0B;">💲 ENTRADA ECONÓMICA — Buen Desempeño</div>
+    <div class="plas-item"><span class="vic">💲</span><div><strong>La opción más accesible del portafolio</strong> — excelente calidad a precio muy competitivo para inyectoras sin requerimiento OEM específico</div></div>
+    <div class="plas-item"><span class="vic">📊</span><div><strong>VI 98-99 (estándar)</strong> — adecuado para plantas con temperatura de operación estable. Si hay variación de temperatura, considerar Rando HD (Grupo II) o HDZ</div></div>
+    <div class="plas-item"><span class="vic">📋</span><div><strong>NSF H2</strong> — apto para plantas procesadoras de envases de alimentos</div></div>
+    <div class="plas-item"><span class="vic">⬆️</span><div>Cuando el cliente crece o requiere aprobación OEM específica, la progresión natural es <strong>→ Rando HD</strong> (Grupo II, más aprobaciones)</div></div>
+  </td>
+  <td>
+    <div class="val-col">
+      <div class="vi"><span class="vic">💲</span><div><strong>Precio muy competitivo</strong> — la relación costo-desempeño más atractiva del portafolio para equipos de baja-media exigencia</div></div>
+      <div class="vi"><span class="vic">📈</span><div><strong>Buena calidad Chevron</strong> — no es un aceite genérico: formulado con base parafínica seleccionada y aditivos AW probados</div></div>
+      <div class="vi"><span class="vic">⏱️</span><div><strong>Estabilidad >5,000 h</strong> — buen desempeño para intervalos de mantenimiento anuales</div></div>
+      <div class="vi"><span class="vic">✅</span><div><strong>Para equipos básicos</strong> sin requerimiento Arburg/Husky/KM — presupuesto ajustado sin sacrificar calidad de marca</div></div>
+    </div>
+  </td>
+</tr>
+<tr>
+  <td>
+    <div class="pn">Chevron Hydraulic Oil 5606A</div>
+    <div class="ps" style="color:#0369A1;font-weight:700;">Concepto similar al Rando HDZ · Para Frío Extremo</div>
+    <div class="ps">Mineral · VI 300+ · Rango −54°C a 60°C · Color Rojo · Solo Terrestre</div>
+    <div class="base bmin">Mineral Especial de Baja Viscosidad</div>
+  </td>
+  <td>
+    <span class="vtag">ISO 15</span>
+    <div class="cert-note" style="margin-top:3px">VI 300+ · Escurrimiento −63°C<br>cSt@40°C = 15 · cSt@−40°C = 510<br>cSt@−54°C = operativo</div>
+  </td>
+  <td>
+    <div class="cert-block">
+      <span class="cpill c-astm" style="background:#B45309;">VI 300+ (el más alto del portafolio)</span>
+      <span class="cpill c-astm">Uso Terrestre Solamente</span>
+      <div class="cert-note">Mejorador de VI resistente al cizallamiento.<br>Compatible con sellos de hule sintético.<br>Color rojo para identificación. No para aviación.</div>
+    </div>
+  </td>
+  <td>
+    <div class="spec-col">
+      <div><span class="sg-lbl r">› Aplicación Específica</span>
+      <div class="pills-wrap">
+        <span class="pill pill-r">Equipo terrestre en frío extremo (Vertiente Norte de Alaska)</span>
+        <span class="pill pill-r">Sistemas que operan de −54°C a 60°C</span>
+        <span class="pill pill-r">Equipos con sellos de hule sintético</span>
+      </div></div>
+      <div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:4px;padding:5px 7px;margin-top:5px;font-size:8.5px;color:#78350F;">
+        <strong>Diferencia vs. Rando HDZ:</strong> el HDZ (VI 145-160) es para uso industrial general con amplio rango de temperatura. El 5606A (VI 300+) va mucho más allá — para frío extremo severo donde ningún otro aceite convencional funciona. Ambos comparten el concepto de alto VI, pero el 5606A es el especialista de nicho.
+      </div>
+    </div>
+  </td>
+  <td class="plas-cell">
+    <div class="plas-na" style="color:#B45309;font-weight:600;">No es su aplicación primaria.</div>
+    <div class="plas-item"><span class="vic">❌</span><div>Para inyectoras en temperatura normal de fábrica <strong>no usar 5606A</strong> — su viscosidad ISO 15 es demasiado baja para sistemas hidráulicos de prensa.</div></div>
+    <div class="plas-item"><span class="vic">✅</span><div>Para <strong>equipos auxiliares en ambientes muy fríos</strong>: sistemas hidráulicos en exteriores norte de México o Baja California en invierno extremo.</div></div>
+  </td>
+  <td>
+    <div class="val-col">
+      <div class="vi"><span class="vic">❄️</span><div><strong>VI 300+ — el más alto del portafolio</strong> — concepto similar al HDZ pero llevado al extremo para condiciones de −54°C</div></div>
+      <div class="vi"><span class="vic">🎨</span><div><strong>Color rojo</strong> — identificación instantánea para prevenir mezclas accidentales con otros fluidos</div></div>
+      <div class="vi"><span class="vic">🔒</span><div><strong>Para sistemas con hule sintético</strong> — no usar en sistemas con hule natural o base aceite de ricino</div></div>
+      <div class="vi"><span class="vic">🎯</span><div><strong>Nicho muy específico</strong> — cuando el cliente opera equipo en condiciones de frío extremo donde el Rando HDZ ya no alcanza</div></div>
+    </div>
+  </td>
+</tr>
+</tbody></table></div></div>
+
+<!-- ═══ CLARITY AW + ELITESYN ═══ -->
+<div class="sec">
+<div class="sec-hdr" style="background:#5C1A75;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:10px;padding:7px 12px;">
+  <span>🟣</span><h2>Clarity® — Sin Zinc / Sin Ceniza · Alto Desempeño</h2><span class="cnt">2 Productos</span>
+</div>
+<div class="tbl-wrap"><table>
+<thead><tr>
+  <th>Producto / Base</th><th>Viscosidades ISO</th>
+  <th class="w-cert">Normas Cumplidas</th>
+  <th class="w-spec">Aprobaciones OEM</th>
+  <th class="w-plas" style="background:#EFF6FF;">🏭 En Inyección de Plástico</th>
+  <th class="w-val">Valor Agregado</th>
+</tr></thead>
+<tbody>
+<tr>
+  <td>
+    <div class="pn">Clarity® AW</div>
+    <div class="ps">Sin Zinc · Sin Ceniza · Largo Plazo TOST >10,000 h</div>
+    <div class="base" style="color:#5C1A75;font-weight:700;">Base Premium Sin Zinc</div>
+  </td>
+  <td>
+    <div class="vmulti">
+      <span class="vtag">ISO 32</span><span class="vtag">ISO 46</span><span class="vtag">ISO 68</span>
+    </div>
+    <div class="cert-note" style="margin-top:4px">TOST >10,000 h (3× mejor que Rando HD)<br>FZG etapa 12 · VI 107-115</div>
+  </td>
+  <td>
+    <div class="cert-block">
+      <span class="cpill c-din">DIN 51524-2 HLP</span>
+      <span class="cpill c-iso">ISO 11158 L-HM</span>
+      <span class="cpill c-astm">ASTM D6158 HM</span>
+      <span class="cpill c-nsf">NSF H2 (32,46,68)</span>
+      <div class="cert-note">Biodegradable inherente (OCDE 301D)<br>Sin zinc — compatible metales amarillos</div>
+    </div>
+  </td>
+  <td>
+    <div class="spec-col">
+      <div><span class="sg-lbl a">✔ Aprobado OEM</span>
+      <div class="pills-wrap">
+        <span class="pill pill-a">Parker Hannifin (Denison) HF-0,1,2</span>
+        <span class="pill pill-a">Danfoss/Eaton E-FDGN-TB002-E</span>
+        <span class="pill pill-a">NSF H2</span>
+      </div></div>
+      <div><span class="sg-lbl r">› Recomendado</span>
+      <div class="pills-wrap">
+        <span class="pill pill-r">Fives Cincinnati P-68/70/69</span>
+        <span class="pill pill-r">Krauss-Maffei Kunststofftechnik (ISO 46)</span>
+        <span class="pill pill-r">US Steel (AIST) 126/127</span>
+        <span class="pill pill-r">Hitachi / John Deere (JCMAS HK)</span>
+      </div></div>
+    </div>
+  </td>
+  <td class="plas-cell">
+    <div class="plas-badge">🏭 PREMIUM — Krauss-Maffei Recomendado</div>
+    <div class="plas-item"><span class="vic">✔</span><div><strong>Recomendado por Krauss-Maffei</strong> — el OEM de inyectoras de alta precisión para autopartes y electrónica</div></div>
+    <div class="plas-item"><span class="vic">🔬</span><div><strong>Sin zinc</strong> — no contamina componentes de metales amarillos (bronce, cobre) en servo-válvulas de alta precisión</div></div>
+    <div class="plas-item"><span class="vic">⏱️</span><div><strong>TOST >10,000 h</strong> — vida útil 3× mayor: menos cambios de aceite, menos paros de inyectoras para mantenimiento</div></div>
+    <div class="plas-item"><span class="vic">🧹</span><div><strong>Mínima formación de barniz y sedimentos</strong> — servo-válvulas limpias = ciclos de inyección precisos y reproducibles</div></div>
+    <div class="plas-item"><span class="vic">🌿</span><div><strong>Biodegradable inherente</strong> — cumple permisos ambientales de plantas con certificación ambiental</div></div>
+  </td>
+  <td>
+    <div class="val-col">
+      <div class="vi"><span class="vic">⏱️</span><div><strong>TOST >10,000 h</strong> — el intervalo de cambio más largo del portafolio mineral</div></div>
+      <div class="vi"><span class="vic">🔬</span><div><strong>Sin zinc</strong> — compatible con todas las aleaciones de cobre y bronce</div></div>
+      <div class="vi"><span class="vic">🌿</span><div><strong>Baja toxicidad acuática</strong> — para plantas con certificaciones ISO 14001</div></div>
+      <div class="vi"><span class="vic">♻️</span><div><strong>Facilita reciclaje</strong> de aceite usado — sin aditivos metálicos</div></div>
+    </div>
+  </td>
+</tr>
+
+<tr>
+  <td>
+    <div class="pn">Clarity® EliteSyn™ AW</div>
+    <div class="ps">Sintético · Sin Zinc · VI 164-191 · Máximo Desempeño</div>
+    <div class="base bsyn">100% Sintética · Sin Zinc</div>
+  </td>
+  <td>
+    <div class="vmulti">
+      <span class="vtag">ISO 32</span><span class="vtag">ISO 46</span><span class="vtag">ISO 68</span>
+    </div>
+    <div class="cert-note" style="margin-top:4px">VI 164-191 · Escurrimiento −52°C (ISO 32)<br>TOST >10,000 h · FZG >12</div>
+  </td>
+  <td>
+    <div class="cert-block">
+      <span class="cpill c-din">DIN 51524-2 HLP</span>
+      <span class="cpill c-din">DIN 51524-3 HVLP</span>
+      <span class="cpill c-iso">ISO 11158 L-HM / L-HV</span>
+      <span class="cpill c-astm">ASTM D6158 HM/HV</span>
+      <span class="cpill c-nsf">NSF H2</span>
+      <div class="cert-note">+6.2% productividad · +4.5% eficiencia combustible<br>+5% eficiencia en inyectoras de plástico</div>
+    </div>
+  </td>
+  <td>
+    <div class="spec-col">
+      <div><span class="sg-lbl a">✔ Aprobado OEM</span>
+      <div class="pills-wrap">
+        <span class="pill pill-a">Parker Hannifin (Denison) HF-0,1,2</span>
+        <span class="pill pill-a">Danfoss/Eaton E-FDGN-TB002-E</span>
+        <span class="pill pill-a">NSF H2</span>
+      </div></div>
+      <div><span class="sg-lbl r">› Recomendado</span>
+      <div class="pills-wrap">
+        <span class="pill pill-r">Fives Cincinnati P-68/70/69</span>
+        <span class="pill pill-r">Krauss-Maffei Kunststofftechnik (ISO 46)</span>
+        <span class="pill pill-r">US Steel (AIST) 126/127</span>
+      </div></div>
+    </div>
+  </td>
+  <td class="plas-cell">
+    <div class="plas-badge">🏭 TOP — +5% Eficiencia Comprobada en Inyectoras</div>
+    <div class="plas-item"><span class="vic">🏆</span><div><strong>+5% de eficiencia en máquinas de inyección de plástico</strong> vs. aceite monogrado — dato del fabricante del fluido</div></div>
+    <div class="plas-item"><span class="vic">⚡</span><div><strong>Respuesta hidráulica más rápida</strong> — el alto VI y baja viscosidad a temperatura de trabajo = ciclos más cortos, más piezas por turno</div></div>
+    <div class="plas-item"><span class="vic">🔬</span><div><strong>Mínima formación de barniz</strong> en servo-válvulas — la base sintética resiste oxidación a >200°C de aceite</div></div>
+    <div class="plas-item"><span class="vic">❄️</span><div><strong>Arranque a −40°C (ISO 32)</strong> — para plantas frías o turnos nocturnos en invierno de Baja California</div></div>
+    <div class="plas-item"><span class="vic">🌡️</span><div><strong>Reduce necesidad de cambio de viscosidad estacional</strong> — un solo grado todo el año en muchas aplicaciones</div></div>
+  </td>
+  <td>
+    <div class="val-col">
+      <div class="vi"><span class="vic">⚡</span><div><strong>+5% eficiencia en inyectoras de plástico</strong> — dato clave para el argumento de ROI</div></div>
+      <div class="vi"><span class="vic">📈</span><div><strong>+6.2% productividad y +4.5% eficiencia combustible</strong> en excavadoras (dato de campo Chevron)</div></div>
+      <div class="vi"><span class="vic">❄️</span><div><strong>VI 191</strong> (ISO 32) — el más alto del portafolio para temperatura amplia</div></div>
+      <div class="vi"><span class="vic">⏱️</span><div><strong>TOST >10,000 h</strong> con base sintética — menos cambios de aceite en toda la vida de la inyectora</div></div>
+    </div>
+  </td>
+</tr>
+</tbody></table></div></div>
+
+<!-- ═══ CLARITY BIO ELITESYN + HYDRAULIC AW + 5606A ═══ -->
+<div class="sec">
+<div class="sec-hdr" style="background:#0D6E3E;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:10px;padding:7px 12px;">
+  <span>🟢</span><h2>Clarity® Bio EliteSyn™ AW — Sintético Renovable · Biodegradable</h2><span class="cnt">1 Producto</span>
+</div>
+<div class="tbl-wrap"><table>
+<thead><tr>
+  <th>Producto / Base</th><th>Viscosidad</th>
+  <th class="w-cert">Normas / Certif.</th>
+  <th class="w-spec">Aprobaciones OEM</th>
+  <th class="w-plas" style="background:#EFF6FF;">🏭 En Inyección de Plástico</th>
+  <th class="w-val">Valor Agregado</th>
+</tr></thead>
+<tbody>
+<tr>
+  <td>
+    <div class="pn">Clarity® Bio EliteSyn™ AW</div>
+    <div class="ps">Sintético Renovable · >85% Bio · Fácilmente Biodegradable · EU Ecolabel</div>
+    <div class="base beco">Sintética Renovable (Bio)</div>
+  </td>
+  <td>
+    <div class="vmulti">
+      <span class="vtag">ISO 32</span><span class="vtag">ISO 46</span><span class="vtag">ISO 68</span>
+    </div>
+    <div class="cert-note" style="margin-top:4px">VI 164-175 · >60% biodegradación en 28 días<br>Ecotox: LC-50 >100 mg/L</div>
+  </td>
+  <td>
+    <div class="cert-block">
+      <span class="cpill c-eco">EU Ecolabel BE/027/006</span>
+      <span class="cpill c-eco">USDA BioPreferred®</span>
+      <span class="cpill c-din">DIN 51524-3 HVLP</span>
+      <span class="cpill c-iso">ISO 11158 L-HV</span>
+      <span class="cpill c-iso">ISO 15380 Clase HEPR</span>
+      <span class="cpill c-astm">ASTM D6158 HV</span>
+      <span class="cpill c-astm">ASTM D8324-21 (VGP 2013)</span>
+    </div>
+  </td>
+  <td>
+    <div class="spec-col">
+      <div><span class="sg-lbl a">✔ Aprobado OEM</span>
+      <div class="pills-wrap">
+        <span class="pill pill-a">Parker Hannifin (Denison) HF-1, HF-6</span>
+        <span class="pill pill-a">Danfoss/Eaton E-FDGN-TB002-E</span>
+        <span class="pill pill-a">EU Ecolabel</span>
+        <span class="pill pill-a">Swedish Standard SS 155434</span>
+        <span class="pill pill-a">Kobelco Eagle KEMEL (ISO 68)</span>
+        <span class="pill pill-a">AEGIR Marine (ISO 68)</span>
+        <span class="pill pill-a">USDA BioPreferred®</span>
+      </div></div>
+      <div><span class="sg-lbl r">› Recomendado</span>
+      <div class="pills-wrap">
+        <span class="pill pill-r">Fives Cincinnati P-68/70/69</span>
+        <span class="pill pill-r">Hitachi / JCMAS HK (32/46)</span>
+      </div></div>
+    </div>
+  </td>
+  <td class="plas-cell">
+    <div class="plas-badge">🏭 CERTIFICACIÓN AMBIENTAL ISO 14001</div>
+    <div class="plas-item"><span class="vic">🌿</span><div><strong>Para plantas con certificación ambiental</strong> o que fabrican plásticos para mercados europeos que exigen fluidos biodegradables</div></div>
+    <div class="plas-item"><span class="vic">♻️</span><div><strong>>60% biodegradable en 28 días</strong> — en caso de derrame en piso de producción, mínimo impacto ambiental y menos multas</div></div>
+    <div class="plas-item"><span class="vic">⚡</span><div><strong>Mismo desempeño que EliteSyn</strong> con base renovable — no se sacrifica rendimiento por ecología</div></div>
+    <div class="plas-item"><span class="vic">📋</span><div><strong>Compatible NBR y FKM</strong> — los sellos estándar de la mayoría de inyectoras</div></div>
+  </td>
+  <td>
+    <div class="val-col">
+      <div class="vi"><span class="vic">🌿</span><div><strong>>85% base renovable</strong> — posiciona al cliente como empresa sostenible</div></div>
+      <div class="vi"><span class="vic">🇪🇺</span><div><strong>EU Ecolabel + USDA BioPreferred</strong> — las dos certificaciones verdes más reconocidas</div></div>
+      <div class="vi"><span class="vic">⏱️</span><div><strong>TOST >10,000 h</strong> — supera a los aceites vegetales biodegradables en vida útil</div></div>
+    </div>
+  </td>
+</tr>
+
+
+</tbody></table></div></div>
+
+<!-- TABLA COMPARATIVA DE DATOS TÉCNICOS -->
+<div class="glosario">
+  <h3>📊 Comparativa de Datos Técnicos Clave</h3>
+  <table class="data-tbl">
+    <thead>
+      <tr>
+        <th>Producto</th><th>Base</th><th>Viscosidades ISO</th>
+        <th>Índice Viscosidad</th><th>Escurrimiento °C</th>
+        <th>TOST (h)</th><th>FZG etapa</th><th>Sin Zinc</th><th>NSF H2</th><th>DIN 51524</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Rando HD</strong></td><td>Mineral Gpo. II</td><td>10–320</td><td>97–110</td><td>−60 a −12</td><td>>6,000</td><td>12</td><td>No</td><td>Sí</td><td>HLP (Parte 2)</td></tr>
+      <tr><td><strong>Rando HDZ</strong></td><td>Mineral + VI</td><td>15–100</td><td>145–160</td><td>−62 a −40</td><td>>6,000</td><td>12</td><td>No</td><td>No</td><td>HLP + HVLP</td></tr>
+      <tr><td><strong>Rando HD Premium MV</strong></td><td>Mineral + VI</td><td>32</td><td>180</td><td>−50</td><td>—</td><td>—</td><td>No</td><td>No</td><td>HVLP (Parte 3)</td></tr>
+      <tr><td><strong>Rando WM</strong></td><td>Mineral Especial</td><td>32</td><td>180</td><td>−48</td><td>—</td><td>10</td><td>No</td><td>No</td><td>HVLP (Parte 3)</td></tr>
+      <tr><td><strong>Hydraulic AW</strong> ⭐ Oferta Económica</td><td>Mineral Parafínico</td><td>32–68</td><td>98–99</td><td>−22 a −25</td><td>>5,000</td><td>—</td><td>No</td><td>Sí</td><td>HLP (Parte 2)</td></tr>
+      <tr><td><strong>Clarity AW</strong></td><td>Premium Sin Zinc</td><td>32–68</td><td>107–115</td><td>−35 a −40</td><td><strong>>10,000</strong></td><td>12</td><td><strong>Sí</strong></td><td>Sí</td><td>HLP (Parte 2)</td></tr>
+      <tr><td><strong>Clarity EliteSyn AW</strong></td><td>Sintética Sin Zinc</td><td>32–68</td><td>164–191</td><td>−44 a −52</td><td><strong>>10,000</strong></td><td>>12</td><td><strong>Sí</strong></td><td>Sí</td><td>HLP + HVLP</td></tr>
+      <tr><td><strong>Clarity Bio EliteSyn AW</strong></td><td>Sintética Renovable</td><td>32–68</td><td>164–175</td><td>−35 a −46</td><td><strong>>10,000</strong></td><td>>12</td><td><strong>Sí</strong></td><td>No</td><td>HVLP (Parte 3)</td></tr>
+      <tr><td><strong>Hydr. 5606A</strong> (similar HDZ, frío extremo)</td><td>Mineral Especial</td><td>15</td><td><strong>300+</strong></td><td><strong>−63</strong></td><td>—</td><td>—</td><td>No</td><td>No</td><td>—</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- GLOSARIO -->
+<div class="glosario">
+  <h3>Glosario de Normas y Especificaciones</h3>
+  <div class="glos-grid">
+    <div class="glos-item"><strong>DIN 51524-2 (HLP):</strong> Norma alemana para aceites hidráulicos antidesgaste estándar. La más requerida por OEM europeos de máquinas de inyección (Arburg, Krauss-Maffei, Engel).</div>
+    <div class="glos-item"><strong>DIN 51524-3 (HVLP):</strong> Variante de alto índice de viscosidad (VI mínimo 150). Para sistemas que operan en amplio rango de temperatura o con variaciones estacionales.</div>
+    <div class="glos-item"><strong>ISO 11158 L-HM:</strong> Estándar ISO equivalente al DIN HLP. L-HV es la variante de alto VI equivalente al HVLP.</div>
+    <div class="glos-item"><strong>Parker Hannifin / Denison HF-0,1,2:</strong> Las especificaciones de Parker para bombas hidráulicas de pistón axial y paletas. HF-0 es la más exigente y cubre todas las aplicaciones.</div>
+    <div class="glos-item"><strong>Danfoss/Eaton E-FDGN-TB002-E:</strong> La especificación más actual de Danfoss/Eaton para bombas hidráulicas. Reemplaza las anteriores M-2950S e I-286.</div>
+    <div class="glos-item"><strong>Arburg Injection Molding:</strong> Aprobación directa del fabricante de inyectoras Arburg para uso en sus sistemas hidráulicos. Simplifica la selección del aceite para el cliente.</div>
+    <div class="glos-item"><strong>NSF H2:</strong> Certificación para lubricantes en instalaciones de procesamiento de alimentos donde no hay posibilidad de contacto con el alimento (incidental H1 no aplica aquí).</div>
+    <div class="glos-item"><strong>FZG (DIN 51354):</strong> Prueba de engranajes que mide resistencia a rayaduras. Etapa 12 es el máximo — ningún aceite en la prueba falla. Crítico para bombas de engranajes.</div>
+    <div class="glos-item"><strong>TOST (ASTM D943):</strong> Prueba de estabilidad a la oxidación. Horas hasta que el aceite se degrada. HD: >6,000 h. Clarity: >10,000 h. Más horas = más tiempo entre cambios.</div>
+    <div class="glos-item"><strong>Índice de Viscosidad (VI):</strong> Qué tan poco cambia la viscosidad con la temperatura. VI 100 = convencional. VI 150+ = alto VI. VI 180+ = multiviscosidad amplia. Más alto = mejor protección en todo el rango.</div>
+    <div class="glos-item"><strong>Krauss-Maffei KMT:</strong> El fabricante alemán de inyectoras premium para autopartes, electrónica y envases. Recomienda Clarity AW / EliteSyn para sus sistemas hidráulicos.</div>
+    <div class="glos-item"><strong>Fives Cincinnati (MAG Cincinnati):</strong> Fabricante de centros de maquinado CNC de alta velocidad. Las especificaciones P-68, P-70 y P-69 son requeridas por sus sistemas hidráulicos y de lubricación de husillo.</div>
+  </div>
+</div>
+
+</div><!-- /main -->
+<div class="footer">
+  <strong>Procesadora de Servicios Magg's — Lumaggs</strong> · Distribuidor Autorizado Exclusivo de Lubricantes Premium Chevron en Baja California, México<br>
+  Información extraída de las Fichas Técnicas (PDS) oficiales Chevron vigentes. Confirme siempre con el manual del fabricante del equipo.<br>
+  © Chevron U.S.A. Inc. Todos los derechos reservados.
+</div>
+</body></html>
