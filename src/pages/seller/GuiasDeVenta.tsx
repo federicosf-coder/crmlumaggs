@@ -1,42 +1,77 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, ArrowLeft, Search, FileText, X } from "lucide-react";
+import { BookOpen, ArrowLeft, Search, FileText, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
+type Categoria = "Comparativo" | "Guía de Venta" | "Buscador";
 type Guia = {
   id: string;
   titulo: string;
   resumen: string;
-  categoria: "Comparativo" | "Guía de Venta" | "Ficha Técnica";
-  html: string;
+  categoria: Categoria;
+  file: string; // ruta pública dentro de /public/guias
 };
 
-// Placeholder content — el usuario subirá los HTML reales después.
 const GUIAS: Guia[] = [
   {
-    id: "demo-1",
-    titulo: "Ejemplo: Comparativo de Aceites de Motor",
-    resumen: "Comparación entre líneas Chevron y Phillips 66 para uso automotriz.",
+    id: "motor-comp",
+    titulo: "Aceites de Motor Chevron — Cuadro Comparativo",
+    resumen: "Comparativo de líneas Delo, Havoline y Ursa para uso automotriz y pesado.",
     categoria: "Comparativo",
-    html: `<div style="font-family: system-ui; padding: 1rem;">
-      <h2>Comparativo de Aceites de Motor</h2>
-      <p>Aquí irá el contenido HTML real que subas. Este es un ejemplo de cómo se visualizará.</p>
-      <ul><li>Chevron Delo</li><li>Phillips 66 Guardol</li></ul>
-    </div>`,
+    file: "/guias/lumaggs_motor_comparacion.html",
   },
   {
-    id: "demo-2",
-    titulo: "Ejemplo: Guía del Vendedor — Aceites Hidráulicos",
-    resumen: "Argumentos de venta, objeciones comunes y casos de éxito.",
+    id: "motor-guia",
+    titulo: "Guía de Ventas — Aceites de Motor Chevron",
+    resumen: "Argumentos de venta, beneficios clave y manejo de objeciones para motores.",
     categoria: "Guía de Venta",
-    html: `<div style="font-family: system-ui; padding: 1rem;">
-      <h2>Guía del Vendedor — Aceites Hidráulicos</h2>
-      <p>Reemplaza este contenido con tu HTML real.</p>
-    </div>`,
+    file: "/guias/lumaggs_motor_guia_ventas.html",
+  },
+  {
+    id: "hidra-comp",
+    titulo: "Aceites Hidráulicos Chevron — Cuadro Comparativo",
+    resumen: "Líneas Rando y Clarity comparadas por viscosidad, aditivos y aplicación.",
+    categoria: "Comparativo",
+    file: "/guias/lumaggs_hidraulicos_comparacion.html",
+  },
+  {
+    id: "hidra-guia",
+    titulo: "Guía de Ventas — Aceites Hidráulicos Chevron",
+    resumen: "Cómo recomendar hidráulicos según equipo, ambiente y normas OEM.",
+    categoria: "Guía de Venta",
+    file: "/guias/lumaggs_hidraulicos_guia_ventas.html",
+  },
+  {
+    id: "trans-comp",
+    titulo: "Lubricantes de Transmisión Chevron — Comparativo",
+    resumen: "ATF, MTF y diferenciales: especificaciones y equivalencias.",
+    categoria: "Comparativo",
+    file: "/guias/lumaggs_transmisiones_comparacion.html",
+  },
+  {
+    id: "trans-guia",
+    titulo: "Guía de Ventas — Transmisiones Chevron",
+    resumen: "Argumentos y casos de uso para venta de lubricantes de transmisión.",
+    categoria: "Guía de Venta",
+    file: "/guias/lumaggs_transmisiones_guia_ventas.html",
+  },
+  {
+    id: "motor-chev",
+    titulo: "Cuadro Comparativo Aceites de Motor Chevron (extendido)",
+    resumen: "Vista detallada con especificaciones API, ACEA y OEM por producto.",
+    categoria: "Comparativo",
+    file: "/guias/lumaggs_chevron_motor_oils.html",
+  },
+  {
+    id: "buscador",
+    titulo: "Buscador de Aceite por Equipo",
+    resumen: "Herramienta para localizar el aceite recomendado según marca/modelo de equipo.",
+    categoria: "Buscador",
+    file: "/guias/lumaggs_buscador_por_equipo.html",
   },
 ];
 
@@ -121,31 +156,37 @@ export default function GuiasDeVenta() {
       </div>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-          <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-violet-50 to-blue-50">
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[92vh] max-h-[92vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="px-6 py-3 border-b bg-gradient-to-r from-violet-50 to-blue-50">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <DialogTitle className="text-lg">{selected?.titulo}</DialogTitle>
+                <DialogTitle className="text-base">{selected?.titulo}</DialogTitle>
                 {selected && (
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground mt-1">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-0.5">
                     {selected.categoria}
                   </p>
                 )}
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setSelected(null)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                {selected && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={selected.file} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir en pestaña
+                    </a>
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => setSelected(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </DialogHeader>
-          <div className="flex-1 overflow-auto bg-white">
+          <div className="flex-1 overflow-hidden bg-white">
             {selected && (
-              <div
-                className="prose prose-sm max-w-none p-6"
-                dangerouslySetInnerHTML={{ __html: selected.html }}
+              <iframe
+                src={selected.file}
+                title={selected.titulo}
+                className="w-full h-full border-0"
               />
             )}
           </div>
