@@ -55,6 +55,7 @@ import ReportsLanding from "@/pages/reports/ReportsLanding";
 import DailyDeliveryReport from "@/pages/reports/DailyDeliveryReport";
 import DailyActivityReport from "@/pages/reports/DailyActivityReport";
 import SellerPortal from "@/pages/seller/SellerPortal";
+import GuiasDeVenta from "@/pages/seller/GuiasDeVenta";
 import TrainingPage from "@/pages/training/TrainingPage";
 import AutomationsPage from "@/pages/automations/AutomationsPage";
 import AutomationEditorPage from "@/pages/automations/AutomationEditorPage";
@@ -156,6 +157,7 @@ const App = () => (
             <Route path="/reports/daily-delivery" element={<ProtectedRoute><DailyDeliveryReport /></ProtectedRoute>} />
             <Route path="/reports/daily-activity" element={<ProtectedRoute><DailyActivityReport /></ProtectedRoute>} />
             <Route path="/seller-portal" element={<ProtectedRoute><SellerPortal /></ProtectedRoute>} />
+            <Route path="/seller-portal/guias-de-venta" element={<ProtectedRoute><GuiasDeVenta /></ProtectedRoute>} />
             <Route path="/automations" element={<ProtectedRoute><AutomationsPage /></ProtectedRoute>} />
             <Route path="/automations/new" element={<ProtectedRoute><AutomationEditorPage /></ProtectedRoute>} />
             <Route path="/automations/:id/edit" element={<ProtectedRoute><AutomationEditorPage /></ProtectedRoute>} />
