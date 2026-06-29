@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Download, Star, Trash2 } from "lucide-react";
+import { Download, Eye, Star, Trash2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -36,6 +36,17 @@ export function ArchivoVersionesDialog({ open, onOpenChange, archivo, onChanged 
   useEffect(() => {
     if (open) load();
   }, [open, archivo?.id]);
+
+  const openInline = async (v: any) => {
+    const { data, error } = await supabase.storage
+      .from("biblioteca")
+      .createSignedUrl(v.storage_path, 300);
+    if (error || !data?.signedUrl) {
+      toast.error("No se pudo generar el enlace");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
 
   const download = async (v: any) => {
     const { data, error } = await supabase.storage
@@ -88,7 +99,7 @@ export function ArchivoVersionesDialog({ open, onOpenChange, archivo, onChanged 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl p-0 overflow-hidden">
         <DialogHeader className="px-6 py-4 bg-gradient-to-r from-violet-50 to-blue-50 border-b">
-          <DialogTitle className="text-xl font-light tracking-tight">Historial de versiones</DialogTitle>
+          <DialogTitle className="text-xl font-light tracking-tight">Sub-archivos / Versiones</DialogTitle>
           <p className="text-sm text-muted-foreground font-light truncate">{archivo?.nombre}</p>
         </DialogHeader>
         <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">
@@ -114,6 +125,9 @@ export function ArchivoVersionesDialog({ open, onOpenChange, archivo, onChanged 
                       {v.notas_cambio && <p className="text-xs italic text-muted-foreground mt-1">"{v.notas_cambio}"</p>}
                     </div>
                     <div className="flex items-center gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => openInline(v)} title="Ver en el navegador">
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => download(v)} title="Descargar">
                         <Download className="h-3.5 w-3.5" />
                       </Button>

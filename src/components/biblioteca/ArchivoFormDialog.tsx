@@ -32,7 +32,7 @@ export function ArchivoFormDialog({ open, onOpenChange, categorias, archivo, def
   const [vigDesde, setVigDesde] = useState("");
   const [vigHasta, setVigHasta] = useState("");
   const [etiquetas, setEtiquetas] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [notasCambio, setNotasCambio] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -56,7 +56,7 @@ export function ArchivoFormDialog({ open, onOpenChange, categorias, archivo, def
       setVigHasta("");
       setEtiquetas("");
     }
-    setFile(null);
+    setFiles([]);
     setNotasCambio("");
   }, [archivo, open, defaultCategoriaId, categorias]);
 
@@ -65,8 +65,8 @@ export function ArchivoFormDialog({ open, onOpenChange, categorias, archivo, def
       toast.error("El nombre es obligatorio");
       return;
     }
-    if (!isEdit && !file) {
-      toast.error("Debes seleccionar un archivo para subir");
+    if (!isEdit && files.length === 0) {
+      toast.error("Debes seleccionar al menos un archivo para subir");
       return;
     }
     if (!user) return;
@@ -98,17 +98,9 @@ export function ArchivoFormDialog({ open, onOpenChange, categorias, archivo, def
         archivoId = (data as any).id;
       }
 
-      // Upload file if provided
-      if (file && archivoId) {
-        const ext = file.name.split(".").pop() || "bin";
-        const path = `${archivoId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("biblioteca").upload(path, file, {
-          contentType: file.type || undefined,
-          upsert: false,
-        });
-        if (upErr) throw upErr;
-
-        // Get next version number
+      // Upload files if provided (multiple supported as sub-archivos)
+      if (files.length > 0 && archivoId) {
+        // Get next version starting number
         const { data: lastVer } = await supabase
           .from("biblioteca_versiones" as any)
           .select("version")
@@ -116,28 +108,43 @@ export function ArchivoFormDialog({ open, onOpenChange, categorias, archivo, def
           .order("version", { ascending: false })
           .limit(1)
           .maybeSingle();
-        const nextVersion = ((lastVer as any)?.version || 0) + 1;
+        let nextVersion = ((lastVer as any)?.version || 0) + 1;
+        let lastInsertedId: string | null = null;
 
-        const { data: verData, error: verErr } = await supabase
-          .from("biblioteca_versiones" as any)
-          .insert({
-            archivo_id: archivoId,
-            version: nextVersion,
-            storage_path: path,
-            nombre_archivo: file.name,
-            size_bytes: file.size,
-            mime_type: file.type || null,
-            notas_cambio: notasCambio.trim() || null,
-            subido_por: user.id,
-          })
-          .select("id")
-          .single();
-        if (verErr) throw verErr;
+        for (const f of files) {
+          const ext = f.name.split(".").pop() || "bin";
+          const path = `${archivoId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          const { error: upErr } = await supabase.storage.from("biblioteca").upload(path, f, {
+            contentType: f.type || undefined,
+            upsert: false,
+          });
+          if (upErr) throw upErr;
 
-        await supabase
-          .from("biblioteca_archivos" as any)
-          .update({ current_version_id: (verData as any).id })
-          .eq("id", archivoId);
+          const { data: verData, error: verErr } = await supabase
+            .from("biblioteca_versiones" as any)
+            .insert({
+              archivo_id: archivoId,
+              version: nextVersion,
+              storage_path: path,
+              nombre_archivo: f.name,
+              size_bytes: f.size,
+              mime_type: f.type || null,
+              notas_cambio: notasCambio.trim() || null,
+              subido_por: user.id,
+            })
+            .select("id")
+            .single();
+          if (verErr) throw verErr;
+          lastInsertedId = (verData as any).id;
+          nextVersion += 1;
+        }
+
+        if (lastInsertedId) {
+          await supabase
+            .from("biblioteca_archivos" as any)
+            .update({ current_version_id: lastInsertedId })
+            .eq("id", archivoId);
+        }
       }
 
       toast.success(isEdit ? "Archivo actualizado" : "Archivo creado");
@@ -224,28 +231,36 @@ export function ArchivoFormDialog({ open, onOpenChange, categorias, archivo, def
 
           <div className="border-t pt-5">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-              {isEdit ? "Subir nueva versión (opcional)" : "Archivo *"}
+              {isEdit ? "Agregar sub-archivos (opcional)" : "Archivos * (puedes seleccionar varios)"}
             </Label>
             <div className="mt-2 border-2 border-dashed rounded-lg p-6 text-center">
               <input
                 type="file"
                 id="biblioteca-file"
                 className="hidden"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                multiple
+                onChange={(e) => setFiles(Array.from(e.target.files || []))}
               />
               <label htmlFor="biblioteca-file" className="cursor-pointer">
                 <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                {file ? (
-                  <div>
-                    <p className="text-sm font-medium">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
+                {files.length > 0 ? (
+                  <div className="space-y-1 text-left max-h-40 overflow-y-auto">
+                    <p className="text-xs font-medium text-center text-muted-foreground mb-2">
+                      {files.length} archivo{files.length === 1 ? "" : "s"} seleccionado{files.length === 1 ? "" : "s"}
+                    </p>
+                    {files.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs bg-muted/40 rounded px-2 py-1">
+                        <span className="truncate flex-1">{f.name}</span>
+                        <span className="text-muted-foreground ml-2 shrink-0">{(f.size / 1024).toFixed(1)} KB</span>
+                      </div>
+                    ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Haz clic para seleccionar un archivo</p>
+                  <p className="text-sm text-muted-foreground">Haz clic para seleccionar uno o varios archivos</p>
                 )}
               </label>
             </div>
-            {isEdit && file && (
+            {isEdit && files.length > 0 && (
               <div className="mt-3">
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">Notas del cambio</Label>
                 <Input value={notasCambio} onChange={(e) => setNotasCambio(e.target.value)} placeholder="Ej. Actualización de precios Q1" />
