@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import {
   Search, Upload, FileText, Folder, DollarSign, FileSignature,
   Megaphone, BookOpen, Download, History, Trash2, Pencil, Settings,
-  ChevronRight, ChevronDown,
+  ChevronRight, ChevronDown, Eye, Files,
 } from "lucide-react";
 import { ArchivoFormDialog } from "@/components/biblioteca/ArchivoFormDialog";
 import { ArchivoVersionesDialog } from "@/components/biblioteca/ArchivoVersionesDialog";
@@ -75,6 +75,7 @@ export default function Biblioteca() {
   const [catsManagerOpen, setCatsManagerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [subCounts, setSubCounts] = useState<Map<string, number>>(new Map());
 
   const isAdmin = hasRole("admin");
   const isManager = hasRole("manager");
@@ -87,6 +88,14 @@ export default function Biblioteca() {
     ]);
     setCategorias((cats as any) || []);
     setArchivos((archs as any) || []);
+    const { data: vers } = await supabase
+      .from("biblioteca_versiones" as any)
+      .select("archivo_id");
+    const m = new Map<string, number>();
+    ((vers as any) || []).forEach((v: any) => {
+      m.set(v.archivo_id, (m.get(v.archivo_id) || 0) + 1);
+    });
+    setSubCounts(m);
     setLoading(false);
   };
 
@@ -173,9 +182,9 @@ export default function Biblioteca() {
     );
   };
 
-  const handleDownload = async (arch: Archivo) => {
+  const handleView = async (arch: Archivo) => {
     if (!arch.current_version_id) {
-      toast.error("Este archivo aún no tiene versiones");
+      toast.error("Este archivo aún no tiene contenido");
       return;
     }
     const { data: ver } = await supabase
@@ -184,24 +193,17 @@ export default function Biblioteca() {
       .eq("id", arch.current_version_id)
       .maybeSingle();
     if (!ver) {
-      toast.error("No se encontró la versión");
+      toast.error("No se encontró el archivo");
       return;
     }
     const { data, error } = await supabase.storage
       .from("biblioteca")
       .createSignedUrl((ver as any).storage_path, 300);
     if (error || !data?.signedUrl) {
-      toast.error("No se pudo generar el enlace de descarga");
+      toast.error("No se pudo generar el enlace");
       return;
     }
-    const a = document.createElement("a");
-    a.href = data.signedUrl;
-    a.download = (ver as any).nombre_archivo || arch.nombre;
-    a.target = "_blank";
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleDelete = async (arch: Archivo) => {
@@ -358,12 +360,13 @@ export default function Biblioteca() {
                       ))}
                     </div>
                     <div className="mt-auto flex items-center gap-1 pt-2 border-t">
-                      <Button size="sm" variant="ghost" className="h-8 px-2 flex-1" onClick={() => handleDownload(arch)}>
-                        <Download className="h-3.5 w-3.5 mr-1" />
-                        <span className="text-xs">Descargar</span>
+                      <Button size="sm" variant="ghost" className="h-8 px-2 flex-1" onClick={() => handleView(arch)} title="Ver en navegador">
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        <span className="text-xs">Ver</span>
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setVersionesOf(arch)} title="Versiones">
-                        <History className="h-3.5 w-3.5" />
+                      <Button size="sm" variant="ghost" className="h-8 px-2 gap-1" onClick={() => setVersionesOf(arch)} title="Sub-archivos / Versiones">
+                        <Files className="h-3.5 w-3.5" />
+                        <span className="text-xs">{subCounts.get(arch.id) || 0}</span>
                       </Button>
                       {canEdit && (
                         <>
