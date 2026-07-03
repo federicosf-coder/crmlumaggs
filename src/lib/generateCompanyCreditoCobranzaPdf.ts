@@ -50,15 +50,9 @@ export function buildCompanyCreditoCobranzaPdfDoc(d: CompanyCreditoCobranzaData)
     { title: "Total Facturado", value: fmt(d.totalFacturadoImporte), subtitle: `${d.totalFacturadoCount} facturas`, color: brandColor },
     { title: "En Tiempo", value: fmt(d.vigenteImporte), subtitle: `${d.vigenteCount} facturas`, color: success },
     { title: "Vencido", value: fmt(d.vencidoImporte), subtitle: `${d.vencidoCount} facturas`, color: destructive },
-    {
-      title: "Total Facturas Pagadas",
-      value: `${d.pagadasCount}`,
-      subtitle: "Facturas pagadas en total",
-      color: brandColor,
-    },
   ];
   const gap = 8;
-  const cardW = (pageW - margin * 2 - gap * 3) / 4;
+  const cardW = (pageW - margin * 2 - gap * 2) / 3;
   const cardH = 52;
   cards.forEach((c, i) => {
     const x = margin + i * (cardW + gap);
