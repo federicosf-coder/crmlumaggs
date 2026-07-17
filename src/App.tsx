@@ -66,6 +66,7 @@ import CreditoConfiguracion from "@/pages/credito/CreditoConfiguracion";
 import CreditoPortal from "@/pages/credito/CreditoPortal";
 import CreditoShortRedirect from "@/pages/credito/CreditoShortRedirect";
 import CreditoImprimir from "@/pages/credito/CreditoImprimir";
+import OAuthConsent from "@/pages/OAuthConsent";
 
 const queryClient = new QueryClient();
 
@@ -83,7 +84,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Cargando...</div>;
-  if (session) return <Navigate to="/" replace />;
+  if (session) {
+    const params = new URLSearchParams(window.location.search);
+    const rawNext = params.get("next") || "/";
+    const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+    return <Navigate to={next} replace />;
+  }
   return <>{children}</>;
 }
 
@@ -102,6 +108,7 @@ const App = () => (
             <Route path="/p/:code" element={<CreditoShortRedirect />} />
             <Route path="/credito/:id/imprimir/:firmaKey" element={<CreditoImprimir />} />
             <Route path="/portal/credito/:token/imprimir/:firmaKey" element={<CreditoImprimir />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
 
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

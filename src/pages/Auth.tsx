@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,10 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const rawNext = params.get("next") || "/";
+  // Only allow same-origin relative paths to prevent open-redirects.
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +33,7 @@ export default function Auth() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
-    navigate("/");
+    navigate(next, { replace: true });
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -40,7 +44,7 @@ export default function Auth() {
       password,
       options: {
         data: { full_name: fullName, phone },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: window.location.origin + next,
       },
     });
     setLoading(false);

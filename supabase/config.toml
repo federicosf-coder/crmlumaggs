@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.credito-send-reminders]
 verify_jwt = true
+
+[functions.mcp]
+verify_jwt = false

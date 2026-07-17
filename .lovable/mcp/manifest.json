@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "sdk_version": "0.23.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://fnqeicdqblkhfpyboxre.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "lumaggs-portal-mcp",
+      "version": "0.1.0",
+      "title": "Portal Lumaggs / Galsa"
+    },
+    "tools": [
+      {
+        "name": "whoami",
+        "title": "Quién soy",
+        "description": "Devuelve el perfil del usuario autenticado (nombre, email, roles y plaza).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_companies",
+        "title": "Buscar empresas",
+        "description": "Busca empresas (clientes/prospectos) en el directorio por nombre o razón social. Devuelve hasta 20 coincidencias que el usuario autenticado tenga permitido ver.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Texto a buscar en el nombre o razón social."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Máximo de resultados (por defecto 20)."
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_overdue_invoices",
+        "title": "Listar facturas vencidas",
+        "description": "Lista las facturas con estatus distinto a 'pagada' y saldo pendiente, para las empresas visibles por el usuario autenticado. Devuelve hasta 50 registros ordenados por fecha de vencimiento.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "company_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Filtrar por una empresa específica."
+            },
+            "only_overdue": {
+              "type": "boolean",
+              "description": "Si es true, solo devuelve facturas ya vencidas (fecha_vencimiento < hoy)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Máximo de resultados (por defecto 50)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_pending_activities",
+        "title": "Listar actividades y tareas pendientes",
+        "description": "Devuelve las actividades/tareas CRM pendientes que el usuario autenticado puede ver (según sus permisos).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Máximo de resultados (por defecto 30)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
