@@ -22,7 +22,7 @@ export default defineTool({
     });
     let q = client
       .from("documents")
-      .select("id,numero,fecha,fecha_vencimiento,total,saldo,moneda,estatus_factura,company_id,companies(nombre)")
+      .select("id,numero,fecha,fecha_vencimiento,total,saldo_pendiente_cobranza,monto_pagado,estatus_factura,company_id,companies(name)")
       .eq("tipo_documento", "factura")
       .neq("estatus_factura", "pagada")
       .order("fecha_vencimiento", { ascending: true })

@@ -23,8 +23,8 @@ export default defineTool({
     const q = query.replace(/[%,]/g, " ").trim();
     const { data, error } = await client
       .from("companies")
-      .select("id,nombre,razon_social,rfc,tipo,estatus")
-      .or(`nombre.ilike.%${q}%,razon_social.ilike.%${q}%`)
+      .select("id,name,razon_social,industry,phone,email,website")
+      .or(`name.ilike.%${q}%,razon_social.ilike.%${q}%`)
       .limit(max);
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     const rows = data ?? [];

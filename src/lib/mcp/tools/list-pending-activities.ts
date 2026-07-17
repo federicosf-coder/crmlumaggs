@@ -20,9 +20,9 @@ export default defineTool({
     });
     const { data, error } = await client
       .from("crm_tasks")
-      .select("id,titulo,descripcion,fecha_programada,estatus,prioridad,company_id,tipo,responsable_id")
-      .in("estatus", ["pendiente", "en_progreso"])
-      .order("fecha_programada", { ascending: true })
+      .select("id,title,description,due_date,completed,priority,task_type,company_id,contact_id,companies(name)")
+      .eq("completed", false)
+      .order("due_date", { ascending: true, nullsFirst: false })
       .limit(limit ?? 30);
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     const rows = data ?? [];
