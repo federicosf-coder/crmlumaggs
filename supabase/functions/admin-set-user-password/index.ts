@@ -37,7 +37,16 @@ Deno.serve(async (req) => {
     }
 
     const { error: updErr } = await admin.auth.admin.updateUserById(user_id, { password });
-    if (updErr) return json({ error: updErr.message }, 400);
+    if (updErr) {
+      const msg = updErr.message || "";
+      if (/weak|pwned|leaked|known/i.test(msg)) {
+        return json({
+          error:
+            "La contraseña es demasiado común o ha aparecido en filtraciones conocidas. Elige una más segura (mezcla mayúsculas, minúsculas, números y símbolos).",
+        }, 400);
+      }
+      return json({ error: msg || "No se pudo actualizar la contraseña" }, 400);
+    }
 
     return json({ ok: true }, 200);
   } catch (e) {
