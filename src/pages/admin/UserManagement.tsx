@@ -124,7 +124,7 @@ export default function UserManagement() {
       body: { user_id: pwdUser.user_id, password: pwdNew },
     });
     setPwdBusy(false);
-    const errMsg = (data as any)?.error || error?.message;
+    const errMsg = await extractFnError(data, error);
     if (errMsg) {
       toast({ title: "Error", description: errMsg, variant: "destructive" });
       return;
@@ -385,7 +385,7 @@ export default function UserManagement() {
         const { data, error } = await supabase.functions.invoke("admin-update-user-email", {
           body: { user_id: editUser.user_id, email: editEmail.trim().toLowerCase() },
         });
-        const errMsg = (data as any)?.error || error?.message;
+        const errMsg = await extractFnError(data, error);
         if (errMsg) throw new Error(errMsg);
       }
 
@@ -394,7 +394,7 @@ export default function UserManagement() {
         const { data, error } = await supabase.functions.invoke("admin-set-user-password", {
           body: { user_id: editUser.user_id, password: editPwd },
         });
-        const errMsg = (data as any)?.error || error?.message;
+        const errMsg = await extractFnError(data, error);
         if (errMsg) throw new Error(errMsg);
       }
 
