@@ -216,7 +216,7 @@ const ROUTING_ACCOUNTS: Record<string, {
   empresa: string;
   zonas: Array<{ id: string; label: string; telefono: string; keywords: string[] }>;
 }> = {
-  "498690943338066": {
+  "1128863556971458": {
     empresa: "Lumaggs",
     zonas: [
       {
@@ -269,57 +269,55 @@ async function handleZoneRouting(
   const cfg = ROUTING_ACCOUNTS[businessPhoneId];
   if (!cfg) return false;
 
-  const { data: existing } = await admin
+  // Buscar SOLO una sesión activa (esperando respuesta de zona).
+  // Cualquier otro estado se ignora: cada mensaje nuevo reinicia el flujo,
+  // sin importar si el contacto/conversación ya existía.
+  const { data: activa } = await admin
     .from("whatsapp_routing_sessions")
     .select("*")
     .eq("wa_phone", fromPhone)
     .eq("business_phone_number_id", businessPhoneId)
+    .eq("estado", "esperando_zona")
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  // Primera vez: guardar mensaje original y pedir zona.
-  if (!existing) {
-    await admin.from("whatsapp_routing_sessions").insert({
-      wa_phone: fromPhone,
-      business_phone_number_id: businessPhoneId,
-      mensaje_original: text ?? "",
-      estado: "esperando_zona",
-    });
-    await sendWhatsAppText(fromPhone, buildZonaPrompt(cfg), businessPhoneId);
-    return true;
-  }
-
-  // Ya finalizado: no responder más automáticamente.
-  if (existing.estado === "finalizado") return true;
-
-  // Estado esperando_zona: intentar match.
-  if (existing.estado === "esperando_zona") {
+  // Si hay sesión activa e intenta seleccionar zona → completar.
+  if (activa) {
     const zona = matchZona(cfg, text ?? "");
-    if (!zona) {
-      const opts = cfg.zonas.map((z, i) => `${i + 1}\u20e3 ${z.label}`).join("\n");
-      await sendWhatsAppText(
-        fromPhone,
-        `Por favor selecciona una opción escribiendo:\n\n${opts}`,
-        businessPhoneId,
-      );
+    if (zona) {
+      const mensajeOriginal = activa.mensaje_original ?? "";
+      const link = `https://wa.me/${zona.telefono}?text=${encodeURIComponent(mensajeOriginal)}`;
+      const reply = `Perfecto.\n\nHaz clic en el siguiente enlace para continuar la conversación con el asesor de ${zona.label}.\n\n${link}\n\nMuchas gracias.`;
+      await sendWhatsAppText(fromPhone, reply, businessPhoneId);
+      await admin
+        .from("whatsapp_routing_sessions")
+        .update({
+          zona_seleccionada: zona.id,
+          telefono_destino: zona.telefono,
+          estado: "finalizado",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", activa.id);
       return true;
     }
-    const mensajeOriginal = existing.mensaje_original ?? "";
-    const link = `https://wa.me/${zona.telefono}?text=${encodeURIComponent(mensajeOriginal)}`;
-    const reply = `Perfecto.\n\nHaz clic en el siguiente enlace para continuar la conversación con el asesor de ${zona.label}.\n\n${link}\n\nMuchas gracias.`;
-    await sendWhatsAppText(fromPhone, reply, businessPhoneId);
+    // No coincidió: reinicia con este mensaje como nuevo original.
     await admin
       .from("whatsapp_routing_sessions")
-      .update({
-        zona_seleccionada: zona.id,
-        telefono_destino: zona.telefono,
-        estado: "finalizado",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", existing.id);
-    return true;
+      .update({ estado: "descartado", updated_at: new Date().toISOString() })
+      .eq("id", activa.id);
   }
 
-  return false;
+  // Reinicio total: siempre guardar el mensaje entrante como nuevo original
+  // y volver a pedir la zona, sin importar historial previo.
+  await admin.from("whatsapp_routing_sessions").insert({
+    wa_phone: fromPhone,
+    business_phone_number_id: businessPhoneId,
+    mensaje_original: text ?? "",
+    estado: "esperando_zona",
+  });
+  await sendWhatsAppText(fromPhone, buildZonaPrompt(cfg), businessPhoneId);
+  return true;
 }
 
 Deno.serve(async (req) => {
