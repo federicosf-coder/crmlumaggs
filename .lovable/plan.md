@@ -1,29 +1,26 @@
-## Objetivo
+## Diagnóstico preliminar confirmado
 
-Confirmado por SQL: `inv_demanda_plaza` está vacía (0 filas) aunque hay 5 cargas registradas de `kardex_unidades`. Algo en `procesarKardexUnidades` no está insertando movimientos. Para ubicar la causa sin tocar la lógica, agregar diagnóstico visible.
+La tabla `whatsapp_routing_sessions` tiene un índice único sobre `(wa_phone, business_phone_number_id)`, pero el webhook consulta “la última sesión” y, cuando encuentra una sesión `finalizado`, intenta insertar otra fila. En los datos recientes, la sesión existente permanece `finalizado`; no aparece una nueva sesión `esperando_zona`. Además, el código actual no revisa el error de ese `insert` y envía la bienvenida de todos modos. Esto es consistente con que la respuesta `1` vuelva a recibir la bienvenida.
 
-## Cambios (solo `src/pages/inventario/KardexCarga.tsx`)
+No se corregirá esta lógica todavía; primero se instrumentará y se comprobará en ejecución.
 
-### 1. Toast de diagnóstico al cargar la pantalla
-Al montar el componente, ejecutar las dos consultas y mostrar el resultado con `toast.info`:
+## Plan de diagnóstico
 
-- `SELECT count FROM inv_demanda_plaza`
-- `SELECT count, max(created_at) FROM inv_kardex_cargas WHERE tipo='kardex_unidades'`
+1. **Agregar un bloque DEBUG correlacionado por mensaje** en `whatsapp-webhook` con el `wa_message_id` como identificador, registrando:
+   - mensaje entrante;
+   - `fromPhone`, `businessPhoneId`, `contact_id` y `conversation_id`;
+   - criterio exacto de búsqueda de contacto, conversación y sesión;
+   - cantidad de conversaciones encontradas y datos de la conversación seleccionada;
+   - cantidad de sesiones encontradas, última sesión, `estado` real y `mensaje_original`;
+   - rama tomada: `[NUEVA CONVERSACIÓN]` o `[ESPERANDO_ZONA]`.
 
-Toast: `"inv_demanda_plaza: N filas · kardex_unidades cargas: M (última: fecha)"`.
+2. **Instrumentar cada operación de persistencia sin cambiar decisiones**:
+   - resultado y error de consulta/creación/actualización de `whatsapp_conversations`;
+   - confirmación mediante lectura posterior de que la conversación existe antes de responder;
+   - resultado y error del `insert` en `whatsapp_routing_sessions`, incluyendo violaciones del índice único;
+   - lectura posterior para mostrar el estado realmente persistido antes de enviar la bienvenida;
+   - resultado del envío y registro del mensaje automático.
 
-### 2. Instrumentar `procesarKardexUnidades`
-Agregar `toast.info` (o `console.log` + toast) en puntos clave, sin alterar el flujo:
+3. **Desplegar únicamente la instrumentación** y reproducir la secuencia controlada `mensaje inicial → bienvenida → “1”` en la línea Mexicali.
 
-- Después del parser: `"Movimientos parseados: X · ventas agrupadas: Y"`.
-- Antes del upsert a `inv_demanda_plaza`: `"demandaRows a insertar: N"`.
-- Si `demandaRows.length === 0`: `toast.warning` explícito indicando que no hay ventas detectadas (parser no encontró filas de salida).
-- Capturar y mostrar el `error` del upsert con `toast.error` (actualmente puede estar silenciado).
-
-### 3. Nada más
-- No tocar el parser ni la lógica de upsert.
-- No tocar otros archivos.
-- Es código temporal de diagnóstico; se retirará después de identificar la causa.
-
-## Resultado esperado
-Tras volver a subir un Kárdex en Unidades, los toasts dirán exactamente dónde se rompe: parser sin movimientos, agrupación vacía, o error del upsert.
+4. **Revisar logs y base de datos** para entregar un diagnóstico concluyente que responda los 10 puntos solicitados, identificando la operación exacta donde el estado deja de recuperarse o persistirse. No se modificará el flujo, restricciones ni estados en esta etapa.
