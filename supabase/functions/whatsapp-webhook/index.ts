@@ -207,6 +207,121 @@ async function sendWhatsAppTemplate(toPhone: string, name: string, language: str
   return { ok: r.ok, data };
 }
 
+// ============================================================
+// FLUJO AUTOMATIZADO DE DERIVACIÓN POR ZONA (sin IA)
+// Activo únicamente para los business_phone_number_id listados.
+// Fácil de extender: agregar más zonas o cuentas aquí.
+// ============================================================
+const ROUTING_ACCOUNTS: Record<string, {
+  empresa: string;
+  zonas: Array<{ id: string; label: string; telefono: string; keywords: string[] }>;
+}> = {
+  "498690943338066": {
+    empresa: "Lumaggs",
+    zonas: [
+      {
+        id: "mexicali",
+        label: "Mexicali y Valle",
+        telefono: "5216861349130",
+        keywords: ["1", "1️⃣", "mexicali", "mexicali y valle", "valle"],
+      },
+      {
+        id: "costa",
+        label: "Tijuana, Tecate, Ensenada y San Quintín",
+        telefono: "5216645634361",
+        keywords: [
+          "2", "2️⃣", "tijuana", "costa", "tecate", "ensenada", "san quintin", "san quintín",
+          "tijuana, tecate, ensenada y san quintin",
+          "tijuana, tecate, ensenada y san quintín",
+        ],
+      },
+    ],
+  },
+};
+
+function buildZonaPrompt(cfg: typeof ROUTING_ACCOUNTS[string]): string {
+  const opts = cfg.zonas
+    .map((z, i) => `${i + 1}\u20e3 ${z.label}`)
+    .join("\n");
+  return `¡Hola! 👋\nGracias por comunicarte con ${cfg.empresa}.\n\n¿Desde qué zona nos contactas?\n\n${opts}`;
+}
+
+function matchZona(cfg: typeof ROUTING_ACCOUNTS[string], text: string) {
+  const norm = (text ?? "").toLowerCase().trim();
+  if (!norm) return null;
+  return cfg.zonas.find((z) => z.keywords.some((k) => norm === k || norm.includes(k))) ?? null;
+}
+
+/**
+ * Devuelve true si el flujo automatizado ya manejó el mensaje y se debe
+ * omitir la lógica normal de bot/away.
+ */
+async function handleZoneRouting(
+  admin: ReturnType<typeof createClient>,
+  params: {
+    businessPhoneId: string | null;
+    fromPhone: string;
+    text: string | null;
+  },
+): Promise<boolean> {
+  const { businessPhoneId, fromPhone, text } = params;
+  if (!businessPhoneId) return false;
+  const cfg = ROUTING_ACCOUNTS[businessPhoneId];
+  if (!cfg) return false;
+
+  const { data: existing } = await admin
+    .from("whatsapp_routing_sessions")
+    .select("*")
+    .eq("wa_phone", fromPhone)
+    .eq("business_phone_number_id", businessPhoneId)
+    .maybeSingle();
+
+  // Primera vez: guardar mensaje original y pedir zona.
+  if (!existing) {
+    await admin.from("whatsapp_routing_sessions").insert({
+      wa_phone: fromPhone,
+      business_phone_number_id: businessPhoneId,
+      mensaje_original: text ?? "",
+      estado: "esperando_zona",
+    });
+    await sendWhatsAppText(fromPhone, buildZonaPrompt(cfg), businessPhoneId);
+    return true;
+  }
+
+  // Ya finalizado: no responder más automáticamente.
+  if (existing.estado === "finalizado") return true;
+
+  // Estado esperando_zona: intentar match.
+  if (existing.estado === "esperando_zona") {
+    const zona = matchZona(cfg, text ?? "");
+    if (!zona) {
+      const opts = cfg.zonas.map((z, i) => `${i + 1}\u20e3 ${z.label}`).join("\n");
+      await sendWhatsAppText(
+        fromPhone,
+        `Por favor selecciona una opción escribiendo:\n\n${opts}`,
+        businessPhoneId,
+      );
+      return true;
+    }
+    const mensajeOriginal = existing.mensaje_original ?? "";
+    const link = `https://wa.me/${zona.telefono}?text=${encodeURIComponent(mensajeOriginal)}`;
+    const reply = `Perfecto.\n\nHaz clic en el siguiente enlace para continuar la conversación con el asesor de ${zona.label}.\n\n${link}\n\nMuchas gracias.`;
+    await sendWhatsAppText(fromPhone, reply, businessPhoneId);
+    await admin
+      .from("whatsapp_routing_sessions")
+      .update({
+        zona_seleccionada: zona.id,
+        telefono_destino: zona.telefono,
+        estado: "finalizado",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id);
+    return true;
+  }
+
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
