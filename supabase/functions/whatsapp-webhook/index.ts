@@ -383,39 +383,40 @@ async function handleZoneRouting(
     return true;
   }
 
-  // CASO 2: no hay sesión, o la última está FINALIZADA/DESCARTADA → iniciar nuevo flujo.
-  console.log(`[wa-routing-debug:${debugId}] BRANCH [ NUEVA CONVERSACIÓN ]`);
-  const { data: insertedSession, error: insertSessionError } = await admin
-    .from("whatsapp_routing_sessions")
-    .insert({
-      wa_phone: fromPhone,
-      business_phone_number_id: businessPhoneId,
-      mensaje_original: text ?? "",
-      estado: "esperando_zona",
-    })
-    .select("id,wa_phone,business_phone_number_id,mensaje_original,estado,created_at,updated_at")
-    .maybeSingle();
-  console.log(`[wa-routing-debug:${debugId}] SESSION_INSERT_RESULT`, JSON.stringify({
-    inserted: insertedSession ?? null,
-    error: insertSessionError ? {
-      code: insertSessionError.code,
-      message: insertSessionError.message,
-      details: insertSessionError.details,
-    } : null,
-  }));
-  const { data: persistedSession, error: persistedSessionError } = await admin
-    .from("whatsapp_routing_sessions")
-    .select("id,wa_phone,business_phone_number_id,mensaje_original,estado,created_at,updated_at")
-    .eq("wa_phone", fromPhone)
-    .eq("business_phone_number_id", businessPhoneId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  console.log(`[wa-routing-debug:${debugId}] SESSION_AFTER_INSERT_BEFORE_WELCOME`, JSON.stringify({
-    persisted: persistedSession ?? null,
-    realSessionState: persistedSession?.estado ?? null,
-    error: persistedSessionError ? { code: persistedSessionError.code, message: persistedSessionError.message } : null,
-  }));
+  // CASO 2: reutilizar la fila existente si la hay; solo insertar si el contacto nunca ha tenido sesión.
+  console.log(`[wa-routing-debug:${debugId}] BRANCH [ NUEVA CONVERSACIÓN / REUSO ]`);
+  if (ultima) {
+    const { error: resetError } = await admin
+      .from("whatsapp_routing_sessions")
+      .update({
+        estado: "esperando_zona",
+        mensaje_original: text ?? "",
+        zona_seleccionada: null,
+        telefono_destino: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", ultima.id);
+    console.log(`[wa-routing-debug:${debugId}] SESSION_REUSE_RESULT`, JSON.stringify({
+      sessionId: ultima.id,
+      error: resetError ? { code: resetError.code, message: resetError.message } : null,
+    }));
+  } else {
+    const { error: insertSessionError } = await admin
+      .from("whatsapp_routing_sessions")
+      .insert({
+        wa_phone: fromPhone,
+        business_phone_number_id: businessPhoneId,
+        mensaje_original: text ?? "",
+        estado: "esperando_zona",
+      });
+    console.log(`[wa-routing-debug:${debugId}] SESSION_INSERT_RESULT`, JSON.stringify({
+      error: insertSessionError ? {
+        code: insertSessionError.code,
+        message: insertSessionError.message,
+        details: insertSessionError.details,
+      } : null,
+    }));
+  }
   const sendResult = await sendAndLogText(admin, { toPhone: fromPhone, text: buildZonaPrompt(cfg), ...logCtx });
   console.log(`[wa-routing-debug:${debugId}] WELCOME_RESULT`, JSON.stringify({ sendOk: sendResult.ok }));
   return true;
