@@ -277,6 +277,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   const isPending = createTask.isPending;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => { if (!o) resetAndClose(); else onOpenChange(true); }}>
       <DialogContent
         className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0"
