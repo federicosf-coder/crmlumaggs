@@ -303,6 +303,7 @@ function matchZona(cfg: typeof ROUTING_ACCOUNTS[string], text: string) {
 async function handleZoneRouting(
   admin: ReturnType<typeof createClient>,
   params: {
+    debugId: string;
     businessPhoneId: string | null;
     fromPhone: string;
     text: string | null;
@@ -311,15 +312,28 @@ async function handleZoneRouting(
     whatsappAccountId: string | null;
   },
 ): Promise<boolean> {
-  const { businessPhoneId, fromPhone, text, conversationId, contactId, whatsappAccountId } = params;
+  const { debugId, businessPhoneId, fromPhone, text, conversationId, contactId, whatsappAccountId } = params;
   if (!businessPhoneId) return false;
   const cfg = ROUTING_ACCOUNTS[businessPhoneId];
   if (!cfg) return false;
 
   const logCtx = { conversationId, contactId, whatsappAccountId, businessPhoneId };
 
+  const { data: sessionRows, error: sessionDebugError } = await admin
+    .from("whatsapp_routing_sessions")
+    .select("id,wa_phone,business_phone_number_id,mensaje_original,zona_seleccionada,telefono_destino,estado,created_at,updated_at")
+    .eq("wa_phone", fromPhone)
+    .eq("business_phone_number_id", businessPhoneId)
+    .order("created_at", { ascending: false });
+  console.log(`[wa-routing-debug:${debugId}] SESSION_LOOKUP`, JSON.stringify({
+    searchBy: { wa_phone: fromPhone, business_phone_number_id: businessPhoneId },
+    rowCount: sessionRows?.length ?? 0,
+    latestRow: sessionRows?.[0] ?? null,
+    error: sessionDebugError ? { code: sessionDebugError.code, message: sessionDebugError.message } : null,
+  }));
+
   // Última sesión de este contacto en esta línea (cualquier estado).
-  const { data: ultima } = await admin
+  const { data: ultima, error: ultimaError } = await admin
     .from("whatsapp_routing_sessions")
     .select("*")
     .eq("wa_phone", fromPhone)
@@ -327,16 +341,24 @@ async function handleZoneRouting(
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  console.log(`[wa-routing-debug:${debugId}] SESSION_SELECTED`, JSON.stringify({
+    session: ultima ?? null,
+    realSessionState: ultima?.estado ?? null,
+    mensajeOriginal: ultima?.mensaje_original ?? null,
+    error: ultimaError ? { code: ultimaError.code, message: ultimaError.message } : null,
+  }));
 
   // CASO 1: hay sesión ESPERANDO_ZONA → solo procesar respuesta de zona.
   if (ultima && ultima.estado === "esperando_zona") {
+    console.log(`[wa-routing-debug:${debugId}] BRANCH [ ESPERANDO_ZONA ]`);
     const zona = matchZona(cfg, text ?? "");
+    console.log(`[wa-routing-debug:${debugId}] ZONE_MATCH`, JSON.stringify({ incoming: text, matched: zona ?? null }));
     if (zona) {
       const mensajeOriginal = ultima.mensaje_original ?? "";
       const link = `https://wa.me/${zona.telefono}?text=${encodeURIComponent(mensajeOriginal)}`;
       const reply = `Perfecto.\n\nHaz clic en el siguiente enlace para continuar la conversación con el asesor de ${zona.label}.\n\n${link}\n\nMuchas gracias.`;
-      await sendAndLogText(admin, { toPhone: fromPhone, text: reply, ...logCtx });
-      await admin
+      const sendResult = await sendAndLogText(admin, { toPhone: fromPhone, text: reply, ...logCtx });
+      const { error: finalizeError } = await admin
         .from("whatsapp_routing_sessions")
         .update({
           zona_seleccionada: zona.id,
@@ -345,24 +367,57 @@ async function handleZoneRouting(
           updated_at: new Date().toISOString(),
         })
         .eq("id", ultima.id);
+      console.log(`[wa-routing-debug:${debugId}] FINALIZE_RESULT`, JSON.stringify({
+        sendOk: sendResult.ok,
+        sessionId: ultima.id,
+        error: finalizeError ? { code: finalizeError.code, message: finalizeError.message } : null,
+      }));
       return true;
     }
     // Respuesta inválida: solo re-preguntar zona, NO reiniciar ni resaludar.
     const rePregunta = `Por favor responde con el número de tu zona:\n\n${cfg.zonas
       .map((z, i) => `${i + 1}\u20e3 ${z.label}`)
       .join("\n")}`;
-    await sendAndLogText(admin, { toPhone: fromPhone, text: rePregunta, ...logCtx });
+    const sendResult = await sendAndLogText(admin, { toPhone: fromPhone, text: rePregunta, ...logCtx });
+    console.log(`[wa-routing-debug:${debugId}] REPROMPT_RESULT`, JSON.stringify({ sendOk: sendResult.ok }));
     return true;
   }
 
   // CASO 2: no hay sesión, o la última está FINALIZADA/DESCARTADA → iniciar nuevo flujo.
-  await admin.from("whatsapp_routing_sessions").insert({
-    wa_phone: fromPhone,
-    business_phone_number_id: businessPhoneId,
-    mensaje_original: text ?? "",
-    estado: "esperando_zona",
-  });
-  await sendAndLogText(admin, { toPhone: fromPhone, text: buildZonaPrompt(cfg), ...logCtx });
+  console.log(`[wa-routing-debug:${debugId}] BRANCH [ NUEVA CONVERSACIÓN ]`);
+  const { data: insertedSession, error: insertSessionError } = await admin
+    .from("whatsapp_routing_sessions")
+    .insert({
+      wa_phone: fromPhone,
+      business_phone_number_id: businessPhoneId,
+      mensaje_original: text ?? "",
+      estado: "esperando_zona",
+    })
+    .select("id,wa_phone,business_phone_number_id,mensaje_original,estado,created_at,updated_at")
+    .maybeSingle();
+  console.log(`[wa-routing-debug:${debugId}] SESSION_INSERT_RESULT`, JSON.stringify({
+    inserted: insertedSession ?? null,
+    error: insertSessionError ? {
+      code: insertSessionError.code,
+      message: insertSessionError.message,
+      details: insertSessionError.details,
+    } : null,
+  }));
+  const { data: persistedSession, error: persistedSessionError } = await admin
+    .from("whatsapp_routing_sessions")
+    .select("id,wa_phone,business_phone_number_id,mensaje_original,estado,created_at,updated_at")
+    .eq("wa_phone", fromPhone)
+    .eq("business_phone_number_id", businessPhoneId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  console.log(`[wa-routing-debug:${debugId}] SESSION_AFTER_INSERT_BEFORE_WELCOME`, JSON.stringify({
+    persisted: persistedSession ?? null,
+    realSessionState: persistedSession?.estado ?? null,
+    error: persistedSessionError ? { code: persistedSessionError.code, message: persistedSessionError.message } : null,
+  }));
+  const sendResult = await sendAndLogText(admin, { toPhone: fromPhone, text: buildZonaPrompt(cfg), ...logCtx });
+  console.log(`[wa-routing-debug:${debugId}] WELCOME_RESULT`, JSON.stringify({ sendOk: sendResult.ok }));
   return true;
 }
 
@@ -525,6 +580,18 @@ Deno.serve(async (req) => {
                 (msg?.type ? `[${msg.type}]` : null);
 
               const profileName = profileNameByWa[fromPhone] ?? null;
+              const debugId = msg?.id ?? `${fromPhone}-${Date.now()}`;
+              console.log(`=========================\nDEBUG [${debugId}]\n=========================`);
+              console.log(`[wa-routing-debug:${debugId}] INCOMING`, JSON.stringify({
+                message: text,
+                fromPhone,
+                businessPhoneId,
+                lookupStrategy: {
+                  contact: "contacts.whatsapp_phone OR phone OR mobile = fromPhone",
+                  conversation: "whatsapp_conversations.wa_phone + business_phone_number_id",
+                  session: "whatsapp_routing_sessions.wa_phone + business_phone_number_id",
+                },
+              }));
 
               let contactId: string | null = null;
               try {
@@ -538,6 +605,11 @@ Deno.serve(async (req) => {
                   console.warn(`Contact lookup failed for wa_phone=${fromPhone}; continuing unlinked:`, contactErr);
                 }
                 contactId = contactMatch?.id ?? null;
+                console.log(`[wa-routing-debug:${debugId}] CONTACT_LOOKUP`, JSON.stringify({
+                  contactId,
+                  found: Boolean(contactMatch),
+                  error: contactErr ? { code: contactErr.code, message: contactErr.message } : null,
+                }));
               } catch (contactException) {
                 console.warn(
                   `Contact lookup exception for wa_phone=${fromPhone}; continuing unlinked:`,
@@ -546,6 +618,21 @@ Deno.serve(async (req) => {
               }
 
               const nowIso = new Date().toISOString();
+              let conversationDebugQuery = admin
+                .from("whatsapp_conversations")
+                .select("id,wa_phone,contact_id,business_phone_number_id,status,created_at,updated_at")
+                .eq("wa_phone", fromPhone);
+              conversationDebugQuery = businessPhoneId
+                ? conversationDebugQuery.eq("business_phone_number_id", businessPhoneId)
+                : conversationDebugQuery.is("business_phone_number_id", null);
+              const { data: conversationRows, error: conversationDebugError } = await conversationDebugQuery;
+              console.log(`[wa-routing-debug:${debugId}] CONVERSATION_LOOKUP`, JSON.stringify({
+                searchBy: { wa_phone: fromPhone, business_phone_number_id: businessPhoneId },
+                rowCount: conversationRows?.length ?? 0,
+                latestConversation: conversationRows?.[0] ?? null,
+                rows: conversationRows ?? [],
+                error: conversationDebugError ? { code: conversationDebugError.code, message: conversationDebugError.message } : null,
+              }));
               let convQuery = admin
                 .from("whatsapp_conversations")
                 .select("id, unread_count, contact_id")
@@ -553,7 +640,11 @@ Deno.serve(async (req) => {
               convQuery = businessPhoneId
                 ? convQuery.eq("business_phone_number_id", businessPhoneId)
                 : convQuery.is("business_phone_number_id", null);
-              const { data: existingConv } = await convQuery.maybeSingle();
+              const { data: existingConv, error: existingConvError } = await convQuery.maybeSingle();
+              console.log(`[wa-routing-debug:${debugId}] CONVERSATION_SELECTED`, JSON.stringify({
+                conversation: existingConv ?? null,
+                error: existingConvError ? { code: existingConvError.code, message: existingConvError.message } : null,
+              }));
 
               let conversationId: string | null = null;
               try {
@@ -574,6 +665,10 @@ Deno.serve(async (req) => {
                     .eq("id", conversationId);
                   if (updateConvErr)
                     console.warn("Conversation update failed; message will still be saved:", updateConvErr);
+                  console.log(`[wa-routing-debug:${debugId}] CONVERSATION_UPDATE_RESULT`, JSON.stringify({
+                    conversationId,
+                    error: updateConvErr ? { code: updateConvErr.code, message: updateConvErr.message } : null,
+                  }));
                 } else {
                   const { data: newConv, error: newConvErr } = await admin
                     .from("whatsapp_conversations")
@@ -591,10 +686,30 @@ Deno.serve(async (req) => {
                     .maybeSingle();
                   if (newConvErr) console.warn("Conversation insert failed; message will still be saved:", newConvErr);
                   conversationId = newConv?.id ?? null;
+                  console.log(`[wa-routing-debug:${debugId}] CONVERSATION_INSERT_RESULT`, JSON.stringify({
+                    conversationId,
+                    created: newConv ?? null,
+                    error: newConvErr ? { code: newConvErr.code, message: newConvErr.message } : null,
+                  }));
                 }
               } catch (conversationException) {
                 console.warn("Conversation persistence exception; message will still be saved:", conversationException);
               }
+              const { data: persistedConversation, error: persistedConversationError } = conversationId
+                ? await admin
+                    .from("whatsapp_conversations")
+                    .select("id,wa_phone,contact_id,business_phone_number_id,status,created_at,updated_at")
+                    .eq("id", conversationId)
+                    .maybeSingle()
+                : { data: null, error: null };
+              console.log(`[wa-routing-debug:${debugId}] CONVERSATION_BEFORE_ROUTING`, JSON.stringify({
+                conversationId,
+                contactId,
+                persisted: persistedConversation ?? null,
+                error: persistedConversationError
+                  ? { code: persistedConversationError.code, message: persistedConversationError.message }
+                  : null,
+              }));
 
               // ===== Descarga de media (document, image, audio, video, sticker) =====
               let mediaInfo: {
@@ -649,6 +764,7 @@ Deno.serve(async (req) => {
               let routingHandled = false;
               try {
                 routingHandled = await handleZoneRouting(admin, {
+                  debugId,
                   businessPhoneId,
                   fromPhone,
                   text,
