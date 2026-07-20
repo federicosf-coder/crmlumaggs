@@ -601,6 +601,24 @@ Deno.serve(async (req) => {
               if (insErr) console.error("Insert message error:", insErr);
               else inserted++;
 
+              // ===== Flujo automatizado de derivación por zona (sin IA) =====
+              let routingHandled = false;
+              try {
+                routingHandled = await handleZoneRouting(admin, {
+                  businessPhoneId,
+                  fromPhone,
+                  text,
+                });
+                if (routingHandled) {
+                  await admin
+                    .from("whatsapp_conversations")
+                    .update({ last_outbound_at: new Date().toISOString() })
+                    .eq("id", conversationId);
+                }
+              } catch (routingEx) {
+                console.warn("[wa-webhook] zone routing exception:", routingEx);
+              }
+
               // ===== Opt-out por botón de plantilla =====
               try {
                 const btnText: string | null = msg?.button?.text ?? msg?.interactive?.button_reply?.title ?? null;
@@ -633,7 +651,7 @@ Deno.serve(async (req) => {
 
               // ===== Bot keyword matching =====
               const lower = (text ?? "").toLowerCase();
-              if (settings?.bot_enabled && lower) {
+              if (!routingHandled && settings?.bot_enabled && lower) {
                 for (const r of rules) {
                   const kw = String(r.keyword ?? "").toLowerCase();
                   if (!kw) continue;
@@ -675,6 +693,7 @@ Deno.serve(async (req) => {
 
               // ===== Auto-away outside business hours =====
               if (
+                !routingHandled &&
                 settings?.away_enabled &&
                 settings?.away_template_name &&
                 !isWithinBusinessHours(settings, new Date())
