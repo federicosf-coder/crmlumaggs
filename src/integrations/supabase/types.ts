@@ -7171,6 +7171,42 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_routing_sessions: {
+        Row: {
+          business_phone_number_id: string
+          created_at: string
+          estado: string
+          id: string
+          mensaje_original: string | null
+          telefono_destino: string | null
+          updated_at: string
+          wa_phone: string
+          zona_seleccionada: string | null
+        }
+        Insert: {
+          business_phone_number_id: string
+          created_at?: string
+          estado?: string
+          id?: string
+          mensaje_original?: string | null
+          telefono_destino?: string | null
+          updated_at?: string
+          wa_phone: string
+          zona_seleccionada?: string | null
+        }
+        Update: {
+          business_phone_number_id?: string
+          created_at?: string
+          estado?: string
+          id?: string
+          mensaje_original?: string | null
+          telefono_destino?: string | null
+          updated_at?: string
+          wa_phone?: string
+          zona_seleccionada?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_settings: {
         Row: {
           admin_phone: string | null
