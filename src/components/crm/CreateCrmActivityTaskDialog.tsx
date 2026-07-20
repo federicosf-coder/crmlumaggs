@@ -20,6 +20,9 @@ import { Loader2, X } from "lucide-react";
 import { format, addHours, startOfHour } from "date-fns";
 import { cn } from "@/lib/utils";
 import { TASK_TYPES, TASK_TYPE_LABEL, TaskTypeKey } from "@/lib/taskTypes";
+import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { ContactFormDialog } from "@/components/ContactFormDialog";
+import { Plus, ExternalLink } from "lucide-react";
 
 /** Próxima hora redonda (si son las 14:23 → 15:00). */
 function nextRoundHourLocal(): string {
@@ -93,6 +96,8 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   });
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
   const [brands, setBrands] = useState<Brand[]>(defaultBrands || []);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   useEffect(() => {
     if (open) setBrands(defaultBrands || []);
@@ -272,6 +277,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   const isPending = createTask.isPending;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => { if (!o) resetAndClose(); else onOpenChange(true); }}>
       <DialogContent
         className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0"
@@ -406,7 +412,24 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="flex items-center gap-2">Empresa / Cliente {lockCompany && <span className="text-[10px] text-muted-foreground">(prellenada)</span>}</Label>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="flex items-center gap-2">Empresa / Cliente {lockCompany && <span className="text-[10px] text-muted-foreground">(prellenada)</span>}</Label>
+                    <div className="flex items-center gap-1">
+                      <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setCompanyDialogOpen(true)} disabled={lockCompany}>
+                        <Plus className="h-3 w-3 mr-1" /> Nueva
+                      </Button>
+                      {companyId && companyId !== "none" && (
+                        <a
+                          href={`/directory?tab=companies&select=${companyId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline px-2 h-6"
+                        >
+                          <ExternalLink className="h-3 w-3" /> Ver
+                        </a>
+                      )}
+                    </div>
+                  </div>
                   <SearchableSelect
                     value={companyId || "none"}
                     onValueChange={(v) => {
@@ -422,7 +445,20 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="flex items-center gap-2">Vincular a Contacto {lockContact && <span className="text-[10px] text-muted-foreground">(prellenado)</span>}</Label>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="flex items-center gap-2">Vincular a Contacto {lockContact && <span className="text-[10px] text-muted-foreground">(prellenado)</span>}</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setContactDialogOpen(true)}
+                      disabled={lockContact || !companyId || companyId === "none"}
+                      title={!companyId || companyId === "none" ? "Selecciona una empresa primero" : "Nuevo contacto"}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Nuevo
+                    </Button>
+                  </div>
                   <SearchableSelect
                     value={contactId || "none"}
                     onValueChange={(v) => setContactId(v === "none" ? "" : v)}
@@ -432,6 +468,9 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
                     ]}
                     placeholder="Buscar contacto..."
                   />
+                  {(!companyId || companyId === "none") && (
+                    <p className="text-[10px] text-muted-foreground">Selecciona una empresa para ver sus contactos.</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -453,5 +492,28 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
         </form>
       </DialogContent>
     </Dialog>
+    {companyDialogOpen && (
+      <CompanyFormDialog
+        open={companyDialogOpen}
+        onOpenChange={setCompanyDialogOpen}
+        onCreated={(newId) => {
+          queryClient.invalidateQueries({ queryKey: ["companies-picker"] });
+          setCompanyId(newId);
+          setContactId("");
+        }}
+      />
+    )}
+    {contactDialogOpen && companyId && companyId !== "none" && (
+      <ContactFormDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        defaultCompanyId={companyId}
+        onCreated={(newId) => {
+          queryClient.invalidateQueries({ queryKey: ["contacts-picker", companyId] });
+          setContactId(newId);
+        }}
+      />
+    )}
+    </>
   );
 }
