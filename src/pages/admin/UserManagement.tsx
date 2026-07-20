@@ -27,6 +27,26 @@ import {
 type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
 const ALL_ROLES: AppRole[] = ["admin", "manager", "sales", "delivery", "warehouse", "customer_service", "accounting"];
 
+// Extract the real error message from a supabase.functions.invoke result.
+// On non-2xx, invoke returns a FunctionsHttpError whose .context is the Response;
+// the JSON body (with { error }) must be read from it manually.
+async function extractFnError(data: any, error: any): Promise<string | null> {
+  if (data?.error) return String(data.error);
+  if (!error) return null;
+  try {
+    const res: Response | undefined = error.context;
+    if (res && typeof res.clone === "function") {
+      const body = await res.clone().json().catch(() => null);
+      if (body?.error) return String(body.error);
+      const text = await res.clone().text().catch(() => "");
+      if (text) return text;
+    }
+  } catch {
+    // fall through
+  }
+  return error.message || "Error desconocido";
+}
+
 interface Team {
   id: string;
   name: string;
@@ -124,7 +144,7 @@ export default function UserManagement() {
       body: { user_id: pwdUser.user_id, password: pwdNew },
     });
     setPwdBusy(false);
-    const errMsg = (data as any)?.error || error?.message;
+    const errMsg = await extractFnError(data, error);
     if (errMsg) {
       toast({ title: "Error", description: errMsg, variant: "destructive" });
       return;
@@ -385,7 +405,7 @@ export default function UserManagement() {
         const { data, error } = await supabase.functions.invoke("admin-update-user-email", {
           body: { user_id: editUser.user_id, email: editEmail.trim().toLowerCase() },
         });
-        const errMsg = (data as any)?.error || error?.message;
+        const errMsg = await extractFnError(data, error);
         if (errMsg) throw new Error(errMsg);
       }
 
@@ -394,7 +414,7 @@ export default function UserManagement() {
         const { data, error } = await supabase.functions.invoke("admin-set-user-password", {
           body: { user_id: editUser.user_id, password: editPwd },
         });
-        const errMsg = (data as any)?.error || error?.message;
+        const errMsg = await extractFnError(data, error);
         if (errMsg) throw new Error(errMsg);
       }
 
