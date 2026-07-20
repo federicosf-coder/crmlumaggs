@@ -190,6 +190,50 @@ async function sendWhatsAppText(toPhone: string, text: string, businessPhoneId?:
   return { ok: r.ok, data };
 }
 
+/**
+ * Envía un texto por WhatsApp Y lo registra en whatsapp_messages para que
+ * aparezca en el historial de la conversación (alternando cliente/bot).
+ */
+async function sendAndLogText(
+  admin: ReturnType<typeof createClient>,
+  params: {
+    toPhone: string;
+    text: string;
+    businessPhoneId: string | null;
+    conversationId: string | null;
+    contactId: string | null;
+    whatsappAccountId: string | null;
+  },
+) {
+  const res = await sendWhatsAppText(params.toPhone, params.text, params.businessPhoneId);
+  const waMessageId = (res as any)?.data?.messages?.[0]?.id ?? null;
+  try {
+    await admin.from("whatsapp_messages").insert({
+      wa_id: waMessageId,
+      sender_phone: params.toPhone,
+      message_body: params.text,
+      direction: "outbound",
+      status: res.ok ? "sent" : "failed",
+      conversation_id: params.conversationId,
+      contact_id: params.contactId,
+      business_phone_number_id: params.businessPhoneId,
+      whatsapp_account_id: params.whatsappAccountId,
+    });
+    if (params.conversationId) {
+      await admin
+        .from("whatsapp_conversations")
+        .update({
+          last_outbound_at: new Date().toISOString(),
+          last_message_preview: params.text.slice(0, 120),
+        })
+        .eq("id", params.conversationId);
+    }
+  } catch (e) {
+    console.warn("[wa-webhook] sendAndLogText persistence failed:", e);
+  }
+  return res;
+}
+
 async function sendWhatsAppTemplate(toPhone: string, name: string, language: string, businessPhoneId?: string | null) {
   const { TOKEN, phoneId } = resolveCredentials(businessPhoneId);
   if (!TOKEN || !phoneId) return { ok: false, error: "Missing WhatsApp credentials" };
@@ -262,34 +306,36 @@ async function handleZoneRouting(
     businessPhoneId: string | null;
     fromPhone: string;
     text: string | null;
+    conversationId: string | null;
+    contactId: string | null;
+    whatsappAccountId: string | null;
   },
 ): Promise<boolean> {
-  const { businessPhoneId, fromPhone, text } = params;
+  const { businessPhoneId, fromPhone, text, conversationId, contactId, whatsappAccountId } = params;
   if (!businessPhoneId) return false;
   const cfg = ROUTING_ACCOUNTS[businessPhoneId];
   if (!cfg) return false;
 
-  // Buscar SOLO una sesión activa (esperando respuesta de zona).
-  // Cualquier otro estado se ignora: cada mensaje nuevo reinicia el flujo,
-  // sin importar si el contacto/conversación ya existía.
-  const { data: activa } = await admin
+  const logCtx = { conversationId, contactId, whatsappAccountId, businessPhoneId };
+
+  // Última sesión de este contacto en esta línea (cualquier estado).
+  const { data: ultima } = await admin
     .from("whatsapp_routing_sessions")
     .select("*")
     .eq("wa_phone", fromPhone)
     .eq("business_phone_number_id", businessPhoneId)
-    .eq("estado", "esperando_zona")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  // Si hay sesión activa e intenta seleccionar zona → completar.
-  if (activa) {
+  // CASO 1: hay sesión ESPERANDO_ZONA → solo procesar respuesta de zona.
+  if (ultima && ultima.estado === "esperando_zona") {
     const zona = matchZona(cfg, text ?? "");
     if (zona) {
-      const mensajeOriginal = activa.mensaje_original ?? "";
+      const mensajeOriginal = ultima.mensaje_original ?? "";
       const link = `https://wa.me/${zona.telefono}?text=${encodeURIComponent(mensajeOriginal)}`;
       const reply = `Perfecto.\n\nHaz clic en el siguiente enlace para continuar la conversación con el asesor de ${zona.label}.\n\n${link}\n\nMuchas gracias.`;
-      await sendWhatsAppText(fromPhone, reply, businessPhoneId);
+      await sendAndLogText(admin, { toPhone: fromPhone, text: reply, ...logCtx });
       await admin
         .from("whatsapp_routing_sessions")
         .update({
@@ -298,25 +344,25 @@ async function handleZoneRouting(
           estado: "finalizado",
           updated_at: new Date().toISOString(),
         })
-        .eq("id", activa.id);
+        .eq("id", ultima.id);
       return true;
     }
-    // No coincidió: reinicia con este mensaje como nuevo original.
-    await admin
-      .from("whatsapp_routing_sessions")
-      .update({ estado: "descartado", updated_at: new Date().toISOString() })
-      .eq("id", activa.id);
+    // Respuesta inválida: solo re-preguntar zona, NO reiniciar ni resaludar.
+    const rePregunta = `Por favor responde con el número de tu zona:\n\n${cfg.zonas
+      .map((z, i) => `${i + 1}\u20e3 ${z.label}`)
+      .join("\n")}`;
+    await sendAndLogText(admin, { toPhone: fromPhone, text: rePregunta, ...logCtx });
+    return true;
   }
 
-  // Reinicio total: siempre guardar el mensaje entrante como nuevo original
-  // y volver a pedir la zona, sin importar historial previo.
+  // CASO 2: no hay sesión, o la última está FINALIZADA/DESCARTADA → iniciar nuevo flujo.
   await admin.from("whatsapp_routing_sessions").insert({
     wa_phone: fromPhone,
     business_phone_number_id: businessPhoneId,
     mensaje_original: text ?? "",
     estado: "esperando_zona",
   });
-  await sendWhatsAppText(fromPhone, buildZonaPrompt(cfg), businessPhoneId);
+  await sendAndLogText(admin, { toPhone: fromPhone, text: buildZonaPrompt(cfg), ...logCtx });
   return true;
 }
 
@@ -606,13 +652,10 @@ Deno.serve(async (req) => {
                   businessPhoneId,
                   fromPhone,
                   text,
+                  conversationId,
+                  contactId,
+                  whatsappAccountId,
                 });
-                if (routingHandled) {
-                  await admin
-                    .from("whatsapp_conversations")
-                    .update({ last_outbound_at: new Date().toISOString() })
-                    .eq("id", conversationId);
-                }
               } catch (routingEx) {
                 console.warn("[wa-webhook] zone routing exception:", routingEx);
               }
