@@ -12,7 +12,7 @@ function json(b: unknown, s: number) {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const MAX_CAMPAIGN_MINUTES = 60;
-const BATCH_SIZE = 200;
+const BATCH_SIZE = 50;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
