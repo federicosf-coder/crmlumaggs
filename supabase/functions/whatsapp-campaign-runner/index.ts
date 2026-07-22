@@ -131,16 +131,18 @@ Deno.serve(async (req) => {
       .update({ status: "running", started_at: campaign.started_at ?? new Date().toISOString() })
       .eq("id", campaign_id);
 
-    const { data: pending } = await admin
+    // Procesar el lote en segundo plano para no exceder el idle timeout (150s).
+    const processBatch = async () => {
+      const { data: pending } = await admin
       .from("whatsapp_campaign_recipients")
       .select("*")
       .eq("campaign_id", campaign_id)
       .eq("status", "pending")
       .limit(BATCH_SIZE);
 
-    let sent = 0,
-      failed = 0;
-    for (const r of pending ?? []) {
+      let sent = 0,
+        failed = 0;
+      for (const r of pending ?? []) {
       try {
         // Construir components: header IMAGE + body con variables (si hay)
         const components: Record<string, unknown>[] = [];
@@ -203,23 +205,23 @@ Deno.serve(async (req) => {
           .eq("id", r.id);
       }
       await sleep(300); // throttle
-    }
+      }
 
-    const { count: stillPending } = await admin
+      const { count: stillPending } = await admin
       .from("whatsapp_campaign_recipients")
       .select("id", { count: "exact", head: true })
       .eq("campaign_id", campaign_id)
       .eq("status", "pending");
 
-    // Re-leer estado para no sobrescribir 'paused' establecido durante el envío.
-    const { data: cur } = await admin
+      // Re-leer estado para no sobrescribir 'paused' establecido durante el envío.
+      const { data: cur } = await admin
       .from("whatsapp_campaigns")
       .select("status")
       .eq("id", campaign_id)
       .maybeSingle();
-    const wasPaused = cur?.status === "paused";
-    const finalStatus = wasPaused ? "paused" : ((stillPending ?? 0) > 0 ? "running" : "completed");
-    await admin
+      const wasPaused = cur?.status === "paused";
+      const finalStatus = wasPaused ? "paused" : ((stillPending ?? 0) > 0 ? "running" : "completed");
+      await admin
       .from("whatsapp_campaigns")
       .update({
         sent_count: (campaign.sent_count ?? 0) + sent,
@@ -229,8 +231,8 @@ Deno.serve(async (req) => {
       })
       .eq("id", campaign_id);
 
-    // Encadenar siguiente lote automáticamente si aún hay pendientes.
-    if (finalStatus === "running" && (stillPending ?? 0) > 0) {
+      // Encadenar siguiente lote automáticamente si aún hay pendientes.
+      if (finalStatus === "running" && (stillPending ?? 0) > 0) {
       try {
         // Fire-and-forget: no await, para responder rápido.
         fetch(`${SUPABASE_URL}/functions/v1/whatsapp-campaign-runner`, {
@@ -245,9 +247,19 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.warn("[campaign-runner] auto-continue threw:", e);
       }
-    }
+      }
+      return { sent, failed, remaining: stillPending ?? 0 };
+    };
 
-    return json({ ok: true, sent, failed, remaining: stillPending ?? 0 }, 200);
+    // @ts-ignore - EdgeRuntime está disponible en Supabase Edge Runtime
+    const waitUntil = (globalThis as any).EdgeRuntime?.waitUntil;
+    if (typeof waitUntil === "function") {
+      waitUntil(processBatch().catch((e) => console.error("[campaign-runner] batch error:", e)));
+      return json({ ok: true, queued: true, message: "Lote en proceso en segundo plano" }, 202);
+    }
+    const result = await processBatch();
+    return json({ ok: true, ...result }, 200);
+
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Error" }, 500);
   }
