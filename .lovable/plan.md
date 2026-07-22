@@ -1,26 +1,56 @@
-## Diagnóstico preliminar confirmado
+# Auto-cierre de campañas de WhatsApp
 
-La tabla `whatsapp_routing_sessions` tiene un índice único sobre `(wa_phone, business_phone_number_id)`, pero el webhook consulta “la última sesión” y, cuando encuentra una sesión `finalizado`, intenta insertar otra fila. En los datos recientes, la sesión existente permanece `finalizado`; no aparece una nueva sesión `esperando_zona`. Además, el código actual no revisa el error de ese `insert` y envía la bienvenida de todos modos. Esto es consistente con que la respuesta `1` vuelva a recibir la bienvenida.
+## Problema
 
-No se corregirá esta lógica todavía; primero se instrumentará y se comprobará en ejecución.
+`whatsapp-campaign-runner` procesa un lote de hasta 500 destinatarios pendientes por invocación. Si quedan pendientes al terminar, deja la campaña como `running` y **nada la vuelve a invocar**, así que la campaña nunca se marca como `completed` y los contadores nunca se cierran. Tampoco existe un límite de tiempo o de reintentos, por lo que una campaña grande, un teléfono inválido o una línea sin sesión de 24h dejan a la campaña "corriendo" indefinidamente.
 
-## Plan de diagnóstico
+## Solución
 
-1. **Agregar un bloque DEBUG correlacionado por mensaje** en `whatsapp-webhook` con el `wa_message_id` como identificador, registrando:
-   - mensaje entrante;
-   - `fromPhone`, `businessPhoneId`, `contact_id` y `conversation_id`;
-   - criterio exacto de búsqueda de contacto, conversación y sesión;
-   - cantidad de conversaciones encontradas y datos de la conversación seleccionada;
-   - cantidad de sesiones encontradas, última sesión, `estado` real y `mensaje_original`;
-   - rama tomada: `[NUEVA CONVERSACIÓN]` o `[ESPERANDO_ZONA]`.
+Introducir dos mecanismos complementarios sobre el runner existente, sin cambiar el esquema de tablas:
 
-2. **Instrumentar cada operación de persistencia sin cambiar decisiones**:
-   - resultado y error de consulta/creación/actualización de `whatsapp_conversations`;
-   - confirmación mediante lectura posterior de que la conversación existe antes de responder;
-   - resultado y error del `insert` en `whatsapp_routing_sessions`, incluyendo violaciones del índice único;
-   - lectura posterior para mostrar el estado realmente persistido antes de enviar la bienvenida;
-   - resultado del envío y registro del mensaje automático.
+1. **Continuación automática del lote**: si al terminar el lote quedan pendientes y no está pausada, la función se auto-invoca (fire-and-forget) para procesar el siguiente lote.
+2. **Timeout duro por campaña**: si `now() - started_at` supera un umbral (ver constante abajo), se marca a los pendientes restantes como `failed` con `error_message = "timeout: campaña excedió el tiempo máximo"` y la campaña pasa a `completed` con `finished_at = now()`.
 
-3. **Desplegar únicamente la instrumentación** y reproducir la secuencia controlada `mensaje inicial → bienvenida → “1”` en la línea Mexicali.
+Con esto:
+- Campañas chicas terminan y quedan `completed` de forma natural.
+- Campañas grandes avanzan solas lote tras lote hasta terminar.
+- Campañas que no pueden progresar (sin sesión, sin destinatarios válidos, línea caída) se cierran solas al vencer el timeout.
 
-4. **Revisar logs y base de datos** para entregar un diagnóstico concluyente que responda los 10 puntos solicitados, identificando la operación exacta donde el estado deja de recuperarse o persistirse. No se modificará el flujo, restricciones ni estados en esta etapa.
+## Cambios
+
+### `supabase/functions/whatsapp-campaign-runner/index.ts`
+
+- Constantes nuevas al inicio del archivo:
+  - `MAX_CAMPAIGN_MINUTES = 60` — tiempo máximo total desde `started_at`.
+  - `BATCH_SIZE = 200` — reducir de 500 a 200 para dar margen al límite de ejecución de la función y permitir más lotes continuos.
+- Antes de leer los `pending`, calcular `expired = started_at && (Date.now() - started_at) > MAX_CAMPAIGN_MINUTES * 60_000`.
+  - Si `expired`: marcar todos los `pending` de esa campaña como `failed` con `error_message = "timeout: campaña excedió el tiempo máximo"`, actualizar `failed_count`, poner `status = "completed"` y `finished_at = now()`, retornar `{ ok: true, timedOut: true }`.
+- Cambiar el `limit(500)` por `limit(BATCH_SIZE)` en la lectura de destinatarios pendientes.
+- Al final, si `stillPending > 0` y el estado final calculado sería `running` (no `paused`, no `completed`):
+  - Disparar `fetch` (sin `await` bloqueante) al mismo endpoint `/functions/v1/whatsapp-campaign-runner` con el `campaign_id`, reutilizando el header `Authorization` recibido, para encadenar el siguiente lote.
+  - Envolver en `try/catch` para que un fallo de auto-invocación no rompa la respuesta actual.
+- No se toca `verify_jwt` ni `supabase/config.toml`; la auto-invocación reutiliza el JWT del llamador original.
+
+### Sin cambios de esquema
+
+No se agrega ninguna columna. El campo `error_message` de `whatsapp_campaign_recipients` ya sirve para registrar la razón del cierre por timeout.
+
+### Retroactivo (una sola pasada opcional)
+
+Para las campañas que ya quedaron colgadas hoy, puedo (previa autorización) ejecutar una actualización puntual que:
+- Detecte campañas con `status = 'running'` y `started_at` anterior al umbral,
+- Marque a sus `pending` como `failed` (motivo timeout) y las cierre como `completed`.
+
+Dime si quieres que lo incluya en este mismo cambio o lo dejemos para después.
+
+## Verificación
+
+1. Crear una campaña con 3 destinatarios válidos → debe terminar `completed` en una sola invocación.
+2. Crear una campaña con >200 destinatarios → debe encadenar lotes y terminar `completed` sin intervención.
+3. Simular una campaña que no puede progresar (línea sin plantilla aprobada ya devuelve `failed` inmediato; para timeout, forzar `started_at` a hace 61 min en una campaña `running` con pendientes y re-invocar el runner) → debe cerrarse como `completed` con los pendientes en `failed` por timeout.
+
+## Notas técnicas
+
+- El runner ya respeta `paused`: la auto-invocación solo se dispara cuando `finalStatus === "running"`.
+- El runner ya respeta `scheduled_at`: si la campaña aún no vence, retorna sin tocar destinatarios; la auto-invocación no se disparará porque no procesa lote.
+- El throttle actual de 300 ms por destinatario se mantiene.

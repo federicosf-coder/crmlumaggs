@@ -11,6 +11,9 @@ function json(b: unknown, s: number) {
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const MAX_CAMPAIGN_MINUTES = 60;
+const BATCH_SIZE = 200;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -44,6 +47,39 @@ Deno.serve(async (req) => {
       const due = new Date(campaign.scheduled_at).getTime();
       if (due > Date.now()) {
         return json({ ok: true, message: "Campaña programada para el futuro", scheduled_at: campaign.scheduled_at }, 200);
+      }
+    }
+
+    // Timeout duro: si la campaña lleva demasiado tiempo corriendo, cerrarla.
+    if (campaign.started_at) {
+      const elapsedMs = Date.now() - new Date(campaign.started_at).getTime();
+      if (elapsedMs > MAX_CAMPAIGN_MINUTES * 60_000) {
+        const { data: expiredPending } = await admin
+          .from("whatsapp_campaign_recipients")
+          .select("id")
+          .eq("campaign_id", campaign_id)
+          .eq("status", "pending");
+        const expiredCount = expiredPending?.length ?? 0;
+        if (expiredCount > 0) {
+          await admin
+            .from("whatsapp_campaign_recipients")
+            .update({
+              status: "failed",
+              error_message: "timeout: campaña excedió el tiempo máximo",
+              sent_at: new Date().toISOString(),
+            })
+            .eq("campaign_id", campaign_id)
+            .eq("status", "pending");
+        }
+        await admin
+          .from("whatsapp_campaigns")
+          .update({
+            status: "completed",
+            failed_count: (campaign.failed_count ?? 0) + expiredCount,
+            finished_at: new Date().toISOString(),
+          })
+          .eq("id", campaign_id);
+        return json({ ok: true, timedOut: true, failedByTimeout: expiredCount }, 200);
       }
     }
 
@@ -100,7 +136,7 @@ Deno.serve(async (req) => {
       .select("*")
       .eq("campaign_id", campaign_id)
       .eq("status", "pending")
-      .limit(500);
+      .limit(BATCH_SIZE);
 
     let sent = 0,
       failed = 0;
@@ -192,6 +228,24 @@ Deno.serve(async (req) => {
         finished_at: finalStatus === "completed" ? new Date().toISOString() : null,
       })
       .eq("id", campaign_id);
+
+    // Encadenar siguiente lote automáticamente si aún hay pendientes.
+    if (finalStatus === "running" && (stillPending ?? 0) > 0) {
+      try {
+        // Fire-and-forget: no await, para responder rápido.
+        fetch(`${SUPABASE_URL}/functions/v1/whatsapp-campaign-runner`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: authHeader,
+            apikey: ANON_KEY,
+          },
+          body: JSON.stringify({ campaign_id }),
+        }).catch((e) => console.warn("[campaign-runner] auto-continue failed:", e));
+      } catch (e) {
+        console.warn("[campaign-runner] auto-continue threw:", e);
+      }
+    }
 
     return json({ ok: true, sent, failed, remaining: stillPending ?? 0 }, 200);
   } catch (e) {
