@@ -12,7 +12,9 @@ function json(b: unknown, s: number) {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const MAX_CAMPAIGN_MINUTES = 60;
-const BATCH_SIZE = 50;
+// Mantener cada ejecución muy por debajo del límite de 150 s del runtime.
+const BATCH_SIZE = 10;
+const MESSAGE_TIMEOUT_MS = 8_000;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -133,12 +135,13 @@ Deno.serve(async (req) => {
 
     // Procesar el lote en segundo plano para no exceder el idle timeout (150s).
     const processBatch = async () => {
-      const { data: pending } = await admin
+      const { data: pending, error: pendingError } = await admin
       .from("whatsapp_campaign_recipients")
       .select("*")
       .eq("campaign_id", campaign_id)
       .eq("status", "pending")
       .limit(BATCH_SIZE);
+      if (pendingError) throw new Error(`No se pudieron leer destinatarios: ${pendingError.message}`);
 
       let sent = 0,
         failed = 0;
@@ -176,6 +179,7 @@ Deno.serve(async (req) => {
         const res = await fetch(`https://graph.facebook.com/v21.0/${activePhoneId}/messages`, {
           method: "POST",
           headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(MESSAGE_TIMEOUT_MS),
           body: JSON.stringify({
             messaging_product: "whatsapp",
             to: r.wa_phone,
@@ -199,9 +203,16 @@ Deno.serve(async (req) => {
         else failed++;
       } catch (e) {
         failed++;
+        const timedOut = e instanceof DOMException && e.name === "TimeoutError";
         await admin
           .from("whatsapp_campaign_recipients")
-          .update({ status: "failed", error_message: String(e).slice(0, 500), sent_at: new Date().toISOString() })
+          .update({
+            status: "failed",
+            error_message: timedOut
+              ? `timeout: WhatsApp no respondió en ${MESSAGE_TIMEOUT_MS / 1000} segundos`
+              : String(e).slice(0, 500),
+            sent_at: new Date().toISOString(),
+          })
           .eq("id", r.id);
       }
       await sleep(300); // throttle
@@ -233,9 +244,10 @@ Deno.serve(async (req) => {
 
       // Encadenar siguiente lote automáticamente si aún hay pendientes.
       if (finalStatus === "running" && (stillPending ?? 0) > 0) {
-      try {
-        // Fire-and-forget: no await, para responder rápido.
-        fetch(`${SUPABASE_URL}/functions/v1/whatsapp-campaign-runner`, {
+        try {
+          // Esperar únicamente a que la siguiente ejecución acepte el trabajo (responde 202).
+          // Un fetch fire-and-forget puede ser cancelado cuando termina este isolate.
+          const continuation = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-campaign-runner`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -243,10 +255,14 @@ Deno.serve(async (req) => {
             apikey: ANON_KEY,
           },
           body: JSON.stringify({ campaign_id }),
-        }).catch((e) => console.warn("[campaign-runner] auto-continue failed:", e));
-      } catch (e) {
-        console.warn("[campaign-runner] auto-continue threw:", e);
-      }
+          signal: AbortSignal.timeout(10_000),
+          });
+          if (!continuation.ok) {
+            console.warn("[campaign-runner] auto-continue rejected:", continuation.status);
+          }
+        } catch (e) {
+          console.warn("[campaign-runner] auto-continue failed:", e);
+        }
       }
       return { sent, failed, remaining: stillPending ?? 0 };
     };
