@@ -25,6 +25,18 @@ Deno.serve(async (req) => {
       return json({ error: "Faltan secrets WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID_3 / WHATSAPP_WABA_ID_3" }, 500);
     }
 
+    // Suscribir la app al WABA para que Meta envíe eventos de webhook (mensajes entrantes, estados, etc.)
+    let subscribeResult: unknown = null;
+    try {
+      const sr = await fetch(
+        `https://graph.facebook.com/v22.0/${WABA_ID}/subscribed_apps`,
+        { method: "POST", headers: { Authorization: `Bearer ${TOKEN}` } },
+      );
+      subscribeResult = { ok: sr.ok, status: sr.status, body: await sr.json().catch(() => null) };
+    } catch (e) {
+      subscribeResult = { ok: false, error: String(e) };
+    }
+
     // Consultar metadata del número en Meta.
     let display_phone = "";
     let verified_name: string | null = null;
@@ -81,7 +93,7 @@ Deno.serve(async (req) => {
       row = data;
     }
 
-    return json({ ok: true, verified_name, account: row });
+    return json({ ok: true, verified_name, account: row, subscribe: subscribeResult });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }
