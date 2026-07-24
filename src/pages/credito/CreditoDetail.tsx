@@ -1617,7 +1617,7 @@ export default function CreditoDetail() {
                 <SelectTrigger className="h-9"><SelectValue placeholder="Sin uso de CFDI" /></SelectTrigger>
                 <SelectContent>
                   {USO_CFDI_OPTS.map((o: any) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
