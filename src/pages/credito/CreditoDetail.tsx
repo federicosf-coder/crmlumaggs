@@ -30,6 +30,7 @@ import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { USO_CFDI_OPTS } from "@/components/CompanyFormDialog";
 import { SendCreditoLinkDialog } from "@/components/credito/SendCreditoLinkDialog";
+import { EnviarCescemexDialog } from "@/components/credito/EnviarCescemexDialog";
 import { CreditoResponsablesPanel } from "@/components/credito/CreditoResponsablesPanel";
 
 // Bandera temporal para ocultar visualmente las secciones de
@@ -751,7 +752,7 @@ function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs, creditId 
 
 export default function CreditoDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user, hasAnyRole } = useAuth();
+  const { user, profile, hasAnyRole } = useAuth();
   const qc = useQueryClient();
   const isInternal = hasAnyRole(["admin", "manager", "customer_service", "accounting", "sales"]);
   const isAdminMgr = hasAnyRole(["admin", "manager"]);
@@ -764,6 +765,7 @@ export default function CreditoDetail() {
   const [formTab, setFormTab] = useState("empresa");
   const [shareOpen, setShareOpen] = useState(false);
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
+  const [cescemexOpen, setCescemexOpen] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
   const [newCommentVis, setNewCommentVis] = useState<"interna" | "publica">("interna");
   const [uploadCtx, setUploadCtx] = useState<{ docTypeId: string | null; docTypeName: string } | null>(null);
