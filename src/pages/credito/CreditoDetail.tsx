@@ -786,7 +786,7 @@ export default function CreditoDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("credit_requests")
-        .select("*, companies(id, name, razon_social, industrias, plaza_id)")
+        .select("*, companies(id, name, razon_social, industrias, plaza_id, uso_cfdi)")
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
@@ -1591,6 +1591,38 @@ export default function CreditoDetail() {
               />
             </div>
 
+            {/* Promedio Unidades Mensuales */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Promedio unidades mensuales</Label>
+              <Input
+                type="number"
+                className="h-9"
+                placeholder="0"
+                value={(form as any).promedio_unidades_mensuales ?? ""}
+                onChange={(e) => set("promedio_unidades_mensuales" as any, e.target.value ? Number(e.target.value) : null)}
+                onBlur={async (e) => {
+                  const v = e.target.value ? Number(e.target.value) : null;
+                  await (supabase as any).from("credit_requests").update({ promedio_unidades_mensuales: v }).eq("id", id!);
+                }}
+              />
+            </div>
+
+            {/* Uso de CFDI (sincronizado con la Empresa) */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Uso de CFDI</Label>
+              <Select
+                value={company.uso_cfdi || ""}
+                onValueChange={(v) => updateCompany({ uso_cfdi: v || null })}
+              >
+                <SelectTrigger className="h-9"><SelectValue placeholder="Sin uso de CFDI" /></SelectTrigger>
+                <SelectContent>
+                  {USO_CFDI_OPTS.map((o: any) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Plaza (sincronizada con la Empresa del directorio) */}
             <div className="space-y-1">
               <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Plaza</Label>
@@ -1664,17 +1696,62 @@ export default function CreditoDetail() {
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              {form.contact_id && (() => {
-                const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
-                if (!cc) return null;
-                const phone = cc.whatsapp_phone || cc.mobile || cc.phone;
-                return (
-                  <div className="text-[11px] text-muted-foreground space-x-3 pt-0.5">
-                    {cc.email && <span><Mail className="inline h-3 w-3 mr-0.5" />{cc.email}</span>}
-                    {phone && <span><Phone className="inline h-3 w-3 mr-0.5" />{phone}</span>}
-                  </div>
-                );
-              })()}
+            </div>
+
+            {/* Correo Electrónico Contacto */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Correo electrónico contacto</Label>
+              <Input
+                type="email"
+                className="h-9"
+                disabled={!form.contact_id}
+                placeholder={form.contact_id ? "correo@dominio.com" : "Selecciona un contacto primero"}
+                value={(() => {
+                  const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+                  return cc?.email ?? "";
+                })()}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  qc.setQueryData(["company_contacts", companyId], (old: any) =>
+                    Array.isArray(old) ? old.map((c: any) => c.id === form.contact_id ? { ...c, email: val } : c) : old
+                  );
+                }}
+                onBlur={async (e) => {
+                  if (!form.contact_id) return;
+                  const val = e.target.value || null;
+                  const { error } = await supabase.from("contacts").update({ email: val }).eq("id", form.contact_id);
+                  if (error) toast.error(error.message);
+                  else qc.invalidateQueries({ queryKey: ["company_contacts", companyId] });
+                }}
+              />
+            </div>
+
+            {/* Teléfono de Contacto */}
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Teléfono de contacto</Label>
+              <Input
+                type="tel"
+                className="h-9"
+                disabled={!form.contact_id}
+                placeholder={form.contact_id ? "10 dígitos" : "Selecciona un contacto primero"}
+                value={(() => {
+                  const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+                  return cc?.phone ?? "";
+                })()}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  qc.setQueryData(["company_contacts", companyId], (old: any) =>
+                    Array.isArray(old) ? old.map((c: any) => c.id === form.contact_id ? { ...c, phone: val } : c) : old
+                  );
+                }}
+                onBlur={async (e) => {
+                  if (!form.contact_id) return;
+                  const val = e.target.value || null;
+                  const { error } = await supabase.from("contacts").update({ phone: val }).eq("id", form.contact_id);
+                  if (error) toast.error(error.message);
+                  else qc.invalidateQueries({ queryKey: ["company_contacts", companyId] });
+                }}
+              />
             </div>
           </div>
         </CardContent>
