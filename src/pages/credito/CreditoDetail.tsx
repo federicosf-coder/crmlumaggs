@@ -1712,7 +1712,7 @@ export default function CreditoDetail() {
                 })()}
                 onChange={(e) => {
                   const val = e.target.value;
-                  qc.setQueryData(["company_contacts", companyId], (old: any) =>
+                  qc.setQueryData(["credit-company-contacts", companyId], (old: any) =>
                     Array.isArray(old) ? old.map((c: any) => c.id === form.contact_id ? { ...c, email: val } : c) : old
                   );
                 }}
@@ -1721,7 +1721,7 @@ export default function CreditoDetail() {
                   const val = e.target.value || null;
                   const { error } = await supabase.from("contacts").update({ email: val }).eq("id", form.contact_id);
                   if (error) toast.error(error.message);
-                  else qc.invalidateQueries({ queryKey: ["company_contacts", companyId] });
+                  else qc.invalidateQueries({ queryKey: ["credit-company-contacts", companyId] });
                 }}
               />
             </div>
@@ -1740,7 +1740,7 @@ export default function CreditoDetail() {
                 })()}
                 onChange={(e) => {
                   const val = e.target.value;
-                  qc.setQueryData(["company_contacts", companyId], (old: any) =>
+                  qc.setQueryData(["credit-company-contacts", companyId], (old: any) =>
                     Array.isArray(old) ? old.map((c: any) => c.id === form.contact_id ? { ...c, phone: val } : c) : old
                   );
                 }}
@@ -1749,7 +1749,7 @@ export default function CreditoDetail() {
                   const val = e.target.value || null;
                   const { error } = await supabase.from("contacts").update({ phone: val }).eq("id", form.contact_id);
                   if (error) toast.error(error.message);
-                  else qc.invalidateQueries({ queryKey: ["company_contacts", companyId] });
+                  else qc.invalidateQueries({ queryKey: ["credit-company-contacts", companyId] });
                 }}
               />
             </div>
@@ -2087,7 +2087,7 @@ export default function CreditoDetail() {
                             if (syncContact && cc && val && val !== (cc.email || "")) {
                               const { error } = await supabase.from("contacts").update({ email: val }).eq("id", cc.id);
                               if (error) toast.error("No se pudo actualizar el contacto");
-                              else { toast.success("Correo actualizado también en el contacto"); qc.invalidateQueries({ queryKey: ["company_contacts", companyId] }); }
+                              else { toast.success("Correo actualizado también en el contacto"); qc.invalidateQueries({ queryKey: ["credit-company-contacts", companyId] }); }
                             }
                           }}
                         />
