@@ -1,0 +1,1 @@
+ALTER TABLE public.credit_requests ADD COLUMN IF NOT EXISTS promedio_unidades_mensuales numeric;
