@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { useIndustriasCatalog } from "@/hooks/useIndustriasCatalog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { USO_CFDI_OPTS } from "@/components/CompanyFormDialog";
 import { SendCreditoLinkDialog } from "@/components/credito/SendCreditoLinkDialog";
 import { CreditoResponsablesPanel } from "@/components/credito/CreditoResponsablesPanel";
 
