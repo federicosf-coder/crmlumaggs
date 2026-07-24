@@ -323,7 +323,7 @@ function buildZonaPrompt(cfg: typeof ROUTING_ACCOUNTS[string]): string {
   const opts = cfg.zonas
     .map((z, i) => `${i + 1}\u20e3 ${z.label}`)
     .join("\n");
-  return `¡Hola! 👋\nGracias por comunicarte con ${cfg.empresa}.\n\n¿Desde qué zona nos contactas?\n\n${opts}`;
+  return `¡Hola! 👋\nGracias por comunicarte con ${cfg.empresa}.\n\n¿De dónde nos contactas?\n\n${opts}\n\nResponde con el número de la opción.`;
 }
 
 function matchZona(cfg: typeof ROUTING_ACCOUNTS[string], text: string) {
