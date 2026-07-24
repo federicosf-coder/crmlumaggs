@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
     const FALLBACK_PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")
-      ?? Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_2");
+      ?? Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_2")
+      ?? Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_3");
     if (!TOKEN) return json({ error: "Missing WHATSAPP_ACCESS_TOKEN" }, 500);
 
     const authHeader = req.headers.get("Authorization") ?? "";
