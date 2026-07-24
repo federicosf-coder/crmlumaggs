@@ -1,39 +1,46 @@
-## Objetivo
-Registrar una tercera línea de WhatsApp (etiqueta **Galsa**, WABA distinto) usando los secrets ya cargados `WHATSAPP_PHONE_NUMBER_ID_3` y `WHATSAPP_WABA_ID_3`, dejarla operativa en todos los flujos (envío directo, campañas, plantillas, webhook) y validarla con pruebas reales.
+# Ruteo de 4 zonas — Cuenta Galsa
 
-Contexto actual verificado:
-- Ya existen los secrets: `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` (Mexicali), `WHATSAPP_PHONE_NUMBER_ID_2` (Tijuana), `WHATSAPP_PHONE_NUMBER_ID_3` (Galsa, pendiente de alta), `WHATSAPP_WABA_ID`, `WHATSAPP_WABA_ID_3`.
-- Ya hay 2 filas en `whatsapp_accounts` (Mexicali, Tijuana). Falta la de Galsa.
-- `whatsapp-send-message` y `whatsapp-campaign-runner` usan `PHONE_ID_1 ?? PHONE_ID_2` como fallback (no contemplan el `_3`).
-- `whatsapp-sync-templates` agrupa por `waba_id` leyendo las filas activas de `whatsapp_accounts`, así que basta con dar de alta la fila para que sincronice el nuevo WABA.
+Extender el flujo de ruteo por zonas (hoy Mexicali/Costa en las cuentas Mexicali y Tijuana) para agregar la cuenta **Galsa** (`phone_number_id` que corresponde a +52 1 686 561 8533) con **4 zonas** en vez de 2.
 
-## Cambios
+## Comportamiento
 
-### 1. Nueva edge function `whatsapp-bootstrap-account-3`
-Función administrativa de un solo uso. Lee `WHATSAPP_PHONE_NUMBER_ID_3`, `WHATSAPP_WABA_ID_3` y `WHATSAPP_ACCESS_TOKEN`; consulta a Meta `GET /{phone_id}?fields=display_phone_number,verified_name` para obtener el número visible; y hace `upsert` en `whatsapp_accounts` con:
-- `label`: "Galsa"
-- `business_phone_number_id`: valor del secret
-- `waba_id`: valor del secret
-- `display_phone`: valor devuelto por Meta
-- `color`: por ejemplo `#f59e0b`
-- `is_active`: true
+Cuando llegue un mensaje a Galsa y no exista sesión activa (o la sesión esté `finalizado`):
 
-Devuelve el registro insertado/actualizado para verificación.
+1. El bot responde:
+   > ¿De dónde nos contactas?
+   > 1) Mexicali
+   > 2) Tijuana, Ensenada, Tecate, San Quintín, Rosarito
+   > 3) Valle de Mexicali
+   > 4) San Luis R.C.
+   >
+   > Responde con el número de la opción.
+2. Estado de sesión pasa a `esperando_zona`.
+3. Si el cliente responde `1`, `2`, `3` o `4` (aceptando también variantes tipo "opcion 1", "1.", etc.), el bot envía un mensaje con el enlace `wa.me` al encargado correspondiente, precargando el mensaje original del cliente:
+   - 1 → **Mexicali** — `5216861790126`
+   - 2 → **Tijuana / Costa** — `5216645634361`
+   - 3 → **Valle de Mexicali** — `5216861682488`
+   - 4 → **San Luis R.C.** — `5216531517816`
+   Luego marca la sesión como `finalizado`.
+4. Si responde algo distinto mientras está en `esperando_zona`, el bot re-pregunta sin reiniciar.
+5. Cualquier mensaje nuevo con sesión `finalizado` reinicia el flujo desde el paso 1.
 
-### 2. Actualizar fallbacks en dos funciones existentes
-- `supabase/functions/whatsapp-send-message/index.ts`: agregar `PHONE_ID_3 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_3")` y considerarlo en los `??` de las líneas 33, 156 y 178.
-- `supabase/functions/whatsapp-campaign-runner/index.ts`: incluir `WHATSAPP_PHONE_NUMBER_ID_3` en la cadena de fallback (línea 26-27).
+Todos los mensajes salientes se registran en `whatsapp_messages` como `outbound` (mismo helper `sendAndLogText` que ya existe).
 
-### 3. Deploy de las 3 funciones (bootstrap, send-message, campaign-runner).
+## Cambios técnicos
 
-## Pruebas de validación
-1. **Bootstrap**: invocar `whatsapp-bootstrap-account-3` y confirmar que devuelve el `display_phone` de Meta y que la fila queda en `whatsapp_accounts`.
-2. **Templates**: invocar `whatsapp-sync-templates` y confirmar que aparecen plantillas nuevas asociadas al `WHATSAPP_WABA_ID_3`.
-3. **Envío directo**: invocar `whatsapp-send-message` con `business_phone_number_id` = el de Galsa, `to_phone` = `6867383963`, `kind` = `template`, usando una plantilla APPROVED del WABA nuevo (por ejemplo `hello_world` si está o la primera plantilla APPROVED devuelta por el paso 2).
-4. **Verificaciones**: revisar `edge_function_logs` de `whatsapp-send-message`, confirmar `messages[0].id` en la respuesta y ver la fila `outbound` en `whatsapp_messages`.
+- `supabase/functions/whatsapp-webhook/index.ts`:
+  - Agregar entrada en `ROUTING_ACCOUNTS` para el `business_phone_number_id` de Galsa con las 4 zonas y sus destinos.
+  - Generalizar `handleZoneRouting` (si aún está hardcodeado a 2 opciones) para aceptar N zonas definidas por cuenta: mensaje de bienvenida generado desde la lista de zonas y parseo de la respuesta contra los índices `1..N`.
+  - Mantener el manejo de sesión existente (`whatsapp_routing_sessions`, reuso de fila por `(wa_phone, business_phone_number_id)`, estados `esperando_zona`/`finalizado`).
+- Deploy de `whatsapp-webhook`.
 
-Si la plantilla de prueba no existe en el WABA nuevo (WhatsApp no permite mensajes de sesión sin ventana de 24h abierta), el paso 3 se hará con `hello_world` (plantilla estándar de Meta) o se documentará que se necesita una plantilla aprobada para completar la validación end-to-end.
+## Validación
+
+1. Consultar en la BD el `business_phone_number_id` real de la cuenta Galsa para configurar `ROUTING_ACCOUNTS`.
+2. Revisar logs del webhook al enviar un mensaje de prueba a +52 686 561 8533 y responder `1`, `2`, `3`, `4` y una opción inválida.
+3. Confirmar en `whatsapp_messages` que quedan registrados el saludo, la respuesta del cliente y el mensaje con el link `wa.me` correspondiente.
 
 ## Fuera de alcance
-- UI en `WhatsAppSettings.tsx` (la cuenta se puede editar desde ahí después del bootstrap).
-- Cambios al flujo de routing por zonas (Mexicali/Costa) — Galsa no forma parte de esa lógica.
+
+- No se toca el flujo de Mexicali/Tijuana existente.
+- No se agregan tablas nuevas ni cambios de UI.
