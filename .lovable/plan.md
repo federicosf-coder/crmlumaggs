@@ -1,56 +1,39 @@
-# Auto-cierre de campañas de WhatsApp
+## Objetivo
+Registrar una tercera línea de WhatsApp (etiqueta **Galsa**, WABA distinto) usando los secrets ya cargados `WHATSAPP_PHONE_NUMBER_ID_3` y `WHATSAPP_WABA_ID_3`, dejarla operativa en todos los flujos (envío directo, campañas, plantillas, webhook) y validarla con pruebas reales.
 
-## Problema
-
-`whatsapp-campaign-runner` procesa un lote de hasta 500 destinatarios pendientes por invocación. Si quedan pendientes al terminar, deja la campaña como `running` y **nada la vuelve a invocar**, así que la campaña nunca se marca como `completed` y los contadores nunca se cierran. Tampoco existe un límite de tiempo o de reintentos, por lo que una campaña grande, un teléfono inválido o una línea sin sesión de 24h dejan a la campaña "corriendo" indefinidamente.
-
-## Solución
-
-Introducir dos mecanismos complementarios sobre el runner existente, sin cambiar el esquema de tablas:
-
-1. **Continuación automática del lote**: si al terminar el lote quedan pendientes y no está pausada, la función se auto-invoca (fire-and-forget) para procesar el siguiente lote.
-2. **Timeout duro por campaña**: si `now() - started_at` supera un umbral (ver constante abajo), se marca a los pendientes restantes como `failed` con `error_message = "timeout: campaña excedió el tiempo máximo"` y la campaña pasa a `completed` con `finished_at = now()`.
-
-Con esto:
-- Campañas chicas terminan y quedan `completed` de forma natural.
-- Campañas grandes avanzan solas lote tras lote hasta terminar.
-- Campañas que no pueden progresar (sin sesión, sin destinatarios válidos, línea caída) se cierran solas al vencer el timeout.
+Contexto actual verificado:
+- Ya existen los secrets: `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` (Mexicali), `WHATSAPP_PHONE_NUMBER_ID_2` (Tijuana), `WHATSAPP_PHONE_NUMBER_ID_3` (Galsa, pendiente de alta), `WHATSAPP_WABA_ID`, `WHATSAPP_WABA_ID_3`.
+- Ya hay 2 filas en `whatsapp_accounts` (Mexicali, Tijuana). Falta la de Galsa.
+- `whatsapp-send-message` y `whatsapp-campaign-runner` usan `PHONE_ID_1 ?? PHONE_ID_2` como fallback (no contemplan el `_3`).
+- `whatsapp-sync-templates` agrupa por `waba_id` leyendo las filas activas de `whatsapp_accounts`, así que basta con dar de alta la fila para que sincronice el nuevo WABA.
 
 ## Cambios
 
-### `supabase/functions/whatsapp-campaign-runner/index.ts`
+### 1. Nueva edge function `whatsapp-bootstrap-account-3`
+Función administrativa de un solo uso. Lee `WHATSAPP_PHONE_NUMBER_ID_3`, `WHATSAPP_WABA_ID_3` y `WHATSAPP_ACCESS_TOKEN`; consulta a Meta `GET /{phone_id}?fields=display_phone_number,verified_name` para obtener el número visible; y hace `upsert` en `whatsapp_accounts` con:
+- `label`: "Galsa"
+- `business_phone_number_id`: valor del secret
+- `waba_id`: valor del secret
+- `display_phone`: valor devuelto por Meta
+- `color`: por ejemplo `#f59e0b`
+- `is_active`: true
 
-- Constantes nuevas al inicio del archivo:
-  - `MAX_CAMPAIGN_MINUTES = 60` — tiempo máximo total desde `started_at`.
-  - `BATCH_SIZE = 200` — reducir de 500 a 200 para dar margen al límite de ejecución de la función y permitir más lotes continuos.
-- Antes de leer los `pending`, calcular `expired = started_at && (Date.now() - started_at) > MAX_CAMPAIGN_MINUTES * 60_000`.
-  - Si `expired`: marcar todos los `pending` de esa campaña como `failed` con `error_message = "timeout: campaña excedió el tiempo máximo"`, actualizar `failed_count`, poner `status = "completed"` y `finished_at = now()`, retornar `{ ok: true, timedOut: true }`.
-- Cambiar el `limit(500)` por `limit(BATCH_SIZE)` en la lectura de destinatarios pendientes.
-- Al final, si `stillPending > 0` y el estado final calculado sería `running` (no `paused`, no `completed`):
-  - Disparar `fetch` (sin `await` bloqueante) al mismo endpoint `/functions/v1/whatsapp-campaign-runner` con el `campaign_id`, reutilizando el header `Authorization` recibido, para encadenar el siguiente lote.
-  - Envolver en `try/catch` para que un fallo de auto-invocación no rompa la respuesta actual.
-- No se toca `verify_jwt` ni `supabase/config.toml`; la auto-invocación reutiliza el JWT del llamador original.
+Devuelve el registro insertado/actualizado para verificación.
 
-### Sin cambios de esquema
+### 2. Actualizar fallbacks en dos funciones existentes
+- `supabase/functions/whatsapp-send-message/index.ts`: agregar `PHONE_ID_3 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_3")` y considerarlo en los `??` de las líneas 33, 156 y 178.
+- `supabase/functions/whatsapp-campaign-runner/index.ts`: incluir `WHATSAPP_PHONE_NUMBER_ID_3` en la cadena de fallback (línea 26-27).
 
-No se agrega ninguna columna. El campo `error_message` de `whatsapp_campaign_recipients` ya sirve para registrar la razón del cierre por timeout.
+### 3. Deploy de las 3 funciones (bootstrap, send-message, campaign-runner).
 
-### Retroactivo (una sola pasada opcional)
+## Pruebas de validación
+1. **Bootstrap**: invocar `whatsapp-bootstrap-account-3` y confirmar que devuelve el `display_phone` de Meta y que la fila queda en `whatsapp_accounts`.
+2. **Templates**: invocar `whatsapp-sync-templates` y confirmar que aparecen plantillas nuevas asociadas al `WHATSAPP_WABA_ID_3`.
+3. **Envío directo**: invocar `whatsapp-send-message` con `business_phone_number_id` = el de Galsa, `to_phone` = `6867383963`, `kind` = `template`, usando una plantilla APPROVED del WABA nuevo (por ejemplo `hello_world` si está o la primera plantilla APPROVED devuelta por el paso 2).
+4. **Verificaciones**: revisar `edge_function_logs` de `whatsapp-send-message`, confirmar `messages[0].id` en la respuesta y ver la fila `outbound` en `whatsapp_messages`.
 
-Para las campañas que ya quedaron colgadas hoy, puedo (previa autorización) ejecutar una actualización puntual que:
-- Detecte campañas con `status = 'running'` y `started_at` anterior al umbral,
-- Marque a sus `pending` como `failed` (motivo timeout) y las cierre como `completed`.
+Si la plantilla de prueba no existe en el WABA nuevo (WhatsApp no permite mensajes de sesión sin ventana de 24h abierta), el paso 3 se hará con `hello_world` (plantilla estándar de Meta) o se documentará que se necesita una plantilla aprobada para completar la validación end-to-end.
 
-Dime si quieres que lo incluya en este mismo cambio o lo dejemos para después.
-
-## Verificación
-
-1. Crear una campaña con 3 destinatarios válidos → debe terminar `completed` en una sola invocación.
-2. Crear una campaña con >200 destinatarios → debe encadenar lotes y terminar `completed` sin intervención.
-3. Simular una campaña que no puede progresar (línea sin plantilla aprobada ya devuelve `failed` inmediato; para timeout, forzar `started_at` a hace 61 min en una campaña `running` con pendientes y re-invocar el runner) → debe cerrarse como `completed` con los pendientes en `failed` por timeout.
-
-## Notas técnicas
-
-- El runner ya respeta `paused`: la auto-invocación solo se dispara cuando `finalStatus === "running"`.
-- El runner ya respeta `scheduled_at`: si la campaña aún no vence, retorna sin tocar destinatarios; la auto-invocación no se disparará porque no procesa lote.
-- El throttle actual de 300 ms por destinatario se mantiene.
+## Fuera de alcance
+- UI en `WhatsAppSettings.tsx` (la cuenta se puede editar desde ahí después del bootstrap).
+- Cambios al flujo de routing por zonas (Mexicali/Costa) — Galsa no forma parte de esa lógica.

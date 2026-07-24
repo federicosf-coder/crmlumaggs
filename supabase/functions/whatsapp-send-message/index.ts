@@ -30,7 +30,8 @@ Deno.serve(async (req) => {
     const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
     const PHONE_ID_1 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
     const PHONE_ID_2 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_2");
-    if (!TOKEN || (!PHONE_ID_1 && !PHONE_ID_2)) return json({ error: "Missing WhatsApp credentials" }, 500);
+    const PHONE_ID_3 = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID_3");
+    if (!TOKEN || (!PHONE_ID_1 && !PHONE_ID_2 && !PHONE_ID_3)) return json({ error: "Missing WhatsApp credentials" }, 500);
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const userClient = createClient(SUPABASE_URL, ANON_KEY, {
@@ -153,7 +154,7 @@ Deno.serve(async (req) => {
     }
     if (!convRow) {
       // For new conversations, prefer the explicitly chosen line, then fall back.
-      const defaultPhoneId = explicitPhoneId ?? PHONE_ID_1 ?? PHONE_ID_2 ?? null;
+      const defaultPhoneId = explicitPhoneId ?? PHONE_ID_1 ?? PHONE_ID_2 ?? PHONE_ID_3 ?? null;
       const { data: created } = await admin
         .from("whatsapp_conversations")
         .insert({ wa_phone: toPhone, business_phone_number_id: defaultPhoneId })
@@ -175,7 +176,7 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
-      activePhoneId = defaultAcct?.business_phone_number_id ?? PHONE_ID_1 ?? PHONE_ID_2 ?? null;
+      activePhoneId = defaultAcct?.business_phone_number_id ?? PHONE_ID_1 ?? PHONE_ID_2 ?? PHONE_ID_3 ?? null;
     }
     if (!activePhoneId) return json({ error: "No hay phone_number_id configurado para esta conversación" }, 500);
 
