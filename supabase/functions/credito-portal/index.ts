@@ -133,6 +133,45 @@ Deno.serve(async (req) => {
   const { action, token } = body || {}
   if (!action || !token) return json({ error: 'missing_action_or_token' }, 400)
 
+  // Public share for Cescemex: independent of client_token flow
+  if (action === 'cescemex_docs') {
+    try {
+      const { data: reqRow } = await supabase
+        .from('credit_requests')
+        .select('id, folio, cescemex_share_expires_at, companies(name)')
+        .eq('cescemex_share_token', String(token))
+        .maybeSingle()
+      if (!reqRow) return json({ error: 'invalid_or_expired_token' }, 401)
+      const expiresAt = reqRow.cescemex_share_expires_at ? new Date(reqRow.cescemex_share_expires_at).getTime() : 0
+      const nowMs = Date.now()
+      if (!expiresAt || expiresAt <= nowMs) return json({ error: 'invalid_or_expired_token' }, 401)
+      const remainingSec = Math.min(604800, Math.max(60, Math.floor((expiresAt - nowMs) / 1000)))
+      const { data: docsRows } = await supabase
+        .from('credit_request_docs')
+        .select('id, nombre_archivo, url_archivo')
+        .eq('credit_request_id', reqRow.id)
+        .order('created_at', { ascending: true })
+      const out: any[] = []
+      for (const d of docsRows || []) {
+        if (!d.url_archivo) continue
+        const { data: signed } = await supabase.storage
+          .from('credit-docs')
+          .createSignedUrl(d.url_archivo, remainingSec)
+        if (signed?.signedUrl) {
+          out.push({ nombre_archivo: d.nombre_archivo || 'archivo', signed_url: signed.signedUrl })
+        }
+      }
+      return json({
+        company_name: (reqRow as any).companies?.name || '',
+        folio: reqRow.folio || '',
+        docs: out,
+      })
+    } catch (e: any) {
+      console.error('cescemex_docs error', e)
+      return json({ error: 'server_error' }, 500)
+    }
+  }
+
   const ctx = await resolveToken(String(token))
   if (!ctx) return json({ error: 'invalid_token' }, 401)
 

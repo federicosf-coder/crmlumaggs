@@ -30,6 +30,7 @@ import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { USO_CFDI_OPTS } from "@/components/CompanyFormDialog";
 import { SendCreditoLinkDialog } from "@/components/credito/SendCreditoLinkDialog";
+import { EnviarCescemexDialog } from "@/components/credito/EnviarCescemexDialog";
 import { CreditoResponsablesPanel } from "@/components/credito/CreditoResponsablesPanel";
 
 // Bandera temporal para ocultar visualmente las secciones de
@@ -751,7 +752,7 @@ function BcPersonaMoralForm({ bcData, setBc, uploadDoc, openDoc, docs, creditId 
 
 export default function CreditoDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user, hasAnyRole } = useAuth();
+  const { user, profile, hasAnyRole } = useAuth();
   const qc = useQueryClient();
   const isInternal = hasAnyRole(["admin", "manager", "customer_service", "accounting", "sales"]);
   const isAdminMgr = hasAnyRole(["admin", "manager"]);
@@ -764,6 +765,7 @@ export default function CreditoDetail() {
   const [formTab, setFormTab] = useState("empresa");
   const [shareOpen, setShareOpen] = useState(false);
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
+  const [cescemexOpen, setCescemexOpen] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
   const [newCommentVis, setNewCommentVis] = useState<"interna" | "publica">("interna");
   const [uploadCtx, setUploadCtx] = useState<{ docTypeId: string | null; docTypeName: string } | null>(null);
@@ -1420,6 +1422,14 @@ export default function CreditoDetail() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCescemexOpen(true)}
+                className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 hover:from-amber-100 hover:to-orange-100 text-[10px] font-semibold uppercase tracking-widest"
+              >
+                <Send className="h-3.5 w-3.5 mr-1.5" />Enviar Solicitud Cescemex
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -2958,6 +2968,54 @@ export default function CreditoDetail() {
         contactoEmail={form.correo_contacto || ""}
         creditRequestId={id!}
       />
+
+      {id && (
+        <EnviarCescemexDialog
+          open={cescemexOpen}
+          onOpenChange={setCescemexOpen}
+          creditRequestId={id}
+          folio={form.folio || ""}
+          companyName={(form.companies as any)?.name || ""}
+          repLegalNombre={form.rep_legal_nombre || ""}
+          contactEmail={(() => {
+            const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+            return cc?.email || form.correo_contacto || "";
+          })()}
+          contactPhone={(() => {
+            const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+            return cc?.whatsapp_phone || cc?.mobile || cc?.phone || form.telefono || "";
+          })()}
+          montosSolicitados={([
+            { key: "lumaggs", label: "Lumaggs (Chevron)", flagCol: "solicita_lumaggs", montoCol: "monto_solicitado_lumaggs" },
+            { key: "galsa", label: "Galsa (Phillips 66)", flagCol: "solicita_galsa", montoCol: "monto_solicitado_galsa" },
+          ] as const)
+            .filter((e) => !!(form as any)[e.flagCol])
+            .map((e) => ({ label: e.label, monto: (form as any)[e.montoCol] }))}
+          promedioUnidades={(form as any).promedio_unidades_mensuales ?? null}
+          giroComercialLabels={(() => {
+            const arr: string[] = Array.isArray((form.companies as any)?.industrias)
+              ? (form.companies as any).industrias
+              : [];
+            return arr.map((i) => (industriasCatalog as any[]).find((c) => c.clave === i)?.etiqueta || i);
+          })()}
+          usoCfdiLabel={(() => {
+            const v = (form.companies as any)?.uso_cfdi;
+            if (!v) return "";
+            const opt = (USO_CFDI_OPTS as any[]).find((o) => o.v === v);
+            return opt ? `${opt.v} - ${opt.l}` : v;
+          })()}
+          remitenteNombre={profile?.full_name || profile?.email || user?.email || ""}
+          ccDefault={(() => {
+            const list: string[] = [];
+            const me = profile?.email || user?.email || "";
+            if (me) list.push(me);
+            const fixed = "f.sarinanaf@lumaggs.com.mx";
+            if (!list.some((e) => e.toLowerCase() === fixed.toLowerCase())) list.push(fixed);
+            return list.join(", ");
+          })()}
+          docs={(docs as any[]).map((d) => ({ nombre_archivo: d.nombre_archivo || "archivo", url_archivo: d.url_archivo || "" })).filter((d) => d.url_archivo)}
+        />
+      )}
 
       {/* Upload dialog */}
       <Dialog open={!!uploadCtx} onOpenChange={(o) => { if (!o) { setUploadCtx(null); setUploadFile(null); setUploadName(""); } }}>

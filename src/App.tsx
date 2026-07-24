@@ -66,6 +66,7 @@ import CreditoConfiguracion from "@/pages/credito/CreditoConfiguracion";
 import CreditoPortal from "@/pages/credito/CreditoPortal";
 import CreditoShortRedirect from "@/pages/credito/CreditoShortRedirect";
 import CreditoImprimir from "@/pages/credito/CreditoImprimir";
+import CreditoDescargas from "@/pages/credito/CreditoDescargas";
 import OAuthConsent from "@/pages/OAuthConsent";
 
 const queryClient = new QueryClient();
@@ -108,6 +109,7 @@ const App = () => (
             <Route path="/p/:code" element={<CreditoShortRedirect />} />
             <Route path="/credito/:id/imprimir/:firmaKey" element={<CreditoImprimir />} />
             <Route path="/portal/credito/:token/imprimir/:firmaKey" element={<CreditoImprimir />} />
+            <Route path="/credito/descargas/:token" element={<CreditoDescargas />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
 
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />

@@ -1740,6 +1740,8 @@ export type Database = {
           bc_tipo_persona: string | null
           cescemex_fecha: string | null
           cescemex_resultado: string | null
+          cescemex_share_expires_at: string | null
+          cescemex_share_token: string | null
           ciudad_comercial: string | null
           ciudad_fiscal: string | null
           client_email: string | null
@@ -1867,6 +1869,8 @@ export type Database = {
           bc_tipo_persona?: string | null
           cescemex_fecha?: string | null
           cescemex_resultado?: string | null
+          cescemex_share_expires_at?: string | null
+          cescemex_share_token?: string | null
           ciudad_comercial?: string | null
           ciudad_fiscal?: string | null
           client_email?: string | null
@@ -1994,6 +1998,8 @@ export type Database = {
           bc_tipo_persona?: string | null
           cescemex_fecha?: string | null
           cescemex_resultado?: string | null
+          cescemex_share_expires_at?: string | null
+          cescemex_share_token?: string | null
           ciudad_comercial?: string | null
           ciudad_fiscal?: string | null
           client_email?: string | null
