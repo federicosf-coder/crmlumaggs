@@ -1813,6 +1813,7 @@ export type Database = {
           nombre_comercial: string | null
           poder_en_acta_constitutiva: boolean | null
           poder_representante_requerido: boolean
+          promedio_unidades_mensuales: number | null
           razon_social: string | null
           recordatorio_count: number
           referencias_comerciales: Json
@@ -1939,6 +1940,7 @@ export type Database = {
           nombre_comercial?: string | null
           poder_en_acta_constitutiva?: boolean | null
           poder_representante_requerido?: boolean
+          promedio_unidades_mensuales?: number | null
           razon_social?: string | null
           recordatorio_count?: number
           referencias_comerciales?: Json
@@ -2065,6 +2067,7 @@ export type Database = {
           nombre_comercial?: string | null
           poder_en_acta_constitutiva?: boolean | null
           poder_representante_requerido?: boolean
+          promedio_unidades_mensuales?: number | null
           razon_social?: string | null
           recordatorio_count?: number
           referencias_comerciales?: Json

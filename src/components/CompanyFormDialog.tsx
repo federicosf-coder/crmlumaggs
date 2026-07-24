@@ -145,7 +145,7 @@ const FORMA_PAGO_OPTS = [
   { v: "99", l: "99 - Por definir" },
 ];
 export { FORMA_PAGO_OPTS };
-const USO_CFDI_OPTS = [
+export const USO_CFDI_OPTS = [
   { v: "G01", l: "G01 - Adquisición de mercancías" }, { v: "G02", l: "G02 - Devoluciones, descuentos o bonificaciones" }, { v: "G03", l: "G03 - Gastos en general" },
   { v: "I01", l: "I01 - Construcciones" }, { v: "I02", l: "I02 - Mobiliario y equipo de oficina" }, { v: "I03", l: "I03 - Equipo de transporte" },
   { v: "I04", l: "I04 - Equipo de computo y accesorios" }, { v: "I05", l: "I05 - Dados, troqueles, moldes, matrices" }, { v: "I06", l: "I06 - Comunicaciones telefónicas" },
