@@ -2977,6 +2977,11 @@ export default function CreditoDetail() {
           folio={form.folio || ""}
           companyName={(form.companies as any)?.name || ""}
           repLegalNombre={form.rep_legal_nombre || ""}
+          contactoNombre={(() => {
+            const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+            if (!cc) return "";
+            return `${cc.first_name || ""} ${cc.last_name || ""}`.trim();
+          })()}
           contactEmail={(() => {
             const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
             return cc?.email || form.correo_contacto || "";

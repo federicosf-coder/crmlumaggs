@@ -18,6 +18,7 @@ interface Props {
   folio: string;
   companyName: string;
   repLegalNombre?: string | null;
+  contactoNombre?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
   montosSolicitados: MontoItem[];
@@ -48,7 +49,7 @@ function genToken() {
 export function EnviarCescemexDialog(props: Props) {
   const {
     open, onOpenChange, creditRequestId, folio, companyName,
-    repLegalNombre, contactEmail, contactPhone,
+    repLegalNombre, contactoNombre, contactEmail, contactPhone,
     montosSolicitados, promedioUnidades, giroComercialLabels, usoCfdiLabel,
     remitenteNombre, ccDefault, docs,
   } = props;
@@ -60,6 +61,7 @@ export function EnviarCescemexDialog(props: Props) {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [shortDescargasUrl, setShortDescargasUrl] = useState<string>("");
   const [signedDocs, setSignedDocs] = useState<{ nombre_archivo: string; signed_url: string }[]>([]);
 
   const descargasUrl = useMemo(
@@ -73,7 +75,8 @@ export function EnviarCescemexDialog(props: Props) {
       .join("\n");
     return [
       `NOMBRE EMPRESA: ${companyName || "—"}`,
-      `Nombre representante: ${repLegalNombre || "—"}`,
+      `Nombre representante legal: ${repLegalNombre || "—"}`,
+      `Nombre de Contacto: ${contactoNombre || "—"}`,
       `Teléfono de Contacto: ${contactPhone || "—"}`,
       `Correo Electrónico Contacto: ${contactEmail || "—"}`,
       `Crédito Solicitado por Empresa y Monto:`,
@@ -85,7 +88,7 @@ export function EnviarCescemexDialog(props: Props) {
       `Atentamente,`,
       remitenteNombre || "",
     ].join("\n");
-  }, [companyName, repLegalNombre, contactPhone, contactEmail, montosSolicitados, promedioUnidades, giroComercialLabels, usoCfdiLabel, remitenteNombre]);
+  }, [companyName, repLegalNombre, contactoNombre, contactPhone, contactEmail, montosSolicitados, promedioUnidades, giroComercialLabels, usoCfdiLabel, remitenteNombre]);
 
   useEffect(() => {
     if (!open) return;
@@ -105,9 +108,10 @@ export function EnviarCescemexDialog(props: Props) {
         let tk: string | null = cur?.cescemex_share_token || null;
         const exp = cur?.cescemex_share_expires_at ? new Date(cur.cescemex_share_expires_at).getTime() : 0;
         const now = Date.now();
+        let expiresAt = cur?.cescemex_share_expires_at as string | undefined;
         if (!tk || !exp || exp <= now) {
           tk = genToken();
-          const expiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString();
+          expiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString();
           const { error: upErr } = await (supabase as any)
             .from("credit_requests")
             .update({ cescemex_share_token: tk, cescemex_share_expires_at: expiresAt })
@@ -116,6 +120,20 @@ export function EnviarCescemexDialog(props: Props) {
         }
         if (cancel) return;
         setToken(tk);
+
+        // 1b) Crear liga corta para "Descargar todos"
+        const longUrl = `${window.location.origin}/credito/descargas/${tk}`;
+        try {
+          const { data: shortCode } = await (supabase as any).rpc("create_short_link", {
+            _target_url: longUrl,
+            _expires_at: expiresAt,
+          });
+          if (!cancel) {
+            setShortDescargasUrl(shortCode ? `${window.location.origin}/p/${shortCode}` : longUrl);
+          }
+        } catch {
+          if (!cancel) setShortDescargasUrl(longUrl);
+        }
 
         // 2) Firmar URLs individuales
         const out: { nombre_archivo: string; signed_url: string }[] = [];
@@ -157,7 +175,7 @@ export function EnviarCescemexDialog(props: Props) {
                  .map((d) => `<li><a href="${d.signed_url}" target="_blank" rel="noopener">${d.nombre_archivo}</a></li>`)
                  .join("")}
              </ul>
-             ${descargasUrl ? `<p style="margin:12px 0 0 0"><a href="${descargasUrl}" target="_blank" rel="noopener">Descargar todos</a></p>` : ""}
+             ${(shortDescargasUrl || descargasUrl) ? `<p style="margin:12px 0 0 0"><a href="${shortDescargasUrl || descargasUrl}" target="_blank" rel="noopener">Descargar todos</a></p>` : ""}
            </div>`
         : "";
       const html = bodyHtml + docsHtml;
@@ -234,11 +252,11 @@ export function EnviarCescemexDialog(props: Props) {
                     </div>
                   )}
                 </div>
-                {descargasUrl && (
+                {(shortDescargasUrl || descargasUrl) && (
                   <p className="text-[11px] text-muted-foreground">
                     Enlace "Descargar todos":{" "}
-                    <a href={descargasUrl} target="_blank" rel="noopener" className="text-violet-700 hover:underline break-all">
-                      {descargasUrl}
+                    <a href={shortDescargasUrl || descargasUrl} target="_blank" rel="noopener" className="text-violet-700 hover:underline break-all">
+                      {shortDescargasUrl || descargasUrl}
                     </a>
                   </p>
                 )}
