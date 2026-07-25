@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, Send, FileText } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 interface MontoItem { label: string; monto: number | null | undefined }
@@ -63,6 +64,7 @@ export function EnviarCescemexDialog(props: Props) {
   const [token, setToken] = useState<string | null>(null);
   const [shortDescargasUrl, setShortDescargasUrl] = useState<string>("");
   const [signedDocs, setSignedDocs] = useState<{ nombre_archivo: string; signed_url: string }[]>([]);
+  const [excludedDocs, setExcludedDocs] = useState<Set<string>>(new Set());
 
   const descargasUrl = useMemo(
     () => (token ? `${window.location.origin}/credito/descargas/${token}` : ""),
@@ -74,6 +76,10 @@ export function EnviarCescemexDialog(props: Props) {
       .map((m) => `- ${m.label}: ${fmtMoney(m.monto as any)}`)
       .join("\n");
     return [
+      `Estimada Rosy,`,
+      ``,
+      `Comparto el expediente del cliente que solicita crédito Cescemex.`,
+      ``,
       `NOMBRE EMPRESA: ${companyName || "—"}`,
       `Nombre representante legal: ${repLegalNombre || "—"}`,
       `Nombre de Contacto: ${contactoNombre || "—"}`,
@@ -167,11 +173,12 @@ export function EnviarCescemexDialog(props: Props) {
     setSending(true);
     try {
       const bodyHtml = textToHtml(body);
-      const docsHtml = signedDocs.length
+      const includedDocs = signedDocs.filter((d) => !excludedDocs.has(d.nombre_archivo));
+      const docsHtml = includedDocs.length
         ? `<div style="font-family:Arial,sans-serif;font-size:14px;color:#0f172a;line-height:1.55;margin-top:16px">
              <p style="margin:0 0 6px 0;font-weight:600">Documentos:</p>
              <ul style="margin:0;padding-left:20px">
-               ${signedDocs
+               ${includedDocs
                  .map((d) => `<li><a href="${d.signed_url}" target="_blank" rel="noopener">${d.nombre_archivo}</a></li>`)
                  .join("")}
              </ul>
@@ -239,13 +246,29 @@ export function EnviarCescemexDialog(props: Props) {
                   Documentos que se incluirán ({signedDocs.length})
                 </Label>
                 <div className="divide-y border rounded-md bg-muted/20">
-                  {signedDocs.map((d, i) => (
-                    <div key={i} className="flex items-center gap-2 px-3 py-2 text-xs">
-                      <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <span className="truncate flex-1">{d.nombre_archivo}</span>
-                      <a href={d.signed_url} target="_blank" rel="noopener" className="text-violet-700 hover:underline shrink-0">Abrir</a>
-                    </div>
-                  ))}
+                  {signedDocs.map((d, i) => {
+                    const excluded = excludedDocs.has(d.nombre_archivo);
+                    return (
+                      <div key={i} className={`flex items-center gap-2 px-3 py-2 text-xs ${excluded ? "opacity-50 line-through" : ""}`}>
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="truncate flex-1">{d.nombre_archivo}</span>
+                        <a href={d.signed_url} target="_blank" rel="noopener" className="text-violet-700 hover:underline shrink-0 no-underline">Abrir</a>
+                        <button
+                          type="button"
+                          onClick={() => setExcludedDocs((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(d.nombre_archivo)) next.delete(d.nombre_archivo);
+                            else next.add(d.nombre_archivo);
+                            return next;
+                          })}
+                          className="text-muted-foreground hover:text-foreground shrink-0"
+                          aria-label={excluded ? "Incluir documento" : "Quitar documento"}
+                        >
+                          {excluded ? <Plus className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    );
+                  })}
                   {signedDocs.length === 0 && (
                     <div className="px-3 py-3 text-xs text-muted-foreground text-center">
                       No hay documentos cargados.
