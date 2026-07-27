@@ -1702,9 +1702,25 @@ export default function CreditoDetail() {
                   className="h-9 w-9 shrink-0"
                   disabled={!companyId}
                   title={companyId ? "Agregar contacto a la empresa" : "Primero vincula una empresa"}
-                  onClick={() => setContactDialogOpen(true)}
+                  onClick={() => { setEditContactData(null); setContactDialogOpen(true); }}
                 >
                   <Plus className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  disabled={!form.contact_id}
+                  title={form.contact_id ? "Editar contacto seleccionado" : "Selecciona un contacto primero"}
+                  onClick={() => {
+                    const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+                    if (!cc) { toast.error("Contacto no encontrado"); return; }
+                    setEditContactData(cc);
+                    setContactDialogOpen(true);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
                 </Button>
               </div>
             </div>
