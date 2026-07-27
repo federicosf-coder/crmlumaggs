@@ -775,6 +775,7 @@ export default function CreditoDetail() {
   const [autofilling, setAutofilling] = useState<string | null>(null);
   const [editFechaDoc, setEditFechaDoc] = useState<any | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [editContactData, setEditContactData] = useState<any | null>(null);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [autofillCollapsed, setAutofillCollapsed] = useState(true);
   const [bcInfoOpen, setBcInfoOpen] = useState(false);
@@ -1701,9 +1702,25 @@ export default function CreditoDetail() {
                   className="h-9 w-9 shrink-0"
                   disabled={!companyId}
                   title={companyId ? "Agregar contacto a la empresa" : "Primero vincula una empresa"}
-                  onClick={() => setContactDialogOpen(true)}
+                  onClick={() => { setEditContactData(null); setContactDialogOpen(true); }}
                 >
                   <Plus className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  disabled={!form.contact_id}
+                  title={form.contact_id ? "Editar contacto seleccionado" : "Selecciona un contacto primero"}
+                  onClick={() => {
+                    const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+                    if (!cc) { toast.error("Contacto no encontrado"); return; }
+                    setEditContactData(cc);
+                    setContactDialogOpen(true);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -3172,11 +3189,12 @@ export default function CreditoDetail() {
       </Dialog>
       <ContactFormDialog
         open={contactDialogOpen}
-        onOpenChange={setContactDialogOpen}
+        onOpenChange={(o) => { setContactDialogOpen(o); if (!o) setEditContactData(null); }}
         defaultCompanyId={companyId || undefined}
+        editData={editContactData}
         onCreated={async (newId) => {
           await qc.invalidateQueries({ queryKey: ["credit-company-contacts", companyId] });
-          setContact(newId);
+          if (!editContactData) setContact(newId);
         }}
       />
       <CompanyFormDialog
