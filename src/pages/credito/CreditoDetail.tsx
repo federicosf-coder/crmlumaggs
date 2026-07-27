@@ -1682,7 +1682,19 @@ export default function CreditoDetail() {
 
             {/* Contacto para seguimiento */}
             <div className="space-y-1">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Contacto para seguimiento</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Contacto para seguimiento</Label>
+                {form.contact_id && (
+                  <a
+                    href={`/directory?tab=contacts&select=${form.contact_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline px-2 h-6"
+                  >
+                    <ExternalLink className="h-3 w-3" /> Ver
+                  </a>
+                )}
+              </div>
               <div className="flex gap-1">
                 <div className="flex-1">
                   <SearchableSelect
@@ -1705,22 +1717,6 @@ export default function CreditoDetail() {
                   onClick={() => { setEditContactData(null); setContactDialogOpen(true); }}
                 >
                   <Plus className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9 shrink-0"
-                  disabled={!form.contact_id}
-                  title={form.contact_id ? "Editar contacto seleccionado" : "Selecciona un contacto primero"}
-                  onClick={() => {
-                    const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
-                    if (!cc) { toast.error("Contacto no encontrado"); return; }
-                    setEditContactData(cc);
-                    setContactDialogOpen(true);
-                  }}
-                >
-                  <Pencil className="h-4 w-4" />
                 </Button>
               </div>
             </div>
