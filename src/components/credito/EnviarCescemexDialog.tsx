@@ -66,8 +66,9 @@ export function EnviarCescemexDialog(props: Props) {
   const [signedDocs, setSignedDocs] = useState<{ nombre_archivo: string; signed_url: string }[]>([]);
   const [excludedDocs, setExcludedDocs] = useState<Set<string>>(new Set());
 
+  const PUBLIC_ORIGIN = "https://portal.lumaggs.com.mx";
   const descargasUrl = useMemo(
-    () => (token ? `${window.location.origin}/credito/descargas/${token}` : ""),
+    () => (token ? `${PUBLIC_ORIGIN}/credito/descargas/${token}` : ""),
     [token],
   );
 
@@ -127,15 +128,15 @@ export function EnviarCescemexDialog(props: Props) {
         if (cancel) return;
         setToken(tk);
 
-        // 1b) Crear liga corta para "Descargar todos"
-        const longUrl = `${window.location.origin}/credito/descargas/${tk}`;
+        // 1b) Crear liga corta para "Descargar todos" (usar dominio público, no preview)
+        const longUrl = `${PUBLIC_ORIGIN}/credito/descargas/${tk}`;
         try {
           const { data: shortCode } = await (supabase as any).rpc("create_short_link", {
             _target_url: longUrl,
             _expires_at: expiresAt,
           });
           if (!cancel) {
-            setShortDescargasUrl(shortCode ? `${window.location.origin}/p/${shortCode}` : longUrl);
+            setShortDescargasUrl(shortCode ? `${PUBLIC_ORIGIN}/p/${shortCode}` : longUrl);
           }
         } catch {
           if (!cancel) setShortDescargasUrl(longUrl);
