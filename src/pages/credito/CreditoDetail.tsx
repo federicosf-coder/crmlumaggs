@@ -775,6 +775,7 @@ export default function CreditoDetail() {
   const [autofilling, setAutofilling] = useState<string | null>(null);
   const [editFechaDoc, setEditFechaDoc] = useState<any | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [editContactData, setEditContactData] = useState<any | null>(null);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [autofillCollapsed, setAutofillCollapsed] = useState(true);
   const [bcInfoOpen, setBcInfoOpen] = useState(false);
