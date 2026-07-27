@@ -3189,11 +3189,12 @@ export default function CreditoDetail() {
       </Dialog>
       <ContactFormDialog
         open={contactDialogOpen}
-        onOpenChange={setContactDialogOpen}
+        onOpenChange={(o) => { setContactDialogOpen(o); if (!o) setEditContactData(null); }}
         defaultCompanyId={companyId || undefined}
+        editData={editContactData}
         onCreated={async (newId) => {
           await qc.invalidateQueries({ queryKey: ["credit-company-contacts", companyId] });
-          setContact(newId);
+          if (!editContactData) setContact(newId);
         }}
       />
       <CompanyFormDialog
