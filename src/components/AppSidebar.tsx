@@ -7,6 +7,7 @@ import {
   Briefcase, Zap, FolderOpen, TrendingUp,
   FileCheck, Boxes, ChevronDown, Link2,
   Sliders, ClipboardList, ShieldAlert, Network, DollarSign, FileSpreadsheet, TableProperties,
+  Workflow,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
