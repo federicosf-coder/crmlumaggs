@@ -17,7 +17,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLeads, useTomarLead, useDescartarLead, type Lead, type LeadEstatus } from "@/hooks/useLeads";
 import { LeadSourcesDialog } from "@/components/leads/LeadSourcesDialog";
-import { LeadIntegrationsPanel } from "@/components/leads/LeadIntegrationsPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
 const ESTATUS_META: Record<LeadEstatus, { label: string; className: string }> = {
@@ -133,20 +132,14 @@ export default function LeadsInbox() {
             <TabsTrigger value="bandeja">Bandeja</TabsTrigger>
             <TabsTrigger value="recuperacion">Recuperación</TabsTrigger>
             <TabsTrigger value="cerrados">Atendidos / Descartados</TabsTrigger>
-            {esAdmin && <TabsTrigger value="integraciones">Integraciones</TabsTrigger>}
           </TabsList>
-          {tab !== "integraciones" && (
             <div className="relative w-full max-w-xs">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input className="pl-8" placeholder="Buscar prospecto..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-          )}
         </div>
 
         <TabsContent value={tab} className="mt-4">
-          {tab === "integraciones" ? (
-            <LeadIntegrationsPanel />
-          ) : (
           <div className="rounded-md border overflow-hidden">
             <Table>
               <TableHeader>
@@ -239,7 +232,6 @@ export default function LeadsInbox() {
               </TableBody>
             </Table>
           </div>
-          )}
         </TabsContent>
       </Tabs>
 
