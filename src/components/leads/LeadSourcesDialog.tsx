@@ -166,6 +166,9 @@ export function LeadSourcesDialog({ open, onOpenChange }: { open: boolean; onOpe
           <div className="text-[11px] text-muted-foreground space-y-1">
             <p><strong>Endpoint:</strong> {FUNCTIONS_URL}</p>
             <p>Método POST, header <code>x-api-key</code>. Campos aceptados: nombre, apellido, email, telefono, empresa, mensaje, interes, ciudad, estado, utm_*, page_url. Se ignoran envíos con el campo trampa <code>_hp</code>.</p>
+            <a className="text-primary underline" href="/docs/api-prospectos.md" target="_blank" rel="noreferrer">
+              Ver documentación completa para el desarrollador web
+            </a>
           </div>
         </div>
 
