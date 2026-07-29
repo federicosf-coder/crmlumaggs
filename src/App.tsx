@@ -55,6 +55,7 @@ import ReportsLanding from "@/pages/reports/ReportsLanding";
 import DailyDeliveryReport from "@/pages/reports/DailyDeliveryReport";
 import DailyActivityReport from "@/pages/reports/DailyActivityReport";
 import SellerPortal from "@/pages/seller/SellerPortal";
+import LeadsInbox from "@/pages/leads/LeadsInbox";
 import GuiasDeVenta from "@/pages/seller/GuiasDeVenta";
 import TrainingPage from "@/pages/training/TrainingPage";
 import AutomationsPage from "@/pages/automations/AutomationsPage";
@@ -121,6 +122,7 @@ const App = () => (
             <Route path="/admin/import-noloco" element={<ProtectedRoute><ImportNoloco /></ProtectedRoute>} />
             <Route path="/admin/templates" element={<ProtectedRoute><TemplatesManagement /></ProtectedRoute>} />
 
+            <Route path="/leads" element={<ProtectedRoute><LeadsInbox /></ProtectedRoute>} />
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
             <Route path="/directory/addresses" element={<ProtectedRoute><DeliveryAddresses /></ProtectedRoute>} />
             <Route path="/seguimiento" element={<ProtectedRoute><SeguimientoLanding /></ProtectedRoute>} />

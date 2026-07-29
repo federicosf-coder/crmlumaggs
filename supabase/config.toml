@@ -38,3 +38,9 @@ verify_jwt = true
 
 [functions.mcp]
 verify_jwt = false
+
+[functions.lead-intake]
+verify_jwt = false
+
+[functions.lead-sla-monitor]
+verify_jwt = false

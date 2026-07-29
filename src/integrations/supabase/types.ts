@@ -1211,6 +1211,7 @@ export type Database = {
           no_contactar_fecha: string | null
           no_contactar_motivo: string | null
           notes: string | null
+          origen_lead: string | null
           phone: string | null
           plaza_id: string | null
           rol_id: string | null
@@ -1245,6 +1246,7 @@ export type Database = {
           no_contactar_fecha?: string | null
           no_contactar_motivo?: string | null
           notes?: string | null
+          origen_lead?: string | null
           phone?: string | null
           plaza_id?: string | null
           rol_id?: string | null
@@ -1279,6 +1281,7 @@ export type Database = {
           no_contactar_fecha?: string | null
           no_contactar_motivo?: string | null
           notes?: string | null
+          origen_lead?: string | null
           phone?: string | null
           plaza_id?: string | null
           rol_id?: string | null
@@ -5103,6 +5106,193 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_sources: {
+        Row: {
+          api_key_hash: string
+          api_key_prefix: string
+          created_at: string
+          created_by: string | null
+          descripcion: string | null
+          dominio_permitido: string | null
+          id: string
+          is_active: boolean
+          marca: string | null
+          nombre: string
+          notificar_whatsapp: string | null
+          plaza_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_key_hash: string
+          api_key_prefix: string
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          dominio_permitido?: string | null
+          id?: string
+          is_active?: boolean
+          marca?: string | null
+          nombre: string
+          notificar_whatsapp?: string | null
+          plaza_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_key_hash?: string
+          api_key_prefix?: string
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          dominio_permitido?: string | null
+          id?: string
+          is_active?: boolean
+          marca?: string | null
+          nombre?: string
+          notificar_whatsapp?: string | null
+          plaza_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_sources_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          alerta_enviada_at: string | null
+          ciudad: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          crm_task_id: string | null
+          descartado_motivo: string | null
+          email: string | null
+          empresa_nombre: string | null
+          estado_region: string | null
+          estatus: string
+          id: string
+          interes: string | null
+          ip: string | null
+          mensaje: string | null
+          nombre: string
+          page_url: string | null
+          payload: Json
+          primer_contacto_at: string | null
+          referrer: string | null
+          responsable_id: string | null
+          source_id: string | null
+          telefono: string | null
+          tomado_at: string | null
+          updated_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          alerta_enviada_at?: string | null
+          ciudad?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          crm_task_id?: string | null
+          descartado_motivo?: string | null
+          email?: string | null
+          empresa_nombre?: string | null
+          estado_region?: string | null
+          estatus?: string
+          id?: string
+          interes?: string | null
+          ip?: string | null
+          mensaje?: string | null
+          nombre: string
+          page_url?: string | null
+          payload?: Json
+          primer_contacto_at?: string | null
+          referrer?: string | null
+          responsable_id?: string | null
+          source_id?: string | null
+          telefono?: string | null
+          tomado_at?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          alerta_enviada_at?: string | null
+          ciudad?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          crm_task_id?: string | null
+          descartado_motivo?: string | null
+          email?: string | null
+          empresa_nombre?: string | null
+          estado_region?: string | null
+          estatus?: string
+          id?: string
+          interes?: string | null
+          ip?: string | null
+          mensaje?: string | null
+          nombre?: string
+          page_url?: string | null
+          payload?: Json
+          primer_contacto_at?: string | null
+          referrer?: string | null
+          responsable_id?: string | null
+          source_id?: string | null
+          telefono?: string | null
+          tomado_at?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_crm_task_id_fkey"
+            columns: ["crm_task_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "lead_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       motivos_perdida: {
         Row: {
           activo: boolean
@@ -7541,6 +7731,7 @@ export type Database = {
         Args: { _documento_id: string }
         Returns: undefined
       }
+      recompute_lead_sla: { Args: never; Returns: Json }
       recompute_pago_balance: { Args: { _pago_id: string }; Returns: undefined }
       recompute_seguimiento_ventas: {
         Args: {
