@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, ShoppingCart, FileText, Package, Truck,
   GraduationCap, ArrowLeftRight, FolderKanban, Search, UserCircle,
   Receipt, BarChart3, Droplets, LogOut, Settings, BookOpen, Shield, Database, MapPin, Wallet,
-  MessageCircle, Megaphone, FileBadge, Bot, FileStack,
+  MessageCircle, Megaphone, FileBadge, Bot, FileStack, Inbox,
   Briefcase, Zap, FolderOpen, TrendingUp,
   FileCheck, Boxes, ChevronDown, Link2,
   Sliders, ClipboardList, ShieldAlert, Network, DollarSign, FileSpreadsheet, TableProperties,
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { usePendingLeadsCount } from "@/hooks/useLeads";
 import { useHuerfanosCount } from "@/hooks/useMapeoProductos";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -37,6 +38,7 @@ interface NavItem {
 const mainItems: NavItem[] = [
   { title: "Inicio", url: "/", icon: LayoutDashboard, roles: "all" },
   { title: "Portal del Vendedor", url: "/seller-portal", icon: Briefcase, roles: ["admin", "manager", "sales"] },
+  { title: "Bandeja de Prospectos", url: "/leads", icon: Inbox, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
   { title: "Seguimiento a Ventas", url: "/seguimiento", icon: TrendingUp, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Documentos", url: "/documents", icon: FileText, roles: ["admin", "manager", "sales"] },
@@ -79,6 +81,7 @@ export function AppSidebar() {
   const inventarioAccess = useModuleAccess("inventario");
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
   const { data: huerfanosCount = 0 } = useHuerfanosCount();
+  const { data: leadsPendientes = 0 } = usePendingLeadsCount();
 
   useEffect(() => {
     if (!hasRole("admin")) return;
@@ -155,6 +158,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {visibleMain.map((item) => {
                 const showBadge = item.url === "/whatsapp" && unreadWhatsApp > 0;
+                const showLeadsBadge = item.url === "/leads" && leadsPendientes > 0;
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild>
@@ -164,6 +168,11 @@ export function AppSidebar() {
                         {showBadge && (
                           <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px]">
                             {unreadWhatsApp}
+                          </Badge>
+                        )}
+                        {showLeadsBadge && (
+                          <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px]">
+                            {leadsPendientes}
                           </Badge>
                         )}
                       </NavLink>
@@ -366,6 +375,7 @@ export function AppSidebar() {
               <SidebarMenu>
                 {visibleWhatsApp.map((item) => {
                   const showBadge = item.url === "/whatsapp" && unreadWhatsApp > 0;
+                const showLeadsBadge = item.url === "/leads" && leadsPendientes > 0;
                   return (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton asChild>
