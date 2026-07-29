@@ -134,18 +134,13 @@ export default function LeadsInbox() {
             <TabsTrigger value="cerrados">Atendidos / Descartados</TabsTrigger>
             {esAdmin && <TabsTrigger value="integraciones">Integraciones</TabsTrigger>}
           </TabsList>
-          {tab !== "integraciones" && (
             <div className="relative w-full max-w-xs">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input className="pl-8" placeholder="Buscar prospecto..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-          )}
         </div>
 
         <TabsContent value={tab} className="mt-4">
-          {tab === "integraciones" ? (
-            <LeadIntegrationsPanel />
-          ) : (
           <div className="rounded-md border overflow-hidden">
             <Table>
               <TableHeader>
