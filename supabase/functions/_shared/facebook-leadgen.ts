@@ -29,31 +29,34 @@ export async function processLeadgen(
     if (error) console.error("no se pudo registrar el evento:", error);
   };
 
-  // Ruteo generico: page_id + form_id -> integracion
-  let formQuery = admin
-    .from("lead_integration_forms")
+  // Ruteo generico: page_id -> pagina configurada -> integracion
+  const { data: pageRows } = await admin
+    .from("lead_integration_pages")
     .select("*, lead_integrations(*)")
     .eq("page_id", pageId)
     .eq("is_active", true)
     .limit(1);
-  if (formId) formQuery = formQuery.eq("form_id", formId);
-  const { data: formRows } = await formQuery;
-  const formRow: any = formRows?.[0];
-  const integration: any = formRow?.lead_integrations;
+  const page: any = pageRows?.[0];
+  const integration: any = page?.lead_integrations;
 
-  if (!formRow || !integration || !integration.is_active) {
-    await logEvent({ resultado: "sin_integracion", error: "Formulario o integración no configurada/activa" });
+  if (!page || !integration || !integration.is_active) {
+    await logEvent({ resultado: "sin_integracion", error: "Página no configurada o integración inactiva" });
     return { ok: false as const, error: "sin_integracion" };
   }
 
-  const { data: page } = await admin
-    .from("lead_integration_pages")
-    .select("page_access_token")
-    .eq("integration_id", integration.id)
-    .eq("page_id", pageId)
-    .maybeSingle();
+  // Mapeo de campos opcional por formulario (si existe la fila)
+  let formRow: any = null;
+  if (formId) {
+    const { data: formRows } = await admin
+      .from("lead_integration_forms")
+      .select("*")
+      .eq("page_id", pageId)
+      .eq("form_id", formId)
+      .limit(1);
+    formRow = formRows?.[0] ?? null;
+  }
 
-  const token = page?.page_access_token || Deno.env.get("FB_USER_ACCESS_TOKEN") || Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+  const token = page?.page_access_token || Deno.env.get("FB_PAGE_ACCESS_TOKEN");
   if (!token) {
     await logEvent({ integration_id: integration.id, resultado: "error", error: "Sin token de página" });
     return { ok: false as const, error: "sin_token" };
@@ -71,14 +74,14 @@ export async function processLeadgen(
     return { ok: false as const, error: "graph_error" };
   }
 
-  const flat = flattenFieldData(detail.field_data ?? [], (formRow.field_map ?? {}) as Record<string, string>);
+  const flat = flattenFieldData(detail.field_data ?? [], (formRow?.field_map ?? {}) as Record<string, string>);
   const body: Record<string, unknown> = {
     ...flat,
     utm_source: "facebook",
     utm_medium: detail.platform ? String(detail.platform) : "paid",
     utm_campaign: detail.campaign_name ?? detail.campaign_id ?? null,
     utm_content: detail.ad_name ?? detail.ad_id ?? null,
-    utm_term: formRow.form_name ?? formId,
+    utm_term: formRow?.form_name ?? detail.form_id ?? formId,
     page_url: `https://facebook.com/${pageId}`,
     referrer: "facebook_lead_ads",
   };
