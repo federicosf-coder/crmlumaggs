@@ -174,6 +174,276 @@ export type Database = {
         }
         Relationships: []
       }
+      automatizacion_constructores: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      automatizacion_ejecucion_log: {
+        Row: {
+          ejecucion_id: string
+          ejecutado_at: string
+          estatus: string
+          id: string
+          paso_id: string | null
+          resultado: Json | null
+        }
+        Insert: {
+          ejecucion_id: string
+          ejecutado_at?: string
+          estatus: string
+          id?: string
+          paso_id?: string | null
+          resultado?: Json | null
+        }
+        Update: {
+          ejecucion_id?: string
+          ejecutado_at?: string
+          estatus?: string
+          id?: string
+          paso_id?: string | null
+          resultado?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automatizacion_ejecucion_log_ejecucion_id_fkey"
+            columns: ["ejecucion_id"]
+            isOneToOne: false
+            referencedRelation: "automatizacion_ejecuciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automatizacion_ejecucion_log_paso_id_fkey"
+            columns: ["paso_id"]
+            isOneToOne: false
+            referencedRelation: "automatizacion_pasos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automatizacion_ejecuciones: {
+        Row: {
+          automatizacion_id: string
+          completado_at: string | null
+          contexto: Json
+          correlation_key: string | null
+          disparado_por: string | null
+          estatus: string
+          id: string
+          iniciado_at: string
+          paso_actual: number
+        }
+        Insert: {
+          automatizacion_id: string
+          completado_at?: string | null
+          contexto?: Json
+          correlation_key?: string | null
+          disparado_por?: string | null
+          estatus?: string
+          id?: string
+          iniciado_at?: string
+          paso_actual?: number
+        }
+        Update: {
+          automatizacion_id?: string
+          completado_at?: string | null
+          contexto?: Json
+          correlation_key?: string | null
+          disparado_por?: string | null
+          estatus?: string
+          id?: string
+          iniciado_at?: string
+          paso_actual?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automatizacion_ejecuciones_automatizacion_id_fkey"
+            columns: ["automatizacion_id"]
+            isOneToOne: false
+            referencedRelation: "automatizaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automatizacion_pasos: {
+        Row: {
+          automatizacion_id: string
+          config: Json
+          created_at: string
+          id: string
+          orden: number
+          requiere_aprobacion: boolean | null
+          tipo_paso: string
+        }
+        Insert: {
+          automatizacion_id: string
+          config?: Json
+          created_at?: string
+          id?: string
+          orden: number
+          requiere_aprobacion?: boolean | null
+          tipo_paso: string
+        }
+        Update: {
+          automatizacion_id?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          orden?: number
+          requiere_aprobacion?: boolean | null
+          tipo_paso?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automatizacion_pasos_automatizacion_id_fkey"
+            columns: ["automatizacion_id"]
+            isOneToOne: false
+            referencedRelation: "automatizaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automatizacion_solicitudes_funcion: {
+        Row: {
+          automatizacion_id: string | null
+          created_at: string
+          descripcion_necesidad: string
+          estatus: string
+          id: string
+          nombre_solicitada: string | null
+          paso_id: string | null
+          resuelto_at: string | null
+          solicitado_por: string
+        }
+        Insert: {
+          automatizacion_id?: string | null
+          created_at?: string
+          descripcion_necesidad: string
+          estatus?: string
+          id?: string
+          nombre_solicitada?: string | null
+          paso_id?: string | null
+          resuelto_at?: string | null
+          solicitado_por: string
+        }
+        Update: {
+          automatizacion_id?: string | null
+          created_at?: string
+          descripcion_necesidad?: string
+          estatus?: string
+          id?: string
+          nombre_solicitada?: string | null
+          paso_id?: string | null
+          resuelto_at?: string | null
+          solicitado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automatizacion_solicitudes_funcion_automatizacion_id_fkey"
+            columns: ["automatizacion_id"]
+            isOneToOne: false
+            referencedRelation: "automatizaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automatizacion_solicitudes_funcion_paso_id_fkey"
+            columns: ["paso_id"]
+            isOneToOne: false
+            referencedRelation: "automatizacion_pasos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automatizacion_usuarios: {
+        Row: {
+          automatizacion_id: string
+          created_at: string
+          id: string
+          rol: string
+          user_id: string
+        }
+        Insert: {
+          automatizacion_id: string
+          created_at?: string
+          id?: string
+          rol?: string
+          user_id: string
+        }
+        Update: {
+          automatizacion_id?: string
+          created_at?: string
+          id?: string
+          rol?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automatizacion_usuarios_automatizacion_id_fkey"
+            columns: ["automatizacion_id"]
+            isOneToOne: false
+            referencedRelation: "automatizaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automatizaciones: {
+        Row: {
+          activo: boolean
+          created_at: string
+          created_by: string
+          descripcion: string | null
+          id: string
+          nivel_acceso: string
+          nombre: string
+          requiere_aprobacion: boolean
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          created_by: string
+          descripcion?: string | null
+          id?: string
+          nivel_acceso?: string
+          nombre: string
+          requiere_aprobacion?: boolean
+          trigger_config?: Json
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string
+          descripcion?: string | null
+          id?: string
+          nivel_acceso?: string
+          nombre?: string
+          requiere_aprobacion?: boolean
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       biblioteca_archivos: {
         Row: {
           categoria_id: string | null
@@ -7751,6 +8021,14 @@ export type Database = {
         Args: { p_clasificacion_id?: string; p_costo: number }
         Returns: Json
       }
+      can_manage_automatizacion: {
+        Args: { _automatizacion_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_view_automatizacion: {
+        Args: { _automatizacion_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_view_company: {
         Args: { _company_id: string; _created_by: string; _user_id: string }
         Returns: boolean
@@ -7864,6 +8142,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_automatizacion_constructor: {
+        Args: { _user_id: string }
         Returns: boolean
       }
       is_credit_request_responsable: {
