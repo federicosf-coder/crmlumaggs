@@ -52,6 +52,7 @@ const mainItems: NavItem[] = [
   { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
   { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
   { title: "Automatizaciones", url: "/automations", icon: Zap, roles: ["admin", "manager"] },
+  { title: "Automatización de Tareas", url: "/automatizacion-tareas", icon: Workflow, roles: "all" },
 ];
 
 const adminItems: NavItem[] = [
