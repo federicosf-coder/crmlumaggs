@@ -132,7 +132,6 @@ export default function LeadsInbox() {
             <TabsTrigger value="bandeja">Bandeja</TabsTrigger>
             <TabsTrigger value="recuperacion">Recuperación</TabsTrigger>
             <TabsTrigger value="cerrados">Atendidos / Descartados</TabsTrigger>
-            {esAdmin && <TabsTrigger value="integraciones">Integraciones</TabsTrigger>}
           </TabsList>
             <div className="relative w-full max-w-xs">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
