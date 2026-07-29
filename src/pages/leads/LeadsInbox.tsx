@@ -232,7 +232,6 @@ export default function LeadsInbox() {
               </TableBody>
             </Table>
           </div>
-          )}
         </TabsContent>
       </Tabs>
 
