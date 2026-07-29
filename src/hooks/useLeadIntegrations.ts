@@ -73,14 +73,40 @@ export function useLeadIntegrationPages() {
   });
 }
 
-export function useLeadIntegrationForms() {
-  return useQuery({
-    queryKey: ["lead_integration_forms"],
-    queryFn: async (): Promise<LeadIntegrationForm[]> => {
-      const { data, error } = await db.from("lead_integration_forms").select("*").order("created_at");
+export function useSaveIntegrationPage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (row: {
+      integration_id: string;
+      page_id: string;
+      page_name?: string | null;
+      page_access_token?: string | null;
+      is_active?: boolean;
+    }) => {
+      const payload: Record<string, unknown> = {
+        integration_id: row.integration_id,
+        page_id: row.page_id,
+        page_name: row.page_name ?? null,
+        is_active: row.is_active ?? true,
+      };
+      if (row.page_access_token) payload.page_access_token = row.page_access_token;
+      const { error } = await db
+        .from("lead_integration_pages")
+        .upsert(payload, { onConflict: "integration_id,page_id" });
       if (error) throw error;
-      return (data ?? []) as LeadIntegrationForm[];
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lead_integration_pages"] }),
+  });
+}
+
+export function useDeleteIntegrationPage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await db.from("lead_integration_pages").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lead_integration_pages"] }),
   });
 }
 
@@ -134,42 +160,6 @@ export function useDeleteIntegration() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lead_integrations"] });
       qc.invalidateQueries({ queryKey: ["lead_integration_pages"] });
-      qc.invalidateQueries({ queryKey: ["lead_integration_forms"] });
     },
   });
-}
-
-export function useSaveIntegrationForm() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (row: Partial<LeadIntegrationForm> & { integration_id: string; page_id: string; form_id: string }) => {
-      const { error } = await db.from("lead_integration_forms").upsert(row, { onConflict: "page_id,form_id" });
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["lead_integration_forms"] }),
-  });
-}
-
-export function useDeleteIntegrationForm() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await db.from("lead_integration_forms").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["lead_integration_forms"] }),
-  });
-}
-
-/** Llama a la función de servidor que encapsula la Graph API de Meta. */
-export async function fbAdmin<T = any>(action: string, params: Record<string, unknown> = {}): Promise<T> {
-  const { data, error } = await supabase.functions.invoke("facebook-graph-admin", {
-    body: { action, ...params },
-  });
-  if (error) {
-    const detail = (error as any)?.context ? await (error as any).context.text() : error.message;
-    throw new Error(detail || error.message);
-  }
-  if ((data as any)?.error) throw new Error((data as any).error);
-  return data as T;
 }
