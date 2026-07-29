@@ -1,74 +1,84 @@
 ## Objetivo
 
-Endpoint público (`POST`) que reciba formularios de landings/sitios web (y después Facebook Lead Ads), registre el prospecto en el CRM reutilizando `companies`/`contacts`/`crm_tasks`, y lo muestre en una bandeja común con semáforo de SLA y alertas por WhatsApp.
+Recibir prospectos de Facebook Lead Ads de forma nativa, multiempresa / multipágina / multiformulario, sin lógica específica en el webhook y sin redesplegar código al agregar páginas o formularios. Toda la creación de contacto, empresa, lead, SLA y notificaciones reutiliza la lógica que hoy vive en `lead-intake`.
 
-## Decisiones ya tomadas
+## 1. Reutilizar la lógica, no duplicarla
 
-- Los leads llegan **sin asignar** a una bandeja común que cualquier vendedor puede tomar.
-- Se crea empresa **solo si el formulario trae el dato**; si no, el contacto queda sin empresa.
-- Notificación externa: **WhatsApp** (además de los indicadores en el CRM).
-- Seguridad: **API key por sitio**, revocable.
+Hoy toda la lógica de negocio está dentro de `supabase/functions/lead-intake/index.ts`. Se extrae **sin cambios de comportamiento** a un módulo compartido `supabase/functions/_shared/lead-processing.ts` que expone:
 
-## Modelo de datos (mínimo, sin duplicar entidades)
+- `normalizePhone`, `splitName`, `pick`, `clean`, `isEmail`
+- `processLead(admin, source, payload, meta)` → dedupe 24 h, vinculación de contacto existente, alta de empresa (solo si viene el dato), inserción en `leads`, notificación WhatsApp inmediata, disparo de automatización.
 
-Se reutiliza todo lo existente. Se agregan solo dos tablas de infraestructura que hoy no existen:
+`lead-intake` pasa a ser una capa delgada: valida la API key y llama a `processLead`. El nuevo webhook de Facebook hace lo mismo tras normalizar el payload de Meta. Una sola implementación de negocio.
 
-1. `lead_sources` — un registro por landing/sitio/campaña: nombre, dominio permitido, `api_key_hash`, plaza por defecto, marca por defecto, teléfono WhatsApp de aviso, activo.
-2. `leads` — la bandeja de entrada: payload crudo (`jsonb`), campos normalizados (nombre, teléfono, email, empresa, mensaje, interés), `utm_source/medium/campaign/content/term`, `source_id`, `contact_id`, `company_id`, `crm_task_id`, `estatus` (`nuevo`, `pendiente_atencion`, `alerta`, `frio`, `recuperacion`, `atendido`, `descartado`), `responsable_id` (nulo hasta que alguien lo tome), `primer_contacto_at`, `ip`, `user_agent`.
+## 2. Modelo de datos (3 tablas nuevas)
 
-Por qué `leads` y no `crm_items`: `crm_items` no se usa en ninguna pantalla y no tiene campos de origen/SLA; `crm_tasks.user_id` es obligatorio, así que un lead sin dueño no puede vivir ahí. `leads` es solo la bandeja de entrada — al tomarlo se materializa el contacto/empresa/tarea reales.
+```text
+lead_integrations        (una por empresa/config)
+ ├─ nombre, tipo ('facebook_lead_ads')
+ ├─ source_id      → lead_sources   (plaza, marca, WhatsApp de aviso, SLA)
+ ├─ automation_id  → automations    (workflow opcional)
+ ├─ is_active, created_by, timestamps
 
-También se agrega `origen_lead` (texto) a `contacts` para conservar la fuente a nivel contacto (hoy `origen_contacto` solo existe en `companies`).
+lead_integration_pages   (páginas conectadas)
+ ├─ integration_id, page_id, page_name
+ ├─ page_access_token (cifrado/solo servidor), token_expira_at
+ ├─ subscribed_at, is_active
 
-## Endpoint público
+lead_integration_forms   (formularios asociados)
+ ├─ integration_id, page_id, form_id, form_name
+ ├─ field_map jsonb  (mapeo campo Meta → campo CRM, editable)
+ ├─ is_active
+ └─ UNIQUE (page_id, form_id)
+```
 
-`POST /functions/v1/lead-intake` (sin JWT, CORS abierto)
+Ruteo del webhook: `page_id` + `form_id` → fila en `lead_integration_forms` → integración → `lead_sources` + workflow. Agregar página/formulario es solo insertar filas desde la UI.
 
-- Autenticación: header `X-Api-Key` validado contra `lead_sources` (hash). Sin key válida → 401.
-- Validación con Zod: nombre obligatorio, y al menos email o teléfono. Límites de longitud en todos los campos.
-- Anti-spam: campo honeypot (`_hp`), rate limit por API key + IP, deduplicación por email/teléfono en las últimas 24 h (si ya existe un lead abierto, se anexa el nuevo mensaje en vez de duplicar).
-- Normalización de teléfono a formato E.164 MX.
-- Enlazado inteligente: si el email/teléfono ya corresponde a un contacto existente, se vincula a ese contacto y a su empresa en lugar de crear duplicados.
-- Creación de empresa solo si viene el nombre (usando la plaza por defecto de la fuente, ya que `companies.plaza_id` es obligatorio).
-- Respuesta `200 { ok: true, lead_id }`, o error con detalle de validación.
+RLS: admin/manager gestionan; `service_role` con acceso completo para las funciones. Los tokens de página nunca se exponen al cliente (columna leída solo por edge functions; la UI usa una función que devuelve el resto de columnas).
 
-Se aceptará también el formato de Facebook Lead Ads (verificación `GET hub.challenge` + payload de `leadgen`) en el mismo endpoint, mapeando los campos del formulario.
+## 3. Webhook `facebook-leads-webhook` (genérico)
 
-## SLA, estados y alertas
+`GET` — verificación de Meta con `hub.verify_token` contra el secreto `FB_LEADGEN_VERIFY_TOKEN`.
 
-Un job programado (cada 5 min) recorre los leads sin `primer_contacto_at`:
+`POST` — sin ninguna referencia a páginas o formularios concretos:
+1. Verifica la firma `X-Hub-Signature-256` con el App Secret de la app de Meta (la misma de WhatsApp).
+2. Por cada entrada `leadgen`: toma `page_id`, `form_id`, `leadgen_id`.
+3. Busca la fila activa en `lead_integration_forms`; si no existe o está inactiva, registra y descarta (200 a Meta).
+4. Descarga el lead completo: `GET /v21.0/{leadgen_id}?fields=field_data,created_time,ad_id,adset_id,campaign_id,form_id` con el token de página.
+5. Aplana `field_data` a un objeto plano y aplica `field_map`; los UTM se derivan de la campaña (`utm_source=facebook`, `utm_medium=paid`, `utm_campaign=<nombre campaña>`).
+6. Llama a `processLead(...)` con la `lead_sources` de la integración → mismo contacto/empresa/lead/SLA/WhatsApp/automatización.
+7. Responde 200 siempre (Meta reintenta si no).
 
-| Tiempo sin atención | Estado |
-|---|---|
-| > 15 min | Pendiente de atención |
-| > 1 h | Alerta (se dispara WhatsApp) |
-| > 24 h | Lead frío |
-| > 72 h | Pasa a la sección de recuperación |
+Se registra cada evento en `lead_integration_events` (payload crudo, resultado, error) para diagnóstico y reproceso.
 
-Además al ingresar el lead se envía WhatsApp inmediato al número configurado en la fuente (usando la infraestructura de WhatsApp ya existente).
+## 4. Función `facebook-graph-admin` (para la UI)
 
-## Interfaz en el CRM
+Endpoint autenticado (solo admin/manager) que encapsula las llamadas a Graph API con la app de Meta de WhatsApp:
+- `list_pages` → `/me/accounts` con el token de usuario configurado.
+- `list_forms` → `/{page_id}/leadgen_forms`.
+- `subscribe_page` → `POST /{page_id}/subscribed_apps?subscribed_fields=leadgen` y guarda el token de página.
+- `unsubscribe_page`, `test_lead` (reproceso de un `leadgen_id`).
 
-Nueva pantalla **Bandeja de Leads** (`/leads`), en la navegación con badge de conteo de leads sin atender:
+## 5. UI: pestaña "Integraciones" en Bandeja de Prospectos
 
-- Tarjetas KPI: Nuevos, Pendientes, En alerta, Fríos, En recuperación.
-- Tabla con estilo de Tabla Refinada: semáforo de tiempo transcurrido, origen/campaña, datos de contacto, mensaje.
-- Acciones por fila: **Tomar lead** (se asigna al usuario, se crea la tarea de seguimiento en Tareas y Actividades y se marca primer contacto), **WhatsApp**, **Correo**, **Ver perfil**, **Descartar** con motivo.
-- Pestañas: Bandeja / Recuperación / Atendidos.
-- Pantalla de administración de fuentes: alta de sitio, generación y revocación de API key (se muestra una sola vez), copia del snippet de integración listo para pegar en la landing.
+Se agrega una cuarta pestaña junto a Bandeja / Recuperación / Atendidos, visible para admin y manager, con estilo de Tabla Refinada y Modal Refinado:
 
-## Recomendaciones adicionales de alerta
+- Lista de integraciones: nombre, tipo, fuente, workflow, páginas, formularios activos, leads recibidos (7/30 días), switch Activo/Inactivo.
+- **Nueva integración**: nombre, fuente de prospectos (crear una nueva desde ahí también), automatización opcional, activo.
+- **Conectar página**: botón que lista las páginas disponibles de la app de Meta; al elegir una, se suscribe a `leadgen` y se guarda el token.
+- **Formularios**: al seleccionar una página se listan sus formularios; se marcan uno o varios para asociarlos a la integración, con vista previa de campos y mapeo editable (nombre, correo, teléfono, empresa, mensaje, interés, ciudad).
+- **Historial de eventos** por integración con resultado y botón de reprocesar.
 
-- Aviso al equipo si un lead lleva más de 3 días en "tomado" sin actividad registrada.
-- Resumen diario por correo con leads no atendidos y tasa de respuesta por vendedor.
-- Indicador de tiempo promedio de primera respuesta por fuente, para saber qué landing rinde mejor.
+Cambiar el workflow, activar/desactivar, agregar página o formulario = solo UI, sin código.
 
-## Prueba
+## 6. Configuración y pruebas
 
-Al terminar se envían leads de prueba al endpoint (uno completo con empresa y UTMs, uno mínimo solo con teléfono, y uno inválido para ver el rechazo) y se muestra el resultado en la bandeja para revisarlos juntos.
+- Secretos: `FB_LEADGEN_VERIFY_TOKEN` (generado), y reuso de `WHATSAPP_APP_SECRET` / token de usuario de la app de Meta ya existente; si falta algún permiso (`leads_retrieval`, `pages_show_list`, `pages_manage_metadata`), se indicará qué agregar en la app de Meta.
+- Al terminar te doy la URL del webhook para pegarla en la app de Meta y probamos con la herramienta oficial "Lead Ads Testing Tool": el lead debe aparecer en la Bandeja con su origen, campaña y SLA corriendo.
 
 ## Detalles técnicos
 
-- Edge function `lead-intake` con `verify_jwt = false`, cliente service-role, CORS comodín; la API key se guarda hasheada (SHA-256) y se compara en el servidor.
-- Job de SLA vía `pg_cron` invocando una función de base de datos `recompute_lead_sla()` que actualiza estados y encola los avisos.
-- RLS: `leads` visible para usuarios autenticados según el módulo de acceso; `lead_sources` solo admin; ambas con GRANT a `service_role` para la edge function.
+- Nuevas funciones: `facebook-leads-webhook` (`verify_jwt = false`), `facebook-graph-admin` (JWT + verificación de rol en código).
+- `_shared/lead-processing.ts` compartido entre `lead-intake` y el webhook; `lead-intake` conserva su contrato público actual sin cambios.
+- Idempotencia por `leadgen_id` (índice único en `lead_integration_events.leadgen_id`) para evitar duplicados por reintentos de Meta.
+- Índices en `lead_integration_forms(page_id, form_id)` para ruteo O(1).

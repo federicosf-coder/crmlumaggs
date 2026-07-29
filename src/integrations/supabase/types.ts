@@ -5106,6 +5106,205 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_integration_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          form_id: string | null
+          id: string
+          integration_id: string | null
+          lead_id: string | null
+          leadgen_id: string | null
+          page_id: string | null
+          payload: Json | null
+          resultado: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          form_id?: string | null
+          id?: string
+          integration_id?: string | null
+          lead_id?: string | null
+          leadgen_id?: string | null
+          page_id?: string | null
+          payload?: Json | null
+          resultado?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          form_id?: string | null
+          id?: string
+          integration_id?: string | null
+          lead_id?: string | null
+          leadgen_id?: string | null
+          page_id?: string | null
+          payload?: Json | null
+          resultado?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_integration_events_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "lead_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_integration_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_integration_forms: {
+        Row: {
+          created_at: string
+          field_map: Json
+          form_id: string
+          form_name: string | null
+          id: string
+          integration_id: string
+          is_active: boolean
+          page_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          field_map?: Json
+          form_id: string
+          form_name?: string | null
+          id?: string
+          integration_id: string
+          is_active?: boolean
+          page_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          field_map?: Json
+          form_id?: string
+          form_name?: string | null
+          id?: string
+          integration_id?: string
+          is_active?: boolean
+          page_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_integration_forms_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "lead_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_integration_pages: {
+        Row: {
+          created_at: string
+          id: string
+          integration_id: string
+          is_active: boolean
+          page_access_token: string | null
+          page_id: string
+          page_name: string | null
+          subscribed_at: string | null
+          token_expira_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          integration_id: string
+          is_active?: boolean
+          page_access_token?: string | null
+          page_id: string
+          page_name?: string | null
+          subscribed_at?: string | null
+          token_expira_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          integration_id?: string
+          is_active?: boolean
+          page_access_token?: string | null
+          page_id?: string
+          page_name?: string | null
+          subscribed_at?: string | null
+          token_expira_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_integration_pages_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "lead_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_integrations: {
+        Row: {
+          automation_id: string | null
+          created_at: string
+          created_by: string | null
+          descripcion: string | null
+          id: string
+          is_active: boolean
+          nombre: string
+          source_id: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          automation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          id?: string
+          is_active?: boolean
+          nombre: string
+          source_id?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          automation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          source_id?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_integrations_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_integrations_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "lead_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_sources: {
         Row: {
           api_key_hash: string
@@ -7670,6 +7869,20 @@ export type Database = {
       is_credit_request_responsable: {
         Args: { _req_id: string; _user_id: string }
         Returns: boolean
+      }
+      list_lead_integration_pages: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          integration_id: string
+          is_active: boolean
+          page_id: string
+          page_name: string
+          subscribed_at: string
+          tiene_token: boolean
+          token_expira_at: string
+        }[]
       }
       merge_companies: {
         Args: { _duplicate_id: string; _primary_id: string }

@@ -44,3 +44,9 @@ verify_jwt = false
 
 [functions.lead-sla-monitor]
 verify_jwt = false
+
+[functions.facebook-leads-webhook]
+verify_jwt = false
+
+[functions.facebook-graph-admin]
+verify_jwt = false
