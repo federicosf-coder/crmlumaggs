@@ -1,46 +1,74 @@
-# Ruteo de 4 zonas — Cuenta Galsa
+## Objetivo
 
-Extender el flujo de ruteo por zonas (hoy Mexicali/Costa en las cuentas Mexicali y Tijuana) para agregar la cuenta **Galsa** (`phone_number_id` que corresponde a +52 1 686 561 8533) con **4 zonas** en vez de 2.
+Endpoint público (`POST`) que reciba formularios de landings/sitios web (y después Facebook Lead Ads), registre el prospecto en el CRM reutilizando `companies`/`contacts`/`crm_tasks`, y lo muestre en una bandeja común con semáforo de SLA y alertas por WhatsApp.
 
-## Comportamiento
+## Decisiones ya tomadas
 
-Cuando llegue un mensaje a Galsa y no exista sesión activa (o la sesión esté `finalizado`):
+- Los leads llegan **sin asignar** a una bandeja común que cualquier vendedor puede tomar.
+- Se crea empresa **solo si el formulario trae el dato**; si no, el contacto queda sin empresa.
+- Notificación externa: **WhatsApp** (además de los indicadores en el CRM).
+- Seguridad: **API key por sitio**, revocable.
 
-1. El bot responde:
-   > ¿De dónde nos contactas?
-   > 1) Mexicali
-   > 2) Tijuana, Ensenada, Tecate, San Quintín, Rosarito
-   > 3) Valle de Mexicali
-   > 4) San Luis R.C.
-   >
-   > Responde con el número de la opción.
-2. Estado de sesión pasa a `esperando_zona`.
-3. Si el cliente responde `1`, `2`, `3` o `4` (aceptando también variantes tipo "opcion 1", "1.", etc.), el bot envía un mensaje con el enlace `wa.me` al encargado correspondiente, precargando el mensaje original del cliente:
-   - 1 → **Mexicali** — `5216861790126`
-   - 2 → **Tijuana / Costa** — `5216645634361`
-   - 3 → **Valle de Mexicali** — `5216861682488`
-   - 4 → **San Luis R.C.** — `5216531517816`
-   Luego marca la sesión como `finalizado`.
-4. Si responde algo distinto mientras está en `esperando_zona`, el bot re-pregunta sin reiniciar.
-5. Cualquier mensaje nuevo con sesión `finalizado` reinicia el flujo desde el paso 1.
+## Modelo de datos (mínimo, sin duplicar entidades)
 
-Todos los mensajes salientes se registran en `whatsapp_messages` como `outbound` (mismo helper `sendAndLogText` que ya existe).
+Se reutiliza todo lo existente. Se agregan solo dos tablas de infraestructura que hoy no existen:
 
-## Cambios técnicos
+1. `lead_sources` — un registro por landing/sitio/campaña: nombre, dominio permitido, `api_key_hash`, plaza por defecto, marca por defecto, teléfono WhatsApp de aviso, activo.
+2. `leads` — la bandeja de entrada: payload crudo (`jsonb`), campos normalizados (nombre, teléfono, email, empresa, mensaje, interés), `utm_source/medium/campaign/content/term`, `source_id`, `contact_id`, `company_id`, `crm_task_id`, `estatus` (`nuevo`, `pendiente_atencion`, `alerta`, `frio`, `recuperacion`, `atendido`, `descartado`), `responsable_id` (nulo hasta que alguien lo tome), `primer_contacto_at`, `ip`, `user_agent`.
 
-- `supabase/functions/whatsapp-webhook/index.ts`:
-  - Agregar entrada en `ROUTING_ACCOUNTS` para el `business_phone_number_id` de Galsa con las 4 zonas y sus destinos.
-  - Generalizar `handleZoneRouting` (si aún está hardcodeado a 2 opciones) para aceptar N zonas definidas por cuenta: mensaje de bienvenida generado desde la lista de zonas y parseo de la respuesta contra los índices `1..N`.
-  - Mantener el manejo de sesión existente (`whatsapp_routing_sessions`, reuso de fila por `(wa_phone, business_phone_number_id)`, estados `esperando_zona`/`finalizado`).
-- Deploy de `whatsapp-webhook`.
+Por qué `leads` y no `crm_items`: `crm_items` no se usa en ninguna pantalla y no tiene campos de origen/SLA; `crm_tasks.user_id` es obligatorio, así que un lead sin dueño no puede vivir ahí. `leads` es solo la bandeja de entrada — al tomarlo se materializa el contacto/empresa/tarea reales.
 
-## Validación
+También se agrega `origen_lead` (texto) a `contacts` para conservar la fuente a nivel contacto (hoy `origen_contacto` solo existe en `companies`).
 
-1. Consultar en la BD el `business_phone_number_id` real de la cuenta Galsa para configurar `ROUTING_ACCOUNTS`.
-2. Revisar logs del webhook al enviar un mensaje de prueba a +52 686 561 8533 y responder `1`, `2`, `3`, `4` y una opción inválida.
-3. Confirmar en `whatsapp_messages` que quedan registrados el saludo, la respuesta del cliente y el mensaje con el link `wa.me` correspondiente.
+## Endpoint público
 
-## Fuera de alcance
+`POST /functions/v1/lead-intake` (sin JWT, CORS abierto)
 
-- No se toca el flujo de Mexicali/Tijuana existente.
-- No se agregan tablas nuevas ni cambios de UI.
+- Autenticación: header `X-Api-Key` validado contra `lead_sources` (hash). Sin key válida → 401.
+- Validación con Zod: nombre obligatorio, y al menos email o teléfono. Límites de longitud en todos los campos.
+- Anti-spam: campo honeypot (`_hp`), rate limit por API key + IP, deduplicación por email/teléfono en las últimas 24 h (si ya existe un lead abierto, se anexa el nuevo mensaje en vez de duplicar).
+- Normalización de teléfono a formato E.164 MX.
+- Enlazado inteligente: si el email/teléfono ya corresponde a un contacto existente, se vincula a ese contacto y a su empresa en lugar de crear duplicados.
+- Creación de empresa solo si viene el nombre (usando la plaza por defecto de la fuente, ya que `companies.plaza_id` es obligatorio).
+- Respuesta `200 { ok: true, lead_id }`, o error con detalle de validación.
+
+Se aceptará también el formato de Facebook Lead Ads (verificación `GET hub.challenge` + payload de `leadgen`) en el mismo endpoint, mapeando los campos del formulario.
+
+## SLA, estados y alertas
+
+Un job programado (cada 5 min) recorre los leads sin `primer_contacto_at`:
+
+| Tiempo sin atención | Estado |
+|---|---|
+| > 15 min | Pendiente de atención |
+| > 1 h | Alerta (se dispara WhatsApp) |
+| > 24 h | Lead frío |
+| > 72 h | Pasa a la sección de recuperación |
+
+Además al ingresar el lead se envía WhatsApp inmediato al número configurado en la fuente (usando la infraestructura de WhatsApp ya existente).
+
+## Interfaz en el CRM
+
+Nueva pantalla **Bandeja de Leads** (`/leads`), en la navegación con badge de conteo de leads sin atender:
+
+- Tarjetas KPI: Nuevos, Pendientes, En alerta, Fríos, En recuperación.
+- Tabla con estilo de Tabla Refinada: semáforo de tiempo transcurrido, origen/campaña, datos de contacto, mensaje.
+- Acciones por fila: **Tomar lead** (se asigna al usuario, se crea la tarea de seguimiento en Tareas y Actividades y se marca primer contacto), **WhatsApp**, **Correo**, **Ver perfil**, **Descartar** con motivo.
+- Pestañas: Bandeja / Recuperación / Atendidos.
+- Pantalla de administración de fuentes: alta de sitio, generación y revocación de API key (se muestra una sola vez), copia del snippet de integración listo para pegar en la landing.
+
+## Recomendaciones adicionales de alerta
+
+- Aviso al equipo si un lead lleva más de 3 días en "tomado" sin actividad registrada.
+- Resumen diario por correo con leads no atendidos y tasa de respuesta por vendedor.
+- Indicador de tiempo promedio de primera respuesta por fuente, para saber qué landing rinde mejor.
+
+## Prueba
+
+Al terminar se envían leads de prueba al endpoint (uno completo con empresa y UTMs, uno mínimo solo con teléfono, y uno inválido para ver el rechazo) y se muestra el resultado en la bandeja para revisarlos juntos.
+
+## Detalles técnicos
+
+- Edge function `lead-intake` con `verify_jwt = false`, cliente service-role, CORS comodín; la API key se guarda hasheada (SHA-256) y se compara en el servidor.
+- Job de SLA vía `pg_cron` invocando una función de base de datos `recompute_lead_sla()` que actualiza estados y encola los avisos.
+- RLS: `leads` visible para usuarios autenticados según el módulo de acceso; `lead_sources` solo admin; ambas con GRANT a `service_role` para la edge function.
