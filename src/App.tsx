@@ -61,6 +61,7 @@ import TrainingPage from "@/pages/training/TrainingPage";
 import AutomationsPage from "@/pages/automations/AutomationsPage";
 import AutomationEditorPage from "@/pages/automations/AutomationEditorPage";
 import Biblioteca from "@/pages/biblioteca/Biblioteca";
+import AutomatizacionTareasLanding from "@/pages/automatizacion-tareas/AutomatizacionTareasLanding";
 import CreditoList from "@/pages/credito/CreditoList";
 import CreditoDetail from "@/pages/credito/CreditoDetail";
 import CreditoConfiguracion from "@/pages/credito/CreditoConfiguracion";
@@ -172,6 +173,7 @@ const App = () => (
             <Route path="/automations" element={<ProtectedRoute><AutomationsPage /></ProtectedRoute>} />
             <Route path="/automations/new" element={<ProtectedRoute><AutomationEditorPage /></ProtectedRoute>} />
             <Route path="/automations/:id/edit" element={<ProtectedRoute><AutomationEditorPage /></ProtectedRoute>} />
+            <Route path="/automatizacion-tareas" element={<ProtectedRoute><AutomatizacionTareasLanding /></ProtectedRoute>} />
             <Route path="/biblioteca" element={<ProtectedRoute><Biblioteca /></ProtectedRoute>} />
             <Route path="/credito" element={<ProtectedRoute><CreditoList /></ProtectedRoute>} />
             <Route path="/credito/configuracion" element={<ProtectedRoute><CreditoConfiguracion /></ProtectedRoute>} />
