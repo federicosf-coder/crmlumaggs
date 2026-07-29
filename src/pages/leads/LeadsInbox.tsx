@@ -17,7 +17,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLeads, useTomarLead, useDescartarLead, type Lead, type LeadEstatus } from "@/hooks/useLeads";
 import { LeadSourcesDialog } from "@/components/leads/LeadSourcesDialog";
-import { LeadIntegrationsPanel } from "@/components/leads/LeadIntegrationsPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
 const ESTATUS_META: Record<LeadEstatus, { label: string; className: string }> = {
