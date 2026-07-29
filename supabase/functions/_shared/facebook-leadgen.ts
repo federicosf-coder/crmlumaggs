@@ -22,10 +22,11 @@ export async function processLeadgen(
 ) {
   const { pageId, formId, leadgenId } = args;
   const logEvent = async (fields: Record<string, unknown>) => {
-    await admin.from("lead_integration_events").upsert(
+    const { error } = await admin.from("lead_integration_events").upsert(
       { leadgen_id: leadgenId, page_id: pageId, form_id: formId, payload: args.rawValue ?? null, ...fields },
       { onConflict: "leadgen_id" },
     );
+    if (error) console.error("no se pudo registrar el evento:", error);
   };
 
   // Ruteo generico: page_id + form_id -> integracion
