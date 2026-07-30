@@ -36,6 +36,7 @@ import { ClienteSolicitudesPanel } from "@/components/whatsapp/ClienteSolicitude
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { extractDocFilesPath } from "@/lib/storageSignedUrl";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { useAuth } from "@/contexts/AuthContext";
 import { Lock as LockIcon } from "lucide-react";
 
 // Descarga un archivo del bucket privado evitando bloqueos del navegador / ad-blockers.
@@ -130,7 +131,7 @@ type Message = {
   media_size_bytes?: number | null;
 };
 
-type Template = { id: string; name: string; language: string; status: string; body: string | null };
+type Template = { id: string; name: string; language: string; status: string; body: string | null; variable_map?: (string | null)[] | null };
 type Account = { id: string; business_phone_number_id: string; label: string; color: string; waba_id: string | null };
 type TemplateWithAccount = Template & { business_phone_number_id: string | null; waba_id: string | null };
 type QuickReply = { id: string; shortcut: string; content: string };
@@ -149,6 +150,7 @@ export default function WhatsAppInbox() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const access = useModuleAccess("whatsapp");
+  const { profile } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -281,7 +283,7 @@ export default function WhatsAppInbox() {
   useEffect(() => {
     supabase
       .from("whatsapp_templates")
-      .select("id,name,language,status,body,business_phone_number_id,waba_id")
+      .select("id,name,language,status,body,variable_map,business_phone_number_id,waba_id")
       .eq("status", "APPROVED")
       .then(({ data }) => setTemplates((data ?? []) as TemplateWithAccount[]));
     supabase
@@ -1348,7 +1350,23 @@ export default function WhatsAppInbox() {
           if (tpl) {
             setTplName(tpl.name);
             const n = tpl.body ? extractTemplateVars(tpl.body) : 0;
-            setTplVars(Array(n).fill(""));
+            const map = (tpl.variable_map ?? []) as (string | null)[];
+            const now = new Date();
+            const fechaActual = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+            const valueFor = (key: string | null | undefined): string => {
+              switch (key) {
+                case "nombre_contacto": return contactName ?? "";
+                case "telefono_contacto": return active?.wa_phone ?? "";
+                case "correo_contacto": return contactData?.email ?? "";
+                case "nombre_empresa": return companyData?.name ?? "";
+                case "ejecutivo": return profile?.full_name ?? "";
+                case "telefono_ejecutivo": return profile?.phone ?? "";
+                case "correo_ejecutivo": return profile?.email ?? "";
+                case "fecha": return fechaActual;
+                default: return "";
+              }
+            };
+            setTplVars(Array.from({ length: n }, (_, i) => valueFor(map[i])));
           }
           setTplPickerOpen(false);
         }}
