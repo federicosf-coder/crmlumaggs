@@ -247,10 +247,21 @@ export default function WhatsAppTemplates() {
             <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
             Sincronizar estatus
           </Button>
-          <Button onClick={() => setOpen(true)}>
+          <Button onClick={() => { resetForm(); setOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" /> Nueva plantilla
           </Button>
         </div>
+      </div>
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={search}
+          maxLength={80}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar plantilla por nombre, texto, categoría o estado…"
+          className="pl-9"
+        />
       </div>
 
       <Card>
@@ -264,21 +275,24 @@ export default function WhatsAppTemplates() {
               <TableHead>Variables</TableHead>
               <TableHead>Cuerpo</TableHead>
               <TableHead>Sincronizada</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">Cargando…</TableCell>
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">Cargando…</TableCell>
               </TableRow>
-            ) : items.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  No hay plantillas. Crea una nueva o pulsa "Sincronizar estatus".
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  {search.trim()
+                    ? "Sin resultados para tu búsqueda."
+                    : 'No hay plantillas. Crea una nueva o pulsa "Sincronizar estatus".'}
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((t) => (
+              filtered.map((t) => (
                 <TableRow key={t.id}>
                   <TableCell className="font-medium">{t.name}</TableCell>
                   <TableCell>{t.language}</TableCell>
@@ -306,6 +320,11 @@ export default function WhatsAppTemplates() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {t.last_synced_at ? new Date(t.last_synced_at).toLocaleString() : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" onClick={() => startEdit(t)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
