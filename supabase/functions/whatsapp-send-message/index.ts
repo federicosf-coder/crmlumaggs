@@ -82,9 +82,20 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       const tplBody = (tplRow?.body as string | null) ?? "";
-      const variableMap: string[] = Array.isArray(tplRow?.variable_map)
+      let variableMap: string[] = Array.isArray(tplRow?.variable_map)
         ? (tplRow!.variable_map as string[])
         : [];
+
+      // Fallback: si el body trae placeholders con nombre ({{nombre}}) y el
+      // variable_map está vacío, derivamos el map desde el propio body.
+      if (variableMap.length === 0) {
+        const named = [
+          ...new Set(
+            [...tplBody.matchAll(/\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g)].map((m) => m[1]),
+          ),
+        ];
+        if (named.length > 0) variableMap = named;
+      }
 
       // Si se enviaron variables nombradas, armamos componentes en el orden del map.
       if (templateVariables && variableMap.length > 0 && !templateComponents) {
@@ -109,12 +120,14 @@ Deno.serve(async (req) => {
         ];
       }
 
-      // Validación final: número de parámetros debe coincidir con {{n}} máximo del body.
+      // Validación final: número de parámetros debe coincidir con los
+      // placeholders del body ({{n}} numéricos o {{nombre}} con nombre).
       const matches = tplBody.match(/\{\{\s*(\d+)\s*\}\}/g) || [];
-      const expected = matches.reduce((max, m) => {
+      const numericExpected = matches.reduce((max, m) => {
         const n = parseInt(m.replace(/[^\d]/g, ""), 10);
         return !Number.isNaN(n) && n > max ? n : max;
       }, 0);
+      const expected = Math.max(numericExpected, variableMap.length);
       if (expected > 0) {
         const bodyComp = (templateComponents || []).find(
           (c: any) => String(c?.type ?? "").toLowerCase() === "body",
