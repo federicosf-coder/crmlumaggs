@@ -349,6 +349,11 @@ export default function WhatsAppTemplates() {
                     {t.last_synced_at ? new Date(t.last_synced_at).toLocaleString() : "—"}
                   </TableCell>
                   <TableCell className="text-right">
+                    {countNumberedVars(t.body) > 0 && (
+                      <Button variant="ghost" size="sm" onClick={() => setMapTpl(t)}>
+                        <Variable className="h-3.5 w-3.5 mr-1" /> Asignar campos
+                      </Button>
+                    )}
                     <Button variant="ghost" size="sm" onClick={() => startEdit(t)}>
                       <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
                     </Button>
@@ -589,6 +594,89 @@ export default function WhatsAppTemplates() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AssignFieldsDialog
+        template={mapTpl}
+        onOpenChange={(o) => !o && setMapTpl(null)}
+        onSaved={load}
+      />
     </div>
+  );
+}
+
+function AssignFieldsDialog({
+  template,
+  onOpenChange,
+  onSaved,
+}: {
+  template: Template | null;
+  onOpenChange: (o: boolean) => void;
+  onSaved: () => void;
+}) {
+  const count = countNumberedVars(template?.body);
+  const [values, setValues] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!template) return;
+    const map = (template.variable_map ?? []) as (string | null)[];
+    setValues(
+      Array.from({ length: count }, (_, i) =>
+        map[i] && FIELD_OPTIONS.some((o) => o.value === map[i]) ? (map[i] as string) : "__custom__",
+      ),
+    );
+  }, [template, count]);
+
+  const save = async () => {
+    if (!template) return;
+    setSaving(true);
+    const variable_map = values.map((v) => (v === "__custom__" ? null : v));
+    const { error } = await supabase
+      .from("whatsapp_templates")
+      .update({ variable_map: variable_map as unknown as string[] })
+      .eq("id", template.id);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Campos asignados a la plantilla");
+    onSaved();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={!!template} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Asignar campos · {template?.name}</DialogTitle>
+          <p className="text-xs text-muted-foreground font-light">
+            Elige qué dato se usará para prellenar cada variable al enviar el mensaje.
+          </p>
+        </DialogHeader>
+        <div className="space-y-3">
+          {Array.from({ length: count }, (_, i) => (
+            <div key={i} className="space-y-1">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">{`{{${i + 1}}}`}</Label>
+              <Select
+                value={values[i] ?? "__custom__"}
+                onValueChange={(v) => setValues((prev) => prev.map((x, idx) => (idx === i ? v : x)))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FIELD_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={save} disabled={saving}>{saving ? "Guardando…" : "Guardar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
