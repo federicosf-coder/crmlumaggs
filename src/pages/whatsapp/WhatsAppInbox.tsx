@@ -189,6 +189,7 @@ export default function WhatsAppInbox() {
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   // Vista móvil: 'list' (lista de chats a pantalla completa) o 'chat' (chat activo a pantalla completa)
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  const [newConvOpen, setNewConvOpen] = useState(false);
   // Drawer/Sheet con detalles del contacto en móvil
   const [infoOpen, setInfoOpen] = useState(false);
 
