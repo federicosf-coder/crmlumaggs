@@ -122,6 +122,7 @@ export function NewConversationDialog({
   const reset = () => {
     setContactId("");
     setPhone("");
+    setNombreLibre("");
     setSaving(false);
   };
 
@@ -142,7 +143,7 @@ export function NewConversationDialog({
   };
 
   const handleStart = async () => {
-    if (!selectedContact) {
+    if (mode === "contacto" && !selectedContact) {
       toast.error("Selecciona un contacto");
       return;
     }
@@ -164,7 +165,7 @@ export function NewConversationDialog({
 
     setSaving(true);
     try {
-      if ((selectedContact.whatsapp_phone ?? "") !== phone) {
+      if (selectedContact && (selectedContact.whatsapp_phone ?? "") !== phone) {
         const { error: upErr } = await supabase
           .from("contacts")
           .update({ whatsapp_phone: phone })
@@ -181,7 +182,7 @@ export function NewConversationDialog({
 
       if (existing) {
         let row = existing as unknown as ReadyConversation;
-        if (!row.contact_id) {
+        if (!row.contact_id && selectedContact) {
           const { data: updated } = await supabase
             .from("whatsapp_conversations")
             .update({ contact_id: selectedContact.id })
@@ -197,8 +198,10 @@ export function NewConversationDialog({
           .from("whatsapp_conversations")
           .insert({
             wa_phone: waPhone,
-            contact_id: selectedContact.id,
-            wa_profile_name: fullName(selectedContact) || null,
+            contact_id: selectedContact?.id ?? null,
+            wa_profile_name: selectedContact
+              ? fullName(selectedContact) || null
+              : nombreLibre.trim() || null,
             business_phone_number_id: account.business_phone_number_id,
             whatsapp_account_id: account.id,
             status: "open",
