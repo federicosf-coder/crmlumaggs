@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { RefreshCw, FileBadge, Plus, Send, AlertTriangle, CheckCircle2, Clock, Trash2, Phone, Link2, MessageSquare, Ban, Search, Pencil } from "lucide-react";
+import { RefreshCw, FileBadge, Plus, Send, AlertTriangle, CheckCircle2, Clock, Trash2, Phone, Link2, MessageSquare, Ban, Search, Pencil, Variable } from "lucide-react";
 import {
   compileTemplateBody,
   buildExampleValues,
@@ -52,6 +52,33 @@ type Template = {
 };
 
 const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
+  return _statusVariant(s);
+};
+
+const FIELD_OPTIONS: { value: string; label: string }[] = [
+  { value: "nombre_contacto", label: "Nombre del contacto" },
+  { value: "telefono_contacto", label: "Teléfono del contacto" },
+  { value: "correo_contacto", label: "Correo del contacto" },
+  { value: "nombre_empresa", label: "Nombre de la empresa" },
+  { value: "ejecutivo", label: "Ejecutivo de venta" },
+  { value: "telefono_ejecutivo", label: "Teléfono del ejecutivo" },
+  { value: "correo_ejecutivo", label: "Correo del ejecutivo" },
+  { value: "fecha", label: "Fecha actual" },
+  { value: "__custom__", label: "Personalizado (llenar manualmente)" },
+];
+
+/** Número de variables {{n}} de un cuerpo de plantilla. */
+function countNumberedVars(body?: string | null): number {
+  const matches = (body || "").match(/\{\{\s*(\d+)\s*\}\}/g) || [];
+  let max = 0;
+  for (const m of matches) {
+    const n = parseInt(m.replace(/[^\d]/g, ""), 10);
+    if (!Number.isNaN(n) && n > max) max = n;
+  }
+  return max;
+}
+
+const _statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
   if (s === "APPROVED") return "default";
   if (s === "PENDING" || s === "IN_APPEAL" || s === "PENDING_DELETION") return "secondary";
   if (s === "REJECTED" || s === "DISABLED") return "destructive";
