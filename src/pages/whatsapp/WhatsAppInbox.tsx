@@ -1370,24 +1370,6 @@ export default function WhatsAppInbox() {
         }}
       />
 
-      {false && (
-      <TemplatePickerDialog
-        open={false}
-        onOpenChange={() => {}}
-        templates={filteredTemplates}
-        selectedId={filteredTemplates.find((t) => t.name === tplName)?.id}
-        onSelect={(id) => {
-          const tpl = filteredTemplates.find((t) => t.id === id);
-          if (tpl) {
-            setTplName(tpl.name);
-            const n = tpl.body ? extractTemplateVars(tpl.body) : 0;
-            setTplVars(Array(n).fill(""));
-          }
-          setTplPickerOpen(false);
-        }}
-      />
-      )}
-
       {/* Lightbox para imágenes y video */}
       <MediaDialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
         <MediaDialogContent className="max-w-5xl p-2 bg-background">
