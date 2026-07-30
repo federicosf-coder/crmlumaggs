@@ -851,6 +851,25 @@ export default function WhatsAppInbox() {
               })}
             </div>
           )}
+          {/* Buscador de conversaciones */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={convSearch}
+              onChange={(e) => setConvSearch(e.target.value)}
+              placeholder="Buscar conversación..."
+              className="h-8 pl-8 pr-7 text-sm"
+            />
+            {convSearch && (
+              <button
+                onClick={() => setConvSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                title="Limpiar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
         <ScrollArea className="flex-1 min-h-0">
           {filteredConversations.length === 0 ? (
