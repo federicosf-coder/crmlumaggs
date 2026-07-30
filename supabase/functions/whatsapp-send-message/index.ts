@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
 
     // Si vienen variables nombradas, construir `template_components` desde variable_map.
     // Esto evita el error #132000 (number of parameters doesn't match).
+    let bodyVariableNames: string[] = [];
     if (kind === "template") {
       const { data: tplRow } = await admin
         .from("whatsapp_templates")
@@ -96,6 +97,7 @@ Deno.serve(async (req) => {
         ];
         if (named.length > 0) variableMap = named;
       }
+      bodyVariableNames = variableMap;
 
       // Si se enviaron variables nombradas, armamos componentes en el orden del map.
       if (templateVariables && variableMap.length > 0 && !templateComponents) {
