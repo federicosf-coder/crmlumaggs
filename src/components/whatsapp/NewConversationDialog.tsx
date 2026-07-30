@@ -57,6 +57,8 @@ export function NewConversationDialog({
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [contactId, setContactId] = useState("");
   const [phone, setPhone] = useState("");
+  const [mode, setMode] = useState<"contacto" | "numero">("contacto");
+  const [nombreLibre, setNombreLibre] = useState("");
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
