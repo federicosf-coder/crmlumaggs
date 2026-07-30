@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
 
     // Si vienen variables nombradas, construir `template_components` desde variable_map.
     // Esto evita el error #132000 (number of parameters doesn't match).
+    let bodyVariableNames: string[] = [];
     if (kind === "template") {
       const { data: tplRow } = await admin
         .from("whatsapp_templates")
@@ -96,6 +97,7 @@ Deno.serve(async (req) => {
         ];
         if (named.length > 0) variableMap = named;
       }
+      bodyVariableNames = variableMap;
 
       // Si se enviaron variables nombradas, armamos componentes en el orden del map.
       if (templateVariables && variableMap.length > 0 && !templateComponents) {
@@ -303,12 +305,44 @@ Deno.serve(async (req) => {
       };
     }
 
-    const r = await fetch(`https://graph.facebook.com/v21.0/${activePhoneId}/messages`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await r.json().catch(() => ({}));
+    const postToMeta = async (p: Record<string, unknown>) => {
+      const res = await fetch(`https://graph.facebook.com/v21.0/${activePhoneId}/messages`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+        body: JSON.stringify(p),
+      });
+      const d = await res.json().catch(() => ({}));
+      return { res, d };
+    };
+
+    let { res: r, d: data } = await postToMeta(payload);
+
+    // Meta rechaza con (#100) "Parameter name is missing or empty" cuando la
+    // plantilla en Meta usa parámetros NOMBRADOS ({{nombre}}) y enviamos
+    // parámetros posicionales. Reintentamos agregando `parameter_name`.
+    const needsNamedParams =
+      kind === "template" &&
+      data?.error?.code === 100 &&
+      String(data?.error?.error_data?.details ?? "").toLowerCase().includes("parameter name") &&
+      bodyVariableNames.length > 0 &&
+      Array.isArray(templateComponents);
+    if (needsNamedParams) {
+      const namedComponents = (templateComponents as any[]).map((c: any) => {
+        if (String(c?.type ?? "").toLowerCase() !== "body") return c;
+        return {
+          ...c,
+          parameters: (c.parameters ?? []).map((p: any, i: number) => ({
+            ...p,
+            parameter_name: bodyVariableNames[i] ?? `var${i + 1}`,
+          })),
+        };
+      });
+      const retryPayload = {
+        ...payload,
+        template: { ...(payload as any).template, components: namedComponents },
+      };
+      ({ res: r, d: data } = await postToMeta(retryPayload));
+    }
 
     const waMessageId = data?.messages?.[0]?.id ?? null;
     const ok = r.ok && !data?.error;
