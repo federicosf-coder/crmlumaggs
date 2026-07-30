@@ -31,6 +31,7 @@ import {
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
+import { NewConversationDialog } from "@/components/whatsapp/NewConversationDialog";
 import { ClienteSolicitudesPanel } from "@/components/whatsapp/ClienteSolicitudesPanel";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { extractDocFilesPath } from "@/lib/storageSignedUrl";
@@ -189,6 +190,7 @@ export default function WhatsAppInbox() {
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   // Vista móvil: 'list' (lista de chats a pantalla completa) o 'chat' (chat activo a pantalla completa)
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  const [newConvOpen, setNewConvOpen] = useState(false);
   // Drawer/Sheet con detalles del contacto en móvil
   const [infoOpen, setInfoOpen] = useState(false);
 
@@ -782,6 +784,15 @@ export default function WhatsAppInbox() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                title="Nueva conversación"
+                onClick={() => setNewConvOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
               <Button size="sm" variant="outline" onClick={syncTemplates}>
                 Sync templates
               </Button>
@@ -1340,6 +1351,23 @@ export default function WhatsAppInbox() {
             setTplVars(Array(n).fill(""));
           }
           setTplPickerOpen(false);
+        }}
+      />
+
+      <NewConversationDialog
+        open={newConvOpen}
+        onOpenChange={setNewConvOpen}
+        accounts={accounts}
+        defaultPhoneAccountId={selectedPhoneId}
+        onConversationReady={(conv) => {
+          setConversations((prev) =>
+            prev.some((c) => c.id === conv.id)
+              ? prev.map((c) => (c.id === conv.id ? (conv as Conversation) : c))
+              : [conv as Conversation, ...prev],
+          );
+          setSelectedPhoneId(conv.business_phone_number_id);
+          setActiveId(conv.id);
+          setMobileView("chat");
         }}
       />
 
