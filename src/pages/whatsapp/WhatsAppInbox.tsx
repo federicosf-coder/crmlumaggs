@@ -31,6 +31,7 @@ import {
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 import { TemplatePickerDialog } from "@/components/whatsapp/TemplatePickerDialog";
+import { NewConversationDialog } from "@/components/whatsapp/NewConversationDialog";
 import { ClienteSolicitudesPanel } from "@/components/whatsapp/ClienteSolicitudesPanel";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { extractDocFilesPath } from "@/lib/storageSignedUrl";
