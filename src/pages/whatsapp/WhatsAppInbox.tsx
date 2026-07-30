@@ -427,8 +427,17 @@ export default function WhatsAppInbox() {
     } else if (access.accessLevel === "ninguno") {
       list = [];
     }
+    const term = convSearch.trim().toLowerCase();
+    if (term) {
+      list = list.filter(
+        (c) =>
+          (c.wa_profile_name || "").toLowerCase().includes(term) ||
+          (c.wa_phone || "").toLowerCase().includes(term) ||
+          (c.last_message_preview || "").toLowerCase().includes(term),
+      );
+    }
     return list;
-  }, [conversations, selectedPhoneId, access.accessLevel, access.userId, access.teamMemberIds]);
+  }, [conversations, selectedPhoneId, access.accessLevel, access.userId, access.teamMemberIds, convSearch]);
 
   // Realtime global por cuenta seleccionada — refresca el chat activo si llega un
   // mensaje nuevo para esta línea (Maggs o Chevron) aunque no sea la conversación abierta.
