@@ -64,7 +64,8 @@ export function NewConversationDialog({
     const { data } = await supabase
       .from("contacts")
       .select("id, first_name, last_name, whatsapp_phone, company_id, companies(name)")
-      .order("first_name");
+      .order("first_name")
+      .limit(5000);
     setContacts((data ?? []) as unknown as ContactRow[]);
   }, []);
 
