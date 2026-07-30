@@ -337,6 +337,9 @@ export default function WhatsAppTemplates() {
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nueva plantilla WhatsApp</DialogTitle>
+            <p className="text-xs text-muted-foreground font-light">
+              Meta no permite modificar una plantilla ya enviada: al editar, cambia el nombre para publicar una nueva versión.
+            </p>
           </DialogHeader>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
           <div className="space-y-3">
