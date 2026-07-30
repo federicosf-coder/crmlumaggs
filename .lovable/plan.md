@@ -1,32 +1,27 @@
-## Unificar Facebook Lead Ads en "Fuentes y API"
+## Objetivo
+Dejar el webhook de Meta Lead Ads verificable y con validación de firma activa.
 
-### Objetivo
-Consolidar la gestión de todas las fuentes de prospectos (landings con API key + Facebook Lead Ads) en un solo lugar: el botón "Fuentes y API" que abre `LeadSourcesDialog`.
+## Datos para pegar en Meta (App Dashboard → Webhooks → Leadgen)
 
-### Cambios
+- **URL de devolución de llamada:**
+  `https://fnqeicdqblkhfpyboxre.supabase.co/functions/v1/facebook-leads-webhook`
+- **Token de verificación:** el valor nuevo que definamos (ver abajo).
+- Después de verificar, suscribirse al campo **`leadgen`** y a la página correspondiente.
 
-**1. `LeadSourcesDialog.tsx` — Agregar sección de Facebook Lead Ads**
-- Reutilizar los hooks ya existentes de `useLeadIntegrations.ts` (integraciones, páginas, eventos, guardar/eliminar).
-- Agregar una nueva sección dentro del dialog, debajo de las fuentes de landing, con título "Facebook Lead Ads".
-- Incluir:
-  - Botón "Nueva integración" → dialog con nombre, fuente de prospectos (lead_source), workflow/automatización y activo.
-  - Lista de integraciones existentes (nombre, fuente, workflow, estado activo/inactivo, switch, editar, eliminar).
-  - Por cada integración: tabla de páginas registradas (page_id, page_name, token configurado/pendiente, eliminar) y botón "Registrar página" (page_id, page_name, page_access_token).
-  - Botón "Datos del webhook" que abre el dialog con la URL del webhook y el token de verificación.
-  - Botón de historial de eventos por integración.
-- Migrar los sub-componentes `PageDialog`, `EventsDialog` y `WebhookConfigDialog` desde `LeadIntegrationsPanel.tsx` hacia `LeadSourcesDialog.tsx`.
+## Estado actual verificado
 
-**2. `LeadsInbox.tsx` — Eliminar la pestaña "Integraciones"**
-- Quitar el `TabsTrigger` y `TabsContent` de "integraciones".
-- Quitar el import de `LeadIntegrationsPanel`.
-- El dialog "Fuentes y API" ya contendrá todo.
+- La función `facebook-leads-webhook` ya responde correctamente al GET de verificación: valida `hub.mode = subscribe` y `hub.verify_token` contra `FB_LEADGEN_VERIFY_TOKEN`, y devuelve `hub.challenge` con status 200 (403 si no coincide). Está publicada sin requerir autenticación (`verify_jwt = false`).
+- `FB_LEADGEN_VERIFY_TOKEN` ya existe como secreto, pero su valor está cifrado y no es recuperable.
+- No existe `FB_APP_SECRET` ni `WHATSAPP_APP_SECRET`, por lo que hoy la validación de firma `x-hub-signature-256` se omite: el endpoint aceptaría POSTs de cualquier origen.
 
-**3. `LeadIntegrationsPanel.tsx` — Eliminar o dejar como respaldo**
-- Ya no se usará; se puede eliminar el archivo o dejarlo sin importar.
+## Pasos
 
-### Resultado
-Un solo botón "Fuentes y API" donde el admin gestiona tanto las claves de landing pages como las integraciones de Facebook Lead Ads (páginas, tokens, webhook, eventos), sin necesidad de cambiar de pestaña.
+1. **Rotar el token de verificación**: abrir el formulario seguro para reescribir `FB_LEADGEN_VERIFY_TOKEN` con un valor que tú conozcas (por ejemplo `clave_meta_123`, aunque recomiendo algo más largo y aleatorio). Ese mismo valor va en el campo "Token de verificación" de Meta.
+2. **Guardar el App Secret**: abrir el formulario seguro para crear `FB_APP_SECRET` con el valor de *Configuración → Básica → Clave secreta de la app* en el panel de desarrolladores de Meta. Con eso el webhook empieza a rechazar POSTs sin firma válida (401), sin cambios de código.
+3. **Verificar en Meta**: pegar URL + token y pulsar "Verificar y guardar"; luego suscribir el campo `leadgen`.
+4. **Prueba end-to-end**: usar la herramienta de pruebas de Lead Ads de Meta y revisar la bitácora de eventos en *Bandeja de Prospectos → Fuentes y API* para confirmar que el lead llega y se procesa.
 
-### Alcance
-- Frontend solamente (presentación). Sin cambios en base de datos, edge functions ni lógica de negocio.
-- Los hooks de `useLeadIntegrations.ts` se reutilizan intactos.
+## Notas técnicas
+
+- No hace falta tocar código: la verificación GET y la validación HMAC-SHA256 ya están implementadas; solo faltan los valores de entorno.
+- Cada página de Facebook debe tener su Page ID y su Page Access Token registrados en *Fuentes y API*, y la integración debe estar activa y ligada a una fuente de prospectos; de lo contrario el evento se registra como `sin_integracion` o `sin_token`.
