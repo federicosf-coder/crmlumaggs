@@ -782,6 +782,15 @@ export default function WhatsAppInbox() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                title="Nueva conversación"
+                onClick={() => setNewConvOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
               <Button size="sm" variant="outline" onClick={syncTemplates}>
                 Sync templates
               </Button>
