@@ -153,6 +153,7 @@ export default function WhatsAppInbox() {
   const { profile } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [convSearch, setConvSearch] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [contactName, setContactName] = useState<string | null>(null);
   const [contactData, setContactData] = useState<ContactEditData | null>(null);
@@ -426,8 +427,17 @@ export default function WhatsAppInbox() {
     } else if (access.accessLevel === "ninguno") {
       list = [];
     }
+    const term = convSearch.trim().toLowerCase();
+    if (term) {
+      list = list.filter(
+        (c) =>
+          (c.wa_profile_name || "").toLowerCase().includes(term) ||
+          (c.wa_phone || "").toLowerCase().includes(term) ||
+          (c.last_message_preview || "").toLowerCase().includes(term),
+      );
+    }
     return list;
-  }, [conversations, selectedPhoneId, access.accessLevel, access.userId, access.teamMemberIds]);
+  }, [conversations, selectedPhoneId, access.accessLevel, access.userId, access.teamMemberIds, convSearch]);
 
   // Realtime global por cuenta seleccionada — refresca el chat activo si llega un
   // mensaje nuevo para esta línea (Maggs o Chevron) aunque no sea la conversación abierta.
@@ -841,6 +851,25 @@ export default function WhatsAppInbox() {
               })}
             </div>
           )}
+          {/* Buscador de conversaciones */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={convSearch}
+              onChange={(e) => setConvSearch(e.target.value)}
+              placeholder="Buscar conversación..."
+              className="h-8 pl-8 pr-7 text-sm"
+            />
+            {convSearch && (
+              <button
+                onClick={() => setConvSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                title="Limpiar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
         <ScrollArea className="flex-1 min-h-0">
           {filteredConversations.length === 0 ? (
