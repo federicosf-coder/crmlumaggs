@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { RefreshCw, FileBadge, Plus, Send, AlertTriangle, CheckCircle2, Clock, Trash2, Phone, Link2, MessageSquare, Ban } from "lucide-react";
+import { RefreshCw, FileBadge, Plus, Send, AlertTriangle, CheckCircle2, Clock, Trash2, Phone, Link2, MessageSquare, Ban, Search, Pencil } from "lucide-react";
 import {
   compileTemplateBody,
   buildExampleValues,
@@ -65,6 +65,7 @@ export default function WhatsAppTemplates() {
   const [creating, setCreating] = useState(false);
 
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [name, setName] = useState("");
   const [category, setCategory] = useState("UTILITY");
   const [language, setLanguage] = useState("es_MX");
@@ -78,6 +79,16 @@ export default function WhatsAppTemplates() {
   const placeholders = useMemo(() => extractNamedPlaceholders(bodyText), [bodyText]);
   const compiled = useMemo(() => compileTemplateBody(bodyText), [bodyText]);
   const examples = useMemo(() => buildExampleValues(placeholders), [placeholders]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((t) =>
+      [t.name, t.body, t.source_body, t.category, t.status, t.language]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [items, search]);
 
   const load = async () => {
     setLoading(true);
@@ -124,6 +135,20 @@ export default function WhatsAppTemplates() {
     setHeaderVideoUrl(null);
     setHeaderText("");
     setButtons([]);
+  };
+
+  const startEdit = (t: Template) => {
+    setName(t.name);
+    setCategory(t.category || "UTILITY");
+    setLanguage(t.language || "es_MX");
+    setBodyText(t.source_body || t.body || "");
+    const ht = (t.header_type || "NONE").toUpperCase();
+    setHeaderType((["NONE", "IMAGE", "VIDEO", "TEXT"].includes(ht) ? ht : "NONE") as typeof headerType);
+    setHeaderImageUrl(t.header_image_url ?? null);
+    setHeaderVideoUrl(t.header_video_url ?? null);
+    setHeaderText("");
+    setButtons(Array.isArray(t.buttons) ? t.buttons : []);
+    setOpen(true);
   };
 
   const submit = async () => {
@@ -222,10 +247,21 @@ export default function WhatsAppTemplates() {
             <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
             Sincronizar estatus
           </Button>
-          <Button onClick={() => setOpen(true)}>
+          <Button onClick={() => { resetForm(); setOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" /> Nueva plantilla
           </Button>
         </div>
+      </div>
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={search}
+          maxLength={80}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar plantilla por nombre, texto, categoría o estado…"
+          className="pl-9"
+        />
       </div>
 
       <Card>
@@ -239,21 +275,24 @@ export default function WhatsAppTemplates() {
               <TableHead>Variables</TableHead>
               <TableHead>Cuerpo</TableHead>
               <TableHead>Sincronizada</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">Cargando…</TableCell>
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">Cargando…</TableCell>
               </TableRow>
-            ) : items.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  No hay plantillas. Crea una nueva o pulsa "Sincronizar estatus".
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  {search.trim()
+                    ? "Sin resultados para tu búsqueda."
+                    : 'No hay plantillas. Crea una nueva o pulsa "Sincronizar estatus".'}
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((t) => (
+              filtered.map((t) => (
                 <TableRow key={t.id}>
                   <TableCell className="font-medium">{t.name}</TableCell>
                   <TableCell>{t.language}</TableCell>
@@ -282,6 +321,11 @@ export default function WhatsAppTemplates() {
                   <TableCell className="text-xs text-muted-foreground">
                     {t.last_synced_at ? new Date(t.last_synced_at).toLocaleString() : "—"}
                   </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" onClick={() => startEdit(t)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -293,6 +337,9 @@ export default function WhatsAppTemplates() {
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nueva plantilla WhatsApp</DialogTitle>
+            <p className="text-xs text-muted-foreground font-light">
+              Meta no permite modificar una plantilla ya enviada: al editar, cambia el nombre para publicar una nueva versión.
+            </p>
           </DialogHeader>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
           <div className="space-y-3">
