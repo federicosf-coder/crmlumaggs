@@ -61,12 +61,35 @@ export function NewConversationDialog({
   const [saving, setSaving] = useState(false);
 
   const loadContacts = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("contacts")
-      .select("id, first_name, last_name, whatsapp_phone, company_id, companies(name)")
+      .select("id, first_name, last_name, whatsapp_phone, company_id")
       .order("first_name")
-      .limit(5000);
-    setContacts((data ?? []) as unknown as ContactRow[]);
+      .limit(2000);
+    if (error) {
+      console.error("[whatsapp] error cargando contactos", error);
+      toast.error("No se pudieron cargar los contactos: " + error.message);
+      setContacts([]);
+      return;
+    }
+    const rows = (data ?? []) as unknown as ContactRow[];
+    const companyIds = Array.from(
+      new Set(rows.map((r) => r.company_id).filter(Boolean) as string[]),
+    );
+    let nameById = new Map<string, string | null>();
+    if (companyIds.length) {
+      const { data: comps } = await supabase
+        .from("companies")
+        .select("id, name")
+        .in("id", companyIds);
+      nameById = new Map((comps ?? []).map((c: { id: string; name: string | null }) => [c.id, c.name]));
+    }
+    setContacts(
+      rows.map((r) => ({
+        ...r,
+        companies: r.company_id ? { name: nameById.get(r.company_id) ?? null } : null,
+      })),
+    );
   }, []);
 
   useEffect(() => {
