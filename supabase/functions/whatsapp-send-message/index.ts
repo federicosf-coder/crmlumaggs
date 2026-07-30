@@ -73,7 +73,11 @@ Deno.serve(async (req) => {
 
     // Si vienen variables nombradas, construir `template_components` desde variable_map.
     // Esto evita el error #132000 (number of parameters doesn't match).
-    let bodyVariableNames: string[] = [];
+    // Nombres EXACTOS de parámetros definidos en Meta. No confundirlos con
+    // variable_map: ese arreglo contiene claves internas del CRM (por ejemplo
+    // "ejecutivo"), que pueden diferir del placeholder de Meta
+    // (por ejemplo "nombre_ejecutivo").
+    let metaParameterNames: string[] = [];
     if (kind === "template") {
       const { data: tplRow } = await admin
         .from("whatsapp_templates")
@@ -83,6 +87,11 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       const tplBody = (tplRow?.body as string | null) ?? "";
+      metaParameterNames = [
+        ...new Set(
+          [...tplBody.matchAll(/\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g)].map((m) => m[1]),
+        ),
+      ];
       let variableMap: string[] = Array.isArray(tplRow?.variable_map)
         ? (tplRow!.variable_map as string[])
         : [];
@@ -97,8 +106,6 @@ Deno.serve(async (req) => {
         ];
         if (named.length > 0) variableMap = named;
       }
-      bodyVariableNames = variableMap;
-
       // Si se enviaron variables nombradas, armamos componentes en el orden del map.
       if (templateVariables && variableMap.length > 0 && !templateComponents) {
         const missing = variableMap.filter((k) => {
@@ -317,17 +324,22 @@ Deno.serve(async (req) => {
 
     let { res: r, d: data } = await postToMeta(payload);
 
-    // Meta rechaza con (#100) "Parameter name is missing or empty" cuando la
-    // plantilla en Meta usa parámetros NOMBRADOS ({{nombre}}) y enviamos
-    // parámetros posicionales. Reintentamos agregando `parameter_name`.
-    // Meta rechaza con (#100) "Parameter name is missing..." cuando la plantilla
-    // en Meta usa parámetros NOMBRADOS ({{nombre}}) y enviamos posicionales.
-    // Reintentamos agregando `parameter_name`; si Meta indica el nombre exacto
-    // en el mensaje de error, lo usamos (iterando hasta resolver todos).
+    // Las claves de variable_map no necesariamente coinciden con los nombres
+    // definidos en Meta. Si Meta informa un nombre faltante, lo asignamos a la
+    // siguiente posición aún no identificada y repetimos hasta completar todos.
     if (kind === "template" && Array.isArray(templateComponents)) {
-      const names: (string | undefined)[] = [...bodyVariableNames];
+      const bodyComponent = (templateComponents as any[]).find(
+        (component: any) => String(component?.type ?? "").toLowerCase() === "body",
+      );
+      const parameterCount = Array.isArray(bodyComponent?.parameters)
+        ? bodyComponent.parameters.length
+        : 0;
+      const names: (string | undefined)[] = Array.from(
+        { length: parameterCount },
+        (_, index) => metaParameterNames[index],
+      );
       let attempts = 0;
-      const maxAttempts = 8;
+      const maxAttempts = Math.max(parameterCount + 1, 2);
 
       while (
         attempts < maxAttempts &&
@@ -342,7 +354,6 @@ Deno.serve(async (req) => {
           if (!names.includes(reported)) {
             const idx = names.findIndex((n) => !n);
             if (idx >= 0) names[idx] = reported;
-            else names.push(reported);
           }
         }
         if (names.filter(Boolean).length === 0) break;
@@ -351,10 +362,9 @@ Deno.serve(async (req) => {
           if (String(c?.type ?? "").toLowerCase() !== "body") return c;
           return {
             ...c,
-            parameters: (c.parameters ?? []).map((p: any, i: number) => ({
-              ...p,
-              parameter_name: names[i] ?? `var${i + 1}`,
-            })),
+            parameters: (c.parameters ?? []).map((p: any, i: number) =>
+              names[i] ? { ...p, parameter_name: names[i] } : p
+            ),
           };
         });
         const retryPayload = {
