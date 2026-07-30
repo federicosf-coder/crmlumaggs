@@ -320,28 +320,51 @@ Deno.serve(async (req) => {
     // Meta rechaza con (#100) "Parameter name is missing or empty" cuando la
     // plantilla en Meta usa parámetros NOMBRADOS ({{nombre}}) y enviamos
     // parámetros posicionales. Reintentamos agregando `parameter_name`.
-    const needsNamedParams =
-      kind === "template" &&
-      data?.error?.code === 100 &&
-      String(data?.error?.error_data?.details ?? "").toLowerCase().includes("parameter name") &&
-      bodyVariableNames.length > 0 &&
-      Array.isArray(templateComponents);
-    if (needsNamedParams) {
-      const namedComponents = (templateComponents as any[]).map((c: any) => {
-        if (String(c?.type ?? "").toLowerCase() !== "body") return c;
-        return {
-          ...c,
-          parameters: (c.parameters ?? []).map((p: any, i: number) => ({
-            ...p,
-            parameter_name: bodyVariableNames[i] ?? `var${i + 1}`,
-          })),
+    // Meta rechaza con (#100) "Parameter name is missing..." cuando la plantilla
+    // en Meta usa parámetros NOMBRADOS ({{nombre}}) y enviamos posicionales.
+    // Reintentamos agregando `parameter_name`; si Meta indica el nombre exacto
+    // en el mensaje de error, lo usamos (iterando hasta resolver todos).
+    if (kind === "template" && Array.isArray(templateComponents)) {
+      const names: (string | undefined)[] = [...bodyVariableNames];
+      let attempts = 0;
+      const maxAttempts = 8;
+
+      while (
+        attempts < maxAttempts &&
+        data?.error?.code === 100 &&
+        String(data?.error?.error_data?.details ?? "").toLowerCase().includes("parameter name")
+      ) {
+        attempts++;
+        const details = String(data?.error?.error_data?.details ?? "");
+        const m = details.match(/\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/);
+        if (m) {
+          const reported = m[1];
+          if (!names.includes(reported)) {
+            const idx = names.findIndex((n) => !n);
+            if (idx >= 0) names[idx] = reported;
+            else names.push(reported);
+          }
+        }
+        if (names.filter(Boolean).length === 0) break;
+
+        const namedComponents = (templateComponents as any[]).map((c: any) => {
+          if (String(c?.type ?? "").toLowerCase() !== "body") return c;
+          return {
+            ...c,
+            parameters: (c.parameters ?? []).map((p: any, i: number) => ({
+              ...p,
+              parameter_name: names[i] ?? `var${i + 1}`,
+            })),
+          };
+        });
+        const retryPayload = {
+          ...payload,
+          template: { ...(payload as any).template, components: namedComponents },
         };
-      });
-      const retryPayload = {
-        ...payload,
-        template: { ...(payload as any).template, components: namedComponents },
-      };
-      ({ res: r, d: data } = await postToMeta(retryPayload));
+        const prevDetails = details;
+        ({ res: r, d: data } = await postToMeta(retryPayload));
+        if (String(data?.error?.error_data?.details ?? "") === prevDetails) break;
+      }
     }
 
     const waMessageId = data?.messages?.[0]?.id ?? null;
