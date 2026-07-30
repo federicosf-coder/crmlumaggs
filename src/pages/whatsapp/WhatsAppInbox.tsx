@@ -153,6 +153,7 @@ export default function WhatsAppInbox() {
   const { profile } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [convSearch, setConvSearch] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [contactName, setContactName] = useState<string | null>(null);
   const [contactData, setContactData] = useState<ContactEditData | null>(null);
