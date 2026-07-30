@@ -125,6 +125,7 @@ export function NewConversationDialog({
     setContactId("");
     setPhone("");
     setNombreLibre("");
+    setMode("contacto");
     setSaving(false);
   };
 
