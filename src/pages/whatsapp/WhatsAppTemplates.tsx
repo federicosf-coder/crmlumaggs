@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { RefreshCw, FileBadge, Plus, Send, AlertTriangle, CheckCircle2, Clock, Trash2, Phone, Link2, MessageSquare, Ban } from "lucide-react";
+import { RefreshCw, FileBadge, Plus, Send, AlertTriangle, CheckCircle2, Clock, Trash2, Phone, Link2, MessageSquare, Ban, Search, Pencil } from "lucide-react";
 import {
   compileTemplateBody,
   buildExampleValues,
@@ -65,6 +65,7 @@ export default function WhatsAppTemplates() {
   const [creating, setCreating] = useState(false);
 
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [name, setName] = useState("");
   const [category, setCategory] = useState("UTILITY");
   const [language, setLanguage] = useState("es_MX");
@@ -78,6 +79,16 @@ export default function WhatsAppTemplates() {
   const placeholders = useMemo(() => extractNamedPlaceholders(bodyText), [bodyText]);
   const compiled = useMemo(() => compileTemplateBody(bodyText), [bodyText]);
   const examples = useMemo(() => buildExampleValues(placeholders), [placeholders]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((t) =>
+      [t.name, t.body, t.source_body, t.category, t.status, t.language]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [items, search]);
 
   const load = async () => {
     setLoading(true);
@@ -124,6 +135,20 @@ export default function WhatsAppTemplates() {
     setHeaderVideoUrl(null);
     setHeaderText("");
     setButtons([]);
+  };
+
+  const startEdit = (t: Template) => {
+    setName(t.name);
+    setCategory(t.category || "UTILITY");
+    setLanguage(t.language || "es_MX");
+    setBodyText(t.source_body || t.body || "");
+    const ht = (t.header_type || "NONE").toUpperCase();
+    setHeaderType((["NONE", "IMAGE", "VIDEO", "TEXT"].includes(ht) ? ht : "NONE") as typeof headerType);
+    setHeaderImageUrl(t.header_image_url ?? null);
+    setHeaderVideoUrl(t.header_video_url ?? null);
+    setHeaderText("");
+    setButtons(Array.isArray(t.buttons) ? t.buttons : []);
+    setOpen(true);
   };
 
   const submit = async () => {
