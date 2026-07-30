@@ -93,6 +93,7 @@ export default function WhatsAppTemplates() {
 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [mapTpl, setMapTpl] = useState<Template | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("UTILITY");
   const [language, setLanguage] = useState("es_MX");
