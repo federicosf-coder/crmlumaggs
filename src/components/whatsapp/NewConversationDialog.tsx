@@ -267,9 +267,36 @@ export function NewConversationDialog({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Contacto</Label>
-              <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1">
+              {([
+                ["contacto", "Contacto registrado"],
+                ["numero", "Número directo"],
+              ] as const).map(([m, label]) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    setMode(m);
+                    if (m === "numero") {
+                      setContactId("");
+                    } else {
+                      setNombreLibre("");
+                    }
+                    setPhone("");
+                  }}
+                  className={`rounded-sm px-3 py-1.5 text-sm transition-colors ${
+                    mode === m ? "bg-background shadow-sm font-medium" : "text-muted-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {mode === "contacto" ? (
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Contacto</Label>
+                <div className="flex gap-2">
                 <div className="flex-1 min-w-0">
                   <SearchableSelect
                     value={contactId}
@@ -281,10 +308,26 @@ export function NewConversationDialog({
                 <Button type="button" variant="outline" size="sm" onClick={() => setContactDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-1" /> Nuevo contacto
                 </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Nombre (opcional)
+                </Label>
+                <Input
+                  value={nombreLibre}
+                  maxLength={80}
+                  onChange={(e) => setNombreLibre(e.target.value)}
+                  placeholder="Ej. Cliente nuevo"
+                />
+                <p className="text-[11px] text-muted-foreground font-light">
+                  No se creará ningún contacto en el directorio.
+                </p>
+              </div>
+            )}
 
-            {selectedContact && (
+            {(selectedContact || mode === "numero") && (
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">
                   Número de WhatsApp
@@ -292,6 +335,7 @@ export function NewConversationDialog({
                 <Input
                   type="tel"
                   value={phone}
+                  maxLength={20}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="686 123 4567"
                 />
@@ -303,7 +347,13 @@ export function NewConversationDialog({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleStart} disabled={saving || !selectedContact}>
+            <Button
+              onClick={handleStart}
+              disabled={
+                saving ||
+                (mode === "contacto" ? !selectedContact : phone.replace(/\D/g, "").length < 10)
+              }
+            >
               Iniciar conversación
             </Button>
           </DialogFooter>
