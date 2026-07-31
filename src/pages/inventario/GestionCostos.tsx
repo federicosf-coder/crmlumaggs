@@ -33,6 +33,14 @@ const TIPOS_ARCHIVO: { value: string; label: string; empresa: "lumaggs" | "galsa
 
 const ceilTo5 = (n: number) => (!isFinite(n) || n <= 0 ? 0 : Math.ceil(n / 5) * 5);
 
+type MarcaFiltro = "lumaggs" | "galsa" | "gonher";
+
+const MARCA_TIPOS: Record<MarcaFiltro, string[]> = {
+  lumaggs: ["costos_galper_lumaggs", "precios_especiales_lumaggs", "lista_general_lumaggs"],
+  galsa: ["costos_galper_galsa", "lista_general_galsa"],
+  gonher: ["costos_galper_gonher", "lista_general_gonher"],
+};
+
 function detectarEmpresa(producto: any): "lumaggs" | "galsa" {
   const marca = String(producto?.marca?.value || "").toLowerCase();
   if (marca.includes("phillips") || marca.includes("gonher")) return "galsa";
@@ -353,6 +361,11 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
     return Object.keys(archivosEnMemoria).length > 0;
   }, [archivosEnMemoria]);
 
+  const puedeGenerarMarca = useMemo(() => {
+    const calc = (m: MarcaFiltro) => MARCA_TIPOS[m].some(t => !!archivosEnMemoria[t]);
+    return { lumaggs: calc("lumaggs"), galsa: calc("galsa"), gonher: calc("gonher") } as Record<MarcaFiltro, boolean>;
+  }, [archivosEnMemoria]);
+
   function formatFecha(iso?: string | null) {
     if (!iso) return "";
     try {
@@ -404,10 +417,11 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
     }
   }
 
-  async function generarPropuesta() {
+  async function generarPropuesta(marcaFiltro: MarcaFiltro) {
     if (!userId) return;
-    if (Object.keys(archivosEnMemoria).length === 0) {
-      toast.error("Los archivos no están cargados en esta sesión. Por favor vuelve a seleccionar los archivos XLS antes de generar la propuesta.");
+    const tiposMarca = MARCA_TIPOS[marcaFiltro];
+    if (!tiposMarca.some(t => !!archivosEnMemoria[t])) {
+      toast.error("Los archivos de esta marca no están cargados en esta sesión. Vuelve a seleccionarlos antes de generar.");
       return;
     }
     setGenerando(true); setProgreso(5); setProgresoTexto("Preparando archivos…");
@@ -417,11 +431,18 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
       setProgreso(20);
       setProgresoTexto("Cargando catálogo de productos…");
       // 2) Cargar todos los productos con sus relaciones (marca, linea)
-      const { data: productos, error: pe } = await supabase
+      const { data: productosAll, error: pe } = await supabase
         .from("productos")
         .select("id, codigo, nombre_producto, costo_actual, precio_base_uf1, linea_id, marca:product_option_values!productos_marca_id_fkey(value)")
         .eq("is_active", true);
       if (pe) throw pe;
+      const esGonher = (p: any) => String(p?.marca?.value || "").toLowerCase().includes("gonher");
+      const productos = (productosAll || []).filter(p => {
+        const emp = detectarEmpresa(p);
+        if (marcaFiltro === "lumaggs") return emp === "lumaggs";
+        if (marcaFiltro === "galsa") return emp === "galsa" && !esGonher(p);
+        return emp === "galsa" && esGonher(p);
+      });
       setProgreso(25); setProgresoTexto("Cargando márgenes…");
 
       // 3) Cargar márgenes (por línea + general)
@@ -435,14 +456,12 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
 
       // 5) Procesar cada producto
       const loteId = crypto.randomUUID();
-      // Limpiar referencias huérfanas previas
-      await supabase.from("inv_costos_producto").delete().eq("estado", "sin_producto");
       const propuestas: any[] = [];
       const total = (productos || []).length;
       let n = 0;
       const codigosVistos = new Set<string>();
       const duplicados = new Set<string>();
-      for (const p of productos || []) {
+      for (const p of productosAll || []) {
         if (codigosVistos.has(p.codigo)) duplicados.add(p.codigo);
         codigosVistos.add(p.codigo);
       }
@@ -457,7 +476,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
         let galper: any = null, especial: any = null, lista: any = null;
         let archivoGalperId: string | null = null, archivoEspId: string | null = null, archivoListaId: string | null = null;
 
-        if (empresa === "lumaggs") {
+        if (marcaFiltro === "lumaggs") {
           galper = fuentes["costos_galper_lumaggs"]?.get(codigo) || null;
           archivoGalperId = galper ? idArchivo("costos_galper_lumaggs") : null;
           especial = fuentes["precios_especiales_lumaggs"]?.get(codigo) || null;
@@ -465,18 +484,18 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
           lista = fuentes["lista_general_lumaggs"]?.get(codigo) || null;
           archivoListaId = lista ? idArchivo("lista_general_lumaggs") : null;
         } else {
-          galper = fuentes["costos_galper_galsa"]?.get(codigo) || fuentes["costos_galper_gonher"]?.get(codigo) || null;
-          archivoGalperId = fuentes["costos_galper_galsa"]?.has(codigo) ? idArchivo("costos_galper_galsa")
-            : (fuentes["costos_galper_gonher"]?.has(codigo) ? idArchivo("costos_galper_gonher") : null);
-          lista = fuentes["lista_general_galsa"]?.get(codigo) || fuentes["lista_general_gonher"]?.get(codigo) || null;
-          archivoListaId = fuentes["lista_general_galsa"]?.has(codigo) ? idArchivo("lista_general_galsa")
-            : (fuentes["lista_general_gonher"]?.has(codigo) ? idArchivo("lista_general_gonher") : null);
+          const tGalper = `costos_galper_${marcaFiltro}`;
+          const tLista = `lista_general_${marcaFiltro}`;
+          galper = fuentes[tGalper]?.get(codigo) || null;
+          archivoGalperId = galper ? idArchivo(tGalper) : null;
+          lista = fuentes[tLista]?.get(codigo) || null;
+          archivoListaId = lista ? idArchivo(tLista) : null;
         }
 
         // Calcular costo efectivo
         let costoEfectivo: number | null = null;
         let fuente = "";
-        if (empresa === "lumaggs") {
+        if (marcaFiltro === "lumaggs") {
           if (galper && especial) { costoEfectivo = Math.max(galper.costo, especial.costo); fuente = "max_galper_especial"; }
           else if (galper) { costoEfectivo = galper.costo; fuente = "galper"; }
           else if (especial) { costoEfectivo = especial.costo; fuente = "especial"; }
@@ -572,9 +591,9 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
       // 6) Códigos presentes en archivos pero NO en el catálogo
       const huerfanos: any[] = [];
       const vistosHuerfanos = new Set<string>();
+      const empresaHuerfano: "lumaggs" | "galsa" = marcaFiltro === "lumaggs" ? "lumaggs" : "galsa";
       const gruposHuerfanos: { empresa: "lumaggs" | "galsa"; tipos: string[] }[] = [
-        { empresa: "lumaggs", tipos: ["costos_galper_lumaggs", "precios_especiales_lumaggs", "lista_general_lumaggs"] },
-        { empresa: "galsa", tipos: ["costos_galper_galsa", "costos_galper_gonher", "lista_general_galsa", "lista_general_gonher"] },
+        { empresa: empresaHuerfano, tipos: tiposMarca },
       ];
       for (const grupo of gruposHuerfanos) {
         for (const tipo of grupo.tipos) {
@@ -588,7 +607,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
             let galper: any = null, especial: any = null, lista: any = null;
             let archivoGalperId: string | null = null, archivoEspId: string | null = null, archivoListaId: string | null = null;
 
-            if (empresa === "lumaggs") {
+            if (marcaFiltro === "lumaggs") {
               galper = fuentes["costos_galper_lumaggs"]?.get(codigo) || null;
               archivoGalperId = galper ? idArchivo("costos_galper_lumaggs") : null;
               especial = fuentes["precios_especiales_lumaggs"]?.get(codigo) || null;
@@ -596,17 +615,17 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
               lista = fuentes["lista_general_lumaggs"]?.get(codigo) || null;
               archivoListaId = lista ? idArchivo("lista_general_lumaggs") : null;
             } else {
-              galper = fuentes["costos_galper_galsa"]?.get(codigo) || fuentes["costos_galper_gonher"]?.get(codigo) || null;
-              archivoGalperId = fuentes["costos_galper_galsa"]?.has(codigo) ? idArchivo("costos_galper_galsa")
-                : (fuentes["costos_galper_gonher"]?.has(codigo) ? idArchivo("costos_galper_gonher") : null);
-              lista = fuentes["lista_general_galsa"]?.get(codigo) || fuentes["lista_general_gonher"]?.get(codigo) || null;
-              archivoListaId = fuentes["lista_general_galsa"]?.has(codigo) ? idArchivo("lista_general_galsa")
-                : (fuentes["lista_general_gonher"]?.has(codigo) ? idArchivo("lista_general_gonher") : null);
+              const tGalper = `costos_galper_${marcaFiltro}`;
+              const tLista = `lista_general_${marcaFiltro}`;
+              galper = fuentes[tGalper]?.get(codigo) || null;
+              archivoGalperId = galper ? idArchivo(tGalper) : null;
+              lista = fuentes[tLista]?.get(codigo) || null;
+              archivoListaId = lista ? idArchivo(tLista) : null;
             }
 
             let costoEfectivo: number | null = null;
             let fuente = "";
-            if (empresa === "lumaggs") {
+            if (marcaFiltro === "lumaggs") {
               if (galper && especial) { costoEfectivo = Math.max(galper.costo, especial.costo); fuente = "max_galper_especial"; }
               else if (galper) { costoEfectivo = galper.costo; fuente = "galper"; }
               else if (especial) { costoEfectivo = especial.costo; fuente = "especial"; }
@@ -651,6 +670,13 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
       }
       if (huerfanos.length) {
         setProgresoTexto(`Guardando ${huerfanos.length} referencias sin producto…`);
+        // Limpiar solo las referencias sin_producto de los códigos que se recalculan en este run
+        const codigosRun = Array.from(new Set(tiposMarca.flatMap(t => Array.from(fuentes[t]?.keys() || []))));
+        for (let i = 0; i < codigosRun.length; i += 200) {
+          const lote = codigosRun.slice(i, i + 200);
+          const { error } = await supabase.from("inv_costos_producto").delete().eq("estado", "sin_producto").in("codigo_producto", lote);
+          if (error) throw error;
+        }
         for (let i = 0; i < huerfanos.length; i += 100) {
           const chunk = huerfanos.slice(i, i + 100);
           const { error } = await supabase.from("inv_costos_producto").insert(chunk);
@@ -659,7 +685,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
       }
 
       setProgreso(100); setProgresoTexto("Listo");
-      toast.success(`Propuesta generada: ${propuestas.length} SKUs · ${huerfanos.length} referencias de códigos no catalogados`);
+      toast.success(`Propuesta ${marcaFiltro} generada: ${propuestas.length} SKUs · ${huerfanos.length} referencias de códigos no catalogados`);
       onRefresh();
     } catch (e: any) {
       console.error(e);
@@ -675,12 +701,25 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
         <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-[200px]">
             <p className="text-sm font-medium">Generar propuesta de costos</p>
-            <p className="text-xs text-muted-foreground">Procesa los archivos activos contra el catálogo y crea un lote pendiente de autorización.</p>
+            <p className="text-xs text-muted-foreground">Procesa los archivos activos de cada marca contra el catálogo y crea un lote pendiente de autorización.</p>
           </div>
-          <Button onClick={generarPropuesta} disabled={!puedeGenerar || generando} size="lg">
-            <RefreshCw className={`h-4 w-4 mr-2 ${generando ? "animate-spin" : ""}`} />
-            {generando ? "Procesando…" : "GENERAR PROPUESTA DE COSTOS"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {([
+              { marca: "lumaggs" as MarcaFiltro, label: "Generar Chevron/Lumaggs" },
+              { marca: "galsa" as MarcaFiltro, label: "Generar Phillips 66/Galsa" },
+              { marca: "gonher" as MarcaFiltro, label: "Generar Gonher" },
+            ]).map(({ marca, label }) => (
+              <Button
+                key={marca}
+                onClick={() => generarPropuesta(marca)}
+                disabled={!puedeGenerarMarca[marca] || generando}
+                size="lg"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${generando ? "animate-spin" : ""}`} />
+                {label}
+              </Button>
+            ))}
+          </div>
         </CardContent>
         {generando && (
           <CardContent className="pt-0">
