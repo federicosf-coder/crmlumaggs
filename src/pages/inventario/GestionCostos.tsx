@@ -256,6 +256,7 @@ export default function GestionCostos() {
           </TabsTrigger>
           <TabsTrigger value="historial">Historial</TabsTrigger>
         </TabsList>
+          <TabsTrigger value="listas">Listas por Marca</TabsTrigger>
 
 
         <TabsContent value="biblioteca" className="mt-4">
