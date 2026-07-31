@@ -701,12 +701,25 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
         <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-[200px]">
             <p className="text-sm font-medium">Generar propuesta de costos</p>
-            <p className="text-xs text-muted-foreground">Procesa los archivos activos contra el catálogo y crea un lote pendiente de autorización.</p>
+            <p className="text-xs text-muted-foreground">Procesa los archivos activos de cada marca contra el catálogo y crea un lote pendiente de autorización.</p>
           </div>
-          <Button onClick={generarPropuesta} disabled={!puedeGenerar || generando} size="lg">
-            <RefreshCw className={`h-4 w-4 mr-2 ${generando ? "animate-spin" : ""}`} />
-            {generando ? "Procesando…" : "GENERAR PROPUESTA DE COSTOS"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {([
+              { marca: "lumaggs" as MarcaFiltro, label: "Generar Chevron/Lumaggs" },
+              { marca: "galsa" as MarcaFiltro, label: "Generar Phillips 66/Galsa" },
+              { marca: "gonher" as MarcaFiltro, label: "Generar Gonher" },
+            ]).map(({ marca, label }) => (
+              <Button
+                key={marca}
+                onClick={() => generarPropuesta(marca)}
+                disabled={!puedeGenerarMarca[marca] || generando}
+                size="lg"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${generando ? "animate-spin" : ""}`} />
+                {label}
+              </Button>
+            ))}
+          </div>
         </CardContent>
         {generando && (
           <CardContent className="pt-0">
