@@ -610,7 +610,7 @@ function ProductosTab() {
         .from("inv_costos_producto")
         .select("costo_efectivo")
         .eq("codigo_producto", prefill.codigo)
-        .in("estado", ["aplicado", "autorizado", "pendiente"])
+        .in("estado", ["aplicado", "autorizado", "pendiente", "sin_producto"])
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -1085,18 +1085,16 @@ function ProductosTab() {
               >
                 {save.isPending ? "Guardando..." : editingId ? "Actualizar Producto" : "Guardar Producto"}
               </Button>
-              {editingId && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setRecalcOpen(true)}
-                  disabled={save.isPending || !(Number(form.costo_actual ?? 0) > 0)}
-                  className="flex-1"
-                  title={!(Number(form.costo_actual ?? 0) > 0) ? "Requiere Costo Actual > 0" : ""}
-                >
-                  Actualizar Precios
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setRecalcOpen(true)}
+                disabled={save.isPending || !(Number(form.costo_actual ?? 0) > 0)}
+                className="flex-1"
+                title={!(Number(form.costo_actual ?? 0) > 0) ? "Requiere Costo Actual > 0" : ""}
+              >
+                Actualizar Precios
+              </Button>
             </div>
           </div>
         </DialogContent>

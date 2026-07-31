@@ -345,6 +345,8 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
 
       // 5) Procesar cada producto
       const loteId = crypto.randomUUID();
+      // Limpiar referencias huérfanas previas
+      await supabase.from("inv_costos_producto").delete().eq("estado", "sin_producto");
       const propuestas: any[] = [];
       const total = (productos || []).length;
       let n = 0;
@@ -476,8 +478,98 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
         if (error) throw error;
         setProgreso(80 + Math.round(((i + 100) / propuestas.length) * 18));
       }
+
+      // 6) Códigos presentes en archivos pero NO en el catálogo
+      const huerfanos: any[] = [];
+      const vistosHuerfanos = new Set<string>();
+      const gruposHuerfanos: { empresa: "lumaggs" | "galsa"; tipos: string[] }[] = [
+        { empresa: "lumaggs", tipos: ["costos_galper_lumaggs", "precios_especiales_lumaggs", "lista_general_lumaggs"] },
+        { empresa: "galsa", tipos: ["costos_galper_galsa", "costos_galper_gonher", "lista_general_galsa", "lista_general_gonher"] },
+      ];
+      for (const grupo of gruposHuerfanos) {
+        for (const tipo of grupo.tipos) {
+          const mapa = fuentes[tipo];
+          if (!mapa) continue;
+          for (const codigo of mapa.keys()) {
+            if (codigosVistos.has(codigo) || vistosHuerfanos.has(codigo)) continue;
+            vistosHuerfanos.add(codigo);
+            const empresa = grupo.empresa;
+
+            let galper: any = null, especial: any = null, lista: any = null;
+            let archivoGalperId: string | null = null, archivoEspId: string | null = null, archivoListaId: string | null = null;
+
+            if (empresa === "lumaggs") {
+              galper = fuentes["costos_galper_lumaggs"]?.get(codigo) || null;
+              archivoGalperId = galper ? idArchivo("costos_galper_lumaggs") : null;
+              especial = fuentes["precios_especiales_lumaggs"]?.get(codigo) || null;
+              archivoEspId = especial ? idArchivo("precios_especiales_lumaggs") : null;
+              lista = fuentes["lista_general_lumaggs"]?.get(codigo) || null;
+              archivoListaId = lista ? idArchivo("lista_general_lumaggs") : null;
+            } else {
+              galper = fuentes["costos_galper_galsa"]?.get(codigo) || fuentes["costos_galper_gonher"]?.get(codigo) || null;
+              archivoGalperId = fuentes["costos_galper_galsa"]?.has(codigo) ? idArchivo("costos_galper_galsa")
+                : (fuentes["costos_galper_gonher"]?.has(codigo) ? idArchivo("costos_galper_gonher") : null);
+              lista = fuentes["lista_general_galsa"]?.get(codigo) || fuentes["lista_general_gonher"]?.get(codigo) || null;
+              archivoListaId = fuentes["lista_general_galsa"]?.has(codigo) ? idArchivo("lista_general_galsa")
+                : (fuentes["lista_general_gonher"]?.has(codigo) ? idArchivo("lista_general_gonher") : null);
+            }
+
+            let costoEfectivo: number | null = null;
+            let fuente = "";
+            if (empresa === "lumaggs") {
+              if (galper && especial) { costoEfectivo = Math.max(galper.costo, especial.costo); fuente = "max_galper_especial"; }
+              else if (galper) { costoEfectivo = galper.costo; fuente = "galper"; }
+              else if (especial) { costoEfectivo = especial.costo; fuente = "especial"; }
+              else if (lista) { costoEfectivo = lista.costo; fuente = "lista"; }
+            } else {
+              if (galper) { costoEfectivo = galper.costo; fuente = "galper"; }
+              else if (lista) { costoEfectivo = lista.costo; fuente = "lista"; }
+            }
+            if (!costoEfectivo) continue;
+
+            huerfanos.push({
+              codigo_producto: codigo,
+              empresa,
+              costo_galper: galper?.costo ?? null,
+              costo_especial: especial?.costo ?? null,
+              costo_lista: lista?.costo ?? null,
+              costo_efectivo: costoEfectivo,
+              costo_efectivo_fuente: fuente,
+              costo_anterior: 0,
+              variacion_absoluta: null,
+              variacion_porcentual: null,
+              precio_propuesto_uf1: null,
+              precio_propuesto_uf2: null,
+              precio_propuesto_uf3: null,
+              precio_propuesto_uf4: null,
+              precio_propuesto_r1: null,
+              precio_propuesto_r2: null,
+              precio_propuesto_r3: null,
+              precio_propuesto_r4: null,
+              nivel_alerta: null,
+              razones_alerta: ["sin_producto"],
+              estado: "sin_producto",
+              lote_id: null,
+              archivo_galper_id: archivoGalperId,
+              archivo_especial_id: archivoEspId,
+              archivo_lista_id: archivoListaId,
+              nombre_en_archivo: galper?.nombre || especial?.nombre || lista?.nombre || null,
+              nombre_en_catalogo: null,
+            });
+          }
+        }
+      }
+      if (huerfanos.length) {
+        setProgresoTexto(`Guardando ${huerfanos.length} referencias sin producto…`);
+        for (let i = 0; i < huerfanos.length; i += 100) {
+          const chunk = huerfanos.slice(i, i + 100);
+          const { error } = await supabase.from("inv_costos_producto").insert(chunk);
+          if (error) throw error;
+        }
+      }
+
       setProgreso(100); setProgresoTexto("Listo");
-      toast.success(`Propuesta generada: ${propuestas.length} SKUs`);
+      toast.success(`Propuesta generada: ${propuestas.length} SKUs · ${huerfanos.length} referencias de códigos no catalogados`);
       onRefresh();
     } catch (e: any) {
       console.error(e);
