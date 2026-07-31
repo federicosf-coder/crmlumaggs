@@ -1064,3 +1064,158 @@ function HistorialSection({ historial }: { historial: any[] }) {
     </Card>
   );
 }
+// ─── LISTAS POR MARCA (solo lectura) ────────────────────────────
+type ListaMarcaRow = {
+  codigo: string;
+  nombre: string;
+  costo_galper: number | null;
+  costo_especial: number | null;
+  costo_lista: number | null;
+  costo_efectivo: number | null;
+  fuente: string | null;
+  en_catalogo: boolean;
+};
+
+function fuenteBadgeLista(f: string | null | undefined) {
+  if (!f) return <span className="text-muted-foreground">—</span>;
+  const map: Record<string, string> = {
+    GALPER: "bg-blue-100 text-blue-700 border-blue-200",
+    ESPECIAL: "bg-purple-100 text-purple-700 border-purple-200",
+    MAX: "bg-indigo-100 text-indigo-700 border-indigo-200",
+    LISTA: "bg-slate-100 text-slate-700 border-slate-200",
+  };
+  return <Badge variant="outline" className={`text-[10px] font-medium ${map[f] || "bg-muted"}`}>{f}</Badge>;
+}
+
+function ListasMarcaSection({ data }: { data?: { lumaggs: ListaMarcaRow[]; galsa: ListaMarcaRow[]; gonher: ListaMarcaRow[] } }) {
+  const [sub, setSub] = useState("lumaggs");
+  const lumaggs = data?.lumaggs || [];
+  const galsa = data?.galsa || [];
+  const gonher = data?.gonher || [];
+  return (
+    <Tabs value={sub} onValueChange={setSub}>
+      <TabsList>
+        <TabsTrigger value="lumaggs">
+          Costos Lumaggs <Badge variant="secondary" className="ml-2">{lumaggs.length}</Badge>
+        </TabsTrigger>
+        <TabsTrigger value="galsa">
+          Costos Galsa <Badge variant="secondary" className="ml-2">{galsa.length}</Badge>
+        </TabsTrigger>
+        <TabsTrigger value="gonher">
+          Costos Gonher <Badge variant="secondary" className="ml-2">{gonher.length}</Badge>
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="lumaggs" className="mt-4">
+        <ListaMarcaTable rows={lumaggs} showEspecial exportName="costos_lumaggs" />
+      </TabsContent>
+      <TabsContent value="galsa" className="mt-4">
+        <ListaMarcaTable rows={galsa} exportName="costos_galsa" />
+      </TabsContent>
+      <TabsContent value="gonher" className="mt-4">
+        <ListaMarcaTable rows={gonher} exportName="costos_gonher" />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: ListaMarcaRow[]; showEspecial?: boolean; exportName: string }) {
+  const [q, setQ] = useState("");
+  const [sortKey, setSortKey] = useState<keyof ListaMarcaRow>("codigo");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    let out = rows;
+    if (term) out = rows.filter(r => r.codigo.toLowerCase().includes(term) || (r.nombre || "").toLowerCase().includes(term));
+    return [...out].sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      const cmp = typeof av === "number" && typeof bv === "number"
+        ? av - bv
+        : String(av).localeCompare(String(bv), "es");
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [rows, q, sortKey, sortDir]);
+
+  const toggleSort = (k: keyof ListaMarcaRow) => {
+    if (sortKey === k) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(k); setSortDir("asc"); }
+  };
+
+  const money = (n: number | null) => (n == null ? "—" : `$${Number(n).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+
+  const exportar = () => {
+    const out = filtered.map(d => ({
+      "Código": d.codigo,
+      "Nombre": d.nombre,
+      "Costo Galper": d.costo_galper ?? "",
+      ...(showEspecial ? { "Precio Especial": d.costo_especial ?? "" } : {}),
+      "Lista General": d.costo_lista ?? "",
+      "Costo Efectivo": d.costo_efectivo ?? "",
+      "Fuente": d.fuente || "",
+      "En Catálogo": d.en_catalogo ? "Sí" : "No",
+    }));
+    const ws = XLSX.utils.json_to_sheet(out);
+    ws["!cols"] = [{ wch: 16 }, { wch: 42 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Costos");
+    XLSX.writeFile(wb, `${exportName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const Th = ({ k, children, className }: { k: keyof ListaMarcaRow; children: React.ReactNode; className?: string }) => (
+    <TableHead className={`cursor-pointer select-none ${className || ""}`} onClick={() => toggleSort(k)}>
+      {children}{sortKey === k ? (sortDir === "asc" ? " ▲" : " ▼") : ""}
+    </TableHead>
+  );
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+        <Input placeholder="Buscar por código o nombre…" value={q} onChange={e => setQ(e.target.value)} className="max-w-xs h-9" />
+        <Button variant="outline" size="sm" onClick={exportar} disabled={filtered.length === 0}>
+          <FileSpreadsheet className="h-4 w-4 mr-1.5" />Exportar Excel
+        </Button>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <Th k="codigo">Código</Th>
+              <Th k="nombre">Nombre</Th>
+              <Th k="costo_galper" className="text-right">Costo Galper</Th>
+              {showEspecial && <Th k="costo_especial" className="text-right">Precio Especial</Th>}
+              <Th k="costo_lista" className="text-right">Lista General</Th>
+              <Th k="costo_efectivo" className="text-right">Costo Efectivo</Th>
+              <Th k="fuente">Fuente</Th>
+              <Th k="en_catalogo">En Catálogo</Th>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={showEspecial ? 8 : 7} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
+              </TableRow>
+            ) : filtered.map(r => (
+              <TableRow key={r.codigo}>
+                <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
+                <TableCell>{r.nombre}</TableCell>
+                <TableCell className="text-right">{money(r.costo_galper)}</TableCell>
+                {showEspecial && <TableCell className="text-right">{money(r.costo_especial)}</TableCell>}
+                <TableCell className="text-right">{money(r.costo_lista)}</TableCell>
+                <TableCell className="text-right font-semibold">{money(r.costo_efectivo)}</TableCell>
+                <TableCell>{fuenteBadgeLista(r.fuente)}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={r.en_catalogo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-red-100 text-red-700 border-red-200"}>
+                    {r.en_catalogo ? "Sí" : "No"}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
