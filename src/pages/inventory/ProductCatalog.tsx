@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -338,7 +338,8 @@ function ProductClientsDialog({
 function ProductosTab() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const { hasRole } = useAuth();
+  const location = useLocation();
+  const { hasRole, user } = useAuth();
   const isAdmin = hasRole("admin");
   const canImportExport = isAdmin || hasRole("manager");
   const [search, setSearch] = useState("");
@@ -369,6 +370,7 @@ function ProductosTab() {
   const [viewProduct, setViewProduct] = useState<any>(null);
   const [clientsProduct, setClientsProduct] = useState<any>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [huerfanoContext, setHuerfanoContext] = useState<{ codigo: string; proveedor: string } | null>(null);
   const [importing, setImporting] = useState(false);
 
   const optionsFor = (type: ProductOptionType) => allOptions.filter(o => o.option_type === type && o.is_active);
@@ -595,14 +597,51 @@ function ProductosTab() {
   });
   const [recalcOpen, setRecalcOpen] = useState(false);
 
+  useEffect(() => {
+    const prefill = (location.state as any)?.prefillHuerfano;
+    if (!prefill) return;
+    if (!presentaciones.length) return;
+    let cancelled = false;
+    (async () => {
+      const unidad = String(prefill.unidad || "").trim().toLowerCase();
+      const match = presentaciones.find((p: any) => String(p.nombre || "").trim().toLowerCase() === unidad);
+      let costo = 0;
+      const { data: costoRow } = await (supabase as any)
+        .from("inv_costos_producto")
+        .select("costo_efectivo")
+        .eq("codigo_producto", prefill.codigo)
+        .in("estado", ["aplicado", "autorizado", "pendiente"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (costoRow?.costo_efectivo != null) costo = Number(costoRow.costo_efectivo);
+      if (cancelled) return;
+      setForm({
+        ...emptyProduct,
+        codigo: prefill.codigo || "",
+        nombre_producto: prefill.nombre_producto || "",
+        presentacion_id: match?.id || "",
+        costo_actual: costo,
+      });
+      setEditingId(null);
+      setHuerfanoContext({ codigo: prefill.codigo, proveedor: prefill.proveedor });
+      setOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, presentaciones.length]);
+
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyProduct);
+    setHuerfanoContext(null);
     setOpen(true);
   };
 
   const openEdit = (p: any) => {
     setEditingId(p.id);
+    setHuerfanoContext(null);
     setForm({
       codigo: p.codigo || "",
       nombre_producto: p.nombre_producto || "",
@@ -641,17 +680,38 @@ function ProductosTab() {
         const { error } = await supabase.from("productos").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("productos").insert(payload);
+        const { data: created, error } = await supabase.from("productos").insert(payload).select("id").single();
         if (error) throw error;
+        if (huerfanoContext && created?.id) {
+          const { error: mapError } = await (supabase as any).from("inv_producto_proveedor").insert({
+            producto_id: created.id,
+            proveedor: huerfanoContext.proveedor,
+            codigo_proveedor: huerfanoContext.codigo,
+            codigo_contpaqi: huerfanoContext.codigo,
+            confirmado: true,
+            creado_por: user?.id ?? null,
+          });
+          if (mapError) throw mapError;
+        }
       }
     },
     onSuccess: () => {
+      const wasHuerfano = !!huerfanoContext;
       qc.invalidateQueries({ queryKey: ["productos"] });
       setOpen(false);
       setForm(emptyProduct);
       setEditingId(null);
       setRecalcOpen(false);
-      toast.success(editingId ? "Producto actualizado" : "Producto creado");
+      if (wasHuerfano) {
+        for (const key of ["huerfanos_kardex", "huerfanos_count", "fantasmas_catalogo", "stock_por_producto"]) {
+          qc.invalidateQueries({ queryKey: [key] });
+        }
+        setHuerfanoContext(null);
+        toast.success("Producto creado y vinculado al kardex correctamente");
+        navigate("/inventario/mapeo");
+      } else {
+        toast.success(editingId ? "Producto actualizado" : "Producto creado");
+      }
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -946,7 +1006,7 @@ function ProductosTab() {
         )}
       </CardContent>
 
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyProduct); } }}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyProduct); setHuerfanoContext(null); } }}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingId ? "Editar Producto" : "Nuevo Producto"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

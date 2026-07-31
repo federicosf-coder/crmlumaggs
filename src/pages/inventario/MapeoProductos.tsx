@@ -39,180 +39,6 @@ function detectProveedor(empresaVendedora?: string | null): "chevron" | "phillip
 const HEADER_CLS =
   "bg-gradient-to-r from-violet-50 to-blue-50 [&>tr>th]:uppercase [&>tr>th]:tracking-wide [&>tr>th]:text-xs [&>tr>th]:text-muted-foreground";
 
-// ─── Crear en catálogo Dialog ───────────────────────────────
-function CrearEnCatalogoDialog({
-  huerfano, open, onClose,
-}: { huerfano: any | null; open: boolean; onClose: () => void }) {
-  const qc = useQueryClient();
-  const { user } = useAuth();
-  const [nombre, setNombre] = useState("");
-  const [presentacionId, setPresentacionId] = useState("");
-  const [marcaId, setMarcaId] = useState("");
-  const [lineaId, setLineaId] = useState("");
-  const [aplicacionId, setAplicacionId] = useState("");
-  const [proveedor, setProveedor] = useState<"chevron" | "phillips66">("chevron");
-  const [piezasTarima, setPiezasTarima] = useState<string>("45");
-
-  const { data: presentaciones = [] } = useQuery({
-    queryKey: ["presentaciones-all"],
-    queryFn: async () => {
-      const { data } = await (supabase as any).from("presentaciones").select("id, nombre, is_active, pallet_chevron, pallet_phillips").order("nombre");
-      return (data || []).filter((p: any) => p.is_active);
-    },
-  });
-  const { data: opciones = [] } = useQuery({
-    queryKey: ["product_option_values_all"],
-    queryFn: async () => {
-      const { data } = await (supabase as any).from("product_option_values").select("*").eq("is_active", true).order("value");
-      return data || [];
-    },
-  });
-  const optsFor = (t: ProductOptionType) => opciones.filter((o: any) => o.option_type === t);
-
-  useEffect(() => {
-    if (huerfano) {
-      setNombre(huerfano.nombre_producto || "");
-      const prov = detectProveedor(huerfano.empresa_vendedora);
-      setProveedor(prov);
-      setPiezasTarima(huerfano.piezas_por_tarima ? String(huerfano.piezas_por_tarima) : (prov === "phillips66" ? "42" : "45"));
-    }
-  }, [huerfano?.codigo_producto]);
-
-  // Auto-actualiza piezas por tarima al cambiar presentación o proveedor según catálogo
-  useEffect(() => {
-    if (!presentacionId) return;
-    const p = (presentaciones as any[]).find((x) => x.id === presentacionId);
-    if (!p) return;
-    const v = proveedor === "phillips66" ? p.pallet_phillips : p.pallet_chevron;
-    if (v != null) setPiezasTarima(String(v));
-  }, [presentacionId, proveedor, presentaciones]);
-
-  const save = useMutation({
-    mutationFn: async () => {
-      if (!huerfano) throw new Error("Sin huérfano");
-      const payload: any = {
-        codigo: huerfano.codigo_producto,
-        nombre_producto: nombre,
-        is_active: true,
-        presentacion_id: presentacionId || null,
-        marca_id: marcaId || null,
-        linea_id: lineaId || null,
-        aplicacion_id: aplicacionId || null,
-        costo_actual: 0, precio_base_uf1: 0, precio_uf2: 0, precio_uf3: 0, precio_uf4: 0,
-        precio_r1: 0, precio_r2: 0, precio_r3: 0, precio_r4: 0, precio_lista_galper: 0,
-        created_by: user?.id ?? null,
-      };
-      const { data: prod, error } = await (supabase as any).from("productos").insert(payload).select("id").single();
-      if (error) throw error;
-      const { error: mErr } = await (supabase as any).from("inv_producto_proveedor").insert({
-        producto_id: prod.id,
-        proveedor,
-        codigo_proveedor: huerfano.codigo_producto,
-        codigo_contpaqi: huerfano.codigo_producto,
-        piezas_por_tarima: piezasTarima ? Number(piezasTarima) : null,
-        confirmado: true,
-        creado_por: user?.id ?? null,
-      });
-      if (mErr) throw mErr;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["productos"] });
-      qc.invalidateQueries({ queryKey: ["inv_producto_proveedor"] });
-      qc.invalidateQueries({ queryKey: ["huerfanos_kardex"] });
-      qc.invalidateQueries({ queryKey: ["huerfanos_count"] });
-      qc.invalidateQueries({ queryKey: ["fantasmas_catalogo"] });
-      qc.invalidateQueries({ queryKey: ["stock_por_producto"] });
-      toast.success("Producto creado y mapeado correctamente");
-      onClose();
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -m-6 mb-0 p-6 rounded-t-lg">
-          <DialogTitle className="font-light">Crear producto en catálogo</DialogTitle>
-        </DialogHeader>
-        {huerfano && (
-          <div className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Código</Label>
-                <Input value={huerfano.codigo_producto} disabled className="font-mono" />
-              </div>
-              <div>
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Unidad</Label>
-                <Input value={huerfano.unidad || ""} disabled />
-              </div>
-              <div className="col-span-2">
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Nombre</Label>
-                <Input value={nombre} onChange={(e) => setNombre(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Presentación</Label>
-                <Select value={presentacionId} onValueChange={setPresentacionId}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>
-                    {presentaciones.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Marca</Label>
-                <Select value={marcaId} onValueChange={setMarcaId}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>
-                    {optsFor("marca").map((o: any) => <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Línea</Label>
-                <Select value={lineaId} onValueChange={setLineaId}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>
-                    {optsFor("linea").map((o: any) => <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Aplicación</Label>
-                <Select value={aplicacionId} onValueChange={setAplicacionId}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>
-                    {optsFor("aplicacion").map((o: any) => <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Proveedor</Label>
-                <Select value={proveedor} onValueChange={(v) => setProveedor(v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="chevron">Chevron</SelectItem>
-                    <SelectItem value="phillips66">Phillips 66</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Piezas por tarima</Label>
-                <Input type="number" value={piezasTarima} onChange={(e) => setPiezasTarima(e.target.value)} />
-              </div>
-            </div>
-          </div>
-        )}
-        <DialogFooter className="bg-muted/40 -m-6 mt-2 p-4 rounded-b-lg">
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => save.mutate()} disabled={!nombre || save.isPending}>
-            {save.isPending ? "Guardando..." : "Crear y mapear"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ─── Ligar a existente Dialog ───────────────────────────────
 function LigarExistenteDialog({
   huerfano, open, onClose,
@@ -378,7 +204,7 @@ function EditarMapeoDialog({ mapeo, open, onClose }: { mapeo: any | null; open: 
 // ─── Tab: Huérfanos de Kardex ───────────────────────────────
 function HuerfanosTab() {
   const { data: huerfanos = [], isLoading } = useHuerfanosKardex();
-  const [crearTarget, setCrearTarget] = useState<any>(null);
+  const navigate = useNavigate();
   const [ligarTarget, setLigarTarget] = useState<any>(null);
 
   return (
@@ -438,7 +264,22 @@ function HuerfanosTab() {
                       <TableCell><Badge variant="outline" className={statusColor(h.estatus_inventario)}>{h.estatus_inventario || "—"}</Badge></TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end">
-                          <Button size="sm" variant="outline" onClick={() => setCrearTarget(h)}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              navigate("/inventory", {
+                                state: {
+                                  prefillHuerfano: {
+                                    codigo: h.codigo_producto,
+                                    nombre_producto: h.nombre_producto,
+                                    unidad: h.unidad,
+                                    proveedor: detectProveedor(h.empresa_vendedora),
+                                  },
+                                },
+                              })
+                            }
+                          >
                             <Plus className="h-3 w-3 mr-1" /> Crear
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => setLigarTarget(h)}>
@@ -457,7 +298,6 @@ function HuerfanosTab() {
           </div>
         )}
       </CardContent>
-      <CrearEnCatalogoDialog huerfano={crearTarget} open={!!crearTarget} onClose={() => setCrearTarget(null)} />
       <LigarExistenteDialog huerfano={ligarTarget} open={!!ligarTarget} onClose={() => setLigarTarget(null)} />
     </Card>
   );
