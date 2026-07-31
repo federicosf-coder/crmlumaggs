@@ -255,9 +255,8 @@ export default function GestionCostos() {
             {propuesta.length > 0 && <Badge variant="secondary" className="ml-2">{propuesta.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="historial">Historial</TabsTrigger>
-        </TabsList>
           <TabsTrigger value="listas">Listas por Marca</TabsTrigger>
-
+        </TabsList>
 
         <TabsContent value="biblioteca" className="mt-4">
           <BibliotecaSection
@@ -278,6 +277,10 @@ export default function GestionCostos() {
 
         <TabsContent value="historial" className="mt-4">
           <HistorialSection historial={historial} />
+        </TabsContent>
+
+        <TabsContent value="listas" className="mt-4">
+          <ListasMarcaSection data={listasMarca} />
         </TabsContent>
       </Tabs>
     </div>
