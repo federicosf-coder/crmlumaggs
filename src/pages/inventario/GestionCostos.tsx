@@ -195,6 +195,47 @@ export default function GestionCostos() {
     },
   });
 
+  const { data: listasMarca } = useQuery({
+    queryKey: ["inv_costos_listas_marca"],
+    queryFn: async () => {
+      const [costosRes, archivosRes, prodsRes] = await Promise.all([
+        supabase
+          .from("inv_costos_producto")
+          .select("codigo_producto, empresa, costo_galper, costo_especial, costo_lista, costo_efectivo, costo_efectivo_fuente, archivo_galper_id, archivo_lista_id, nombre_en_archivo, nombre_en_catalogo, created_at")
+          .order("created_at", { ascending: false })
+          .limit(50000),
+        supabase.from("inv_archivos_referencia").select("id, tipo"),
+        supabase.from("productos").select("codigo, nombre_producto").eq("is_active", true).limit(20000),
+      ]);
+      const costos = (costosRes.data as any[]) || [];
+      const tipoPorArchivo = new Map<string, string>(((archivosRes.data as any[]) || []).map((a: any) => [a.id, String(a.tipo || "").toLowerCase()]));
+      const nombrePorCodigo = new Map<string, string>(((prodsRes.data as any[]) || []).map((p: any) => [p.codigo, p.nombre_producto]));
+
+      const vistos = new Set<string>();
+      const lumaggs: any[] = [], galsa: any[] = [], gonher: any[] = [];
+      for (const c of costos) {
+        if (!c.codigo_producto || vistos.has(c.codigo_producto)) continue;
+        vistos.add(c.codigo_producto);
+        const row = {
+          codigo: c.codigo_producto,
+          nombre: c.nombre_en_archivo || c.nombre_en_catalogo || nombrePorCodigo.get(c.codigo_producto) || c.codigo_producto,
+          costo_galper: c.costo_galper,
+          costo_especial: c.costo_especial,
+          costo_lista: c.costo_lista,
+          costo_efectivo: c.costo_efectivo,
+          fuente: c.costo_efectivo_fuente,
+          en_catalogo: nombrePorCodigo.has(c.codigo_producto),
+        };
+        if (c.empresa === "lumaggs") { lumaggs.push(row); continue; }
+        if (c.empresa === "galsa") {
+          const tipo = tipoPorArchivo.get(c.archivo_galper_id) ?? tipoPorArchivo.get(c.archivo_lista_id) ?? "";
+          (tipo.includes("gonher") ? gonher : galsa).push(row);
+        }
+      }
+      return { lumaggs, galsa, gonher };
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
