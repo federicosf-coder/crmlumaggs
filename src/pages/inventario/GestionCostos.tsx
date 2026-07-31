@@ -361,6 +361,11 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
     return Object.keys(archivosEnMemoria).length > 0;
   }, [archivosEnMemoria]);
 
+  const puedeGenerarMarca = useMemo(() => {
+    const calc = (m: MarcaFiltro) => MARCA_TIPOS[m].some(t => !!archivosEnMemoria[t]);
+    return { lumaggs: calc("lumaggs"), galsa: calc("galsa"), gonher: calc("gonher") } as Record<MarcaFiltro, boolean>;
+  }, [archivosEnMemoria]);
+
   function formatFecha(iso?: string | null) {
     if (!iso) return "";
     try {
