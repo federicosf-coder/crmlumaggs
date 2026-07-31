@@ -257,6 +257,7 @@ export default function GestionCostos() {
           <TabsTrigger value="historial">Historial</TabsTrigger>
         </TabsList>
 
+
         <TabsContent value="biblioteca" className="mt-4">
           <BibliotecaSection
             archivos={archivos}
