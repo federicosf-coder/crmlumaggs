@@ -597,6 +597,41 @@ function ProductosTab() {
   });
   const [recalcOpen, setRecalcOpen] = useState(false);
 
+  useEffect(() => {
+    const prefill = (location.state as any)?.prefillHuerfano;
+    if (!prefill) return;
+    if (!presentaciones.length) return;
+    let cancelled = false;
+    (async () => {
+      const unidad = String(prefill.unidad || "").trim().toLowerCase();
+      const match = presentaciones.find((p: any) => String(p.nombre || "").trim().toLowerCase() === unidad);
+      let costo = 0;
+      const { data: costoRow } = await (supabase as any)
+        .from("inv_costos_producto")
+        .select("costo_efectivo")
+        .eq("codigo_producto", prefill.codigo)
+        .in("estado", ["aplicado", "autorizado", "pendiente"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (costoRow?.costo_efectivo != null) costo = Number(costoRow.costo_efectivo);
+      if (cancelled) return;
+      setForm({
+        ...emptyProduct,
+        codigo: prefill.codigo || "",
+        nombre_producto: prefill.nombre_producto || "",
+        presentacion_id: match?.id || "",
+        costo_actual: costo,
+      });
+      setEditingId(null);
+      setHuerfanoContext({ codigo: prefill.codigo, proveedor: prefill.proveedor });
+      setOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, presentaciones.length]);
+
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyProduct);
