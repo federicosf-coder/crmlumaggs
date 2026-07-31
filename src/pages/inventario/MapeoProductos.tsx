@@ -39,12 +39,13 @@ function detectProveedor(empresaVendedora?: string | null): "chevron" | "phillip
 const HEADER_CLS =
   "bg-gradient-to-r from-violet-50 to-blue-50 [&>tr>th]:uppercase [&>tr>th]:tracking-wide [&>tr>th]:text-xs [&>tr>th]:text-muted-foreground";
 
-// ─── Ligar a existente Dialog ───────────────────────────────
-function LigarExistenteDialog({
+// ─── Buscar y vincular Dialog ───────────────────────────────
+function BuscarVincularDialog({
   huerfano, open, onClose,
 }: { huerfano: any | null; open: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [piezasTarima, setPiezasTarima] = useState<string>("");
@@ -53,8 +54,8 @@ function LigarExistenteDialog({
     queryKey: ["productos-search", search],
     queryFn: async () => {
       let q = (supabase as any).from("productos")
-        .select("id, codigo, nombre_producto, presentaciones(nombre)")
-        .eq("is_active", true).order("codigo").limit(50);
+        .select("id, codigo, nombre_producto, is_active, presentaciones(nombre)")
+        .order("codigo").limit(50);
       if (search) q = q.or(`codigo.ilike.%${search}%,nombre_producto.ilike.%${search}%`);
       const { data } = await q;
       return data || [];
@@ -66,6 +67,12 @@ function LigarExistenteDialog({
     mutationFn: async () => {
       if (!huerfano || !selectedId) throw new Error("Falta seleccionar");
       const prov = detectProveedor(huerfano.empresa_vendedora);
+      const sel = (productos as any[]).find((p) => p.id === selectedId);
+      if (sel && sel.is_active === false) {
+        const { error: upErr } = await (supabase as any).from("productos")
+          .update({ is_active: true }).eq("id", selectedId);
+        if (upErr) throw upErr;
+      }
       const { error } = await (supabase as any).from("inv_producto_proveedor").insert({
         producto_id: selectedId,
         proveedor: prov,
@@ -113,7 +120,14 @@ function LigarExistenteDialog({
                   {productos.map((p: any) => (
                     <TableRow key={p.id} className={`cursor-pointer ${selectedId === p.id ? "bg-blue-50" : ""}`} onClick={() => setSelectedId(p.id)}>
                       <TableCell className="font-mono text-xs">{p.codigo}</TableCell>
-                      <TableCell className="text-sm">{p.nombre_producto}</TableCell>
+                      <TableCell className="text-sm">
+                        <span className="inline-flex items-center gap-2">
+                          {p.nombre_producto}
+                          {p.is_active === false && (
+                            <Badge variant="outline" className="bg-gray-50 text-gray-600">Inactivo</Badge>
+                          )}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{p.presentaciones?.nombre}</TableCell>
                     </TableRow>
                   ))}
@@ -130,6 +144,26 @@ function LigarExistenteDialog({
           </div>
         )}
         <DialogFooter className="bg-muted/40 -m-6 mt-2 p-4 rounded-b-lg">
+          <Button
+            variant="outline"
+            className="mr-auto"
+            onClick={() => {
+              if (!huerfano) return;
+              onClose();
+              navigate("/inventory", {
+                state: {
+                  prefillHuerfano: {
+                    codigo: huerfano.codigo_producto,
+                    nombre_producto: huerfano.nombre_producto,
+                    unidad: huerfano.unidad,
+                    proveedor: detectProveedor(huerfano.empresa_vendedora),
+                  },
+                },
+              });
+            }}
+          >
+            <Plus className="h-3 w-3 mr-1" /> No lo encuentro — Crear producto nuevo
+          </Button>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button onClick={() => save.mutate()} disabled={!selectedId || save.isPending}>
             {save.isPending ? "Guardando..." : "Vincular"}
