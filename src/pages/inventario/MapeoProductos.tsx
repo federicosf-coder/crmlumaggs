@@ -238,7 +238,6 @@ function EditarMapeoDialog({ mapeo, open, onClose }: { mapeo: any | null; open: 
 // ─── Tab: Huérfanos de Kardex ───────────────────────────────
 function HuerfanosTab() {
   const { data: huerfanos = [], isLoading } = useHuerfanosKardex();
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
   const [ligarTarget, setLigarTarget] = useState<any>(null);
