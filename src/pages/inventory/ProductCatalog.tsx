@@ -600,11 +600,13 @@ function ProductosTab() {
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyProduct);
+    setHuerfanoContext(null);
     setOpen(true);
   };
 
   const openEdit = (p: any) => {
     setEditingId(p.id);
+    setHuerfanoContext(null);
     setForm({
       codigo: p.codigo || "",
       nombre_producto: p.nombre_producto || "",
@@ -643,17 +645,38 @@ function ProductosTab() {
         const { error } = await supabase.from("productos").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("productos").insert(payload);
+        const { data: created, error } = await supabase.from("productos").insert(payload).select("id").single();
         if (error) throw error;
+        if (huerfanoContext && created?.id) {
+          const { error: mapError } = await (supabase as any).from("inv_producto_proveedor").insert({
+            producto_id: created.id,
+            proveedor: huerfanoContext.proveedor,
+            codigo_proveedor: huerfanoContext.codigo,
+            codigo_contpaqi: huerfanoContext.codigo,
+            confirmado: true,
+            creado_por: user?.id ?? null,
+          });
+          if (mapError) throw mapError;
+        }
       }
     },
     onSuccess: () => {
+      const wasHuerfano = !!huerfanoContext;
       qc.invalidateQueries({ queryKey: ["productos"] });
       setOpen(false);
       setForm(emptyProduct);
       setEditingId(null);
       setRecalcOpen(false);
-      toast.success(editingId ? "Producto actualizado" : "Producto creado");
+      if (wasHuerfano) {
+        for (const key of ["huerfanos_kardex", "huerfanos_count", "fantasmas_catalogo", "stock_por_producto"]) {
+          qc.invalidateQueries({ queryKey: [key] });
+        }
+        setHuerfanoContext(null);
+        toast.success("Producto creado y vinculado al kardex correctamente");
+        navigate("/inventario/mapeo");
+      } else {
+        toast.success(editingId ? "Producto actualizado" : "Producto creado");
+      }
     },
     onError: (e: any) => toast.error(e.message),
   });
