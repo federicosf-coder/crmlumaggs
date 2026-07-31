@@ -33,6 +33,14 @@ const TIPOS_ARCHIVO: { value: string; label: string; empresa: "lumaggs" | "galsa
 
 const ceilTo5 = (n: number) => (!isFinite(n) || n <= 0 ? 0 : Math.ceil(n / 5) * 5);
 
+type MarcaFiltro = "lumaggs" | "galsa" | "gonher";
+
+const MARCA_TIPOS: Record<MarcaFiltro, string[]> = {
+  lumaggs: ["costos_galper_lumaggs", "precios_especiales_lumaggs", "lista_general_lumaggs"],
+  galsa: ["costos_galper_galsa", "lista_general_galsa"],
+  gonher: ["costos_galper_gonher", "lista_general_gonher"],
+};
+
 function detectarEmpresa(producto: any): "lumaggs" | "galsa" {
   const marca = String(producto?.marca?.value || "").toLowerCase();
   if (marca.includes("phillips") || marca.includes("gonher")) return "galsa";
