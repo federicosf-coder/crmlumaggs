@@ -93,7 +93,7 @@ function intentarParsearHoja(raw: any[][]): Map<string, { codigo: string; costo:
         cell === "importe" ||
         cell === "price"
       ) _iCosto = c;
-      if (cell.includes("nombre") || cell.includes("descripcion") || cell.includes("descripción") || cell.includes("producto") || cell === "name" || cell.includes("product")) _iNombre = c;
+      if (cell.includes("nombre") || cell.includes("descripcion") || cell.includes("descripción") || cell.includes("producto") || cell === "name" || cell.includes("product") || cell.includes("material name")) _iNombre = c;
     }
     if (_iCodigo >= 0 && _iCosto >= 0) {
       headerRow = r; iCodigo = _iCodigo; iCosto = _iCosto; iNombre = _iNombre;
