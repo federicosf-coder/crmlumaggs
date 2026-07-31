@@ -49,6 +49,48 @@ function nivelClass(n: string) {
     : "bg-green-100 text-green-800 border-green-300";
 }
 
+async function parsePdfToMap(file: File): Promise<Map<string, { codigo: string; costo: number; nombre?: string }>> {
+  const pdfjsLib = await import("pdfjs-dist");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const map = new Map<string, { codigo: string; costo: number; nombre?: string }>();
+  const rowRe = /^(\S+)\s+(.+)\s+([A-Z]{2,4})\s+([^\d]+?)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s+([A-Z]+)$/;
+
+  const pushLine = (raw: string) => {
+    const line = raw.replace(/\s+/g, " ").trim();
+    const m = line.match(rowRe);
+    if (!m) return;
+    const codigo = m[1].trim();
+    const nombre = m[2].trim();
+    const costo = Number(m[6].replace(/,/g, ""));
+    if (codigo && Number.isFinite(costo) && costo > 0) map.set(codigo, { codigo, costo, nombre });
+  };
+
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const items = (content.items as any[])
+      .filter(it => typeof it.str === "string")
+      .map(it => ({ str: it.str as string, x: it.transform[4] as number, y: it.transform[5] as number }))
+      .sort((a, b) => (b.y - a.y) || (a.x - b.x));
+    let currentY: number | null = null;
+    let parts: string[] = [];
+    for (const it of items) {
+      if (currentY === null || Math.abs(it.y - currentY) <= 3) {
+        if (currentY === null) currentY = it.y;
+        parts.push(it.str);
+      } else {
+        pushLine(parts.join(" "));
+        parts = [it.str];
+        currentY = it.y;
+      }
+    }
+    if (parts.length) pushLine(parts.join(" "));
+  }
+  return map;
+}
+
 function parseExcelToMap(file: File): Promise<Map<string, { codigo: string; costo: number; nombre?: string; fecha?: string }>> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -320,13 +362,14 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
   async function handleFileSelected(tipo: string, file: File) {
     if (!userId) return;
     const lowerName = file.name.toLowerCase();
-    if (lowerName.endsWith(".csv") || lowerName.endsWith(".pdf")) {
-      toast.warning("Los archivos CSV se procesarán como tabla. Para PDFs, use el flujo de extracción IA en Pedidos.");
+    const isPdf = lowerName.endsWith(".pdf");
+    if (lowerName.endsWith(".csv")) {
+      toast.warning("Los archivos CSV se procesarán como tabla.");
     }
     setProcesandoTipo(tipo);
     try {
       const tipoDef = TIPOS_ARCHIVO.find(t => t.value === tipo);
-      const map = await parseExcelToMap(file);
+      const map = isPdf ? await parsePdfToMap(file) : await parseExcelToMap(file);
       if (map.size === 0) { toast.error("No se detectaron registros válidos en el archivo"); return; }
 
       await supabase.from("inv_archivos_referencia").update({ es_activo: false }).eq("tipo", tipo).eq("es_activo", true);
