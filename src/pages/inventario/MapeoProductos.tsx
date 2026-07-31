@@ -239,7 +239,48 @@ function EditarMapeoDialog({ mapeo, open, onClose }: { mapeo: any | null; open: 
 function HuerfanosTab() {
   const { data: huerfanos = [], isLoading } = useHuerfanosKardex();
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { user } = useAuth();
   const [ligarTarget, setLigarTarget] = useState<any>(null);
+  const [agregandoCodigo, setAgregandoCodigo] = useState<string | null>(null);
+
+  const handleAgregar = async (h: any) => {
+    setAgregandoCodigo(h.codigo_producto);
+    try {
+      const { data: match, error } = await (supabase as any)
+        .from("productos")
+        .select("id, codigo, nombre_producto, is_active")
+        .eq("codigo", h.codigo_producto)
+        .maybeSingle();
+      if (error) throw error;
+      if (!match) {
+        setLigarTarget(h);
+        return;
+      }
+      const reactivado = match.is_active === false;
+      if (reactivado) {
+        const { error: upErr } = await (supabase as any)
+          .from("productos").update({ is_active: true }).eq("id", match.id);
+        if (upErr) throw upErr;
+      }
+      const { error: insErr } = await (supabase as any).from("inv_producto_proveedor").insert({
+        producto_id: match.id,
+        proveedor: detectProveedor(h.empresa_vendedora),
+        codigo_proveedor: h.codigo_producto,
+        codigo_contpaqi: h.codigo_producto,
+        confirmado: true,
+        creado_por: user?.id ?? null,
+      });
+      if (insErr) throw insErr;
+      ["inv_producto_proveedor", "huerfanos_kardex", "huerfanos_count", "fantasmas_catalogo", "stock_por_producto"]
+        .forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+      toast.success(`Vinculado automáticamente a "${match.nombre_producto}"${reactivado ? " (reactivado)" : ""}`);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setAgregandoCodigo(null);
+    }
+  };
 
   return (
     <Card>
@@ -301,23 +342,11 @@ function HuerfanosTab() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() =>
-                              navigate("/inventory", {
-                                state: {
-                                  prefillHuerfano: {
-                                    codigo: h.codigo_producto,
-                                    nombre_producto: h.nombre_producto,
-                                    unidad: h.unidad,
-                                    proveedor: detectProveedor(h.empresa_vendedora),
-                                  },
-                                },
-                              })
-                            }
+                            disabled={agregandoCodigo === h.codigo_producto}
+                            onClick={() => handleAgregar(h)}
                           >
-                            <Plus className="h-3 w-3 mr-1" /> Crear
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => setLigarTarget(h)}>
-                            <Link2 className="h-3 w-3 mr-1" /> Ligar
+                            <Plus className="h-3 w-3 mr-1" />
+                            {agregandoCodigo === h.codigo_producto ? "Agregando..." : "Agregar"}
                           </Button>
                         </div>
                       </TableCell>
@@ -332,7 +361,7 @@ function HuerfanosTab() {
           </div>
         )}
       </CardContent>
-      <LigarExistenteDialog huerfano={ligarTarget} open={!!ligarTarget} onClose={() => setLigarTarget(null)} />
+      <BuscarVincularDialog huerfano={ligarTarget} open={!!ligarTarget} onClose={() => setLigarTarget(null)} />
     </Card>
   );
 }
