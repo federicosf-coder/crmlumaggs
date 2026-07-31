@@ -204,7 +204,7 @@ function EditarMapeoDialog({ mapeo, open, onClose }: { mapeo: any | null; open: 
 // ─── Tab: Huérfanos de Kardex ───────────────────────────────
 function HuerfanosTab() {
   const { data: huerfanos = [], isLoading } = useHuerfanosKardex();
-  const [crearTarget, setCrearTarget] = useState<any>(null);
+  const navigate = useNavigate();
   const [ligarTarget, setLigarTarget] = useState<any>(null);
 
   return (
@@ -264,7 +264,22 @@ function HuerfanosTab() {
                       <TableCell><Badge variant="outline" className={statusColor(h.estatus_inventario)}>{h.estatus_inventario || "—"}</Badge></TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end">
-                          <Button size="sm" variant="outline" onClick={() => setCrearTarget(h)}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              navigate("/inventory", {
+                                state: {
+                                  prefillHuerfano: {
+                                    codigo: h.codigo_producto,
+                                    nombre_producto: h.nombre_producto,
+                                    unidad: h.unidad,
+                                    proveedor: detectProveedor(h.empresa_vendedora),
+                                  },
+                                },
+                              })
+                            }
+                          >
                             <Plus className="h-3 w-3 mr-1" /> Crear
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => setLigarTarget(h)}>
@@ -283,7 +298,6 @@ function HuerfanosTab() {
           </div>
         )}
       </CardContent>
-      <CrearEnCatalogoDialog huerfano={crearTarget} open={!!crearTarget} onClose={() => setCrearTarget(null)} />
       <LigarExistenteDialog huerfano={ligarTarget} open={!!ligarTarget} onClose={() => setLigarTarget(null)} />
     </Card>
   );
