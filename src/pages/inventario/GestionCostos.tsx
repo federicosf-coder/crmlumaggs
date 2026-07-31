@@ -81,7 +81,7 @@ function intentarParsearHoja(raw: any[][]): Map<string, { codigo: string; costo:
     let _iCodigo = -1, _iCosto = -1, _iNombre = -1;
     for (let c = 0; c < row.length; c++) {
       const cell = String(row[c] ?? "").toLowerCase().trim();
-      if (cell === "codigo" || cell === "código" || cell === "sku" || cell === "clave" || cell === "code" || cell === "item" || cell === "material") _iCodigo = c;
+      if (cell === "codigo" || cell === "código" || cell === "sku" || cell === "clave" || cell === "code" || cell === "item" || cell === "material" || cell.includes("material id") || cell.includes("materialid")) _iCodigo = c;
       if (
         cell.includes("precio por empaque") ||
         cell.includes("precio por uom") ||
@@ -93,7 +93,7 @@ function intentarParsearHoja(raw: any[][]): Map<string, { codigo: string; costo:
         cell === "importe" ||
         cell === "price"
       ) _iCosto = c;
-      if (cell.includes("nombre") || cell.includes("descripcion") || cell.includes("descripción") || cell.includes("producto") || cell === "name" || cell.includes("product")) _iNombre = c;
+      if (cell.includes("nombre") || cell.includes("descripcion") || cell.includes("descripción") || cell.includes("producto") || cell === "name" || cell.includes("product") || cell.includes("material name")) _iNombre = c;
     }
     if (_iCodigo >= 0 && _iCosto >= 0) {
       headerRow = r; iCodigo = _iCodigo; iCosto = _iCosto; iNombre = _iNombre;
