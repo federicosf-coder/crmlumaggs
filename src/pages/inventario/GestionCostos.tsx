@@ -591,9 +591,9 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
       // 6) Códigos presentes en archivos pero NO en el catálogo
       const huerfanos: any[] = [];
       const vistosHuerfanos = new Set<string>();
+      const empresaHuerfano: "lumaggs" | "galsa" = marcaFiltro === "lumaggs" ? "lumaggs" : "galsa";
       const gruposHuerfanos: { empresa: "lumaggs" | "galsa"; tipos: string[] }[] = [
-        { empresa: "lumaggs", tipos: ["costos_galper_lumaggs", "precios_especiales_lumaggs", "lista_general_lumaggs"] },
-        { empresa: "galsa", tipos: ["costos_galper_galsa", "costos_galper_gonher", "lista_general_galsa", "lista_general_gonher"] },
+        { empresa: empresaHuerfano, tipos: tiposMarca },
       ];
       for (const grupo of gruposHuerfanos) {
         for (const tipo of grupo.tipos) {
@@ -607,7 +607,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
             let galper: any = null, especial: any = null, lista: any = null;
             let archivoGalperId: string | null = null, archivoEspId: string | null = null, archivoListaId: string | null = null;
 
-            if (empresa === "lumaggs") {
+            if (marcaFiltro === "lumaggs") {
               galper = fuentes["costos_galper_lumaggs"]?.get(codigo) || null;
               archivoGalperId = galper ? idArchivo("costos_galper_lumaggs") : null;
               especial = fuentes["precios_especiales_lumaggs"]?.get(codigo) || null;
@@ -615,17 +615,17 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
               lista = fuentes["lista_general_lumaggs"]?.get(codigo) || null;
               archivoListaId = lista ? idArchivo("lista_general_lumaggs") : null;
             } else {
-              galper = fuentes["costos_galper_galsa"]?.get(codigo) || fuentes["costos_galper_gonher"]?.get(codigo) || null;
-              archivoGalperId = fuentes["costos_galper_galsa"]?.has(codigo) ? idArchivo("costos_galper_galsa")
-                : (fuentes["costos_galper_gonher"]?.has(codigo) ? idArchivo("costos_galper_gonher") : null);
-              lista = fuentes["lista_general_galsa"]?.get(codigo) || fuentes["lista_general_gonher"]?.get(codigo) || null;
-              archivoListaId = fuentes["lista_general_galsa"]?.has(codigo) ? idArchivo("lista_general_galsa")
-                : (fuentes["lista_general_gonher"]?.has(codigo) ? idArchivo("lista_general_gonher") : null);
+              const tGalper = `costos_galper_${marcaFiltro}`;
+              const tLista = `lista_general_${marcaFiltro}`;
+              galper = fuentes[tGalper]?.get(codigo) || null;
+              archivoGalperId = galper ? idArchivo(tGalper) : null;
+              lista = fuentes[tLista]?.get(codigo) || null;
+              archivoListaId = lista ? idArchivo(tLista) : null;
             }
 
             let costoEfectivo: number | null = null;
             let fuente = "";
-            if (empresa === "lumaggs") {
+            if (marcaFiltro === "lumaggs") {
               if (galper && especial) { costoEfectivo = Math.max(galper.costo, especial.costo); fuente = "max_galper_especial"; }
               else if (galper) { costoEfectivo = galper.costo; fuente = "galper"; }
               else if (especial) { costoEfectivo = especial.costo; fuente = "especial"; }
@@ -670,6 +670,13 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
       }
       if (huerfanos.length) {
         setProgresoTexto(`Guardando ${huerfanos.length} referencias sin producto…`);
+        // Limpiar solo las referencias sin_producto de los códigos que se recalculan en este run
+        const codigosRun = Array.from(new Set(tiposMarca.flatMap(t => Array.from(fuentes[t]?.keys() || []))));
+        for (let i = 0; i < codigosRun.length; i += 200) {
+          const lote = codigosRun.slice(i, i + 200);
+          const { error } = await supabase.from("inv_costos_producto").delete().eq("estado", "sin_producto").in("codigo_producto", lote);
+          if (error) throw error;
+        }
         for (let i = 0; i < huerfanos.length; i += 100) {
           const chunk = huerfanos.slice(i, i + 100);
           const { error } = await supabase.from("inv_costos_producto").insert(chunk);
@@ -678,7 +685,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
       }
 
       setProgreso(100); setProgresoTexto("Listo");
-      toast.success(`Propuesta generada: ${propuestas.length} SKUs · ${huerfanos.length} referencias de códigos no catalogados`);
+      toast.success(`Propuesta ${marcaFiltro} generada: ${propuestas.length} SKUs · ${huerfanos.length} referencias de códigos no catalogados`);
       onRefresh();
     } catch (e: any) {
       console.error(e);
