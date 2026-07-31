@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -338,7 +338,8 @@ function ProductClientsDialog({
 function ProductosTab() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const { hasRole } = useAuth();
+  const location = useLocation();
+  const { hasRole, user } = useAuth();
   const isAdmin = hasRole("admin");
   const canImportExport = isAdmin || hasRole("manager");
   const [search, setSearch] = useState("");
@@ -369,6 +370,7 @@ function ProductosTab() {
   const [viewProduct, setViewProduct] = useState<any>(null);
   const [clientsProduct, setClientsProduct] = useState<any>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [huerfanoContext, setHuerfanoContext] = useState<{ codigo: string; proveedor: string } | null>(null);
   const [importing, setImporting] = useState(false);
 
   const optionsFor = (type: ProductOptionType) => allOptions.filter(o => o.option_type === type && o.is_active);
