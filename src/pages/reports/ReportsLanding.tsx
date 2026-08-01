@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
-import { Truck, FileText } from "lucide-react";
+import { Truck, FileText, ListChecks } from "lucide-react";
 
 const REPORTS = [
   {
@@ -15,6 +15,12 @@ const REPORTS = [
     description: "Resumen de texto para correo: actividades, cotizaciones y prospectos del día.",
     url: "/reports/daily-activity",
     icon: FileText,
+  },
+  {
+    title: "Desglose de Facturas con Unidades",
+    description: "Detalle de facturas del mes por producto, para verificar que todas estén cuantificadas correctamente.",
+    url: "/reports/desglose-facturas",
+    icon: ListChecks,
   },
 ];
 
