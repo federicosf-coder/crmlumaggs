@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
@@ -5,6 +6,8 @@ import { TrendingUp } from "lucide-react";
 import {
   BarChart,
   Bar,
+  ComposedChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -13,22 +16,137 @@ import {
   Legend,
 } from "recharts";
 import { useVentasCharts } from "@/hooks/useVentasCharts";
+import { useVentasMensual, reporteMes } from "@/hooks/useVentasMensual";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { EmpresaVendedora } from "@/hooks/useSeguimientoVentas";
 
-const PALETTES: Record<EmpresaVendedora, { bar: string; bars: string[]; ring: string; text: string }> = {
+const PALETTES: Record<EmpresaVendedora, { bar: string; line?: string; bars: string[]; ring: string; text: string }> = {
   lumaggs_chevron: {
     bar: "#2563eb",
+    line: "#0f172a",
     bars: ["#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#0ea5e9", "#0284c7"],
     ring: "border-blue-200",
     text: "text-blue-900",
   },
   galsa_phillips66: {
     bar: "#dc2626",
+    line: "#7f1d1d",
     bars: ["#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#f87171", "#fca5a5", "#f43f5e", "#e11d48"],
     ring: "border-red-200",
     text: "text-red-900",
   },
 };
+
+function currentYm() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function VentasMensualSection({ empresa, label }: { empresa: EmpresaVendedora; label: string }) {
+  const { data, isLoading } = useVentasMensual(empresa);
+  const palette = PALETTES[empresa];
+  const [mes, setMes] = useState<string>(currentYm());
+  const [plaza, setPlaza] = useState<string>("");
+
+  const plazaSel = useMemo(() => {
+    const list = data?.plazasDisponibles || [];
+    if (plaza && list.includes(plaza)) return plaza;
+    return list.find((p) => p.toLowerCase().includes("tijuana")) || list[0] || "";
+  }, [plaza, data]);
+
+  const mesData = useMemo(() => {
+    const r = reporteMes(data, mes);
+    return [{ plaza: "Total", unidades: r.total }, ...r.porPlaza];
+  }, [data, mes]);
+
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground py-6 text-center">Cargando reportes mensuales de {label}…</div>;
+  }
+  if (!data) return null;
+
+  const plazaSerie = (plazaSel && data.porMesPorPlaza[plazaSel]) || [];
+
+  return (
+    <div className="mt-4 space-y-4">
+      <Card className={`border ${palette.ring}`}>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <h3 className={`text-sm font-semibold ${palette.text}`}>Ventas del Mes</h3>
+            <Select value={mes} onValueChange={setMes}>
+              <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Mes" /></SelectTrigger>
+              <SelectContent>
+                {data.mesesDisponibles.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={mesData} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="plaza" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
+                <Bar dataKey="unidades" fill={palette.bar} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className={`border ${palette.ring}`}>
+          <CardContent className="p-4">
+            <h3 className={`text-sm font-semibold mb-3 ${palette.text}`}>Total mensual</h3>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={data.porMesTotal} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="unidades" name="Unidades" fill={palette.bar} radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="unidades" name="Tendencia" stroke={palette.line || palette.bar} strokeWidth={2} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={`border ${palette.ring}`}>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <h3 className={`text-sm font-semibold ${palette.text}`}>Mensual por plaza</h3>
+              <Select value={plazaSel} onValueChange={setPlaza}>
+                <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder="Plaza" /></SelectTrigger>
+                <SelectContent>
+                  {data.plazasDisponibles.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={plazaSerie} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="unidades" name="Unidades" fill={palette.bar} radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="unidades" name="Tendencia" stroke={palette.line || palette.bar} strokeWidth={2} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
 
 function VentasChartsSection({ empresa, label }: { empresa: EmpresaVendedora; label: string }) {
   const { data, isLoading } = useVentasCharts(empresa);
@@ -127,6 +245,7 @@ export default function SeguimientoLanding() {
           </CardContent>
         </Card>
         <VentasChartsSection empresa="lumaggs_chevron" label="Chevron" />
+        <VentasMensualSection empresa="lumaggs_chevron" label="Chevron" />
       </section>
       <section>
         <Card
@@ -144,6 +263,7 @@ export default function SeguimientoLanding() {
           </CardContent>
         </Card>
         <VentasChartsSection empresa="galsa_phillips66" label="Phillips 66" />
+        <VentasMensualSection empresa="galsa_phillips66" label="Phillips 66" />
       </section>
     </div>
   );
