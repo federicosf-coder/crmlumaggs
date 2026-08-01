@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -162,7 +162,7 @@ export default function DesgloseFacturasReport() {
                     const desfase = Math.abs(suma - total) > 0.01;
                     const span = Math.max(lineas.length, 1) + 1;
                     return (
-                      <>
+                      <Fragment key={f.id}>
                         {lineas.length === 0 ? (
                           <TableRow key={f.id}>
                             <TableCell rowSpan={span} className="align-top font-medium">{f.numero_factura || "—"}</TableCell>
@@ -195,7 +195,7 @@ export default function DesgloseFacturasReport() {
                             {desfase && <span className="ml-2 text-xs font-normal">(doc: {fmt(total)})</span>}
                           </TableCell>
                         </TableRow>
-                      </>
+                      </Fragment>
                     );
                   })}
                 </TableBody>
