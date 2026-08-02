@@ -56,6 +56,7 @@ import DailyDeliveryReport from "@/pages/reports/DailyDeliveryReport";
 import DailyActivityReport from "@/pages/reports/DailyActivityReport";
 import DesgloseFacturasReport from "@/pages/reports/DesgloseFacturasReport";
 import DeloXLEReport from "@/pages/reports/DeloXLEReport";
+import Pareto8020Report from "@/pages/reports/Pareto8020Report";
 import SellerPortal from "@/pages/seller/SellerPortal";
 import LeadsInbox from "@/pages/leads/LeadsInbox";
 import GuiasDeVenta from "@/pages/seller/GuiasDeVenta";
@@ -172,6 +173,7 @@ const App = () => (
             <Route path="/reports/daily-activity" element={<ProtectedRoute><DailyActivityReport /></ProtectedRoute>} />
             <Route path="/reports/desglose-facturas" element={<ProtectedRoute><DesgloseFacturasReport /></ProtectedRoute>} />
             <Route path="/reports/delo-xle-15w40" element={<ProtectedRoute><DeloXLEReport /></ProtectedRoute>} />
+            <Route path="/reports/pareto-8020" element={<ProtectedRoute><Pareto8020Report /></ProtectedRoute>} />
             <Route path="/seller-portal" element={<ProtectedRoute><SellerPortal /></ProtectedRoute>} />
             <Route path="/seller-portal/guias-de-venta" element={<ProtectedRoute><GuiasDeVenta /></ProtectedRoute>} />
             <Route path="/automations" element={<ProtectedRoute><AutomationsPage /></ProtectedRoute>} />
