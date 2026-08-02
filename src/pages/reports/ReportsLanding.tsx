@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
-import { Truck, FileText, ListChecks, TrendingUp } from "lucide-react";
+import { Truck, FileText, ListChecks, TrendingUp, PieChart } from "lucide-react";
 
 const REPORTS = [
   {
@@ -27,6 +27,12 @@ const REPORTS = [
     description: "Unidades equivalentes por mes de las 5 presentaciones de Delo XLE 15W40, últimos 12 meses.",
     url: "/reports/delo-xle-15w40",
     icon: TrendingUp,
+  },
+  {
+    title: "Análisis 80/20 — Presentaciones Más Vendidas",
+    description: "Concentración de ventas: qué presentaciones generan el 80% de las unidades equivalentes.",
+    url: "/reports/pareto-8020",
+    icon: PieChart,
   },
 ];
 
