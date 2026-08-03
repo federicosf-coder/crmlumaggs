@@ -6479,6 +6479,7 @@ export type Database = {
           id: string
           marca: string
           nombre_archivo: string | null
+          storage_path: string | null
           subido_por: string | null
           tipo_lista: string
           total_filas_procesadas: number
@@ -6489,6 +6490,7 @@ export type Database = {
           id?: string
           marca: string
           nombre_archivo?: string | null
+          storage_path?: string | null
           subido_por?: string | null
           tipo_lista: string
           total_filas_procesadas?: number
@@ -6499,6 +6501,7 @@ export type Database = {
           id?: string
           marca?: string
           nombre_archivo?: string | null
+          storage_path?: string | null
           subido_por?: string | null
           tipo_lista?: string
           total_filas_procesadas?: number
@@ -8516,6 +8519,23 @@ export type Database = {
           _pago_id?: string
         }
         Returns: Json
+      }
+      upsert_proveedor_price_row: {
+        Args: {
+          _clasificacion_proveedor: string
+          _codigo_proveedor: string
+          _costo: number
+          _empaque: string
+          _fecha_vigencia: string
+          _marca: string
+          _margen_aplicado_ref?: number
+          _precio_venta_contado_ref?: number
+          _precio_venta_credito_ref?: number
+          _producto_nombre: string
+          _tipo_lista: string
+          _upload_id: string
+        }
+        Returns: undefined
       }
       user_can_access_crm_item: {
         Args: { _item_id: string; _user_id: string }
