@@ -1106,7 +1106,7 @@ function ProductosTab() {
                 type="button"
                 variant="secondary"
                 onClick={() => setRecalcOpen(true)}
-                disabled={save.isPending || !(Number(form.costo_actual ?? 0) > 0)}
+                disabled={save.isPending || !form.producto_base_id || !(Number(form.costo_actual ?? 0) > 0)}
                 className="flex-1"
                 title={!(Number(form.costo_actual ?? 0) > 0) ? "Requiere Costo Actual > 0" : ""}
               >
