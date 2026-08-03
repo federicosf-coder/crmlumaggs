@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, X, Users, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
+import { ProductoBaseCombobox } from "@/components/inventory/ProductoBaseCombobox";
 import PreciosConfigTab, { MARGIN_LEVELS, computePricesFromCost } from "./PreciosConfigTab";
 import { useStockPorProducto } from "@/hooks/useMapeoProductos";
 import { ALMACEN_LABELS, useKardexCargas } from "@/hooks/useInventario";
@@ -575,6 +576,7 @@ function ProductosTab() {
   const emptyProduct = {
     codigo: "", nombre_producto: "", descripcion: "", presentacion_id: "",
     is_active: true,
+    producto_base_id: "",
     marca_id: "", aplicacion_id: "", uso_id: "", formula_id: "", viscosidad_id: "", categoria_id: "", linea_id: "",
     precio_clasificacion_id: "",
     costo_actual: 0, precio_base_uf1: 0, precio_uf2: 0, precio_uf3: 0, precio_uf4: 0,
@@ -648,6 +650,7 @@ function ProductosTab() {
       descripcion: p.descripcion || "",
       presentacion_id: p.presentacion_id || "",
       is_active: p.is_active ?? true,
+      producto_base_id: p.producto_base_id || "",
       marca_id: p.marca_id || "",
       aplicacion_id: p.aplicacion_id || "",
       uso_id: p.uso_id || "",
@@ -673,7 +676,7 @@ function ProductosTab() {
   const save = useMutation({
     mutationFn: async (overrides?: Record<string, number>) => {
       const payload: any = { ...form, ...(overrides || {}) };
-      for (const k of ["presentacion_id", "marca_id", "aplicacion_id", "uso_id", "formula_id", "viscosidad_id", "categoria_id", "linea_id", "precio_clasificacion_id"]) {
+      for (const k of ["presentacion_id", "producto_base_id", "marca_id", "aplicacion_id", "uso_id", "formula_id", "viscosidad_id", "categoria_id", "linea_id", "precio_clasificacion_id"]) {
         if (!payload[k]) payload[k] = null;
       }
       if (editingId) {
@@ -1014,6 +1017,20 @@ function ProductosTab() {
             <div><Label>Nombre Producto *</Label><Input value={form.nombre_producto} onChange={e => set("nombre_producto", e.target.value)} /></div>
             <div className="md:col-span-2"><Label>Descripción</Label><Textarea value={form.descripcion} onChange={e => set("descripcion", e.target.value)} /></div>
 
+            <div className="md:col-span-2">
+              <Label>Producto Base *</Label>
+              <ProductoBaseCombobox
+                value={form.producto_base_id}
+                marcaId={form.marca_id}
+                onChange={v => set("producto_base_id", v)}
+              />
+              {!form.producto_base_id && (
+                <p className="text-xs text-muted-foreground mt-1 font-light">
+                  Requerido: agrupa todas las presentaciones del mismo producto.
+                </p>
+              )}
+            </div>
+
             <div>
               <Label>Presentación</Label>
               <Select value={form.presentacion_id} onValueChange={v => set("presentacion_id", v)}>
@@ -1080,7 +1097,7 @@ function ProductosTab() {
             <div className="md:col-span-2 flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={handleSaveClick}
-                disabled={!form.codigo || !form.nombre_producto || save.isPending}
+                disabled={!form.codigo || !form.nombre_producto || !form.producto_base_id || save.isPending}
                 className="flex-1"
               >
                 {save.isPending ? "Guardando..." : editingId ? "Actualizar Producto" : "Guardar Producto"}
