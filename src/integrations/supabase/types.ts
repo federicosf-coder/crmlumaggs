@@ -6075,6 +6075,7 @@ export type Database = {
           precio_uf3: number
           precio_uf4: number
           presentacion_id: string | null
+          producto_base_id: string | null
           updated_at: string
           uso_id: string | null
           viscosidad_id: string | null
@@ -6105,6 +6106,7 @@ export type Database = {
           precio_uf3?: number
           precio_uf4?: number
           presentacion_id?: string | null
+          producto_base_id?: string | null
           updated_at?: string
           uso_id?: string | null
           viscosidad_id?: string | null
@@ -6135,6 +6137,7 @@ export type Database = {
           precio_uf3?: number
           precio_uf4?: number
           presentacion_id?: string | null
+          producto_base_id?: string | null
           updated_at?: string
           uso_id?: string | null
           viscosidad_id?: string | null
@@ -6190,6 +6193,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "productos_producto_base_id_fkey"
+            columns: ["producto_base_id"]
+            isOneToOne: false
+            referencedRelation: "productos_base"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "productos_uso_id_fkey"
             columns: ["uso_id"]
             isOneToOne: false
@@ -6199,6 +6209,44 @@ export type Database = {
           {
             foreignKeyName: "productos_viscosidad_id_fkey"
             columns: ["viscosidad_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      productos_base: {
+        Row: {
+          created_at: string
+          descripcion: string | null
+          id: string
+          is_active: boolean
+          marca_id: string | null
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          is_active?: boolean
+          marca_id?: string | null
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          is_active?: boolean
+          marca_id?: string | null
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "productos_base_marca_id_fkey"
+            columns: ["marca_id"]
             isOneToOne: false
             referencedRelation: "product_option_values"
             referencedColumns: ["id"]
