@@ -100,6 +100,52 @@ async function parsePdfToMap(file: File): Promise<Map<string, { codigo: string; 
   return map;
 }
 
+async function parseGonherPdfToMap(file: File): Promise<Map<string, { codigo: string; costo: number; nombre?: string }>> {
+  const pdfjsLib = await import("pdfjs-dist");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const map = new Map<string, { codigo: string; costo: number; nombre?: string }>();
+  // [fecha opcional] codigo empaque nombre... precioContado precioCredito
+  const rowRe = /^(?:\d{2}\/\d{2}\/\d{4}\s+)?([A-Za-z0-9][A-Za-z0-9\-_.]*)\s+(\S+)\s+(.+?)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})$/;
+
+  const pushLine = (raw: string) => {
+    const line = raw.replace(/\s+/g, " ").trim();
+    if (!line || /^[-\s]+$/.test(line)) return;
+    const m = line.match(rowRe);
+    if (!m) return;
+    const codigo = m[1].trim();
+    const empaque = m[2].trim();
+    const producto = m[3].trim();
+    const contado = Number(m[4].replace(/,/g, ""));
+    if (!codigo || !Number.isFinite(contado) || contado <= 0) return;
+    map.set(codigo, { codigo, costo: contado * 0.7, nombre: `${empaque} ${producto}`.trim() });
+  };
+
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const items = (content.items as any[])
+      .filter(it => typeof it.str === "string")
+      .map(it => ({ str: it.str as string, x: it.transform[4] as number, y: it.transform[5] as number }))
+      .sort((a, b) => (b.y - a.y) || (a.x - b.x));
+    let currentY: number | null = null;
+    let parts: string[] = [];
+    for (const it of items) {
+      if (currentY === null || Math.abs(it.y - currentY) <= 3) {
+        if (currentY === null) currentY = it.y;
+        parts.push(it.str);
+      } else {
+        pushLine(parts.join(" "));
+        parts = [it.str];
+        currentY = it.y;
+      }
+    }
+    if (parts.length) pushLine(parts.join(" "));
+  }
+  return map;
+}
+
 function parseExcelToMap(file: File): Promise<Map<string, { codigo: string; costo: number; nombre?: string; fecha?: string }>> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -383,7 +429,10 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
     setProcesandoTipo(tipo);
     try {
       const tipoDef = TIPOS_ARCHIVO.find(t => t.value === tipo);
-      const map = isPdf ? await parsePdfToMap(file) : await parseExcelToMap(file);
+      const esGonherPdf = isPdf && (tipo === "costos_galper_gonher" || tipo === "lista_general_gonher");
+      const map = isPdf
+        ? (esGonherPdf ? await parseGonherPdfToMap(file) : await parsePdfToMap(file))
+        : await parseExcelToMap(file);
       if (map.size === 0) { toast.error("No se detectaron registros válidos en el archivo"); return; }
 
       await supabase.from("inv_archivos_referencia").update({ es_activo: false }).eq("tipo", tipo).eq("es_activo", true);
