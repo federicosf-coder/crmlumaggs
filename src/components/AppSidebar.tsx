@@ -24,7 +24,6 @@ import { Separator } from "@/components/ui/separator";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { usePendingLeadsCount } from "@/hooks/useLeads";
 import { useHuerfanosCount } from "@/hooks/useMapeoProductos";
-import { useProveedorPriceAccess } from "@/hooks/useProveedorPriceAccess";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
@@ -85,7 +84,6 @@ export function AppSidebar() {
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
   const { data: huerfanosCount = 0 } = useHuerfanosCount();
   const { data: leadsPendientes = 0 } = usePendingLeadsCount();
-  const { data: canProveedorPrices = false } = useProveedorPriceAccess();
 
   useEffect(() => {
     if (!hasRole("admin")) return;
@@ -184,16 +182,6 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 );
               })}
-              {canProveedorPrices && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink to="/inventory/listas-proveedor" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                      <DollarSign className="mr-2 h-4 w-4" />
-                      {!collapsed && <span className="flex-1">Listas de Precios Proveedor</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
