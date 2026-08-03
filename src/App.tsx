@@ -18,6 +18,7 @@ import TemplatesManagement from "@/pages/admin/TemplatesManagement";
 import ModulePlaceholder from "@/pages/ModulePlaceholder";
 import Directory from "@/pages/Directory";
 import ProductCatalog from "@/pages/inventory/ProductCatalog";
+import ListasPrecioProveedor from "@/pages/inventory/ListasPrecioProveedor";
 import NivelesInventario from "@/pages/inventario/NivelesInventario";
 import KardexCarga from "@/pages/inventario/KardexCarga";
 import Pedidos from "@/pages/inventario/Pedidos";
@@ -137,6 +138,7 @@ const App = () => (
             <Route path="/documents/:id" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
+            <Route path="/inventory/listas-proveedor" element={<ProtectedRoute><ListasPrecioProveedor /></ProtectedRoute>} />
             <Route path="/inventario/niveles" element={<ProtectedRoute><NivelesInventario /></ProtectedRoute>} />
             <Route path="/inventario/kardex" element={<ProtectedRoute><KardexCarga /></ProtectedRoute>} />
             <Route path="/inventario/mapeo" element={<ProtectedRoute><MapeoProductos /></ProtectedRoute>} />
