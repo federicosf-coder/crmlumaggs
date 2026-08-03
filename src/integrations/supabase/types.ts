@@ -6303,6 +6303,216 @@ export type Database = {
           },
         ]
       }
+      proveedor_marcas: {
+        Row: {
+          activo: boolean
+          code: string
+          created_at: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean
+          code: string
+          created_at?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean
+          code?: string
+          created_at?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      proveedor_price_access: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      proveedor_price_items: {
+        Row: {
+          activo: boolean
+          aplicacion: string | null
+          clasificacion_proveedor: string | null
+          codigo_proveedor: string
+          costo_contable: number | null
+          costo_lista_especial: number | null
+          costo_lista_general: number | null
+          created_at: string
+          created_by: string | null
+          empaque: string | null
+          fecha_costo_contable: string | null
+          fecha_lista_especial: string | null
+          fecha_lista_general: string | null
+          id: string
+          marca: string
+          margen_aplicado_ref: number | null
+          precio_clasificacion_id: string | null
+          precio_venta_contado_ref: number | null
+          precio_venta_credito_ref: number | null
+          producto_nombre: string
+          uom_por_pkg: number | null
+          updated_at: string
+          upload_id_contable: string | null
+          upload_id_especial: string | null
+          upload_id_general: string | null
+          vinculado_producto_id: string | null
+        }
+        Insert: {
+          activo?: boolean
+          aplicacion?: string | null
+          clasificacion_proveedor?: string | null
+          codigo_proveedor: string
+          costo_contable?: number | null
+          costo_lista_especial?: number | null
+          costo_lista_general?: number | null
+          created_at?: string
+          created_by?: string | null
+          empaque?: string | null
+          fecha_costo_contable?: string | null
+          fecha_lista_especial?: string | null
+          fecha_lista_general?: string | null
+          id?: string
+          marca: string
+          margen_aplicado_ref?: number | null
+          precio_clasificacion_id?: string | null
+          precio_venta_contado_ref?: number | null
+          precio_venta_credito_ref?: number | null
+          producto_nombre: string
+          uom_por_pkg?: number | null
+          updated_at?: string
+          upload_id_contable?: string | null
+          upload_id_especial?: string | null
+          upload_id_general?: string | null
+          vinculado_producto_id?: string | null
+        }
+        Update: {
+          activo?: boolean
+          aplicacion?: string | null
+          clasificacion_proveedor?: string | null
+          codigo_proveedor?: string
+          costo_contable?: number | null
+          costo_lista_especial?: number | null
+          costo_lista_general?: number | null
+          created_at?: string
+          created_by?: string | null
+          empaque?: string | null
+          fecha_costo_contable?: string | null
+          fecha_lista_especial?: string | null
+          fecha_lista_general?: string | null
+          id?: string
+          marca?: string
+          margen_aplicado_ref?: number | null
+          precio_clasificacion_id?: string | null
+          precio_venta_contado_ref?: number | null
+          precio_venta_credito_ref?: number | null
+          producto_nombre?: string
+          uom_por_pkg?: number | null
+          updated_at?: string
+          upload_id_contable?: string | null
+          upload_id_especial?: string | null
+          upload_id_general?: string | null
+          vinculado_producto_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proveedor_price_items_marca_fkey"
+            columns: ["marca"]
+            isOneToOne: false
+            referencedRelation: "proveedor_marcas"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "proveedor_price_items_precio_clasificacion_id_fkey"
+            columns: ["precio_clasificacion_id"]
+            isOneToOne: false
+            referencedRelation: "precio_clasificaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proveedor_price_items_upload_id_contable_fkey"
+            columns: ["upload_id_contable"]
+            isOneToOne: false
+            referencedRelation: "proveedor_price_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proveedor_price_items_upload_id_especial_fkey"
+            columns: ["upload_id_especial"]
+            isOneToOne: false
+            referencedRelation: "proveedor_price_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proveedor_price_items_upload_id_general_fkey"
+            columns: ["upload_id_general"]
+            isOneToOne: false
+            referencedRelation: "proveedor_price_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proveedor_price_items_vinculado_producto_id_fkey"
+            columns: ["vinculado_producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proveedor_price_uploads: {
+        Row: {
+          created_at: string
+          fecha_vigencia: string | null
+          id: string
+          marca: string
+          nombre_archivo: string | null
+          subido_por: string | null
+          tipo_lista: string
+          total_filas_procesadas: number
+        }
+        Insert: {
+          created_at?: string
+          fecha_vigencia?: string | null
+          id?: string
+          marca: string
+          nombre_archivo?: string | null
+          subido_por?: string | null
+          tipo_lista: string
+          total_filas_procesadas?: number
+        }
+        Update: {
+          created_at?: string
+          fecha_vigencia?: string | null
+          id?: string
+          marca?: string
+          nombre_archivo?: string | null
+          subido_por?: string | null
+          tipo_lista?: string
+          total_filas_procesadas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proveedor_price_uploads_marca_fkey"
+            columns: ["marca"]
+            isOneToOne: false
+            referencedRelation: "proveedor_marcas"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       repartidores: {
         Row: {
           created_at: string
@@ -8184,6 +8394,10 @@ export type Database = {
       get_user_team_member_ids: {
         Args: { _user_id: string }
         Returns: string[]
+      }
+      has_proveedor_price_access: {
+        Args: { _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
