@@ -60,7 +60,7 @@ export default function Pareto8020Report() {
       let q = supabase
         .from("documento_productos")
         .select(
-          "unidades_equivalentes, documentos!inner(fecha_documento, plaza_id, empresa_vendedora), productos(presentacion_id, presentaciones(nombre))"
+          "unidades_equivalentes, producto_id, documentos!inner(fecha_documento, plaza_id, empresa_vendedora), productos(id, nombre_producto, producto_base_id, productos_base(nombre))"
         )
         .eq("documentos.tipo_documento", "factura")
         .neq("documentos.estatus_factura", "cancelada")
@@ -73,31 +73,44 @@ export default function Pareto8020Report() {
       if (error) throw error;
       return (data ?? []) as unknown as {
         unidades_equivalentes: number | null;
-        productos: { presentaciones: { nombre: string | null } | null } | null;
+        producto_id: string | null;
+        productos: {
+          id: string;
+          nombre_producto: string | null;
+          producto_base_id: string | null;
+          productos_base: { nombre: string | null } | null;
+        } | null;
       }[];
     },
   });
 
   const { rows, total, top80Count } = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, { nombre: string; ue: number; skus: Set<string> }>();
     for (const l of lineas) {
-      const nombre = l.productos?.presentaciones?.nombre ?? "Sin presentación";
-      map.set(nombre, (map.get(nombre) ?? 0) + Number(l.unidades_equivalentes ?? 0));
+      const baseId = l.productos?.producto_base_id ?? "__sin_base__";
+      const nombre = l.productos?.productos_base?.nombre ?? "Sin producto base";
+      const entry = map.get(baseId) ?? { nombre, ue: 0, skus: new Set<string>() };
+      entry.ue += Number(l.unidades_equivalentes ?? 0);
+      if (l.productos?.id) entry.skus.add(l.productos.id);
+      map.set(baseId, entry);
     }
-    const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
-    const tot = sorted.reduce((a, [, v]) => a + v, 0);
+    const sorted = [...map.entries()].sort((a, b) => b[1].ue - a[1].ue);
+    const tot = sorted.reduce((a, [, v]) => a + v.ue, 0);
     let acc = 0;
     let reached = false;
     let count = 0;
-    const out = sorted.map(([nombre, ue], i) => {
+    const out = sorted.map(([baseId, v], i) => {
+      const ue = v.ue;
       acc += ue;
       const accPct = tot > 0 ? (acc / tot) * 100 : 0;
       const isTop = !reached;
       if (isTop) count++;
       if (accPct >= 80) reached = true;
       return {
+        key: baseId,
         pos: i + 1,
-        nombre,
+        nombre: v.nombre,
+        skus: v.skus.size,
         ue,
         pct: tot > 0 ? (ue / tot) * 100 : 0,
         accPct,
@@ -116,8 +129,8 @@ export default function Pareto8020Report() {
   return (
     <>
       <PageBanner
-        title="Análisis 80/20 — Presentaciones Más Vendidas"
-        description="Concentración de unidades equivalentes por presentación en los últimos 12 meses."
+        title="Análisis 80/20 — Productos Más Vendidos"
+        description="Concentración de unidades equivalentes por producto base en los últimos 12 meses."
       />
       <div className="container mx-auto p-4 space-y-4">
         <Card>
@@ -189,7 +202,7 @@ export default function Pareto8020Report() {
                 {top80Count} <span className="text-xl font-light text-muted-foreground">de {rows.length}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1 font-light">
-                presentaciones concentran el 80% de las ventas
+                productos base concentran el 80% de las ventas
               </p>
             </CardContent>
           </Card>
@@ -201,7 +214,8 @@ export default function Pareto8020Report() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
-                  <TableHead>Presentación</TableHead>
+                  <TableHead>Producto Base</TableHead>
+                  <TableHead className="text-right">Presentaciones</TableHead>
                   <TableHead className="text-right">Unidades Equivalentes</TableHead>
                   <TableHead className="text-right">% del total</TableHead>
                   <TableHead className="text-right">% acumulado</TableHead>
@@ -211,24 +225,25 @@ export default function Pareto8020Report() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       Cargando...
                     </TableCell>
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       Sin datos para los filtros seleccionados.
                     </TableCell>
                   </TableRow>
                 ) : (
                   rows.map((r) => (
                     <TableRow
-                      key={r.nombre}
+                      key={r.key}
                       className={cn(r.isBoundary && "border-b-2 border-emerald-500/60")}
                     >
                       <TableCell className="text-muted-foreground">{r.pos}</TableCell>
                       <TableCell className="font-medium">{r.nombre}</TableCell>
+                      <TableCell className="text-right">{r.skus}</TableCell>
                       <TableCell className="text-right">{fmt(r.ue)}</TableCell>
                       <TableCell className="text-right">{r.pct.toFixed(1)}%</TableCell>
                       <TableCell className="text-right">{r.accPct.toFixed(1)}%</TableCell>
@@ -246,6 +261,7 @@ export default function Pareto8020Report() {
                   <TableRow className="bg-muted/50 font-semibold">
                     <TableCell />
                     <TableCell>Total</TableCell>
+                    <TableCell />
                     <TableCell className="text-right">{fmt(total)}</TableCell>
                     <TableCell className="text-right">100.0%</TableCell>
                     <TableCell />
