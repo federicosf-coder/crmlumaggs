@@ -25,10 +25,10 @@ const TIPOS_ARCHIVO: { value: string; label: string; empresa: "lumaggs" | "galsa
   { value: "costos_galper_lumaggs", label: "Costo Galper Lumaggs", empresa: "lumaggs", categoria: "galper" },
   { value: "precios_especiales_lumaggs", label: "Precios Especiales Lumaggs", empresa: "lumaggs", categoria: "especial" },
   { value: "lista_general_lumaggs", label: "Lista General Lumaggs", empresa: "lumaggs", categoria: "lista" },
-  { value: "costos_galper_galsa", label: "Costo Galper Galsa", empresa: "galsa", categoria: "galper" },
+  { value: "costos_galper_galsa", label: "Lista Precios Galsa Galper", empresa: "galsa", categoria: "galper" },
   { value: "lista_general_galsa", label: "Lista General Galsa", empresa: "galsa", categoria: "lista" },
   { value: "costos_galper_gonher", label: "Costo Galper Gonher", empresa: "galsa", categoria: "galper" },
-  { value: "lista_general_gonher", label: "Lista General Gonher", empresa: "galsa", categoria: "lista" },
+  { value: "lista_general_gonher", label: "Lista Precios Gonher / GW Galper", empresa: "galsa", categoria: "lista" },
 ];
 
 const ceilTo5 = (n: number) => (!isFinite(n) || n <= 0 ? 0 : Math.ceil(n / 5) * 5);
@@ -429,7 +429,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
     setProcesandoTipo(tipo);
     try {
       const tipoDef = TIPOS_ARCHIVO.find(t => t.value === tipo);
-      const esGonherPdf = isPdf && (tipo === "costos_galper_gonher" || tipo === "lista_general_gonher");
+      const esGonherPdf = isPdf && (tipo === "costos_galper_gonher" || tipo === "lista_general_gonher" || tipo === "costos_galper_galsa");
       const map = isPdf
         ? (esGonherPdf ? await parseGonherPdfToMap(file) : await parsePdfToMap(file))
         : await parseExcelToMap(file);
