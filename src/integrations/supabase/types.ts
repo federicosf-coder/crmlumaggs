@@ -4311,6 +4311,30 @@ export type Database = {
           },
         ]
       }
+      inv_costos_producto_ignorados: {
+        Row: {
+          codigo_producto: string
+          empresa: string | null
+          ignorado_at: string
+          ignorado_por: string | null
+          motivo: string | null
+        }
+        Insert: {
+          codigo_producto: string
+          empresa?: string | null
+          ignorado_at?: string
+          ignorado_por?: string | null
+          motivo?: string | null
+        }
+        Update: {
+          codigo_producto?: string
+          empresa?: string | null
+          ignorado_at?: string
+          ignorado_por?: string | null
+          motivo?: string | null
+        }
+        Relationships: []
+      }
       inv_demanda_plaza: {
         Row: {
           almacen: string
