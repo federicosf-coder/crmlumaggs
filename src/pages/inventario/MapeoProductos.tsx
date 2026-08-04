@@ -685,10 +685,8 @@ function CostosSinProductoTab() {
       <BuscarVincularDialog
         huerfano={ligarTarget}
         open={!!ligarTarget}
-        onClose={() => {
-          if (ligarTarget) setOcultos((prev) => [...prev, ligarTarget.codigo_producto]);
-          setLigarTarget(null);
-        }}
+        onLinked={(h) => h && setOcultos((prev) => [...prev, h.codigo_producto])}
+        onClose={() => setLigarTarget(null)}
       />
     </Card>
   );
