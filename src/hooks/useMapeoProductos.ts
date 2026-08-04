@@ -124,6 +124,20 @@ export function useCostosSinProducto() {
 }
 
 function useStockPorProductoImpl() {
+export function useCostosIgnorados() {
+  return useQuery({
+    queryKey: ["inv_costos_producto_ignorados"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("inv_costos_producto_ignorados")
+        .select("*")
+        .order("ignorado_at", { ascending: false });
+      return (data || []) as any[];
+    },
+  });
+}
+
+function useStockPorProductoImpl() {
   return useQuery({
     queryKey: ["stock_por_producto"],
     queryFn: async () => {
