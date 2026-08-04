@@ -42,8 +42,8 @@ const HEADER_CLS =
 
 // ─── Buscar y vincular Dialog ───────────────────────────────
 function BuscarVincularDialog({
-  huerfano, open, onClose,
-}: { huerfano: any | null; open: boolean; onClose: () => void }) {
+  huerfano, open, onClose, onLinked,
+}: { huerfano: any | null; open: boolean; onClose: () => void; onLinked?: (h: any) => void }) {
   const qc = useQueryClient();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -93,6 +93,7 @@ function BuscarVincularDialog({
       qc.invalidateQueries({ queryKey: ["stock_por_producto"] });
       qc.invalidateQueries({ queryKey: ["inv_costos_producto"] });
       toast.success("Mapeo creado");
+      onLinked?.(huerfano);
       setSelectedId(null);
       setSearch("");
       setPiezasTarima("");
