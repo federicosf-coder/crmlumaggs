@@ -76,6 +76,54 @@ export function useMapeos() {
 }
 
 export function useStockPorProducto() {
+  return useStockPorProductoImpl();
+}
+
+export function useCostosSinProductoCount() {
+  return useQuery({
+    queryKey: ["inv_costos_producto", "sin_producto_count"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("inv_costos_producto")
+        .select("codigo_producto")
+        .eq("estado", "sin_producto");
+      return new Set((data || []).map((r: any) => r.codigo_producto)).size;
+    },
+    refetchInterval: 60_000,
+  });
+}
+
+export function useCostosSinProducto() {
+  return useQuery({
+    queryKey: ["inv_costos_producto", "sin_producto"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("inv_costos_producto")
+        .select("codigo_producto, nombre_en_archivo, empresa, costo_efectivo, archivo_galper_id, archivo_lista_id, created_at")
+        .eq("estado", "sin_producto")
+        .order("created_at", { ascending: false });
+      const dedup = new Map<string, any>();
+      for (const r of (data || [])) {
+        if (!dedup.has(r.codigo_producto)) dedup.set(r.codigo_producto, r);
+      }
+      const rows = Array.from(dedup.values());
+      const { data: archivos } = await (supabase as any)
+        .from("inv_archivos_referencia")
+        .select("id, tipo");
+      const tipoPorId = new Map((archivos || []).map((a: any) => [a.id, String(a.tipo || "").toLowerCase()]));
+      return rows.map((r: any) => {
+        const tipo = tipoPorId.get(r.archivo_lista_id) || tipoPorId.get(r.archivo_galper_id) || "";
+        let marca_label = "Phillips 66 / Galsa";
+        if (r.empresa === "lumaggs") marca_label = "Chevron";
+        else if (r.empresa === "galsa" && String(tipo).includes("gonher")) marca_label = "Gonher";
+        return { ...r, marca_label };
+      });
+    },
+    refetchInterval: 60_000,
+  });
+}
+
+function useStockPorProductoImpl() {
   return useQuery({
     queryKey: ["stock_por_producto"],
     queryFn: async () => {
