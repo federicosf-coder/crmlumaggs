@@ -25,6 +25,7 @@ import {
 import { AlertTriangle, Eye, Info, Link2, PackageX, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import {
   useFantasmasCatalogo, useHuerfanosKardex, useMapeos,
+  useCostosSinProducto, useCostosSinProductoCount,
 } from "@/hooks/useMapeoProductos";
 import { ALMACEN_LABELS, abcColor, statusColor } from "@/hooks/useInventario";
 
@@ -90,6 +91,7 @@ function BuscarVincularDialog({
       qc.invalidateQueries({ queryKey: ["huerfanos_count"] });
       qc.invalidateQueries({ queryKey: ["fantasmas_catalogo"] });
       qc.invalidateQueries({ queryKey: ["stock_por_producto"] });
+      qc.invalidateQueries({ queryKey: ["inv_costos_producto"] });
       toast.success("Mapeo creado");
       setSelectedId(null);
       setSearch("");
