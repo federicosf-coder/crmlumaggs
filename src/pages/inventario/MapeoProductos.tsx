@@ -25,6 +25,7 @@ import {
 import { AlertTriangle, Eye, Info, Link2, PackageX, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import {
   useFantasmasCatalogo, useHuerfanosKardex, useMapeos,
+  useCostosSinProducto, useCostosSinProductoCount,
 } from "@/hooks/useMapeoProductos";
 import { ALMACEN_LABELS, abcColor, statusColor } from "@/hooks/useInventario";
 
@@ -41,8 +42,8 @@ const HEADER_CLS =
 
 // ─── Buscar y vincular Dialog ───────────────────────────────
 function BuscarVincularDialog({
-  huerfano, open, onClose,
-}: { huerfano: any | null; open: boolean; onClose: () => void }) {
+  huerfano, open, onClose, onLinked,
+}: { huerfano: any | null; open: boolean; onClose: () => void; onLinked?: (h: any) => void }) {
   const qc = useQueryClient();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -90,7 +91,9 @@ function BuscarVincularDialog({
       qc.invalidateQueries({ queryKey: ["huerfanos_count"] });
       qc.invalidateQueries({ queryKey: ["fantasmas_catalogo"] });
       qc.invalidateQueries({ queryKey: ["stock_por_producto"] });
+      qc.invalidateQueries({ queryKey: ["inv_costos_producto"] });
       toast.success("Mapeo creado");
+      onLinked?.(huerfano);
       setSelectedId(null);
       setSearch("");
       setPiezasTarima("");
@@ -593,10 +596,107 @@ function MapeadosTab() {
 }
 
 // ─── Página principal ───────────────────────────────
+function CostosSinProductoTab() {
+  const { data: rows = [], isLoading } = useCostosSinProducto();
+  const navigate = useNavigate();
+  const [ligarTarget, setLigarTarget] = useState<any>(null);
+  const [ocultos, setOcultos] = useState<string[]>([]);
+
+  const visibles = (rows as any[]).filter((r) => !ocultos.includes(r.codigo_producto));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 font-light">
+          <PackageX className="h-5 w-5 text-orange-600" /> Costos sin Producto
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Códigos con costo cargado desde listas de proveedor que aún no existen en el catálogo.
+        </p>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
+          <div className="overflow-x-auto border rounded-md">
+            <Table>
+              <TableHeader className={HEADER_CLS}>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Marca</TableHead>
+                  <TableHead className="text-right">Costo</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibles.map((r: any, i: number) => (
+                  <TableRow key={r.codigo_producto} className={i % 2 ? "bg-muted/20" : ""}>
+                    <TableCell className="font-mono text-xs">{r.codigo_producto}</TableCell>
+                    <TableCell className="text-sm">{r.nombre_en_archivo || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={r.empresa === "lumaggs" ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}>
+                        {r.marca_label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {r.costo_efectivo != null ? Number(r.costo_efectivo).toLocaleString("es-MX", { style: "currency", currency: "MXN" }) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-1 justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate("/inventory", {
+                            state: {
+                              prefillHuerfano: {
+                                codigo: r.codigo_producto,
+                                nombre_producto: r.nombre_en_archivo,
+                                unidad: null,
+                                proveedor: r.empresa === "lumaggs" ? "chevron" : "phillips66",
+                              },
+                            },
+                          })}
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Crear producto nuevo
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setLigarTarget({
+                            codigo_producto: r.codigo_producto,
+                            nombre_producto: r.nombre_en_archivo,
+                            empresa_vendedora: r.empresa === "lumaggs" ? "lumaggs" : "galsa",
+                            unidad: null,
+                          })}
+                        >
+                          <Link2 className="h-3 w-3 mr-1" /> Vincular a producto existente
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {visibles.length === 0 && (
+                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sin costos huérfanos 🎉</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+      <BuscarVincularDialog
+        huerfano={ligarTarget}
+        open={!!ligarTarget}
+        onLinked={(h) => h && setOcultos((prev) => [...prev, h.codigo_producto])}
+        onClose={() => setLigarTarget(null)}
+      />
+    </Card>
+  );
+}
+
 export default function MapeoProductos() {
   const { data: huerfanos = [] } = useHuerfanosKardex();
   const { data: fantasmas = [] } = useFantasmasCatalogo();
   const { data: mapeos = [] } = useMapeos();
+  const { data: sinProductoCount = 0 } = useCostosSinProductoCount();
   // referencia para evitar warning unused
   void ALMACEN_LABELS;
 
@@ -620,10 +720,15 @@ export default function MapeoProductos() {
             Mapeados
             {mapeos.length > 0 && <Badge className="bg-green-600 text-white">{mapeos.length}</Badge>}
           </TabsTrigger>
+          <TabsTrigger value="costos_sin_producto" className="gap-2">
+            Costos sin Producto
+            {sinProductoCount > 0 && <Badge className="bg-orange-500 text-white">{sinProductoCount}</Badge>}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="huerfanos" className="mt-4"><HuerfanosTab /></TabsContent>
         <TabsContent value="fantasmas" className="mt-4"><FantasmasTab /></TabsContent>
         <TabsContent value="mapeados" className="mt-4"><MapeadosTab /></TabsContent>
+        <TabsContent value="costos_sin_producto" className="mt-4"><CostosSinProductoTab /></TabsContent>
       </Tabs>
     </div>
   );
