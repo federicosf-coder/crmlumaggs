@@ -22,10 +22,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle, Eye, Info, Link2, PackageX, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff, Info, Link2, PackageX, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import {
   useFantasmasCatalogo, useHuerfanosKardex, useMapeos,
-  useCostosSinProducto, useCostosSinProductoCount,
+  useCostosSinProducto, useCostosSinProductoCount, useCostosIgnorados,
 } from "@/hooks/useMapeoProductos";
 import { ALMACEN_LABELS, abcColor, statusColor } from "@/hooks/useInventario";
 
@@ -598,11 +598,48 @@ function MapeadosTab() {
 // ─── Página principal ───────────────────────────────
 function CostosSinProductoTab() {
   const { data: rows = [], isLoading } = useCostosSinProducto();
+  const { data: ignorados = [] } = useCostosIgnorados();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [ligarTarget, setLigarTarget] = useState<any>(null);
   const [ocultos, setOcultos] = useState<string[]>([]);
+  const [mostrarIgnorados, setMostrarIgnorados] = useState(false);
 
-  const visibles = (rows as any[]).filter((r) => !ocultos.includes(r.codigo_producto));
+  const ignoradosSet = new Set((ignorados as any[]).map((i) => i.codigo_producto));
+  const visibles = (rows as any[]).filter(
+    (r) => !ocultos.includes(r.codigo_producto) && !ignoradosSet.has(r.codigo_producto),
+  );
+  const rowsPorCodigo = new Map((rows as any[]).map((r) => [r.codigo_producto, r]));
+
+  const ignorarMut = useMutation({
+    mutationFn: async (r: any) => {
+      const { error } = await (supabase as any)
+        .from("inv_costos_producto_ignorados")
+        .insert({ codigo_producto: r.codigo_producto, empresa: r.empresa, ignorado_por: user?.id ?? null });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Código ignorado");
+      queryClient.invalidateQueries({ queryKey: ["inv_costos_producto_ignorados"] });
+    },
+    onError: (e: any) => toast.error(e.message || "No se pudo ignorar"),
+  });
+
+  const quitarMut = useMutation({
+    mutationFn: async (codigo: string) => {
+      const { error } = await (supabase as any)
+        .from("inv_costos_producto_ignorados")
+        .delete()
+        .eq("codigo_producto", codigo);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Quitado de ignorados");
+      queryClient.invalidateQueries({ queryKey: ["inv_costos_producto_ignorados"] });
+    },
+    onError: (e: any) => toast.error(e.message || "No se pudo quitar"),
+  });
 
   return (
     <Card>
@@ -670,6 +707,14 @@ function CostosSinProductoTab() {
                         >
                           <Link2 className="h-3 w-3 mr-1" /> Vincular a producto existente
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={ignorarMut.isPending}
+                          onClick={() => ignorarMut.mutate(r)}
+                        >
+                          <EyeOff className="h-3 w-3 mr-1" /> Ignorar
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -681,6 +726,65 @@ function CostosSinProductoTab() {
             </Table>
           </div>
         )}
+
+        <div className="mt-6">
+          <Button variant="outline" size="sm" onClick={() => setMostrarIgnorados((v) => !v)}>
+            {mostrarIgnorados ? "Ocultar" : "Mostrar"} ignorados ({(ignorados as any[]).length})
+          </Button>
+          {mostrarIgnorados && (
+            <div className="overflow-x-auto border rounded-md mt-3">
+              <Table>
+                <TableHeader className={HEADER_CLS}>
+                  <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Marca</TableHead>
+                    <TableHead className="text-right">Costo</TableHead>
+                    <TableHead>Ignorado por</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(ignorados as any[]).map((ig, i) => {
+                    const r = rowsPorCodigo.get(ig.codigo_producto);
+                    return (
+                      <TableRow key={ig.codigo_producto} className={i % 2 ? "bg-muted/20" : ""}>
+                        <TableCell className="font-mono text-xs">{ig.codigo_producto}</TableCell>
+                        <TableCell className="text-sm">{r?.nombre_en_archivo || "—"}</TableCell>
+                        <TableCell className="text-sm">{r?.marca_label || "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {r?.costo_efectivo != null
+                            ? Number(r.costo_efectivo).toLocaleString("es-MX", { style: "currency", currency: "MXN" })
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs">{ig.ignorado_por || "—"}</TableCell>
+                        <TableCell className="text-xs">
+                          {ig.ignorado_at ? new Date(ig.ignorado_at).toLocaleString("es-MX") : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={quitarMut.isPending}
+                            onClick={() => {
+                              if (window.confirm("¿Quitar este código de ignorados?")) quitarMut.mutate(ig.codigo_producto);
+                            }}
+                          >
+                            Quitar de ignorados
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {(ignorados as any[]).length === 0 && (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Sin códigos ignorados</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
       </CardContent>
       <BuscarVincularDialog
         huerfano={ligarTarget}
