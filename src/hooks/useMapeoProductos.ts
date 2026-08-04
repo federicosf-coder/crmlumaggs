@@ -123,7 +123,6 @@ export function useCostosSinProducto() {
   });
 }
 
-function useStockPorProductoImpl() {
 export function useCostosIgnorados() {
   return useQuery({
     queryKey: ["inv_costos_producto_ignorados"],
