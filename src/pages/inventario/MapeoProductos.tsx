@@ -22,7 +22,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle, Eye, Info, Link2, PackageX, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff, Info, Link2, PackageX, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import {
   useFantasmasCatalogo, useHuerfanosKardex, useMapeos,
   useCostosSinProducto, useCostosSinProductoCount, useCostosIgnorados,
