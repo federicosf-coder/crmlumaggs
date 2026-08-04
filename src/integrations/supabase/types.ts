@@ -244,7 +244,10 @@ export type Database = {
           contexto: Json
           correlation_key: string | null
           disparado_por: string | null
+          entidad_id: string | null
+          entidad_tipo: string | null
           estatus: string
+          evento_clave: string | null
           id: string
           iniciado_at: string
           paso_actual: number
@@ -255,7 +258,10 @@ export type Database = {
           contexto?: Json
           correlation_key?: string | null
           disparado_por?: string | null
+          entidad_id?: string | null
+          entidad_tipo?: string | null
           estatus?: string
+          evento_clave?: string | null
           id?: string
           iniciado_at?: string
           paso_actual?: number
@@ -266,7 +272,10 @@ export type Database = {
           contexto?: Json
           correlation_key?: string | null
           disparado_por?: string | null
+          entidad_id?: string | null
+          entidad_tipo?: string | null
           estatus?: string
+          evento_clave?: string | null
           id?: string
           iniciado_at?: string
           paso_actual?: number
@@ -280,6 +289,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      automatizacion_eventos_catalogo: {
+        Row: {
+          categoria: string
+          clave: string
+          created_at: string
+          descripcion: string | null
+          etiqueta: string
+          id: string
+          is_active: boolean
+          requiere_umbral: boolean
+          umbral_default: number | null
+          umbral_label: string | null
+          updated_at: string
+        }
+        Insert: {
+          categoria: string
+          clave: string
+          created_at?: string
+          descripcion?: string | null
+          etiqueta: string
+          id?: string
+          is_active?: boolean
+          requiere_umbral?: boolean
+          umbral_default?: number | null
+          umbral_label?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          clave?: string
+          created_at?: string
+          descripcion?: string | null
+          etiqueta?: string
+          id?: string
+          is_active?: boolean
+          requiere_umbral?: boolean
+          umbral_default?: number | null
+          umbral_label?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       automatizacion_pasos: {
         Row: {
