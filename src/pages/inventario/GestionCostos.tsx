@@ -334,6 +334,19 @@ export default function GestionCostos() {
     },
   });
 
+  const { data: sinConfirmarCount = 0 } = useQuery({
+    queryKey: ["inv_costos_sin_confirmar_count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("productos")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true)
+        .eq("costo_confirmado_en_ultima_lista", false);
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
