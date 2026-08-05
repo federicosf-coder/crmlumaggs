@@ -1267,6 +1267,39 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
     (filtroEmpresa === "todos" || p.empresa === filtroEmpresa)
   ), [propuesta, filtroNivel, filtroEstado, filtroEmpresa]);
 
+  const pendientesVisibles = useMemo(() => filtrada.filter((p: any) => p.estado === "pendiente"), [filtrada]);
+  const todosSeleccionados = pendientesVisibles.length > 0 && pendientesVisibles.every((p: any) => seleccion.has(p.id));
+
+  function toggleTodos(checked: boolean) {
+    setSeleccion(prev => {
+      const next = new Set(prev);
+      for (const p of pendientesVisibles) checked ? next.add(p.id) : next.delete(p.id);
+      return next;
+    });
+  }
+
+  function toggleUno(id: string, checked: boolean) {
+    setSeleccion(prev => {
+      const next = new Set(prev);
+      checked ? next.add(id) : next.delete(id);
+      return next;
+    });
+  }
+
+  async function actualizarSeleccionados(estado: "autorizado" | "rechazado") {
+    if (!userId || seleccion.size === 0) return;
+    const ids = propuesta.filter((p: any) => seleccion.has(p.id) && p.estado === "pendiente").map((p: any) => p.id);
+    if (ids.length === 0) { toast.error("No hay filas pendientes en la selección"); return; }
+    const { error } = await supabase
+      .from("inv_costos_producto")
+      .update({ estado, autorizado_por: userId, autorizado_at: new Date().toISOString() })
+      .in("id", ids);
+    if (error) { toast.error(error.message); return; }
+    setSeleccion(new Set());
+    toast.success(`${ids.length} ${estado === "autorizado" ? "autorizados" : "rechazados"}`);
+    onRefresh();
+  }
+
   async function autorizarPorNivel(nivel: string) {
     if (!loteId || !userId) return;
     const { error } = await supabase
