@@ -403,6 +403,9 @@ export default function GestionCostos() {
         <TabsContent value="bajas" className="mt-4">
           <BajasPendientesSection userId={user?.id} />
         </TabsContent>
+        <TabsContent value="sinconfirmar" className="mt-4">
+          <SinConfirmarSection />
+        </TabsContent>
         <TabsContent value="mapeo" className="mt-4">
           <MapeoTabsContent />
         </TabsContent>
