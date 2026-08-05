@@ -353,6 +353,7 @@ export default function GestionCostos() {
           </TabsTrigger>
           <TabsTrigger value="historial">Historial</TabsTrigger>
           <TabsTrigger value="listas">Listas por Marca</TabsTrigger>
+          <TabsTrigger value="bajas">Bajas de Costo Pendientes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="biblioteca" className="mt-4">
@@ -379,11 +380,209 @@ export default function GestionCostos() {
         <TabsContent value="listas" className="mt-4">
           <ListasMarcaSection data={listasMarca} />
         </TabsContent>
+
+        <TabsContent value="bajas" className="mt-4">
+          <BajasPendientesSection userId={user?.id} />
+        </TabsContent>
       </Tabs>
     </div>
   );
 }
 
+// ─── BAJAS DE COSTO PENDIENTES (Chevron) ────────────────────────
+function BajasPendientesSection({ userId }: { userId?: string }) {
+  const qc = useQueryClient();
+  const [procesando, setProcesando] = useState(false);
+  const [confirmRow, setConfirmRow] = useState<any | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
+  const [ocultos, setOcultos] = useState<string[]>([]);
+
+  const { data: rows = [], isLoading, refetch } = useQuery({
+    queryKey: ["inv_bajas_costo_pendientes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("productos")
+        .select("id, codigo, nombre_producto, costo_actual, costo_mercado_vigente, costo_mercado_fecha, costo_mercado_pendiente_desde, precio_clasificacion_id, linea_id, precio_base_uf1")
+        .eq("costo_mercado_pendiente_baja", true)
+        .eq("is_active", true)
+        .order("costo_mercado_pendiente_desde", { ascending: true })
+        .limit(5000);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const visibles = useMemo(() => rows.filter((r: any) => !ocultos.includes(r.id)), [rows, ocultos]);
+
+  async function aceptarBaja(items: any[]) {
+    if (!userId || items.length === 0) return;
+    setProcesando(true);
+    try {
+      const { data: lineaMargenes } = await supabase.from("producto_linea_margenes").select("*").eq("activo", true);
+      const margenesPorLinea = new Map<string | null, any>();
+      for (const m of lineaMargenes || []) margenesPorLinea.set(m.linea_id, m);
+      const margenGeneral = margenesPorLinea.get(null);
+
+      let ok = 0, fail = 0;
+      for (const item of items) {
+        const costoFinal = Number(item.costo_mercado_vigente);
+        if (!isFinite(costoFinal) || costoFinal <= 0) { fail++; continue; }
+
+        const updates: any = {
+          costo_actual: costoFinal,
+          costo_mercado_pendiente_baja: false,
+          costo_mercado_pendiente_desde: null,
+        };
+
+        const margins = margenesPorLinea.get(item.linea_id) || margenGeneral;
+        let nuevoUf1: number | null = null;
+        if (margins) {
+          const mRec: Record<string, number> = {};
+          for (const lvl of MARGIN_LEVELS) mRec[lvl.key] = Number((margins as any)[lvl.key] ?? 0);
+          const raw = computePricesFromCost(costoFinal, mRec);
+          for (const [k, v] of Object.entries(raw)) {
+            const val = ceilTo5(Number(v));
+            if (val > 0) updates[k] = val;
+          }
+          nuevoUf1 = updates.precio_base_uf1 ?? null;
+        }
+
+        const { error: upErr } = await supabase.from("productos").update(updates).eq("id", item.id);
+        if (upErr) { fail++; continue; }
+
+        await supabase.from("inv_costos_historial").insert({
+          codigo_producto: item.codigo,
+          empresa: "lumaggs",
+          costo_anterior: item.costo_actual,
+          costo_nuevo: costoFinal,
+          fuente: "baja_mercado_aceptada",
+          lote_id: null,
+          precio_uf1_anterior: item.precio_base_uf1,
+          precio_uf1_nuevo: nuevoUf1 ?? item.precio_base_uf1,
+          aplicado_por: userId,
+        });
+        ok++;
+      }
+
+      setOcultos(prev => [...prev, ...items.map(i => i.id)]);
+      toast.success(`${ok} baja${ok === 1 ? "" : "s"} de costo aplicada${ok === 1 ? "" : "s"}${fail ? ` · ${fail} con error` : ""}`);
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["inv_costos_historial"] });
+      refetch();
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    } finally {
+      setProcesando(false);
+      setConfirmRow(null);
+      setConfirmAll(false);
+    }
+  }
+
+  const money = (n: any) => (n == null || !isFinite(Number(n)) ? "—" : `$${Number(n).toFixed(2)}`);
+  const fecha = (d: any) => (d ? new Date(d).toLocaleDateString("es-MX") : "—");
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-medium flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              Bajas de Costo Pendientes (Chevron)
+              {visibles.length > 0 && <Badge variant="secondary">{visibles.length}</Badge>}
+            </span>
+            <Button
+              size="sm"
+              onClick={() => setConfirmAll(true)}
+              disabled={procesando || visibles.length === 0}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Aceptar todas
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">Cargando…</div>
+          ) : visibles.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">No hay bajas de costo pendientes.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead className="text-right">Costo actual</TableHead>
+                  <TableHead className="text-right">Costo de mercado</TableHead>
+                  <TableHead className="text-right">% diferencia</TableHead>
+                  <TableHead>Pendiente desde</TableHead>
+                  <TableHead className="text-right">Acción</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibles.map((r: any) => {
+                  const actual = Number(r.costo_actual) || 0;
+                  const mercado = Number(r.costo_mercado_vigente) || 0;
+                  const diff = actual > 0 ? ((mercado - actual) / actual) * 100 : null;
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
+                      <TableCell className="font-light">{r.nombre_producto}</TableCell>
+                      <TableCell className="text-right">{money(r.costo_actual)}</TableCell>
+                      <TableCell className="text-right text-green-700">{money(r.costo_mercado_vigente)}</TableCell>
+                      <TableCell className="text-right text-green-700">{diff == null ? "—" : `${diff.toFixed(1)}%`}</TableCell>
+                      <TableCell className="text-sm">{fecha(r.costo_mercado_pendiente_desde || r.costo_mercado_fecha)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="outline" disabled={procesando} onClick={() => setConfirmRow(r)}>
+                          Aceptar baja de costo
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!confirmRow} onOpenChange={(o) => !o && setConfirmRow(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Aceptar baja de costo</DialogTitle>
+            <DialogDescription>
+              Se actualizará el costo de <strong>{confirmRow?.codigo}</strong> de {money(confirmRow?.costo_actual)} a{" "}
+              {money(confirmRow?.costo_mercado_vigente)} y se recalcularán sus 8 precios de venta.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmRow(null)} disabled={procesando}>Cancelar</Button>
+            <Button className="bg-green-600 hover:bg-green-700" disabled={procesando} onClick={() => aceptarBaja([confirmRow])}>
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmAll} onOpenChange={(o) => !o && setConfirmAll(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Aceptar todas las bajas de costo</DialogTitle>
+            <DialogDescription>
+              Se actualizarán los costos y se recalcularán los precios de <strong>{visibles.length}</strong> producto(s). Esta acción afecta precios reales de venta.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmAll(false)} disabled={procesando}>Cancelar</Button>
+            <Button className="bg-green-600 hover:bg-green-700" disabled={procesando} onClick={() => aceptarBaja(visibles)}>
+              Confirmar {visibles.length}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 // ─── BIBLIOTECA ─────────────────────────────────────────────────
 function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; onRefresh: () => void; userId?: string }) {
   const [generando, setGenerando] = useState(false);
