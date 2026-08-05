@@ -6129,6 +6129,12 @@ export type Database = {
           categoria_id: string | null
           codigo: string
           costo_actual: number
+          costo_confirmado_en_ultima_lista: boolean
+          costo_confirmado_fecha: string | null
+          costo_mercado_fecha: string | null
+          costo_mercado_pendiente_baja: boolean
+          costo_mercado_pendiente_desde: string | null
+          costo_mercado_vigente: number | null
           created_at: string
           created_by: string | null
           descripcion: string | null
@@ -6160,6 +6166,12 @@ export type Database = {
           categoria_id?: string | null
           codigo: string
           costo_actual?: number
+          costo_confirmado_en_ultima_lista?: boolean
+          costo_confirmado_fecha?: string | null
+          costo_mercado_fecha?: string | null
+          costo_mercado_pendiente_baja?: boolean
+          costo_mercado_pendiente_desde?: string | null
+          costo_mercado_vigente?: number | null
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
@@ -6191,6 +6203,12 @@ export type Database = {
           categoria_id?: string | null
           codigo?: string
           costo_actual?: number
+          costo_confirmado_en_ultima_lista?: boolean
+          costo_confirmado_fecha?: string | null
+          costo_mercado_fecha?: string | null
+          costo_mercado_pendiente_baja?: boolean
+          costo_mercado_pendiente_desde?: string | null
+          costo_mercado_vigente?: number | null
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
