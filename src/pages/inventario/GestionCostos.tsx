@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Upload, DollarSign, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowRight, Lock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { MARGIN_LEVELS, MARGIN_TO_PRICE, computePricesFromCost } from "@/pages/inventory/PreciosConfigTab";
+import { MapeoTabsContent } from "@/pages/inventario/MapeoProductos";
 
 // ─── Tipos de archivo ───────────────────────────────────────────
 const TIPOS_ARCHIVO: { value: string; label: string; empresa: "lumaggs" | "galsa" | null; categoria: "galper" | "especial" | "lista" }[] = [
@@ -354,6 +355,7 @@ export default function GestionCostos() {
           <TabsTrigger value="historial">Historial</TabsTrigger>
           <TabsTrigger value="listas">Listas por Marca</TabsTrigger>
           <TabsTrigger value="bajas">Bajas de Costo Pendientes</TabsTrigger>
+          <TabsTrigger value="mapeo">Mapeo</TabsTrigger>
         </TabsList>
 
         <TabsContent value="biblioteca" className="mt-4">
@@ -383,6 +385,9 @@ export default function GestionCostos() {
 
         <TabsContent value="bajas" className="mt-4">
           <BajasPendientesSection userId={user?.id} />
+        </TabsContent>
+        <TabsContent value="mapeo" className="mt-4">
+          <MapeoTabsContent />
         </TabsContent>
       </Tabs>
     </div>
