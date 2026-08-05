@@ -368,6 +368,10 @@ export default function GestionCostos() {
           <TabsTrigger value="historial">Historial</TabsTrigger>
           <TabsTrigger value="listas">Listas por Marca</TabsTrigger>
           <TabsTrigger value="bajas">Bajas de Costo Pendientes</TabsTrigger>
+          <TabsTrigger value="sinconfirmar">
+            Sin Confirmar en Listas
+            {sinConfirmarCount > 0 && <Badge variant="secondary" className="ml-2">{sinConfirmarCount}</Badge>}
+          </TabsTrigger>
           <TabsTrigger value="mapeo">Mapeo</TabsTrigger>
         </TabsList>
 
