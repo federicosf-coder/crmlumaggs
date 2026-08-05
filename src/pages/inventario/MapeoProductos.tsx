@@ -801,6 +801,7 @@ export function MapeoTabsContent() {
   const { data: fantasmas = [] } = useFantasmasCatalogo();
   const { data: mapeos = [] } = useMapeos();
   const { data: sinProductoCount = 0 } = useCostosSinProductoCount();
+  void sinProductoCount; void CostosSinProductoTab;
   // referencia para evitar warning unused
   void ALMACEN_LABELS;
 
@@ -819,15 +820,10 @@ export function MapeoTabsContent() {
             Mapeados
             {mapeos.length > 0 && <Badge className="bg-green-600 text-white">{mapeos.length}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="costos_sin_producto" className="gap-2">
-            Costos sin Producto
-            {sinProductoCount > 0 && <Badge className="bg-orange-500 text-white">{sinProductoCount}</Badge>}
-          </TabsTrigger>
         </TabsList>
         <TabsContent value="huerfanos" className="mt-4"><HuerfanosTab /></TabsContent>
         <TabsContent value="fantasmas" className="mt-4"><FantasmasTab /></TabsContent>
         <TabsContent value="mapeados" className="mt-4"><MapeadosTab /></TabsContent>
-        <TabsContent value="costos_sin_producto" className="mt-4"><CostosSinProductoTab /></TabsContent>
     </Tabs>
   );
 }
