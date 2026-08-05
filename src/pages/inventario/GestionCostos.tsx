@@ -334,6 +334,19 @@ export default function GestionCostos() {
     },
   });
 
+  const { data: sinConfirmarCount = 0 } = useQuery({
+    queryKey: ["inv_costos_sin_confirmar_count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("productos")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true)
+        .eq("costo_confirmado_en_ultima_lista", false);
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -355,6 +368,10 @@ export default function GestionCostos() {
           <TabsTrigger value="historial">Historial</TabsTrigger>
           <TabsTrigger value="listas">Listas por Marca</TabsTrigger>
           <TabsTrigger value="bajas">Bajas de Costo Pendientes</TabsTrigger>
+          <TabsTrigger value="sinconfirmar">
+            Sin Confirmar en Listas
+            {sinConfirmarCount > 0 && <Badge variant="secondary" className="ml-2">{sinConfirmarCount}</Badge>}
+          </TabsTrigger>
           <TabsTrigger value="mapeo">Mapeo</TabsTrigger>
         </TabsList>
 
@@ -385,6 +402,9 @@ export default function GestionCostos() {
 
         <TabsContent value="bajas" className="mt-4">
           <BajasPendientesSection userId={user?.id} />
+        </TabsContent>
+        <TabsContent value="sinconfirmar" className="mt-4">
+          <SinConfirmarSection />
         </TabsContent>
         <TabsContent value="mapeo" className="mt-4">
           <MapeoTabsContent />
@@ -588,6 +608,122 @@ function BajasPendientesSection({ userId }: { userId?: string }) {
     </div>
   );
 }
+// ─── SIN CONFIRMAR EN LISTAS ────────────────────────────────────
+function SinConfirmarSection() {
+  const [filtroMarca, setFiltroMarca] = useState<"todas" | "lumaggs" | "galsa" | "gonher">("todas");
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["inv_costos_sin_confirmar"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("productos")
+        .select("id, codigo, nombre_producto, costo_actual, costo_confirmado_fecha, marca:product_option_values!productos_marca_id_fkey(value)")
+        .eq("is_active", true)
+        .eq("costo_confirmado_en_ultima_lista", false)
+        .limit(5000);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const esGonher = (p: any) => String(p?.marca?.value || "").toLowerCase().includes("gonher");
+  const marcaLabel = (p: any) => {
+    const emp = detectarEmpresa(p);
+    if (emp === "lumaggs") return "Chevron";
+    return esGonher(p) ? "Galsa/Gonher" : "Phillips 66";
+  };
+  const marcaKey = (p: any): "lumaggs" | "galsa" | "gonher" => {
+    const emp = detectarEmpresa(p);
+    if (emp === "lumaggs") return "lumaggs";
+    return esGonher(p) ? "gonher" : "galsa";
+  };
+
+  const hoy = new Date();
+  const diasSinConfirmar = (d: any) => {
+    if (!d) return null;
+    const fecha = new Date(d);
+    if (isNaN(fecha.getTime())) return null;
+    return Math.floor((hoy.getTime() - fecha.getTime()) / 86400000);
+  };
+
+  const filtradas = useMemo(() => {
+    const base = filtroMarca === "todas" ? rows : rows.filter((r: any) => marcaKey(r) === filtroMarca);
+    return [...base].sort((a: any, b: any) => {
+      const da = diasSinConfirmar(a.costo_confirmado_fecha) ?? -1;
+      const db = diasSinConfirmar(b.costo_confirmado_fecha) ?? -1;
+      return db - da;
+    });
+  }, [rows, filtroMarca]);
+
+  const money = (n: any) => (n == null || !isFinite(Number(n)) ? "—" : `$${Number(n).toFixed(2)}`);
+  const fecha = (d: any) => (d ? new Date(d).toLocaleDateString("es-MX") : "—");
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            Sin Confirmar en Listas
+            {filtradas.length > 0 && <Badge variant="secondary">{filtradas.length}</Badge>}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Marca:</Label>
+            <Select value={filtroMarca} onValueChange={(v) => setFiltroMarca(v as any)}>
+              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas</SelectItem>
+                <SelectItem value="lumaggs">Chevron</SelectItem>
+                <SelectItem value="galsa">Phillips 66</SelectItem>
+                <SelectItem value="gonher">Galsa/Gonher</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isLoading ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">Cargando…</div>
+          ) : filtradas.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">No hay productos sin confirmar en listas.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Marca</TableHead>
+                  <TableHead className="text-right">Costo actual</TableHead>
+                  <TableHead>Confirmado por última vez</TableHead>
+                  <TableHead className="text-right">Días sin confirmar</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtradas.map((r: any) => {
+                  const dias = diasSinConfirmar(r.costo_confirmado_fecha);
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
+                      <TableCell className="font-light">{r.nombre_producto}</TableCell>
+                      <TableCell className="text-sm">{marcaLabel(r)}</TableCell>
+                      <TableCell className="text-right">{money(r.costo_actual)}</TableCell>
+                      <TableCell className="text-sm">{fecha(r.costo_confirmado_fecha)}</TableCell>
+                      <TableCell className="text-right text-sm">{dias == null ? "—" : dias}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+          <p className="text-xs text-muted-foreground font-light">
+            Listado informativo para revisión manual. Estos productos no aparecieron en la última lista de precios procesada.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ─── BIBLIOTECA ─────────────────────────────────────────────────
 function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; onRefresh: () => void; userId?: string }) {
   const [generando, setGenerando] = useState(false);
