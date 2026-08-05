@@ -1267,6 +1267,39 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
     (filtroEmpresa === "todos" || p.empresa === filtroEmpresa)
   ), [propuesta, filtroNivel, filtroEstado, filtroEmpresa]);
 
+  const pendientesVisibles = useMemo(() => filtrada.filter((p: any) => p.estado === "pendiente"), [filtrada]);
+  const todosSeleccionados = pendientesVisibles.length > 0 && pendientesVisibles.every((p: any) => seleccion.has(p.id));
+
+  function toggleTodos(checked: boolean) {
+    setSeleccion(prev => {
+      const next = new Set(prev);
+      for (const p of pendientesVisibles) checked ? next.add(p.id) : next.delete(p.id);
+      return next;
+    });
+  }
+
+  function toggleUno(id: string, checked: boolean) {
+    setSeleccion(prev => {
+      const next = new Set(prev);
+      checked ? next.add(id) : next.delete(id);
+      return next;
+    });
+  }
+
+  async function actualizarSeleccionados(estado: "autorizado" | "rechazado") {
+    if (!userId || seleccion.size === 0) return;
+    const ids = propuesta.filter((p: any) => seleccion.has(p.id) && p.estado === "pendiente").map((p: any) => p.id);
+    if (ids.length === 0) { toast.error("No hay filas pendientes en la selección"); return; }
+    const { error } = await supabase
+      .from("inv_costos_producto")
+      .update({ estado, autorizado_por: userId, autorizado_at: new Date().toISOString() })
+      .in("id", ids);
+    if (error) { toast.error(error.message); return; }
+    setSeleccion(new Set());
+    toast.success(`${ids.length} ${estado === "autorizado" ? "autorizados" : "rechazados"}`);
+    onRefresh();
+  }
+
   async function autorizarPorNivel(nivel: string) {
     if (!loteId || !userId) return;
     const { error } = await supabase
@@ -1401,11 +1434,32 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
         </CardContent>
       </Card>
 
+      {seleccion.size > 0 && (
+        <Card>
+          <CardContent className="p-3 flex flex-wrap gap-2 items-center">
+            <span className="text-sm font-medium">{seleccion.size} seleccionados</span>
+            <div className="ml-auto flex gap-2 flex-wrap">
+              <Button size="sm" variant="outline" onClick={() => actualizarSeleccionados("autorizado")}>Autorizar seleccionados</Button>
+              <Button size="sm" variant="outline" onClick={() => actualizarSeleccionados("rechazado")}>Rechazar seleccionados</Button>
+              <Button size="sm" variant="ghost" onClick={() => setSeleccion(new Set())}>Limpiar selección</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <div className="overflow-auto max-h-[60vh]">
           <Table>
             <TableHeader className="sticky top-0 bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30">
               <TableRow>
+                <TableHead className="w-8">
+                  <Checkbox
+                    checked={todosSeleccionados}
+                    disabled={pendientesVisibles.length === 0}
+                    onCheckedChange={(v) => toggleTodos(!!v)}
+                    aria-label="Seleccionar todos"
+                  />
+                </TableHead>
                 <TableHead className="text-xs uppercase tracking-wide">●</TableHead>
                 <TableHead className="text-xs uppercase tracking-wide">Código</TableHead>
                 <TableHead className="text-xs uppercase tracking-wide">Nombre</TableHead>
@@ -1426,6 +1480,15 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
             <TableBody>
               {filtrada.map((p, i) => (
                 <TableRow key={p.id} className={i % 2 ? "bg-muted/20 hover:bg-blue-50/40" : "hover:bg-blue-50/40"}>
+                  <TableCell>
+                    {p.estado === "pendiente" && (
+                      <Checkbox
+                        checked={seleccion.has(p.id)}
+                        onCheckedChange={(v) => toggleUno(p.id, !!v)}
+                        aria-label="Seleccionar fila"
+                      />
+                    )}
+                  </TableCell>
                   <TableCell>{nivelColor(p.nivel_alerta)}</TableCell>
                   <TableCell className="font-mono text-xs">{p.codigo_producto}</TableCell>
                   <TableCell className="text-xs max-w-[200px] truncate" title={p.nombre_en_catalogo}>{p.nombre_en_catalogo}</TableCell>
@@ -1469,7 +1532,7 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
                 </TableRow>
               ))}
               {filtrada.length === 0 && (
-                <TableRow><TableCell colSpan={15} className="text-center py-6 text-muted-foreground text-sm">Sin resultados</TableCell></TableRow>
+                <TableRow><TableCell colSpan={16} className="text-center py-6 text-muted-foreground text-sm">Sin resultados</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
