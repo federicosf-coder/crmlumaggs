@@ -482,7 +482,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
       // 2) Cargar todos los productos con sus relaciones (marca, linea)
       const { data: productosAll, error: pe } = await supabase
         .from("productos")
-        .select("id, codigo, nombre_producto, costo_actual, precio_base_uf1, linea_id, marca:product_option_values!productos_marca_id_fkey(value)")
+        .select("id, codigo, nombre_producto, costo_actual, precio_base_uf1, linea_id, costo_mercado_pendiente_desde, marca:product_option_values!productos_marca_id_fkey(value)")
         .eq("is_active", true);
       if (pe) throw pe;
       const esGonher = (p: any) => String(p?.marca?.value || "").toLowerCase().includes("gonher");
@@ -510,6 +510,13 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
       let n = 0;
       const codigosVistos = new Set<string>();
       const duplicados = new Set<string>();
+      const hoyISO = new Date().toISOString().slice(0, 10);
+      const idsConfirmados: string[] = [];
+      const idsNoConfirmados: string[] = [];
+      const mercadoBajaConDesde: string[] = [];
+      const mercadoBajaSinDesde: string[] = [];
+      const mercadoCostoPorProducto = new Map<string, number>();
+      const mercadoInformativo: string[] = [];
       for (const p of productosAll || []) {
         if (codigosVistos.has(p.codigo)) duplicados.add(p.codigo);
         codigosVistos.add(p.codigo);
@@ -553,9 +560,30 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
           if (galper) { costoEfectivo = galper.costo; fuente = "galper"; }
           else if (lista) { costoEfectivo = lista.costo; fuente = "lista"; }
         }
+        // Confirmación de aparición en la última lista procesada (independiente de la propuesta)
+        if (galper || especial || lista) idsConfirmados.push(producto.id);
+        else idsNoConfirmados.push(producto.id);
         if (!costoEfectivo) continue;
 
         const costoAnterior = Number(producto.costo_actual || 0);
+
+        // Costo de mercado / regla de piso
+        if (empresa === "lumaggs") {
+          if (costoAnterior > 0 && costoEfectivo < costoAnterior) {
+            mercadoCostoPorProducto.set(producto.id, costoEfectivo);
+            if ((producto as any).costo_mercado_pendiente_desde) mercadoBajaConDesde.push(producto.id);
+            else mercadoBajaSinDesde.push(producto.id);
+            continue; // no se propone bajar el costo/precio
+          }
+          if (costoAnterior > 0 && costoEfectivo === costoAnterior) {
+            mercadoCostoPorProducto.set(producto.id, costoAnterior);
+            mercadoInformativo.push(producto.id);
+          }
+        } else {
+          mercadoCostoPorProducto.set(producto.id, costoEfectivo);
+          mercadoInformativo.push(producto.id);
+        }
+
         const variacion = costoAnterior > 0 ? (costoEfectivo - costoAnterior) / costoAnterior : null;
         const razones: string[] = [];
         let nivel = "normal";
@@ -626,6 +654,42 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
           nombre_en_archivo: nombreArchivo,
           nombre_en_catalogo: producto.nombre_producto,
         });
+      }
+
+      // Actualizaciones directas a productos (confirmación en lista y costo de mercado)
+      setProgresoTexto("Actualizando catálogo…");
+      for (let i = 0; i < idsConfirmados.length; i += 200) {
+        await supabase.from("productos")
+          .update({ costo_confirmado_en_ultima_lista: true, costo_confirmado_fecha: hoyISO })
+          .in("id", idsConfirmados.slice(i, i + 200));
+      }
+      for (let i = 0; i < idsNoConfirmados.length; i += 200) {
+        await supabase.from("productos")
+          .update({ costo_confirmado_en_ultima_lista: false })
+          .in("id", idsNoConfirmados.slice(i, i + 200));
+      }
+      for (const id of mercadoBajaSinDesde) {
+        await supabase.from("productos").update({
+          costo_mercado_vigente: mercadoCostoPorProducto.get(id) ?? null,
+          costo_mercado_fecha: hoyISO,
+          costo_mercado_pendiente_baja: true,
+          costo_mercado_pendiente_desde: hoyISO,
+        }).eq("id", id);
+      }
+      for (const id of mercadoBajaConDesde) {
+        await supabase.from("productos").update({
+          costo_mercado_vigente: mercadoCostoPorProducto.get(id) ?? null,
+          costo_mercado_fecha: hoyISO,
+          costo_mercado_pendiente_baja: true,
+        }).eq("id", id);
+      }
+      for (const id of mercadoInformativo) {
+        const payload: any = {
+          costo_mercado_vigente: mercadoCostoPorProducto.get(id) ?? null,
+          costo_mercado_fecha: hoyISO,
+        };
+        if (marcaFiltro !== "lumaggs") payload.costo_mercado_pendiente_baja = false;
+        await supabase.from("productos").update(payload).eq("id", id);
       }
 
       setProgresoTexto(`Guardando ${propuestas.length} propuestas…`);
