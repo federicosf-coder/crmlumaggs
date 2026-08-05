@@ -297,7 +297,7 @@ export default function GestionCostos() {
   const { data: listasMarca } = useQuery({
     queryKey: ["inv_costos_listas_marca"],
     queryFn: async () => {
-      const [costosRes, archivosRes, prodsRes] = await Promise.all([
+      const [costosRes, archivosRes, prodsRes, nivelesRes] = await Promise.all([
         supabase
           .from("inv_costos_producto")
           .select("codigo_producto, empresa, costo_galper, costo_especial, costo_lista, costo_efectivo, costo_efectivo_fuente, archivo_galper_id, archivo_lista_id, nombre_en_archivo, nombre_en_catalogo, created_at")
@@ -305,10 +305,12 @@ export default function GestionCostos() {
           .limit(50000),
         supabase.from("inv_archivos_referencia").select("id, tipo"),
         supabase.from("productos").select("codigo, nombre_producto").eq("is_active", true).limit(20000),
+        supabase.from("inv_niveles_inventario").select("codigo_producto, stock_total").limit(50000),
       ]);
       const costos = (costosRes.data as any[]) || [];
       const tipoPorArchivo = new Map<string, string>(((archivosRes.data as any[]) || []).map((a: any) => [a.id, String(a.tipo || "").toLowerCase()]));
       const nombrePorCodigo = new Map<string, string>(((prodsRes.data as any[]) || []).map((p: any) => [p.codigo, p.nombre_producto]));
+      const stockPorCodigo = new Map<string, number>(((nivelesRes.data as any[]) || []).map((n: any) => [n.codigo_producto, n.stock_total]));
 
       const vistos = new Set<string>();
       const lumaggs: any[] = [], galsa: any[] = [], gonher: any[] = [];
@@ -324,6 +326,7 @@ export default function GestionCostos() {
           costo_efectivo: c.costo_efectivo,
           fuente: c.costo_efectivo_fuente,
           en_catalogo: nombrePorCodigo.has(c.codigo_producto),
+          stock_total: stockPorCodigo.get(c.codigo_producto) ?? null,
         };
         if (c.empresa === "lumaggs") { lumaggs.push(row); continue; }
         if (c.empresa === "galsa") {
