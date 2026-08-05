@@ -1614,6 +1614,7 @@ type ListaMarcaRow = {
   costo_efectivo: number | null;
   fuente: string | null;
   en_catalogo: boolean;
+  stock_total: number | null;
 };
 
 function fuenteBadgeLista(f: string | null | undefined) {
@@ -1660,6 +1661,7 @@ function ListasMarcaSection({ data }: { data?: { lumaggs: ListaMarcaRow[]; galsa
 
 function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: ListaMarcaRow[]; showEspecial?: boolean; exportName: string }) {
   const [q, setQ] = useState("");
+  const navigate = useNavigate();
   const [sortKey, setSortKey] = useState<keyof ListaMarcaRow>("codigo");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
@@ -1696,6 +1698,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: Lis
       "Costo Efectivo": d.costo_efectivo ?? "",
       "Fuente": d.fuente || "",
       "En Catálogo": d.en_catalogo ? "Sí" : "No",
+      "Piezas en Inventario": d.stock_total ?? "",
     }));
     const ws = XLSX.utils.json_to_sheet(out);
     ws["!cols"] = [{ wch: 16 }, { wch: 42 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }];
@@ -1730,12 +1733,14 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: Lis
               <Th k="costo_efectivo" className="text-right">Costo Efectivo</Th>
               <Th k="fuente">Fuente</Th>
               <Th k="en_catalogo">En Catálogo</Th>
+              <Th k="stock_total" className="text-right">Piezas en Inventario</Th>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showEspecial ? 8 : 7} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
+                <TableCell colSpan={showEspecial ? 10 : 9} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
               </TableRow>
             ) : filtered.map(r => (
               <TableRow key={r.codigo}>
@@ -1750,6 +1755,29 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: Lis
                   <Badge variant="outline" className={r.en_catalogo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-red-100 text-red-700 border-red-200"}>
                     {r.en_catalogo ? "Sí" : "No"}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-right">{r.stock_total == null ? "—" : Number(r.stock_total).toLocaleString("es-MX")}</TableCell>
+                <TableCell className="text-right">
+                  {r.en_catalogo ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate("/inventory", {
+                        state: {
+                          prefillHuerfano: {
+                            codigo: r.codigo,
+                            nombre_producto: r.nombre,
+                            unidad: null,
+                            proveedor: null,
+                          },
+                        },
+                      })}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Agregar al catálogo
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
