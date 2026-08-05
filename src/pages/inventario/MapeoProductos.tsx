@@ -801,6 +801,7 @@ export function MapeoTabsContent() {
   const { data: fantasmas = [] } = useFantasmasCatalogo();
   const { data: mapeos = [] } = useMapeos();
   const { data: sinProductoCount = 0 } = useCostosSinProductoCount();
+  void sinProductoCount; void CostosSinProductoTab;
   // referencia para evitar warning unused
   void ALMACEN_LABELS;
 
