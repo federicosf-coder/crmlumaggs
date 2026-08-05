@@ -220,17 +220,6 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
-                        <NavLink to="/inventario/mapeo" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                          <Link2 className="mr-2 h-4 w-4" />
-                          {!collapsed && <span className="flex-1">Mapeo</span>}
-                          {!collapsed && huerfanosCount > 0 && (
-                            <Badge className="ml-auto bg-red-500 text-white text-[10px] h-4 px-1">{huerfanosCount}</Badge>
-                          )}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
                         <NavLink to="/inventario/minmax" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <Sliders className="mr-2 h-4 w-4" />
                           {!collapsed && <span>Mín/Máx</span>}

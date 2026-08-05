@@ -796,7 +796,7 @@ function CostosSinProductoTab() {
   );
 }
 
-export default function MapeoProductos() {
+export function MapeoTabsContent() {
   const { data: huerfanos = [] } = useHuerfanosKardex();
   const { data: fantasmas = [] } = useFantasmasCatalogo();
   const { data: mapeos = [] } = useMapeos();
@@ -805,12 +805,7 @@ export default function MapeoProductos() {
   void ALMACEN_LABELS;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Mapeo de Productos</h1>
-        <p className="text-muted-foreground">Reconciliación entre kardex CONTPAQi y catálogo de productos</p>
-      </div>
-      <Tabs defaultValue="huerfanos">
+    <Tabs defaultValue="huerfanos">
         <TabsList>
           <TabsTrigger value="huerfanos" className="gap-2">
             Huérfanos de Kardex
@@ -833,7 +828,18 @@ export default function MapeoProductos() {
         <TabsContent value="fantasmas" className="mt-4"><FantasmasTab /></TabsContent>
         <TabsContent value="mapeados" className="mt-4"><MapeadosTab /></TabsContent>
         <TabsContent value="costos_sin_producto" className="mt-4"><CostosSinProductoTab /></TabsContent>
-      </Tabs>
+    </Tabs>
+  );
+}
+
+export default function MapeoProductos() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Mapeo de Productos</h1>
+        <p className="text-muted-foreground">Reconciliación entre kardex CONTPAQi y catálogo de productos</p>
+      </div>
+      <MapeoTabsContent />
     </div>
   );
 }
