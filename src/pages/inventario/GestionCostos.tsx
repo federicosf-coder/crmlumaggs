@@ -384,7 +384,14 @@ export default function GestionCostos() {
         <TabsContent value="biblioteca" className="mt-4">
           <BibliotecaSection
             archivos={archivos}
-            onRefresh={() => { refetchArchivos(); refetchLote(); refetchPropuesta(); qc.invalidateQueries({ queryKey: ["inv_costos_lote_activo"] }); }}
+            onRefresh={() => {
+              refetchArchivos();
+              refetchLote();
+              refetchPropuesta();
+              qc.invalidateQueries({ queryKey: ["inv_costos_lote_activo"] });
+              qc.invalidateQueries({ queryKey: ["inv_costos_listas_marca"] });
+              qc.invalidateQueries({ queryKey: ["inv_costos_sin_confirmar_count"] });
+            }}
             userId={user?.id}
           />
         </TabsContent>
@@ -1249,6 +1256,8 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
   const [filtroNivel, setFiltroNivel] = useState<string>("todos");
   const [filtroEstado, setFiltroEstado] = useState<string>("todos");
   const [filtroEmpresa, setFiltroEmpresa] = useState<string>("todos");
+  const [filtroFuente, setFiltroFuente] = useState<string>("todas");
+  const [busqueda, setBusqueda] = useState<string>("");
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [revisando, setRevisando] = useState<any>(null);
   const [aplicando, setAplicando] = useState(false);
@@ -1263,11 +1272,26 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
     return c;
   }, [propuesta]);
 
-  const filtrada = useMemo(() => propuesta.filter(p =>
-    (filtroNivel === "todos" || p.nivel_alerta === filtroNivel) &&
-    (filtroEstado === "todos" || p.estado === filtroEstado) &&
-    (filtroEmpresa === "todos" || p.empresa === filtroEmpresa)
-  ), [propuesta, filtroNivel, filtroEstado, filtroEmpresa]);
+  const fuentesOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of propuesta) {
+      if (p.costo_efectivo_fuente) set.add(String(p.costo_efectivo_fuente));
+    }
+    return ["todas", ...Array.from(set).sort()];
+  }, [propuesta]);
+
+  const filtrada = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    return propuesta.filter(p =>
+      (filtroNivel === "todos" || p.nivel_alerta === filtroNivel) &&
+      (filtroEstado === "todos" || p.estado === filtroEstado) &&
+      (filtroEmpresa === "todos" || p.empresa === filtroEmpresa) &&
+      (filtroFuente === "todas" || p.costo_efectivo_fuente === filtroFuente) &&
+      (!q ||
+        String(p.codigo_producto || "").toLowerCase().includes(q) ||
+        String(p.nombre_en_catalogo || "").toLowerCase().includes(q))
+    );
+  }, [propuesta, filtroNivel, filtroEstado, filtroEmpresa, filtroFuente, busqueda]);
 
   const pendientesVisibles = useMemo(() => filtrada.filter((p: any) => p.estado === "pendiente"), [filtrada]);
   const todosSeleccionados = pendientesVisibles.length > 0 && pendientesVisibles.every((p: any) => seleccion.has(p.id));
@@ -1405,6 +1429,12 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
 
       <Card>
         <CardContent className="p-3 flex flex-wrap gap-2 items-center">
+          <Input
+            placeholder="Buscar por código o nombre…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-[220px] h-8"
+          />
           <Select value={filtroNivel} onValueChange={setFiltroNivel}>
             <SelectTrigger className="w-[160px] h-8"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -1430,6 +1460,14 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
               <SelectItem value="todos">Ambas empresas</SelectItem>
               <SelectItem value="lumaggs">Lumaggs</SelectItem>
               <SelectItem value="galsa">Galsa</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filtroFuente} onValueChange={setFiltroFuente}>
+            <SelectTrigger className="w-[160px] h-8"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {fuentesOptions.map(f => (
+                <SelectItem key={f} value={f}>{f === "todas" ? "Todas las fuentes" : f}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <span className="text-xs text-muted-foreground ml-2">{filtrada.length} resultados</span>
