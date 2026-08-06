@@ -1402,7 +1402,7 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
         ok++;
       }
       toast.success(`${ok} productos actualizados${fail ? ` · ${fail} con error` : ""}`);
-      onRefresh();
+      await onRefresh();
       setConfirmApply(false);
     } catch (e: any) {
       toast.error("Error: " + e.message);
