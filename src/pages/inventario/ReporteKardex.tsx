@@ -322,10 +322,9 @@ export function ReporteKardexTabContent() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Reporte de Inventario y Kárdex</h1>
           <p className="text-sm text-muted-foreground font-light flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             Período del kárdex: {periodoGlobal.ini || "—"} → {periodoGlobal.fin || "—"}
