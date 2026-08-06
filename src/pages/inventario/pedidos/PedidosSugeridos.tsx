@@ -349,9 +349,9 @@ function GenerarPedidoDialog({ open, onOpenChange, skus, excluidos = 0, onCreate
   const onSubmit = async () => {
     setSaving(true);
     try {
-      const filtered = skus.filter((s: any) => s.empresa_vendedora === empresa && s._sug.necesidad > 0);
+      const filtered = skus.filter((s: any) => s.empresa_vendedora === empresa && s._necesidadNeta > 0);
       if (filtered.length === 0) { toast.error("Sin SKUs para esta empresa"); setSaving(false); return; }
-      const totalTarimas = filtered.reduce((a: number, s: any) => a + s._sug.tarimas, 0);
+      const totalTarimas = filtered.reduce((a: number, s: any) => a + s._tarimas, 0);
       const po = `PO_${empresa.toUpperCase()}_${almacen}_${Date.now().toString().slice(-6)}`;
       const { data: pedido, error } = await (supabase as any).from("inv_pedidos").insert({
         empresa_vendedora: empresa, almacen_destino: almacen, fuente, proveedor,
@@ -363,7 +363,7 @@ function GenerarPedidoDialog({ open, onOpenChange, skus, excluidos = 0, onCreate
       const lineas = filtered.map((s: any) => ({
         pedido_id: pedido.id, codigo_producto: s.codigo_producto, nombre_producto: s.nombre_producto,
         presentacion: s.presentacion, unidad_pedido: s.unidad,
-        cantidad_solicitada: s._sug.necesidad, tarimas: s._sug.tarimas,
+        cantidad_solicitada: s._necesidadNeta, tarimas: s._tarimas,
         piezas_por_tarima: s.piezas_por_tarima, moneda: proveedor === "phillips66" ? "USD" : "MXN",
       }));
       const { error: le } = await (supabase as any).from("inv_pedido_lineas").insert(lineas);
