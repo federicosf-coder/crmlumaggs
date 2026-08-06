@@ -2038,6 +2038,9 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
               </TableHead>
               <Th k="codigo">Código</Th>
               <Th k="nombre">Nombre</Th>
+              <Th k="presentacion">Presentación</Th>
+              <Th k="clasificacion_abc">ABC</Th>
+              <Th k="precio_uf1" className="text-right">Precio UF1</Th>
               <Th k="costo_galper" className="text-right">Costo Galper</Th>
               {showEspecial && <Th k="costo_especial" className="text-right">Precio Especial</Th>}
               <Th k="costo_lista" className="text-right">Lista General</Th>
