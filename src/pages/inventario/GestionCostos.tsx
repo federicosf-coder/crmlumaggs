@@ -1934,6 +1934,9 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
     const out = data.map(d => ({
       "Código": d.codigo,
       "Nombre": d.nombre,
+      "Presentación": d.presentacion ?? "",
+      "ABC": d.clasificacion_abc ?? "",
+      "Precio UF1": d.precio_uf1 ?? "",
       "Costo Galper": d.costo_galper ?? "",
       ...(showEspecial ? { "Precio Especial": d.costo_especial ?? "" } : {}),
       "Lista General": d.costo_lista ?? "",
@@ -1943,7 +1946,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
       "Piezas en Inventario": d.stock_total ?? "",
     }));
     const ws = XLSX.utils.json_to_sheet(out);
-    ws["!cols"] = [{ wch: 16 }, { wch: 42 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }];
+    ws["!cols"] = [{ wch: 16 }, { wch: 42 }, { wch: 18 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Costos");
     XLSX.writeFile(wb, `${exportName}${sufijo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
