@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sliders, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -82,6 +83,9 @@ export function MinMaxTabContent() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
   const [recalculating, setRecalculating] = useState(false);
+  const [empAbcSel, setEmpAbcSel] = useState<string>("todos");
+  const [empEstadoSel, setEmpEstadoSel] = useState<string>("todos");
+  const [empSearch, setEmpSearch] = useState("");
 
   const { data: rows = [], isLoading } = useQuery<Row[]>({
     queryKey: ["inv_minmax"],
@@ -241,6 +245,67 @@ export function MinMaxTabContent() {
     return <Badge variant="outline" className={cls}>{abc}</Badge>;
   };
 
+  const porEmpresa = useMemo(() => {
+    const map = new Map<string, {
+      codigo_producto: string;
+      nombre_producto: string | null;
+      clasificacion_abc: string | null;
+      demanda: number;
+      minimo: number;
+      maximo: number;
+      reorden: number;
+      stock: number;
+      mixto: boolean;
+    }>();
+    for (const r of rows) {
+      let acc = map.get(r.codigo_producto);
+      if (!acc) {
+        const n = nivMap.get(r.codigo_producto);
+        const stockTotal = ["1001", "1002", "1003", "1004"].reduce((s, a) => s + stockOf(n, a), 0);
+        acc = {
+          codigo_producto: r.codigo_producto,
+          nombre_producto: n?.nombre_producto ?? null,
+          clasificacion_abc: n?.clasificacion_abc ?? r.clasificacion_abc ?? null,
+          demanda: 0, minimo: 0, maximo: 0, reorden: 0,
+          stock: stockTotal,
+          mixto: false,
+        };
+        map.set(r.codigo_producto, acc);
+      }
+      acc.demanda += Number(r.demanda_diaria_hub ?? 0);
+      acc.minimo += Number(r.minimo_efectivo ?? 0);
+      acc.maximo += Number(r.maximo_efectivo ?? 0);
+      acc.reorden += Number(r.cantidad_reorden_efectiva ?? 0);
+      if (r.ajustado_manualmente) acc.mixto = true;
+    }
+    return Array.from(map.values()).sort((a, b) => a.codigo_producto.localeCompare(b.codigo_producto));
+  }, [rows, nivMap]);
+
+  const empEstadoKey = (e: (typeof porEmpresa)[number]): "sin_demanda" | "bajo_minimo" | "mixto" | "ok" => {
+    if (!(e.demanda > 0)) return "sin_demanda";
+    if (e.minimo > 0 && e.stock < e.minimo) return "bajo_minimo";
+    if (e.mixto) return "mixto";
+    return "ok";
+  };
+
+  const empEstadoBadge = (e: (typeof porEmpresa)[number]) => {
+    const key = empEstadoKey(e);
+    if (key === "sin_demanda") return <Badge variant="outline" className="text-muted-foreground">SIN DEMANDA</Badge>;
+    if (key === "bajo_minimo") return <Badge variant="destructive">BAJO MÍNIMO</Badge>;
+    if (key === "mixto") return <Badge className="bg-emerald-600 hover:bg-emerald-600">MIXTO</Badge>;
+    return <Badge className="bg-blue-600 hover:bg-blue-600">OK</Badge>;
+  };
+
+  const empresaFiltrada = useMemo(() => {
+    const s = empSearch.toLowerCase().trim();
+    return porEmpresa.filter((e) => {
+      if (empAbcSel !== "todos" && (e.clasificacion_abc ?? "") !== empAbcSel) return false;
+      if (empEstadoSel !== "todos" && empEstadoKey(e) !== empEstadoSel) return false;
+      if (s && !`${e.codigo_producto} ${e.nombre_producto ?? ""}`.toLowerCase().includes(s)) return false;
+      return true;
+    });
+  }, [porEmpresa, empAbcSel, empEstadoSel, empSearch]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-end gap-4">
@@ -257,6 +322,13 @@ export function MinMaxTabContent() {
         <KpiCard label="Sin dato de demanda" value={kpis.sinDem} accent="muted" />
       </div>
 
+      <Tabs defaultValue="plaza" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="plaza">Por Plaza</TabsTrigger>
+          <TabsTrigger value="empresa">Por Empresa</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="plaza" className="space-y-6 mt-0">
       <Card>
         <CardContent className="p-4 flex flex-wrap items-end gap-3">
           <div>
@@ -380,6 +452,96 @@ export function MinMaxTabContent() {
           </Table>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="empresa" className="space-y-4 mt-0">
+          <p className="text-xs text-muted-foreground font-light">
+            Vista consolidada de las 4 plazas (Mexicali, Tijuana, Morelos, Ensenada). Útil para decidir cuánto pedir en total antes de repartir por plaza o hacer traspasos internos.
+          </p>
+          <Card>
+            <CardContent className="p-4 flex flex-wrap items-end gap-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Clase ABC</Label>
+                <Select value={empAbcSel} onValueChange={setEmpAbcSel}>
+                  <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="A">A</SelectItem>
+                    <SelectItem value="B">B</SelectItem>
+                    <SelectItem value="C">C</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Estado</Label>
+                <Select value={empEstadoSel} onValueChange={setEmpEstadoSel}>
+                  <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="sin_demanda">Sin demanda</SelectItem>
+                    <SelectItem value="bajo_minimo">Bajo mínimo</SelectItem>
+                    <SelectItem value="mixto">Mixto</SelectItem>
+                    <SelectItem value="ok">OK</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 min-w-[240px]">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Búsqueda</Label>
+                <div className="relative">
+                  <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input value={empSearch} onChange={(e) => setEmpSearch(e.target.value)} placeholder="Código o nombre..." className="pl-8" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+                  <TableRow>
+                    <Th>ABC</Th>
+                    <Th>Código</Th>
+                    <Th>Producto</Th>
+                    <Th className="text-right">Dem/día</Th>
+                    <Th className="text-right">Dem/mes</Th>
+                    <Th className="text-right">Mínimo total</Th>
+                    <Th className="text-right">Máximo total</Th>
+                    <Th className="text-right">Stock total</Th>
+                    <Th className="text-right">Reorden total</Th>
+                    <Th>Estado</Th>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading && (
+                    <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">Cargando...</TableCell></TableRow>
+                  )}
+                  {!isLoading && empresaFiltrada.length === 0 && (
+                    <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">Sin resultados</TableCell></TableRow>
+                  )}
+                  {empresaFiltrada.map((e, i) => {
+                    const bajo = e.minimo > 0 && e.stock < e.minimo;
+                    return (
+                      <TableRow key={e.codigo_producto} className={i % 2 === 0 ? "bg-background hover:bg-blue-50/40" : "bg-muted/20 hover:bg-blue-50/40"}>
+                        <TableCell>{abcBadge(e.clasificacion_abc)}</TableCell>
+                        <TableCell className="font-mono text-xs">{e.codigo_producto}</TableCell>
+                        <TableCell className="text-xs max-w-[280px] truncate" title={e.nombre_producto ?? ""}>{e.nombre_producto ?? "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">{e.demanda.toFixed(2)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{(e.demanda * 30).toFixed(0)}</TableCell>
+                        <TableCell className="text-right tabular-nums font-medium text-blue-700">{e.minimo.toFixed(0)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{e.maximo.toFixed(0)}</TableCell>
+                        <TableCell className={`text-right tabular-nums font-medium ${bajo ? "text-red-600" : "text-emerald-700"}`}>{e.stock.toFixed(0)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{e.reorden.toFixed(0)}</TableCell>
+                        <TableCell>{empEstadoBadge(e)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <AjusteDialog editing={editing} setEditing={setEditing} guardar={guardar} nivMap={nivMap} />
     </div>
