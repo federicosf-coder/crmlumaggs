@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, DollarSign, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowRight, Lock, RefreshCw, Plus } from "lucide-react";
+import { Upload, DollarSign, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowRight, Lock, RefreshCw, Plus, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { MARGIN_LEVELS, MARGIN_TO_PRICE, computePricesFromCost } from "@/pages/inventory/PreciosConfigTab";
@@ -794,6 +794,18 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
         : await parseExcelToMap(file);
       if (map.size === 0) { toast.error("No se detectaron registros válidos en el archivo"); return; }
 
+      // Subir archivo original a Storage (no bloquea el flujo si falla)
+      let storagePath: string | null = null;
+      try {
+        const path = `${tipo}/${Date.now()}-${file.name}`;
+        const { error: upErr } = await supabase.storage.from("inventario-archivos").upload(path, file);
+        if (upErr) throw upErr;
+        storagePath = path;
+      } catch (upe: any) {
+        console.warn("Storage upload falló", upe);
+        toast.warning("No se pudo guardar el archivo original en Storage, pero los datos sí se procesaron.");
+      }
+
       await supabase.from("inv_archivos_referencia").update({ es_activo: false }).eq("tipo", tipo).eq("es_activo", true);
 
       const hoy = new Date().toISOString().slice(0, 10);
@@ -807,7 +819,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
         registros_procesados: map.size,
         registros_con_error: 0,
         estatus: "completado",
-        storage_path: null,
+        storage_path: storagePath,
         subido_por: userId,
       });
       if (insErr) throw insErr;
@@ -1224,6 +1236,25 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
                         : <Badge variant="secondary" className="text-[10px]">Re-cargar</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground">Subido: {formatFecha(a.created_at)}</p>
+                    {a.storage_path && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs"
+                        onClick={async () => {
+                          const { data, error } = await supabase.storage
+                            .from("inventario-archivos")
+                            .createSignedUrl(a.storage_path!, 300);
+                          if (error || !data?.signedUrl) {
+                            toast.error("No se pudo generar el enlace del archivo");
+                            return;
+                          }
+                          window.open(data.signedUrl, "_blank");
+                        }}
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1" /> Ver / Descargar
+                      </Button>
+                    )}
                   </>
                 ) : (
                   <p className="text-xs text-muted-foreground italic">Sin archivo subido</p>
