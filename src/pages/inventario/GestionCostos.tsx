@@ -384,10 +384,10 @@ export default function GestionCostos() {
         <TabsContent value="biblioteca" className="mt-4">
           <BibliotecaSection
             archivos={archivos}
-            onRefresh={() => {
+            onRefresh={async () => {
+              await refetchLote();
+              qc.invalidateQueries({ queryKey: ["inv_costos_propuesta"] });
               refetchArchivos();
-              refetchLote();
-              refetchPropuesta();
               qc.invalidateQueries({ queryKey: ["inv_costos_lote_activo"] });
               qc.invalidateQueries({ queryKey: ["inv_costos_listas_marca"] });
               qc.invalidateQueries({ queryKey: ["inv_costos_sin_confirmar_count"] });
