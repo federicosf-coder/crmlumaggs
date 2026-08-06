@@ -1779,6 +1779,16 @@ function fuenteBadgeLista(f: string | null | undefined) {
   return <Badge variant="outline" className={`text-[10px] font-medium ${map[f] || "bg-muted"}`}>{f}</Badge>;
 }
 
+function abcBadgeLista(abc: string | null | undefined) {
+  if (!abc) return <span className="text-muted-foreground">—</span>;
+  const map: Record<string, string> = {
+    A: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    B: "bg-amber-100 text-amber-700 border-amber-200",
+    C: "bg-gray-100 text-gray-700 border-gray-200",
+  };
+  return <Badge variant="outline" className={`text-[10px] font-medium ${map[abc] || "bg-muted"}`}>{abc}</Badge>;
+}
+
 function ListasMarcaSection({ data }: { data?: { lumaggs: ListaMarcaRow[]; galsa: ListaMarcaRow[]; gonher: ListaMarcaRow[] } }) {
   const [sub, setSub] = useState("lumaggs");
   const lumaggs = data?.lumaggs || [];
