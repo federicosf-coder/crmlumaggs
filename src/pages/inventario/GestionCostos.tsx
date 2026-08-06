@@ -400,7 +400,13 @@ export default function GestionCostos() {
           <PropuestaSection
             propuesta={propuesta}
             loteId={loteActivo}
-            onRefresh={() => { refetchPropuesta(); refetchLote(); qc.invalidateQueries({ queryKey: ["products"] }); qc.invalidateQueries({ queryKey: ["inv_costos_historial"] }); }}
+            onRefresh={async () => {
+              await refetchLote();
+              qc.invalidateQueries({ queryKey: ["inv_costos_propuesta"] });
+              refetchPropuesta();
+              qc.invalidateQueries({ queryKey: ["products"] });
+              qc.invalidateQueries({ queryKey: ["inv_costos_historial"] });
+            }}
             userId={user?.id}
           />
         </TabsContent>
