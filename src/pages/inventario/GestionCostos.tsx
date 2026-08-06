@@ -931,11 +931,19 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
         let costoEfectivo: number | null = null;
         let fuente = "";
         if (marcaFiltro === "lumaggs") {
-          if (galper && especial) { costoEfectivo = Math.max(galper.costo, especial.costo); fuente = "max_galper_especial"; }
-          else if (galper) { costoEfectivo = galper.costo; fuente = "galper"; }
-          else if (especial) { costoEfectivo = especial.costo; fuente = "especial"; }
-          else if (lista) { costoEfectivo = lista.costo; fuente = "lista"; }
+          const costoActualRef = Number(producto.costo_actual || 0);
+          if (especial) {
+            costoEfectivo = especial.costo; fuente = "especial";
+            if (costoActualRef > 0 && especial.costo < costoActualRef && galper) {
+              costoEfectivo = galper.costo; fuente = "galper";
+            }
+          } else if (galper) {
+            costoEfectivo = galper.costo; fuente = "galper";
+          } else if (lista) {
+            costoEfectivo = lista.costo; fuente = "lista";
+          }
         } else {
+
           if (galper) { costoEfectivo = galper.costo; fuente = "galper"; }
           else if (lista) { costoEfectivo = lista.costo; fuente = "lista"; }
         }
