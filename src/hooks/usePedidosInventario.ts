@@ -92,6 +92,7 @@ export const ESTATUS_PEDIDO_LABEL: Record<string, string> = {
   borrador: "Borrador", enviado: "Enviado", confirmado_proveedor: "Confirmado",
   en_transito: "En tránsito", recibido_parcial: "Recibido parcial",
   cerrado: "Cerrado", cancelado: "Cancelado",
+  elaborado: "Elaborado", recibido: "Recibido",
 };
 
 export function estatusPedidoColor(e?: string | null) {
@@ -103,6 +104,8 @@ export function estatusPedidoColor(e?: string | null) {
     case "recibido_parcial": return "bg-orange-100 text-orange-800";
     case "cerrado": return "bg-green-100 text-green-800";
     case "cancelado": return "bg-red-100 text-red-800";
+    case "elaborado": return "bg-indigo-100 text-indigo-800";
+    case "recibido": return "bg-green-100 text-green-800";
     default: return "bg-gray-100 text-gray-700";
   }
 }
@@ -114,6 +117,7 @@ export function nextEstatus(current: string): string | null {
     confirmado_proveedor: "en_transito",
     en_transito: "recibido_parcial",
     recibido_parcial: "cerrado",
+    elaborado: "recibido",
   };
   return flow[current] || null;
 }
@@ -125,6 +129,7 @@ export function nextEstatusLabel(current: string): string | null {
     confirmado_proveedor: "Marcar en tránsito",
     en_transito: "Registrar recepción",
     recibido_parcial: "Cerrar pedido",
+    elaborado: "Marcar como Recibido",
   };
   return labels[current] || null;
 }
