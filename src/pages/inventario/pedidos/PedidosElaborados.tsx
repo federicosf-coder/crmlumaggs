@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePedidos, usePedido, useUpdatePedidoEstatus, ESTATUS_PEDIDO_LABEL, estatusPedidoColor, nextEstatus, nextEstatusLabel } from "@/hooks/usePedidosInventario";
+import SubirConfirmacionDialog from "./SubirConfirmacionDialog";
 
 export default function PedidosElaborados() {
   const { data: pedidos = [] } = usePedidos();
@@ -21,6 +22,7 @@ export default function PedidosElaborados() {
   const [estatus, setEstatus] = useState("todos");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [openSubir, setOpenSubir] = useState(false);
 
   const filtered = useMemo(() => pedidos.filter((p) => {
     if (empresa !== "todas" && p.empresa_vendedora !== empresa) return false;
@@ -59,8 +61,13 @@ export default function PedidosElaborados() {
               {Object.entries(ESTATUS_PEDIDO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Button className="ml-auto" onClick={() => setOpenSubir(true)}>
+            <Upload className="h-4 w-4 mr-2" />Subir confirmación de pedido (PDF)
+          </Button>
         </CardContent>
       </Card>
+
+      <SubirConfirmacionDialog open={openSubir} onOpenChange={setOpenSubir} />
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
