@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { MARGIN_LEVELS, MARGIN_TO_PRICE, computePricesFromCost } from "@/pages/inventory/PreciosConfigTab";
 import { MapeoTabsContent } from "@/pages/inventario/MapeoProductos";
+import { useCostosIgnorados } from "@/hooks/useMapeoProductos";
 
 // ─── Tipos de archivo ───────────────────────────────────────────
 const TIPOS_ARCHIVO: { value: string; label: string; empresa: "lumaggs" | "galsa" | null; categoria: "galper" | "especial" | "lista" }[] = [
@@ -1711,28 +1712,70 @@ function ListasMarcaSection({ data }: { data?: { lumaggs: ListaMarcaRow[]; galsa
         </TabsTrigger>
       </TabsList>
       <TabsContent value="lumaggs" className="mt-4">
-        <ListaMarcaTable rows={lumaggs} showEspecial exportName="costos_lumaggs" />
+        <ListaMarcaTable rows={lumaggs} showEspecial exportName="costos_lumaggs" empresa="lumaggs" />
       </TabsContent>
       <TabsContent value="galsa" className="mt-4">
-        <ListaMarcaTable rows={galsa} exportName="costos_galsa" />
+        <ListaMarcaTable rows={galsa} exportName="costos_galsa" empresa="galsa" />
       </TabsContent>
       <TabsContent value="gonher" className="mt-4">
-        <ListaMarcaTable rows={gonher} exportName="costos_gonher" />
+        <ListaMarcaTable rows={gonher} exportName="costos_gonher" empresa="galsa" />
       </TabsContent>
     </Tabs>
   );
 }
 
-function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: ListaMarcaRow[]; showEspecial?: boolean; exportName: string }) {
+type TriFiltro = "todos" | "si" | "no";
+
+function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { rows: ListaMarcaRow[]; showEspecial?: boolean; exportName: string; empresa: string }) {
   const [q, setQ] = useState("");
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: ignorados = [] } = useCostosIgnorados();
   const [sortKey, setSortKey] = useState<keyof ListaMarcaRow>("codigo");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [fFuente, setFFuente] = useState("todas");
+  const [fCatalogo, setFCatalogo] = useState<TriFiltro>("todos");
+  const [fExistencia, setFExistencia] = useState<TriFiltro>("todos");
+  const [fGalper, setFGalper] = useState<TriFiltro>("todos");
+  const [fEspecial, setFEspecial] = useState<TriFiltro>("todos");
+  const [fLista, setFLista] = useState<TriFiltro>("todos");
+  const [fEfectivo, setFEfectivo] = useState<TriFiltro>("todos");
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const [mostrarIgnorados, setMostrarIgnorados] = useState(false);
+
+  const ignoradosSet = useMemo(
+    () => new Set((ignorados as any[]).map((i) => i.codigo_producto)),
+    [ignorados],
+  );
+
+  const visibles = useMemo(() => rows.filter(r => !ignoradosSet.has(r.codigo)), [rows, ignoradosSet]);
+
+  const fuentes = useMemo(
+    () => Array.from(new Set(visibles.map(r => r.fuente).filter(Boolean) as string[])).sort(),
+    [visibles],
+  );
+
+  const matchValor = (f: TriFiltro, v: number | null) =>
+    f === "todos" ? true : f === "si" ? v != null : v == null;
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    let out = rows;
-    if (term) out = rows.filter(r => r.codigo.toLowerCase().includes(term) || (r.nombre || "").toLowerCase().includes(term));
+    let out = visibles;
+    if (term) out = out.filter(r => r.codigo.toLowerCase().includes(term) || (r.nombre || "").toLowerCase().includes(term));
+    out = out.filter(r => {
+      if (fFuente !== "todas" && (r.fuente || "") !== fFuente) return false;
+      if (fCatalogo !== "todos" && r.en_catalogo !== (fCatalogo === "si")) return false;
+      if (fExistencia !== "todos") {
+        const con = (r.stock_total ?? 0) > 0;
+        if (con !== (fExistencia === "si")) return false;
+      }
+      if (!matchValor(fGalper, r.costo_galper)) return false;
+      if (showEspecial && !matchValor(fEspecial, r.costo_especial)) return false;
+      if (!matchValor(fLista, r.costo_lista)) return false;
+      if (!matchValor(fEfectivo, r.costo_efectivo)) return false;
+      return true;
+    });
     return [...out].sort((a, b) => {
       const av = a[sortKey], bv = b[sortKey];
       if (av == null && bv == null) return 0;
@@ -1743,7 +1786,56 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: Lis
         : String(av).localeCompare(String(bv), "es");
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [rows, q, sortKey, sortDir]);
+  }, [visibles, q, sortKey, sortDir, fFuente, fCatalogo, fExistencia, fGalper, fEspecial, fLista, fEfectivo, showEspecial]);
+
+  const todosSeleccionados = filtered.length > 0 && filtered.every(r => seleccion.has(r.codigo));
+  const toggleTodos = (on: boolean) => {
+    setSeleccion(prev => {
+      const s = new Set(prev);
+      filtered.forEach(r => (on ? s.add(r.codigo) : s.delete(r.codigo)));
+      return s;
+    });
+  };
+  const toggleUno = (codigo: string, on: boolean) => {
+    setSeleccion(prev => {
+      const s = new Set(prev);
+      if (on) s.add(codigo); else s.delete(codigo);
+      return s;
+    });
+  };
+
+  const ignorarMut = useMutation({
+    mutationFn: async (codigos: string[]) => {
+      const nuevos = codigos.filter(c => !ignoradosSet.has(c));
+      if (nuevos.length === 0) return 0;
+      const { error } = await (supabase as any)
+        .from("inv_costos_producto_ignorados")
+        .insert(nuevos.map(c => ({ codigo_producto: c, empresa, ignorado_por: user?.id ?? null })));
+      if (error) throw error;
+      return nuevos.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} código(s) ignorado(s)`);
+      setSeleccion(new Set());
+      queryClient.invalidateQueries({ queryKey: ["inv_costos_producto_ignorados"] });
+    },
+    onError: (e: any) => toast.error(e.message || "No se pudo ignorar"),
+  });
+
+  const quitarMut = useMutation({
+    mutationFn: async (codigo: string) => {
+      const { error } = await (supabase as any)
+        .from("inv_costos_producto_ignorados")
+        .delete()
+        .eq("codigo_producto", codigo);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Quitado de ignorados");
+      queryClient.invalidateQueries({ queryKey: ["inv_costos_producto_ignorados"] });
+    },
+    onError: (e: any) => toast.error(e.message || "No se pudo quitar"),
+  });
 
   const toggleSort = (k: keyof ListaMarcaRow) => {
     if (sortKey === k) setSortDir(d => (d === "asc" ? "desc" : "asc"));
@@ -1752,8 +1844,8 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: Lis
 
   const money = (n: number | null) => (n == null ? "—" : `$${Number(n).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 
-  const exportar = () => {
-    const out = filtered.map(d => ({
+  const exportarRows = (data: ListaMarcaRow[], sufijo = "") => {
+    const out = data.map(d => ({
       "Código": d.codigo,
       "Nombre": d.nombre,
       "Costo Galper": d.costo_galper ?? "",
@@ -1768,8 +1860,14 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: Lis
     ws["!cols"] = [{ wch: 16 }, { wch: 42 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Costos");
-    XLSX.writeFile(wb, `${exportName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `${exportName}${sufijo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
+  const exportar = () => exportarRows(filtered);
+
+  const ignoradosMarca = useMemo(() => {
+    const codigosMarca = new Set(rows.map(r => r.codigo));
+    return (ignorados as any[]).filter(i => codigosMarca.has(i.codigo_producto));
+  }, [ignorados, rows]);
 
   const Th = ({ k, children, className }: { k: keyof ListaMarcaRow; children: React.ReactNode; className?: string }) => (
     <TableHead className={`cursor-pointer select-none ${className || ""}`} onClick={() => toggleSort(k)}>
@@ -1777,7 +1875,22 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: Lis
     </TableHead>
   );
 
+  const TriSelect = ({ label, value, onChange, si = "Con valor", no = "Vacío" }: { label: string; value: TriFiltro; onChange: (v: TriFiltro) => void; si?: string; no?: string }) => (
+    <div className="space-y-1">
+      <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</Label>
+      <Select value={value} onValueChange={(v) => onChange(v as TriFiltro)}>
+        <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Todos</SelectItem>
+          <SelectItem value="si">{si}</SelectItem>
+          <SelectItem value="no">{no}</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
         <Input placeholder="Buscar por código o nombre…" value={q} onChange={e => setQ(e.target.value)} className="max-w-xs h-9" />
@@ -1785,10 +1898,45 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: Lis
           <FileSpreadsheet className="h-4 w-4 mr-1.5" />Exportar Excel
         </Button>
       </CardHeader>
+      <CardContent className="pt-0 pb-4">
+        <div className="flex flex-wrap gap-3">
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Fuente</Label>
+            <Select value={fFuente} onValueChange={setFFuente}>
+              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas</SelectItem>
+                {fuentes.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <TriSelect label="En Catálogo" value={fCatalogo} onChange={setFCatalogo} si="Sí" no="No" />
+          <TriSelect label="Existencia" value={fExistencia} onChange={setFExistencia} si="Con existencia" no="Sin existencia" />
+          <TriSelect label="Costo Galper" value={fGalper} onChange={setFGalper} />
+          {showEspecial && <TriSelect label="Precio Especial" value={fEspecial} onChange={setFEspecial} />}
+          <TriSelect label="Lista General" value={fLista} onChange={setFLista} />
+          <TriSelect label="Costo Efectivo" value={fEfectivo} onChange={setFEfectivo} />
+        </div>
+        {seleccion.size > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2">
+            <span className="text-sm font-medium">{seleccion.size} seleccionados</span>
+            <Button size="sm" variant="outline" onClick={() => ignorarMut.mutate([...seleccion])} disabled={ignorarMut.isPending}>
+              Ignorar seleccionados
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => exportarRows(filtered.filter(r => seleccion.has(r.codigo)), "_seleccion")}>
+              <FileSpreadsheet className="h-4 w-4 mr-1.5" />Exportar seleccionados a Excel
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSeleccion(new Set())}>Limpiar selección</Button>
+          </div>
+        )}
+      </CardContent>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <Checkbox checked={todosSeleccionados} onCheckedChange={(v) => toggleTodos(!!v)} />
+              </TableHead>
               <Th k="codigo">Código</Th>
               <Th k="nombre">Nombre</Th>
               <Th k="costo_galper" className="text-right">Costo Galper</Th>
@@ -1804,10 +1952,13 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: Lis
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showEspecial ? 10 : 9} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
+                <TableCell colSpan={showEspecial ? 11 : 10} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
               </TableRow>
             ) : filtered.map(r => (
               <TableRow key={r.codigo}>
+                <TableCell>
+                  <Checkbox checked={seleccion.has(r.codigo)} onCheckedChange={(v) => toggleUno(r.codigo, !!v)} />
+                </TableCell>
                 <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
                 <TableCell>{r.nombre}</TableCell>
                 <TableCell className="text-right">{money(r.costo_galper)}</TableCell>
@@ -1849,5 +2000,46 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName }: { rows: Lis
         </Table>
       </CardContent>
     </Card>
+
+    <div>
+      <Button variant="outline" size="sm" onClick={() => setMostrarIgnorados(v => !v)}>
+        {mostrarIgnorados ? "Ocultar" : "Mostrar"} ignorados ({ignoradosMarca.length})
+      </Button>
+    </div>
+    {mostrarIgnorados && (
+      <Card>
+        <CardHeader><CardTitle className="text-sm">Códigos ignorados</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Código</TableHead>
+                <TableHead>Empresa</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ignoradosMarca.map((ig: any, i: number) => (
+                <TableRow key={ig.id || i}>
+                  <TableCell className="font-mono text-xs">{ig.codigo_producto}</TableCell>
+                  <TableCell className="text-xs">{ig.empresa || "—"}</TableCell>
+                  <TableCell className="text-xs">{ig.ignorado_at ? new Date(ig.ignorado_at).toLocaleDateString("es-MX") : "—"}</TableCell>
+                  <TableCell className="text-right">
+                    <Button size="sm" variant="outline" onClick={() => quitarMut.mutate(ig.codigo_producto)} disabled={quitarMut.isPending}>
+                      Quitar de ignorados
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {ignoradosMarca.length === 0 && (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">Sin códigos ignorados</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    )}
+    </div>
   );
 }
