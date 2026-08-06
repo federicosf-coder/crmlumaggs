@@ -274,6 +274,7 @@ export default function GestionCostos() {
         .from("inv_costos_producto")
         .select("*")
         .eq("lote_id", loteActivo)
+        .neq("estado", "aplicado")
         .order("nivel_alerta")
         .limit(5000);
       if (error) throw error;
