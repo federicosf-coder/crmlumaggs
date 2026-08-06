@@ -5,8 +5,8 @@ const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MODEL = 'google/gemini-2.5-flash';
 
 const PROMPT_CHEVRON = `Del PDF de orden Chevron Business Point extrae SOLO este JSON sin texto adicional ni markdown:
-{"numero_po":"string","numero_orden":"string","almacen_origen":"string","total_monto":0,"moneda":"MXN","lineas":[{"codigo":"string","descripcion":"string","cantidad":0,"unidad":"string","precio_unitario":0,"precio_neto":0}]}
-El código del producto son los primeros 9 dígitos de cada línea. La cantidad es el número antes de 'CA'. Ignora las fechas de entrega.`;
+{"numero_po":"string","numero_orden":"string","almacen_destino":"1001 o 1002","total_monto":0,"moneda":"MXN","estado_general":"string","lineas":[{"codigo":"string","descripcion":"string","cantidad":0,"unidad":"string","precio_unitario":0,"precio_neto":0,"estado":"string"}]}
+El código del producto son los primeros 9 dígitos de cada línea. La cantidad es el número antes de 'CA','DR','PL' u otra unidad de empaque. almacen_destino: si el campo "Destinatario:" menciona "Mexicali" usa "1001", si menciona "Tijuana" usa "1002". estado_general es el texto que aparece en "Estado de la orden:". estado de cada línea es el texto que aparece debajo de esa línea de producto (ej. "En proceso", "Programado", "Cancelado"). Ignora las fechas de entrega.`;
 
 const PROMPT_PHILLIPS = `Del PDF de History Orders Detail de Phillips 66 extrae SOLO este JSON sin texto adicional ni markdown:
 {"numero_orden":"string","numero_po":"string","fecha_pedido":"YYYY-MM-DD","planta":"string","almacen_destino":"string","total_monto":0,"moneda":"USD","lineas":[{"codigo":"string","nombre":"string","precio_por_galon":0,"galones_por_empaque":0,"cantidad_empaques":0,"precio_total":0}]}
