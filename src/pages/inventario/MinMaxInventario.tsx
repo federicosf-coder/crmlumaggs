@@ -78,6 +78,7 @@ export function MinMaxTabContent() {
   const [almacenSel, setAlmacenSel] = useState<string>("todos");
   const [abcSel, setAbcSel] = useState<string>("todos");
   const [ajusteSel, setAjusteSel] = useState<string>("todos");
+  const [estadoSel, setEstadoSel] = useState<string>("todos");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
   const [recalculating, setRecalculating] = useState(false);
