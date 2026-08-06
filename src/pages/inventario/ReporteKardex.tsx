@@ -80,6 +80,18 @@ function calcAlerta(stock: number, min: number | null, max: number | null): Row[
 type PeriodoOpt = "todo" | "hoy" | "ayer" | "semana" | "mes" | "rango";
 
 export default function ReporteKardex() {
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Reporte de Inventario y Kárdex</h1>
+        <p className="text-sm text-muted-foreground font-light">Resumen de existencias, demanda y costos por SKU.</p>
+      </div>
+      <ReporteKardexTabContent />
+    </div>
+  );
+}
+
+export function ReporteKardexTabContent() {
   const [loading, setLoading] = useState(true);
   const [niveles, setNiveles] = useState<any[]>([]);
   const [demanda, setDemanda] = useState<any[]>([]);
