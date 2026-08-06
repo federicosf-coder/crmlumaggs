@@ -78,6 +78,7 @@ export function MinMaxTabContent() {
   const [almacenSel, setAlmacenSel] = useState<string>("todos");
   const [abcSel, setAbcSel] = useState<string>("todos");
   const [ajusteSel, setAjusteSel] = useState<string>("todos");
+  const [estadoSel, setEstadoSel] = useState<string>("todos");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
   const [recalculating, setRecalculating] = useState(false);
@@ -118,6 +119,7 @@ export function MinMaxTabContent() {
       if (abcSel !== "todos" && (r.clasificacion_abc ?? "") !== abcSel) return false;
       if (ajusteSel === "manual" && !r.ajustado_manualmente) return false;
       if (ajusteSel === "sin_ajustar" && r.ajustado_manualmente) return false;
+      if (estadoSel !== "todos" && estadoKey(r) !== estadoSel) return false;
       if (s) {
         const n = nivMap.get(r.codigo_producto);
         const text = `${r.codigo_producto} ${n?.nombre_producto ?? ""}`.toLowerCase();
@@ -125,7 +127,7 @@ export function MinMaxTabContent() {
       }
       return true;
     });
-  }, [rows, almacenSel, abcSel, ajusteSel, search, nivMap]);
+  }, [rows, almacenSel, abcSel, ajusteSel, estadoSel, search, nivMap]);
 
   const kpis = useMemo(() => {
     const conMin = filtered.filter((r) => (r.minimo_calc ?? 0) > 0 || (r.minimo_manual ?? 0) > 0).length;
@@ -217,15 +219,19 @@ export function MinMaxTabContent() {
     }
   };
 
-  const estadoBadge = (r: Row) => {
-    if (!(r.demanda_diaria_hub && r.demanda_diaria_hub > 0)) {
-      return <Badge variant="outline" className="text-muted-foreground">SIN DEMANDA</Badge>;
-    }
+  const estadoKey = (r: Row): "sin_demanda" | "bajo_minimo" | "manual" | "ok" => {
+    if (!(r.demanda_diaria_hub && r.demanda_diaria_hub > 0)) return "sin_demanda";
     const stock = stockOf(nivMap.get(r.codigo_producto), r.almacen);
-    if (r.minimo_efectivo > 0 && stock < r.minimo_efectivo) {
-      return <Badge variant="destructive">BAJO MÍNIMO</Badge>;
-    }
-    if (r.ajustado_manualmente) return <Badge className="bg-emerald-600 hover:bg-emerald-600">MANUAL</Badge>;
+    if (r.minimo_efectivo > 0 && stock < r.minimo_efectivo) return "bajo_minimo";
+    if (r.ajustado_manualmente) return "manual";
+    return "ok";
+  };
+
+  const estadoBadge = (r: Row) => {
+    const key = estadoKey(r);
+    if (key === "sin_demanda") return <Badge variant="outline" className="text-muted-foreground">SIN DEMANDA</Badge>;
+    if (key === "bajo_minimo") return <Badge variant="destructive">BAJO MÍNIMO</Badge>;
+    if (key === "manual") return <Badge className="bg-emerald-600 hover:bg-emerald-600">MANUAL</Badge>;
     return <Badge className="bg-blue-600 hover:bg-blue-600">OK</Badge>;
   };
 
@@ -286,6 +292,19 @@ export function MinMaxTabContent() {
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="manual">Solo ajustados manualmente</SelectItem>
                 <SelectItem value="sin_ajustar">Solo sin ajustar</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Estado</Label>
+            <Select value={estadoSel} onValueChange={setEstadoSel}>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="sin_demanda">Sin demanda</SelectItem>
+                <SelectItem value="bajo_minimo">Bajo mínimo</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+                <SelectItem value="ok">OK</SelectItem>
               </SelectContent>
             </Select>
           </div>
