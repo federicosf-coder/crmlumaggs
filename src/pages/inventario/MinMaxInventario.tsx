@@ -119,6 +119,7 @@ export function MinMaxTabContent() {
       if (abcSel !== "todos" && (r.clasificacion_abc ?? "") !== abcSel) return false;
       if (ajusteSel === "manual" && !r.ajustado_manualmente) return false;
       if (ajusteSel === "sin_ajustar" && r.ajustado_manualmente) return false;
+      if (estadoSel !== "todos" && estadoKey(r) !== estadoSel) return false;
       if (s) {
         const n = nivMap.get(r.codigo_producto);
         const text = `${r.codigo_producto} ${n?.nombre_producto ?? ""}`.toLowerCase();
@@ -126,7 +127,7 @@ export function MinMaxTabContent() {
       }
       return true;
     });
-  }, [rows, almacenSel, abcSel, ajusteSel, search, nivMap]);
+  }, [rows, almacenSel, abcSel, ajusteSel, estadoSel, search, nivMap]);
 
   const kpis = useMemo(() => {
     const conMin = filtered.filter((r) => (r.minimo_calc ?? 0) > 0 || (r.minimo_manual ?? 0) > 0).length;
