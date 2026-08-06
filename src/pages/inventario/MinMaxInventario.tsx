@@ -295,6 +295,19 @@ export function MinMaxTabContent() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Estado</Label>
+            <Select value={estadoSel} onValueChange={setEstadoSel}>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="sin_demanda">Sin demanda</SelectItem>
+                <SelectItem value="bajo_minimo">Bajo mínimo</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+                <SelectItem value="ok">OK</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex-1 min-w-[240px]">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Búsqueda</Label>
             <div className="relative">
