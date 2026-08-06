@@ -1803,6 +1803,8 @@ type ListaMarcaRow = {
   fuente: string | null;
   en_catalogo: boolean;
   stock_total: number | null;
+  precio_si_galper: number | null;
+  descuento_disponible: number | null;
 };
 
 function fuenteBadgeLista(f: string | null | undefined) {
@@ -1874,6 +1876,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
   const [fEspecial, setFEspecial] = useState<TriFiltro>("todos");
   const [fLista, setFLista] = useState<TriFiltro>("todos");
   const [fEfectivo, setFEfectivo] = useState<TriFiltro>("todos");
+  const [fDescuento, setFDescuento] = useState<TriFiltro>("todos");
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [mostrarIgnorados, setMostrarIgnorados] = useState(false);
 
@@ -1907,6 +1910,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
       if (showEspecial && !matchValor(fEspecial, r.costo_especial)) return false;
       if (!matchValor(fLista, r.costo_lista)) return false;
       if (!matchValor(fEfectivo, r.costo_efectivo)) return false;
+      if (showEspecial && !matchValor(fDescuento, r.descuento_disponible)) return false;
       return true;
     });
     return [...out].sort((a, b) => {
@@ -1919,7 +1923,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
         : String(av).localeCompare(String(bv), "es");
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [visibles, q, sortKey, sortDir, fFuente, fCatalogo, fExistencia, fGalper, fEspecial, fLista, fEfectivo, showEspecial]);
+  }, [visibles, q, sortKey, sortDir, fFuente, fCatalogo, fExistencia, fGalper, fEspecial, fLista, fEfectivo, fDescuento, showEspecial]);
 
   const todosSeleccionados = filtered.length > 0 && filtered.every(r => seleccion.has(r.codigo));
   const toggleTodos = (on: boolean) => {
@@ -1991,6 +1995,9 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
       "Fuente": d.fuente || "",
       "En Catálogo": d.en_catalogo ? "Sí" : "No",
       "Piezas en Inventario": d.stock_total ?? "",
+      ...(showEspecial
+        ? { "Precio si Galper": d.precio_si_galper ?? "", "Margen Descuento Disp.": d.descuento_disponible ?? "" }
+        : {}),
     }));
     const ws = XLSX.utils.json_to_sheet(out);
     ws["!cols"] = [{ wch: 16 }, { wch: 42 }, { wch: 18 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
@@ -2052,6 +2059,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
           {showEspecial && <TriSelect label="Precio Especial" value={fEspecial} onChange={setFEspecial} />}
           <TriSelect label="Lista General" value={fLista} onChange={setFLista} />
           <TriSelect label="Costo Efectivo" value={fEfectivo} onChange={setFEfectivo} />
+          {showEspecial && <TriSelect label="Con Margen Descuento" value={fDescuento} onChange={setFDescuento} si="Con margen" no="Sin margen" />}
         </div>
         {seleccion.size > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2">
@@ -2078,6 +2086,8 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
               <Th k="presentacion">Presentación</Th>
               <Th k="clasificacion_abc">ABC</Th>
               <Th k="precio_uf1" className="text-right">Precio UF1</Th>
+              {showEspecial && <Th k="precio_si_galper" className="text-right">Precio si Galper</Th>}
+              {showEspecial && <Th k="descuento_disponible" className="text-right">Margen Descuento Disp.</Th>}
               <Th k="costo_galper" className="text-right">Costo Galper</Th>
               {showEspecial && <Th k="costo_especial" className="text-right">Precio Especial</Th>}
               <Th k="costo_lista" className="text-right">Lista General</Th>
@@ -2091,7 +2101,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showEspecial ? 14 : 13} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
+                <TableCell colSpan={showEspecial ? 16 : 13} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
               </TableRow>
             ) : filtered.map(r => (
               <TableRow key={r.codigo}>
@@ -2103,6 +2113,12 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
                 <TableCell className="text-muted-foreground text-sm">{r.presentacion ?? "—"}</TableCell>
                 <TableCell>{abcBadgeLista(r.clasificacion_abc)}</TableCell>
                 <TableCell className="text-right">{money(r.precio_uf1)}</TableCell>
+                {showEspecial && <TableCell className="text-right">{money(r.precio_si_galper)}</TableCell>}
+                {showEspecial && (
+                  <TableCell className={`text-right ${r.descuento_disponible != null ? "text-emerald-600 font-medium" : ""}`}>
+                    {r.descuento_disponible == null ? "—" : money(r.descuento_disponible)}
+                  </TableCell>
+                )}
                 <TableCell className="text-right">{money(r.costo_galper)}</TableCell>
                 {showEspecial && <TableCell className="text-right">{money(r.costo_especial)}</TableCell>}
                 <TableCell className="text-right">{money(r.costo_lista)}</TableCell>
