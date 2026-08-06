@@ -25,7 +25,7 @@ import { useCostosIgnorados } from "@/hooks/useMapeoProductos";
 
 // ─── Tipos de archivo ───────────────────────────────────────────
 const TIPOS_ARCHIVO: { value: string; label: string; empresa: "lumaggs" | "galsa" | null; categoria: "galper" | "especial" | "lista" }[] = [
-  { value: "costos_galper_lumaggs", label: "Costo Galper Lumaggs", empresa: "lumaggs", categoria: "galper" },
+  { value: "costos_galper_lumaggs", label: "Lista Precios Lumaggs Galper", empresa: "lumaggs", categoria: "galper" },
   { value: "precios_especiales_lumaggs", label: "Precios Especiales Lumaggs", empresa: "lumaggs", categoria: "especial" },
   { value: "lista_general_lumaggs", label: "Lista General Lumaggs", empresa: "lumaggs", categoria: "lista" },
   { value: "costos_galper_galsa", label: "Lista Precios Galsa Galper", empresa: "galsa", categoria: "galper" },
@@ -110,7 +110,7 @@ async function parseGonherPdfToMap(file: File): Promise<Map<string, { codigo: st
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
   const map = new Map<string, { codigo: string; costo: number; nombre?: string }>();
   // [fecha opcional] codigo empaque nombre... precioContado precioCredito
-  const rowRe = /^(?:\d{2}\/\d{2}\/\d{4}\s+)?([A-Za-z0-9][A-Za-z0-9\-_.]*)\s+(\S+)\s+(.+?)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})$/;
+  const rowRe = /^(?:\d{2}\/\d{2}\/\d{4}\s+)?([A-Za-z0-9][A-Za-z0-9\-_.]*)\s+(\S+)\s+(.+?)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})(?:\s+[\d,]+\.\d{2})?$/;
 
   const pushLine = (raw: string) => {
     const line = raw.replace(/\s+/g, " ").trim();
@@ -796,7 +796,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
     setProcesandoTipo(tipo);
     try {
       const tipoDef = TIPOS_ARCHIVO.find(t => t.value === tipo);
-      const esGonherPdf = isPdf && (tipo === "costos_galper_gonher" || tipo === "lista_general_gonher" || tipo === "costos_galper_galsa");
+      const esGonherPdf = isPdf && (tipo === "costos_galper_gonher" || tipo === "lista_general_gonher" || tipo === "costos_galper_galsa" || tipo === "costos_galper_lumaggs");
       const map = isPdf
         ? (esGonherPdf ? await parseGonherPdfToMap(file) : await parsePdfToMap(file))
         : await parseExcelToMap(file);
