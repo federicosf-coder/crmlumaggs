@@ -288,6 +288,21 @@ const TIPO_LABEL: Record<string, string> = {
 };
 
 export default function KardexCarga() {
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-light tracking-tight">Carga de Kárdex</h1>
+        <p className="text-sm text-muted-foreground">
+          Sube los 4 reportes de CONTPAQi (XLS). Cada tipo actualiza información diferente.
+          Se ignoran los almacenes 1 "Almacén Uno" y 999 "Consignación".
+        </p>
+      </div>
+      <KardexCargaTabContent />
+    </div>
+  );
+}
+
+export function KardexCargaTabContent() {
   const { data: cargas = [] } = useKardexCargas();
   const { user, hasAnyRole } = useAuth();
   const qc = useQueryClient();
@@ -360,15 +375,7 @@ export default function KardexCarga() {
   });
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-light tracking-tight">Carga de Kárdex</h1>
-        <p className="text-sm text-muted-foreground">
-          Sube los 4 reportes de CONTPAQi (XLS). Cada tipo actualiza información diferente.
-          Se ignoran los almacenes 1 "Almacén Uno" y 999 "Consignación".
-        </p>
-      </div>
-
+    <div className="space-y-6">
       <Tabs defaultValue="subir">
         <TabsList>
           <TabsTrigger value="subir">Subir archivos</TabsTrigger>
