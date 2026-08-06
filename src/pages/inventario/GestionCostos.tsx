@@ -1258,7 +1258,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
 }
 
 // ─── PROPUESTA ──────────────────────────────────────────────────
-function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta: any[]; loteId: string | null; onRefresh: () => void; userId?: string }) {
+function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta: any[]; loteId: string | null; onRefresh: () => Promise<void>; userId?: string }) {
   const [filtroNivel, setFiltroNivel] = useState<string>("todos");
   const [filtroEstado, setFiltroEstado] = useState<string>("todos");
   const [filtroEmpresa, setFiltroEmpresa] = useState<string>("todos");
