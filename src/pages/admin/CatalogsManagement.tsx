@@ -256,6 +256,146 @@ function PresentacionesTab() {
   );
 }
 
+// ─── Productos Base Tab ──────────────────────────────────────
+function ProductoBaseTab() {
+  const qc = useQueryClient();
+  const [q, setQ] = useState("");
+
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ["productos_base_all"],
+    queryFn: async () => { const { data, error } = await supabase.from("productos_base").select("*").order("nombre"); if (error) throw error; return data as any[]; },
+  });
+
+  const { data: marcas = [] } = useQuery({
+    queryKey: ["product_option_values", "marca"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("product_option_values").select("*").eq("option_type", "marca").eq("is_active", true).order("value");
+      if (error) throw error; return data as any[];
+    },
+  });
+
+  const marcaLabel = (id: string | null) => marcas.find((m: any) => m.id === id)?.value || "—";
+
+  const [open, setOpen] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [marcaId, setMarcaId] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+
+  const [editItem, setEditItem] = useState<any>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editMarcaId, setEditMarcaId] = useState("");
+  const [editDescripcion, setEditDescripcion] = useState("");
+  const [editActive, setEditActive] = useState(true);
+
+  const add = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("productos_base").insert({
+        nombre,
+        marca_id: marcaId || null,
+        descripcion: descripcion || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["productos_base_all"] }); qc.invalidateQueries({ queryKey: ["productos_base"] }); setOpen(false); setNombre(""); setMarcaId(""); setDescripcion(""); toast.success("Producto base creado"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("productos_base").update({
+        nombre: editNombre,
+        marca_id: editMarcaId || null,
+        descripcion: editDescripcion || null,
+        is_active: editActive,
+      }).eq("id", editItem.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["productos_base_all"] }); qc.invalidateQueries({ queryKey: ["productos_base"] }); setEditItem(null); toast.success("Producto base actualizado"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const openEdit = (item: any) => {
+    setEditItem(item);
+    setEditNombre(item.nombre || "");
+    setEditMarcaId(item.marca_id || "");
+    setEditDescripcion(item.descripcion || "");
+    setEditActive(item.is_active !== false);
+  };
+
+  const filtered = items.filter((p: any) => (p.nombre || "").toLowerCase().includes(q.trim().toLowerCase()));
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2"><BoxesIcon className="h-5 w-5" /> Productos Base</CardTitle>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Nuevo</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Nuevo Producto Base</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Nombre</Label><Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Delo 400 XLE" /></div>
+              <div>
+                <Label>Marca</Label>
+                <Select value={marcaId} onValueChange={setMarcaId}>
+                  <SelectTrigger><SelectValue placeholder="Sin marca" /></SelectTrigger>
+                  <SelectContent>
+                    {marcas.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.value}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Descripción</Label><Textarea value={descripcion} onChange={e => setDescripcion(e.target.value)} rows={3} /></div>
+              <Button onClick={() => add.mutate()} disabled={!nombre || add.isPending}>{add.isPending ? "Guardando..." : "Guardar"}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        <div className="relative mb-3 max-w-sm">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-8" placeholder="Buscar por nombre..." value={q} onChange={e => setQ(e.target.value)} />
+        </div>
+        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
+          <Table>
+            <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Marca</TableHead><TableHead>Descripción</TableHead><TableHead>Activo</TableHead><TableHead className="w-16"></TableHead></TableRow></TableHeader>
+            <TableBody>
+              {filtered.map((p: any) => (
+                <TableRow key={p.id}>
+                  <TableCell className="font-medium">{p.nombre}</TableCell>
+                  <TableCell>{marcaLabel(p.marca_id)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{p.descripcion || "—"}</TableCell>
+                  <TableCell><Badge variant={p.is_active !== false ? "default" : "secondary"}>{p.is_active !== false ? "Sí" : "No"}</Badge></TableCell>
+                  <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button></TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin productos base</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+      <Dialog open={!!editItem} onOpenChange={v => { if (!v) setEditItem(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Producto Base</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nombre</Label><Input value={editNombre} onChange={e => setEditNombre(e.target.value)} /></div>
+            <div>
+              <Label>Marca</Label>
+              <Select value={editMarcaId} onValueChange={setEditMarcaId}>
+                <SelectTrigger><SelectValue placeholder="Sin marca" /></SelectTrigger>
+                <SelectContent>
+                  {marcas.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.value}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Descripción</Label><Textarea value={editDescripcion} onChange={e => setEditDescripcion(e.target.value)} rows={3} /></div>
+            <div className="flex items-center gap-2"><Switch checked={editActive} onCheckedChange={setEditActive} /><Label>Activo</Label></div>
+          </div>
+          <DialogFooter><Button onClick={() => update.mutate()} disabled={!editNombre || update.isPending}>{update.isPending ? "Guardando..." : "Guardar"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
 // ─── Options Tab ─────────────────────────────────────────────
 function OptionsTab() {
   const qc = useQueryClient();
@@ -2062,7 +2202,7 @@ function LineaMargenesTab() {
 type CatalogKey =
   | "plazas" | "vehiculos" | "repartidores" | "tipos_direccion"
   | "presentaciones" | "clasificaciones" | "empresa_marcas"
-  | "linea_margenes"
+  | "linea_margenes" | "producto_base"
   | "industrias" | "embudos" | "condiciones"
   | "logos"
   | "seguimiento_estatus"
@@ -2094,6 +2234,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
       { key: "clasificaciones", label: "Clasificaciones de Producto" },
       { key: "linea_margenes", label: "Márgenes por Línea de Producto", description: "Define los 8 % de utilidad por línea" },
       { key: "empresa_marcas", label: "Marcas por Empresa" },
+      { key: "producto_base", label: "Productos Base", description: "Familias de producto usadas para agrupar variantes" },
     ],
   },
   {
@@ -2133,6 +2274,7 @@ function renderCatalog(key: CatalogKey) {
     case "clasificaciones": return <OptionsTab />;
     case "linea_margenes": return <LineaMargenesTab />;
     case "empresa_marcas": return <EmpresaMarcasTab />;
+    case "producto_base": return <ProductoBaseTab />;
     case "industrias": return <IndustriasTab />;
     case "condiciones": return <CondicionesTab />;
     case "logos": return <LogosTab />;
