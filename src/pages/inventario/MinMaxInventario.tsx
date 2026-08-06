@@ -219,15 +219,19 @@ export function MinMaxTabContent() {
     }
   };
 
-  const estadoBadge = (r: Row) => {
-    if (!(r.demanda_diaria_hub && r.demanda_diaria_hub > 0)) {
-      return <Badge variant="outline" className="text-muted-foreground">SIN DEMANDA</Badge>;
-    }
+  const estadoKey = (r: Row): "sin_demanda" | "bajo_minimo" | "manual" | "ok" => {
+    if (!(r.demanda_diaria_hub && r.demanda_diaria_hub > 0)) return "sin_demanda";
     const stock = stockOf(nivMap.get(r.codigo_producto), r.almacen);
-    if (r.minimo_efectivo > 0 && stock < r.minimo_efectivo) {
-      return <Badge variant="destructive">BAJO MÍNIMO</Badge>;
-    }
-    if (r.ajustado_manualmente) return <Badge className="bg-emerald-600 hover:bg-emerald-600">MANUAL</Badge>;
+    if (r.minimo_efectivo > 0 && stock < r.minimo_efectivo) return "bajo_minimo";
+    if (r.ajustado_manualmente) return "manual";
+    return "ok";
+  };
+
+  const estadoBadge = (r: Row) => {
+    const key = estadoKey(r);
+    if (key === "sin_demanda") return <Badge variant="outline" className="text-muted-foreground">SIN DEMANDA</Badge>;
+    if (key === "bajo_minimo") return <Badge variant="destructive">BAJO MÍNIMO</Badge>;
+    if (key === "manual") return <Badge className="bg-emerald-600 hover:bg-emerald-600">MANUAL</Badge>;
     return <Badge className="bg-blue-600 hover:bg-blue-600">OK</Badge>;
   };
 
