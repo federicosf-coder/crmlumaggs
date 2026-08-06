@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,11 +13,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CheckCircle2, AlertTriangle, FileText, ShieldAlert } from "lucide-react";
+import { CheckCircle2, AlertTriangle, FileText, ShieldAlert, ChevronDown, ChevronRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { calcSugerencia, MIN_TARIMAS_PEDIDO } from "@/hooks/usePedidosInventario";
+import { MIN_TARIMAS_PEDIDO } from "@/hooks/usePedidosInventario";
 import { abcColor } from "@/hooks/useInventario";
+
+const ALMACENES: { code: string; label: string }[] = [
+  { code: "1001", label: "Mexicali (1001)" },
+  { code: "1002", label: "Tijuana (1002)" },
+  { code: "1003", label: "Morelos (1003)" },
+  { code: "1004", label: "Ensenada (1004)" },
+];
 
 export default function PedidosSugeridos() {
   const { hasAnyRole } = useAuth();
@@ -28,14 +35,39 @@ export default function PedidosSugeridos() {
   const [hub, setHub] = useState("ambos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [ocultarRestringidos, setOcultarRestringidos] = useState(false);
+  const [modo, setModo] = useState<"consolidado" | "estricto">("consolidado");
+  const [expandido, setExpandido] = useState<string | null>(null);
 
   const { data: niveles = [] } = useQuery({
-    queryKey: ["inv_niveles_pedir"],
+    queryKey: ["inv_niveles_sugeridos"],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("inv_niveles_inventario")
-        .select("*").eq("estatus_inventario", "pedir").order("clasificacion_abc").order("codigo_producto");
+        .select("*").order("clasificacion_abc").order("codigo_producto");
       if (error) throw error;
       return data as any[];
+    },
+    refetchInterval: 60_000,
+  });
+
+  const { data: minmax = [] } = useQuery({
+    queryKey: ["inv_minmax_sugeridos"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("inv_minmax")
+        .select("codigo_producto, almacen, minimo_calc, maximo_calc, minimo_manual, maximo_manual, cantidad_reorden_calc, cantidad_reorden_manual, demanda_diaria_hub, lead_time_dias, clasificacion_abc");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    refetchInterval: 60_000,
+  });
+
+  const { data: pedidoLineas = [] } = useQuery({
+    queryKey: ["inv_pedido_lineas_abiertos"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("inv_pedido_lineas")
+        .select("codigo_producto, cantidad_solicitada, cantidad_confirmada, inv_pedidos!inner(estatus, almacen_destino, empresa_vendedora)")
+        .not("inv_pedidos.estatus", "in", "(cerrado,cancelado)");
+      if (error) throw error;
+      return (data || []) as any[];
     },
     refetchInterval: 60_000,
   });
@@ -66,14 +98,60 @@ export default function PedidosSugeridos() {
     };
   }, [restricciones]);
 
-  const filtered = useMemo(() => niveles.filter((n) => {
-    if (empresa !== "todas" && n.empresa_vendedora !== empresa) return false;
-    return true;
-  }), [niveles, empresa]);
+  // reorden efectiva por código y almacén
+  const reordenPorCodigo = useMemo(() => {
+    const m: Record<string, Record<string, number>> = {};
+    (minmax as any[]).forEach((r) => {
+      const val = Number(r.cantidad_reorden_manual ?? r.cantidad_reorden_calc ?? 0) || 0;
+      if (!m[r.codigo_producto]) m[r.codigo_producto] = {};
+      m[r.codigo_producto][r.almacen] = (m[r.codigo_producto][r.almacen] || 0) + val;
+    });
+    return m;
+  }, [minmax]);
 
-  const enriched = useMemo(() => filtered.map((n) => ({
-    ...n, _sug: calcSugerencia(n), _restr: restriccionFor(n.codigo_producto, n.empresa_vendedora),
-  })), [filtered, restriccionFor]);
+  const pedidoPorCodigo = useMemo(() => {
+    const total: Record<string, number> = {};
+    const porAlmacen: Record<string, Record<string, number>> = {};
+    (pedidoLineas as any[]).forEach((l) => {
+      const cant = Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0) || 0;
+      const cod = l.codigo_producto;
+      if (!cod) return;
+      total[cod] = (total[cod] || 0) + cant;
+      const alm = l.inv_pedidos?.almacen_destino || "";
+      if (!porAlmacen[cod]) porAlmacen[cod] = {};
+      porAlmacen[cod][alm] = (porAlmacen[cod][alm] || 0) + cant;
+    });
+    return { total, porAlmacen };
+  }, [pedidoLineas]);
+
+  const enriched = useMemo(() => {
+    const hubs = modo === "estricto"
+      ? (hub === "ambos" ? ["1001", "1002"] : [hub])
+      : ALMACENES.map((a) => a.code);
+
+    return (niveles as any[])
+      .filter((n) => empresa === "todas" || n.empresa_vendedora === empresa)
+      .map((n) => {
+        const desglose = reordenPorCodigo[n.codigo_producto] || {};
+        const necesidad_empresa = hubs.reduce((a, c) => a + (desglose[c] || 0), 0);
+        const ya_pedido = modo === "estricto"
+          ? hubs.reduce((a, c) => a + ((pedidoPorCodigo.porAlmacen[n.codigo_producto] || {})[c] || 0), 0)
+          : (pedidoPorCodigo.total[n.codigo_producto] || 0);
+        const necesidad_neta = Math.max(0, Math.round(necesidad_empresa - ya_pedido));
+        const pzs = Number(n.piezas_por_tarima || 0);
+        const tarimas = pzs > 0 ? Math.ceil(necesidad_neta / pzs) : 0;
+        return {
+          ...n,
+          _desglose: desglose,
+          _necesidadTotal: Math.round(necesidad_empresa),
+          _yaPedido: Math.round(ya_pedido),
+          _necesidadNeta: necesidad_neta,
+          _tarimas: tarimas,
+          _restr: restriccionFor(n.codigo_producto, n.empresa_vendedora),
+        };
+      })
+      .filter((n) => n._necesidadNeta > 0);
+  }, [niveles, empresa, modo, hub, reordenPorCodigo, pedidoPorCodigo, restriccionFor]);
 
   const visibles = useMemo(
     () => ocultarRestringidos ? enriched.filter((n) => !n._restr) : enriched,
@@ -83,7 +161,7 @@ export default function PedidosSugeridos() {
 
   const tarimasPorPresentacion = useMemo(() => {
     const m: Record<string, number> = {};
-    enriched.filter((n) => !n._restr).forEach((n) => { const k = n.presentacion || "otro"; m[k] = (m[k] || 0) + n._sug.tarimas; });
+    enriched.filter((n) => !n._restr).forEach((n) => { const k = n.presentacion || "otro"; m[k] = (m[k] || 0) + n._tarimas; });
     return m;
   }, [enriched]);
   const totalTarimas = Object.values(tarimasPorPresentacion).reduce((a, b) => a + b, 0);
@@ -123,6 +201,13 @@ export default function PedidosSugeridos() {
                 <SelectItem value="1002">Tijuana (1002)</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={modo} onValueChange={(v) => setModo(v as any)}>
+              <SelectTrigger className="w-[240px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="consolidado">Consolidado (recomendado)</SelectItem>
+                <SelectItem value="estricto">Estricto por plaza</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="flex items-center gap-2 pl-2 border-l">
               <Switch id="hide-restr" checked={ocultarRestringidos} onCheckedChange={setOcultarRestringidos} />
               <Label htmlFor="hide-restr" className="text-xs cursor-pointer">Ocultar restringidos</Label>
@@ -140,16 +225,26 @@ export default function PedidosSugeridos() {
           <Table>
             <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
               <TableRow>
+                <Th className="w-8"> </Th>
                 <Th>ABC</Th><Th>Código</Th><Th>Producto</Th><Th>Presentación</Th>
                 <Th className="text-right">Stock</Th><Th className="text-right">Consumo/mes</Th>
                 <Th className="text-right">Días Cob.</Th><Th className="text-right">Lead (sem)</Th>
-                <Th className="text-right">Necesidad</Th><Th className="text-right">Pzs/Tarima</Th>
+                <Th className="text-right">Necesidad Total</Th><Th className="text-right">Ya Pedido</Th>
+                <Th className="text-right">Necesidad Neta</Th><Th className="text-right">Pzs/Tarima</Th>
                 <Th className="text-right">Tarimas</Th><Th>Fuente</Th>
               </TableRow>
             </TableHeader>
             <TableBody>
               {visibles.map((n, i) => (
+               <Fragment key={n.id}>
                 <TableRow key={n.id} className={n._restr ? "bg-amber-50/70" : (i % 2 === 0 ? "" : "bg-muted/20")}>
+                  <TableCell className="w-8 p-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7"
+                      onClick={() => setExpandido(expandido === n.id ? null : n.id)}
+                      title="Desglose por plaza">
+                      {expandido === n.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </Button>
+                  </TableCell>
                   <TableCell><Badge variant="outline" className={abcColor(n.clasificacion_abc)}>{n.clasificacion_abc || "—"}</Badge></TableCell>
                   <TableCell className="font-mono text-xs">
                     <div className="flex items-center gap-1">
@@ -174,14 +269,31 @@ export default function PedidosSugeridos() {
                   <TableCell className="text-right tabular-nums">{Math.round(n.consumo_hub_mensual || 0)}</TableCell>
                   <TableCell className="text-right tabular-nums text-red-700 font-semibold">{Math.round(n.dias_cobertura || 0)}</TableCell>
                   <TableCell className="text-right tabular-nums">{n.lead_time_dias ? Math.round(n.lead_time_dias / 7) : "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">{n._sug.necesidad}</TableCell>
+                  <TableCell className="text-right tabular-nums">{n._necesidadTotal}</TableCell>
+                  <TableCell className={`text-right tabular-nums ${n._yaPedido === 0 ? "text-muted-foreground" : ""}`}>{n._yaPedido}</TableCell>
+                  <TableCell className="text-right tabular-nums font-bold">{n._necesidadNeta}</TableCell>
                   <TableCell className="text-right tabular-nums">{n.piezas_por_tarima ?? "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">{n._sug.tarimas}</TableCell>
+                  <TableCell className="text-right tabular-nums font-medium">{n._tarimas}</TableCell>
                   <TableCell className="text-xs uppercase">{n.fuente_suministro || "—"}</TableCell>
                 </TableRow>
+                {expandido === n.id && (
+                  <TableRow className="bg-blue-50/40">
+                    <TableCell colSpan={15} className="text-xs py-3">
+                      <div className="flex flex-wrap gap-4 pl-8">
+                        <span className="uppercase tracking-wide text-muted-foreground">Desglose por plaza</span>
+                        {ALMACENES.map((a) => (
+                          <span key={a.code}>
+                            {a.label}: <b className="tabular-nums">{Math.round(n._desglose[a.code] || 0)}</b>
+                          </span>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+               </Fragment>
               ))}
               {visibles.length === 0 && (
-                <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">No hay SKUs por pedir</TableCell></TableRow>
+                <TableRow><TableCell colSpan={15} className="text-center py-8 text-muted-foreground">No hay SKUs por pedir</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
