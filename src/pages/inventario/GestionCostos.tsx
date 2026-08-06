@@ -384,10 +384,10 @@ export default function GestionCostos() {
         <TabsContent value="biblioteca" className="mt-4">
           <BibliotecaSection
             archivos={archivos}
-            onRefresh={() => {
+            onRefresh={async () => {
+              await refetchLote();
+              qc.invalidateQueries({ queryKey: ["inv_costos_propuesta"] });
               refetchArchivos();
-              refetchLote();
-              refetchPropuesta();
               qc.invalidateQueries({ queryKey: ["inv_costos_lote_activo"] });
               qc.invalidateQueries({ queryKey: ["inv_costos_listas_marca"] });
               qc.invalidateQueries({ queryKey: ["inv_costos_sin_confirmar_count"] });
@@ -400,7 +400,13 @@ export default function GestionCostos() {
           <PropuestaSection
             propuesta={propuesta}
             loteId={loteActivo}
-            onRefresh={() => { refetchPropuesta(); refetchLote(); qc.invalidateQueries({ queryKey: ["products"] }); qc.invalidateQueries({ queryKey: ["inv_costos_historial"] }); }}
+            onRefresh={async () => {
+              await refetchLote();
+              qc.invalidateQueries({ queryKey: ["inv_costos_propuesta"] });
+              refetchPropuesta();
+              qc.invalidateQueries({ queryKey: ["products"] });
+              qc.invalidateQueries({ queryKey: ["inv_costos_historial"] });
+            }}
             userId={user?.id}
           />
         </TabsContent>
@@ -738,7 +744,7 @@ function SinConfirmarSection() {
 }
 
 // ─── BIBLIOTECA ─────────────────────────────────────────────────
-function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; onRefresh: () => void; userId?: string }) {
+function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; onRefresh: () => Promise<void>; userId?: string }) {
   const [generando, setGenerando] = useState(false);
   const [progreso, setProgreso] = useState(0);
   const [progresoTexto, setProgresoTexto] = useState("");
@@ -1252,7 +1258,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
 }
 
 // ─── PROPUESTA ──────────────────────────────────────────────────
-function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta: any[]; loteId: string | null; onRefresh: () => void; userId?: string }) {
+function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta: any[]; loteId: string | null; onRefresh: () => Promise<void>; userId?: string }) {
   const [filtroNivel, setFiltroNivel] = useState<string>("todos");
   const [filtroEstado, setFiltroEstado] = useState<string>("todos");
   const [filtroEmpresa, setFiltroEmpresa] = useState<string>("todos");
@@ -1396,7 +1402,7 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
         ok++;
       }
       toast.success(`${ok} productos actualizados${fail ? ` · ${fail} con error` : ""}`);
-      onRefresh();
+      await onRefresh();
       setConfirmApply(false);
     } catch (e: any) {
       toast.error("Error: " + e.message);
