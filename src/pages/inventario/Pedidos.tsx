@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { to: "/inventario/pedidos/sugeridos", label: "Sugeridos" },
+  { to: "/inventario/pedidos/subir", label: "Subir Pedidos" },
   { to: "/inventario/pedidos/elaborados", label: "Elaborados" },
   { to: "/inventario/pedidos/recibidos", label: "Recibidos" },
   { to: "/inventario/pedidos/reclamos", label: "Reclamos" },
