@@ -794,6 +794,18 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
         : await parseExcelToMap(file);
       if (map.size === 0) { toast.error("No se detectaron registros válidos en el archivo"); return; }
 
+      // Subir archivo original a Storage (no bloquea el flujo si falla)
+      let storagePath: string | null = null;
+      try {
+        const path = `${tipo}/${Date.now()}-${file.name}`;
+        const { error: upErr } = await supabase.storage.from("inventario-archivos").upload(path, file);
+        if (upErr) throw upErr;
+        storagePath = path;
+      } catch (upe: any) {
+        console.warn("Storage upload falló", upe);
+        toast.warning("No se pudo guardar el archivo original en Storage, pero los datos sí se procesaron.");
+      }
+
       await supabase.from("inv_archivos_referencia").update({ es_activo: false }).eq("tipo", tipo).eq("es_activo", true);
 
       const hoy = new Date().toISOString().slice(0, 10);
@@ -807,7 +819,7 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
         registros_procesados: map.size,
         registros_con_error: 0,
         estatus: "completado",
-        storage_path: null,
+        storage_path: storagePath,
         subido_por: userId,
       });
       if (insErr) throw insErr;
