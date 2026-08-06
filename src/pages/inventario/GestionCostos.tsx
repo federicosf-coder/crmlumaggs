@@ -306,13 +306,18 @@ export default function GestionCostos() {
           .order("created_at", { ascending: false })
           .limit(50000),
         supabase.from("inv_archivos_referencia").select("id, tipo"),
-        supabase.from("productos").select("codigo, nombre_producto").eq("is_active", true).limit(20000),
-        supabase.from("inv_niveles_inventario").select("codigo_producto, stock_total").limit(50000),
+        supabase.from("productos").select("codigo, nombre_producto, presentaciones(nombre), precio_base_uf1").eq("is_active", true).limit(20000),
+        supabase.from("inv_niveles_inventario").select("codigo_producto, stock_total, clasificacion_abc").limit(50000),
       ]);
       const costos = (costosRes.data as any[]) || [];
       const tipoPorArchivo = new Map<string, string>(((archivosRes.data as any[]) || []).map((a: any) => [a.id, String(a.tipo || "").toLowerCase()]));
-      const nombrePorCodigo = new Map<string, string>(((prodsRes.data as any[]) || []).map((p: any) => [p.codigo, p.nombre_producto]));
-      const stockPorCodigo = new Map<string, number>(((nivelesRes.data as any[]) || []).map((n: any) => [n.codigo_producto, n.stock_total]));
+      const prodsAll = (prodsRes.data as any[]) || [];
+      const nombrePorCodigo = new Map<string, string>(prodsAll.map((p: any) => [p.codigo, p.nombre_producto]));
+      const presentacionPorCodigo = new Map<string, string | null>(prodsAll.map((p: any) => [p.codigo, p.presentaciones?.nombre ?? null]));
+      const uf1PorCodigo = new Map<string, number | null>(prodsAll.map((p: any) => [p.codigo, p.precio_base_uf1 ?? null]));
+      const nivelesAll = (nivelesRes.data as any[]) || [];
+      const stockPorCodigo = new Map<string, number>(nivelesAll.map((n: any) => [n.codigo_producto, n.stock_total]));
+      const abcPorCodigo = new Map<string, string | null>(nivelesAll.map((n: any) => [n.codigo_producto, n.clasificacion_abc ?? null]));
 
       const vistos = new Set<string>();
       const lumaggs: any[] = [], galsa: any[] = [], gonher: any[] = [];
@@ -322,6 +327,9 @@ export default function GestionCostos() {
         const row = {
           codigo: c.codigo_producto,
           nombre: c.nombre_en_archivo || c.nombre_en_catalogo || nombrePorCodigo.get(c.codigo_producto) || c.codigo_producto,
+          presentacion: presentacionPorCodigo.get(c.codigo_producto) ?? null,
+          clasificacion_abc: abcPorCodigo.get(c.codigo_producto) ?? null,
+          precio_uf1: uf1PorCodigo.get(c.codigo_producto) ?? null,
           costo_galper: c.costo_galper,
           costo_especial: c.costo_especial,
           costo_lista: c.costo_lista,
