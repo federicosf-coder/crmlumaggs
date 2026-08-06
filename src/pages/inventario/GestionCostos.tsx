@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, DollarSign, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowRight, Lock, RefreshCw, Plus, Download } from "lucide-react";
+import { Upload, DollarSign, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowRight, Lock, RefreshCw, Plus, Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { MARGIN_LEVELS, MARGIN_TO_PRICE, computePricesFromCost } from "@/pages/inventory/PreciosConfigTab";
@@ -2014,7 +2014,14 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
 
   const Th = ({ k, children, className }: { k: keyof ListaMarcaRow; children: React.ReactNode; className?: string }) => (
     <TableHead className={`cursor-pointer select-none ${className || ""}`} onClick={() => toggleSort(k)}>
-      {children}{sortKey === k ? (sortDir === "asc" ? " ▲" : " ▼") : ""}
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {sortKey === k ? (
+          sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
+        )}
+      </span>
     </TableHead>
   );
 
