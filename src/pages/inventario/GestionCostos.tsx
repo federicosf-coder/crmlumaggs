@@ -299,15 +299,16 @@ export default function GestionCostos() {
   const { data: listasMarca } = useQuery({
     queryKey: ["inv_costos_listas_marca"],
     queryFn: async () => {
-      const [costosRes, archivosRes, prodsRes, nivelesRes] = await Promise.all([
+      const [costosRes, archivosRes, prodsRes, nivelesRes, margenesRes] = await Promise.all([
         supabase
           .from("inv_costos_producto")
           .select("codigo_producto, empresa, costo_galper, costo_especial, costo_lista, costo_efectivo, costo_efectivo_fuente, archivo_galper_id, archivo_lista_id, nombre_en_archivo, nombre_en_catalogo, created_at")
           .order("created_at", { ascending: false })
           .limit(50000),
         supabase.from("inv_archivos_referencia").select("id, tipo"),
-        supabase.from("productos").select("codigo, nombre_producto, presentaciones(nombre), precio_base_uf1").eq("is_active", true).limit(20000),
+        supabase.from("productos").select("codigo, nombre_producto, presentaciones(nombre), precio_base_uf1, linea_id").eq("is_active", true).limit(20000),
         supabase.from("inv_niveles_inventario").select("codigo_producto, stock_total, clasificacion_abc").limit(50000),
+        supabase.from("producto_linea_margenes").select("*").eq("activo", true),
       ]);
       const costos = (costosRes.data as any[]) || [];
       const tipoPorArchivo = new Map<string, string>(((archivosRes.data as any[]) || []).map((a: any) => [a.id, String(a.tipo || "").toLowerCase()]));
@@ -315,6 +316,20 @@ export default function GestionCostos() {
       const nombrePorCodigo = new Map<string, string>(prodsAll.map((p: any) => [p.codigo, p.nombre_producto]));
       const presentacionPorCodigo = new Map<string, string | null>(prodsAll.map((p: any) => [p.codigo, p.presentaciones?.nombre ?? null]));
       const uf1PorCodigo = new Map<string, number | null>(prodsAll.map((p: any) => [p.codigo, p.precio_base_uf1 ?? null]));
+      const lineaIdPorCodigo = new Map<string, string | null>(prodsAll.map((p: any) => [p.codigo, p.linea_id ?? null]));
+      const margenesPorLinea = new Map<string | null, any>();
+      for (const m of ((margenesRes.data as any[]) || [])) margenesPorLinea.set(m.linea_id, m);
+      const calcPrecioSiGalper = (codigo: string, costo: number | null): number | null => {
+        if (costo == null) return null;
+        const margins = margenesPorLinea.get(lineaIdPorCodigo.get(codigo) ?? null) ?? margenesPorLinea.get(null);
+        if (!margins) return null;
+        const mRec: Record<string, number> = {};
+        for (const lvl of MARGIN_LEVELS) mRec[lvl.key] = Number((margins as any)[lvl.key] ?? 0);
+        const raw: any = computePricesFromCost(Number(costo), mRec);
+        const base = Number(raw?.precio_base_uf1);
+        if (!isFinite(base)) return null;
+        return ceilTo5(base);
+      };
       const nivelesAll = (nivelesRes.data as any[]) || [];
       const stockPorCodigo = new Map<string, number>(nivelesAll.map((n: any) => [n.codigo_producto, n.stock_total]));
       const abcPorCodigo = new Map<string, string | null>(nivelesAll.map((n: any) => [n.codigo_producto, n.clasificacion_abc ?? null]));
@@ -338,7 +353,19 @@ export default function GestionCostos() {
           en_catalogo: nombrePorCodigo.has(c.codigo_producto),
           stock_total: stockPorCodigo.get(c.codigo_producto) ?? null,
         };
-        if (c.empresa === "lumaggs") { lumaggs.push(row); continue; }
+        if (c.empresa === "lumaggs") {
+          const precio_si_galper = calcPrecioSiGalper(c.codigo_producto, c.costo_galper);
+          const precio_uf1 = row.precio_uf1;
+          lumaggs.push({
+            ...row,
+            precio_si_galper,
+            descuento_disponible:
+              precio_si_galper != null && precio_uf1 != null && precio_si_galper > Number(precio_uf1)
+                ? precio_si_galper - Number(precio_uf1)
+                : null,
+          });
+          continue;
+        }
         if (c.empresa === "galsa") {
           const tipo = tipoPorArchivo.get(c.archivo_galper_id) ?? tipoPorArchivo.get(c.archivo_lista_id) ?? "";
           (tipo.includes("gonher") ? gonher : galsa).push(row);
