@@ -352,6 +352,8 @@ export default function GestionCostos() {
           fuente: c.costo_efectivo_fuente,
           en_catalogo: nombrePorCodigo.has(c.codigo_producto),
           stock_total: stockPorCodigo.get(c.codigo_producto) ?? null,
+          precio_si_galper: null as number | null,
+          descuento_disponible: null as number | null,
         };
         if (c.empresa === "lumaggs") {
           const precio_si_galper = calcPrecioSiGalper(c.codigo_producto, c.costo_galper);
