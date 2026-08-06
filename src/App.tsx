@@ -32,6 +32,7 @@ import GestionCostos from "@/pages/inventario/GestionCostos";
 import ReporteKardex from "@/pages/inventario/ReporteKardex";
 import GestionKardex from "@/pages/inventario/GestionKardex";
 import PedidosSugeridos from "@/pages/inventario/pedidos/PedidosSugeridos";
+import PedidosSubir from "@/pages/inventario/pedidos/PedidosSubir";
 import PedidosElaborados from "@/pages/inventario/pedidos/PedidosElaborados";
 import PedidosRecibidos from "@/pages/inventario/pedidos/PedidosRecibidos";
 import PedidosReclamos from "@/pages/inventario/pedidos/PedidosReclamos";
@@ -153,6 +154,7 @@ const App = () => (
             <Route path="/inventario/pedidos" element={<ProtectedRoute><Pedidos /></ProtectedRoute>}>
               <Route index element={<PedidosSugeridos />} />
               <Route path="sugeridos" element={<PedidosSugeridos />} />
+              <Route path="subir" element={<PedidosSubir />} />
               <Route path="elaborados" element={<PedidosElaborados />} />
               <Route path="recibidos" element={<PedidosRecibidos />} />
               <Route path="reclamos" element={<PedidosReclamos />} />
