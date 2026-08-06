@@ -2054,7 +2054,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showEspecial ? 11 : 10} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
+                <TableCell colSpan={showEspecial ? 14 : 13} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
               </TableRow>
             ) : filtered.map(r => (
               <TableRow key={r.codigo}>
