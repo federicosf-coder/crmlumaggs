@@ -299,15 +299,16 @@ export default function GestionCostos() {
   const { data: listasMarca } = useQuery({
     queryKey: ["inv_costos_listas_marca"],
     queryFn: async () => {
-      const [costosRes, archivosRes, prodsRes, nivelesRes] = await Promise.all([
+      const [costosRes, archivosRes, prodsRes, nivelesRes, margenesRes] = await Promise.all([
         supabase
           .from("inv_costos_producto")
           .select("codigo_producto, empresa, costo_galper, costo_especial, costo_lista, costo_efectivo, costo_efectivo_fuente, archivo_galper_id, archivo_lista_id, nombre_en_archivo, nombre_en_catalogo, created_at")
           .order("created_at", { ascending: false })
           .limit(50000),
         supabase.from("inv_archivos_referencia").select("id, tipo"),
-        supabase.from("productos").select("codigo, nombre_producto, presentaciones(nombre), precio_base_uf1").eq("is_active", true).limit(20000),
+        supabase.from("productos").select("codigo, nombre_producto, presentaciones(nombre), precio_base_uf1, linea_id").eq("is_active", true).limit(20000),
         supabase.from("inv_niveles_inventario").select("codigo_producto, stock_total, clasificacion_abc").limit(50000),
+        supabase.from("producto_linea_margenes").select("*").eq("activo", true),
       ]);
       const costos = (costosRes.data as any[]) || [];
       const tipoPorArchivo = new Map<string, string>(((archivosRes.data as any[]) || []).map((a: any) => [a.id, String(a.tipo || "").toLowerCase()]));
@@ -315,6 +316,20 @@ export default function GestionCostos() {
       const nombrePorCodigo = new Map<string, string>(prodsAll.map((p: any) => [p.codigo, p.nombre_producto]));
       const presentacionPorCodigo = new Map<string, string | null>(prodsAll.map((p: any) => [p.codigo, p.presentaciones?.nombre ?? null]));
       const uf1PorCodigo = new Map<string, number | null>(prodsAll.map((p: any) => [p.codigo, p.precio_base_uf1 ?? null]));
+      const lineaIdPorCodigo = new Map<string, string | null>(prodsAll.map((p: any) => [p.codigo, p.linea_id ?? null]));
+      const margenesPorLinea = new Map<string | null, any>();
+      for (const m of ((margenesRes.data as any[]) || [])) margenesPorLinea.set(m.linea_id, m);
+      const calcPrecioSiGalper = (codigo: string, costo: number | null): number | null => {
+        if (costo == null) return null;
+        const margins = margenesPorLinea.get(lineaIdPorCodigo.get(codigo) ?? null) ?? margenesPorLinea.get(null);
+        if (!margins) return null;
+        const mRec: Record<string, number> = {};
+        for (const lvl of MARGIN_LEVELS) mRec[lvl.key] = Number((margins as any)[lvl.key] ?? 0);
+        const raw: any = computePricesFromCost(Number(costo), mRec);
+        const base = Number(raw?.precio_base_uf1);
+        if (!isFinite(base)) return null;
+        return ceilTo5(base);
+      };
       const nivelesAll = (nivelesRes.data as any[]) || [];
       const stockPorCodigo = new Map<string, number>(nivelesAll.map((n: any) => [n.codigo_producto, n.stock_total]));
       const abcPorCodigo = new Map<string, string | null>(nivelesAll.map((n: any) => [n.codigo_producto, n.clasificacion_abc ?? null]));
@@ -337,8 +352,22 @@ export default function GestionCostos() {
           fuente: c.costo_efectivo_fuente,
           en_catalogo: nombrePorCodigo.has(c.codigo_producto),
           stock_total: stockPorCodigo.get(c.codigo_producto) ?? null,
+          precio_si_galper: null as number | null,
+          descuento_disponible: null as number | null,
         };
-        if (c.empresa === "lumaggs") { lumaggs.push(row); continue; }
+        if (c.empresa === "lumaggs") {
+          const precio_si_galper = calcPrecioSiGalper(c.codigo_producto, c.costo_galper);
+          const precio_uf1 = row.precio_uf1;
+          lumaggs.push({
+            ...row,
+            precio_si_galper,
+            descuento_disponible:
+              precio_si_galper != null && precio_uf1 != null && precio_si_galper > Number(precio_uf1)
+                ? precio_si_galper - Number(precio_uf1)
+                : null,
+          });
+          continue;
+        }
         if (c.empresa === "galsa") {
           const tipo = tipoPorArchivo.get(c.archivo_galper_id) ?? tipoPorArchivo.get(c.archivo_lista_id) ?? "";
           (tipo.includes("gonher") ? gonher : galsa).push(row);
@@ -1774,6 +1803,8 @@ type ListaMarcaRow = {
   fuente: string | null;
   en_catalogo: boolean;
   stock_total: number | null;
+  precio_si_galper: number | null;
+  descuento_disponible: number | null;
 };
 
 function fuenteBadgeLista(f: string | null | undefined) {
@@ -1845,6 +1876,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
   const [fEspecial, setFEspecial] = useState<TriFiltro>("todos");
   const [fLista, setFLista] = useState<TriFiltro>("todos");
   const [fEfectivo, setFEfectivo] = useState<TriFiltro>("todos");
+  const [fDescuento, setFDescuento] = useState<TriFiltro>("todos");
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [mostrarIgnorados, setMostrarIgnorados] = useState(false);
 
@@ -1878,6 +1910,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
       if (showEspecial && !matchValor(fEspecial, r.costo_especial)) return false;
       if (!matchValor(fLista, r.costo_lista)) return false;
       if (!matchValor(fEfectivo, r.costo_efectivo)) return false;
+      if (showEspecial && !matchValor(fDescuento, r.descuento_disponible)) return false;
       return true;
     });
     return [...out].sort((a, b) => {
@@ -1890,7 +1923,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
         : String(av).localeCompare(String(bv), "es");
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [visibles, q, sortKey, sortDir, fFuente, fCatalogo, fExistencia, fGalper, fEspecial, fLista, fEfectivo, showEspecial]);
+  }, [visibles, q, sortKey, sortDir, fFuente, fCatalogo, fExistencia, fGalper, fEspecial, fLista, fEfectivo, fDescuento, showEspecial]);
 
   const todosSeleccionados = filtered.length > 0 && filtered.every(r => seleccion.has(r.codigo));
   const toggleTodos = (on: boolean) => {
@@ -1962,6 +1995,9 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
       "Fuente": d.fuente || "",
       "En Catálogo": d.en_catalogo ? "Sí" : "No",
       "Piezas en Inventario": d.stock_total ?? "",
+      ...(showEspecial
+        ? { "Precio si Galper": d.precio_si_galper ?? "", "Margen Descuento Disp.": d.descuento_disponible ?? "" }
+        : {}),
     }));
     const ws = XLSX.utils.json_to_sheet(out);
     ws["!cols"] = [{ wch: 16 }, { wch: 42 }, { wch: 18 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
@@ -2023,6 +2059,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
           {showEspecial && <TriSelect label="Precio Especial" value={fEspecial} onChange={setFEspecial} />}
           <TriSelect label="Lista General" value={fLista} onChange={setFLista} />
           <TriSelect label="Costo Efectivo" value={fEfectivo} onChange={setFEfectivo} />
+          {showEspecial && <TriSelect label="Con Margen Descuento" value={fDescuento} onChange={setFDescuento} si="Con margen" no="Sin margen" />}
         </div>
         {seleccion.size > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2">
@@ -2049,6 +2086,8 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
               <Th k="presentacion">Presentación</Th>
               <Th k="clasificacion_abc">ABC</Th>
               <Th k="precio_uf1" className="text-right">Precio UF1</Th>
+              {showEspecial && <Th k="precio_si_galper" className="text-right">Precio si Galper</Th>}
+              {showEspecial && <Th k="descuento_disponible" className="text-right">Margen Descuento Disp.</Th>}
               <Th k="costo_galper" className="text-right">Costo Galper</Th>
               {showEspecial && <Th k="costo_especial" className="text-right">Precio Especial</Th>}
               <Th k="costo_lista" className="text-right">Lista General</Th>
@@ -2062,7 +2101,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showEspecial ? 14 : 13} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
+                <TableCell colSpan={showEspecial ? 16 : 13} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
               </TableRow>
             ) : filtered.map(r => (
               <TableRow key={r.codigo}>
@@ -2074,6 +2113,12 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
                 <TableCell className="text-muted-foreground text-sm">{r.presentacion ?? "—"}</TableCell>
                 <TableCell>{abcBadgeLista(r.clasificacion_abc)}</TableCell>
                 <TableCell className="text-right">{money(r.precio_uf1)}</TableCell>
+                {showEspecial && <TableCell className="text-right">{money(r.precio_si_galper)}</TableCell>}
+                {showEspecial && (
+                  <TableCell className={`text-right ${r.descuento_disponible != null ? "text-emerald-600 font-medium" : ""}`}>
+                    {r.descuento_disponible == null ? "—" : money(r.descuento_disponible)}
+                  </TableCell>
+                )}
                 <TableCell className="text-right">{money(r.costo_galper)}</TableCell>
                 {showEspecial && <TableCell className="text-right">{money(r.costo_especial)}</TableCell>}
                 <TableCell className="text-right">{money(r.costo_lista)}</TableCell>
