@@ -861,7 +861,7 @@ async function procesarKardexUnidades(
   for (const v of ventas.values()) {
     const n = nivMap.get(v.codigo);
     const abc = n?.clasificacion_abc ?? null;
-    const lead = Number(n?.lead_time_dias ?? 32) || 32;
+    const lead = Number(n?.lead_time_dias ?? 10) || 10;
     const ppt = Math.max(1, Number(n?.piezas_por_tarima ?? 1) || 1);
     const cobertura = coberturaPorAbc(abc);
     const seguridad = seguridadPorAbc(abc);
