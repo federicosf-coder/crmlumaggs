@@ -1236,6 +1236,25 @@ function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; o
                         : <Badge variant="secondary" className="text-[10px]">Re-cargar</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground">Subido: {formatFecha(a.created_at)}</p>
+                    {a.storage_path && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs"
+                        onClick={async () => {
+                          const { data, error } = await supabase.storage
+                            .from("inventario-archivos")
+                            .createSignedUrl(a.storage_path!, 300);
+                          if (error || !data?.signedUrl) {
+                            toast.error("No se pudo generar el enlace del archivo");
+                            return;
+                          }
+                          window.open(data.signedUrl, "_blank");
+                        }}
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1" /> Ver / Descargar
+                      </Button>
+                    )}
                   </>
                 ) : (
                   <p className="text-xs text-muted-foreground italic">Sin archivo subido</p>
