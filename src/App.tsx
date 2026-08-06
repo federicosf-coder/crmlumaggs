@@ -30,6 +30,7 @@ import DashboardRed from "@/pages/inventario/DashboardRed";
 import GestionCostos from "@/pages/inventario/GestionCostos";
 
 import ReporteKardex from "@/pages/inventario/ReporteKardex";
+import GestionKardex from "@/pages/inventario/GestionKardex";
 import PedidosSugeridos from "@/pages/inventario/pedidos/PedidosSugeridos";
 import PedidosElaborados from "@/pages/inventario/pedidos/PedidosElaborados";
 import PedidosRecibidos from "@/pages/inventario/pedidos/PedidosRecibidos";
@@ -139,6 +140,7 @@ const App = () => (
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/inventario/niveles" element={<ProtectedRoute><NivelesInventario /></ProtectedRoute>} />
             <Route path="/inventario/kardex" element={<ProtectedRoute><KardexCarga /></ProtectedRoute>} />
+            <Route path="/inventario/kardex-gestion" element={<ProtectedRoute><GestionKardex /></ProtectedRoute>} />
             <Route path="/inventario/mapeo" element={<ProtectedRoute><MapeoProductos /></ProtectedRoute>} />
             <Route path="/inventario/minmax" element={<ProtectedRoute><MinMaxInventario /></ProtectedRoute>} />
             <Route path="/inventario/pedidos-activos" element={<ProtectedRoute><PedidosActivos /></ProtectedRoute>} />
