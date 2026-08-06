@@ -188,7 +188,7 @@ export function MinMaxTabContent() {
         const abc = n?.clasificacion_abc ?? r.clasificacion_abc ?? null;
         const cobertura = abc && COBERTURA[abc] ? COBERTURA[abc] : 45;
         const seguridad = abc && SEGURIDAD[abc] ? SEGURIDAD[abc] : 10;
-        const lead = Number(n?.lead_time_dias ?? r.lead_time_dias ?? 32) || 32;
+        const lead = Number(n?.lead_time_dias ?? r.lead_time_dias ?? 10) || 10;
         const ppt = Math.max(1, Number(n?.piezas_por_tarima ?? 1) || 1);
         const minCalc = Math.ceil((ddia * (lead + seguridad)) / ppt) * ppt;
         const maxCalc = Math.ceil((ddia * (lead + cobertura)) / ppt) * ppt;
