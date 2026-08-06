@@ -62,6 +62,18 @@ const stockOf = (n: NivelRow | undefined, alm: string) =>
   Number((n as any)?.[`stock_almacen_${alm}`] ?? 0);
 
 export default function MinMaxInventario() {
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-light tracking-tight">Mínimos y Máximos</h1>
+        <p className="text-sm text-muted-foreground">Revisión y ajuste de niveles de reorden por SKU y almacén.</p>
+      </div>
+      <MinMaxTabContent />
+    </div>
+  );
+}
+
+export function MinMaxTabContent() {
   const qc = useQueryClient();
   const [almacenSel, setAlmacenSel] = useState<string>("todos");
   const [abcSel, setAbcSel] = useState<string>("todos");
@@ -224,12 +236,8 @@ export default function MinMaxInventario() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-light tracking-tight">Mínimos y Máximos</h1>
-          <p className="text-sm text-muted-foreground">Revisión y ajuste de niveles de reorden por SKU y almacén.</p>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-start justify-end gap-4">
         <Button onClick={recalcularTodo} disabled={recalculating} variant="outline">
           <RefreshCw className={`h-4 w-4 mr-2 ${recalculating ? "animate-spin" : ""}`} />
           Recalcular todo
