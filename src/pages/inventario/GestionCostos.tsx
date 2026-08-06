@@ -306,13 +306,18 @@ export default function GestionCostos() {
           .order("created_at", { ascending: false })
           .limit(50000),
         supabase.from("inv_archivos_referencia").select("id, tipo"),
-        supabase.from("productos").select("codigo, nombre_producto").eq("is_active", true).limit(20000),
-        supabase.from("inv_niveles_inventario").select("codigo_producto, stock_total").limit(50000),
+        supabase.from("productos").select("codigo, nombre_producto, presentaciones(nombre), precio_base_uf1").eq("is_active", true).limit(20000),
+        supabase.from("inv_niveles_inventario").select("codigo_producto, stock_total, clasificacion_abc").limit(50000),
       ]);
       const costos = (costosRes.data as any[]) || [];
       const tipoPorArchivo = new Map<string, string>(((archivosRes.data as any[]) || []).map((a: any) => [a.id, String(a.tipo || "").toLowerCase()]));
-      const nombrePorCodigo = new Map<string, string>(((prodsRes.data as any[]) || []).map((p: any) => [p.codigo, p.nombre_producto]));
-      const stockPorCodigo = new Map<string, number>(((nivelesRes.data as any[]) || []).map((n: any) => [n.codigo_producto, n.stock_total]));
+      const prodsAll = (prodsRes.data as any[]) || [];
+      const nombrePorCodigo = new Map<string, string>(prodsAll.map((p: any) => [p.codigo, p.nombre_producto]));
+      const presentacionPorCodigo = new Map<string, string | null>(prodsAll.map((p: any) => [p.codigo, p.presentaciones?.nombre ?? null]));
+      const uf1PorCodigo = new Map<string, number | null>(prodsAll.map((p: any) => [p.codigo, p.precio_base_uf1 ?? null]));
+      const nivelesAll = (nivelesRes.data as any[]) || [];
+      const stockPorCodigo = new Map<string, number>(nivelesAll.map((n: any) => [n.codigo_producto, n.stock_total]));
+      const abcPorCodigo = new Map<string, string | null>(nivelesAll.map((n: any) => [n.codigo_producto, n.clasificacion_abc ?? null]));
 
       const vistos = new Set<string>();
       const lumaggs: any[] = [], galsa: any[] = [], gonher: any[] = [];
@@ -322,6 +327,9 @@ export default function GestionCostos() {
         const row = {
           codigo: c.codigo_producto,
           nombre: c.nombre_en_archivo || c.nombre_en_catalogo || nombrePorCodigo.get(c.codigo_producto) || c.codigo_producto,
+          presentacion: presentacionPorCodigo.get(c.codigo_producto) ?? null,
+          clasificacion_abc: abcPorCodigo.get(c.codigo_producto) ?? null,
+          precio_uf1: uf1PorCodigo.get(c.codigo_producto) ?? null,
           costo_galper: c.costo_galper,
           costo_especial: c.costo_especial,
           costo_lista: c.costo_lista,
@@ -1748,6 +1756,9 @@ function HistorialSection({ historial }: { historial: any[] }) {
 type ListaMarcaRow = {
   codigo: string;
   nombre: string;
+  presentacion: string | null;
+  clasificacion_abc: string | null;
+  precio_uf1: number | null;
   costo_galper: number | null;
   costo_especial: number | null;
   costo_lista: number | null;
@@ -1766,6 +1777,16 @@ function fuenteBadgeLista(f: string | null | undefined) {
     LISTA: "bg-slate-100 text-slate-700 border-slate-200",
   };
   return <Badge variant="outline" className={`text-[10px] font-medium ${map[f] || "bg-muted"}`}>{f}</Badge>;
+}
+
+function abcBadgeLista(abc: string | null | undefined) {
+  if (!abc) return <span className="text-muted-foreground">—</span>;
+  const map: Record<string, string> = {
+    A: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    B: "bg-amber-100 text-amber-700 border-amber-200",
+    C: "bg-gray-100 text-gray-700 border-gray-200",
+  };
+  return <Badge variant="outline" className={`text-[10px] font-medium ${map[abc] || "bg-muted"}`}>{abc}</Badge>;
 }
 
 function ListasMarcaSection({ data }: { data?: { lumaggs: ListaMarcaRow[]; galsa: ListaMarcaRow[]; gonher: ListaMarcaRow[] } }) {
@@ -1923,6 +1944,9 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
     const out = data.map(d => ({
       "Código": d.codigo,
       "Nombre": d.nombre,
+      "Presentación": d.presentacion ?? "",
+      "ABC": d.clasificacion_abc ?? "",
+      "Precio UF1": d.precio_uf1 ?? "",
       "Costo Galper": d.costo_galper ?? "",
       ...(showEspecial ? { "Precio Especial": d.costo_especial ?? "" } : {}),
       "Lista General": d.costo_lista ?? "",
@@ -1932,7 +1956,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
       "Piezas en Inventario": d.stock_total ?? "",
     }));
     const ws = XLSX.utils.json_to_sheet(out);
-    ws["!cols"] = [{ wch: 16 }, { wch: 42 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }];
+    ws["!cols"] = [{ wch: 16 }, { wch: 42 }, { wch: 18 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Costos");
     XLSX.writeFile(wb, `${exportName}${sufijo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -2014,6 +2038,9 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
               </TableHead>
               <Th k="codigo">Código</Th>
               <Th k="nombre">Nombre</Th>
+              <Th k="presentacion">Presentación</Th>
+              <Th k="clasificacion_abc">ABC</Th>
+              <Th k="precio_uf1" className="text-right">Precio UF1</Th>
               <Th k="costo_galper" className="text-right">Costo Galper</Th>
               {showEspecial && <Th k="costo_especial" className="text-right">Precio Especial</Th>}
               <Th k="costo_lista" className="text-right">Lista General</Th>
@@ -2027,7 +2054,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showEspecial ? 11 : 10} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
+                <TableCell colSpan={showEspecial ? 14 : 13} className="text-center text-muted-foreground py-8">Sin registros…</TableCell>
               </TableRow>
             ) : filtered.map(r => (
               <TableRow key={r.codigo}>
@@ -2036,6 +2063,9 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
                 </TableCell>
                 <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
                 <TableCell>{r.nombre}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{r.presentacion ?? "—"}</TableCell>
+                <TableCell>{abcBadgeLista(r.clasificacion_abc)}</TableCell>
+                <TableCell className="text-right">{money(r.precio_uf1)}</TableCell>
                 <TableCell className="text-right">{money(r.costo_galper)}</TableCell>
                 {showEspecial && <TableCell className="text-right">{money(r.costo_especial)}</TableCell>}
                 <TableCell className="text-right">{money(r.costo_lista)}</TableCell>
