@@ -744,7 +744,7 @@ function SinConfirmarSection() {
 }
 
 // ─── BIBLIOTECA ─────────────────────────────────────────────────
-function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; onRefresh: () => void; userId?: string }) {
+function BibliotecaSection({ archivos, onRefresh, userId }: { archivos: any[]; onRefresh: () => Promise<void>; userId?: string }) {
   const [generando, setGenerando] = useState(false);
   const [progreso, setProgreso] = useState(0);
   const [progresoTexto, setProgresoTexto] = useState("");
