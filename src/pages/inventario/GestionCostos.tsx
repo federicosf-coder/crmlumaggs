@@ -2063,6 +2063,9 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
                 </TableCell>
                 <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
                 <TableCell>{r.nombre}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{r.presentacion ?? "—"}</TableCell>
+                <TableCell>{abcBadgeLista(r.clasificacion_abc)}</TableCell>
+                <TableCell className="text-right">{money(r.precio_uf1)}</TableCell>
                 <TableCell className="text-right">{money(r.costo_galper)}</TableCell>
                 {showEspecial && <TableCell className="text-right">{money(r.costo_especial)}</TableCell>}
                 <TableCell className="text-right">{money(r.costo_lista)}</TableCell>
