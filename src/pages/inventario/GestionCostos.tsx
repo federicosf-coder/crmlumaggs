@@ -1756,6 +1756,9 @@ function HistorialSection({ historial }: { historial: any[] }) {
 type ListaMarcaRow = {
   codigo: string;
   nombre: string;
+  presentacion: string | null;
+  clasificacion_abc: string | null;
+  precio_uf1: number | null;
   costo_galper: number | null;
   costo_especial: number | null;
   costo_lista: number | null;
