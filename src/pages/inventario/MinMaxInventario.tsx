@@ -561,6 +561,19 @@ export function AjusteManualDialog({
   const [fuente, setFuente] = useState<string>("");
   const [leadT, setLeadT] = useState<string>("");
 
+  const { data: fuentes = [] } = useQuery({
+    queryKey: ["inv_fuentes_suministro", "activas"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("inv_fuentes_suministro")
+        .select("code, nombre")
+        .eq("activo", true)
+        .order("nombre");
+      if (error) throw error;
+      return (data || []) as { code: string; nombre: string }[];
+    },
+  });
+
   const guardar = useMutation({
     mutationFn: async (vals: { id: string; codigo_producto?: string; fuente_suministro?: string | null; lead_time_dias?: number | null; minimo_manual: number | null; maximo_manual: number | null; cantidad_reorden_manual: number | null; notas: string; ajustado_manualmente: boolean }) => {
       const { error } = await (supabase as any)
@@ -731,10 +744,9 @@ export function AjusteManualDialog({
                 <Select value={fuente} onValueChange={setFuente}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="usa">USA</SelectItem>
-                    <SelectItem value="cedis">CEDIS</SelectItem>
-                    <SelectItem value="closa">CLOSA</SelectItem>
-                    <SelectItem value="europe">EUROPE</SelectItem>
+                    {fuentes.map((f) => (
+                      <SelectItem key={f.code} value={f.code}>{f.nombre}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

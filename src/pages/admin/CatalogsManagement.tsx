@@ -256,6 +256,189 @@ function PresentacionesTab() {
   );
 }
 
+// ─── Centros de Suministro Tab ───────────────────────────────
+const FS_COBERTURA: Record<string, number> = { A: 60, B: 45, C: 30 };
+const FS_SEGURIDAD: Record<string, number> = { A: 15, B: 10, C: 7 };
+
+function FuentesSuministroTab() {
+  const qc = useQueryClient();
+  const [editItem, setEditItem] = useState<any>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editLead, setEditLead] = useState("");
+  const [confirmAplicar, setConfirmAplicar] = useState(false);
+
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ["inv_fuentes_suministro_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("inv_fuentes_suministro").select("*").order("nombre");
+      if (error) throw error; return data as any[];
+    },
+  });
+
+  const openEdit = (item: any) => {
+    setEditItem(item);
+    setEditNombre(item.nombre || "");
+    setEditLead(item.lead_time_dias != null ? String(item.lead_time_dias) : "");
+  };
+
+  const update = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("inv_fuentes_suministro").update({
+        nombre: editNombre,
+        lead_time_dias: Number(editLead) || 0,
+        updated_at: new Date().toISOString(),
+      }).eq("code", editItem.code);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inv_fuentes_suministro_all"] });
+      qc.invalidateQueries({ queryKey: ["inv_fuentes_suministro"] });
+      toast.success("Centro de suministro actualizado");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const aplicar = useMutation({
+    mutationFn: async () => {
+      const code = editItem.code as string;
+      const lead = Number(editLead) || 0;
+
+      const { data: nivs, error: e1 } = await supabase
+        .from("inv_niveles_inventario")
+        .select("codigo_producto, clasificacion_abc, piezas_por_tarima, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004")
+        .eq("fuente_suministro", code);
+      if (e1) throw e1;
+      const rows = (nivs || []) as any[];
+      if (rows.length === 0) return 0;
+
+      const { error: e2 } = await supabase
+        .from("inv_niveles_inventario")
+        .update({ lead_time_dias: lead })
+        .eq("fuente_suministro", code);
+      if (e2) throw e2;
+
+      const codigos = Array.from(new Set(rows.map(r => r.codigo_producto)));
+      const nivMap = new Map(rows.map(r => [r.codigo_producto, r]));
+      const hoyIso = new Date().toISOString().slice(0, 10);
+
+      for (let i = 0; i < codigos.length; i += 200) {
+        const chunk = codigos.slice(i, i + 200);
+
+        const { data: dem } = await supabase
+          .from("inv_demanda_plaza")
+          .select("codigo_producto, almacen, demanda_diaria_promedio, periodo_inicio")
+          .in("codigo_producto", chunk)
+          .order("periodo_inicio", { ascending: false });
+        const ultimaDem = new Map<string, number>();
+        for (const d of (dem || []) as any[]) {
+          const k = `${d.codigo_producto}|${d.almacen}`;
+          if (!ultimaDem.has(k)) ultimaDem.set(k, Number(d.demanda_diaria_promedio || 0));
+        }
+
+        const { data: mmRows } = await supabase
+          .from("inv_minmax").select("*").in("codigo_producto", chunk);
+
+        for (const r of (mmRows || []) as any[]) {
+          const n = nivMap.get(r.codigo_producto);
+          const ppt = Math.max(1, Number(n?.piezas_por_tarima ?? 1) || 1);
+          const ddia = ultimaDem.get(`${r.codigo_producto}|${r.almacen}`) ?? Number(r.demanda_diaria_hub ?? 0);
+          const abc = n?.clasificacion_abc ?? r.clasificacion_abc ?? null;
+          const cobertura = abc && FS_COBERTURA[abc] ? FS_COBERTURA[abc] : 45;
+          const seguridad = abc && FS_SEGURIDAD[abc] ? FS_SEGURIDAD[abc] : 10;
+          const minCalc = Math.ceil((ddia * (lead + seguridad)) / ppt) * ppt;
+          const maxCalc = Math.ceil((ddia * (lead + cobertura)) / ppt) * ppt;
+          const stock = Number(n?.[`stock_almacen_${r.almacen}`] ?? 0) || 0;
+          const reordenCalc = Math.max(0, minCalc - stock);
+          await supabase.from("inv_minmax").update({
+            lead_time_dias: lead,
+            dias_cobertura_objetivo: cobertura,
+            dias_stock_seguridad: seguridad,
+            minimo_calc: minCalc,
+            maximo_calc: maxCalc,
+            cantidad_reorden_calc: reordenCalc,
+            ultima_actualizacion_calc: hoyIso,
+          }).eq("id", r.id);
+        }
+      }
+      return codigos.length;
+    },
+    onSuccess: (count: number) => {
+      setConfirmAplicar(false);
+      qc.invalidateQueries({ queryKey: ["inv_minmax"] });
+      qc.invalidateQueries({ queryKey: ["inv_niveles_inventario_min"] });
+      toast.success(`${count} producto(s) actualizados con el nuevo lead time`);
+    },
+    onError: (e: any) => { setConfirmAplicar(false); toast.error(e.message); },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5" /> Centros de Suministro</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
+          <Table>
+            <TableHeader><TableRow>
+              <TableHead>Nombre</TableHead><TableHead>Código</TableHead>
+              <TableHead className="text-right">Lead Time (días)</TableHead>
+              <TableHead>Activo</TableHead><TableHead className="w-16"></TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {items.map((f: any) => (
+                <TableRow key={f.code}>
+                  <TableCell className="font-medium">{f.nombre}</TableCell>
+                  <TableCell className="font-mono text-xs">{f.code}</TableCell>
+                  <TableCell className="text-right tabular-nums">{f.lead_time_dias}</TableCell>
+                  <TableCell><Badge variant={f.activo ? "default" : "secondary"}>{f.activo ? "Sí" : "No"}</Badge></TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(f)}><Pencil className="h-4 w-4" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {items.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin registros</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        )}
+
+        <Dialog open={!!editItem} onOpenChange={(o) => !o && setEditItem(null)}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Editar Centro de Suministro</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Código</Label><Input value={editItem?.code ?? ""} disabled className="font-mono" /></div>
+              <div><Label>Nombre</Label><Input value={editNombre} onChange={e => setEditNombre(e.target.value)} /></div>
+              <div><Label>Lead Time (días)</Label><Input type="number" min="0" value={editLead} onChange={e => setEditLead(e.target.value)} /></div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setConfirmAplicar(true)} disabled={aplicar.isPending || !editLead}>
+                {aplicar.isPending ? "Aplicando..." : "Aplicar a productos con esta fuente"}
+              </Button>
+              <Button onClick={() => update.mutate()} disabled={!editNombre || update.isPending}>
+                {update.isPending ? "Guardando..." : "Guardar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={confirmAplicar} onOpenChange={setConfirmAplicar}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Aplicar lead time a los productos?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Se actualizará el lead time a {editLead} días en todos los productos con fuente "{editItem?.code}" y se recalcularán mínimos, máximos y cantidad de reorden en las 4 plazas.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={(e) => { e.preventDefault(); aplicar.mutate(); }}>Aplicar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Productos Base Tab ──────────────────────────────────────
 function ProductoBaseTab() {
   const qc = useQueryClient();
@@ -2202,7 +2385,7 @@ function LineaMargenesTab() {
 type CatalogKey =
   | "plazas" | "vehiculos" | "repartidores" | "tipos_direccion"
   | "presentaciones" | "clasificaciones" | "empresa_marcas"
-  | "linea_margenes" | "producto_base"
+  | "linea_margenes" | "producto_base" | "fuentes_suministro"
   | "industrias" | "embudos" | "condiciones"
   | "logos"
   | "seguimiento_estatus"
@@ -2235,6 +2418,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
       { key: "linea_margenes", label: "Márgenes por Línea de Producto", description: "Define los 8 % de utilidad por línea" },
       { key: "empresa_marcas", label: "Marcas por Empresa" },
       { key: "producto_base", label: "Productos Base", description: "Familias de producto usadas para agrupar variantes" },
+      { key: "fuentes_suministro", label: "Centros de Suministro", description: "Orígenes de abasto (USA, CEDIS, etc.) y su tiempo de entrega" },
     ],
   },
   {
@@ -2275,6 +2459,7 @@ function renderCatalog(key: CatalogKey) {
     case "linea_margenes": return <LineaMargenesTab />;
     case "empresa_marcas": return <EmpresaMarcasTab />;
     case "producto_base": return <ProductoBaseTab />;
+    case "fuentes_suministro": return <FuentesSuministroTab />;
     case "industrias": return <IndustriasTab />;
     case "condiciones": return <CondicionesTab />;
     case "logos": return <LogosTab />;
