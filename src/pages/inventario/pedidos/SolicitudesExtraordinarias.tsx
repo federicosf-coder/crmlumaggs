@@ -379,8 +379,8 @@ export default function SolicitudesExtraordinarias() {
 function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  productos: { codigo: string; nombre: string }[];
-  onSubmit: (p: { codigo_producto: string; cantidad: number; tipo: string; motivo: string }) => void;
+  productos: OpcionProducto[];
+  onSubmit: (p: { codigo_producto: string | null; producto_descripcion: string | null; cantidad: number; tipo: string; motivo: string }) => void;
   saving: boolean;
 }) {
   const [codigo, setCodigo] = useState("");
@@ -389,6 +389,9 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving 
   const [motivo, setMotivo] = useState("");
   const [comboOpen, setComboOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [modoDescripcion, setModoDescripcion] = useState(false);
+  const [descProducto, setDescProducto] = useState("");
+  const [descPresentacion, setDescPresentacion] = useState("");
 
   const opciones = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -399,9 +402,20 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving 
   }, [productos, q]);
 
   const sel = productos.find((p) => p.codigo === codigo);
-  const valido = !!codigo && Number(cantidad) > 0 && motivo.trim().length > 0;
+  const validoProducto = modoDescripcion ? descProducto.trim().length > 0 : !!codigo;
+  const valido = validoProducto && Number(cantidad) > 0 && motivo.trim().length > 0;
 
-  const reset = () => { setCodigo(""); setCantidad(""); setTipo("unica"); setMotivo(""); setQ(""); };
+  const reset = () => {
+    setCodigo(""); setCantidad(""); setTipo("unica"); setMotivo(""); setQ("");
+    setModoDescripcion(false); setDescProducto(""); setDescPresentacion("");
+  };
+
+  const badgeDe = (o: OpcionProducto) =>
+    o.en_catalogo && o.activo
+      ? <Badge variant="outline" className="text-[10px] font-normal bg-emerald-50 text-emerald-700 border-emerald-200">En catálogo</Badge>
+      : o.en_catalogo
+        ? <Badge variant="outline" className="text-[10px] font-normal bg-red-50 text-red-700 border-red-200">Inactivo</Badge>
+        : <Badge variant="outline" className="text-[10px] font-normal bg-amber-50 text-amber-700 border-amber-200">No en catálogo</Badge>;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
@@ -410,6 +424,25 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving 
         <div className="space-y-4">
           <div className="space-y-1">
             <Label className="text-xs uppercase tracking-wide">Producto</Label>
+            {modoDescripcion ? (
+              <div className="space-y-3">
+                <Input value={descProducto} onChange={(e) => setDescProducto(e.target.value)} placeholder="Ej. Aceite Havoline 20W50" />
+                <div className="space-y-1">
+                  <Label className="text-xs uppercase tracking-wide">Presentación</Label>
+                  <Input value={descPresentacion} onChange={(e) => setDescPresentacion(e.target.value)} placeholder="Ej. Cubeta 19L" />
+                </div>
+                <Button variant="link" size="sm" className="px-0 h-auto text-xs" onClick={() => setModoDescripcion(false)}>
+                  Buscar por código en su lugar
+                </Button>
+              </div>
+            ) : (
+            <>
+            {sel && (
+              <div className="flex items-center gap-2 pb-1">
+                <span className="text-xs text-muted-foreground truncate">{sel.codigo} — {sel.nombre}</span>
+                {badgeDe(sel)}
+              </div>
+            )}
             <Popover open={comboOpen} onOpenChange={setComboOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
@@ -428,13 +461,25 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving 
                           <Check className={cn("mr-2 h-4 w-4", codigo === p.codigo ? "opacity-100" : "opacity-0")} />
                           <span className="text-xs font-medium mr-2">{p.codigo}</span>
                           <span className="text-xs text-muted-foreground truncate">{p.nombre}</span>
+                          <span className="ml-auto pl-2">{badgeDe(p)}</span>
                         </CommandItem>
                       ))}
+                    </CommandGroup>
+                    <CommandGroup>
+                      <CommandItem
+                        value="__describir__"
+                        onSelect={() => { setModoDescripcion(true); setCodigo(""); setComboOpen(false); }}
+                        className="text-xs font-medium text-violet-700"
+                      >
+                        No encuentro el producto, quiero describirlo
+                      </CommandItem>
                     </CommandGroup>
                   </CommandList>
                 </Command>
               </PopoverContent>
             </Popover>
+            </>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -460,7 +505,18 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving 
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!valido || saving} onClick={() => onSubmit({ codigo_producto: codigo, cantidad: Number(cantidad), tipo, motivo: motivo.trim() })}>
+          <Button
+            disabled={!valido || saving}
+            onClick={() => onSubmit(
+              modoDescripcion
+                ? {
+                    codigo_producto: null,
+                    producto_descripcion: [descProducto.trim(), descPresentacion.trim()].filter(Boolean).join(" — "),
+                    cantidad: Number(cantidad), tipo, motivo: motivo.trim(),
+                  }
+                : { codigo_producto: codigo, producto_descripcion: null, cantidad: Number(cantidad), tipo, motivo: motivo.trim() }
+            )}
+          >
             Crear solicitud
           </Button>
         </DialogFooter>
