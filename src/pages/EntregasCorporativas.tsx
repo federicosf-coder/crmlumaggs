@@ -1939,7 +1939,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
     : [];
 
   const Th = ({ k, children, className }: { k: string; children: React.ReactNode; className?: string }) => (
-    <TableHead className={`cursor-pointer select-none ${className ?? ""}`} onClick={() => toggleSort(k)}>
+    <TableHead className={`cursor-pointer select-none uppercase text-xs text-slate-700 font-semibold tracking-wide ${className ?? ""}`} onClick={() => toggleSort(k)}>
       {children}{sortKey === k ? (sortAsc ? " ↑" : " ↓") : ""}
     </TableHead>
   );
