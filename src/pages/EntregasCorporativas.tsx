@@ -480,13 +480,36 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
 
       for (const [fecha, productos] of [...porFecha.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
         // Buscar cabecera existente
-        let q = (supabase as any)
-          .from("entregas_corporativas")
-          .select("id")
-          .eq("cliente", cliente)
-          .eq("fecha_programada", fecha);
-        q = ubicacion ? q.eq("ubicacion_id", ubicacion.id) : q.is("ubicacion_id", null);
-        const { data: existente } = await q.maybeSingle();
+        let existente: any = null;
+        if (numeroPedido) {
+          // Con número de pedido: coincidencia exacta incluyendo ubicación/lugar;
+          // si no existe, SIEMPRE se crea una entrega independiente.
+          let q = (supabase as any)
+            .from("entregas_corporativas")
+            .select("id")
+            .eq("cliente", cliente)
+            .eq("fecha_programada", fecha)
+            .eq("numero_pedido", numeroPedido);
+          if (ubicacion) {
+            q = q.eq("ubicacion_id", ubicacion.id);
+          } else if (lugarTexto) {
+            q = q.eq("lugar_entrega_texto", lugarTexto);
+          } else {
+            q = q.is("ubicacion_id", null);
+          }
+          const { data } = await q.maybeSingle();
+          existente = data;
+        } else {
+          // Sin número de pedido: comportamiento previo (tabla única tipo Kenworth).
+          let q = (supabase as any)
+            .from("entregas_corporativas")
+            .select("id")
+            .eq("cliente", cliente)
+            .eq("fecha_programada", fecha);
+          q = ubicacion ? q.eq("ubicacion_id", ubicacion.id) : q.is("ubicacion_id", null);
+          const { data } = await q.maybeSingle();
+          existente = data;
+        }
 
         let entregaId: string;
         if (existente?.id) {
