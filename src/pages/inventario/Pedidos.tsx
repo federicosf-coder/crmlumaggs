@@ -8,6 +8,7 @@ const TABS = [
   { to: "/inventario/pedidos/elaborados", label: "Elaborados" },
   { to: "/inventario/pedidos/recibidos", label: "Recibidos" },
   { to: "/inventario/pedidos/reclamos", label: "Reclamos" },
+  { to: "/inventario/pedidos/extraordinarias", label: "Extraordinarias" },
 ];
 
 export default function Pedidos() {
