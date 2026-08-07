@@ -36,6 +36,7 @@ import PedidosSubir from "@/pages/inventario/pedidos/PedidosSubir";
 import PedidosElaborados from "@/pages/inventario/pedidos/PedidosElaborados";
 import PedidosRecibidos from "@/pages/inventario/pedidos/PedidosRecibidos";
 import PedidosReclamos from "@/pages/inventario/pedidos/PedidosReclamos";
+import SolicitudesExtraordinarias from "@/pages/inventario/pedidos/SolicitudesExtraordinarias";
 import DocumentsList from "@/pages/documents/DocumentsList";
 import DocumentForm from "@/pages/documents/DocumentForm";
 import DeliverySchedule from "@/pages/documents/DeliverySchedule";
@@ -158,6 +159,7 @@ const App = () => (
               <Route path="elaborados" element={<PedidosElaborados />} />
               <Route path="recibidos" element={<PedidosRecibidos />} />
               <Route path="reclamos" element={<PedidosReclamos />} />
+              <Route path="extraordinarias" element={<SolicitudesExtraordinarias />} />
             </Route>
             <Route path="/delivery" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/schedule" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
