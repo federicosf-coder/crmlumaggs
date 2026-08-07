@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EyeOff, Undo2, Settings } from "lucide-react";
+import { EyeOff, Undo2, Settings, Check } from "lucide-react";
 import { toast } from "sonner";
 import { AjusteManualDialog, type Row as MinMaxRow, type NivelRow } from "@/pages/inventario/MinMaxInventario";
 
@@ -65,6 +65,28 @@ export default function PedidosSugeridos() {
     for (const n of nivelesFull) m.set(n.codigo_producto, n);
     return m;
   }, [nivelesFull]);
+
+  const { data: productosPres = [] } = useQuery({
+    queryKey: ["productos_presentacion_sugeridos"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("productos")
+        .select("codigo, presentaciones(nombre)")
+        .limit(20000);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const presPorCodigo = useMemo(() => {
+    const m: Record<string, string> = {};
+    (productosPres as any[]).forEach((p) => {
+      const nom = p?.presentaciones?.nombre;
+      if (p?.codigo && nom && !m[p.codigo]) m[p.codigo] = nom;
+    });
+    return m;
+  }, [productosPres]);
 
   const abrirAjuste = (codigo: string) => {
     const filas = (minmax as MinMaxRow[]).filter((r) => r.codigo_producto === codigo);
@@ -171,12 +193,21 @@ export default function PedidosSugeridos() {
         const info = infoPorCodigo[codigo] || {};
         const necesidad_total = ALMACENES.reduce((s, a) => s + (porAlmacen[a.code] || 0), 0);
         const ya_pedido = yaPedidoPorCodigo[codigo] || 0;
+        const niv: any = nivMap.get(codigo) || {};
+        const stockPorAlmacen: Record<string, number> = {
+          "1001": Number(niv.stock_almacen_1001 ?? 0) || 0,
+          "1002": Number(niv.stock_almacen_1002 ?? 0) || 0,
+          "1003": Number(niv.stock_almacen_1003 ?? 0) || 0,
+          "1004": Number(niv.stock_almacen_1004 ?? 0) || 0,
+        };
         return {
           codigo,
           nombre: info.nombre_producto || "—",
-          presentacion: info.presentacion || "—",
+          presentacion: presPorCodigo[codigo] || info.presentacion || "—",
           empresa_vendedora: info.empresa_vendedora || "",
           porAlmacen,
+          stockPorAlmacen,
+          stock_total: ALMACENES.reduce((s, a) => s + stockPorAlmacen[a.code], 0),
           necesidad_total,
           ya_pedido,
           necesidad_neta_total: Math.max(0, necesidad_total - ya_pedido),
@@ -190,7 +221,7 @@ export default function PedidosSugeridos() {
         return r.codigo.toLowerCase().includes(q) || String(r.nombre).toLowerCase().includes(q);
       })
       .sort((a, b) => b.necesidad_neta_total - a.necesidad_neta_total);
-  }, [minmax, infoPorCodigo, yaPedidoPorCodigo, empresa, search]);
+  }, [minmax, infoPorCodigo, yaPedidoPorCodigo, empresa, search, presPorCodigo, nivMap]);
 
   const rows = useMemo(() => allRows.filter((r) => !ignoradosSet.has(r.codigo)), [allRows, ignoradosSet]);
 
@@ -236,23 +267,45 @@ export default function PedidosSugeridos() {
           <Table>
             <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
               <TableRow>
-                {["Código", "Producto", "Presentación", ...ALMACENES.map((a) => a.label), "Total Necesario", "Ya Pedido", "Total a Pedir", ""].map((h, idx) => (
-                  <TableHead key={h || idx} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>
+                <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground">Código</TableHead>
+                <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground">Producto</TableHead>
+                <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground">Presentación</TableHead>
+                <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right">Stock Total</TableHead>
+                <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right">Total a Pedir</TableHead>
+                {ALMACENES.map((a) => (
+                  <TableHead key={a.code} className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-center">{a.label}</TableHead>
                 ))}
+                <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right">Ya Pedido</TableHead>
+                <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r, i) => (
-                <TableRow key={r.codigo} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+              {rows.map((r) => (
+                <TableRow key={r.codigo} className="odd:bg-muted/20 hover:bg-blue-50/40">
                   <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
-                  <TableCell className="text-sm font-light">{r.nombre}</TableCell>
-                  <TableCell className="text-xs">{r.presentacion}</TableCell>
-                  {ALMACENES.map((a) => (
-                    <TableCell key={a.code} className="text-right tabular-nums">{r.porAlmacen[a.code] || 0}</TableCell>
-                  ))}
-                  <TableCell className="text-right tabular-nums">{r.necesidad_total}</TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">{r.ya_pedido}</TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">{r.necesidad_neta_total}</TableCell>
+                  <TableCell className="text-[13px] font-light">{r.nombre}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.presentacion}</TableCell>
+                  <TableCell className="text-right tabular-nums text-sm">{r.stock_total}</TableCell>
+                  <TableCell className="text-right tabular-nums text-base font-semibold">{r.necesidad_neta_total}</TableCell>
+                  {ALMACENES.map((a) => {
+                    const hay = r.stockPorAlmacen[a.code] || 0;
+                    const pide = r.porAlmacen[a.code] || 0;
+                    return (
+                      <TableCell key={a.code} className="p-1.5">
+                        <div className="bg-muted/30 rounded-md p-1.5 text-right leading-tight min-w-[74px]">
+                          <div className="text-[11px] tabular-nums text-blue-700">Hay: <span className="font-medium">{hay}</span></div>
+                          {pide > 0 ? (
+                            <div className="text-[11px] tabular-nums text-amber-600 font-semibold">Pide: {pide}</div>
+                          ) : (
+                            <div className="text-[11px] tabular-nums text-emerald-600 inline-flex items-center gap-0.5 justify-end w-full">
+                              <Check className="h-3 w-3" />Pide: 0
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                    );
+                  })}
+                  <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{r.ya_pedido}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="sm" onClick={() => ignorar(r.codigo)}>
