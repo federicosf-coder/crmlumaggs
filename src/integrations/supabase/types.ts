@@ -4440,6 +4440,30 @@ export type Database = {
         }
         Relationships: []
       }
+      inv_fuentes_suministro: {
+        Row: {
+          activo: boolean
+          code: string
+          lead_time_dias: number
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          code: string
+          lead_time_dias: number
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          code?: string
+          lead_time_dias?: number
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inv_kardex_cargas: {
         Row: {
           creado_por: string | null
