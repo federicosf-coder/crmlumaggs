@@ -1708,3 +1708,171 @@ export default function EntregasCorporativas() {
     </div>
   );
 }
+/* --------------------------- Nueva entrega manual --------------------------- */
+
+function NuevaEntregaManualDialog({
+  open, onOpenChange, onSaved,
+}: { open: boolean; onOpenChange: (o: boolean) => void; onSaved: () => void }) {
+  const [cliente, setCliente] = useState("");
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [ubicacionId, setUbicacionId] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [numeroPedido, setNumeroPedido] = useState("");
+  const [productos, setProductos] = useState<{ codigo: string; nombre: string; cantidad: string }[]>([
+    { codigo: "", nombre: "", cantidad: "1" },
+  ]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setCliente("");
+    setUbicaciones([]);
+    setUbicacionId("");
+    setFecha("");
+    setNumeroPedido("");
+    setProductos([{ codigo: "", nombre: "", cantidad: "1" }]);
+  }, [open]);
+
+  useEffect(() => {
+    (async () => {
+      if (!cliente) { setUbicaciones([]); return; }
+      setUbicaciones(await fetchUbicaciones(cliente));
+    })();
+  }, [cliente]);
+
+  const validos = productos.filter((p) => p.codigo.trim() || p.nombre.trim());
+  const puedeGuardar = !!cliente && !!fecha && validos.length > 0 && !saving;
+
+  const guardar = async () => {
+    setSaving(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: ins, error } = await (supabase as any)
+        .from("entregas_corporativas")
+        .insert({
+          cliente,
+          ubicacion_id: ubicacionId || null,
+          fecha_programada: fecha,
+          numero_pedido: numeroPedido.trim() || null,
+          estatus: "programada",
+          creado_por: userData?.user?.id ?? null,
+          calendario_id: null,
+          lugar_entrega_texto: null,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+
+      const { error: eL } = await (supabase as any).from("entregas_corporativas_lineas").insert(
+        validos.map((p) => ({
+          entrega_id: ins.id,
+          codigo_producto: p.codigo.trim(),
+          nombre_producto: p.nombre.trim() || null,
+          cantidad: Number(p.cantidad) || 0,
+        })),
+      );
+      if (eL) throw eL;
+
+      toast.success("Entrega creada");
+      onOpenChange(false);
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo crear la entrega");
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -m-6 mb-0 p-6 rounded-t-lg border-b">
+          <DialogTitle className="text-base">Nueva entrega manual</DialogTitle>
+          <DialogDescription className="font-light">
+            Captura una entrega sin necesidad de subir un documento.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="pt-6 space-y-4 max-h-[65vh] overflow-y-auto">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Cliente</Label>
+              <Select value={cliente} onValueChange={(v) => { setCliente(v); setUbicacionId(""); }}>
+                <SelectTrigger><SelectValue placeholder="Selecciona un cliente" /></SelectTrigger>
+                <SelectContent>
+                  {CLIENTES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Ubicación (opcional)</Label>
+              <Select value={ubicacionId} onValueChange={setUbicacionId} disabled={!cliente || !ubicaciones.length}>
+                <SelectTrigger><SelectValue placeholder={cliente ? "Selecciona una ubicación" : "Elige un cliente primero"} /></SelectTrigger>
+                <SelectContent>
+                  {ubicaciones.map((u) => <SelectItem key={u.id} value={u.id}>{u.nombre}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Fecha programada</Label>
+              <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">N° Pedido (opcional)</Label>
+              <Input value={numeroPedido} onChange={(e) => setNumeroPedido(e.target.value)} placeholder="Ej. 264057312" />
+            </div>
+          </div>
+
+          <div className="border rounded-md overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50">
+                  <TableHead className="uppercase text-[10px] tracking-wide">Código</TableHead>
+                  <TableHead className="uppercase text-[10px] tracking-wide">Nombre</TableHead>
+                  <TableHead className="uppercase text-[10px] tracking-wide text-right">Cantidad</TableHead>
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {productos.map((p, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>
+                      <Input className="h-8 text-xs font-mono" value={p.codigo} placeholder="Código"
+                        onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
+                    </TableCell>
+                    <TableCell>
+                      <Input className="h-8 text-sm" value={p.nombre} placeholder="Nombre"
+                        onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
+                    </TableCell>
+                    <TableCell>
+                      <Input type="number" className="h-8 w-24 text-sm text-right ml-auto" value={p.cantidad}
+                        onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
+                        disabled={productos.length === 1}
+                        onClick={() => setProductos((prev) => prev.filter((_, i) => i !== idx))}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="p-2 border-t bg-muted/30">
+              <Button variant="outline" size="sm" className="h-7 text-xs"
+                onClick={() => setProductos((prev) => [...prev, { codigo: "", nombre: "", cantidad: "1" }])}>
+                <Plus className="h-3 w-3 mr-1" /> Agregar producto
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="bg-muted/40 -m-6 mt-0 p-4 rounded-b-lg">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={guardar} disabled={!puedeGuardar}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Crear entrega
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
