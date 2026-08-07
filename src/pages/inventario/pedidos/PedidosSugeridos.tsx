@@ -8,8 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EyeOff, Undo2 } from "lucide-react";
+import { EyeOff, Undo2, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { AjusteManualDialog, type Row as MinMaxRow, type NivelRow } from "@/pages/inventario/MinMaxInventario";
 
 const ALMACENES = [
   { code: "1001", label: "Mexicali" },
@@ -21,6 +22,7 @@ const ALMACENES = [
 export default function PedidosSugeridos() {
   const [empresa, setEmpresa] = useState("todas");
   const [search, setSearch] = useState("");
+  const [editing, setEditing] = useState<MinMaxRow | null>(null);
   const qc = useQueryClient();
 
   const { data: niveles = [] } = useQuery({
@@ -36,15 +38,40 @@ export default function PedidosSugeridos() {
   });
 
   const { data: minmax = [] } = useQuery({
-    queryKey: ["inv_minmax_sugeridos"],
+    queryKey: ["inv_minmax"],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("inv_minmax")
-        .select("codigo_producto, almacen, minimo_calc, maximo_calc, minimo_manual, maximo_manual, cantidad_reorden_calc, cantidad_reorden_manual");
+        .select("*")
+        .order("codigo_producto");
       if (error) throw error;
       return (data || []) as any[];
     },
     refetchInterval: 60_000,
   });
+
+  const { data: nivelesFull = [] } = useQuery<NivelRow[]>({
+    queryKey: ["inv_niveles_inventario_min"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("inv_niveles_inventario")
+        .select("codigo_producto, nombre_producto, clasificacion_abc, lead_time_dias, piezas_por_tarima, fuente_suministro, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004");
+      if (error) throw error;
+      return (data || []) as NivelRow[];
+    },
+  });
+
+  const nivMap = useMemo(() => {
+    const m = new Map<string, NivelRow>();
+    for (const n of nivelesFull) m.set(n.codigo_producto, n);
+    return m;
+  }, [nivelesFull]);
+
+  const abrirAjuste = (codigo: string) => {
+    const filas = (minmax as MinMaxRow[]).filter((r) => r.codigo_producto === codigo);
+    const fila = filas.find((r) => r.almacen === "1001") || filas[0];
+    if (!fila) { toast.error("Sin registro de mínimos/máximos para este código"); return; }
+    setEditing(fila);
+  };
 
   const { data: pedidoLineas = [] } = useQuery({
     queryKey: ["inv_pedido_lineas_abiertos"],
@@ -227,9 +254,14 @@ export default function PedidosSugeridos() {
                   <TableCell className="text-right tabular-nums text-muted-foreground">{r.ya_pedido}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{r.necesidad_neta_total}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => ignorar(r.codigo)}>
-                      <EyeOff className="h-3.5 w-3.5 mr-1" />Ignorar
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => ignorar(r.codigo)}>
+                        <EyeOff className="h-3.5 w-3.5 mr-1" />Ignorar
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Ajuste manual" onClick={() => abrirAjuste(r.codigo)}>
+                        <Settings className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -277,6 +309,8 @@ export default function PedidosSugeridos() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AjusteManualDialog editing={editing} onClose={() => setEditing(null)} nivMap={nivMap} />
     </div>
   );
 }
