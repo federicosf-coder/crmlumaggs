@@ -1143,6 +1143,14 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); abrirDetalle(r); }}>
                       <Eye className="h-3.5 w-3.5 mr-1" /> Ver detalle
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); setEliminar(r); }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
