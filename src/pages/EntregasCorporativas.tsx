@@ -1172,6 +1172,9 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
           <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -m-6 mb-0 p-6 rounded-t-lg border-b">
             <DialogTitle className="text-base">
               {detalle?.cliente} · {detalle?.fecha_programada}
+              {detalle?.numero_pedido && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">· Pedido {detalle.numero_pedido}</span>
+              )}
             </DialogTitle>
             <DialogDescription className="font-light">
               {detalle?.ubicacion?.nombre || (
