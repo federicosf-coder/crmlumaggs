@@ -21,6 +21,7 @@ export default function PedidosElaborados() {
   const [empresa, setEmpresa] = useState("todas");
   const [almacen, setAlmacen] = useState("todos");
   const [estatus, setEstatus] = useState("todos");
+  const [sinFecha, setSinFecha] = useState("todos");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -44,10 +45,11 @@ export default function PedidosElaborados() {
     if (empresa !== "todas" && p.empresa_vendedora !== empresa) return false;
     if (almacen !== "todos" && p.almacen_destino !== almacen) return false;
     if (estatus !== "todos" && p.estatus !== estatus) return false;
+    if (sinFecha === "sin_fecha" && p.fecha_entrega_estimada) return false;
     if (search && !String(p.numero_po_interno || "").toLowerCase().includes(search.toLowerCase())
       && !String(p.numero_orden_proveedor || "").toLowerCase().includes(search.toLowerCase())) return false;
     return true;
-  }), [pedidos, empresa, almacen, estatus, search]);
+  }), [pedidos, empresa, almacen, estatus, sinFecha, search]);
 
   return (
     <div className="p-6 space-y-4">
@@ -77,6 +79,13 @@ export default function PedidosElaborados() {
               {Object.entries(ESTATUS_PEDIDO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={sinFecha} onValueChange={setSinFecha}>
+            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas las entregas</SelectItem>
+              <SelectItem value="sin_fecha">Solo sin fecha estimada</SelectItem>
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 
@@ -99,7 +108,11 @@ export default function PedidosElaborados() {
                   <TableCell className="text-xs">{p.fuente || "—"}</TableCell>
                   <TableCell className="text-xs">{p.fecha_pedido || "—"}</TableCell>
                   <TableCell className="text-xs">{p.fecha_despacho || "—"}</TableCell>
-                  <TableCell className="text-xs">{p.fecha_entrega_estimada || "—"}</TableCell>
+                  <TableCell className="text-xs">
+                    {p.fecha_entrega_estimada ? p.fecha_entrega_estimada : (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Sin fecha ⚠</Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">{p.total_tarimas ?? 0}</TableCell>
                   <TableCell className="text-right tabular-nums">{p.total_monto ? `${Number(p.total_monto).toLocaleString("es-MX", { minimumFractionDigits: 2 })} ${p.moneda || ""}` : "—"}</TableCell>
                   <TableCell><Badge variant="outline" className={estatusPedidoColor(p.estatus)}>{ESTATUS_PEDIDO_LABEL[p.estatus] || p.estatus}</Badge></TableCell>
