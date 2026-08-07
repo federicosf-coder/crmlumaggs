@@ -373,6 +373,34 @@ function ProductosTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [huerfanoContext, setHuerfanoContext] = useState<{ codigo: string; proveedor: string } | null>(null);
   const [importing, setImporting] = useState(false);
+  const [porLlegarCodigo, setPorLlegarCodigo] = useState<{ codigo: string; nombre: string } | null>(null);
+
+  // ─── Mercancía por llegar (pedidos abiertos) ─────────
+  const { data: porLlegarLineas = [] } = useQuery({
+    queryKey: ["inv_pedido_lineas_por_llegar_catalogo"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("inv_pedido_lineas")
+        .select("codigo_producto, cantidad_solicitada, cantidad_confirmada, inv_pedidos!inner(numero_po_interno, almacen_destino, fecha_pedido, fecha_entrega_estimada, estatus)")
+        .not("inv_pedidos.estatus", "in", "(cerrado,cancelado)");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    refetchInterval: 60_000,
+  });
+
+  const porLlegarPorCodigo = new Map<string, number>();
+  (porLlegarLineas as any[]).forEach((l) => {
+    if (!l.codigo_producto) return;
+    const cant = Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0) || 0;
+    porLlegarPorCodigo.set(l.codigo_producto, (porLlegarPorCodigo.get(l.codigo_producto) || 0) + cant);
+  });
+
+  const detallePorLlegar = porLlegarCodigo
+    ? (porLlegarLineas as any[])
+        .filter((l) => l.codigo_producto === porLlegarCodigo.codigo)
+        .sort((a, b) => String(a.inv_pedidos?.fecha_entrega_estimada || "9999").localeCompare(String(b.inv_pedidos?.fecha_entrega_estimada || "9999")))
+    : [];
 
   const optionsFor = (type: ProductOptionType) => allOptions.filter(o => o.option_type === type && o.is_active);
 
@@ -943,6 +971,7 @@ function ProductosTab() {
                        <div className="text-[10px] font-normal text-muted-foreground leading-tight">{ultimaFechaInventario}</div>
                      )}
                    </TableHead>
+                   <TableHead className="text-right">Mercancía por llegar</TableHead>
                    <TableHead className="text-xs">Precios UF</TableHead>
                    <TableHead className="text-xs">Precios R</TableHead>
                    <TableHead>Activo</TableHead>
@@ -952,6 +981,7 @@ function ProductosTab() {
                 {filteredProductos.map((p: any) => {
                   const descripcionConcat = [p.codigo, p.nombre_producto, p.presentaciones?.nombre].filter(Boolean).join(" ");
                   const stock = stockMap.get(p.id);
+                  const porLlegar = porLlegarPorCodigo.get(p.codigo) || 0;
                   return (
                   <TableRow key={p.id}>
                     <TableCell>
@@ -986,6 +1016,20 @@ function ProductosTab() {
                         <span className="text-muted-foreground text-xs">Sin datos</span>
                       )}
                     </TableCell>
+                    <TableCell className="text-right text-xs tabular-nums">
+                      {porLlegar > 0 ? (
+                        <button
+                          type="button"
+                          className="font-medium text-blue-600 hover:underline"
+                          title="Ver pedidos por llegar"
+                          onClick={() => setPorLlegarCodigo({ codigo: p.codigo, nombre: descripcionConcat })}
+                        >
+                          {porLlegar}
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       <div><span className="text-muted-foreground">UF1:</span> ${Number(p.precio_base_uf1 ?? 0).toFixed(2)}</div>
                       <div><span className="text-muted-foreground">UF2:</span> ${Number(p.precio_uf2 ?? 0).toFixed(2)}</div>
@@ -1002,12 +1046,51 @@ function ProductosTab() {
                   </TableRow>
                   );
                 })}
-                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
+                {filteredProductos.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Sin productos</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
         )}
       </CardContent>
+
+      <Dialog open={!!porLlegarCodigo} onOpenChange={(v) => { if (!v) setPorLlegarCodigo(null); }}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b shrink-0">
+            <DialogTitle className="text-lg font-semibold tracking-tight">Mercancía por llegar</DialogTitle>
+            <p className="text-xs text-muted-foreground font-light">{porLlegarCodigo?.nombre}</p>
+          </DialogHeader>
+          <div className="px-5 py-4 overflow-y-auto flex-1">
+            <Table>
+              <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+                <TableRow>
+                  <TableHead className="uppercase tracking-wide text-xs font-medium">PO</TableHead>
+                  <TableHead className="uppercase tracking-wide text-xs font-medium">Fecha estimada</TableHead>
+                  <TableHead className="uppercase tracking-wide text-xs font-medium">Almacén</TableHead>
+                  <TableHead className="uppercase tracking-wide text-xs font-medium text-right">Cantidad</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {detallePorLlegar.map((l: any, i: number) => (
+                  <TableRow key={i} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                    <TableCell className="font-mono text-xs">{l.inv_pedidos?.numero_po_interno || "—"}</TableCell>
+                    <TableCell className="text-sm">
+                      {l.inv_pedidos?.fecha_entrega_estimada || <span className="text-amber-600">Sin fecha ⚠</span>}
+                    </TableCell>
+                    <TableCell className="text-sm">{ALMACEN_LABELS[l.inv_pedidos?.almacen_destino || ""] || l.inv_pedidos?.almacen_destino || "—"}</TableCell>
+                    <TableCell className="text-sm text-right tabular-nums">{Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0)}</TableCell>
+                  </TableRow>
+                ))}
+                {detallePorLlegar.length === 0 && (
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">Sin pedidos abiertos</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="border-t bg-muted/30 px-5 py-3 flex justify-end shrink-0">
+            <Button variant="outline" onClick={() => setPorLlegarCodigo(null)}>Cerrar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyProduct); setHuerfanoContext(null); } }}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
