@@ -25,7 +25,7 @@ const ALMACEN_LABELS: Record<string, string> = {
 const COBERTURA: Record<string, number> = { A: 60, B: 45, C: 30 };
 const SEGURIDAD: Record<string, number> = { A: 15, B: 10, C: 7 };
 
-type Row = {
+export type Row = {
   id: string;
   codigo_producto: string;
   almacen: string;
@@ -47,7 +47,7 @@ type Row = {
   notas: string | null;
 };
 
-type NivelRow = {
+export type NivelRow = {
   codigo_producto: string;
   nombre_producto: string | null;
   clasificacion_abc: string | null;
