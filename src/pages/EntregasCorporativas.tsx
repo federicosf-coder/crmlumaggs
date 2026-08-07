@@ -1829,6 +1829,7 @@ type DesgloseRow = {
   cantidad: number;
   stock_actual: number;
   por_llegar: number;
+  stock_proyectado: number;
   tendremos: boolean;
   deficit: number;
 };
@@ -1909,6 +1910,10 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
         .filter((p) => p.codigo === codigo && p.fecha <= fecha)
         .reduce((s, p) => s + p.cantidad, 0);
       const disponible = stock_actual + por_llegar - demanda;
+      const por_llegar_a_tiempo = transito
+        .filter((t) => t.codigo_producto === codigo && t.fecha_entrega_estimada && t.fecha_entrega_estimada <= fecha)
+        .reduce((s, t) => s + t.cantidad, 0);
+      const stock_proyectado = stock_actual + por_llegar_a_tiempo - demanda;
       return {
         key: l.id,
         codigo,
@@ -1921,6 +1926,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
         cantidad: Number(l.cantidad ?? 0),
         stock_actual,
         por_llegar,
+        stock_proyectado,
         tendremos: disponible >= 0,
         deficit: disponible < 0 ? Math.abs(disponible) : 0,
       } as DesgloseRow;
@@ -2055,6 +2061,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
                 <Th k="cantidad" className="text-right">Cantidad</Th>
                 <Th k="stock" className="text-right">Stock en Almacén</Th>
                 <Th k="porllegar" className="text-right">Por Llegar</Th>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Stock Proyectado</TableHead>
                 <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">¿Tendremos Stock?</TableHead>
                 <Th k="deficit" className="text-right">Déficit</Th>
                 <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Acción</TableHead>
@@ -2063,7 +2070,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
             <TableBody>
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center text-sm text-muted-foreground py-8">
+                  <TableCell colSpan={13} className="text-center text-sm text-muted-foreground py-8">
                     {loading ? "Cargando…" : "Sin productos que mostrar"}
                   </TableCell>
                 </TableRow>
@@ -2084,6 +2091,9 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
                         {r.por_llegar}
                       </button>
                     ) : 0}
+                  </TableCell>
+                  <TableCell className={`text-right text-sm font-semibold py-2.5 ${r.stock_proyectado < 0 ? "text-red-700" : "text-emerald-700"}`}>
+                    {r.stock_proyectado}
                   </TableCell>
                   <TableCell className="py-2.5">
                     <Badge className={`text-xs font-semibold ${r.tendremos ? "bg-emerald-200 text-emerald-800 hover:bg-emerald-200" : "bg-red-200 text-red-800 hover:bg-red-200"}`}>
