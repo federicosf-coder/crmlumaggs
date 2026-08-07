@@ -2159,8 +2159,10 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
   const [lineas, setLineas] = useState<any[]>([]);
   const [stock, setStock] = useState<Record<string, number>>({});
   const [transito, setTransito] = useState<Record<string, number>>({});
+  const [transitoDetalle, setTransitoDetalle] = useState<Record<string, PedidoTransito[]>>({});
   const [fAlcanza, setFAlcanza] = useState("todos");
   const [busq, setBusq] = useState("");
+  const [detallePorLlegar, setDetallePorLlegar] = useState<ResumenRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -2171,7 +2173,7 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
       (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_total"),
       (supabase as any)
         .from("inv_pedido_lineas")
-        .select("codigo_producto, cantidad_confirmada, cantidad_solicitada, pedido:inv_pedidos!inner(estatus)"),
+        .select("codigo_producto, cantidad_confirmada, cantidad_solicitada, pedido:inv_pedidos!inner(numero_po_interno, numero_orden_proveedor, fecha_entrega_estimada, estatus)"),
     ]);
 
     setLineas((lin ?? []).filter((l: any) => l.entrega?.estatus === "programada"));
@@ -2183,12 +2185,21 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
     setStock(smap);
 
     const tmap: Record<string, number> = {};
+    const dmap: Record<string, PedidoTransito[]> = {};
     ((pl ?? []) as any[])
       .filter((l) => l.pedido && !["cerrado", "cancelado"].includes(String(l.pedido.estatus)))
       .forEach((l) => {
-        tmap[l.codigo_producto] = (tmap[l.codigo_producto] ?? 0) + Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0);
+        const cant = Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0);
+        tmap[l.codigo_producto] = (tmap[l.codigo_producto] ?? 0) + cant;
+        (dmap[l.codigo_producto] ??= []).push({
+          codigo_producto: l.codigo_producto,
+          cantidad: cant,
+          fecha_entrega_estimada: l.pedido.fecha_entrega_estimada ?? null,
+          numero_po: l.pedido.numero_po_interno || l.pedido.numero_orden_proveedor || "—",
+        });
       });
     setTransito(tmap);
+    setTransitoDetalle(dmap);
     setLoading(false);
   };
 
