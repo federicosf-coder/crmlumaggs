@@ -308,6 +308,7 @@ export default function SolicitudesExtraordinarias() {
         productos={opcionesProducto}
         onSubmit={(p) => crear.mutate(p)}
         saving={crear.isPending}
+        solicitanteNombre={solicitanteNombre}
       />
 
       {/* Revisión */}
