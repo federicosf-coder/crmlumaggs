@@ -135,6 +135,12 @@ export default function SolicitudesExtraordinarias() {
     return p?.full_name || p?.email || "—";
   };
 
+  const solicitanteNombre = useMemo(() => {
+    if (!user) return "Yo";
+    const p = perfiles.find((x) => x.id === user.id);
+    return p?.full_name || p?.email || user.email || "Yo";
+  }, [user, perfiles]);
+
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     return solicitudes.filter((s) => {
@@ -302,6 +308,7 @@ export default function SolicitudesExtraordinarias() {
         productos={opcionesProducto}
         onSubmit={(p) => crear.mutate(p)}
         saving={crear.isPending}
+        solicitanteNombre={solicitanteNombre}
       />
 
       {/* Revisión */}
@@ -376,12 +383,13 @@ export default function SolicitudesExtraordinarias() {
   );
 }
 
-function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving }: {
+function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving, solicitanteNombre }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   productos: OpcionProducto[];
   onSubmit: (p: { codigo_producto: string | null; producto_descripcion: string | null; cantidad: number; tipo: string; motivo: string }) => void;
   saving: boolean;
+  solicitanteNombre: string;
 }) {
   const [codigo, setCodigo] = useState("");
   const [cantidad, setCantidad] = useState("");
@@ -422,6 +430,11 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving 
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Nueva Solicitud Extraordinaria</DialogTitle></DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wide">Solicitado por</Label>
+            <Input value={solicitanteNombre} disabled className="bg-muted text-muted-foreground" />
+          </div>
+
           <div className="space-y-1">
             <Label className="text-xs uppercase tracking-wide">Producto</Label>
             {modoDescripcion ? (
