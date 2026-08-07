@@ -1501,19 +1501,19 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     ))}
                     {editMode && lineasNuevas.map((n, idx) => (
                       <TableRow key={`n-${idx}`} className="odd:bg-muted/30">
-                        <TableCell>
+                        <TableCell className="py-2.5">
                           <Input className="h-8 text-sm font-mono font-medium" value={n.codigo} placeholder="Código"
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-2.5">
                           <Input className="h-8 text-sm" value={n.nombre} placeholder="Nombre"
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-2.5">
                           <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={n.cantidad}
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-2.5">
                           <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
                             onClick={() => setLineasNuevas((p) => p.filter((_, i) => i !== idx))}>
                             <Trash2 className="h-3.5 w-3.5" />
