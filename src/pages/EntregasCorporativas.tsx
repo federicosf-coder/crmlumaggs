@@ -347,12 +347,12 @@ function UbicacionesTab({ refreshKey, onChanged }: { refreshKey: number; onChang
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="uppercase text-[10px] tracking-wide">Cliente</TableHead>
-              <TableHead className="uppercase text-[10px] tracking-wide">Nombre</TableHead>
-              <TableHead className="uppercase text-[10px] tracking-wide">Dirección</TableHead>
-              <TableHead className="uppercase text-[10px] tracking-wide">Instrucciones</TableHead>
-              <TableHead className="uppercase text-[10px] tracking-wide">Activo</TableHead>
-              <TableHead className="uppercase text-[10px] tracking-wide text-right">Acciones</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Cliente</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Nombre</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Dirección</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Instrucciones</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Activo</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -372,10 +372,10 @@ function UbicacionesTab({ refreshKey, onChanged }: { refreshKey: number; onChang
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm font-light">{u.direccion || "—"}</TableCell>
-                <TableCell className="text-sm font-light max-w-[280px] truncate">{u.instrucciones || "—"}</TableCell>
+                <TableCell className="text-sm">{u.direccion || "—"}</TableCell>
+                <TableCell className="text-sm max-w-[280px] truncate">{u.instrucciones || "—"}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={`text-[10px] ${u.activo ? "bg-green-100 text-green-700 border-green-200" : "bg-slate-100 text-slate-600"}`}>
+                  <Badge variant="outline" className={`text-xs font-semibold ${u.activo ? "bg-emerald-200 text-emerald-800 border-emerald-300" : "bg-slate-300 text-slate-800 border-slate-400"}`}>
                     {u.activo ? "Sí" : "No"}
                   </Badge>
                 </TableCell>
