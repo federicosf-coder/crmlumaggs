@@ -119,6 +119,29 @@ export default function PedidosSugeridos() {
     },
   });
 
+  const { data: extraordinarias = [] } = useQuery({
+    queryKey: ["inv_solicitudes_extraordinarias_aprobadas"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("inv_solicitudes_extraordinarias")
+        .select("codigo_producto, cantidad")
+        .eq("estatus", "aprobada")
+        .eq("activo", true);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    refetchInterval: 60_000,
+  });
+
+  const extraPorCodigo = useMemo(() => {
+    const m: Record<string, number> = {};
+    (extraordinarias as any[]).forEach((s) => {
+      if (!s.codigo_producto) return;
+      m[s.codigo_producto] = (m[s.codigo_producto] || 0) + (Number(s.cantidad) || 0);
+    });
+    return m;
+  }, [extraordinarias]);
+
   const { data: perfiles = [] } = useQuery({
     queryKey: ["profiles_min_ignorados"],
     queryFn: async () => {
@@ -187,12 +210,16 @@ export default function PedidosSugeridos() {
       if (!porCodigo[r.codigo_producto]) porCodigo[r.codigo_producto] = {};
       porCodigo[r.codigo_producto][r.almacen] = (porCodigo[r.codigo_producto][r.almacen] || 0) + val;
     });
+    Object.keys(extraPorCodigo).forEach((c) => {
+      if ((extraPorCodigo[c] || 0) > 0 && !porCodigo[c]) porCodigo[c] = {};
+    });
 
     return Object.entries(porCodigo)
       .map(([codigo, porAlmacen]) => {
         const info = infoPorCodigo[codigo] || {};
         const necesidad_total = ALMACENES.reduce((s, a) => s + (porAlmacen[a.code] || 0), 0);
         const ya_pedido = yaPedidoPorCodigo[codigo] || 0;
+        const extraordinario = extraPorCodigo[codigo] || 0;
         const niv: any = nivMap.get(codigo) || {};
         const stockPorAlmacen: Record<string, number> = {
           "1001": Number(niv.stock_almacen_1001 ?? 0) || 0,
@@ -210,7 +237,8 @@ export default function PedidosSugeridos() {
           stock_total: ALMACENES.reduce((s, a) => s + stockPorAlmacen[a.code], 0),
           necesidad_total,
           ya_pedido,
-          necesidad_neta_total: Math.max(0, necesidad_total - ya_pedido),
+          extraordinario,
+          necesidad_neta_total: Math.max(0, necesidad_total - ya_pedido) + extraordinario,
         };
       })
       .filter((r) => r.necesidad_neta_total > 0)
@@ -221,7 +249,7 @@ export default function PedidosSugeridos() {
         return r.codigo.toLowerCase().includes(q) || String(r.nombre).toLowerCase().includes(q);
       })
       .sort((a, b) => b.necesidad_neta_total - a.necesidad_neta_total);
-  }, [minmax, infoPorCodigo, yaPedidoPorCodigo, empresa, search, presPorCodigo, nivMap]);
+  }, [minmax, infoPorCodigo, yaPedidoPorCodigo, empresa, search, presPorCodigo, nivMap, extraPorCodigo]);
 
   const rows = useMemo(() => allRows.filter((r) => !ignoradosSet.has(r.codigo)), [allRows, ignoradosSet]);
 
@@ -286,7 +314,12 @@ export default function PedidosSugeridos() {
                   <TableCell className="text-[13px] font-light">{r.nombre}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{r.presentacion}</TableCell>
                   <TableCell className="text-right tabular-nums text-sm">{r.stock_total}</TableCell>
-                  <TableCell className="text-right tabular-nums text-base font-semibold">{r.necesidad_neta_total}</TableCell>
+                  <TableCell className="text-right tabular-nums text-base font-semibold">
+                    {r.necesidad_neta_total}
+                    {r.extraordinario > 0 && (
+                      <span className="ml-1 text-[10px] font-medium text-violet-600">+{r.extraordinario} extra</span>
+                    )}
+                  </TableCell>
                   {ALMACENES.map((a) => {
                     const hay = r.stockPorAlmacen[a.code] || 0;
                     const pide = r.porAlmacen[a.code] || 0;
@@ -308,10 +341,10 @@ export default function PedidosSugeridos() {
                   <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{r.ya_pedido}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => ignorar(r.codigo)}>
+                      <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => ignorar(r.codigo)}>
                         <EyeOff className="h-3.5 w-3.5 mr-1" />Ignorar
                       </Button>
-                      <Button variant="ghost" size="icon" title="Ajuste manual" onClick={() => abrirAjuste(r.codigo)}>
+                      <Button variant="ghost" size="icon" className="text-muted-foreground" title="Ajuste manual" onClick={() => abrirAjuste(r.codigo)}>
                         <Settings className="h-3.5 w-3.5" />
                       </Button>
                     </div>
