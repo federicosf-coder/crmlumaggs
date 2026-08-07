@@ -1854,7 +1854,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
       const fecha = e.fecha_programada as string;
       const stock_actual = Number(stock[codigo] ?? 0);
       const por_llegar = transito
-        .filter((t) => t.codigo_producto === codigo && t.fecha_entrega_estimada && t.fecha_entrega_estimada <= fecha)
+        .filter((t) => t.codigo_producto === codigo)
         .reduce((s, t) => s + t.cantidad, 0);
       const demanda = programadas
         .filter((p) => p.codigo === codigo && p.fecha <= fecha)
@@ -1933,9 +1933,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
   };
 
   const detalleTransito = detallePorLlegar
-    ? transito.filter(
-        (t) => t.codigo_producto === detallePorLlegar.codigo && t.fecha_entrega_estimada && t.fecha_entrega_estimada <= detallePorLlegar.fecha,
-      )
+    ? transito.filter((t) => t.codigo_producto === detallePorLlegar.codigo)
     : [];
 
   const Th = ({ k, children, className }: { k: string; children: React.ReactNode; className?: string }) => (
@@ -2068,7 +2066,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
           <DialogHeader>
             <DialogTitle>Pedidos en camino — {detallePorLlegar?.codigo}</DialogTitle>
             <DialogDescription>
-              Pedidos abiertos con fecha estimada menor o igual al {detallePorLlegar?.fecha}.
+              Todos los pedidos abiertos (no cerrados ni cancelados) de este código.
             </DialogDescription>
           </DialogHeader>
           <Table>
@@ -2084,7 +2082,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
                 <TableRow key={i} className="odd:bg-muted/30">
                   <TableCell className="text-sm font-medium py-2.5">{t.numero_po}</TableCell>
                   <TableCell className="text-right text-sm font-medium py-2.5">{t.cantidad}</TableCell>
-                  <TableCell className="text-sm py-2.5">{t.fecha_entrega_estimada}</TableCell>
+                  <TableCell className="text-sm py-2.5">{t.fecha_entrega_estimada || "—"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
