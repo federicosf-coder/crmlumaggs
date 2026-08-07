@@ -1909,11 +1909,14 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
       const demanda = programadas
         .filter((p) => p.codigo === codigo && p.fecha <= fecha)
         .reduce((s, p) => s + p.cantidad, 0);
+      const demanda_antes = programadas
+        .filter((p) => p.codigo === codigo && p.fecha < fecha)
+        .reduce((s, p) => s + p.cantidad, 0);
       const disponible = stock_actual + por_llegar - demanda;
       const por_llegar_a_tiempo = transito
         .filter((t) => t.codigo_producto === codigo && t.fecha_entrega_estimada && t.fecha_entrega_estimada <= fecha)
         .reduce((s, t) => s + t.cantidad, 0);
-      const stock_proyectado = stock_actual + por_llegar_a_tiempo - demanda;
+      const stock_proyectado = stock_actual + por_llegar_a_tiempo - demanda_antes;
       return {
         key: l.id,
         codigo,
