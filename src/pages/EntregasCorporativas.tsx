@@ -49,6 +49,7 @@ type Entrega = {
   id: string;
   cliente: string;
   fecha_programada: string;
+  numero_pedido: string | null;
   estatus: string;
   ubicacion_id: string | null;
   lugar_entrega_texto: string | null;
