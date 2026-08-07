@@ -1477,9 +1477,9 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     )}
                     {detalleLineas.filter((l) => !lineasQuitar.includes(l.id)).map((l, i) => (
                       <TableRow key={l.id} className="odd:bg-muted/30">
-                        <TableCell className="font-mono text-sm font-medium">{l.codigo_producto}</TableCell>
-                        <TableCell className="text-sm">{l.nombre_producto || "—"}</TableCell>
-                        <TableCell className="text-sm font-medium text-right">
+                        <TableCell className="font-mono text-sm font-medium py-2.5">{l.codigo_producto}</TableCell>
+                        <TableCell className="text-sm py-2.5">{l.nombre_producto || "—"}</TableCell>
+                        <TableCell className="text-sm font-medium text-right py-2.5">
                           {editMode ? (
                             <Input
                               type="number"
@@ -1490,7 +1490,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                           ) : Number(l.cantidad)}
                         </TableCell>
                         {editMode && (
-                          <TableCell>
+                          <TableCell className="py-2.5">
                             <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
                               onClick={() => setLineasQuitar((p) => [...p, l.id])}>
                               <Trash2 className="h-3.5 w-3.5" />
