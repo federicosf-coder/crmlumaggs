@@ -1405,7 +1405,7 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
     if (error) { toast.error(error.message); return; }
     setSeleccion(new Set());
     toast.success(`${ids.length} ${estado === "autorizado" ? "autorizados" : "rechazados"}`);
-    onRefresh();
+    await onRefresh();
   }
 
   async function autorizarPorNivel(nivel: string) {
@@ -1444,7 +1444,17 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
     if (!loteId || !userId) return;
     setAplicando(true);
     try {
-      const autorizados = propuesta.filter(p => p.estado === "autorizado");
+      const { data: freshRows } = await supabase
+        .from("inv_costos_producto")
+        .select("*")
+        .eq("lote_id", loteId)
+        .eq("estado", "autorizado");
+      const autorizados = freshRows || [];
+      if (autorizados.length === 0) {
+        toast.warning("No hay productos autorizados para aplicar — actualiza la página e inténtalo de nuevo");
+        setConfirmApply(false);
+        return;
+      }
       let ok = 0, fail = 0;
       for (const item of autorizados) {
         const costoFinal = Number(item.costo_manual ?? item.costo_efectivo);
