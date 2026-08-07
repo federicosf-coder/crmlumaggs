@@ -2070,7 +2070,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
             <TableBody>
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center text-sm text-muted-foreground py-8">
+                  <TableCell colSpan={13} className="text-center text-sm text-muted-foreground py-8">
                     {loading ? "Cargando…" : "Sin productos que mostrar"}
                   </TableCell>
                 </TableRow>
