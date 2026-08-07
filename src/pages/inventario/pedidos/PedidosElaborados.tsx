@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Upload, Sparkles, FileText } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Upload, Sparkles, FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,11 +17,28 @@ import { usePedidos, usePedido, useUpdatePedidoEstatus, ESTATUS_PEDIDO_LABEL, es
 
 export default function PedidosElaborados() {
   const { data: pedidos = [] } = usePedidos();
+  const qc = useQueryClient();
   const [empresa, setEmpresa] = useState("todas");
   const [almacen, setAlmacen] = useState("todos");
   const [estatus, setEstatus] = useState("todos");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await deletePedido(deleteId);
+      toast.success("Pedido eliminado");
+      if (openId === deleteId) setOpenId(null);
+      setDeleteId(null);
+      qc.invalidateQueries({ queryKey: ["inv_pedidos"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Error al eliminar");
+    } finally { setDeleting(false); }
+  };
 
   const filtered = useMemo(() => pedidos.filter((p) => {
     if (empresa !== "todas" && p.empresa_vendedora !== empresa) return false;
@@ -67,8 +85,8 @@ export default function PedidosElaborados() {
           <Table>
             <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
               <TableRow>
-                {["PO interno","N° Orden","Empresa","Almacén","Fuente","Fecha pedido","Despacho","Entrega est.","Tarimas","Monto","Estatus"].map((h) =>
-                  <TableHead key={h} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>)}
+                {["PO interno","N° Orden","Empresa","Almacén","Fuente","Fecha pedido","Despacho","Entrega est.","Tarimas","Monto","Estatus",""].map((h, idx) =>
+                  <TableHead key={`${h}-${idx}`} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>)}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -85,22 +103,54 @@ export default function PedidosElaborados() {
                   <TableCell className="text-right">{p.total_tarimas ?? 0}</TableCell>
                   <TableCell className="text-right tabular-nums">{p.total_monto ? `${Number(p.total_monto).toLocaleString("es-MX", { minimumFractionDigits: 2 })} ${p.moneda || ""}` : "—"}</TableCell>
                   <TableCell><Badge variant="outline" className={estatusPedidoColor(p.estatus)}>{ESTATUS_PEDIDO_LABEL[p.estatus] || p.estatus}</Badge></TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                      onClick={(e) => { e.stopPropagation(); setDeleteId(p.id); }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Sin pedidos</TableCell></TableRow>
+                <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Sin pedidos</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      <PedidoDetailSheet id={openId} onClose={() => setOpenId(null)} />
+      <PedidoDetailSheet id={openId} onClose={() => setOpenId(null)} onDelete={(id) => setDeleteId(id)} />
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminarán también sus líneas y archivos asociados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction disabled={deleting} onClick={(e) => { e.preventDefault(); confirmDelete(); }}>
+              {deleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-function PedidoDetailSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
+async function deletePedido(id: string) {
+  const l = await (supabase as any).from("inv_pedido_lineas").delete().eq("pedido_id", id);
+  if (l.error) throw l.error;
+  const a = await (supabase as any).from("inv_pedido_archivos").delete().eq("pedido_id", id);
+  if (a.error) throw a.error;
+  const p = await (supabase as any).from("inv_pedidos").delete().eq("id", id);
+  if (p.error) throw p.error;
+}
+
+function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClose: () => void; onDelete: (id: string) => void }) {
   const { data, refetch } = usePedido(id);
   const upd = useUpdatePedidoEstatus();
   const navigate = useNavigate();
@@ -214,6 +264,9 @@ function PedidoDetailSheet({ id, onClose }: { id: string | null; onClose: () => 
             {nextEstatus(p.estatus) && (
               <Button onClick={onAdvance} className="w-full">{nextEstatusLabel(p.estatus)}</Button>
             )}
+            <Button variant="outline" className="w-full text-destructive" onClick={() => onDelete(p.id)}>
+              <Trash2 className="h-4 w-4 mr-1.5" />Eliminar pedido
+            </Button>
 
             <div>
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Archivos adjuntos</div>
