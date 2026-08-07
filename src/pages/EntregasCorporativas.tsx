@@ -1456,12 +1456,20 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
               )}
 
               <div className="flex flex-wrap items-end justify-between gap-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">N° Pedido</Label>
-                  {editMode ? (
-                    <Input className="h-8 w-52 text-sm" value={editPedido} onChange={(e) => setEditPedido(e.target.value)} placeholder="Sin número" />
-                  ) : (
-                    <p className="text-sm font-light">{detalle.numero_pedido || "—"}</p>
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">N° Pedido</Label>
+                    {editMode ? (
+                      <Input className="h-8 w-52 text-sm" value={editPedido} onChange={(e) => setEditPedido(e.target.value)} placeholder="Sin número" />
+                    ) : (
+                      <p className="text-sm font-light">{detalle.numero_pedido || "—"}</p>
+                    )}
+                  </div>
+                  {editMode && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Fecha de entrega solicitada</Label>
+                      <Input type="date" className="h-8 w-48 text-sm" value={editFecha} onChange={(e) => setEditFecha(e.target.value)} />
+                    </div>
                   )}
                 </div>
                 {editMode ? (
@@ -1519,12 +1527,13 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     {editMode && lineasNuevas.map((n, idx) => (
                       <TableRow key={`n-${idx}`} className="odd:bg-muted/30">
                         <TableCell className="py-2.5">
-                          <Input className="h-8 text-sm font-mono font-medium" value={n.codigo} placeholder="Código"
-                            onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
+                          <ProductoSelector
+                            codigo={n.codigo}
+                            onSelect={(p) => setLineasNuevas((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: p.codigo, nombre: p.nombre } : x))}
+                          />
                         </TableCell>
                         <TableCell className="py-2.5">
-                          <Input className="h-8 text-sm" value={n.nombre} placeholder="Nombre"
-                            onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
+                          <span className="text-sm">{n.nombre || <span className="text-muted-foreground">Selecciona un producto</span>}</span>
                         </TableCell>
                         <TableCell className="py-2.5">
                           <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={n.cantidad}
