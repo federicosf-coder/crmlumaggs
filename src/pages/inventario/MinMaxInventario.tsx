@@ -543,17 +543,16 @@ function Th({ children, className }: { children?: React.ReactNode; className?: s
   return <TableHead className={`uppercase tracking-wide text-xs font-medium ${className ?? ""}`}>{children}</TableHead>;
 }
 
-function AjusteDialog({
+export function AjusteManualDialog({
   editing,
-  setEditing,
-  guardar,
+  onClose,
   nivMap,
 }: {
   editing: Row | null;
-  setEditing: (r: Row | null) => void;
-  guardar: ReturnType<typeof useMutation<any, any, any>>;
+  onClose: () => void;
   nivMap: Map<string, NivelRow>;
 }) {
+  const qc = useQueryClient();
   const [minM, setMinM] = useState<string>("");
   const [maxM, setMaxM] = useState<string>("");
   const [reoM, setReoM] = useState<string>("");
@@ -561,6 +560,84 @@ function AjusteDialog({
   const [marcado, setMarcado] = useState<boolean>(false);
   const [fuente, setFuente] = useState<string>("");
   const [leadT, setLeadT] = useState<string>("");
+
+  const guardar = useMutation({
+    mutationFn: async (vals: { id: string; codigo_producto?: string; fuente_suministro?: string | null; lead_time_dias?: number | null; minimo_manual: number | null; maximo_manual: number | null; cantidad_reorden_manual: number | null; notas: string; ajustado_manualmente: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("inv_minmax")
+        .update({
+          minimo_manual: vals.minimo_manual,
+          maximo_manual: vals.maximo_manual,
+          cantidad_reorden_manual: vals.cantidad_reorden_manual,
+          notas: vals.notas || null,
+          ajustado_manualmente: vals.ajustado_manualmente,
+        })
+        .eq("id", vals.id);
+      if (error) throw error;
+
+      // Campos a nivel producto (inv_niveles_inventario) + recálculo de las 4 plazas
+      if (vals.codigo_producto) {
+        const codigo = vals.codigo_producto;
+        const nivUpd: any = {};
+        if (vals.fuente_suministro !== undefined) nivUpd.fuente_suministro = vals.fuente_suministro;
+        if (vals.lead_time_dias !== undefined) nivUpd.lead_time_dias = vals.lead_time_dias;
+        if (Object.keys(nivUpd).length > 0) {
+          const { error: e2 } = await (supabase as any)
+            .from("inv_niveles_inventario")
+            .update(nivUpd)
+            .eq("codigo_producto", codigo);
+          if (e2) throw e2;
+        }
+
+        const n = nivMap.get(codigo);
+        const lead = Number(vals.lead_time_dias ?? n?.lead_time_dias ?? 10) || 10;
+        const ppt = Math.max(1, Number(n?.piezas_por_tarima ?? 1) || 1);
+
+        const { data: dem } = await (supabase as any)
+          .from("inv_demanda_plaza")
+          .select("codigo_producto, almacen, demanda_diaria_promedio, periodo_inicio")
+          .eq("codigo_producto", codigo)
+          .order("periodo_inicio", { ascending: false });
+        const ultimaDem = new Map<string, number>();
+        for (const d of (dem || [])) {
+          if (!ultimaDem.has(d.almacen)) ultimaDem.set(d.almacen, Number(d.demanda_diaria_promedio || 0));
+        }
+
+        const { data: mmRows } = await (supabase as any)
+          .from("inv_minmax")
+          .select("*")
+          .eq("codigo_producto", codigo);
+
+        const hoyIso = new Date().toISOString().slice(0, 10);
+        for (const r of ((mmRows || []) as Row[])) {
+          const ddia = ultimaDem.get(r.almacen) ?? Number(r.demanda_diaria_hub ?? 0);
+          const abc = n?.clasificacion_abc ?? r.clasificacion_abc ?? null;
+          const cobertura = abc && COBERTURA[abc] ? COBERTURA[abc] : 45;
+          const seguridad = abc && SEGURIDAD[abc] ? SEGURIDAD[abc] : 10;
+          const minCalc = Math.ceil((ddia * (lead + seguridad)) / ppt) * ppt;
+          const maxCalc = Math.ceil((ddia * (lead + cobertura)) / ppt) * ppt;
+          const stock = stockOf(n, r.almacen);
+          const reordenCalc = Math.max(0, maxCalc - stock);
+          await (supabase as any).from("inv_minmax").update({
+            lead_time_dias: lead,
+            dias_cobertura_objetivo: cobertura,
+            dias_stock_seguridad: seguridad,
+            minimo_calc: minCalc,
+            maximo_calc: maxCalc,
+            cantidad_reorden_calc: reordenCalc,
+            ultima_actualizacion_calc: hoyIso,
+          }).eq("id", r.id);
+        }
+      }
+    },
+    onSuccess: () => {
+      toast.success("Ajuste guardado");
+      qc.invalidateQueries({ queryKey: ["inv_minmax"] });
+      qc.invalidateQueries({ queryKey: ["inv_niveles_inventario_min"] });
+      onClose();
+    },
+    onError: (e: any) => toast.error("Error: " + (e?.message || "")),
+  });
 
   // Resetear inputs cuando cambia editing
   useEffect(() => {
@@ -606,7 +683,7 @@ function AjusteDialog({
   };
 
   return (
-    <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+    <Dialog open={!!editing} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -m-6 mb-0 p-6 rounded-t-lg">
           <DialogTitle className="uppercase tracking-wide text-sm font-medium">Ajustar mínimos y máximos</DialogTitle>
@@ -681,7 +758,7 @@ function AjusteDialog({
           </div>
         </div>
         <DialogFooter className="bg-muted/30 -m-6 mt-0 p-4 rounded-b-lg">
-          <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={onSave} disabled={guardar.isPending}>{guardar.isPending ? "Guardando..." : "Guardar"}</Button>
         </DialogFooter>
       </DialogContent>
