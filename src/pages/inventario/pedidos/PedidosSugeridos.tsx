@@ -159,6 +159,28 @@ export default function PedidosSugeridos() {
     return m;
   }, [extraordinarias]);
 
+  const { data: corporativas = [] } = useQuery({
+    queryKey: ["entregas_corporativas_programadas"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("entregas_corporativas")
+        .select("codigo_producto, cantidad")
+        .eq("estatus", "programada");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    refetchInterval: 60_000,
+  });
+
+  const corpPorCodigo = useMemo(() => {
+    const m: Record<string, number> = {};
+    (corporativas as any[]).forEach((s) => {
+      if (!s.codigo_producto) return;
+      m[s.codigo_producto] = (m[s.codigo_producto] || 0) + (Number(s.cantidad) || 0);
+    });
+    return m;
+  }, [corporativas]);
+
   const { data: perfiles = [] } = useQuery({
     queryKey: ["profiles_min_ignorados"],
     queryFn: async () => {
@@ -230,6 +252,9 @@ export default function PedidosSugeridos() {
     Object.keys(extraPorCodigo).forEach((c) => {
       if ((extraPorCodigo[c] || 0) > 0 && !porCodigo[c]) porCodigo[c] = {};
     });
+    Object.keys(corpPorCodigo).forEach((c) => {
+      if ((corpPorCodigo[c] || 0) > 0 && !porCodigo[c]) porCodigo[c] = {};
+    });
 
     return Object.entries(porCodigo)
       .map(([codigo, porAlmacen]) => {
@@ -237,6 +262,7 @@ export default function PedidosSugeridos() {
         const necesidad_total = ALMACENES.reduce((s, a) => s + (porAlmacen[a.code] || 0), 0);
         const ya_pedido = yaPedidoPorCodigo[codigo] || 0;
         const extraordinario = extraPorCodigo[codigo] || 0;
+        const corporativo = corpPorCodigo[codigo] || 0;
         const niv: any = nivMap.get(codigo) || {};
         const stockPorAlmacen: Record<string, number> = {
           "1001": Number(niv.stock_almacen_1001 ?? 0) || 0,
@@ -255,7 +281,8 @@ export default function PedidosSugeridos() {
           necesidad_total,
           ya_pedido,
           extraordinario,
-          necesidad_neta_total: Math.max(0, necesidad_total - ya_pedido) + extraordinario,
+          corporativo,
+          necesidad_neta_total: Math.max(0, necesidad_total - ya_pedido) + extraordinario + corporativo,
         };
       })
       .filter((r) => r.necesidad_neta_total > 0)
@@ -266,7 +293,7 @@ export default function PedidosSugeridos() {
         return r.codigo.toLowerCase().includes(q) || String(r.nombre).toLowerCase().includes(q);
       })
       .sort((a, b) => b.necesidad_neta_total - a.necesidad_neta_total);
-  }, [minmax, infoPorCodigo, yaPedidoPorCodigo, empresa, search, presPorCodigo, nivMap, extraPorCodigo]);
+  }, [minmax, infoPorCodigo, yaPedidoPorCodigo, empresa, search, presPorCodigo, nivMap, extraPorCodigo, corpPorCodigo]);
 
   const rows = useMemo(() => allRows.filter((r) => !ignoradosSet.has(r.codigo)), [allRows, ignoradosSet]);
 
@@ -335,6 +362,9 @@ export default function PedidosSugeridos() {
                     {r.necesidad_neta_total}
                     {r.extraordinario > 0 && (
                       <span className="ml-1 text-[10px] font-medium text-violet-600">+{r.extraordinario} extra</span>
+                    )}
+                    {r.corporativo > 0 && (
+                      <span className="ml-1 text-[10px] font-medium text-amber-600">+{r.corporativo} corporativo</span>
                     )}
                   </TableCell>
                   {ALMACENES.map((a) => {
