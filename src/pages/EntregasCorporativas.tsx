@@ -2211,17 +2211,17 @@ function NuevaEntregaManualDialog({
             <Table>
               <TableHeader>
                 <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50">
-                  <TableHead className="uppercase text-[10px] tracking-wide">Código</TableHead>
-                  <TableHead className="uppercase text-[10px] tracking-wide">Nombre</TableHead>
-                  <TableHead className="uppercase text-[10px] tracking-wide text-right">Cantidad</TableHead>
+                  <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Código</TableHead>
+                  <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Nombre</TableHead>
+                  <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Cantidad</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {productos.map((p, idx) => (
-                  <TableRow key={idx}>
+                  <TableRow key={idx} className={idx % 2 ? "bg-muted/30" : ""}>
                     <TableCell>
-                      <Input className="h-8 text-xs font-mono" value={p.codigo} placeholder="Código"
+                      <Input className="h-8 text-sm font-mono font-medium" value={p.codigo} placeholder="Código"
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
                     </TableCell>
                     <TableCell>
@@ -2229,7 +2229,7 @@ function NuevaEntregaManualDialog({
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
                     </TableCell>
                     <TableCell>
-                      <Input type="number" className="h-8 w-24 text-sm text-right ml-auto" value={p.cantidad}
+                      <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={p.cantidad}
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
                     </TableCell>
                     <TableCell>
