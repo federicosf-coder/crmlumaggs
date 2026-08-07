@@ -1589,6 +1589,9 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
         </DialogContent>
       </Dialog>
 
+      {/* Nueva entrega manual */}
+      <NuevaEntregaManualDialog open={manualOpen} onOpenChange={setManualOpen} onSaved={load} />
+
       {/* Nueva ubicación rápida desde el detalle */}
       <UbicacionDialog
 
