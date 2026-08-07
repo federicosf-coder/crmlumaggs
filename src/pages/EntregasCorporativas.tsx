@@ -360,7 +360,7 @@ function UbicacionesTab({ refreshKey, onChanged }: { refreshKey: number; onChang
               <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">Sin ubicaciones</TableCell></TableRow>
             )}
             {rows.map((u, i) => (
-              <TableRow key={u.id} className={`${i % 2 ? "bg-muted/30" : ""} hover:bg-blue-50/40`}>
+              <TableRow key={u.id} className="odd:bg-muted/30 hover:bg-blue-50/40">
                 <TableCell className="text-sm">{u.cliente}</TableCell>
                 <TableCell className="text-sm font-medium">
                   <div className="flex items-center gap-2">
