@@ -1748,6 +1748,7 @@ export default function EntregasCorporativas() {
           <TabsTrigger value="ubicaciones">Ubicaciones</TabsTrigger>
           <TabsTrigger value="entregas">Entregas Programadas</TabsTrigger>
           <TabsTrigger value="desglose">Desglose de Productos</TabsTrigger>
+          <TabsTrigger value="resumen">Resumen por Producto</TabsTrigger>
         </TabsList>
         <TabsContent value="calendarios" className="mt-4">
           <CalendariosTab onImported={() => setRefreshKey((k) => k + 1)} />
@@ -1760,6 +1761,9 @@ export default function EntregasCorporativas() {
         </TabsContent>
         <TabsContent value="desglose" className="mt-4">
           <DesgloseProductosTab refreshKey={refreshKey} />
+        </TabsContent>
+        <TabsContent value="resumen" className="mt-4">
+          <ResumenPorProductoTab refreshKey={refreshKey} />
         </TabsContent>
       </Tabs>
     </div>
