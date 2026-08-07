@@ -2411,12 +2411,13 @@ function NuevaEntregaManualDialog({
                 {productos.map((p, idx) => (
                   <TableRow key={idx} className="odd:bg-muted/30">
                     <TableCell className="py-2.5">
-                      <Input className="h-8 text-sm font-mono font-medium" value={p.codigo} placeholder="Código"
-                        onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
+                      <ProductoSelector
+                        codigo={p.codigo}
+                        onSelect={(sel) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: sel.codigo, nombre: sel.nombre } : x))}
+                      />
                     </TableCell>
                     <TableCell className="py-2.5">
-                      <Input className="h-8 text-sm" value={p.nombre} placeholder="Nombre"
-                        onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
+                      <span className="text-sm">{p.nombre || <span className="text-muted-foreground">Selecciona un producto</span>}</span>
                     </TableCell>
                     <TableCell className="py-2.5">
                       <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={p.cantidad}
