@@ -95,7 +95,7 @@ export default function PedidosSubir() {
 
     const { data: existente } = await supabase
       .from("inv_pedidos")
-      .select("id, estatus, almacen_destino")
+      .select("id, estatus, almacen_destino, fecha_entrega_estimada")
       .eq("numero_po_interno", extracted.numero_po)
       .eq("empresa_vendedora", empresa_vendedora as any)
       .maybeSingle();
@@ -112,6 +112,7 @@ export default function PedidosSubir() {
         moneda: extracted.moneda ?? "MXN",
         fecha_pedido: fecha,
         estatus: nuevoEstatus,
+        fecha_entrega_estimada: extracted.fecha_entrega_estimada ?? existente.fecha_entrega_estimada,
       }).eq("id", existente.id);
       if (error) throw new Error(error.message);
       pedidoId = existente.id;
@@ -127,6 +128,7 @@ export default function PedidosSubir() {
         total_monto: extracted.total_monto,
         estatus: "elaborado",
         fecha_pedido: fecha,
+        fecha_entrega_estimada: extracted.fecha_entrega_estimada ?? null,
         generado_desde_sugeridos: false,
         creado_por: user?.id ?? null,
       }).select("id").single();
