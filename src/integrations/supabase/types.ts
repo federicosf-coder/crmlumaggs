@@ -3966,9 +3966,7 @@ export type Database = {
       entregas_corporativas: {
         Row: {
           calendario_id: string | null
-          cantidad: number
           cliente: string
-          codigo_producto: string
           creado_por: string | null
           created_at: string
           estatus: string
@@ -3976,18 +3974,17 @@ export type Database = {
           factura_referencia: string | null
           fecha_programada: string
           id: string
-          nombre_producto: string | null
+          lugar_entrega_texto: string | null
           notas: string | null
           notificado_at: string | null
           notificado_por: string | null
           pdf_entrega_path: string | null
+          ubicacion_id: string | null
           updated_at: string
         }
         Insert: {
           calendario_id?: string | null
-          cantidad: number
           cliente: string
-          codigo_producto: string
           creado_por?: string | null
           created_at?: string
           estatus?: string
@@ -3995,18 +3992,17 @@ export type Database = {
           factura_referencia?: string | null
           fecha_programada: string
           id?: string
-          nombre_producto?: string | null
+          lugar_entrega_texto?: string | null
           notas?: string | null
           notificado_at?: string | null
           notificado_por?: string | null
           pdf_entrega_path?: string | null
+          ubicacion_id?: string | null
           updated_at?: string
         }
         Update: {
           calendario_id?: string | null
-          cantidad?: number
           cliente?: string
-          codigo_producto?: string
           creado_por?: string | null
           created_at?: string
           estatus?: string
@@ -4014,11 +4010,12 @@ export type Database = {
           factura_referencia?: string | null
           fecha_programada?: string
           id?: string
-          nombre_producto?: string | null
+          lugar_entrega_texto?: string | null
           notas?: string | null
           notificado_at?: string | null
           notificado_por?: string | null
           pdf_entrega_path?: string | null
+          ubicacion_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4027,6 +4024,13 @@ export type Database = {
             columns: ["calendario_id"]
             isOneToOne: false
             referencedRelation: "entregas_corporativas_calendarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_corporativas_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "entregas_corporativas_ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -4061,6 +4065,72 @@ export type Database = {
           nombre_archivo?: string
           storage_path?: string
           subido_por?: string | null
+        }
+        Relationships: []
+      }
+      entregas_corporativas_lineas: {
+        Row: {
+          cantidad: number
+          codigo_producto: string
+          created_at: string
+          entrega_id: string
+          id: string
+          nombre_producto: string | null
+        }
+        Insert: {
+          cantidad: number
+          codigo_producto: string
+          created_at?: string
+          entrega_id: string
+          id?: string
+          nombre_producto?: string | null
+        }
+        Update: {
+          cantidad?: number
+          codigo_producto?: string
+          created_at?: string
+          entrega_id?: string
+          id?: string
+          nombre_producto?: string | null
+        }
+        Relationships: []
+      }
+      entregas_corporativas_ubicaciones: {
+        Row: {
+          activo: boolean
+          cliente: string
+          created_at: string
+          direccion: string | null
+          id: string
+          instrucciones: string | null
+          lat: number | null
+          lng: number | null
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          cliente: string
+          created_at?: string
+          direccion?: string | null
+          id?: string
+          instrucciones?: string | null
+          lat?: number | null
+          lng?: number | null
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          cliente?: string
+          created_at?: string
+          direccion?: string | null
+          id?: string
+          instrucciones?: string | null
+          lat?: number | null
+          lng?: number | null
+          nombre?: string
+          updated_at?: string
         }
         Relationships: []
       }
