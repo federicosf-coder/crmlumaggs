@@ -1482,28 +1482,42 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
 
               {detalle.estatus === "programada" ? (
                 <div className="space-y-3">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">Evidencias firmadas</Label>
+                    {evidencias.length > 0 && (
+                      <div className="rounded-md border divide-y">
+                        {evidencias.map((ev) => (
+                          <div key={ev.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                            <span className="text-xs font-light truncate">{ev.nombre_archivo}</span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openSigned(ev.storage_path)}>
+                                <FileText className="h-3 w-3 mr-1" /> Ver
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => quitarEvidencia(ev.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <label className="inline-flex">
                       <input
                         type="file"
+                        multiple
                         className="hidden"
                         accept=".pdf,.png,.jpg,.jpeg"
                         onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) subirEvidencia(detalle, f);
+                          const fs = Array.from(e.target.files ?? []);
+                          if (fs.length) subirEvidencias(detalle, fs);
                           e.target.value = "";
                         }}
                       />
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer hover:bg-muted ${detalle.evidencia_firmada_path ? "text-green-700 border-green-200" : "text-muted-foreground"}`}>
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer hover:bg-muted ${evidencias.length ? "text-green-700 border-green-200" : "text-muted-foreground"}`}>
                         <Upload className="h-3 w-3" />
-                        {detalle.evidencia_firmada_path ? "Evidencia ✓" : "Subir evidencia firmada"}
+                        {evidencias.length ? `Subir más evidencias (${evidencias.length})` : "Subir evidencias firmadas"}
                       </span>
                     </label>
-                    {detalle.evidencia_firmada_path && (
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openSigned(detalle.evidencia_firmada_path!)}>
-                        <FileText className="h-3 w-3 mr-1" /> Ver evidencia
-                      </Button>
-                    )}
                   </div>
 
                   <div className="flex flex-wrap items-end gap-2">
@@ -1519,7 +1533,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       size="sm" className="text-xs h-8"
-                      disabled={!detalle.evidencia_firmada_path || !detalle.factura_referencia || faltaUbicacion || busy}
+                      disabled={evidencias.length === 0 || !detalle.factura_referencia || faltaUbicacion || busy}
                       onClick={() => { setGrupoSel(""); setNotifOpen(true); }}
                     >
                       <Mail className="h-3 w-3 mr-1" /> Notificar y Marcar Entregada
@@ -1540,6 +1554,11 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-light">
                   <span>Notificada: {detalle.notificado_at ? new Date(detalle.notificado_at).toLocaleString("es-MX") : "—"}</span>
                   <span>· Factura: {detalle.factura_referencia || "—"}</span>
+                  {evidencias.map((ev) => (
+                    <Button key={ev.id} variant="ghost" size="sm" className="h-6 text-xs" onClick={() => openSigned(ev.storage_path)}>
+                      <FileText className="h-3 w-3 mr-1" /> {ev.nombre_archivo}
+                    </Button>
+                  ))}
                   {detalle.evidencia_firmada_path && (
                     <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => openSigned(detalle.evidencia_firmada_path!)}>
                       <FileText className="h-3 w-3 mr-1" /> Evidencia
