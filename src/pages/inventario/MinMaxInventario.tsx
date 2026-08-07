@@ -53,6 +53,7 @@ type NivelRow = {
   clasificacion_abc: string | null;
   lead_time_dias: number | null;
   piezas_por_tarima: number | null;
+  fuente_suministro: string | null;
   stock_almacen_1001: number | null;
   stock_almacen_1002: number | null;
   stock_almacen_1003: number | null;
