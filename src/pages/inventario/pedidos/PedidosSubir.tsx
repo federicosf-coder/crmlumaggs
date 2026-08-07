@@ -122,7 +122,7 @@ export default function PedidosSubir() {
         empresa_vendedora: empresa_vendedora as any,
         proveedor: proveedorKey,
         almacen_destino: extracted.almacen_destino,
-        fuente: "USA",
+        fuente: "usa",
         moneda: extracted.moneda ?? "MXN",
         total_monto: extracted.total_monto,
         estatus: "elaborado",
