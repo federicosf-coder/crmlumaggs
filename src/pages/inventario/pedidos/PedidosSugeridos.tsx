@@ -119,6 +119,29 @@ export default function PedidosSugeridos() {
     },
   });
 
+  const { data: extraordinarias = [] } = useQuery({
+    queryKey: ["inv_solicitudes_extraordinarias_aprobadas"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("inv_solicitudes_extraordinarias")
+        .select("codigo_producto, cantidad")
+        .eq("estatus", "aprobada")
+        .eq("activo", true);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    refetchInterval: 60_000,
+  });
+
+  const extraPorCodigo = useMemo(() => {
+    const m: Record<string, number> = {};
+    (extraordinarias as any[]).forEach((s) => {
+      if (!s.codigo_producto) return;
+      m[s.codigo_producto] = (m[s.codigo_producto] || 0) + (Number(s.cantidad) || 0);
+    });
+    return m;
+  }, [extraordinarias]);
+
   const { data: perfiles = [] } = useQuery({
     queryKey: ["profiles_min_ignorados"],
     queryFn: async () => {
