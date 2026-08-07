@@ -6,7 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ProductoCatalogo = { codigo: string; nombre: string };
+export type ProductoCatalogo = { codigo: string; nombre: string; descripcion?: string };
 
 let cache: ProductoCatalogo[] | null = null;
 
@@ -14,12 +14,22 @@ export async function fetchProductosCatalogo(): Promise<ProductoCatalogo[]> {
   if (cache) return cache;
   const { data } = await (supabase as any)
     .from("productos")
-    .select("codigo, nombre_producto")
+    .select("codigo, nombre_producto, descripcion, presentaciones(nombre)")
     .order("codigo")
     .limit(5000);
   cache = ((data ?? []) as any[])
     .filter((p) => p.codigo)
-    .map((p) => ({ codigo: String(p.codigo), nombre: p.nombre_producto || "" }));
+    .map((p) => {
+      const presentacion = Array.isArray(p.presentaciones) && p.presentaciones.length > 0
+        ? p.presentaciones[0].nombre
+        : undefined;
+      const partes = [presentacion, p.descripcion].filter(Boolean);
+      return {
+        codigo: String(p.codigo),
+        nombre: p.nombre_producto || "",
+        descripcion: partes.length > 0 ? partes.join(" — ") : undefined,
+      };
+    });
   return cache;
 }
 
@@ -56,7 +66,7 @@ export function ProductoSelector({ codigo, onSelect, placeholder = "Buscar produ
           <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[320px] p-0" align="start">
+      <PopoverContent className="w-[520px] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput placeholder="Código o nombre…" value={q} onValueChange={setQ} />
           <CommandList>
@@ -65,9 +75,16 @@ export function ProductoSelector({ codigo, onSelect, placeholder = "Buscar produ
               {filtered.map((p) => (
                 <CommandItem key={p.codigo} value={p.codigo}
                   onSelect={() => { onSelect(p); setOpen(false); setQ(""); }}>
-                  <Check className={cn("mr-2 h-4 w-4", codigo === p.codigo ? "opacity-100" : "opacity-0")} />
-                  <span className="font-mono text-xs mr-2">{p.codigo}</span>
-                  <span className="truncate text-sm">{p.nombre}</span>
+                  <Check className={cn("mr-2 h-4 w-4 shrink-0", codigo === p.codigo ? "opacity-100" : "opacity-0")} />
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <div className="flex items-center min-w-0">
+                      <span className="font-mono text-xs mr-2 shrink-0">{p.codigo}</span>
+                      <span className="truncate text-sm">{p.nombre}</span>
+                    </div>
+                    {p.descripcion && (
+                      <span className="text-xs text-muted-foreground truncate">{p.descripcion}</span>
+                    )}
+                  </div>
                 </CommandItem>
               ))}
             </CommandGroup>
