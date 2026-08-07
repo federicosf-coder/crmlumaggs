@@ -669,8 +669,8 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
 
           {preview.length > 0 && (
             <div className="space-y-3">
-              {preview.map((g) => (
-                <div key={g.fecha} className="border rounded-md overflow-hidden">
+              {preview.map((g, gi) => (
+                <div key={`${g.fecha}-${gi}`} className="border rounded-md overflow-hidden">
                   <div className="px-4 py-2 bg-gradient-to-r from-violet-50 to-blue-50 border-b">
                     <p className="text-sm font-medium">{g.fecha}</p>
                     {g.ubicacion ? (
