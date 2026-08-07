@@ -1512,8 +1512,17 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     )}
                     {detalleLineas.filter((l) => !lineasQuitar.includes(l.id)).map((l, i) => (
                       <TableRow key={l.id} className="odd:bg-muted/30">
-                        <TableCell className="font-mono text-sm font-medium py-2.5">{l.codigo_producto}</TableCell>
-                        <TableCell className="text-sm py-2.5">{l.nombre_producto || "—"}</TableCell>
+                        <TableCell className="font-mono text-sm font-medium py-2.5">
+                          {editMode ? (
+                            <ProductoSelector
+                              codigo={editCodigo[l.id]?.codigo ?? l.codigo_producto}
+                              onSelect={(p) => setEditCodigo((prev) => ({ ...prev, [l.id]: p }))}
+                            />
+                          ) : l.codigo_producto}
+                        </TableCell>
+                        <TableCell className="text-sm py-2.5">
+                          {editMode ? (editCodigo[l.id]?.nombre ?? l.nombre_producto ?? "—") : (l.nombre_producto || "—")}
+                        </TableCell>
                         <TableCell className="text-sm font-medium text-right py-2.5">
                           {editMode ? (
                             <Input
