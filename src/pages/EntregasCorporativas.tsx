@@ -2074,16 +2074,16 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>N° PO</TableHead>
-                <TableHead className="text-right">Cantidad</TableHead>
-                <TableHead>Fecha estimada</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">N° PO</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Cantidad</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Fecha estimada</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {detalleTransito.map((t, i) => (
-                <TableRow key={i}>
-                  <TableCell className="text-sm">{t.numero_po}</TableCell>
-                  <TableCell className="text-right text-sm">{t.cantidad}</TableCell>
+                <TableRow key={i} className={i % 2 ? "bg-muted/30" : ""}>
+                  <TableCell className="text-sm font-medium">{t.numero_po}</TableCell>
+                  <TableCell className="text-right text-sm font-medium">{t.cantidad}</TableCell>
                   <TableCell className="text-sm">{t.fecha_entrega_estimada}</TableCell>
                 </TableRow>
               ))}
