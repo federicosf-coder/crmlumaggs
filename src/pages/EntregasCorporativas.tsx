@@ -2004,13 +2004,13 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
                 <Th k="cliente">Cliente</Th>
                 <Th k="ubicacion">Ubicación</Th>
                 <Th k="fecha">Fecha Programada</Th>
-                <TableHead>N° Pedido</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">N° Pedido</TableHead>
                 <Th k="cantidad" className="text-right">Cantidad</Th>
                 <Th k="stock" className="text-right">Stock en Almacén</Th>
                 <Th k="porllegar" className="text-right">Por Llegar</Th>
-                <TableHead>¿Tendremos Stock?</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">¿Tendremos Stock?</TableHead>
                 <Th k="deficit" className="text-right">Déficit</Th>
-                <TableHead>Acción</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Acción</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2021,29 +2021,29 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
                   </TableCell>
                 </TableRow>
               )}
-              {rows.map((r) => (
-                <TableRow key={r.key}>
-                  <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
-                  <TableCell className="text-sm font-light">{r.nombre}</TableCell>
+              {rows.map((r, i) => (
+                <TableRow key={r.key} className={i % 2 ? "bg-muted/30" : ""}>
+                  <TableCell className="font-mono text-sm font-medium">{r.codigo}</TableCell>
+                  <TableCell className="text-sm">{r.nombre}</TableCell>
                   <TableCell className="text-sm">{r.cliente}</TableCell>
-                  <TableCell className="text-sm font-light">{r.ubicacion}</TableCell>
+                  <TableCell className="text-sm">{r.ubicacion}</TableCell>
                   <TableCell className="text-sm">{r.fecha}</TableCell>
                   <TableCell className="text-sm">{r.numero_pedido || "—"}</TableCell>
-                  <TableCell className="text-right text-sm">{r.cantidad}</TableCell>
-                  <TableCell className="text-right text-sm">{r.stock_actual}</TableCell>
+                  <TableCell className="text-right text-sm font-medium">{r.cantidad}</TableCell>
+                  <TableCell className="text-right text-sm font-medium">{r.stock_actual}</TableCell>
                   <TableCell className="text-right text-sm">
                     {r.por_llegar > 0 ? (
-                      <button className="text-blue-600 underline underline-offset-2" onClick={() => setDetallePorLlegar(r)}>
+                      <button className="text-sm font-medium text-blue-700 underline underline-offset-2" onClick={() => setDetallePorLlegar(r)}>
                         {r.por_llegar}
                       </button>
                     ) : 0}
                   </TableCell>
                   <TableCell>
-                    <Badge className={r.tendremos ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "bg-red-100 text-red-700 hover:bg-red-100"}>
+                    <Badge className={`text-xs font-semibold ${r.tendremos ? "bg-emerald-200 text-emerald-800 hover:bg-emerald-200" : "bg-red-200 text-red-800 hover:bg-red-200"}`}>
                       {r.tendremos ? "Sí" : "No"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right text-sm text-red-600">{r.tendremos ? "" : r.deficit}</TableCell>
+                  <TableCell className="text-right text-sm font-semibold text-red-700">{r.tendremos ? "" : r.deficit}</TableCell>
                   <TableCell>
                     {!r.tendremos && (
                       <Button
