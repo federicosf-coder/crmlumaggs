@@ -865,6 +865,19 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   const [ubicSel, setUbicSel] = useState("");
   const [nuevaUbicOpen, setNuevaUbicOpen] = useState(false);
 
+  // Modo edición del detalle
+  const [editMode, setEditMode] = useState(false);
+  const [editPedido, setEditPedido] = useState("");
+  const [editCant, setEditCant] = useState<Record<string, string>>({});
+  const [lineasQuitar, setLineasQuitar] = useState<string[]>([]);
+  const [lineasNuevas, setLineasNuevas] = useState<{ codigo: string; nombre: string; cantidad: string }[]>([]);
+
+  // Evidencias múltiples
+  const [evidencias, setEvidencias] = useState<{ id: string; storage_path: string; nombre_archivo: string; created_at: string }[]>([]);
+
+  // Captura manual
+  const [manualOpen, setManualOpen] = useState(false);
+
   const load = async () => {
     setLoading(true);
     let q = (supabase as any)
@@ -915,27 +928,121 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     if (fresh) setDetalle(fresh);
   }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const cargarEvidencias = async (entregaId: string) => {
+    const { data } = await (supabase as any)
+      .from("entregas_corporativas_evidencias")
+      .select("id, storage_path, nombre_archivo, created_at")
+      .eq("entrega_id", entregaId)
+      .order("created_at", { ascending: true });
+    setEvidencias((data ?? []) as any);
+  };
+
   const abrirDetalle = async (r: Entrega) => {
     setDetalle(r);
     setFacturaVal(r.factura_referencia || "");
     setUbicSel("");
+    setEditMode(false);
+    setLineasQuitar([]);
+    setLineasNuevas([]);
+    setEditPedido(r.numero_pedido || "");
+    setEvidencias([]);
+    cargarEvidencias(r.id);
     setUbicClienteList(await fetchUbicaciones(r.cliente));
   };
 
-  const subirEvidencia = async (row: Entrega, file: File) => {
+  const iniciarEdicion = () => {
+    if (!detalle) return;
+    setEditPedido(detalle.numero_pedido || "");
+    setEditCant(Object.fromEntries((lineas[detalle.id] ?? []).map((l) => [l.id, String(Number(l.cantidad))])));
+    setLineasQuitar([]);
+    setLineasNuevas([]);
+    setEditMode(true);
+  };
+
+  const cancelarEdicion = () => {
+    setEditMode(false);
+    setEditCant({});
+    setLineasQuitar([]);
+    setLineasNuevas([]);
+  };
+
+  const guardarEdicion = async () => {
+    if (!detalle) return;
     setBusy(true);
     try {
-      const path = `${row.cliente}/evidencias/${Date.now()}_${file.name}`;
-      const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
-      if (upErr) throw upErr;
-      const { error } = await (supabase as any)
-        .from("entregas_corporativas").update({ evidencia_firmada_path: path }).eq("id", row.id);
-      if (error) throw error;
-      toast.success("Evidencia subida");
+      const { error: eP } = await (supabase as any)
+        .from("entregas_corporativas")
+        .update({ numero_pedido: editPedido.trim() || null })
+        .eq("id", detalle.id);
+      if (eP) throw eP;
+
+      for (const l of lineas[detalle.id] ?? []) {
+        if (lineasQuitar.includes(l.id)) continue;
+        const nueva = Number(editCant[l.id]);
+        if (!Number.isNaN(nueva) && nueva !== Number(l.cantidad)) {
+          const { error } = await (supabase as any)
+            .from("entregas_corporativas_lineas").update({ cantidad: nueva }).eq("id", l.id);
+          if (error) throw error;
+        }
+      }
+
+      if (lineasQuitar.length) {
+        const { error } = await (supabase as any)
+          .from("entregas_corporativas_lineas").delete().in("id", lineasQuitar);
+        if (error) throw error;
+      }
+
+      const nuevas = lineasNuevas
+        .filter((n) => n.codigo.trim() || n.nombre.trim())
+        .map((n) => ({
+          entrega_id: detalle.id,
+          codigo_producto: n.codigo.trim(),
+          nombre_producto: n.nombre.trim() || null,
+          cantidad: Number(n.cantidad) || 0,
+        }));
+      if (nuevas.length) {
+        const { error } = await (supabase as any).from("entregas_corporativas_lineas").insert(nuevas);
+        if (error) throw error;
+      }
+
+      toast.success("Cambios guardados");
+      cancelarEdicion();
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudieron guardar los cambios");
+    } finally { setBusy(false); }
+  };
+
+  const subirEvidencias = async (row: Entrega, files: File[]) => {
+    setBusy(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      for (const file of files) {
+        const path = `${row.cliente}/evidencias/${Date.now()}_${file.name}`;
+        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
+        if (upErr) throw upErr;
+        const { error } = await (supabase as any).from("entregas_corporativas_evidencias").insert({
+          entrega_id: row.id,
+          storage_path: path,
+          nombre_archivo: file.name,
+          subido_por: userData?.user?.id ?? null,
+        });
+        if (error) throw error;
+      }
+      toast.success(files.length > 1 ? "Evidencias subidas" : "Evidencia subida");
+      await cargarEvidencias(row.id);
       await load();
     } catch (e: any) {
       toast.error(e?.message || "Error al subir evidencia");
     } finally { setBusy(false); }
+  };
+
+  const quitarEvidencia = async (id: string) => {
+    if (!detalle) return;
+    const { error } = await (supabase as any).from("entregas_corporativas_evidencias").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Evidencia eliminada");
+    cargarEvidencias(detalle.id);
   };
 
   const guardarFactura = async () => {
