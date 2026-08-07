@@ -511,6 +511,16 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
         return { entregas: 0, nuevas: 0, actualizadas: 0, grupos: [] };
       }
 
+      // --- Validar productos contra el catálogo ---
+      try {
+        const catalogo = await fetchProductosCatalogo();
+        const mapCat = new Map(catalogo.map((p) => [p.codigo.trim().toUpperCase(), p.nombre]));
+        entregas.forEach((e) => {
+          const hit = mapCat.get(String(e.codigo).trim().toUpperCase());
+          if (hit) e.nombre_producto = hit;
+        });
+      } catch { /* si falla el catálogo, se conserva el nombre extraído por la IA */ }
+
       // --- Resolver ubicación ---
       const ubicaciones = await fetchUbicaciones(cliente);
       let ubicacion: Ubicacion | null = null;
