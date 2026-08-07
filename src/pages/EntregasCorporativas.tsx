@@ -49,6 +49,7 @@ type Entrega = {
   id: string;
   cliente: string;
   fecha_programada: string;
+  numero_pedido: string | null;
   estatus: string;
   ubicacion_id: string | null;
   lugar_entrega_texto: string | null;
@@ -437,6 +438,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
 
       const extracted = (res as any)?.extracted ?? {};
       const lugarEntrega: string | null = extracted?.lugar_entrega ?? null;
+      const numeroPedido: string | null = extracted?.numero_pedido ?? null;
       const entregas: ExtraidaRow[] = (extracted?.entregas ?? []).filter(
         (e: ExtraidaRow) => e?.codigo && e?.fecha && Number(e.cantidad) > 0,
       );
@@ -489,9 +491,11 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
         let entregaId: string;
         if (existente?.id) {
           entregaId = existente.id;
+          const upd: any = { calendario_id: cal.id, lugar_entrega_texto: lugarTexto };
+          if (numeroPedido) upd.numero_pedido = numeroPedido;
           await (supabase as any)
             .from("entregas_corporativas")
-            .update({ calendario_id: cal.id, lugar_entrega_texto: lugarTexto })
+            .update(upd)
             .eq("id", entregaId);
         } else {
           const { data: nueva, error: insErr } = await (supabase as any)
@@ -500,6 +504,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
               cliente,
               ubicacion_id: ubicacion?.id ?? null,
               fecha_programada: fecha,
+              numero_pedido: numeroPedido,
               lugar_entrega_texto: lugarTexto,
               calendario_id: cal.id,
               creado_por: uid,
@@ -842,7 +847,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     let q = (supabase as any)
       .from("entregas_corporativas")
       .select(
-        "id, cliente, fecha_programada, estatus, ubicacion_id, lugar_entrega_texto, pdf_entrega_path, evidencia_firmada_path, factura_referencia, notificado_at, calendario_id, ubicacion:entregas_corporativas_ubicaciones(id, cliente, nombre, direccion, lat, lng, instrucciones, activo), calendario:entregas_corporativas_calendarios(id, nombre_archivo, storage_path)",
+        "id, cliente, fecha_programada, numero_pedido, estatus, ubicacion_id, lugar_entrega_texto, pdf_entrega_path, evidencia_firmada_path, factura_referencia, notificado_at, calendario_id, ubicacion:entregas_corporativas_ubicaciones(id, cliente, nombre, direccion, lat, lng, instrucciones, activo), calendario:entregas_corporativas_calendarios(id, nombre_archivo, storage_path)",
       )
       .order("fecha_programada", { ascending: true });
     if (fCliente !== "todos") q = q.eq("cliente", fCliente);
@@ -1095,6 +1100,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
               <TableRow>
                 <TableHead className="uppercase text-[10px] tracking-wide">Cliente</TableHead>
                 <TableHead className="uppercase text-[10px] tracking-wide">Fecha</TableHead>
+                <TableHead className="uppercase text-[10px] tracking-wide">N° Pedido</TableHead>
                 <TableHead className="uppercase text-[10px] tracking-wide">Lugar de entrega</TableHead>
                 <TableHead className="uppercase text-[10px] tracking-wide text-center">N° de productos</TableHead>
                 <TableHead className="uppercase text-[10px] tracking-wide">Estatus</TableHead>
@@ -1103,7 +1109,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
             </TableHeader>
             <TableBody>
               {rows.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">Sin entregas</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-10">Sin entregas</TableCell></TableRow>
               )}
               {rows.map((r, i) => (
                 <TableRow
@@ -1113,6 +1119,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 >
                   <TableCell className="text-sm">{r.cliente}</TableCell>
                   <TableCell className="text-sm">{r.fecha_programada}</TableCell>
+                  <TableCell className="text-sm font-medium">{r.numero_pedido || "—"}</TableCell>
                   <TableCell className="text-sm">
                     <div className="flex items-center gap-2">
                       {r.ubicacion?.nombre ? (
@@ -1165,6 +1172,9 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
           <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -m-6 mb-0 p-6 rounded-t-lg border-b">
             <DialogTitle className="text-base">
               {detalle?.cliente} · {detalle?.fecha_programada}
+              {detalle?.numero_pedido && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">· Pedido {detalle.numero_pedido}</span>
+              )}
             </DialogTitle>
             <DialogDescription className="font-light">
               {detalle?.ubicacion?.nombre || (
