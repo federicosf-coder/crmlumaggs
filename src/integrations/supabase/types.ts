@@ -4131,7 +4131,15 @@ export type Database = {
           id?: string
           nombre_producto?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "entregas_corporativas_lineas_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas_corporativas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entregas_corporativas_ubicaciones: {
         Row: {
