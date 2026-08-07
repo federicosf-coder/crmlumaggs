@@ -57,6 +57,8 @@ type Entrega = {
   factura_referencia: string | null;
   notificado_at: string | null;
   ubicacion?: Ubicacion | null;
+  calendario_id?: string | null;
+  calendario?: { id: string; nombre_archivo: string; storage_path: string } | null;
 };
 
 type Calendario = {
@@ -772,7 +774,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     let q = (supabase as any)
       .from("entregas_corporativas")
       .select(
-        "id, cliente, fecha_programada, estatus, ubicacion_id, lugar_entrega_texto, pdf_entrega_path, evidencia_firmada_path, factura_referencia, notificado_at, ubicacion:entregas_corporativas_ubicaciones(id, cliente, nombre, direccion, lat, lng, instrucciones, activo)",
+        "id, cliente, fecha_programada, estatus, ubicacion_id, lugar_entrega_texto, pdf_entrega_path, evidencia_firmada_path, factura_referencia, notificado_at, calendario_id, ubicacion:entregas_corporativas_ubicaciones(id, cliente, nombre, direccion, lat, lng, instrucciones, activo), calendario:entregas_corporativas_calendarios(id, nombre_archivo, storage_path)",
       )
       .order("fecha_programada", { ascending: true });
     if (fCliente !== "todos") q = q.eq("cliente", fCliente);
@@ -1124,6 +1126,22 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                       <Plus className="h-3 w-3 mr-1" /> Nueva ubicación
                     </Button>
                   </div>
+                </div>
+              )}
+
+              {detalle.calendario?.storage_path && (
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => openSigned(detalle.calendario!.storage_path)}
+                  >
+                    <FileText className="h-3.5 w-3.5 mr-1" /> Ver / Descargar PDF
+                  </Button>
+                  <span className="ml-2 text-[11px] text-muted-foreground font-light">
+                    {detalle.calendario.nombre_archivo}
+                  </span>
                 </div>
               )}
 
