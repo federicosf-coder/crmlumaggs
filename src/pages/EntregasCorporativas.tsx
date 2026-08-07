@@ -812,9 +812,9 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                     <TableBody>
                       {g.productos.map((p, i) => (
                         <TableRow key={`${p.codigo}-${i}`} className="odd:bg-muted/30">
-                          <TableCell className="font-mono text-sm font-medium">{p.codigo}</TableCell>
-                          <TableCell className="text-sm">{p.nombre_producto || "—"}</TableCell>
-                          <TableCell className="text-sm font-medium text-right">{p.cantidad}</TableCell>
+                          <TableCell className="font-mono text-sm font-medium py-2.5">{p.codigo}</TableCell>
+                          <TableCell className="text-sm py-2.5">{p.nombre_producto || "—"}</TableCell>
+                          <TableCell className="text-sm font-medium text-right py-2.5">{p.cantidad}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
