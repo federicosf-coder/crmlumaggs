@@ -88,6 +88,64 @@ function norm(s: string) {
     .trim();
 }
 
+function normalizarEmparejamiento(s: string) {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function palabrasEmparejamiento(s: string) {
+  return normalizarEmparejamiento(s)
+    .split(/\s+/)
+    .filter((w) => w.length >= 3);
+}
+
+function emparejarUbicacion(lugarEntrega: string, ubicaciones: Ubicacion[]): Ubicacion | null {
+  const target = normalizarEmparejamiento(lugarEntrega);
+  if (!target) return null;
+  const targetWords = palabrasEmparejamiento(lugarEntrega);
+
+  let best: { ubicacion: Ubicacion; rank: number; score: number } | null = null;
+
+  for (const u of ubicaciones) {
+    const nombre = normalizarEmparejamiento(u.nombre);
+    const direccion = normalizarEmparejamiento(u.direccion || "");
+
+    // Coincidencia exacta
+    if (nombre === target || direccion === target) {
+      return u;
+    }
+
+    // Contención en cualquier dirección contra nombre o dirección
+    const contiene =
+      nombre.includes(target) ||
+      target.includes(nombre) ||
+      (direccion && (direccion.includes(target) || target.includes(direccion)));
+
+    // Coincidencia por palabras clave
+    const combinado = `${nombre} ${direccion}`.trim();
+    const combinadoWords = palabrasEmparejamiento(combinado);
+    const score = targetWords.length
+      ? targetWords.filter((w) => combinadoWords.includes(w)).length / targetWords.length
+      : 0;
+
+    if (contiene) {
+      if (!best || best.rank < 2 || (best.rank === 2 && score > best.score)) {
+        best = { ubicacion: u, rank: 2, score };
+      }
+    } else if (score >= 0.6) {
+      if (!best || best.rank < 1 || (best.rank === 1 && score > best.score)) {
+        best = { ubicacion: u, rank: 1, score };
+      }
+    }
+  }
+
+  return best?.ubicacion ?? null;
+}
+
 function mapsUrl(lat: number, lng: number) {
   return `https://www.google.com/maps?q=${lat},${lng}`;
 }
@@ -458,12 +516,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
       if (cliente === "Kenworth") {
         ubicacion = ubicaciones[0] ?? null;
       } else if (lugarEntrega) {
-        const target = norm(lugarEntrega);
-        ubicacion =
-          ubicaciones.find((u) => {
-            const n = norm(u.nombre);
-            return n === target || n.includes(target) || target.includes(n);
-          }) ?? null;
+        ubicacion = emparejarUbicacion(lugarEntrega, ubicaciones);
       }
       const lugarTexto = ubicacion ? null : (lugarEntrega || null);
 
