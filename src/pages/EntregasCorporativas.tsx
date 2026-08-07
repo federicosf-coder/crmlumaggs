@@ -865,6 +865,19 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   const [ubicSel, setUbicSel] = useState("");
   const [nuevaUbicOpen, setNuevaUbicOpen] = useState(false);
 
+  // Modo edición del detalle
+  const [editMode, setEditMode] = useState(false);
+  const [editPedido, setEditPedido] = useState("");
+  const [editCant, setEditCant] = useState<Record<string, string>>({});
+  const [lineasQuitar, setLineasQuitar] = useState<string[]>([]);
+  const [lineasNuevas, setLineasNuevas] = useState<{ codigo: string; nombre: string; cantidad: string }[]>([]);
+
+  // Evidencias múltiples
+  const [evidencias, setEvidencias] = useState<{ id: string; storage_path: string; nombre_archivo: string; created_at: string }[]>([]);
+
+  // Captura manual
+  const [manualOpen, setManualOpen] = useState(false);
+
   const load = async () => {
     setLoading(true);
     let q = (supabase as any)
@@ -915,27 +928,121 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     if (fresh) setDetalle(fresh);
   }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const cargarEvidencias = async (entregaId: string) => {
+    const { data } = await (supabase as any)
+      .from("entregas_corporativas_evidencias")
+      .select("id, storage_path, nombre_archivo, created_at")
+      .eq("entrega_id", entregaId)
+      .order("created_at", { ascending: true });
+    setEvidencias((data ?? []) as any);
+  };
+
   const abrirDetalle = async (r: Entrega) => {
     setDetalle(r);
     setFacturaVal(r.factura_referencia || "");
     setUbicSel("");
+    setEditMode(false);
+    setLineasQuitar([]);
+    setLineasNuevas([]);
+    setEditPedido(r.numero_pedido || "");
+    setEvidencias([]);
+    cargarEvidencias(r.id);
     setUbicClienteList(await fetchUbicaciones(r.cliente));
   };
 
-  const subirEvidencia = async (row: Entrega, file: File) => {
+  const iniciarEdicion = () => {
+    if (!detalle) return;
+    setEditPedido(detalle.numero_pedido || "");
+    setEditCant(Object.fromEntries((lineas[detalle.id] ?? []).map((l) => [l.id, String(Number(l.cantidad))])));
+    setLineasQuitar([]);
+    setLineasNuevas([]);
+    setEditMode(true);
+  };
+
+  const cancelarEdicion = () => {
+    setEditMode(false);
+    setEditCant({});
+    setLineasQuitar([]);
+    setLineasNuevas([]);
+  };
+
+  const guardarEdicion = async () => {
+    if (!detalle) return;
     setBusy(true);
     try {
-      const path = `${row.cliente}/evidencias/${Date.now()}_${file.name}`;
-      const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
-      if (upErr) throw upErr;
-      const { error } = await (supabase as any)
-        .from("entregas_corporativas").update({ evidencia_firmada_path: path }).eq("id", row.id);
-      if (error) throw error;
-      toast.success("Evidencia subida");
+      const { error: eP } = await (supabase as any)
+        .from("entregas_corporativas")
+        .update({ numero_pedido: editPedido.trim() || null })
+        .eq("id", detalle.id);
+      if (eP) throw eP;
+
+      for (const l of lineas[detalle.id] ?? []) {
+        if (lineasQuitar.includes(l.id)) continue;
+        const nueva = Number(editCant[l.id]);
+        if (!Number.isNaN(nueva) && nueva !== Number(l.cantidad)) {
+          const { error } = await (supabase as any)
+            .from("entregas_corporativas_lineas").update({ cantidad: nueva }).eq("id", l.id);
+          if (error) throw error;
+        }
+      }
+
+      if (lineasQuitar.length) {
+        const { error } = await (supabase as any)
+          .from("entregas_corporativas_lineas").delete().in("id", lineasQuitar);
+        if (error) throw error;
+      }
+
+      const nuevas = lineasNuevas
+        .filter((n) => n.codigo.trim() || n.nombre.trim())
+        .map((n) => ({
+          entrega_id: detalle.id,
+          codigo_producto: n.codigo.trim(),
+          nombre_producto: n.nombre.trim() || null,
+          cantidad: Number(n.cantidad) || 0,
+        }));
+      if (nuevas.length) {
+        const { error } = await (supabase as any).from("entregas_corporativas_lineas").insert(nuevas);
+        if (error) throw error;
+      }
+
+      toast.success("Cambios guardados");
+      cancelarEdicion();
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudieron guardar los cambios");
+    } finally { setBusy(false); }
+  };
+
+  const subirEvidencias = async (row: Entrega, files: File[]) => {
+    setBusy(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      for (const file of files) {
+        const path = `${row.cliente}/evidencias/${Date.now()}_${file.name}`;
+        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
+        if (upErr) throw upErr;
+        const { error } = await (supabase as any).from("entregas_corporativas_evidencias").insert({
+          entrega_id: row.id,
+          storage_path: path,
+          nombre_archivo: file.name,
+          subido_por: userData?.user?.id ?? null,
+        });
+        if (error) throw error;
+      }
+      toast.success(files.length > 1 ? "Evidencias subidas" : "Evidencia subida");
+      await cargarEvidencias(row.id);
       await load();
     } catch (e: any) {
       toast.error(e?.message || "Error al subir evidencia");
     } finally { setBusy(false); }
+  };
+
+  const quitarEvidencia = async (id: string) => {
+    if (!detalle) return;
+    const { error } = await (supabase as any).from("entregas_corporativas_evidencias").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Evidencia eliminada");
+    cargarEvidencias(detalle.id);
   };
 
   const guardarFactura = async () => {
@@ -1115,7 +1222,12 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
 
       <Card>
         <CardHeader className="bg-gradient-to-r from-violet-50 to-blue-50 border-b">
-          <CardTitle className="text-sm uppercase tracking-wide font-medium">Entregas ({total})</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-sm uppercase tracking-wide font-medium">Entregas ({total})</CardTitle>
+            <Button size="sm" className="h-8 text-xs" onClick={() => setManualOpen(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Nueva Entrega Manual
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
@@ -1273,6 +1385,29 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 </div>
               )}
 
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">N° Pedido</Label>
+                  {editMode ? (
+                    <Input className="h-8 w-52 text-sm" value={editPedido} onChange={(e) => setEditPedido(e.target.value)} placeholder="Sin número" />
+                  ) : (
+                    <p className="text-sm font-light">{detalle.numero_pedido || "—"}</p>
+                  )}
+                </div>
+                {editMode ? (
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={cancelarEdicion} disabled={busy}>Cancelar</Button>
+                    <Button size="sm" className="h-8 text-xs" onClick={guardarEdicion} disabled={busy}>
+                      {busy && <Loader2 className="h-3 w-3 mr-1 animate-spin" />} Guardar cambios
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={iniciarEdicion}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                  </Button>
+                )}
+              </div>
+
               <div className="border rounded-md overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -1280,47 +1415,109 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                       <TableHead className="uppercase text-[10px] tracking-wide">Código</TableHead>
                       <TableHead className="uppercase text-[10px] tracking-wide">Producto</TableHead>
                       <TableHead className="uppercase text-[10px] tracking-wide text-right">Cantidad</TableHead>
+                      {editMode && <TableHead className="w-10" />}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {detalleLineas.length === 0 && (
+                    {detalleLineas.length === 0 && !editMode && (
                       <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-6">Sin productos</TableCell></TableRow>
                     )}
-                    {detalleLineas.map((l, i) => (
+                    {detalleLineas.filter((l) => !lineasQuitar.includes(l.id)).map((l, i) => (
                       <TableRow key={l.id} className={i % 2 ? "bg-muted/30" : ""}>
                         <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
                         <TableCell className="text-sm font-light">{l.nombre_producto || "—"}</TableCell>
-                        <TableCell className="text-sm text-right">{Number(l.cantidad)}</TableCell>
+                        <TableCell className="text-sm text-right">
+                          {editMode ? (
+                            <Input
+                              type="number"
+                              className="h-8 w-24 text-sm text-right ml-auto"
+                              value={editCant[l.id] ?? String(Number(l.cantidad))}
+                              onChange={(e) => setEditCant((p) => ({ ...p, [l.id]: e.target.value }))}
+                            />
+                          ) : Number(l.cantidad)}
+                        </TableCell>
+                        {editMode && (
+                          <TableCell>
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
+                              onClick={() => setLineasQuitar((p) => [...p, l.id])}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                    {editMode && lineasNuevas.map((n, idx) => (
+                      <TableRow key={`n-${idx}`}>
+                        <TableCell>
+                          <Input className="h-8 text-xs font-mono" value={n.codigo} placeholder="Código"
+                            onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
+                        </TableCell>
+                        <TableCell>
+                          <Input className="h-8 text-sm" value={n.nombre} placeholder="Nombre"
+                            onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
+                        </TableCell>
+                        <TableCell>
+                          <Input type="number" className="h-8 w-24 text-sm text-right ml-auto" value={n.cantidad}
+                            onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
+                            onClick={() => setLineasNuevas((p) => p.filter((_, i) => i !== idx))}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+                {editMode && (
+                  <div className="p-2 border-t bg-muted/30">
+                    <Button variant="outline" size="sm" className="h-7 text-xs"
+                      onClick={() => setLineasNuevas((p) => [...p, { codigo: "", nombre: "", cantidad: "1" }])}>
+                      <Plus className="h-3 w-3 mr-1" /> Agregar producto
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {detalle.estatus === "programada" ? (
                 <div className="space-y-3">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">Evidencias firmadas</Label>
+                    {evidencias.length > 0 && (
+                      <div className="rounded-md border divide-y">
+                        {evidencias.map((ev) => (
+                          <div key={ev.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                            <span className="text-xs font-light truncate">{ev.nombre_archivo}</span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openSigned(ev.storage_path)}>
+                                <FileText className="h-3 w-3 mr-1" /> Ver
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => quitarEvidencia(ev.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <label className="inline-flex">
                       <input
                         type="file"
+                        multiple
                         className="hidden"
                         accept=".pdf,.png,.jpg,.jpeg"
                         onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) subirEvidencia(detalle, f);
+                          const fs = Array.from(e.target.files ?? []);
+                          if (fs.length) subirEvidencias(detalle, fs);
                           e.target.value = "";
                         }}
                       />
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer hover:bg-muted ${detalle.evidencia_firmada_path ? "text-green-700 border-green-200" : "text-muted-foreground"}`}>
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer hover:bg-muted ${evidencias.length ? "text-green-700 border-green-200" : "text-muted-foreground"}`}>
                         <Upload className="h-3 w-3" />
-                        {detalle.evidencia_firmada_path ? "Evidencia ✓" : "Subir evidencia firmada"}
+                        {evidencias.length ? `Subir más evidencias (${evidencias.length})` : "Subir evidencias firmadas"}
                       </span>
                     </label>
-                    {detalle.evidencia_firmada_path && (
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openSigned(detalle.evidencia_firmada_path!)}>
-                        <FileText className="h-3 w-3 mr-1" /> Ver evidencia
-                      </Button>
-                    )}
                   </div>
 
                   <div className="flex flex-wrap items-end gap-2">
@@ -1336,7 +1533,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       size="sm" className="text-xs h-8"
-                      disabled={!detalle.evidencia_firmada_path || !detalle.factura_referencia || faltaUbicacion || busy}
+                      disabled={evidencias.length === 0 || !detalle.factura_referencia || faltaUbicacion || busy}
                       onClick={() => { setGrupoSel(""); setNotifOpen(true); }}
                     >
                       <Mail className="h-3 w-3 mr-1" /> Notificar y Marcar Entregada
@@ -1357,6 +1554,11 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-light">
                   <span>Notificada: {detalle.notificado_at ? new Date(detalle.notificado_at).toLocaleString("es-MX") : "—"}</span>
                   <span>· Factura: {detalle.factura_referencia || "—"}</span>
+                  {evidencias.map((ev) => (
+                    <Button key={ev.id} variant="ghost" size="sm" className="h-6 text-xs" onClick={() => openSigned(ev.storage_path)}>
+                      <FileText className="h-3 w-3 mr-1" /> {ev.nombre_archivo}
+                    </Button>
+                  ))}
                   {detalle.evidencia_firmada_path && (
                     <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => openSigned(detalle.evidencia_firmada_path!)}>
                       <FileText className="h-3 w-3 mr-1" /> Evidencia
@@ -1387,8 +1589,12 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
         </DialogContent>
       </Dialog>
 
+      {/* Nueva entrega manual */}
+      <NuevaEntregaManualDialog open={manualOpen} onOpenChange={setManualOpen} onSaved={load} />
+
       {/* Nueva ubicación rápida desde el detalle */}
       <UbicacionDialog
+
         open={nuevaUbicOpen}
         onOpenChange={setNuevaUbicOpen}
         initial={null}
@@ -1500,5 +1706,173 @@ export default function EntregasCorporativas() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+/* --------------------------- Nueva entrega manual --------------------------- */
+
+function NuevaEntregaManualDialog({
+  open, onOpenChange, onSaved,
+}: { open: boolean; onOpenChange: (o: boolean) => void; onSaved: () => void }) {
+  const [cliente, setCliente] = useState("");
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [ubicacionId, setUbicacionId] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [numeroPedido, setNumeroPedido] = useState("");
+  const [productos, setProductos] = useState<{ codigo: string; nombre: string; cantidad: string }[]>([
+    { codigo: "", nombre: "", cantidad: "1" },
+  ]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setCliente("");
+    setUbicaciones([]);
+    setUbicacionId("");
+    setFecha("");
+    setNumeroPedido("");
+    setProductos([{ codigo: "", nombre: "", cantidad: "1" }]);
+  }, [open]);
+
+  useEffect(() => {
+    (async () => {
+      if (!cliente) { setUbicaciones([]); return; }
+      setUbicaciones(await fetchUbicaciones(cliente));
+    })();
+  }, [cliente]);
+
+  const validos = productos.filter((p) => p.codigo.trim() || p.nombre.trim());
+  const puedeGuardar = !!cliente && !!fecha && validos.length > 0 && !saving;
+
+  const guardar = async () => {
+    setSaving(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: ins, error } = await (supabase as any)
+        .from("entregas_corporativas")
+        .insert({
+          cliente,
+          ubicacion_id: ubicacionId || null,
+          fecha_programada: fecha,
+          numero_pedido: numeroPedido.trim() || null,
+          estatus: "programada",
+          creado_por: userData?.user?.id ?? null,
+          calendario_id: null,
+          lugar_entrega_texto: null,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+
+      const { error: eL } = await (supabase as any).from("entregas_corporativas_lineas").insert(
+        validos.map((p) => ({
+          entrega_id: ins.id,
+          codigo_producto: p.codigo.trim(),
+          nombre_producto: p.nombre.trim() || null,
+          cantidad: Number(p.cantidad) || 0,
+        })),
+      );
+      if (eL) throw eL;
+
+      toast.success("Entrega creada");
+      onOpenChange(false);
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo crear la entrega");
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -m-6 mb-0 p-6 rounded-t-lg border-b">
+          <DialogTitle className="text-base">Nueva entrega manual</DialogTitle>
+          <DialogDescription className="font-light">
+            Captura una entrega sin necesidad de subir un documento.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="pt-6 space-y-4 max-h-[65vh] overflow-y-auto">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Cliente</Label>
+              <Select value={cliente} onValueChange={(v) => { setCliente(v); setUbicacionId(""); }}>
+                <SelectTrigger><SelectValue placeholder="Selecciona un cliente" /></SelectTrigger>
+                <SelectContent>
+                  {CLIENTES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Ubicación (opcional)</Label>
+              <Select value={ubicacionId} onValueChange={setUbicacionId} disabled={!cliente || !ubicaciones.length}>
+                <SelectTrigger><SelectValue placeholder={cliente ? "Selecciona una ubicación" : "Elige un cliente primero"} /></SelectTrigger>
+                <SelectContent>
+                  {ubicaciones.map((u) => <SelectItem key={u.id} value={u.id}>{u.nombre}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Fecha programada</Label>
+              <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">N° Pedido (opcional)</Label>
+              <Input value={numeroPedido} onChange={(e) => setNumeroPedido(e.target.value)} placeholder="Ej. 264057312" />
+            </div>
+          </div>
+
+          <div className="border rounded-md overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50">
+                  <TableHead className="uppercase text-[10px] tracking-wide">Código</TableHead>
+                  <TableHead className="uppercase text-[10px] tracking-wide">Nombre</TableHead>
+                  <TableHead className="uppercase text-[10px] tracking-wide text-right">Cantidad</TableHead>
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {productos.map((p, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>
+                      <Input className="h-8 text-xs font-mono" value={p.codigo} placeholder="Código"
+                        onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
+                    </TableCell>
+                    <TableCell>
+                      <Input className="h-8 text-sm" value={p.nombre} placeholder="Nombre"
+                        onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
+                    </TableCell>
+                    <TableCell>
+                      <Input type="number" className="h-8 w-24 text-sm text-right ml-auto" value={p.cantidad}
+                        onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
+                        disabled={productos.length === 1}
+                        onClick={() => setProductos((prev) => prev.filter((_, i) => i !== idx))}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="p-2 border-t bg-muted/30">
+              <Button variant="outline" size="sm" className="h-7 text-xs"
+                onClick={() => setProductos((prev) => [...prev, { codigo: "", nombre: "", cantidad: "1" }])}>
+                <Plus className="h-3 w-3 mr-1" /> Agregar producto
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="bg-muted/40 -m-6 mt-0 p-4 rounded-b-lg">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={guardar} disabled={!puedeGuardar}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Crear entrega
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
