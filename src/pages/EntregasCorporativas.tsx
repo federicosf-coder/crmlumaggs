@@ -633,7 +633,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
       <Card>
         <CardHeader className="bg-gradient-to-r from-violet-50 to-blue-50 border-b">
           <CardTitle className="text-sm uppercase tracking-wide font-medium flex items-center gap-2">
-            <Upload className="h-4 w-4" /> Subir calendario de entregas
+            <Upload className="h-4 w-4" /> Subir Pedidos de Clientes
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
@@ -775,7 +775,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
 
       <Card>
         <CardHeader className="bg-gradient-to-r from-violet-50 to-blue-50 border-b">
-          <CardTitle className="text-sm uppercase tracking-wide font-medium">Calendarios subidos</CardTitle>
+          <CardTitle className="text-sm uppercase tracking-wide font-medium">Pedidos Clientes Subidos</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -1691,7 +1691,7 @@ export default function EntregasCorporativas() {
 
       <Tabs defaultValue="calendarios">
         <TabsList>
-          <TabsTrigger value="calendarios">Calendarios</TabsTrigger>
+          <TabsTrigger value="calendarios">Subir Pedidos Clientes</TabsTrigger>
           <TabsTrigger value="ubicaciones">Ubicaciones</TabsTrigger>
           <TabsTrigger value="entregas">Entregas Programadas</TabsTrigger>
         </TabsList>
