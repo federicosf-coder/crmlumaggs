@@ -774,6 +774,14 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                     <Button variant="ghost" size="sm" onClick={() => openSigned(c.storage_path)}>
                       <FileText className="h-3.5 w-3.5 mr-1" /> Ver archivo
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => pedirEliminarCalendario(c)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -781,6 +789,28 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!delCal} onOpenChange={(o) => !o && setDelCal(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este calendario?</AlertDialogTitle>
+            <AlertDialogDescription className="font-light">
+              {delCal && delCal.count > 0
+                ? `También se eliminarán las ${delCal.count} entregas que se generaron a partir de él, junto con sus líneas de producto. Esta acción no se puede deshacer.`
+                : "No hay entregas asociadas a este calendario. Esta acción no se puede deshacer."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); eliminarCalendario(); }}
+              disabled={delBusy}
+            >
+              {delBusy ? "Eliminando…" : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
