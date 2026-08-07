@@ -871,7 +871,7 @@ async function procesarKardexUnidades(
     const minCalc = Math.ceil(minRaw / ppt) * ppt;
     const maxCalc = Math.ceil(maxRaw / ppt) * ppt;
     const stock = stockAlmacen(n, v.almacen);
-    const reordenCalc = Math.max(0, maxCalc - stock);
+    const reordenCalc = Math.max(0, minCalc - stock);
 
     const prev = mmMap.get(`${v.codigo}|${v.almacen}`);
     minmaxRows.push({

@@ -172,7 +172,7 @@ export function MinMaxTabContent() {
         const minCalc = Math.ceil((ddia * (lead + seguridad)) / ppt) * ppt;
         const maxCalc = Math.ceil((ddia * (lead + cobertura)) / ppt) * ppt;
         const stock = stockOf(n, r.almacen);
-        const reordenCalc = Math.max(0, maxCalc - stock);
+        const reordenCalc = Math.max(0, minCalc - stock);
         updates.push({
           id: r.id,
           demanda_diaria_hub: ddia,
@@ -617,7 +617,7 @@ export function AjusteManualDialog({
           const minCalc = Math.ceil((ddia * (lead + seguridad)) / ppt) * ppt;
           const maxCalc = Math.ceil((ddia * (lead + cobertura)) / ppt) * ppt;
           const stock = stockOf(n, r.almacen);
-          const reordenCalc = Math.max(0, maxCalc - stock);
+          const reordenCalc = Math.max(0, minCalc - stock);
           await (supabase as any).from("inv_minmax").update({
             lead_time_dias: lead,
             dias_cobertura_objetivo: cobertura,
