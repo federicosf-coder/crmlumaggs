@@ -22,6 +22,7 @@ import {
   Truck, Upload, Loader2, Download, FileText, Mail, RefreshCw, Ban, MapPin, Plus, Pencil, Eye, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ProductoSelector, fetchProductosCatalogo } from "@/components/entregas/ProductoSelector";
 
 const CLIENTES = ["Hyundai", "Kenworth", "Mecánica Tek", "Otro"];
 const BUCKET = "entregas-corporativas";
