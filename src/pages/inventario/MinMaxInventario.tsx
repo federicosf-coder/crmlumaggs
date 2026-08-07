@@ -632,6 +632,8 @@ function AjusteDialog({
   const [reoM, setReoM] = useState<string>("");
   const [notas, setNotas] = useState<string>("");
   const [marcado, setMarcado] = useState<boolean>(false);
+  const [fuente, setFuente] = useState<string>("");
+  const [leadT, setLeadT] = useState<string>("");
 
   // Resetear inputs cuando cambia editing
   useEffect(() => {
@@ -640,7 +642,10 @@ function AjusteDialog({
     setReoM(editing?.cantidad_reorden_manual != null ? String(editing.cantidad_reorden_manual) : "");
     setNotas(editing?.notas ?? "");
     setMarcado(editing?.ajustado_manualmente ?? false);
-  }, [editing]);
+    const niv = editing ? nivMap.get(editing.codigo_producto) : undefined;
+    setFuente(niv?.fuente_suministro ?? "");
+    setLeadT(niv?.lead_time_dias != null ? String(niv.lead_time_dias) : (editing?.lead_time_dias != null ? String(editing.lead_time_dias) : ""));
+  }, [editing, nivMap]);
 
   if (!editing) return null;
   const n = nivMap.get(editing.codigo_producto);
@@ -662,6 +667,9 @@ function AjusteDialog({
     const hayAjuste = min != null || max != null || reo != null;
     guardar.mutate({
       id: editing.id,
+      codigo_producto: editing.codigo_producto,
+      fuente_suministro: fuente || null,
+      lead_time_dias: toNum(leadT),
       minimo_manual: min,
       maximo_manual: max,
       cantidad_reorden_manual: reo,
@@ -709,6 +717,31 @@ function AjusteDialog({
               <Label className="text-xs">Notas</Label>
               <Textarea value={notas} onChange={(e) => setNotas(e.target.value)} rows={2} />
             </div>
+          </div>
+
+          <div className="border-t pt-4 space-y-3">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Parámetros del producto (aplican a todas las plazas)</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Fuente de Suministro</Label>
+                <Select value={fuente} onValueChange={setFuente}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="usa">USA</SelectItem>
+                    <SelectItem value="cedis">CEDIS</SelectItem>
+                    <SelectItem value="closa">CLOSA</SelectItem>
+                    <SelectItem value="europe">EUROPE</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Lead Time (días)</Label>
+                <Input type="number" min="0" value={leadT} onChange={(e) => setLeadT(e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Switch checked={marcado} onCheckedChange={setMarcado} id="ajuste-manual" />
