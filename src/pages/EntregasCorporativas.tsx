@@ -1412,6 +1412,23 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!eliminar} onOpenChange={(o) => !o && setEliminar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar esta entrega?</AlertDialogTitle>
+            <AlertDialogDescription className="font-light">
+              Se borrarán también sus líneas de producto. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); doEliminar(); }} disabled={busy}>
+              {busy ? "Eliminando…" : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
