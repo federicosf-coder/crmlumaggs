@@ -522,7 +522,7 @@ export function MinMaxTabContent() {
         </TabsContent>
       </Tabs>
 
-      <AjusteDialog editing={editing} setEditing={setEditing} guardar={guardar} nivMap={nivMap} />
+      <AjusteManualDialog editing={editing} onClose={() => setEditing(null)} nivMap={nivMap} />
     </div>
   );
 }
