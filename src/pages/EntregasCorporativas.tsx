@@ -2082,9 +2082,9 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
             <TableBody>
               {detalleTransito.map((t, i) => (
                 <TableRow key={i} className="odd:bg-muted/30">
-                  <TableCell className="text-sm font-medium">{t.numero_po}</TableCell>
-                  <TableCell className="text-right text-sm font-medium">{t.cantidad}</TableCell>
-                  <TableCell className="text-sm">{t.fecha_entrega_estimada}</TableCell>
+                  <TableCell className="text-sm font-medium py-2.5">{t.numero_po}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">{t.cantidad}</TableCell>
+                  <TableCell className="text-sm py-2.5">{t.fecha_entrega_estimada}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
