@@ -3963,6 +3963,107 @@ export type Database = {
           },
         ]
       }
+      entregas_corporativas: {
+        Row: {
+          calendario_id: string | null
+          cantidad: number
+          cliente: string
+          codigo_producto: string
+          creado_por: string | null
+          created_at: string
+          estatus: string
+          evidencia_firmada_path: string | null
+          factura_referencia: string | null
+          fecha_programada: string
+          id: string
+          nombre_producto: string | null
+          notas: string | null
+          notificado_at: string | null
+          notificado_por: string | null
+          pdf_entrega_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          calendario_id?: string | null
+          cantidad: number
+          cliente: string
+          codigo_producto: string
+          creado_por?: string | null
+          created_at?: string
+          estatus?: string
+          evidencia_firmada_path?: string | null
+          factura_referencia?: string | null
+          fecha_programada: string
+          id?: string
+          nombre_producto?: string | null
+          notas?: string | null
+          notificado_at?: string | null
+          notificado_por?: string | null
+          pdf_entrega_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          calendario_id?: string | null
+          cantidad?: number
+          cliente?: string
+          codigo_producto?: string
+          creado_por?: string | null
+          created_at?: string
+          estatus?: string
+          evidencia_firmada_path?: string | null
+          factura_referencia?: string | null
+          fecha_programada?: string
+          id?: string
+          nombre_producto?: string | null
+          notas?: string | null
+          notificado_at?: string | null
+          notificado_por?: string | null
+          pdf_entrega_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregas_corporativas_calendario_id_fkey"
+            columns: ["calendario_id"]
+            isOneToOne: false
+            referencedRelation: "entregas_corporativas_calendarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entregas_corporativas_calendarios: {
+        Row: {
+          cliente: string
+          created_at: string
+          datos_extraidos: Json | null
+          extraido_por_ia: boolean
+          id: string
+          nombre_archivo: string
+          storage_path: string
+          subido_por: string | null
+        }
+        Insert: {
+          cliente: string
+          created_at?: string
+          datos_extraidos?: Json | null
+          extraido_por_ia?: boolean
+          id?: string
+          nombre_archivo: string
+          storage_path: string
+          subido_por?: string | null
+        }
+        Update: {
+          cliente?: string
+          created_at?: string
+          datos_extraidos?: Json | null
+          extraido_por_ia?: boolean
+          id?: string
+          nombre_archivo?: string
+          storage_path?: string
+          subido_por?: string | null
+        }
+        Relationships: []
+      }
       entregas_programadas: {
         Row: {
           created_at: string
