@@ -516,12 +516,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
       if (cliente === "Kenworth") {
         ubicacion = ubicaciones[0] ?? null;
       } else if (lugarEntrega) {
-        const target = norm(lugarEntrega);
-        ubicacion =
-          ubicaciones.find((u) => {
-            const n = norm(u.nombre);
-            return n === target || n.includes(target) || target.includes(n);
-          }) ?? null;
+        ubicacion = emparejarUbicacion(lugarEntrega, ubicaciones);
       }
       const lugarTexto = ubicacion ? null : (lugarEntrega || null);
 
