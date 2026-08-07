@@ -258,52 +258,6 @@ export function AppSidebar() {
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    {!collapsed && (
-                      <>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild>
-                            <NavLink to="/inventario/pedidos/sugeridos" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                              <span>· Requeridos</span>
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild>
-                            <NavLink to="/inventario/pedidos/subir" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                              <span>· Subir Pedidos</span>
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild>
-                            <NavLink to="/inventario/pedidos-activos" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                              <span>· Activos</span>
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild>
-                            <NavLink to="/inventario/pedidos/elaborados" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                              <span>· Elaborados</span>
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild>
-                            <NavLink to="/inventario/pedidos/recibidos" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                              <span>· Recibidos</span>
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild>
-                            <NavLink to="/inventario/pedidos/reclamos" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                              <span>· Reclamos</span>
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      </>
-                    )}
                   </CollapsibleContent>
                 </Collapsible>
               </SidebarMenu>
