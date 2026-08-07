@@ -1222,7 +1222,12 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
 
       <Card>
         <CardHeader className="bg-gradient-to-r from-violet-50 to-blue-50 border-b">
-          <CardTitle className="text-sm uppercase tracking-wide font-medium">Entregas ({total})</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-sm uppercase tracking-wide font-medium">Entregas ({total})</CardTitle>
+            <Button size="sm" className="h-8 text-xs" onClick={() => setManualOpen(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Nueva Entrega Manual
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
