@@ -53,6 +53,7 @@ type NivelRow = {
   clasificacion_abc: string | null;
   lead_time_dias: number | null;
   piezas_por_tarima: number | null;
+  fuente_suministro: string | null;
   stock_almacen_1001: number | null;
   stock_almacen_1002: number | null;
   stock_almacen_1003: number | null;
@@ -104,7 +105,7 @@ export function MinMaxTabContent() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("inv_niveles_inventario")
-        .select("codigo_producto, nombre_producto, clasificacion_abc, lead_time_dias, piezas_por_tarima, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004");
+        .select("codigo_producto, nombre_producto, clasificacion_abc, lead_time_dias, piezas_por_tarima, fuente_suministro, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004");
       if (error) throw error;
       return data as NivelRow[];
     },
@@ -145,7 +146,7 @@ export function MinMaxTabContent() {
   }, [filtered, nivMap]);
 
   const guardar = useMutation({
-    mutationFn: async (vals: { id: string; minimo_manual: number | null; maximo_manual: number | null; cantidad_reorden_manual: number | null; notas: string; ajustado_manualmente: boolean }) => {
+    mutationFn: async (vals: { id: string; codigo_producto?: string; fuente_suministro?: string | null; lead_time_dias?: number | null; minimo_manual: number | null; maximo_manual: number | null; cantidad_reorden_manual: number | null; notas: string; ajustado_manualmente: boolean }) => {
       const { error } = await (supabase as any)
         .from("inv_minmax")
         .update({
@@ -157,10 +158,61 @@ export function MinMaxTabContent() {
         })
         .eq("id", vals.id);
       if (error) throw error;
+
+      // Campos a nivel producto (inv_niveles_inventario) + recálculo de las 4 plazas
+      if (vals.codigo_producto) {
+        const codigo = vals.codigo_producto;
+        const nivUpd: any = {};
+        if (vals.fuente_suministro !== undefined) nivUpd.fuente_suministro = vals.fuente_suministro;
+        if (vals.lead_time_dias !== undefined) nivUpd.lead_time_dias = vals.lead_time_dias;
+        if (Object.keys(nivUpd).length > 0) {
+          const { error: e2 } = await (supabase as any)
+            .from("inv_niveles_inventario")
+            .update(nivUpd)
+            .eq("codigo_producto", codigo);
+          if (e2) throw e2;
+        }
+
+        const n = nivMap.get(codigo);
+        const lead = Number(vals.lead_time_dias ?? n?.lead_time_dias ?? 10) || 10;
+        const ppt = Math.max(1, Number(n?.piezas_por_tarima ?? 1) || 1);
+
+        const { data: dem } = await (supabase as any)
+          .from("inv_demanda_plaza")
+          .select("codigo_producto, almacen, demanda_diaria_promedio, periodo_inicio")
+          .eq("codigo_producto", codigo)
+          .order("periodo_inicio", { ascending: false });
+        const ultimaDem = new Map<string, number>();
+        for (const d of (dem || [])) {
+          if (!ultimaDem.has(d.almacen)) ultimaDem.set(d.almacen, Number(d.demanda_diaria_promedio || 0));
+        }
+
+        const hoyIso = new Date().toISOString().slice(0, 10);
+        for (const r of rows.filter((x) => x.codigo_producto === codigo)) {
+          const ddia = ultimaDem.get(r.almacen) ?? Number(r.demanda_diaria_hub ?? 0);
+          const abc = n?.clasificacion_abc ?? r.clasificacion_abc ?? null;
+          const cobertura = abc && COBERTURA[abc] ? COBERTURA[abc] : 45;
+          const seguridad = abc && SEGURIDAD[abc] ? SEGURIDAD[abc] : 10;
+          const minCalc = Math.ceil((ddia * (lead + seguridad)) / ppt) * ppt;
+          const maxCalc = Math.ceil((ddia * (lead + cobertura)) / ppt) * ppt;
+          const stock = stockOf(n, r.almacen);
+          const reordenCalc = Math.max(0, maxCalc - stock);
+          await (supabase as any).from("inv_minmax").update({
+            lead_time_dias: lead,
+            dias_cobertura_objetivo: cobertura,
+            dias_stock_seguridad: seguridad,
+            minimo_calc: minCalc,
+            maximo_calc: maxCalc,
+            cantidad_reorden_calc: reordenCalc,
+            ultima_actualizacion_calc: hoyIso,
+          }).eq("id", r.id);
+        }
+      }
     },
     onSuccess: () => {
       toast.success("Ajuste guardado");
       qc.invalidateQueries({ queryKey: ["inv_minmax"] });
+      qc.invalidateQueries({ queryKey: ["inv_niveles_inventario_min"] });
       setEditing(null);
     },
     onError: (e: any) => toast.error("Error: " + (e?.message || "")),
@@ -580,6 +632,8 @@ function AjusteDialog({
   const [reoM, setReoM] = useState<string>("");
   const [notas, setNotas] = useState<string>("");
   const [marcado, setMarcado] = useState<boolean>(false);
+  const [fuente, setFuente] = useState<string>("");
+  const [leadT, setLeadT] = useState<string>("");
 
   // Resetear inputs cuando cambia editing
   useEffect(() => {
@@ -588,7 +642,10 @@ function AjusteDialog({
     setReoM(editing?.cantidad_reorden_manual != null ? String(editing.cantidad_reorden_manual) : "");
     setNotas(editing?.notas ?? "");
     setMarcado(editing?.ajustado_manualmente ?? false);
-  }, [editing]);
+    const niv = editing ? nivMap.get(editing.codigo_producto) : undefined;
+    setFuente(niv?.fuente_suministro ?? "");
+    setLeadT(niv?.lead_time_dias != null ? String(niv.lead_time_dias) : (editing?.lead_time_dias != null ? String(editing.lead_time_dias) : ""));
+  }, [editing, nivMap]);
 
   if (!editing) return null;
   const n = nivMap.get(editing.codigo_producto);
@@ -610,6 +667,9 @@ function AjusteDialog({
     const hayAjuste = min != null || max != null || reo != null;
     guardar.mutate({
       id: editing.id,
+      codigo_producto: editing.codigo_producto,
+      fuente_suministro: fuente || null,
+      lead_time_dias: toNum(leadT),
       minimo_manual: min,
       maximo_manual: max,
       cantidad_reorden_manual: reo,
@@ -657,6 +717,31 @@ function AjusteDialog({
               <Label className="text-xs">Notas</Label>
               <Textarea value={notas} onChange={(e) => setNotas(e.target.value)} rows={2} />
             </div>
+          </div>
+
+          <div className="border-t pt-4 space-y-3">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Parámetros del producto (aplican a todas las plazas)</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Fuente de Suministro</Label>
+                <Select value={fuente} onValueChange={setFuente}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="usa">USA</SelectItem>
+                    <SelectItem value="cedis">CEDIS</SelectItem>
+                    <SelectItem value="closa">CLOSA</SelectItem>
+                    <SelectItem value="europe">EUROPE</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Lead Time (días)</Label>
+                <Input type="number" min="0" value={leadT} onChange={(e) => setLeadT(e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Switch checked={marcado} onCheckedChange={setMarcado} id="ajuste-manual" />
