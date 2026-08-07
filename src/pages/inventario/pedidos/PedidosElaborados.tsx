@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Upload, Sparkles, FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -142,6 +142,16 @@ export default function PedidosElaborados() {
 }
 
 async function deletePedido(id: string) {
+  return _deletePedido(id);
+}
+
+async function verPdf(path: string) {
+  const { data, error } = await supabase.storage.from("inventario-pedidos").createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) { toast.error("No se pudo abrir el PDF"); return; }
+  window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+}
+
+async function _deletePedido(id: string) {
   const l = await (supabase as any).from("inv_pedido_lineas").delete().eq("pedido_id", id);
   if (l.error) throw l.error;
   const a = await (supabase as any).from("inv_pedido_archivos").delete().eq("pedido_id", id);
@@ -244,11 +254,11 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
   };
 
   return (
-    <Sheet open={!!id} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -mx-6 -mt-6 p-6">
-          <SheetTitle className="font-light">Pedido {p?.numero_po_interno || "—"}</SheetTitle>
-        </SheetHeader>
+    <Dialog open={!!id} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -mx-6 -mt-6 p-6">
+          <DialogTitle className="font-light">Pedido {p?.numero_po_interno || "—"}</DialogTitle>
+        </DialogHeader>
         {p && (
           <div className="space-y-6 mt-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -270,29 +280,32 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
 
             <div>
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Archivos adjuntos</div>
+              {archivos.length > 0 ? (
+                <div className="border rounded p-3 text-sm space-y-2 bg-muted/20">
+                  <div className="text-xs text-muted-foreground">
+                    Este pedido se generó automáticamente desde: <span className="font-medium text-foreground">{archivos[0].nombre_archivo}</span>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => verPdf(archivos[0].url_archivo)}>
+                    <FileText className="h-3.5 w-3.5 mr-1.5" />Ver PDF
+                  </Button>
+                </div>
+              ) : (
+              <>
               <div className="flex items-center gap-2 mb-3">
                 <label className="inline-block">
                   <input type="file" accept="application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); }} />
                   <Button asChild variant="outline" size="sm" disabled={uploading}><span><Upload className="h-3.5 w-3.5 mr-1.5" />{uploading ? "Subiendo..." : "Subir PDF del proveedor"}</span></Button>
                 </label>
               </div>
-              <div className="space-y-2">
-                {archivos.map((a: any) => (
-                  <div key={a.id} className="border rounded p-3 flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" /><span className="truncate max-w-[260px]">{a.nombre_archivo}</span>{a.extraido_por_ia && <Badge variant="outline" className="bg-violet-50 text-violet-700">IA</Badge>}</div>
-                    <Button size="sm" variant="outline" onClick={() => onExtract(a)} disabled={extracting === a.id}>
-                      <Sparkles className="h-3.5 w-3.5 mr-1.5" />{extracting === a.id ? "Extrayendo..." : "Extraer con IA"}
-                    </Button>
-                  </div>
-                ))}
-                {archivos.length === 0 && <div className="text-xs text-muted-foreground">Sin archivos</div>}
-              </div>
+              <div className="text-xs text-muted-foreground">Sin archivos</div>
               {extracted && (
                 <div className="mt-3 border rounded p-3 bg-violet-50/50">
                   <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Vista previa de extracción</div>
                   <pre className="text-[10px] max-h-48 overflow-auto bg-background border rounded p-2">{JSON.stringify(extracted.data, null, 2)}</pre>
                   <Button size="sm" className="mt-2" onClick={aplicarExtraccion}>Aplicar datos extraídos</Button>
                 </div>
+              )}
+              </>
               )}
             </div>
 
@@ -302,7 +315,7 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
                 <Table>
                   <TableHeader className="bg-muted/40">
                     <TableRow>
-                      {["Código","Producto","Pres.","Cant.","Unidad","Tarimas","P. unit.","Total","Status"].map((h) => <TableHead key={h} className="text-xs uppercase">{h}</TableHead>)}
+                      {["Código","Producto","Cant.","Unidad","P. unit.","Total","Status"].map((h) => <TableHead key={h} className="text-xs uppercase">{h}</TableHead>)}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -310,10 +323,8 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
                       <TableRow key={l.id}>
                         <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
                         <TableCell className="text-xs max-w-[160px] truncate">{l.nombre_producto || "—"}</TableCell>
-                        <TableCell className="text-xs">{l.presentacion || "—"}</TableCell>
                         <TableCell className="text-right">{l.cantidad_solicitada}</TableCell>
                         <TableCell className="text-xs">{l.unidad_pedido || "—"}</TableCell>
-                        <TableCell className="text-right">{l.tarimas ?? "—"}</TableCell>
                         <TableCell className="text-right text-xs">{l.precio_unitario ?? "—"}</TableCell>
                         <TableCell className="text-right text-xs">{l.precio_neto ?? "—"}</TableCell>
                         <TableCell className="text-xs">{l.estatus_linea || "—"}</TableCell>
@@ -325,8 +336,8 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
             </div>
           </div>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
