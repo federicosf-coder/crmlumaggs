@@ -2298,7 +2298,19 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
                   <TableCell className="text-sm py-2.5">{r.nombre || "—"}</TableCell>
                   <TableCell className="text-right text-sm font-medium py-2.5">{r.demanda}</TableCell>
                   <TableCell className="text-right text-sm font-medium py-2.5">{r.stock_actual}</TableCell>
-                  <TableCell className="text-right text-sm font-medium py-2.5">{r.por_llegar}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">
+                    {r.por_llegar > 0 ? (
+                      <button
+                        type="button"
+                        className="text-blue-600 underline underline-offset-2 hover:text-blue-800"
+                        onClick={() => setDetallePorLlegar(r)}
+                      >
+                        {r.por_llegar}
+                      </button>
+                    ) : (
+                      r.por_llegar
+                    )}
+                  </TableCell>
                   <TableCell className={`text-right text-sm font-semibold py-2.5 ${r.alcanza ? "text-emerald-700" : "text-red-700"}`}>{r.disponible}</TableCell>
                   <TableCell className="py-2.5">
                     <Badge className={`text-xs font-semibold ${r.alcanza ? "bg-emerald-200 text-emerald-800 hover:bg-emerald-200" : "bg-red-200 text-red-800 hover:bg-red-200"}`}>
@@ -2312,6 +2324,35 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
           </Table>
         </div>
       </CardContent>
+
+      <Dialog open={!!detallePorLlegar} onOpenChange={(o) => !o && setDetallePorLlegar(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pedidos en camino — {detallePorLlegar?.codigo}</DialogTitle>
+            <DialogDescription>
+              Todos los pedidos abiertos (no cerrados ni cancelados) de este código.
+            </DialogDescription>
+          </DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">N° PO</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Cantidad</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Fecha estimada</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(detallePorLlegar ? transitoDetalle[detallePorLlegar.codigo] ?? [] : []).map((t, i) => (
+                <TableRow key={i} className="odd:bg-muted/30">
+                  <TableCell className="text-sm font-medium py-2.5">{t.numero_po}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">{t.cantidad}</TableCell>
+                  <TableCell className="text-sm py-2.5">{t.fecha_entrega_estimada || "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
