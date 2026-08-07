@@ -152,12 +152,12 @@ function mapsUrl(lat: number, lng: number) {
 
 function estatusBadge(e: string) {
   const map: Record<string, string> = {
-    programada: "bg-blue-100 text-blue-700 border-blue-200",
-    entregada: "bg-green-100 text-green-700 border-green-200",
-    cancelada: "bg-slate-100 text-slate-600 border-slate-200",
+    programada: "bg-blue-200 text-blue-800 border-blue-300",
+    entregada: "bg-emerald-200 text-emerald-800 border-emerald-300",
+    cancelada: "bg-slate-300 text-slate-800 border-slate-400",
   };
   return (
-    <Badge variant="outline" className={`text-[10px] font-medium capitalize ${map[e] || "bg-muted"}`}>
+    <Badge variant="outline" className={`text-xs font-semibold capitalize ${map[e] || "bg-muted text-foreground"}`}>
       {e}
     </Badge>
   );
