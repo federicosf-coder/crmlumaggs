@@ -5381,12 +5381,13 @@ export type Database = {
         Row: {
           activo: boolean
           cantidad: number
-          codigo_producto: string
+          codigo_producto: string | null
           created_at: string
           estatus: string
           id: string
           motivo: string
           notas_revision: string | null
+          producto_descripcion: string | null
           revisado_at: string | null
           revisado_por: string | null
           solicitado_por: string
@@ -5396,12 +5397,13 @@ export type Database = {
         Insert: {
           activo?: boolean
           cantidad: number
-          codigo_producto: string
+          codigo_producto?: string | null
           created_at?: string
           estatus?: string
           id?: string
           motivo: string
           notas_revision?: string | null
+          producto_descripcion?: string | null
           revisado_at?: string | null
           revisado_por?: string | null
           solicitado_por: string
@@ -5411,12 +5413,13 @@ export type Database = {
         Update: {
           activo?: boolean
           cantidad?: number
-          codigo_producto?: string
+          codigo_producto?: string | null
           created_at?: string
           estatus?: string
           id?: string
           motivo?: string
           notas_revision?: string | null
+          producto_descripcion?: string | null
           revisado_at?: string | null
           revisado_por?: string | null
           solicitado_por?: string
