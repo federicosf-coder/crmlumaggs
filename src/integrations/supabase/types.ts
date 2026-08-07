@@ -4071,6 +4071,41 @@ export type Database = {
         }
         Relationships: []
       }
+      entregas_corporativas_evidencias: {
+        Row: {
+          created_at: string
+          entrega_id: string
+          id: string
+          nombre_archivo: string
+          storage_path: string
+          subido_por: string | null
+        }
+        Insert: {
+          created_at?: string
+          entrega_id: string
+          id?: string
+          nombre_archivo: string
+          storage_path: string
+          subido_por?: string | null
+        }
+        Update: {
+          created_at?: string
+          entrega_id?: string
+          id?: string
+          nombre_archivo?: string
+          storage_path?: string
+          subido_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregas_corporativas_evidencias_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas_corporativas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entregas_corporativas_lineas: {
         Row: {
           cantidad: number
