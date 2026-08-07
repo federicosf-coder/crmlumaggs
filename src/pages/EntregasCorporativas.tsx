@@ -1747,6 +1747,7 @@ export default function EntregasCorporativas() {
           <TabsTrigger value="calendarios">Subir Pedidos Clientes</TabsTrigger>
           <TabsTrigger value="ubicaciones">Ubicaciones</TabsTrigger>
           <TabsTrigger value="entregas">Entregas Programadas</TabsTrigger>
+          <TabsTrigger value="desglose">Desglose de Productos</TabsTrigger>
         </TabsList>
         <TabsContent value="calendarios" className="mt-4">
           <CalendariosTab onImported={() => setRefreshKey((k) => k + 1)} />
@@ -1757,8 +1758,340 @@ export default function EntregasCorporativas() {
         <TabsContent value="entregas" className="mt-4">
           <EntregasTab refreshKey={refreshKey} onUbicacionesChanged={() => setUbicKey((k) => k + 1)} />
         </TabsContent>
+        <TabsContent value="desglose" className="mt-4">
+          <DesgloseProductosTab refreshKey={refreshKey} />
+        </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+/* --------------------------- Desglose de Productos --------------------------- */
+
+type DesgloseRow = {
+  key: string;
+  codigo: string;
+  nombre: string;
+  cliente: string;
+  ubicacion: string;
+  fecha: string;
+  numero_pedido: string | null;
+  estatus: string;
+  cantidad: number;
+  stock_actual: number;
+  por_llegar: number;
+  tendremos: boolean;
+  deficit: number;
+};
+
+type PedidoTransito = {
+  codigo_producto: string;
+  cantidad: number;
+  fecha_entrega_estimada: string | null;
+  numero_po: string;
+};
+
+function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
+  const [loading, setLoading] = useState(false);
+  const [lineas, setLineas] = useState<any[]>([]);
+  const [stock, setStock] = useState<Record<string, number>>({});
+  const [transito, setTransito] = useState<PedidoTransito[]>([]);
+  const [fCliente, setFCliente] = useState("todos");
+  const [fEstatus, setFEstatus] = useState("programada");
+  const [fStock, setFStock] = useState("todos");
+  const [busq, setBusq] = useState("");
+  const [sortKey, setSortKey] = useState<string>("fecha");
+  const [sortAsc, setSortAsc] = useState(true);
+  const [detallePorLlegar, setDetallePorLlegar] = useState<DesgloseRow | null>(null);
+  const [creadas, setCreadas] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const [{ data: lin }, { data: niv }, { data: pl }] = await Promise.all([
+      (supabase as any)
+        .from("entregas_corporativas_lineas")
+        .select(
+          "id, codigo_producto, nombre_producto, cantidad, entrega_id, entrega:entregas_corporativas(id, cliente, estatus, fecha_programada, numero_pedido, ubicacion_id, lugar_entrega_texto, ubicacion:entregas_corporativas_ubicaciones(nombre))",
+        ),
+      (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_total"),
+      (supabase as any)
+        .from("inv_pedido_lineas")
+        .select("codigo_producto, cantidad_confirmada, cantidad_solicitada, pedido:inv_pedidos!inner(id, numero_po_interno, numero_orden_proveedor, fecha_entrega_estimada, estatus)"),
+    ]);
+
+    setLineas((lin ?? []).filter((l: any) => l.entrega));
+
+    const smap: Record<string, number> = {};
+    ((niv ?? []) as any[]).forEach((n) => {
+      smap[n.codigo_producto] = (smap[n.codigo_producto] ?? 0) + Number(n.stock_total ?? 0);
+    });
+    setStock(smap);
+
+    const tr: PedidoTransito[] = ((pl ?? []) as any[])
+      .filter((l) => l.pedido && !["cerrado", "cancelado"].includes(String(l.pedido.estatus)))
+      .map((l) => ({
+        codigo_producto: l.codigo_producto,
+        cantidad: Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0),
+        fecha_entrega_estimada: l.pedido.fecha_entrega_estimada ?? null,
+        numero_po: l.pedido.numero_po_interno || l.pedido.numero_orden_proveedor || "—",
+      }));
+    setTransito(tr);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [refreshKey]);
+
+  const rows: DesgloseRow[] = useMemo(() => {
+    // Demanda acumulada considera solo entregas 'programada'
+    const programadas = lineas
+      .filter((l) => l.entrega?.estatus === "programada")
+      .map((l) => ({ codigo: l.codigo_producto, fecha: l.entrega.fecha_programada, cantidad: Number(l.cantidad ?? 0) }));
+
+    const base = lineas.map((l) => {
+      const e = l.entrega;
+      const codigo = l.codigo_producto ?? "";
+      const fecha = e.fecha_programada as string;
+      const stock_actual = Number(stock[codigo] ?? 0);
+      const por_llegar = transito
+        .filter((t) => t.codigo_producto === codigo && t.fecha_entrega_estimada && t.fecha_entrega_estimada <= fecha)
+        .reduce((s, t) => s + t.cantidad, 0);
+      const demanda = programadas
+        .filter((p) => p.codigo === codigo && p.fecha <= fecha)
+        .reduce((s, p) => s + p.cantidad, 0);
+      const disponible = stock_actual + por_llegar - demanda;
+      return {
+        key: l.id,
+        codigo,
+        nombre: l.nombre_producto ?? "",
+        cliente: e.cliente,
+        ubicacion: e.ubicacion?.nombre || e.lugar_entrega_texto || "—",
+        fecha,
+        numero_pedido: e.numero_pedido ?? null,
+        estatus: e.estatus,
+        cantidad: Number(l.cantidad ?? 0),
+        stock_actual,
+        por_llegar,
+        tendremos: disponible >= 0,
+        deficit: disponible < 0 ? Math.abs(disponible) : 0,
+      } as DesgloseRow;
+    });
+
+    base.sort((a, b) => (a.codigo === b.codigo ? a.fecha.localeCompare(b.fecha) : a.codigo.localeCompare(b.codigo)));
+
+    const q = busq.trim().toLowerCase();
+    const filtered = base.filter((r) => {
+      if (fCliente !== "todos" && r.cliente !== fCliente) return false;
+      if (fEstatus !== "todas" && r.estatus !== fEstatus) return false;
+      if (fStock === "si" && !r.tendremos) return false;
+      if (fStock === "no" && r.tendremos) return false;
+      if (q && !(`${r.codigo} ${r.nombre}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+
+    const dir = sortAsc ? 1 : -1;
+    const val = (r: DesgloseRow) => {
+      switch (sortKey) {
+        case "codigo": return r.codigo;
+        case "nombre": return r.nombre;
+        case "cliente": return r.cliente;
+        case "ubicacion": return r.ubicacion;
+        case "cantidad": return r.cantidad;
+        case "stock": return r.stock_actual;
+        case "porllegar": return r.por_llegar;
+        case "deficit": return r.deficit;
+        default: return r.fecha;
+      }
+    };
+    return [...filtered].sort((a, b) => {
+      const va = val(a), vb = val(b);
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+      return String(va).localeCompare(String(vb)) * dir;
+    });
+  }, [lineas, stock, transito, fCliente, fEstatus, fStock, busq, sortKey, sortAsc]);
+
+  const toggleSort = (k: string) => {
+    if (sortKey === k) setSortAsc((v) => !v);
+    else { setSortKey(k); setSortAsc(true); }
+  };
+
+  const crearSolicitud = async (r: DesgloseRow) => {
+    setBusy(true);
+    const { data: auth } = await supabase.auth.getUser();
+    const { error } = await (supabase as any).from("inv_solicitudes_extraordinarias").insert({
+      codigo_producto: r.codigo,
+      cantidad: r.deficit,
+      tipo: "unica",
+      motivo: `Déficit detectado para entrega corporativa ${r.cliente} — pedido ${r.numero_pedido || r.fecha}`,
+      estatus: "pendiente",
+      solicitado_por: auth.user?.id,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setCreadas((c) => [...c, r.key]);
+    toast.success("Solicitud extraordinaria creada");
+  };
+
+  const detalleTransito = detallePorLlegar
+    ? transito.filter(
+        (t) => t.codigo_producto === detallePorLlegar.codigo && t.fecha_entrega_estimada && t.fecha_entrega_estimada <= detallePorLlegar.fecha,
+      )
+    : [];
+
+  const Th = ({ k, children, className }: { k: string; children: React.ReactNode; className?: string }) => (
+    <TableHead className={`cursor-pointer select-none ${className ?? ""}`} onClick={() => toggleSort(k)}>
+      {children}{sortKey === k ? (sortAsc ? " ↑" : " ↓") : ""}
+    </TableHead>
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base font-medium">Desglose de Productos</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-3">
+          <div className="w-48">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Cliente</Label>
+            <Select value={fCliente} onValueChange={setFCliente}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {CLIENTES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-48">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Estatus</Label>
+            <Select value={fEstatus} onValueChange={setFEstatus}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas</SelectItem>
+                <SelectItem value="programada">Programada</SelectItem>
+                <SelectItem value="entregada">Entregada</SelectItem>
+                <SelectItem value="cancelada">Cancelada</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-48">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">¿Tendremos Stock?</Label>
+            <Select value={fStock} onValueChange={setFStock}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="si">Sí</SelectItem>
+                <SelectItem value="no">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-64">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Buscar</Label>
+            <Input value={busq} onChange={(e) => setBusq(e.target.value)} placeholder="Código o producto" />
+          </div>
+          <div className="flex items-end">
+            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <Th k="codigo">Código</Th>
+                <Th k="nombre">Producto</Th>
+                <Th k="cliente">Cliente</Th>
+                <Th k="ubicacion">Ubicación</Th>
+                <Th k="fecha">Fecha Programada</Th>
+                <TableHead>N° Pedido</TableHead>
+                <Th k="cantidad" className="text-right">Cantidad</Th>
+                <Th k="stock" className="text-right">Stock en Almacén</Th>
+                <Th k="porllegar" className="text-right">Por Llegar</Th>
+                <TableHead>¿Tendremos Stock?</TableHead>
+                <Th k="deficit" className="text-right">Déficit</Th>
+                <TableHead>Acción</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={12} className="text-center text-sm text-muted-foreground py-8">
+                    {loading ? "Cargando…" : "Sin productos que mostrar"}
+                  </TableCell>
+                </TableRow>
+              )}
+              {rows.map((r) => (
+                <TableRow key={r.key}>
+                  <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
+                  <TableCell className="text-sm font-light">{r.nombre}</TableCell>
+                  <TableCell className="text-sm">{r.cliente}</TableCell>
+                  <TableCell className="text-sm font-light">{r.ubicacion}</TableCell>
+                  <TableCell className="text-sm">{r.fecha}</TableCell>
+                  <TableCell className="text-sm">{r.numero_pedido || "—"}</TableCell>
+                  <TableCell className="text-right text-sm">{r.cantidad}</TableCell>
+                  <TableCell className="text-right text-sm">{r.stock_actual}</TableCell>
+                  <TableCell className="text-right text-sm">
+                    {r.por_llegar > 0 ? (
+                      <button className="text-blue-600 underline underline-offset-2" onClick={() => setDetallePorLlegar(r)}>
+                        {r.por_llegar}
+                      </button>
+                    ) : 0}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={r.tendremos ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "bg-red-100 text-red-700 hover:bg-red-100"}>
+                      {r.tendremos ? "Sí" : "No"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right text-sm text-red-600">{r.tendremos ? "" : r.deficit}</TableCell>
+                  <TableCell>
+                    {!r.tendremos && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busy || creadas.includes(r.key)}
+                        onClick={() => crearSolicitud(r)}
+                      >
+                        {creadas.includes(r.key) ? "Solicitud creada" : "Crear Solicitud Extraordinaria"}
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+
+      <Dialog open={!!detallePorLlegar} onOpenChange={(o) => !o && setDetallePorLlegar(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pedidos en camino — {detallePorLlegar?.codigo}</DialogTitle>
+            <DialogDescription>
+              Pedidos abiertos con fecha estimada menor o igual al {detallePorLlegar?.fecha}.
+            </DialogDescription>
+          </DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>N° PO</TableHead>
+                <TableHead className="text-right">Cantidad</TableHead>
+                <TableHead>Fecha estimada</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {detalleTransito.map((t, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-sm">{t.numero_po}</TableCell>
+                  <TableCell className="text-right text-sm">{t.cantidad}</TableCell>
+                  <TableCell className="text-sm">{t.fecha_entrega_estimada}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }
 /* --------------------------- Nueva entrega manual --------------------------- */
