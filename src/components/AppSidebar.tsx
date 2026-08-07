@@ -8,6 +8,7 @@ import {
   FileCheck, Boxes, ChevronDown, Link2,
   Sliders, ClipboardList, ShieldAlert, Network, DollarSign, TableProperties,
   Workflow,
+  CalendarCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
