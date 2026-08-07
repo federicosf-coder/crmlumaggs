@@ -19,7 +19,8 @@ import { cn } from "@/lib/utils";
 
 type Solicitud = {
   id: string;
-  codigo_producto: string;
+  codigo_producto: string | null;
+  producto_descripcion?: string | null;
   cantidad: number;
   tipo: string;
   motivo: string;
@@ -31,6 +32,8 @@ type Solicitud = {
   notas_revision: string | null;
   created_at: string;
 };
+
+type OpcionProducto = { codigo: string; nombre: string; en_catalogo: boolean; activo: boolean };
 
 const ESTATUS_CLS: Record<string, string> = {
   pendiente: "bg-amber-100 text-amber-800 border-amber-200",
@@ -73,13 +76,42 @@ export default function SolicitudesExtraordinarias() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("productos")
-        .select("codigo, nombre")
+        .select("codigo, nombre, is_active")
         .limit(20000);
       if (error) throw error;
-      return (data || []) as { codigo: string; nombre: string }[];
+      return (data || []) as { codigo: string; nombre: string; is_active: boolean }[];
     },
     staleTime: 5 * 60_000,
   });
+
+  const { data: costosProd = [] } = useQuery({
+    queryKey: ["costos_producto_solext"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("inv_costos_producto")
+        .select("codigo_producto, nombre_en_archivo, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20000);
+      if (error) throw error;
+      return (data || []) as { codigo_producto: string; nombre_en_archivo: string | null }[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const opcionesProducto = useMemo(() => {
+    const map = new Map<string, OpcionProducto>();
+    productos.forEach((p) => {
+      if (p.codigo && !map.has(p.codigo)) {
+        map.set(p.codigo, { codigo: p.codigo, nombre: p.nombre, en_catalogo: true, activo: !!p.is_active });
+      }
+    });
+    costosProd.forEach((c) => {
+      if (c.codigo_producto && !map.has(c.codigo_producto)) {
+        map.set(c.codigo_producto, { codigo: c.codigo_producto, nombre: c.nombre_en_archivo || "", en_catalogo: false, activo: false });
+      }
+    });
+    return Array.from(map.values());
+  }, [productos, costosProd]);
 
   const { data: perfiles = [] } = useQuery({
     queryKey: ["profiles_solext"],
@@ -109,7 +141,7 @@ export default function SolicitudesExtraordinarias() {
       if (fEstatus !== "todos" && s.estatus !== fEstatus) return false;
       if (fTipo !== "todos" && s.tipo !== fTipo) return false;
       if (q) {
-        const hay = `${s.codigo_producto} ${nombrePorCodigo[s.codigo_producto] || ""} ${s.motivo}`.toLowerCase();
+        const hay = `${s.codigo_producto || ""} ${(s.codigo_producto && nombrePorCodigo[s.codigo_producto]) || ""} ${s.producto_descripcion || ""} ${s.motivo}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -119,7 +151,7 @@ export default function SolicitudesExtraordinarias() {
   const refrescar = () => qc.invalidateQueries({ queryKey: ["solicitudes_extraordinarias"] });
 
   const crear = useMutation({
-    mutationFn: async (payload: { codigo_producto: string; cantidad: number; tipo: string; motivo: string }) => {
+    mutationFn: async (payload: { codigo_producto: string | null; producto_descripcion: string | null; cantidad: number; tipo: string; motivo: string }) => {
       const { error } = await (supabase as any).from("inv_solicitudes_extraordinarias").insert({
         ...payload, estatus: "pendiente", solicitado_por: user?.id ?? null,
       });
@@ -206,8 +238,17 @@ export default function SolicitudesExtraordinarias() {
                 return (
                   <TableRow key={s.id} className={cn(i % 2 === 1 && "bg-muted/20", "hover:bg-blue-50/40")}>
                     <TableCell>
-                      <div className="font-medium text-sm">{s.codigo_producto}</div>
-                      <div className="text-xs text-muted-foreground">{nombrePorCodigo[s.codigo_producto] || "—"}</div>
+                      {s.codigo_producto ? (
+                        <>
+                          <div className="font-medium text-sm">{s.codigo_producto}</div>
+                          <div className="text-xs text-muted-foreground">{nombrePorCodigo[s.codigo_producto] || "—"}</div>
+                        </>
+                      ) : (
+                        <div className="flex items-start gap-1.5">
+                          <span className="font-medium text-sm">{s.producto_descripcion || "—"}</span>
+                          <Badge variant="outline" className="text-[10px] font-normal bg-slate-100 text-slate-600 border-slate-200">Sin código</Badge>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums font-medium">{Number(s.cantidad).toLocaleString()}</TableCell>
                     <TableCell>
@@ -258,7 +299,7 @@ export default function SolicitudesExtraordinarias() {
       <NuevaSolicitudDialog
         open={nuevaOpen}
         onOpenChange={setNuevaOpen}
-        productos={productos}
+        productos={opcionesProducto}
         onSubmit={(p) => crear.mutate(p)}
         saving={crear.isPending}
       />
@@ -273,7 +314,7 @@ export default function SolicitudesExtraordinarias() {
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              {revision?.row.codigo_producto} — {Number(revision?.row.cantidad ?? 0).toLocaleString()} pzas
+              {revision?.row.codigo_producto || revision?.row.producto_descripcion} — {Number(revision?.row.cantidad ?? 0).toLocaleString()} pzas
             </p>
             <div className="space-y-1">
               <Label className="text-xs uppercase tracking-wide">Notas de revisión (opcional)</Label>
@@ -338,8 +379,8 @@ export default function SolicitudesExtraordinarias() {
 function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  productos: { codigo: string; nombre: string }[];
-  onSubmit: (p: { codigo_producto: string; cantidad: number; tipo: string; motivo: string }) => void;
+  productos: OpcionProducto[];
+  onSubmit: (p: { codigo_producto: string | null; producto_descripcion: string | null; cantidad: number; tipo: string; motivo: string }) => void;
   saving: boolean;
 }) {
   const [codigo, setCodigo] = useState("");
@@ -348,6 +389,9 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving 
   const [motivo, setMotivo] = useState("");
   const [comboOpen, setComboOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [modoDescripcion, setModoDescripcion] = useState(false);
+  const [descProducto, setDescProducto] = useState("");
+  const [descPresentacion, setDescPresentacion] = useState("");
 
   const opciones = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -358,9 +402,20 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving 
   }, [productos, q]);
 
   const sel = productos.find((p) => p.codigo === codigo);
-  const valido = !!codigo && Number(cantidad) > 0 && motivo.trim().length > 0;
+  const validoProducto = modoDescripcion ? descProducto.trim().length > 0 : !!codigo;
+  const valido = validoProducto && Number(cantidad) > 0 && motivo.trim().length > 0;
 
-  const reset = () => { setCodigo(""); setCantidad(""); setTipo("unica"); setMotivo(""); setQ(""); };
+  const reset = () => {
+    setCodigo(""); setCantidad(""); setTipo("unica"); setMotivo(""); setQ("");
+    setModoDescripcion(false); setDescProducto(""); setDescPresentacion("");
+  };
+
+  const badgeDe = (o: OpcionProducto) =>
+    o.en_catalogo && o.activo
+      ? <Badge variant="outline" className="text-[10px] font-normal bg-emerald-50 text-emerald-700 border-emerald-200">En catálogo</Badge>
+      : o.en_catalogo
+        ? <Badge variant="outline" className="text-[10px] font-normal bg-red-50 text-red-700 border-red-200">Inactivo</Badge>
+        : <Badge variant="outline" className="text-[10px] font-normal bg-amber-50 text-amber-700 border-amber-200">No en catálogo</Badge>;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
@@ -369,6 +424,25 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving 
         <div className="space-y-4">
           <div className="space-y-1">
             <Label className="text-xs uppercase tracking-wide">Producto</Label>
+            {modoDescripcion ? (
+              <div className="space-y-3">
+                <Input value={descProducto} onChange={(e) => setDescProducto(e.target.value)} placeholder="Ej. Aceite Havoline 20W50" />
+                <div className="space-y-1">
+                  <Label className="text-xs uppercase tracking-wide">Presentación</Label>
+                  <Input value={descPresentacion} onChange={(e) => setDescPresentacion(e.target.value)} placeholder="Ej. Cubeta 19L" />
+                </div>
+                <Button variant="link" size="sm" className="px-0 h-auto text-xs" onClick={() => setModoDescripcion(false)}>
+                  Buscar por código en su lugar
+                </Button>
+              </div>
+            ) : (
+            <>
+            {sel && (
+              <div className="flex items-center gap-2 pb-1">
+                <span className="text-xs text-muted-foreground truncate">{sel.codigo} — {sel.nombre}</span>
+                {badgeDe(sel)}
+              </div>
+            )}
             <Popover open={comboOpen} onOpenChange={setComboOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
@@ -387,13 +461,25 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving 
                           <Check className={cn("mr-2 h-4 w-4", codigo === p.codigo ? "opacity-100" : "opacity-0")} />
                           <span className="text-xs font-medium mr-2">{p.codigo}</span>
                           <span className="text-xs text-muted-foreground truncate">{p.nombre}</span>
+                          <span className="ml-auto pl-2">{badgeDe(p)}</span>
                         </CommandItem>
                       ))}
+                    </CommandGroup>
+                    <CommandGroup>
+                      <CommandItem
+                        value="__describir__"
+                        onSelect={() => { setModoDescripcion(true); setCodigo(""); setComboOpen(false); }}
+                        className="text-xs font-medium text-violet-700"
+                      >
+                        No encuentro el producto, quiero describirlo
+                      </CommandItem>
                     </CommandGroup>
                   </CommandList>
                 </Command>
               </PopoverContent>
             </Popover>
+            </>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -419,7 +505,18 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving 
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!valido || saving} onClick={() => onSubmit({ codigo_producto: codigo, cantidad: Number(cantidad), tipo, motivo: motivo.trim() })}>
+          <Button
+            disabled={!valido || saving}
+            onClick={() => onSubmit(
+              modoDescripcion
+                ? {
+                    codigo_producto: null,
+                    producto_descripcion: [descProducto.trim(), descPresentacion.trim()].filter(Boolean).join(" — "),
+                    cantidad: Number(cantidad), tipo, motivo: motivo.trim(),
+                  }
+                : { codigo_producto: codigo, producto_descripcion: null, cantidad: Number(cantidad), tipo, motivo: motivo.trim() }
+            )}
+          >
             Crear solicitud
           </Button>
         </DialogFooter>
