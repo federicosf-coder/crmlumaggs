@@ -491,9 +491,11 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
         let entregaId: string;
         if (existente?.id) {
           entregaId = existente.id;
+          const upd: any = { calendario_id: cal.id, lugar_entrega_texto: lugarTexto };
+          if (numeroPedido) upd.numero_pedido = numeroPedido;
           await (supabase as any)
             .from("entregas_corporativas")
-            .update({ calendario_id: cal.id, lugar_entrega_texto: lugarTexto })
+            .update(upd)
             .eq("id", entregaId);
         } else {
           const { data: nueva, error: insErr } = await (supabase as any)
@@ -502,6 +504,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
               cliente,
               ubicacion_id: ubicacion?.id ?? null,
               fecha_programada: fecha,
+              numero_pedido: numeroPedido,
               lugar_entrega_texto: lugarTexto,
               calendario_id: cal.id,
               creado_por: uid,
