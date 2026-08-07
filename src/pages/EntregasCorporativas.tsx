@@ -1109,7 +1109,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
             </TableHeader>
             <TableBody>
               {rows.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">Sin entregas</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-10">Sin entregas</TableCell></TableRow>
               )}
               {rows.map((r, i) => (
                 <TableRow
@@ -1119,6 +1119,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 >
                   <TableCell className="text-sm">{r.cliente}</TableCell>
                   <TableCell className="text-sm">{r.fecha_programada}</TableCell>
+                  <TableCell className="text-sm font-medium">{r.numero_pedido || "—"}</TableCell>
                   <TableCell className="text-sm">
                     <div className="flex items-center gap-2">
                       {r.ubicacion?.nombre ? (
