@@ -4,7 +4,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ClipboardList, Package } from "lucide-react";
+import { ClipboardList, Package, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { ALMACEN_LABELS } from "@/hooks/useInventario";
 import { usePedidos, estatusPedidoColor, ESTATUS_PEDIDO_LABEL } from "@/hooks/usePedidosInventario";
 
@@ -32,6 +37,27 @@ export default function PedidosActivos() {
   const navigate = useNavigate();
   const { data: pedidos = [], isLoading } = usePedidos();
   const [tab, setTab] = useState("chevron");
+  const qc = useQueryClient();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      const l = await (supabase as any).from("inv_pedido_lineas").delete().eq("pedido_id", deleteId);
+      if (l.error) throw l.error;
+      const a = await (supabase as any).from("inv_pedido_archivos").delete().eq("pedido_id", deleteId);
+      if (a.error) throw a.error;
+      const p = await (supabase as any).from("inv_pedidos").delete().eq("id", deleteId);
+      if (p.error) throw p.error;
+      toast.success("Pedido eliminado");
+      setDeleteId(null);
+      qc.invalidateQueries({ queryKey: ["inv_pedidos"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Error al eliminar");
+    } finally { setDeleting(false); }
+  };
 
   const totalTarimasAbiertas = useMemo(() => {
     return pedidos.reduce((acc: number, p: Pedido) => {
@@ -106,12 +132,13 @@ export default function PedidosActivos() {
                         <TableHead className="uppercase tracking-wide text-xs font-medium text-right">Total tarimas</TableHead>
                         <TableHead className="uppercase tracking-wide text-xs font-medium text-right">Monto</TableHead>
                         <TableHead className="uppercase tracking-wide text-xs font-medium">Estatus</TableHead>
+                        <TableHead className="uppercase tracking-wide text-xs font-medium text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {rows.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                             No hay pedidos de {t.label}.
                           </TableCell>
                         </TableRow>
@@ -134,6 +161,16 @@ export default function PedidosActivos() {
                               {ESTATUS_PEDIDO_LABEL[p.estatus || ""] || p.estatus || "—"}
                             </Badge>
                           </TableCell>
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={(e) => { e.stopPropagation(); setDeleteId(p.id); }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -144,6 +181,23 @@ export default function PedidosActivos() {
           );
         })}
       </Tabs>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se borrarán también sus líneas y archivos asociados. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction disabled={deleting} onClick={(e) => { e.preventDefault(); confirmDelete(); }}>
+              {deleting ? "Eliminando…" : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
