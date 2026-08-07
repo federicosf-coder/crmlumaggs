@@ -1465,9 +1465,9 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50">
-                      <TableHead className="uppercase text-[10px] tracking-wide">Código</TableHead>
-                      <TableHead className="uppercase text-[10px] tracking-wide">Producto</TableHead>
-                      <TableHead className="uppercase text-[10px] tracking-wide text-right">Cantidad</TableHead>
+                      <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Código</TableHead>
+                      <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Producto</TableHead>
+                      <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Cantidad</TableHead>
                       {editMode && <TableHead className="w-10" />}
                     </TableRow>
                   </TableHeader>
@@ -1477,9 +1477,9 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     )}
                     {detalleLineas.filter((l) => !lineasQuitar.includes(l.id)).map((l, i) => (
                       <TableRow key={l.id} className={i % 2 ? "bg-muted/30" : ""}>
-                        <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
-                        <TableCell className="text-sm font-light">{l.nombre_producto || "—"}</TableCell>
-                        <TableCell className="text-sm text-right">
+                        <TableCell className="font-mono text-sm font-medium">{l.codigo_producto}</TableCell>
+                        <TableCell className="text-sm">{l.nombre_producto || "—"}</TableCell>
+                        <TableCell className="text-sm font-medium text-right">
                           {editMode ? (
                             <Input
                               type="number"
@@ -1502,7 +1502,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     {editMode && lineasNuevas.map((n, idx) => (
                       <TableRow key={`n-${idx}`}>
                         <TableCell>
-                          <Input className="h-8 text-xs font-mono" value={n.codigo} placeholder="Código"
+                          <Input className="h-8 text-sm font-mono font-medium" value={n.codigo} placeholder="Código"
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
                         </TableCell>
                         <TableCell>
@@ -1510,7 +1510,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
                         </TableCell>
                         <TableCell>
-                          <Input type="number" className="h-8 w-24 text-sm text-right ml-auto" value={n.cantidad}
+                          <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={n.cantidad}
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
                         </TableCell>
                         <TableCell>
