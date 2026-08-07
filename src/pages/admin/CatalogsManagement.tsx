@@ -1931,178 +1931,6 @@ function TiposDireccionTab() {
   );
 }
 
-// ─── Listas de Destinatarios Tab ─────────────────────────────
-function ListasDestinatariosTab() {
-  const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [nombre, setNombre] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [membersOf, setMembersOf] = useState<any>(null);
-  const [mNombre, setMNombre] = useState("");
-  const [mEmail, setMEmail] = useState("");
-
-  const { data: listas = [], isLoading } = useQuery({
-    queryKey: ["listas_destinatarios"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("email_groups").select("*").order("nombre");
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const { data: miembros = [] } = useQuery({
-    queryKey: ["listas_destinatarios_miembros"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("email_group_members").select("*").order("nombre");
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["listas_destinatarios"] });
-    qc.invalidateQueries({ queryKey: ["listas_destinatarios_miembros"] });
-  };
-
-  const create = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("email_groups").insert({
-        nombre: nombre.trim(),
-        descripcion: descripcion.trim() || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => { invalidate(); setOpen(false); setNombre(""); setDescripcion(""); toast.success("Lista creada"); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const toggleActive = useMutation({
-    mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
-      const { error } = await supabase.from("email_groups").update({ is_active: value }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { invalidate(); toast.success("Lista actualizada"); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const removeLista = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("email_groups").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { invalidate(); toast.success("Lista eliminada"); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const addMember = useMutation({
-    mutationFn: async () => {
-      const email = mEmail.trim();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Correo inválido");
-      const { error } = await supabase.from("email_group_members").insert({
-        group_id: membersOf.id,
-        user_id: null,
-        nombre: mNombre.trim() || null,
-        email,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => { invalidate(); setMNombre(""); setMEmail(""); toast.success("Destinatario agregado"); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const removeMember = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("email_group_members").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { invalidate(); toast.success("Destinatario eliminado"); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const countOf = (id: string) => miembros.filter((m: any) => m.group_id === id).length;
-  const membersList = membersOf ? miembros.filter((m: any) => m.group_id === membersOf.id) : [];
-
-  return (
-    <Card>
-      <CardHeader className="flex-row justify-between items-center">
-        <CardTitle>Listas de Destinatarios</CardTitle>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Nueva Lista</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Nueva Lista de Destinatarios</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div><Label>Nombre</Label><Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Cobranza" /></div>
-              <div><Label>Descripción</Label><Textarea value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Opcional" /></div>
-            </div>
-            <DialogFooter><Button onClick={() => create.mutate()} disabled={!nombre.trim() || create.isPending}>{create.isPending ? "Creando..." : "Crear"}</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? <p className="text-sm text-muted-foreground">Cargando...</p> : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead><TableHead>Descripción</TableHead>
-                <TableHead># Miembros</TableHead><TableHead>Activo</TableHead>
-                <TableHead className="w-32">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {listas.map((l: any) => (
-                <TableRow key={l.id}>
-                  <TableCell className="font-medium">{l.nombre}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{l.descripcion || "—"}</TableCell>
-                  <TableCell><Badge variant="secondary">{countOf(l.id)}</Badge></TableCell>
-                  <TableCell>
-                    <Switch checked={!!l.is_active} onCheckedChange={v => toggleActive.mutate({ id: l.id, value: v })} />
-                  </TableCell>
-                  <TableCell className="flex gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => setMembersOf(l)}><Mail className="h-4 w-4 mr-1" />Miembros</Button>
-                    <Button variant="ghost" size="icon" onClick={() => { if (confirm(`¿Eliminar la lista "${l.nombre}"?`)) removeLista.mutate(l.id); }}><Trash2 className="h-4 w-4" /></Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {listas.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sin listas. Crea una para empezar.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-
-      <Dialog open={!!membersOf} onOpenChange={v => !v && setMembersOf(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Miembros · {membersOf?.nombre}</DialogTitle>
-            <DialogDescription>Destinatarios de esta lista. Pueden ser externos al sistema.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="border rounded-md max-h-64 overflow-y-auto divide-y">
-              {membersList.map((m: any) => (
-                <div key={m.id} className="flex items-center justify-between px-3 py-2">
-                  <div>
-                    <p className="text-sm">{m.nombre || "—"}</p>
-                    <p className="text-xs font-mono text-muted-foreground">{m.email}</p>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => removeMember.mutate(m.id)}><Trash2 className="h-4 w-4" /></Button>
-                </div>
-              ))}
-              {membersList.length === 0 && <p className="text-center text-sm text-muted-foreground py-6">Sin miembros</p>}
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,auto] gap-2 items-end">
-              <div><Label>Nombre</Label><Input value={mNombre} onChange={e => setMNombre(e.target.value)} placeholder="Opcional" /></div>
-              <div><Label>Email</Label><Input type="email" value={mEmail} onChange={e => setMEmail(e.target.value)} placeholder="correo@ejemplo.com" /></div>
-              <Button onClick={() => addMember.mutate()} disabled={!mEmail.trim() || addMember.isPending}><Plus className="h-4 w-4 mr-1" />Agregar</Button>
-            </div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setMembersOf(null)}>Cerrar</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
-  );
-}
-
 // ─── Industrias Tab ──────────────────────────────────────────
 function IndustriasTab() {
   const qc = useQueryClient();
@@ -2562,7 +2390,7 @@ type CatalogKey =
   | "logos"
   | "seguimiento_estatus"
   | "documentos_plantilla"
-  | "email_groups" | "listas_destinatarios" | "system_settings";
+  | "email_groups" | "system_settings";
 
 type CatalogGroup = {
   id: string;
@@ -2615,7 +2443,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     items: [
       { key: "documentos_plantilla", label: "Documentos para Plantillas", description: "Biblioteca enviable por email y WhatsApp" },
       { key: "email_groups", label: "Grupos de Correo" },
-      { key: "listas_destinatarios", label: "Listas de Destinatarios", description: "Listas de correo para envíos, incluye contactos externos" },
+      
       { key: "system_settings", label: "Parámetros" },
     ],
   },
@@ -2639,7 +2467,7 @@ function renderCatalog(key: CatalogKey) {
     case "seguimiento_estatus": return <SeguimientoEstatusTab />;
     case "documentos_plantilla": return <DocumentosPlantillaCatalogoTab />;
     case "email_groups": return <EmailGroupsTab />;
-    case "listas_destinatarios": return <ListasDestinatariosTab />;
+    
     case "system_settings": return <SystemSettingsTab />;
   }
 }
