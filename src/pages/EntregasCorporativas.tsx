@@ -1286,13 +1286,13 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-[10px] tracking-wide">Cliente</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Fecha</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">N° Pedido</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Lugar de entrega</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide text-center">N° de productos</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Estatus</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide text-right">Acciones</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Cliente</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Fecha</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">N° Pedido</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Lugar de entrega</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-center">N° de productos</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Estatus</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1311,9 +1311,9 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                   <TableCell className="text-sm">
                     <div className="flex items-center gap-2">
                       {r.ubicacion?.nombre ? (
-                        <span>{r.ubicacion.nombre}</span>
+                        <span className="font-medium">{r.ubicacion.nombre}</span>
                       ) : (
-                        <span className="italic font-light text-muted-foreground">
+                        <span className="italic text-sm text-muted-foreground">
                           {r.lugar_entrega_texto || "Sin ubicación"}
                         </span>
                       )}
@@ -1331,7 +1331,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="outline" className="text-[10px]">{(lineas[r.id] ?? []).length}</Badge>
+                    <Badge variant="outline" className="text-xs font-semibold">{(lineas[r.id] ?? []).length}</Badge>
                   </TableCell>
                   <TableCell>{estatusBadge(r.estatus)}</TableCell>
                   <TableCell className="text-right">
