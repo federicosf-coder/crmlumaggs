@@ -326,7 +326,6 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
             </div>
           </div>
         )}
-      </SheetContent>
       </DialogContent>
     </Dialog>
   );
