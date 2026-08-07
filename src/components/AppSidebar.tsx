@@ -220,14 +220,6 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
-                        <NavLink to="/inventario/pedidos-activos" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                          <ClipboardList className="mr-2 h-4 w-4" />
-                          {!collapsed && <span>Pedidos Activos</span>}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
                         <NavLink to="/inventario/restricciones" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <ShieldAlert className="mr-2 h-4 w-4" />
                           {!collapsed && <span>Restricciones</span>}
@@ -271,7 +263,21 @@ export function AppSidebar() {
                         <SidebarMenuItem>
                           <SidebarMenuButton asChild>
                             <NavLink to="/inventario/pedidos/sugeridos" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                              <span>· Sugeridos</span>
+                              <span>· Requeridos</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild>
+                            <NavLink to="/inventario/pedidos/subir" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                              <span>· Subir Pedidos</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild>
+                            <NavLink to="/inventario/pedidos-activos" className="pl-12 text-xs hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                              <span>· Activos</span>
                             </NavLink>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
