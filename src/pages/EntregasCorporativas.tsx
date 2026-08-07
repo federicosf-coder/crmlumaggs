@@ -2159,8 +2159,10 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
   const [lineas, setLineas] = useState<any[]>([]);
   const [stock, setStock] = useState<Record<string, number>>({});
   const [transito, setTransito] = useState<Record<string, number>>({});
+  const [transitoDetalle, setTransitoDetalle] = useState<Record<string, PedidoTransito[]>>({});
   const [fAlcanza, setFAlcanza] = useState("todos");
   const [busq, setBusq] = useState("");
+  const [detallePorLlegar, setDetallePorLlegar] = useState<ResumenRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -2171,7 +2173,7 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
       (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_total"),
       (supabase as any)
         .from("inv_pedido_lineas")
-        .select("codigo_producto, cantidad_confirmada, cantidad_solicitada, pedido:inv_pedidos!inner(estatus)"),
+        .select("codigo_producto, cantidad_confirmada, cantidad_solicitada, pedido:inv_pedidos!inner(numero_po_interno, numero_orden_proveedor, fecha_entrega_estimada, estatus)"),
     ]);
 
     setLineas((lin ?? []).filter((l: any) => l.entrega?.estatus === "programada"));
@@ -2183,12 +2185,21 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
     setStock(smap);
 
     const tmap: Record<string, number> = {};
+    const dmap: Record<string, PedidoTransito[]> = {};
     ((pl ?? []) as any[])
       .filter((l) => l.pedido && !["cerrado", "cancelado"].includes(String(l.pedido.estatus)))
       .forEach((l) => {
-        tmap[l.codigo_producto] = (tmap[l.codigo_producto] ?? 0) + Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0);
+        const cant = Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0);
+        tmap[l.codigo_producto] = (tmap[l.codigo_producto] ?? 0) + cant;
+        (dmap[l.codigo_producto] ??= []).push({
+          codigo_producto: l.codigo_producto,
+          cantidad: cant,
+          fecha_entrega_estimada: l.pedido.fecha_entrega_estimada ?? null,
+          numero_po: l.pedido.numero_po_interno || l.pedido.numero_orden_proveedor || "—",
+        });
       });
     setTransito(tmap);
+    setTransitoDetalle(dmap);
     setLoading(false);
   };
 
@@ -2287,7 +2298,19 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
                   <TableCell className="text-sm py-2.5">{r.nombre || "—"}</TableCell>
                   <TableCell className="text-right text-sm font-medium py-2.5">{r.demanda}</TableCell>
                   <TableCell className="text-right text-sm font-medium py-2.5">{r.stock_actual}</TableCell>
-                  <TableCell className="text-right text-sm font-medium py-2.5">{r.por_llegar}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">
+                    {r.por_llegar > 0 ? (
+                      <button
+                        type="button"
+                        className="text-blue-600 underline underline-offset-2 hover:text-blue-800"
+                        onClick={() => setDetallePorLlegar(r)}
+                      >
+                        {r.por_llegar}
+                      </button>
+                    ) : (
+                      r.por_llegar
+                    )}
+                  </TableCell>
                   <TableCell className={`text-right text-sm font-semibold py-2.5 ${r.alcanza ? "text-emerald-700" : "text-red-700"}`}>{r.disponible}</TableCell>
                   <TableCell className="py-2.5">
                     <Badge className={`text-xs font-semibold ${r.alcanza ? "bg-emerald-200 text-emerald-800 hover:bg-emerald-200" : "bg-red-200 text-red-800 hover:bg-red-200"}`}>
@@ -2301,6 +2324,35 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
           </Table>
         </div>
       </CardContent>
+
+      <Dialog open={!!detallePorLlegar} onOpenChange={(o) => !o && setDetallePorLlegar(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pedidos en camino — {detallePorLlegar?.codigo}</DialogTitle>
+            <DialogDescription>
+              Todos los pedidos abiertos (no cerrados ni cancelados) de este código.
+            </DialogDescription>
+          </DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">N° PO</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Cantidad</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Fecha estimada</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(detallePorLlegar ? transitoDetalle[detallePorLlegar.codigo] ?? [] : []).map((t, i) => (
+                <TableRow key={i} className="odd:bg-muted/30">
+                  <TableCell className="text-sm font-medium py-2.5">{t.numero_po}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">{t.cantidad}</TableCell>
+                  <TableCell className="text-sm py-2.5">{t.fecha_entrega_estimada || "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
