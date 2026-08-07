@@ -934,6 +934,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   const [editPedido, setEditPedido] = useState("");
   const [editFecha, setEditFecha] = useState("");
   const [editCant, setEditCant] = useState<Record<string, string>>({});
+  const [editCodigo, setEditCodigo] = useState<Record<string, { codigo: string; nombre: string }>>({});
   const [lineasQuitar, setLineasQuitar] = useState<string[]>([]);
   const [lineasNuevas, setLineasNuevas] = useState<{ codigo: string; nombre: string; cantidad: string }[]>([]);
 
@@ -1021,6 +1022,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     setEditPedido(detalle.numero_pedido || "");
     setEditFecha(detalle.fecha_programada || "");
     setEditCant(Object.fromEntries((lineas[detalle.id] ?? []).map((l) => [l.id, String(Number(l.cantidad))])));
+    setEditCodigo(Object.fromEntries((lineas[detalle.id] ?? []).map((l) => [l.id, { codigo: l.codigo_producto || "", nombre: l.nombre_producto || "" }])));
     setLineasQuitar([]);
     setLineasNuevas([]);
     setEditMode(true);
@@ -1029,6 +1031,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   const cancelarEdicion = () => {
     setEditMode(false);
     setEditCant({});
+    setEditCodigo({});
     setLineasQuitar([]);
     setLineasNuevas([]);
   };
@@ -1049,9 +1052,16 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
       for (const l of lineas[detalle.id] ?? []) {
         if (lineasQuitar.includes(l.id)) continue;
         const nueva = Number(editCant[l.id]);
-        if (!Number.isNaN(nueva) && nueva !== Number(l.cantidad)) {
+        const patch: Record<string, any> = {};
+        if (!Number.isNaN(nueva) && nueva !== Number(l.cantidad)) patch.cantidad = nueva;
+        const nuevoProd = editCodigo[l.id];
+        if (nuevoProd && nuevoProd.codigo && nuevoProd.codigo !== l.codigo_producto) {
+          patch.codigo_producto = nuevoProd.codigo;
+          patch.nombre_producto = nuevoProd.nombre || null;
+        }
+        if (Object.keys(patch).length) {
           const { error } = await (supabase as any)
-            .from("entregas_corporativas_lineas").update({ cantidad: nueva }).eq("id", l.id);
+            .from("entregas_corporativas_lineas").update(patch).eq("id", l.id);
           if (error) throw error;
         }
       }
@@ -1502,8 +1512,17 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     )}
                     {detalleLineas.filter((l) => !lineasQuitar.includes(l.id)).map((l, i) => (
                       <TableRow key={l.id} className="odd:bg-muted/30">
-                        <TableCell className="font-mono text-sm font-medium py-2.5">{l.codigo_producto}</TableCell>
-                        <TableCell className="text-sm py-2.5">{l.nombre_producto || "—"}</TableCell>
+                        <TableCell className="font-mono text-sm font-medium py-2.5">
+                          {editMode ? (
+                            <ProductoSelector
+                              codigo={editCodigo[l.id]?.codigo ?? l.codigo_producto}
+                              onSelect={(p) => setEditCodigo((prev) => ({ ...prev, [l.id]: p }))}
+                            />
+                          ) : l.codigo_producto}
+                        </TableCell>
+                        <TableCell className="text-sm py-2.5">
+                          {editMode ? (editCodigo[l.id]?.nombre ?? l.nombre_producto ?? "—") : (l.nombre_producto || "—")}
+                        </TableCell>
                         <TableCell className="text-sm font-medium text-right py-2.5">
                           {editMode ? (
                             <Input
