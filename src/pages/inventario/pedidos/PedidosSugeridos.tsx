@@ -354,7 +354,13 @@ export default function PedidosSugeridos() {
                       </TableCell>
                     );
                   })}
-                  <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{r.ya_pedido}</TableCell>
+                  <TableCell
+                    className={`text-right tabular-nums text-sm ${r.ya_pedido > 0 ? "text-blue-700 cursor-pointer underline decoration-dotted underline-offset-4 hover:text-blue-900" : "text-muted-foreground"}`}
+                    onClick={() => r.ya_pedido > 0 && setDetalleCodigo({ codigo: r.codigo, nombre: r.nombre })}
+                    title={r.ya_pedido > 0 ? "Ver pedidos abiertos" : undefined}
+                  >
+                    {r.ya_pedido}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => ignorar(r.codigo)}>
