@@ -19,7 +19,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Truck, Upload, Loader2, Download, FileText, Mail, RefreshCw, Ban, MapPin, Plus, Pencil, Eye,
+  Truck, Upload, Loader2, Download, FileText, Mail, RefreshCw, Ban, MapPin, Plus, Pencil, Eye, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -355,6 +355,43 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
   const [calendarios, setCalendarios] = useState<Calendario[]>([]);
   const [perfiles, setPerfiles] = useState<Record<string, string>>({});
   const inputRef = useRef<HTMLInputElement>(null);
+  const [delCal, setDelCal] = useState<{ cal: Calendario; count: number } | null>(null);
+  const [delBusy, setDelBusy] = useState(false);
+
+  const pedirEliminarCalendario = async (c: Calendario) => {
+    const { count } = await (supabase as any)
+      .from("entregas_corporativas")
+      .select("id", { count: "exact", head: true })
+      .eq("calendario_id", c.id);
+    setDelCal({ cal: c, count: count ?? 0 });
+  };
+
+  const eliminarCalendario = async () => {
+    if (!delCal) return;
+    setDelBusy(true);
+    try {
+      const { data: ents } = await (supabase as any)
+        .from("entregas_corporativas").select("id").eq("calendario_id", delCal.cal.id);
+      const ids = ((ents ?? []) as { id: string }[]).map((e) => e.id);
+      if (ids.length) {
+        const { error: e1 } = await (supabase as any)
+          .from("entregas_corporativas_lineas").delete().in("entrega_id", ids);
+        if (e1) throw e1;
+        const { error: e2 } = await (supabase as any)
+          .from("entregas_corporativas").delete().in("id", ids);
+        if (e2) throw e2;
+      }
+      const { error: e3 } = await (supabase as any)
+        .from("entregas_corporativas_calendarios").delete().eq("id", delCal.cal.id);
+      if (e3) throw e3;
+      toast.success("Calendario eliminado");
+      setDelCal(null);
+      await loadCalendarios();
+      onImported();
+    } catch (err: any) {
+      toast.error(err.message ?? "No se pudo eliminar");
+    } finally { setDelBusy(false); }
+  };
 
   const cliente = clienteSel === "Otro" ? clienteOtro.trim() : clienteSel;
 
@@ -737,6 +774,14 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                     <Button variant="ghost" size="sm" onClick={() => openSigned(c.storage_path)}>
                       <FileText className="h-3.5 w-3.5 mr-1" /> Ver archivo
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => pedirEliminarCalendario(c)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -744,6 +789,28 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!delCal} onOpenChange={(o) => !o && setDelCal(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este calendario?</AlertDialogTitle>
+            <AlertDialogDescription className="font-light">
+              {delCal && delCal.count > 0
+                ? `También se eliminarán las ${delCal.count} entregas que se generaron a partir de él, junto con sus líneas de producto. Esta acción no se puede deshacer.`
+                : "No hay entregas asociadas a este calendario. Esta acción no se puede deshacer."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); eliminarCalendario(); }}
+              disabled={delBusy}
+            >
+              {delBusy ? "Eliminando…" : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -764,6 +831,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   const [notifOpen, setNotifOpen] = useState(false);
   const [grupoSel, setGrupoSel] = useState("");
   const [cancelar, setCancelar] = useState<Entrega | null>(null);
+  const [eliminar, setEliminar] = useState<Entrega | null>(null);
   const [busy, setBusy] = useState(false);
   const [ubicClienteList, setUbicClienteList] = useState<Ubicacion[]>([]);
   const [ubicSel, setUbicSel] = useState("");
@@ -926,6 +994,25 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     load();
   };
 
+  const doEliminar = async () => {
+    if (!eliminar) return;
+    setBusy(true);
+    try {
+      const { error: e1 } = await (supabase as any)
+        .from("entregas_corporativas_lineas").delete().eq("entrega_id", eliminar.id);
+      if (e1) throw e1;
+      const { error: e2 } = await (supabase as any)
+        .from("entregas_corporativas").delete().eq("id", eliminar.id);
+      if (e2) throw e2;
+      toast.success("Entrega eliminada");
+      setEliminar(null);
+      setDetalle(null);
+      await load();
+    } catch (err: any) {
+      toast.error(err.message ?? "No se pudo eliminar");
+    } finally { setBusy(false); }
+  };
+
   const exportar = () => {
     const data: any[] = [];
     rows.forEach((r) => {
@@ -1055,6 +1142,14 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); abrirDetalle(r); }}>
                       <Eye className="h-3.5 w-3.5 mr-1" /> Ver detalle
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); setEliminar(r); }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -1247,6 +1342,13 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
           )}
 
           <DialogFooter className="bg-muted/40 -m-6 mt-0 p-4 rounded-b-lg">
+            <Button
+              variant="outline"
+              className="text-destructive hover:text-destructive mr-auto"
+              onClick={() => detalle && setEliminar(detalle)}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar entrega
+            </Button>
             <Button variant="outline" onClick={() => setDetalle(null)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
@@ -1307,6 +1409,23 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
           <AlertDialogFooter>
             <AlertDialogCancel>Volver</AlertDialogCancel>
             <AlertDialogAction onClick={doCancelar}>Cancelar entrega</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!eliminar} onOpenChange={(o) => !o && setEliminar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar esta entrega?</AlertDialogTitle>
+            <AlertDialogDescription className="font-light">
+              Se borrarán también sus líneas de producto. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); doEliminar(); }} disabled={busy}>
+              {busy ? "Eliminando…" : "Eliminar"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
