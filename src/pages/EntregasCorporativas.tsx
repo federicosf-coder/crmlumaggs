@@ -1129,6 +1129,22 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 </div>
               )}
 
+              {detalle.calendario?.storage_path && (
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => openSigned(detalle.calendario!.storage_path)}
+                  >
+                    <FileText className="h-3.5 w-3.5 mr-1" /> Ver / Descargar PDF
+                  </Button>
+                  <span className="ml-2 text-[11px] text-muted-foreground font-light">
+                    {detalle.calendario.nombre_archivo}
+                  </span>
+                </div>
+              )}
+
               <div className="border rounded-md overflow-hidden">
                 <Table>
                   <TableHeader>
