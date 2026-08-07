@@ -212,6 +212,15 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
       toast.success("Fecha de entrega actualizada");
       qc.invalidateQueries({ queryKey: ["inv_pedido", p.id] });
       qc.invalidateQueries({ queryKey: ["inv_pedidos"] });
+      // Recalcular vistas de inventario que dependen de la fecha estimada de llegada
+      qc.invalidateQueries({ queryKey: ["inv_pedido_lineas_abiertos"] });
+      qc.invalidateQueries({ queryKey: ["inv_pedido_lineas_abiertos_detalle"] });
+      qc.invalidateQueries({ queryKey: ["inv_niveles_sugeridos"] });
+      qc.invalidateQueries({ queryKey: ["inv_niveles_inventario"] });
+      qc.invalidateQueries({ queryKey: ["inv_niveles_inventario_min"] });
+      qc.invalidateQueries({ queryKey: ["inv_minmax"] });
+      qc.invalidateQueries({ queryKey: ["entregas_corporativas_programadas"] });
+      qc.invalidateQueries({ queryKey: ["dashred_configs"] });
       refetch();
     } catch (e: any) {
       toast.error(e?.message || "Error al guardar la fecha");
