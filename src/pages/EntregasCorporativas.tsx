@@ -1476,7 +1476,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                       <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-6">Sin productos</TableCell></TableRow>
                     )}
                     {detalleLineas.filter((l) => !lineasQuitar.includes(l.id)).map((l, i) => (
-                      <TableRow key={l.id} className={i % 2 ? "bg-muted/30" : ""}>
+                      <TableRow key={l.id} className="odd:bg-muted/30">
                         <TableCell className="font-mono text-sm font-medium">{l.codigo_producto}</TableCell>
                         <TableCell className="text-sm">{l.nombre_producto || "—"}</TableCell>
                         <TableCell className="text-sm font-medium text-right">
@@ -1500,7 +1500,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                       </TableRow>
                     ))}
                     {editMode && lineasNuevas.map((n, idx) => (
-                      <TableRow key={`n-${idx}`}>
+                      <TableRow key={`n-${idx}`} className="odd:bg-muted/30">
                         <TableCell>
                           <Input className="h-8 text-sm font-mono font-medium" value={n.codigo} placeholder="Código"
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
@@ -2022,7 +2022,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
                 </TableRow>
               )}
               {rows.map((r, i) => (
-                <TableRow key={r.key} className={i % 2 ? "bg-muted/30" : ""}>
+                <TableRow key={r.key} className="odd:bg-muted/30">
                   <TableCell className="font-mono text-sm font-medium">{r.codigo}</TableCell>
                   <TableCell className="text-sm">{r.nombre}</TableCell>
                   <TableCell className="text-sm">{r.cliente}</TableCell>
@@ -2081,7 +2081,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
             </TableHeader>
             <TableBody>
               {detalleTransito.map((t, i) => (
-                <TableRow key={i} className={i % 2 ? "bg-muted/30" : ""}>
+                <TableRow key={i} className="odd:bg-muted/30">
                   <TableCell className="text-sm font-medium">{t.numero_po}</TableCell>
                   <TableCell className="text-right text-sm font-medium">{t.cantidad}</TableCell>
                   <TableCell className="text-sm">{t.fecha_entrega_estimada}</TableCell>
@@ -2219,7 +2219,7 @@ function NuevaEntregaManualDialog({
               </TableHeader>
               <TableBody>
                 {productos.map((p, idx) => (
-                  <TableRow key={idx} className={idx % 2 ? "bg-muted/30" : ""}>
+                  <TableRow key={idx} className="odd:bg-muted/30">
                     <TableCell>
                       <Input className="h-8 text-sm font-mono font-medium" value={p.codigo} placeholder="Código"
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
