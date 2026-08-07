@@ -847,11 +847,11 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
               )}
               {calendarios.map((c, i) => (
                 <TableRow key={c.id} className="odd:bg-muted/30">
-                  <TableCell className="text-sm">{c.cliente}</TableCell>
-                  <TableCell className="text-sm">{c.nombre_archivo}</TableCell>
-                  <TableCell className="text-sm">{new Date(c.created_at).toLocaleDateString("es-MX")}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{c.subido_por ? perfiles[c.subido_por] || "—" : "—"}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-sm py-2.5">{c.cliente}</TableCell>
+                  <TableCell className="text-sm py-2.5">{c.nombre_archivo}</TableCell>
+                  <TableCell className="text-sm py-2.5">{new Date(c.created_at).toLocaleDateString("es-MX")}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground py-2.5">{c.subido_por ? perfiles[c.subido_por] || "—" : "—"}</TableCell>
+                  <TableCell className="text-right py-2.5">
                     <Button variant="ghost" size="sm" onClick={() => openSigned(c.storage_path)}>
                       <FileText className="h-3.5 w-3.5 mr-1" /> Ver archivo
                     </Button>
