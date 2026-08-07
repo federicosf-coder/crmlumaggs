@@ -344,7 +344,8 @@ function UbicacionesTab({ refreshKey, onChanged }: { refreshKey: number; onChang
 function CalendariosTab({ onImported }: { onImported: () => void }) {
   const [clienteSel, setClienteSel] = useState<string>("Hyundai");
   const [clienteOtro, setClienteOtro] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [progreso, setProgreso] = useState<{ nombre: string; estado: "procesando" | "listo" | "error"; detalle?: string }[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<PreviewGrupo[]>([]);
@@ -374,17 +375,10 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
 
   useEffect(() => { loadCalendarios(); }, []);
 
-  const handleSubir = async () => {
-    if (!cliente) return toast.error("Selecciona o escribe el cliente");
-    if (!file) return toast.error("Selecciona un archivo");
-
-    setLoading(true);
-    setPreview([]);
-    setResumen(null);
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData?.user?.id ?? null;
-
+  const procesarArchivo = async (
+    file: File,
+    uid: string | null,
+  ): Promise<{ entregas: number; nuevas: number; actualizadas: number; grupos: PreviewGrupo[] }> => {
       const path = `${cliente}/${Date.now()}_${file.name}`;
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
       if (upErr) throw upErr;
@@ -414,11 +408,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
         .eq("id", cal.id);
 
       if (!entregas.length) {
-        toast.warning("No se detectaron entregas en el archivo");
-        setFile(null);
-        await loadCalendarios();
-        onImported();
-        return;
+        return { entregas: 0, nuevas: 0, actualizadas: 0, grupos: [] };
       }
 
       // --- Resolver ubicación ---
@@ -516,23 +506,59 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
         }
       }
 
-      setPreview(
-        [...porFecha.entries()]
+      return {
+        entregas: porFecha.size,
+        nuevas: lineasNuevas,
+        actualizadas: lineasActualizadas,
+        grupos: [...porFecha.entries()]
           .sort((a, b) => a[0].localeCompare(b[0]))
           .map(([fecha, productos]) => ({ fecha, ubicacion, lugarTexto: lugarEntrega, productos })),
-      );
-      setResumen({ entregas: porFecha.size, nuevas: lineasNuevas, actualizadas: lineasActualizadas });
-      toast.success(`${porFecha.size} entregas, ${lineasNuevas} líneas nuevas, ${lineasActualizadas} actualizadas`);
+      };
+  };
 
-      setFile(null);
-      if (inputRef.current) inputRef.current.value = "";
-      await loadCalendarios();
-      onImported();
-    } catch (e: any) {
-      toast.error(e?.message || "Error al procesar el calendario");
-    } finally {
-      setLoading(false);
+  const handleSubir = async () => {
+    if (!cliente) return toast.error("Selecciona o escribe el cliente");
+    if (!files.length) return toast.error("Selecciona al menos un archivo");
+
+    setLoading(true);
+    setPreview([]);
+    setResumen(null);
+    setProgreso(files.map((f) => ({ nombre: f.name, estado: "procesando" as const })));
+
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData?.user?.id ?? null;
+
+    let totEntregas = 0, totNuevas = 0, totAct = 0, fallidos = 0;
+    const gruposTodos: PreviewGrupo[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const r = await procesarArchivo(files[i], uid);
+        totEntregas += r.entregas;
+        totNuevas += r.nuevas;
+        totAct += r.actualizadas;
+        gruposTodos.push(...r.grupos);
+        setProgreso((prev) => prev.map((p, idx) => idx === i
+          ? { ...p, estado: "listo", detalle: `${r.entregas} entregas, ${r.nuevas + r.actualizadas} líneas` }
+          : p));
+      } catch (e: any) {
+        fallidos++;
+        setProgreso((prev) => prev.map((p, idx) => idx === i
+          ? { ...p, estado: "error", detalle: e?.message || "Error desconocido" }
+          : p));
+      }
     }
+
+    setPreview(gruposTodos);
+    setResumen({ entregas: totEntregas, nuevas: totNuevas, actualizadas: totAct });
+    if (fallidos && !totEntregas) toast.error(`${fallidos} archivo(s) con error`);
+    else toast.success(`${totEntregas} entregas, ${totNuevas} líneas nuevas, ${totAct} actualizadas${fallidos ? ` · ${fallidos} con error` : ""}`);
+
+    setFiles([]);
+    if (inputRef.current) inputRef.current.value = "";
+    await loadCalendarios();
+    onImported();
+    setLoading(false);
   };
 
   return (
@@ -568,28 +594,36 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                 onClick={() => inputRef.current?.click()}
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOver(false);
-                  const f = e.dataTransfer.files?.[0];
-                  if (f) setFile(f);
-                }}
+                 onDrop={(e) => {
+                   e.preventDefault();
+                   setDragOver(false);
+                   const list = Array.from(e.dataTransfer.files ?? []);
+                   if (list.length) setFiles((prev) => [...prev, ...list]);
+                 }}
                 className={`cursor-pointer rounded-md border-2 border-dashed px-4 py-4 text-center transition-colors ${
                   dragOver ? "border-blue-400 bg-blue-50/60" : "border-muted-foreground/25 hover:bg-muted/40"
                 }`}
               >
                 <Upload className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
                 <p className="text-xs font-light text-muted-foreground">
-                  Arrastra el archivo aquí o haz clic para seleccionar (PDF, PNG, JPG)
+                  Arrastra los archivos aquí o haz clic para seleccionar (PDF, PNG, JPG). Puedes subir varios a la vez.
                 </p>
-                {file && <p className="text-xs mt-1 font-medium">{file.name}</p>}
+                {files.length > 0 && (
+                  <div className="mt-1 space-y-0.5">
+                    {files.map((f, i) => <p key={`${f.name}-${i}`} className="text-xs font-medium">{f.name}</p>)}
+                  </div>
+                )}
               </div>
               <input
                 ref={inputRef}
                 type="file"
+                multiple
                 className="hidden"
                 accept=".pdf,.png,.jpg,.jpeg"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                onChange={(e) => {
+                  const list = Array.from(e.target.files ?? []);
+                  if (list.length) setFiles((prev) => [...prev, ...list]);
+                }}
               />
             </div>
             <div className="flex items-end">
@@ -599,6 +633,31 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
               </Button>
             </div>
           </div>
+
+          {progreso.length > 0 && (
+            <div className="border rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="uppercase text-[10px] tracking-wide">Archivo</TableHead>
+                    <TableHead className="uppercase text-[10px] tracking-wide">Estado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {progreso.map((p, i) => (
+                    <TableRow key={`${p.nombre}-${i}`} className={i % 2 ? "bg-muted/30" : ""}>
+                      <TableCell className="text-sm font-light">{p.nombre}</TableCell>
+                      <TableCell className="text-sm">
+                        {p.estado === "procesando" && <span className="text-blue-700 inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Procesando…</span>}
+                        {p.estado === "listo" && <span className="text-green-700">Listo ({p.detalle})</span>}
+                        {p.estado === "error" && <span className="text-destructive">Error: {p.detalle}</span>}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           {resumen && (
             <p className="text-sm font-light">
