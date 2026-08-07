@@ -765,7 +765,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                 </TableHeader>
                 <TableBody>
                   {progreso.map((p, i) => (
-                    <TableRow key={`${p.nombre}-${i}`} className={i % 2 ? "bg-muted/30" : ""}>
+                    <TableRow key={`${p.nombre}-${i}`} className="odd:bg-muted/30">
                       <TableCell className="text-sm">{p.nombre}</TableCell>
                       <TableCell className="text-sm">
                         {p.estado === "procesando" && <span className="text-blue-700 inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Procesando…</span>}
@@ -811,7 +811,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                     </TableHeader>
                     <TableBody>
                       {g.productos.map((p, i) => (
-                        <TableRow key={`${p.codigo}-${i}`} className={i % 2 ? "bg-muted/30" : ""}>
+                        <TableRow key={`${p.codigo}-${i}`} className="odd:bg-muted/30">
                           <TableCell className="font-mono text-sm font-medium">{p.codigo}</TableCell>
                           <TableCell className="text-sm">{p.nombre_producto || "—"}</TableCell>
                           <TableCell className="text-sm font-medium text-right">{p.cantidad}</TableCell>
@@ -846,7 +846,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                 <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">Sin calendarios</TableCell></TableRow>
               )}
               {calendarios.map((c, i) => (
-                <TableRow key={c.id} className={i % 2 ? "bg-muted/30" : ""}>
+                <TableRow key={c.id} className="odd:bg-muted/30">
                   <TableCell className="text-sm">{c.cliente}</TableCell>
                   <TableCell className="text-sm">{c.nombre_archivo}</TableCell>
                   <TableCell className="text-sm">{new Date(c.created_at).toLocaleDateString("es-MX")}</TableCell>
