@@ -360,9 +360,9 @@ function UbicacionesTab({ refreshKey, onChanged }: { refreshKey: number; onChang
               <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">Sin ubicaciones</TableCell></TableRow>
             )}
             {rows.map((u, i) => (
-              <TableRow key={u.id} className={`${i % 2 ? "bg-muted/30" : ""} hover:bg-blue-50/40`}>
-                <TableCell className="text-sm">{u.cliente}</TableCell>
-                <TableCell className="text-sm font-medium">
+              <TableRow key={u.id} className="odd:bg-muted/30 hover:bg-blue-50/40">
+                <TableCell className="text-sm py-2.5">{u.cliente}</TableCell>
+                <TableCell className="text-sm font-medium py-2.5">
                   <div className="flex items-center gap-2">
                     {u.nombre}
                     {u.lat != null && u.lng != null && (
@@ -372,14 +372,14 @@ function UbicacionesTab({ refreshKey, onChanged }: { refreshKey: number; onChang
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm">{u.direccion || "—"}</TableCell>
-                <TableCell className="text-sm max-w-[280px] truncate">{u.instrucciones || "—"}</TableCell>
-                <TableCell>
+                <TableCell className="text-sm py-2.5">{u.direccion || "—"}</TableCell>
+                <TableCell className="text-sm max-w-[280px] truncate py-2.5">{u.instrucciones || "—"}</TableCell>
+                <TableCell className="py-2.5">
                   <Badge variant="outline" className={`text-xs font-semibold ${u.activo ? "bg-emerald-200 text-emerald-800 border-emerald-300" : "bg-slate-300 text-slate-800 border-slate-400"}`}>
                     {u.activo ? "Sí" : "No"}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right py-2.5">
                   <Button variant="ghost" size="sm" onClick={() => { setEditing(u); setDlgOpen(true); }}>
                     <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
                   </Button>
@@ -765,9 +765,9 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                 </TableHeader>
                 <TableBody>
                   {progreso.map((p, i) => (
-                    <TableRow key={`${p.nombre}-${i}`} className={i % 2 ? "bg-muted/30" : ""}>
-                      <TableCell className="text-sm">{p.nombre}</TableCell>
-                      <TableCell className="text-sm">
+                    <TableRow key={`${p.nombre}-${i}`} className="odd:bg-muted/30">
+                      <TableCell className="text-sm py-2.5">{p.nombre}</TableCell>
+                      <TableCell className="text-sm py-2.5">
                         {p.estado === "procesando" && <span className="text-blue-700 inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Procesando…</span>}
                         {p.estado === "listo" && <span className="text-green-700 font-medium">Listo ({p.detalle})</span>}
                         {p.estado === "error" && <span className="text-destructive font-medium">Error: {p.detalle}</span>}
@@ -811,10 +811,10 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                     </TableHeader>
                     <TableBody>
                       {g.productos.map((p, i) => (
-                        <TableRow key={`${p.codigo}-${i}`} className={i % 2 ? "bg-muted/30" : ""}>
-                          <TableCell className="font-mono text-sm font-medium">{p.codigo}</TableCell>
-                          <TableCell className="text-sm">{p.nombre_producto || "—"}</TableCell>
-                          <TableCell className="text-sm font-medium text-right">{p.cantidad}</TableCell>
+                        <TableRow key={`${p.codigo}-${i}`} className="odd:bg-muted/30">
+                          <TableCell className="font-mono text-sm font-medium py-2.5">{p.codigo}</TableCell>
+                          <TableCell className="text-sm py-2.5">{p.nombre_producto || "—"}</TableCell>
+                          <TableCell className="text-sm font-medium text-right py-2.5">{p.cantidad}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -846,12 +846,12 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                 <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">Sin calendarios</TableCell></TableRow>
               )}
               {calendarios.map((c, i) => (
-                <TableRow key={c.id} className={i % 2 ? "bg-muted/30" : ""}>
-                  <TableCell className="text-sm">{c.cliente}</TableCell>
-                  <TableCell className="text-sm">{c.nombre_archivo}</TableCell>
-                  <TableCell className="text-sm">{new Date(c.created_at).toLocaleDateString("es-MX")}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{c.subido_por ? perfiles[c.subido_por] || "—" : "—"}</TableCell>
-                  <TableCell className="text-right">
+                <TableRow key={c.id} className="odd:bg-muted/30">
+                  <TableCell className="text-sm py-2.5">{c.cliente}</TableCell>
+                  <TableCell className="text-sm py-2.5">{c.nombre_archivo}</TableCell>
+                  <TableCell className="text-sm py-2.5">{new Date(c.created_at).toLocaleDateString("es-MX")}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground py-2.5">{c.subido_por ? perfiles[c.subido_por] || "—" : "—"}</TableCell>
+                  <TableCell className="text-right py-2.5">
                     <Button variant="ghost" size="sm" onClick={() => openSigned(c.storage_path)}>
                       <FileText className="h-3.5 w-3.5 mr-1" /> Ver archivo
                     </Button>
@@ -1302,13 +1302,13 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
               {rows.map((r, i) => (
                 <TableRow
                   key={r.id}
-                  className={`${i % 2 ? "bg-muted/30" : ""} hover:bg-blue-50/40 cursor-pointer`}
+                  className="odd:bg-muted/30 hover:bg-blue-50/40 cursor-pointer"
                   onClick={() => abrirDetalle(r)}
                 >
-                  <TableCell className="text-sm">{r.cliente}</TableCell>
-                  <TableCell className="text-sm">{r.fecha_programada}</TableCell>
-                  <TableCell className="text-sm font-medium">{r.numero_pedido || "—"}</TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell className="text-sm py-2.5">{r.cliente}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.fecha_programada}</TableCell>
+                  <TableCell className="text-sm font-medium py-2.5">{r.numero_pedido || "—"}</TableCell>
+                  <TableCell className="text-sm py-2.5">
                     <div className="flex items-center gap-2">
                       {r.ubicacion?.nombre ? (
                         <span className="font-medium">{r.ubicacion.nombre}</span>
@@ -1330,11 +1330,11 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center py-2.5">
                     <Badge variant="outline" className="text-xs font-semibold">{(lineas[r.id] ?? []).length}</Badge>
                   </TableCell>
-                  <TableCell>{estatusBadge(r.estatus)}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="py-2.5">{estatusBadge(r.estatus)}</TableCell>
+                  <TableCell className="text-right py-2.5">
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); abrirDetalle(r); }}>
                       <Eye className="h-3.5 w-3.5 mr-1" /> Ver detalle
                     </Button>
@@ -1476,10 +1476,10 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                       <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-6">Sin productos</TableCell></TableRow>
                     )}
                     {detalleLineas.filter((l) => !lineasQuitar.includes(l.id)).map((l, i) => (
-                      <TableRow key={l.id} className={i % 2 ? "bg-muted/30" : ""}>
-                        <TableCell className="font-mono text-sm font-medium">{l.codigo_producto}</TableCell>
-                        <TableCell className="text-sm">{l.nombre_producto || "—"}</TableCell>
-                        <TableCell className="text-sm font-medium text-right">
+                      <TableRow key={l.id} className="odd:bg-muted/30">
+                        <TableCell className="font-mono text-sm font-medium py-2.5">{l.codigo_producto}</TableCell>
+                        <TableCell className="text-sm py-2.5">{l.nombre_producto || "—"}</TableCell>
+                        <TableCell className="text-sm font-medium text-right py-2.5">
                           {editMode ? (
                             <Input
                               type="number"
@@ -1490,7 +1490,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                           ) : Number(l.cantidad)}
                         </TableCell>
                         {editMode && (
-                          <TableCell>
+                          <TableCell className="py-2.5">
                             <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
                               onClick={() => setLineasQuitar((p) => [...p, l.id])}>
                               <Trash2 className="h-3.5 w-3.5" />
@@ -1500,20 +1500,20 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                       </TableRow>
                     ))}
                     {editMode && lineasNuevas.map((n, idx) => (
-                      <TableRow key={`n-${idx}`}>
-                        <TableCell>
+                      <TableRow key={`n-${idx}`} className="odd:bg-muted/30">
+                        <TableCell className="py-2.5">
                           <Input className="h-8 text-sm font-mono font-medium" value={n.codigo} placeholder="Código"
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-2.5">
                           <Input className="h-8 text-sm" value={n.nombre} placeholder="Nombre"
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-2.5">
                           <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={n.cantidad}
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-2.5">
                           <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
                             onClick={() => setLineasNuevas((p) => p.filter((_, i) => i !== idx))}>
                             <Trash2 className="h-3.5 w-3.5" />
@@ -2022,29 +2022,29 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
                 </TableRow>
               )}
               {rows.map((r, i) => (
-                <TableRow key={r.key} className={i % 2 ? "bg-muted/30" : ""}>
-                  <TableCell className="font-mono text-sm font-medium">{r.codigo}</TableCell>
-                  <TableCell className="text-sm">{r.nombre}</TableCell>
-                  <TableCell className="text-sm">{r.cliente}</TableCell>
-                  <TableCell className="text-sm">{r.ubicacion}</TableCell>
-                  <TableCell className="text-sm">{r.fecha}</TableCell>
-                  <TableCell className="text-sm">{r.numero_pedido || "—"}</TableCell>
-                  <TableCell className="text-right text-sm font-medium">{r.cantidad}</TableCell>
-                  <TableCell className="text-right text-sm font-medium">{r.stock_actual}</TableCell>
-                  <TableCell className="text-right text-sm">
+                <TableRow key={r.key} className="odd:bg-muted/30">
+                  <TableCell className="font-mono text-sm font-medium py-2.5">{r.codigo}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.nombre}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.cliente}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.ubicacion}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.fecha}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.numero_pedido || "—"}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">{r.cantidad}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">{r.stock_actual}</TableCell>
+                  <TableCell className="text-right text-sm py-2.5">
                     {r.por_llegar > 0 ? (
                       <button className="text-sm font-medium text-blue-700 underline underline-offset-2" onClick={() => setDetallePorLlegar(r)}>
                         {r.por_llegar}
                       </button>
                     ) : 0}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-2.5">
                     <Badge className={`text-xs font-semibold ${r.tendremos ? "bg-emerald-200 text-emerald-800 hover:bg-emerald-200" : "bg-red-200 text-red-800 hover:bg-red-200"}`}>
                       {r.tendremos ? "Sí" : "No"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right text-sm font-semibold text-red-700">{r.tendremos ? "" : r.deficit}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-right text-sm font-semibold text-red-700 py-2.5">{r.tendremos ? "" : r.deficit}</TableCell>
+                  <TableCell className="py-2.5">
                     {!r.tendremos && (
                       <Button
                         size="sm"
@@ -2081,10 +2081,10 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
             </TableHeader>
             <TableBody>
               {detalleTransito.map((t, i) => (
-                <TableRow key={i} className={i % 2 ? "bg-muted/30" : ""}>
-                  <TableCell className="text-sm font-medium">{t.numero_po}</TableCell>
-                  <TableCell className="text-right text-sm font-medium">{t.cantidad}</TableCell>
-                  <TableCell className="text-sm">{t.fecha_entrega_estimada}</TableCell>
+                <TableRow key={i} className="odd:bg-muted/30">
+                  <TableCell className="text-sm font-medium py-2.5">{t.numero_po}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">{t.cantidad}</TableCell>
+                  <TableCell className="text-sm py-2.5">{t.fecha_entrega_estimada}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -2219,20 +2219,20 @@ function NuevaEntregaManualDialog({
               </TableHeader>
               <TableBody>
                 {productos.map((p, idx) => (
-                  <TableRow key={idx} className={idx % 2 ? "bg-muted/30" : ""}>
-                    <TableCell>
+                  <TableRow key={idx} className="odd:bg-muted/30">
+                    <TableCell className="py-2.5">
                       <Input className="h-8 text-sm font-mono font-medium" value={p.codigo} placeholder="Código"
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-2.5">
                       <Input className="h-8 text-sm" value={p.nombre} placeholder="Nombre"
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-2.5">
                       <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={p.cantidad}
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-2.5">
                       <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
                         disabled={productos.length === 1}
                         onClick={() => setProductos((prev) => prev.filter((_, i) => i !== idx))}>
