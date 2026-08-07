@@ -759,18 +759,18 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="uppercase text-[10px] tracking-wide">Archivo</TableHead>
-                    <TableHead className="uppercase text-[10px] tracking-wide">Estado</TableHead>
+                    <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Archivo</TableHead>
+                    <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Estado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {progreso.map((p, i) => (
                     <TableRow key={`${p.nombre}-${i}`} className={i % 2 ? "bg-muted/30" : ""}>
-                      <TableCell className="text-sm font-light">{p.nombre}</TableCell>
+                      <TableCell className="text-sm">{p.nombre}</TableCell>
                       <TableCell className="text-sm">
                         {p.estado === "procesando" && <span className="text-blue-700 inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Procesando…</span>}
-                        {p.estado === "listo" && <span className="text-green-700">Listo ({p.detalle})</span>}
-                        {p.estado === "error" && <span className="text-destructive">Error: {p.detalle}</span>}
+                        {p.estado === "listo" && <span className="text-green-700 font-medium">Listo ({p.detalle})</span>}
+                        {p.estado === "error" && <span className="text-destructive font-medium">Error: {p.detalle}</span>}
                       </TableCell>
                     </TableRow>
                   ))}
