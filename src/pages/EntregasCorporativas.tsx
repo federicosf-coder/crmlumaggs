@@ -2023,28 +2023,28 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
               )}
               {rows.map((r, i) => (
                 <TableRow key={r.key} className="odd:bg-muted/30">
-                  <TableCell className="font-mono text-sm font-medium">{r.codigo}</TableCell>
-                  <TableCell className="text-sm">{r.nombre}</TableCell>
-                  <TableCell className="text-sm">{r.cliente}</TableCell>
-                  <TableCell className="text-sm">{r.ubicacion}</TableCell>
-                  <TableCell className="text-sm">{r.fecha}</TableCell>
-                  <TableCell className="text-sm">{r.numero_pedido || "—"}</TableCell>
-                  <TableCell className="text-right text-sm font-medium">{r.cantidad}</TableCell>
-                  <TableCell className="text-right text-sm font-medium">{r.stock_actual}</TableCell>
-                  <TableCell className="text-right text-sm">
+                  <TableCell className="font-mono text-sm font-medium py-2.5">{r.codigo}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.nombre}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.cliente}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.ubicacion}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.fecha}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.numero_pedido || "—"}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">{r.cantidad}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">{r.stock_actual}</TableCell>
+                  <TableCell className="text-right text-sm py-2.5">
                     {r.por_llegar > 0 ? (
                       <button className="text-sm font-medium text-blue-700 underline underline-offset-2" onClick={() => setDetallePorLlegar(r)}>
                         {r.por_llegar}
                       </button>
                     ) : 0}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-2.5">
                     <Badge className={`text-xs font-semibold ${r.tendremos ? "bg-emerald-200 text-emerald-800 hover:bg-emerald-200" : "bg-red-200 text-red-800 hover:bg-red-200"}`}>
                       {r.tendremos ? "Sí" : "No"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right text-sm font-semibold text-red-700">{r.tendremos ? "" : r.deficit}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-right text-sm font-semibold text-red-700 py-2.5">{r.tendremos ? "" : r.deficit}</TableCell>
+                  <TableCell className="py-2.5">
                     {!r.tendremos && (
                       <Button
                         size="sm"
