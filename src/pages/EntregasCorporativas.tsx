@@ -1385,6 +1385,29 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 </div>
               )}
 
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">N° Pedido</Label>
+                  {editMode ? (
+                    <Input className="h-8 w-52 text-sm" value={editPedido} onChange={(e) => setEditPedido(e.target.value)} placeholder="Sin número" />
+                  ) : (
+                    <p className="text-sm font-light">{detalle.numero_pedido || "—"}</p>
+                  )}
+                </div>
+                {editMode ? (
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={cancelarEdicion} disabled={busy}>Cancelar</Button>
+                    <Button size="sm" className="h-8 text-xs" onClick={guardarEdicion} disabled={busy}>
+                      {busy && <Loader2 className="h-3 w-3 mr-1 animate-spin" />} Guardar cambios
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={iniciarEdicion}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                  </Button>
+                )}
+              </div>
+
               <div className="border rounded-md overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -1392,21 +1415,69 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                       <TableHead className="uppercase text-[10px] tracking-wide">Código</TableHead>
                       <TableHead className="uppercase text-[10px] tracking-wide">Producto</TableHead>
                       <TableHead className="uppercase text-[10px] tracking-wide text-right">Cantidad</TableHead>
+                      {editMode && <TableHead className="w-10" />}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {detalleLineas.length === 0 && (
+                    {detalleLineas.length === 0 && !editMode && (
                       <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-6">Sin productos</TableCell></TableRow>
                     )}
-                    {detalleLineas.map((l, i) => (
+                    {detalleLineas.filter((l) => !lineasQuitar.includes(l.id)).map((l, i) => (
                       <TableRow key={l.id} className={i % 2 ? "bg-muted/30" : ""}>
                         <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
                         <TableCell className="text-sm font-light">{l.nombre_producto || "—"}</TableCell>
-                        <TableCell className="text-sm text-right">{Number(l.cantidad)}</TableCell>
+                        <TableCell className="text-sm text-right">
+                          {editMode ? (
+                            <Input
+                              type="number"
+                              className="h-8 w-24 text-sm text-right ml-auto"
+                              value={editCant[l.id] ?? String(Number(l.cantidad))}
+                              onChange={(e) => setEditCant((p) => ({ ...p, [l.id]: e.target.value }))}
+                            />
+                          ) : Number(l.cantidad)}
+                        </TableCell>
+                        {editMode && (
+                          <TableCell>
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
+                              onClick={() => setLineasQuitar((p) => [...p, l.id])}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                    {editMode && lineasNuevas.map((n, idx) => (
+                      <TableRow key={`n-${idx}`}>
+                        <TableCell>
+                          <Input className="h-8 text-xs font-mono" value={n.codigo} placeholder="Código"
+                            onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
+                        </TableCell>
+                        <TableCell>
+                          <Input className="h-8 text-sm" value={n.nombre} placeholder="Nombre"
+                            onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
+                        </TableCell>
+                        <TableCell>
+                          <Input type="number" className="h-8 w-24 text-sm text-right ml-auto" value={n.cantidad}
+                            onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
+                            onClick={() => setLineasNuevas((p) => p.filter((_, i) => i !== idx))}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+                {editMode && (
+                  <div className="p-2 border-t bg-muted/30">
+                    <Button variant="outline" size="sm" className="h-7 text-xs"
+                      onClick={() => setLineasNuevas((p) => [...p, { codigo: "", nombre: "", cantidad: "1" }])}>
+                      <Plus className="h-3 w-3 mr-1" /> Agregar producto
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {detalle.estatus === "programada" ? (
