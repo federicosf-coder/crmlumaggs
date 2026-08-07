@@ -3978,6 +3978,7 @@ export type Database = {
           notas: string | null
           notificado_at: string | null
           notificado_por: string | null
+          numero_pedido: string | null
           pdf_entrega_path: string | null
           ubicacion_id: string | null
           updated_at: string
@@ -3996,6 +3997,7 @@ export type Database = {
           notas?: string | null
           notificado_at?: string | null
           notificado_por?: string | null
+          numero_pedido?: string | null
           pdf_entrega_path?: string | null
           ubicacion_id?: string | null
           updated_at?: string
@@ -4014,6 +4016,7 @@ export type Database = {
           notas?: string | null
           notificado_at?: string | null
           notificado_por?: string | null
+          numero_pedido?: string | null
           pdf_entrega_path?: string | null
           ubicacion_id?: string | null
           updated_at?: string

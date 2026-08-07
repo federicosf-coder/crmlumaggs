@@ -1,0 +1,1 @@
+ALTER TABLE public.entregas_corporativas ADD COLUMN IF NOT EXISTS numero_pedido text;
