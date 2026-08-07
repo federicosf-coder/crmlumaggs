@@ -932,6 +932,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   // Modo edición del detalle
   const [editMode, setEditMode] = useState(false);
   const [editPedido, setEditPedido] = useState("");
+  const [editFecha, setEditFecha] = useState("");
   const [editCant, setEditCant] = useState<Record<string, string>>({});
   const [lineasQuitar, setLineasQuitar] = useState<string[]>([]);
   const [lineasNuevas, setLineasNuevas] = useState<{ codigo: string; nombre: string; cantidad: string }[]>([]);
@@ -1009,6 +1010,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     setLineasQuitar([]);
     setLineasNuevas([]);
     setEditPedido(r.numero_pedido || "");
+    setEditFecha(r.fecha_programada || "");
     setEvidencias([]);
     cargarEvidencias(r.id);
     setUbicClienteList(await fetchUbicaciones(r.cliente));
@@ -1017,6 +1019,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   const iniciarEdicion = () => {
     if (!detalle) return;
     setEditPedido(detalle.numero_pedido || "");
+    setEditFecha(detalle.fecha_programada || "");
     setEditCant(Object.fromEntries((lineas[detalle.id] ?? []).map((l) => [l.id, String(Number(l.cantidad))])));
     setLineasQuitar([]);
     setLineasNuevas([]);
@@ -1036,7 +1039,10 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     try {
       const { error: eP } = await (supabase as any)
         .from("entregas_corporativas")
-        .update({ numero_pedido: editPedido.trim() || null })
+        .update({
+          numero_pedido: editPedido.trim() || null,
+          ...(editFecha ? { fecha_programada: editFecha } : {}),
+        })
         .eq("id", detalle.id);
       if (eP) throw eP;
 
