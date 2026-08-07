@@ -438,6 +438,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
 
       const extracted = (res as any)?.extracted ?? {};
       const lugarEntrega: string | null = extracted?.lugar_entrega ?? null;
+      const numeroPedido: string | null = extracted?.numero_pedido ?? null;
       const entregas: ExtraidaRow[] = (extracted?.entregas ?? []).filter(
         (e: ExtraidaRow) => e?.codigo && e?.fecha && Number(e.cantidad) > 0,
       );
