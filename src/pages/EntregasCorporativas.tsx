@@ -834,10 +834,10 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-[10px] tracking-wide">Cliente</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Archivo</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Fecha</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Subido por</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Cliente</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Archivo</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Fecha</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Subido por</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -848,9 +848,9 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
               {calendarios.map((c, i) => (
                 <TableRow key={c.id} className={i % 2 ? "bg-muted/30" : ""}>
                   <TableCell className="text-sm">{c.cliente}</TableCell>
-                  <TableCell className="text-sm font-light">{c.nombre_archivo}</TableCell>
+                  <TableCell className="text-sm">{c.nombre_archivo}</TableCell>
                   <TableCell className="text-sm">{new Date(c.created_at).toLocaleDateString("es-MX")}</TableCell>
-                  <TableCell className="text-sm font-light">{c.subido_por ? perfiles[c.subido_por] || "—" : "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{c.subido_por ? perfiles[c.subido_por] || "—" : "—"}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => openSigned(c.storage_path)}>
                       <FileText className="h-3.5 w-3.5 mr-1" /> Ver archivo
