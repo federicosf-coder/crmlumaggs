@@ -1,10 +1,15 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EyeOff, Undo2 } from "lucide-react";
+import { toast } from "sonner";
 
 const ALMACENES = [
   { code: "1001", label: "Mexicali" },
@@ -16,6 +21,7 @@ const ALMACENES = [
 export default function PedidosSugeridos() {
   const [empresa, setEmpresa] = useState("todas");
   const [search, setSearch] = useState("");
+  const qc = useQueryClient();
 
   const { data: niveles = [] } = useQuery({
     queryKey: ["inv_niveles_sugeridos"],
@@ -52,6 +58,59 @@ export default function PedidosSugeridos() {
     refetchInterval: 60_000,
   });
 
+  const { data: ignorados = [] } = useQuery({
+    queryKey: ["inv_pedido_requerido_ignorados"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("inv_pedido_requerido_ignorados")
+        .select("*")
+        .order("ignorado_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const { data: perfiles = [] } = useQuery({
+    queryKey: ["profiles_min_ignorados"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("profiles").select("id, full_name");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const nombrePorUser = useMemo(() => {
+    const m: Record<string, string> = {};
+    (perfiles as any[]).forEach((p) => { m[p.id] = p.full_name || "—"; });
+    return m;
+  }, [perfiles]);
+
+  const ignoradosSet = useMemo(
+    () => new Set((ignorados as any[]).map((r) => r.codigo_producto)),
+    [ignorados]
+  );
+
+  const ignorar = async (codigo: string) => {
+    const { data: userRes } = await supabase.auth.getUser();
+    const { error } = await (supabase as any)
+      .from("inv_pedido_requerido_ignorados")
+      .insert({ codigo_producto: codigo, ignorado_por: userRes?.user?.id ?? null });
+    if (error) { toast.error("No se pudo ignorar: " + error.message); return; }
+    toast.success(`${codigo} movido a ignorados`);
+    qc.invalidateQueries({ queryKey: ["inv_pedido_requerido_ignorados"] });
+  };
+
+  const quitarIgnorado = async (codigo: string) => {
+    const { error } = await (supabase as any)
+      .from("inv_pedido_requerido_ignorados")
+      .delete()
+      .eq("codigo_producto", codigo);
+    if (error) { toast.error("No se pudo quitar: " + error.message); return; }
+    toast.success(`${codigo} restaurado`);
+    qc.invalidateQueries({ queryKey: ["inv_pedido_requerido_ignorados"] });
+  };
+
   const infoPorCodigo = useMemo(() => {
     const m: Record<string, any> = {};
     (niveles as any[]).forEach((n) => {
@@ -71,7 +130,7 @@ export default function PedidosSugeridos() {
     return m;
   }, [pedidoLineas]);
 
-  const rows = useMemo(() => {
+  const allRows = useMemo(() => {
     const porCodigo: Record<string, Record<string, number>> = {};
     (minmax as any[]).forEach((r) => {
       if (!r.codigo_producto) return;
@@ -106,6 +165,18 @@ export default function PedidosSugeridos() {
       .sort((a, b) => b.necesidad_neta_total - a.necesidad_neta_total);
   }, [minmax, infoPorCodigo, yaPedidoPorCodigo, empresa, search]);
 
+  const rows = useMemo(() => allRows.filter((r) => !ignoradosSet.has(r.codigo)), [allRows, ignoradosSet]);
+
+  const rowsIgnorados = useMemo(() => {
+    const byCode: Record<string, any> = {};
+    allRows.forEach((r) => { byCode[r.codigo] = r; });
+    return (ignorados as any[]).map((ig) => ({
+      ...ig,
+      nombre: byCode[ig.codigo_producto]?.nombre || infoPorCodigo[ig.codigo_producto]?.nombre_producto || "—",
+      necesidad_total: byCode[ig.codigo_producto]?.necesidad_total ?? 0,
+    }));
+  }, [ignorados, allRows, infoPorCodigo]);
+
   return (
     <div className="p-6 space-y-4">
       <Card>
@@ -126,13 +197,20 @@ export default function PedidosSugeridos() {
         </CardContent>
       </Card>
 
+      <Tabs defaultValue="por_pedir" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="por_pedir">Por Pedir <Badge variant="secondary" className="ml-2">{rows.length}</Badge></TabsTrigger>
+          <TabsTrigger value="ignorados">Ignorados <Badge variant="secondary" className="ml-2">{rowsIgnorados.length}</Badge></TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="por_pedir">
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
               <TableRow>
-                {["Código", "Producto", "Presentación", ...ALMACENES.map((a) => a.label), "Total Necesario", "Ya Pedido", "Total a Pedir"].map((h) => (
-                  <TableHead key={h} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>
+                {["Código", "Producto", "Presentación", ...ALMACENES.map((a) => a.label), "Total Necesario", "Ya Pedido", "Total a Pedir", ""].map((h, idx) => (
+                  <TableHead key={h || idx} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -148,15 +226,57 @@ export default function PedidosSugeridos() {
                   <TableCell className="text-right tabular-nums">{r.necesidad_total}</TableCell>
                   <TableCell className="text-right tabular-nums text-muted-foreground">{r.ya_pedido}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{r.necesidad_neta_total}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" onClick={() => ignorar(r.codigo)}>
+                      <EyeOff className="h-3.5 w-3.5 mr-1" />Ignorar
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
               {rows.length === 0 && (
-                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sin productos por pedir</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Sin productos por pedir</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="ignorados">
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+                  <TableRow>
+                    {["Código", "Nombre", "Total Necesario", "Ignorado el", "Ignorado por", ""].map((h, idx) => (
+                      <TableHead key={h || idx} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rowsIgnorados.map((r, i) => (
+                    <TableRow key={r.codigo_producto} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                      <TableCell className="font-mono text-xs">{r.codigo_producto}</TableCell>
+                      <TableCell className="text-sm font-light">{r.nombre}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.necesidad_total}</TableCell>
+                      <TableCell className="text-xs">{r.ignorado_at ? new Date(r.ignorado_at).toLocaleDateString("es-MX") : "—"}</TableCell>
+                      <TableCell className="text-xs">{nombrePorUser[r.ignorado_por] || "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={() => quitarIgnorado(r.codigo_producto)}>
+                          <Undo2 className="h-3.5 w-3.5 mr-1" />Quitar de ignorados
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {rowsIgnorados.length === 0 && (
+                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Sin productos ignorados</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
