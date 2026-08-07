@@ -147,7 +147,7 @@ export default function PedidosSubir() {
         unidad_pedido: l.unidad,
         precio_unitario: l.precio_unitario,
         precio_neto: l.precio_neto,
-        estatus_linea: String(l.estado || "").toLowerCase().includes("cancel") ? "cancelado" : "pendiente",
+        estatus_linea: String(l.estado || "").toLowerCase().includes("cancel") ? "cancelada" : "pendiente",
       }));
       const { error } = await supabase.from("inv_pedido_lineas").upsert(rows, { onConflict: "pedido_id,codigo_producto" });
       if (error) throw new Error(error.message);
