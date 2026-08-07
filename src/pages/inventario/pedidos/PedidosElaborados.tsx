@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +21,7 @@ export default function PedidosElaborados() {
   const [empresa, setEmpresa] = useState("todas");
   const [almacen, setAlmacen] = useState("todos");
   const [estatus, setEstatus] = useState("todos");
+  const [sinFecha, setSinFecha] = useState("todos");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -44,10 +45,11 @@ export default function PedidosElaborados() {
     if (empresa !== "todas" && p.empresa_vendedora !== empresa) return false;
     if (almacen !== "todos" && p.almacen_destino !== almacen) return false;
     if (estatus !== "todos" && p.estatus !== estatus) return false;
+    if (sinFecha === "sin_fecha" && p.fecha_entrega_estimada) return false;
     if (search && !String(p.numero_po_interno || "").toLowerCase().includes(search.toLowerCase())
       && !String(p.numero_orden_proveedor || "").toLowerCase().includes(search.toLowerCase())) return false;
     return true;
-  }), [pedidos, empresa, almacen, estatus, search]);
+  }), [pedidos, empresa, almacen, estatus, sinFecha, search]);
 
   return (
     <div className="p-6 space-y-4">
@@ -77,6 +79,13 @@ export default function PedidosElaborados() {
               {Object.entries(ESTATUS_PEDIDO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={sinFecha} onValueChange={setSinFecha}>
+            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas las entregas</SelectItem>
+              <SelectItem value="sin_fecha">Solo sin fecha estimada</SelectItem>
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 
@@ -99,7 +108,11 @@ export default function PedidosElaborados() {
                   <TableCell className="text-xs">{p.fuente || "—"}</TableCell>
                   <TableCell className="text-xs">{p.fecha_pedido || "—"}</TableCell>
                   <TableCell className="text-xs">{p.fecha_despacho || "—"}</TableCell>
-                  <TableCell className="text-xs">{p.fecha_entrega_estimada || "—"}</TableCell>
+                  <TableCell className="text-xs">
+                    {p.fecha_entrega_estimada ? p.fecha_entrega_estimada : (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Sin fecha ⚠</Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">{p.total_tarimas ?? 0}</TableCell>
                   <TableCell className="text-right tabular-nums">{p.total_monto ? `${Number(p.total_monto).toLocaleString("es-MX", { minimumFractionDigits: 2 })} ${p.moneda || ""}` : "—"}</TableCell>
                   <TableCell><Badge variant="outline" className={estatusPedidoColor(p.estatus)}>{ESTATUS_PEDIDO_LABEL[p.estatus] || p.estatus}</Badge></TableCell>
@@ -169,11 +182,17 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
   const [uploading, setUploading] = useState(false);
   const [extracting, setExtracting] = useState<string | null>(null);
   const [extracted, setExtracted] = useState<{ archivoId: string; data: any } | null>(null);
+  const [fechaEntrega, setFechaEntrega] = useState("");
+  const [savingFecha, setSavingFecha] = useState(false);
 
   if (!id) return null;
   const p = data?.pedido;
   const lineas = data?.lineas || [];
   const archivos = data?.archivos || [];
+
+  useEffect(() => {
+    if (p) setFechaEntrega(p.fecha_entrega_estimada || "");
+  }, [p]);
 
   const onAdvance = async () => {
     if (!p) return;
@@ -182,6 +201,23 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
     if (p.estatus === "en_transito") { navigate(`/inventario/pedidos/recibidos?pedido=${p.id}`); return; }
     await upd.mutateAsync({ id: p.id, estatus: next });
     toast.success(`Estatus actualizado a ${ESTATUS_PEDIDO_LABEL[next]}`);
+  };
+
+  const guardarFechaEntrega = async () => {
+    if (!p) return;
+    setSavingFecha(true);
+    try {
+      const { error } = await (supabase as any).from("inv_pedidos").update({ fecha_entrega_estimada: fechaEntrega || null }).eq("id", p.id);
+      if (error) throw error;
+      toast.success("Fecha de entrega actualizada");
+      qc.invalidateQueries({ queryKey: ["inv_pedido", p.id] });
+      qc.invalidateQueries({ queryKey: ["inv_pedidos"] });
+      refetch();
+    } catch (e: any) {
+      toast.error(e?.message || "Error al guardar la fecha");
+    } finally {
+      setSavingFecha(false);
+    }
   };
 
   const onUpload = async (file: File) => {
@@ -270,6 +306,15 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
               <Field label="Total tarimas" value={p.total_tarimas ?? 0} />
               <Field label="Monto" value={p.total_monto ? `${Number(p.total_monto).toLocaleString("es-MX", { minimumFractionDigits: 2 })} ${p.moneda || ""}` : "—"} />
               <Field label="Estatus" value={<Badge className={estatusPedidoColor(p.estatus)}>{ESTATUS_PEDIDO_LABEL[p.estatus]}</Badge>} />
+              <div>
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Entrega estimada</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} className="h-8 text-sm" />
+                  <Button size="sm" className="h-8" disabled={savingFecha || fechaEntrega === (p.fecha_entrega_estimada || "")} onClick={guardarFechaEntrega}>
+                    {savingFecha ? "Guardando..." : "Guardar"}
+                  </Button>
+                </div>
+              </div>
             </div>
             {nextEstatus(p.estatus) && (
               <Button onClick={onAdvance} className="w-full">{nextEstatusLabel(p.estatus)}</Button>
