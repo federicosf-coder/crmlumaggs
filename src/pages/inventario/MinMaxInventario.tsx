@@ -684,7 +684,7 @@ export function AjusteManualDialog({
 
   return (
     <Dialog open={!!editing} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -m-6 mb-0 p-6 rounded-t-lg">
           <DialogTitle className="uppercase tracking-wide text-sm font-medium">Ajustar mínimos y máximos</DialogTitle>
         </DialogHeader>
