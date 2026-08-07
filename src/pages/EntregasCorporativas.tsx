@@ -361,8 +361,8 @@ function UbicacionesTab({ refreshKey, onChanged }: { refreshKey: number; onChang
             )}
             {rows.map((u, i) => (
               <TableRow key={u.id} className="odd:bg-muted/30 hover:bg-blue-50/40">
-                <TableCell className="text-sm">{u.cliente}</TableCell>
-                <TableCell className="text-sm font-medium">
+                <TableCell className="text-sm py-2.5">{u.cliente}</TableCell>
+                <TableCell className="text-sm font-medium py-2.5">
                   <div className="flex items-center gap-2">
                     {u.nombre}
                     {u.lat != null && u.lng != null && (
@@ -372,14 +372,14 @@ function UbicacionesTab({ refreshKey, onChanged }: { refreshKey: number; onChang
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm">{u.direccion || "—"}</TableCell>
-                <TableCell className="text-sm max-w-[280px] truncate">{u.instrucciones || "—"}</TableCell>
-                <TableCell>
+                <TableCell className="text-sm py-2.5">{u.direccion || "—"}</TableCell>
+                <TableCell className="text-sm max-w-[280px] truncate py-2.5">{u.instrucciones || "—"}</TableCell>
+                <TableCell className="py-2.5">
                   <Badge variant="outline" className={`text-xs font-semibold ${u.activo ? "bg-emerald-200 text-emerald-800 border-emerald-300" : "bg-slate-300 text-slate-800 border-slate-400"}`}>
                     {u.activo ? "Sí" : "No"}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right py-2.5">
                   <Button variant="ghost" size="sm" onClick={() => { setEditing(u); setDlgOpen(true); }}>
                     <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
                   </Button>
