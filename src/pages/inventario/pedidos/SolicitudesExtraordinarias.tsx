@@ -431,6 +431,11 @@ function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving,
         <DialogHeader><DialogTitle>Nueva Solicitud Extraordinaria</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wide">Solicitado por</Label>
+            <Input value={solicitanteNombre} disabled className="bg-muted text-muted-foreground" />
+          </div>
+
+          <div className="space-y-1">
             <Label className="text-xs uppercase tracking-wide">Producto</Label>
             {modoDescripcion ? (
               <div className="space-y-3">
