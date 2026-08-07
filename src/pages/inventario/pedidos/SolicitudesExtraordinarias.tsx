@@ -238,8 +238,17 @@ export default function SolicitudesExtraordinarias() {
                 return (
                   <TableRow key={s.id} className={cn(i % 2 === 1 && "bg-muted/20", "hover:bg-blue-50/40")}>
                     <TableCell>
-                      <div className="font-medium text-sm">{s.codigo_producto}</div>
-                      <div className="text-xs text-muted-foreground">{nombrePorCodigo[s.codigo_producto] || "—"}</div>
+                      {s.codigo_producto ? (
+                        <>
+                          <div className="font-medium text-sm">{s.codigo_producto}</div>
+                          <div className="text-xs text-muted-foreground">{nombrePorCodigo[s.codigo_producto] || "—"}</div>
+                        </>
+                      ) : (
+                        <div className="flex items-start gap-1.5">
+                          <span className="font-medium text-sm">{s.producto_descripcion || "—"}</span>
+                          <Badge variant="outline" className="text-[10px] font-normal bg-slate-100 text-slate-600 border-slate-200">Sin código</Badge>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums font-medium">{Number(s.cantidad).toLocaleString()}</TableCell>
                     <TableCell>
@@ -290,7 +299,7 @@ export default function SolicitudesExtraordinarias() {
       <NuevaSolicitudDialog
         open={nuevaOpen}
         onOpenChange={setNuevaOpen}
-        productos={productos}
+        productos={opcionesProducto}
         onSubmit={(p) => crear.mutate(p)}
         saving={crear.isPending}
       />
@@ -305,7 +314,7 @@ export default function SolicitudesExtraordinarias() {
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              {revision?.row.codigo_producto} — {Number(revision?.row.cantidad ?? 0).toLocaleString()} pzas
+              {revision?.row.codigo_producto || revision?.row.producto_descripcion} — {Number(revision?.row.cantidad ?? 0).toLocaleString()} pzas
             </p>
             <div className="space-y-1">
               <Label className="text-xs uppercase tracking-wide">Notas de revisión (opcional)</Label>
