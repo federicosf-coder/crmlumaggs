@@ -1305,10 +1305,10 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                   className="odd:bg-muted/30 hover:bg-blue-50/40 cursor-pointer"
                   onClick={() => abrirDetalle(r)}
                 >
-                  <TableCell className="text-sm">{r.cliente}</TableCell>
-                  <TableCell className="text-sm">{r.fecha_programada}</TableCell>
-                  <TableCell className="text-sm font-medium">{r.numero_pedido || "—"}</TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell className="text-sm py-2.5">{r.cliente}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.fecha_programada}</TableCell>
+                  <TableCell className="text-sm font-medium py-2.5">{r.numero_pedido || "—"}</TableCell>
+                  <TableCell className="text-sm py-2.5">
                     <div className="flex items-center gap-2">
                       {r.ubicacion?.nombre ? (
                         <span className="font-medium">{r.ubicacion.nombre}</span>
@@ -1330,11 +1330,11 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center py-2.5">
                     <Badge variant="outline" className="text-xs font-semibold">{(lineas[r.id] ?? []).length}</Badge>
                   </TableCell>
-                  <TableCell>{estatusBadge(r.estatus)}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="py-2.5">{estatusBadge(r.estatus)}</TableCell>
+                  <TableCell className="text-right py-2.5">
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); abrirDetalle(r); }}>
                       <Eye className="h-3.5 w-3.5 mr-1" /> Ver detalle
                     </Button>
