@@ -1342,6 +1342,13 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
           )}
 
           <DialogFooter className="bg-muted/40 -m-6 mt-0 p-4 rounded-b-lg">
+            <Button
+              variant="outline"
+              className="text-destructive hover:text-destructive mr-auto"
+              onClick={() => detalle && setEliminar(detalle)}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar entrega
+            </Button>
             <Button variant="outline" onClick={() => setDetalle(null)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
