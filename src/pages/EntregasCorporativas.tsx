@@ -831,6 +831,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   const [notifOpen, setNotifOpen] = useState(false);
   const [grupoSel, setGrupoSel] = useState("");
   const [cancelar, setCancelar] = useState<Entrega | null>(null);
+  const [eliminar, setEliminar] = useState<Entrega | null>(null);
   const [busy, setBusy] = useState(false);
   const [ubicClienteList, setUbicClienteList] = useState<Ubicacion[]>([]);
   const [ubicSel, setUbicSel] = useState("");
@@ -991,6 +992,25 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     setCancelar(null);
     setDetalle(null);
     load();
+  };
+
+  const doEliminar = async () => {
+    if (!eliminar) return;
+    setBusy(true);
+    try {
+      const { error: e1 } = await (supabase as any)
+        .from("entregas_corporativas_lineas").delete().eq("entrega_id", eliminar.id);
+      if (e1) throw e1;
+      const { error: e2 } = await (supabase as any)
+        .from("entregas_corporativas").delete().eq("id", eliminar.id);
+      if (e2) throw e2;
+      toast.success("Entrega eliminada");
+      setEliminar(null);
+      setDetalle(null);
+      await load();
+    } catch (err: any) {
+      toast.error(err.message ?? "No se pudo eliminar");
+    } finally { setBusy(false); }
   };
 
   const exportar = () => {
