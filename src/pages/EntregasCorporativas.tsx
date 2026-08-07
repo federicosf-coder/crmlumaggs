@@ -1302,7 +1302,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
               {rows.map((r, i) => (
                 <TableRow
                   key={r.id}
-                  className={`${i % 2 ? "bg-muted/30" : ""} hover:bg-blue-50/40 cursor-pointer`}
+                  className="odd:bg-muted/30 hover:bg-blue-50/40 cursor-pointer"
                   onClick={() => abrirDetalle(r)}
                 >
                   <TableCell className="text-sm">{r.cliente}</TableCell>
