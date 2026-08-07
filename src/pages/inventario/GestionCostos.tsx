@@ -1405,7 +1405,7 @@ function PropuestaSection({ propuesta, loteId, onRefresh, userId }: { propuesta:
     if (error) { toast.error(error.message); return; }
     setSeleccion(new Set());
     toast.success(`${ids.length} ${estado === "autorizado" ? "autorizados" : "rechazados"}`);
-    onRefresh();
+    await onRefresh();
   }
 
   async function autorizarPorNivel(nivel: string) {
