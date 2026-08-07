@@ -1591,6 +1591,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
 
       {/* Nueva ubicación rápida desde el detalle */}
       <UbicacionDialog
+
         open={nuevaUbicOpen}
         onOpenChange={setNuevaUbicOpen}
         initial={null}
