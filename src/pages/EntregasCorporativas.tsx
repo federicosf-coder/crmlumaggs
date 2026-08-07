@@ -766,8 +766,8 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                 <TableBody>
                   {progreso.map((p, i) => (
                     <TableRow key={`${p.nombre}-${i}`} className="odd:bg-muted/30">
-                      <TableCell className="text-sm">{p.nombre}</TableCell>
-                      <TableCell className="text-sm">
+                      <TableCell className="text-sm py-2.5">{p.nombre}</TableCell>
+                      <TableCell className="text-sm py-2.5">
                         {p.estado === "procesando" && <span className="text-blue-700 inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Procesando…</span>}
                         {p.estado === "listo" && <span className="text-green-700 font-medium">Listo ({p.detalle})</span>}
                         {p.estado === "error" && <span className="text-destructive font-medium">Error: {p.detalle}</span>}
