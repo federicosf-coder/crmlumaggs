@@ -2220,19 +2220,19 @@ function NuevaEntregaManualDialog({
               <TableBody>
                 {productos.map((p, idx) => (
                   <TableRow key={idx} className="odd:bg-muted/30">
-                    <TableCell>
+                    <TableCell className="py-2.5">
                       <Input className="h-8 text-sm font-mono font-medium" value={p.codigo} placeholder="Código"
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-2.5">
                       <Input className="h-8 text-sm" value={p.nombre} placeholder="Nombre"
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-2.5">
                       <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={p.cantidad}
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-2.5">
                       <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
                         disabled={productos.length === 1}
                         onClick={() => setProductos((prev) => prev.filter((_, i) => i !== idx))}>
