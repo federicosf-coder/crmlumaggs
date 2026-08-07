@@ -24,6 +24,7 @@ export default function PedidosSugeridos() {
   const [empresa, setEmpresa] = useState("todas");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<MinMaxRow | null>(null);
+  const [detalleCodigo, setDetalleCodigo] = useState<{ codigo: string; nombre: string } | null>(null);
   const qc = useQueryClient();
 
   const { data: niveles = [] } = useQuery({
