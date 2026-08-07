@@ -185,14 +185,14 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [savingFecha, setSavingFecha] = useState(false);
 
+  useEffect(() => {
+    setFechaEntrega(data?.pedido?.fecha_entrega_estimada || "");
+  }, [data]);
+
   if (!id) return null;
   const p = data?.pedido;
   const lineas = data?.lineas || [];
   const archivos = data?.archivos || [];
-
-  useEffect(() => {
-    if (p) setFechaEntrega(p.fecha_entrega_estimada || "");
-  }, [p]);
 
   const onAdvance = async () => {
     if (!p) return;
