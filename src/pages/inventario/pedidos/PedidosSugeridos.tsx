@@ -420,6 +420,62 @@ export default function PedidosSugeridos() {
       </Tabs>
 
       <AjusteManualDialog editing={editing} onClose={() => setEditing(null)} nivMap={nivMap} />
+
+      <Dialog open={!!detalleCodigo} onOpenChange={() => setDetalleCodigo(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base font-medium">
+              Detalle de pedidos abiertos — {detalleCodigo?.codigo} {detalleCodigo?.nombre}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="p-0 overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+                    <TableRow>
+                      {["N° PO", "Proveedor/Marca", "Almacén destino", "Cantidad", "Fecha de pedido", "Fecha entrega estimada", "Estatus"].map((h) => (
+                        <TableHead key={h} className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground">{h}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {detalleLineas.map((l: any) => {
+                      const pedido = l.inv_pedidos || {};
+                      const almacen = ALMACENES.find((a) => a.code === pedido.almacen_destino)?.label || pedido.almacen_destino || "—";
+                      const marcaLabel = pedido.empresa_vendedora === "lumaggs" ? "Lumaggs" : pedido.empresa_vendedora === "galsa" ? "Galsa" : pedido.empresa_vendedora || "—";
+                      const cantidad = Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0);
+                      const estatus = pedido.estatus || "borrador";
+                      return (
+                        <TableRow key={l.id} className="odd:bg-muted/20">
+                          <TableCell className="font-mono text-xs">{pedido.numero_po_interno || "—"}</TableCell>
+                          <TableCell className="text-sm font-light">{marcaLabel}</TableCell>
+                          <TableCell className="text-xs">{almacen}</TableCell>
+                          <TableCell className="text-right tabular-nums text-sm font-medium">{cantidad}</TableCell>
+                          <TableCell className="text-xs">{pedido.fecha_pedido ? new Date(pedido.fecha_pedido).toLocaleDateString("es-MX") : "—"}</TableCell>
+                          <TableCell className="text-xs">{pedido.fecha_entrega_estimada ? new Date(pedido.fecha_entrega_estimada).toLocaleDateString("es-MX") : "—"}</TableCell>
+                          <TableCell className="text-right">
+                            <Badge className={`text-[10px] ${estatusPedidoColor(estatus)}`}>{ESTATUS_PEDIDO_LABEL[estatus] || estatus}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {detalleLineas.length === 0 && (
+                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Sin pedidos abiertos para este código</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+            <div className="flex justify-end items-center gap-2">
+              <span className="text-sm text-muted-foreground">Total ya pedido:</span>
+              <span className="text-xl font-light tabular-nums">
+                {detalleLineas.reduce((sum, l: any) => sum + Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0), 0)}
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
