@@ -804,17 +804,17 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="uppercase text-[10px] tracking-wide">Código</TableHead>
-                        <TableHead className="uppercase text-[10px] tracking-wide">Producto</TableHead>
-                        <TableHead className="uppercase text-[10px] tracking-wide text-right">Cantidad</TableHead>
+                        <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Código</TableHead>
+                        <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Producto</TableHead>
+                        <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Cantidad</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {g.productos.map((p, i) => (
                         <TableRow key={`${p.codigo}-${i}`} className={i % 2 ? "bg-muted/30" : ""}>
-                          <TableCell className="font-mono text-xs">{p.codigo}</TableCell>
-                          <TableCell className="text-sm font-light">{p.nombre_producto || "—"}</TableCell>
-                          <TableCell className="text-sm text-right">{p.cantidad}</TableCell>
+                          <TableCell className="font-mono text-sm font-medium">{p.codigo}</TableCell>
+                          <TableCell className="text-sm">{p.nombre_producto || "—"}</TableCell>
+                          <TableCell className="text-sm font-medium text-right">{p.cantidad}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
