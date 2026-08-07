@@ -343,11 +343,11 @@ export default function PedidosSugeridos() {
                 <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground">Producto</TableHead>
                 <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground">Presentación</TableHead>
                 <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right">Stock Total</TableHead>
+                <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right">Ya Pedido</TableHead>
                 <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right">Total a Pedir</TableHead>
                 {ALMACENES.map((a) => (
                   <TableHead key={a.code} className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-center">{a.label}</TableHead>
                 ))}
-                <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right">Ya Pedido</TableHead>
                 <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right"></TableHead>
               </TableRow>
             </TableHeader>
@@ -358,6 +358,13 @@ export default function PedidosSugeridos() {
                   <TableCell className="text-[13px] font-light">{r.nombre}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{r.presentacion}</TableCell>
                   <TableCell className="text-right tabular-nums text-sm">{r.stock_total}</TableCell>
+                  <TableCell
+                    className={`text-right tabular-nums text-sm ${r.ya_pedido > 0 ? "text-blue-700 cursor-pointer underline decoration-dotted underline-offset-4 hover:text-blue-900" : "text-muted-foreground"}`}
+                    onClick={() => r.ya_pedido > 0 && setDetalleCodigo({ codigo: r.codigo, nombre: r.nombre })}
+                    title={r.ya_pedido > 0 ? "Ver pedidos abiertos" : undefined}
+                  >
+                    {r.ya_pedido}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums text-base font-semibold">
                     {r.necesidad_neta_total}
                     {r.extraordinario > 0 && (
@@ -385,13 +392,6 @@ export default function PedidosSugeridos() {
                       </TableCell>
                     );
                   })}
-                  <TableCell
-                    className={`text-right tabular-nums text-sm ${r.ya_pedido > 0 ? "text-blue-700 cursor-pointer underline decoration-dotted underline-offset-4 hover:text-blue-900" : "text-muted-foreground"}`}
-                    onClick={() => r.ya_pedido > 0 && setDetalleCodigo({ codigo: r.codigo, nombre: r.nombre })}
-                    title={r.ya_pedido > 0 ? "Ver pedidos abiertos" : undefined}
-                  >
-                    {r.ya_pedido}
-                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => ignorar(r.codigo)}>
