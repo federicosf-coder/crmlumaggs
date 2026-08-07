@@ -22,6 +22,7 @@ import {
   Truck, Upload, Loader2, Download, FileText, Mail, RefreshCw, Ban, MapPin, Plus, Pencil, Eye, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ProductoSelector, fetchProductosCatalogo } from "@/components/entregas/ProductoSelector";
 
 const CLIENTES = ["Hyundai", "Kenworth", "Mecánica Tek", "Otro"];
 const BUCKET = "entregas-corporativas";
@@ -510,6 +511,16 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
         return { entregas: 0, nuevas: 0, actualizadas: 0, grupos: [] };
       }
 
+      // --- Validar productos contra el catálogo ---
+      try {
+        const catalogo = await fetchProductosCatalogo();
+        const mapCat = new Map(catalogo.map((p) => [p.codigo.trim().toUpperCase(), p.nombre]));
+        entregas.forEach((e) => {
+          const hit = mapCat.get(String(e.codigo).trim().toUpperCase());
+          if (hit) e.nombre_producto = hit;
+        });
+      } catch { /* si falla el catálogo, se conserva el nombre extraído por la IA */ }
+
       // --- Resolver ubicación ---
       const ubicaciones = await fetchUbicaciones(cliente);
       let ubicacion: Ubicacion | null = null;
@@ -921,6 +932,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   // Modo edición del detalle
   const [editMode, setEditMode] = useState(false);
   const [editPedido, setEditPedido] = useState("");
+  const [editFecha, setEditFecha] = useState("");
   const [editCant, setEditCant] = useState<Record<string, string>>({});
   const [lineasQuitar, setLineasQuitar] = useState<string[]>([]);
   const [lineasNuevas, setLineasNuevas] = useState<{ codigo: string; nombre: string; cantidad: string }[]>([]);
@@ -998,6 +1010,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     setLineasQuitar([]);
     setLineasNuevas([]);
     setEditPedido(r.numero_pedido || "");
+    setEditFecha(r.fecha_programada || "");
     setEvidencias([]);
     cargarEvidencias(r.id);
     setUbicClienteList(await fetchUbicaciones(r.cliente));
@@ -1006,6 +1019,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   const iniciarEdicion = () => {
     if (!detalle) return;
     setEditPedido(detalle.numero_pedido || "");
+    setEditFecha(detalle.fecha_programada || "");
     setEditCant(Object.fromEntries((lineas[detalle.id] ?? []).map((l) => [l.id, String(Number(l.cantidad))])));
     setLineasQuitar([]);
     setLineasNuevas([]);
@@ -1025,7 +1039,10 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     try {
       const { error: eP } = await (supabase as any)
         .from("entregas_corporativas")
-        .update({ numero_pedido: editPedido.trim() || null })
+        .update({
+          numero_pedido: editPedido.trim() || null,
+          ...(editFecha ? { fecha_programada: editFecha } : {}),
+        })
         .eq("id", detalle.id);
       if (eP) throw eP;
 
@@ -1439,12 +1456,20 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
               )}
 
               <div className="flex flex-wrap items-end justify-between gap-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">N° Pedido</Label>
-                  {editMode ? (
-                    <Input className="h-8 w-52 text-sm" value={editPedido} onChange={(e) => setEditPedido(e.target.value)} placeholder="Sin número" />
-                  ) : (
-                    <p className="text-sm font-light">{detalle.numero_pedido || "—"}</p>
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">N° Pedido</Label>
+                    {editMode ? (
+                      <Input className="h-8 w-52 text-sm" value={editPedido} onChange={(e) => setEditPedido(e.target.value)} placeholder="Sin número" />
+                    ) : (
+                      <p className="text-sm font-light">{detalle.numero_pedido || "—"}</p>
+                    )}
+                  </div>
+                  {editMode && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Fecha de entrega solicitada</Label>
+                      <Input type="date" className="h-8 w-48 text-sm" value={editFecha} onChange={(e) => setEditFecha(e.target.value)} />
+                    </div>
                   )}
                 </div>
                 {editMode ? (
@@ -1502,12 +1527,13 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     {editMode && lineasNuevas.map((n, idx) => (
                       <TableRow key={`n-${idx}`} className="odd:bg-muted/30">
                         <TableCell className="py-2.5">
-                          <Input className="h-8 text-sm font-mono font-medium" value={n.codigo} placeholder="Código"
-                            onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
+                          <ProductoSelector
+                            codigo={n.codigo}
+                            onSelect={(p) => setLineasNuevas((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: p.codigo, nombre: p.nombre } : x))}
+                          />
                         </TableCell>
                         <TableCell className="py-2.5">
-                          <Input className="h-8 text-sm" value={n.nombre} placeholder="Nombre"
-                            onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
+                          <span className="text-sm">{n.nombre || <span className="text-muted-foreground">Selecciona un producto</span>}</span>
                         </TableCell>
                         <TableCell className="py-2.5">
                           <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={n.cantidad}
@@ -2385,12 +2411,13 @@ function NuevaEntregaManualDialog({
                 {productos.map((p, idx) => (
                   <TableRow key={idx} className="odd:bg-muted/30">
                     <TableCell className="py-2.5">
-                      <Input className="h-8 text-sm font-mono font-medium" value={p.codigo} placeholder="Código"
-                        onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
+                      <ProductoSelector
+                        codigo={p.codigo}
+                        onSelect={(sel) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: sel.codigo, nombre: sel.nombre } : x))}
+                      />
                     </TableCell>
                     <TableCell className="py-2.5">
-                      <Input className="h-8 text-sm" value={p.nombre} placeholder="Nombre"
-                        onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
+                      <span className="text-sm">{p.nombre || <span className="text-muted-foreground">Selecciona un producto</span>}</span>
                     </TableCell>
                     <TableCell className="py-2.5">
                       <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={p.cantidad}
