@@ -1100,6 +1100,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
               <TableRow>
                 <TableHead className="uppercase text-[10px] tracking-wide">Cliente</TableHead>
                 <TableHead className="uppercase text-[10px] tracking-wide">Fecha</TableHead>
+                <TableHead className="uppercase text-[10px] tracking-wide">N° Pedido</TableHead>
                 <TableHead className="uppercase text-[10px] tracking-wide">Lugar de entrega</TableHead>
                 <TableHead className="uppercase text-[10px] tracking-wide text-center">N° de productos</TableHead>
                 <TableHead className="uppercase text-[10px] tracking-wide">Estatus</TableHead>
