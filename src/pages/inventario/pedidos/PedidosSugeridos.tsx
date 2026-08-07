@@ -109,6 +109,20 @@ export default function PedidosSugeridos() {
     refetchInterval: 60_000,
   });
 
+  const { data: detalleLineas = [] } = useQuery({
+    queryKey: ["inv_pedido_lineas_abiertos_detalle", detalleCodigo?.codigo],
+    enabled: !!detalleCodigo?.codigo,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("inv_pedido_lineas")
+        .select("*, inv_pedidos!inner(numero_po_interno, empresa_vendedora, almacen_destino, fecha_pedido, fecha_entrega_estimada, estatus)")
+        .eq("codigo_producto", detalleCodigo!.codigo)
+        .not("inv_pedidos.estatus", "in", "(cerrado,cancelado)");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
   const { data: ignorados = [] } = useQuery({
     queryKey: ["inv_pedido_requerido_ignorados"],
     queryFn: async () => {
