@@ -355,6 +355,43 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
   const [calendarios, setCalendarios] = useState<Calendario[]>([]);
   const [perfiles, setPerfiles] = useState<Record<string, string>>({});
   const inputRef = useRef<HTMLInputElement>(null);
+  const [delCal, setDelCal] = useState<{ cal: Calendario; count: number } | null>(null);
+  const [delBusy, setDelBusy] = useState(false);
+
+  const pedirEliminarCalendario = async (c: Calendario) => {
+    const { count } = await (supabase as any)
+      .from("entregas_corporativas")
+      .select("id", { count: "exact", head: true })
+      .eq("calendario_id", c.id);
+    setDelCal({ cal: c, count: count ?? 0 });
+  };
+
+  const eliminarCalendario = async () => {
+    if (!delCal) return;
+    setDelBusy(true);
+    try {
+      const { data: ents } = await (supabase as any)
+        .from("entregas_corporativas").select("id").eq("calendario_id", delCal.cal.id);
+      const ids = ((ents ?? []) as { id: string }[]).map((e) => e.id);
+      if (ids.length) {
+        const { error: e1 } = await (supabase as any)
+          .from("entregas_corporativas_lineas").delete().in("entrega_id", ids);
+        if (e1) throw e1;
+        const { error: e2 } = await (supabase as any)
+          .from("entregas_corporativas").delete().in("id", ids);
+        if (e2) throw e2;
+      }
+      const { error: e3 } = await (supabase as any)
+        .from("entregas_corporativas_calendarios").delete().eq("id", delCal.cal.id);
+      if (e3) throw e3;
+      toast.success("Calendario eliminado");
+      setDelCal(null);
+      await loadCalendarios();
+      onImported();
+    } catch (err: any) {
+      toast.error(err.message ?? "No se pudo eliminar");
+    } finally { setDelBusy(false); }
+  };
 
   const cliente = clienteSel === "Otro" ? clienteOtro.trim() : clienteSel;
 
