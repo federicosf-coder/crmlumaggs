@@ -142,6 +142,16 @@ export default function PedidosElaborados() {
 }
 
 async function deletePedido(id: string) {
+  return _deletePedido(id);
+}
+
+async function verPdf(path: string) {
+  const { data, error } = await supabase.storage.from("inventario-pedidos").createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) { toast.error("No se pudo abrir el PDF"); return; }
+  window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+}
+
+async function _deletePedido(id: string) {
   const l = await (supabase as any).from("inv_pedido_lineas").delete().eq("pedido_id", id);
   if (l.error) throw l.error;
   const a = await (supabase as any).from("inv_pedido_archivos").delete().eq("pedido_id", id);
