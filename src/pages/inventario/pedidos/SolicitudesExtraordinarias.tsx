@@ -135,6 +135,12 @@ export default function SolicitudesExtraordinarias() {
     return p?.full_name || p?.email || "—";
   };
 
+  const solicitanteNombre = useMemo(() => {
+    if (!user) return "Yo";
+    const p = perfiles.find((x) => x.id === user.id);
+    return p?.full_name || p?.email || user.email || "Yo";
+  }, [user, perfiles]);
+
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     return solicitudes.filter((s) => {
