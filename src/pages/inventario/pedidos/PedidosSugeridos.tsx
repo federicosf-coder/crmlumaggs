@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EyeOff, Undo2, Settings, Check } from "lucide-react";
 import { toast } from "sonner";
 import { AjusteManualDialog, type Row as MinMaxRow, type NivelRow } from "@/pages/inventario/MinMaxInventario";
+import { ESTATUS_PEDIDO_LABEL, estatusPedidoColor } from "@/hooks/usePedidosInventario";
 
 const ALMACENES = [
   { code: "1001", label: "Mexicali" },
@@ -23,6 +25,7 @@ export default function PedidosSugeridos() {
   const [empresa, setEmpresa] = useState("todas");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<MinMaxRow | null>(null);
+  const [detalleCodigo, setDetalleCodigo] = useState<{ codigo: string; nombre: string } | null>(null);
   const qc = useQueryClient();
 
   const { data: niveles = [] } = useQuery({
@@ -105,6 +108,20 @@ export default function PedidosSugeridos() {
       return (data || []) as any[];
     },
     refetchInterval: 60_000,
+  });
+
+  const { data: detalleLineas = [] } = useQuery({
+    queryKey: ["inv_pedido_lineas_abiertos_detalle", detalleCodigo?.codigo],
+    enabled: !!detalleCodigo?.codigo,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("inv_pedido_lineas")
+        .select("*, inv_pedidos!inner(numero_po_interno, empresa_vendedora, almacen_destino, fecha_pedido, fecha_entrega_estimada, estatus)")
+        .eq("codigo_producto", detalleCodigo!.codigo)
+        .not("inv_pedidos.estatus", "in", "(cerrado,cancelado)");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
   });
 
   const { data: ignorados = [] } = useQuery({
@@ -338,7 +355,13 @@ export default function PedidosSugeridos() {
                       </TableCell>
                     );
                   })}
-                  <TableCell className="text-right tabular-nums text-sm text-muted-foreground">{r.ya_pedido}</TableCell>
+                  <TableCell
+                    className={`text-right tabular-nums text-sm ${r.ya_pedido > 0 ? "text-blue-700 cursor-pointer underline decoration-dotted underline-offset-4 hover:text-blue-900" : "text-muted-foreground"}`}
+                    onClick={() => r.ya_pedido > 0 && setDetalleCodigo({ codigo: r.codigo, nombre: r.nombre })}
+                    title={r.ya_pedido > 0 ? "Ver pedidos abiertos" : undefined}
+                  >
+                    {r.ya_pedido}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => ignorar(r.codigo)}>
@@ -397,6 +420,62 @@ export default function PedidosSugeridos() {
       </Tabs>
 
       <AjusteManualDialog editing={editing} onClose={() => setEditing(null)} nivMap={nivMap} />
+
+      <Dialog open={!!detalleCodigo} onOpenChange={() => setDetalleCodigo(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base font-medium">
+              Detalle de pedidos abiertos — {detalleCodigo?.codigo} {detalleCodigo?.nombre}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="p-0 overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+                    <TableRow>
+                      {["N° PO", "Proveedor/Marca", "Almacén destino", "Cantidad", "Fecha de pedido", "Fecha entrega estimada", "Estatus"].map((h) => (
+                        <TableHead key={h} className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground">{h}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {detalleLineas.map((l: any) => {
+                      const pedido = l.inv_pedidos || {};
+                      const almacen = ALMACENES.find((a) => a.code === pedido.almacen_destino)?.label || pedido.almacen_destino || "—";
+                      const marcaLabel = pedido.empresa_vendedora === "lumaggs" ? "Lumaggs" : pedido.empresa_vendedora === "galsa" ? "Galsa" : pedido.empresa_vendedora || "—";
+                      const cantidad = Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0);
+                      const estatus = pedido.estatus || "borrador";
+                      return (
+                        <TableRow key={l.id} className="odd:bg-muted/20">
+                          <TableCell className="font-mono text-xs">{pedido.numero_po_interno || "—"}</TableCell>
+                          <TableCell className="text-sm font-light">{marcaLabel}</TableCell>
+                          <TableCell className="text-xs">{almacen}</TableCell>
+                          <TableCell className="text-right tabular-nums text-sm font-medium">{cantidad}</TableCell>
+                          <TableCell className="text-xs">{pedido.fecha_pedido ? new Date(pedido.fecha_pedido).toLocaleDateString("es-MX") : "—"}</TableCell>
+                          <TableCell className="text-xs">{pedido.fecha_entrega_estimada ? new Date(pedido.fecha_entrega_estimada).toLocaleDateString("es-MX") : "—"}</TableCell>
+                          <TableCell className="text-right">
+                            <Badge className={`text-[10px] ${estatusPedidoColor(estatus)}`}>{ESTATUS_PEDIDO_LABEL[estatus] || estatus}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {detalleLineas.length === 0 && (
+                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Sin pedidos abiertos para este código</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+            <div className="flex justify-end items-center gap-2">
+              <span className="text-sm text-muted-foreground">Total ya pedido:</span>
+              <span className="text-xl font-light tabular-nums">
+                {detalleLineas.reduce((sum, l: any) => sum + Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0), 0)}
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
