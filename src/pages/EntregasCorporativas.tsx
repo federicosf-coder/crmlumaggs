@@ -2098,6 +2098,168 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
 }
 /* --------------------------- Nueva entrega manual --------------------------- */
 
+type ResumenRow = {
+  codigo: string;
+  nombre: string;
+  demanda: number;
+  stock_actual: number;
+  por_llegar: number;
+  disponible: number;
+  alcanza: boolean;
+  faltante: number;
+};
+
+function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
+  const [loading, setLoading] = useState(false);
+  const [lineas, setLineas] = useState<any[]>([]);
+  const [stock, setStock] = useState<Record<string, number>>({});
+  const [transito, setTransito] = useState<Record<string, number>>({});
+  const [fAlcanza, setFAlcanza] = useState("todos");
+  const [busq, setBusq] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    const [{ data: lin }, { data: niv }, { data: pl }] = await Promise.all([
+      (supabase as any)
+        .from("entregas_corporativas_lineas")
+        .select("id, codigo_producto, nombre_producto, cantidad, entrega:entregas_corporativas(estatus)"),
+      (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_total"),
+      (supabase as any)
+        .from("inv_pedido_lineas")
+        .select("codigo_producto, cantidad_confirmada, cantidad_solicitada, pedido:inv_pedidos!inner(estatus)"),
+    ]);
+
+    setLineas((lin ?? []).filter((l: any) => l.entrega?.estatus === "programada"));
+
+    const smap: Record<string, number> = {};
+    ((niv ?? []) as any[]).forEach((n) => {
+      smap[n.codigo_producto] = (smap[n.codigo_producto] ?? 0) + Number(n.stock_total ?? 0);
+    });
+    setStock(smap);
+
+    const tmap: Record<string, number> = {};
+    ((pl ?? []) as any[])
+      .filter((l) => l.pedido && !["cerrado", "cancelado"].includes(String(l.pedido.estatus)))
+      .forEach((l) => {
+        tmap[l.codigo_producto] = (tmap[l.codigo_producto] ?? 0) + Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0);
+      });
+    setTransito(tmap);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [refreshKey]);
+
+  const rows: ResumenRow[] = useMemo(() => {
+    const agg: Record<string, { nombre: string; demanda: number }> = {};
+    lineas.forEach((l) => {
+      const codigo = l.codigo_producto ?? "";
+      if (!agg[codigo]) agg[codigo] = { nombre: l.nombre_producto ?? "", demanda: 0 };
+      if (!agg[codigo].nombre && l.nombre_producto) agg[codigo].nombre = l.nombre_producto;
+      agg[codigo].demanda += Number(l.cantidad ?? 0);
+    });
+
+    const base: ResumenRow[] = Object.entries(agg).map(([codigo, v]) => {
+      const stock_actual = Number(stock[codigo] ?? 0);
+      const por_llegar = Number(transito[codigo] ?? 0);
+      const disponible = stock_actual + por_llegar - v.demanda;
+      return {
+        codigo,
+        nombre: v.nombre,
+        demanda: v.demanda,
+        stock_actual,
+        por_llegar,
+        disponible,
+        alcanza: disponible >= 0,
+        faltante: disponible < 0 ? Math.abs(disponible) : 0,
+      };
+    });
+
+    const q = busq.trim().toLowerCase();
+    return base
+      .filter((r) => {
+        if (fAlcanza === "si" && !r.alcanza) return false;
+        if (fAlcanza === "no" && r.alcanza) return false;
+        if (q && !`${r.codigo} ${r.nombre}`.toLowerCase().includes(q)) return false;
+        return true;
+      })
+      .sort((a, b) => (b.faltante - a.faltante) || a.codigo.localeCompare(b.codigo));
+  }, [lineas, stock, transito, fAlcanza, busq]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base font-medium">Resumen por Producto</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-3">
+          <div className="w-48">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">¿Nos Alcanza?</Label>
+            <Select value={fAlcanza} onValueChange={setFAlcanza}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="si">Sí</SelectItem>
+                <SelectItem value="no">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-64">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Buscar</Label>
+            <Input value={busq} onChange={(e) => setBusq(e.target.value)} placeholder="Código o producto" />
+          </div>
+          <div className="flex items-end">
+            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Código</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Producto</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Demanda Total</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Stock Actual</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Por Llegar</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Disponible Proyectado</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">¿Nos Alcanza?</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Faltante</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">
+                    {loading ? "Cargando…" : "Sin productos que mostrar"}
+                  </TableCell>
+                </TableRow>
+              )}
+              {rows.map((r) => (
+                <TableRow key={r.codigo} className="odd:bg-muted/30">
+                  <TableCell className="font-mono text-sm font-medium py-2.5">{r.codigo}</TableCell>
+                  <TableCell className="text-sm py-2.5">{r.nombre || "—"}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">{r.demanda}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">{r.stock_actual}</TableCell>
+                  <TableCell className="text-right text-sm font-medium py-2.5">{r.por_llegar}</TableCell>
+                  <TableCell className={`text-right text-sm font-semibold py-2.5 ${r.alcanza ? "text-emerald-700" : "text-red-700"}`}>{r.disponible}</TableCell>
+                  <TableCell className="py-2.5">
+                    <Badge className={`text-xs font-semibold ${r.alcanza ? "bg-emerald-200 text-emerald-800 hover:bg-emerald-200" : "bg-red-200 text-red-800 hover:bg-red-200"}`}>
+                      {r.alcanza ? "Sí" : "No"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right text-sm font-semibold text-red-700 py-2.5">{r.faltante > 0 ? r.faltante : "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function NuevaEntregaManualDialog({
   open, onOpenChange, onSaved,
 }: { open: boolean; onOpenChange: (o: boolean) => void; onSaved: () => void }) {
