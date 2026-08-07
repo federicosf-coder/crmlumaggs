@@ -4836,6 +4836,27 @@ export type Database = {
           },
         ]
       }
+      inv_pedido_requerido_ignorados: {
+        Row: {
+          codigo_producto: string
+          ignorado_at: string
+          ignorado_por: string | null
+          motivo: string | null
+        }
+        Insert: {
+          codigo_producto: string
+          ignorado_at?: string
+          ignorado_por?: string | null
+          motivo?: string | null
+        }
+        Update: {
+          codigo_producto?: string
+          ignorado_at?: string
+          ignorado_por?: string | null
+          motivo?: string | null
+        }
+        Relationships: []
+      }
       inv_pedidos: {
         Row: {
           almacen_destino: string
