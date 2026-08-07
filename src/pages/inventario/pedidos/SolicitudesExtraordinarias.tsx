@@ -383,12 +383,13 @@ export default function SolicitudesExtraordinarias() {
   );
 }
 
-function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving }: {
+function NuevaSolicitudDialog({ open, onOpenChange, productos, onSubmit, saving, solicitanteNombre }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   productos: OpcionProducto[];
   onSubmit: (p: { codigo_producto: string | null; producto_descripcion: string | null; cantidad: number; tipo: string; motivo: string }) => void;
   saving: boolean;
+  solicitanteNombre: string;
 }) {
   const [codigo, setCodigo] = useState("");
   const [cantidad, setCantidad] = useState("");
