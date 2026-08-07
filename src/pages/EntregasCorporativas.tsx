@@ -152,12 +152,12 @@ function mapsUrl(lat: number, lng: number) {
 
 function estatusBadge(e: string) {
   const map: Record<string, string> = {
-    programada: "bg-blue-100 text-blue-700 border-blue-200",
-    entregada: "bg-green-100 text-green-700 border-green-200",
-    cancelada: "bg-slate-100 text-slate-600 border-slate-200",
+    programada: "bg-blue-200 text-blue-800 border-blue-300",
+    entregada: "bg-emerald-200 text-emerald-800 border-emerald-300",
+    cancelada: "bg-slate-300 text-slate-800 border-slate-400",
   };
   return (
-    <Badge variant="outline" className={`text-[10px] font-medium capitalize ${map[e] || "bg-muted"}`}>
+    <Badge variant="outline" className={`text-xs font-semibold capitalize ${map[e] || "bg-muted text-foreground"}`}>
       {e}
     </Badge>
   );
@@ -347,12 +347,12 @@ function UbicacionesTab({ refreshKey, onChanged }: { refreshKey: number; onChang
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="uppercase text-[10px] tracking-wide">Cliente</TableHead>
-              <TableHead className="uppercase text-[10px] tracking-wide">Nombre</TableHead>
-              <TableHead className="uppercase text-[10px] tracking-wide">Dirección</TableHead>
-              <TableHead className="uppercase text-[10px] tracking-wide">Instrucciones</TableHead>
-              <TableHead className="uppercase text-[10px] tracking-wide">Activo</TableHead>
-              <TableHead className="uppercase text-[10px] tracking-wide text-right">Acciones</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Cliente</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Nombre</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Dirección</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Instrucciones</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Activo</TableHead>
+              <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -372,10 +372,10 @@ function UbicacionesTab({ refreshKey, onChanged }: { refreshKey: number; onChang
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm font-light">{u.direccion || "—"}</TableCell>
-                <TableCell className="text-sm font-light max-w-[280px] truncate">{u.instrucciones || "—"}</TableCell>
+                <TableCell className="text-sm">{u.direccion || "—"}</TableCell>
+                <TableCell className="text-sm max-w-[280px] truncate">{u.instrucciones || "—"}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={`text-[10px] ${u.activo ? "bg-green-100 text-green-700 border-green-200" : "bg-slate-100 text-slate-600"}`}>
+                  <Badge variant="outline" className={`text-xs font-semibold ${u.activo ? "bg-emerald-200 text-emerald-800 border-emerald-300" : "bg-slate-300 text-slate-800 border-slate-400"}`}>
                     {u.activo ? "Sí" : "No"}
                   </Badge>
                 </TableCell>
@@ -759,18 +759,18 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="uppercase text-[10px] tracking-wide">Archivo</TableHead>
-                    <TableHead className="uppercase text-[10px] tracking-wide">Estado</TableHead>
+                    <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Archivo</TableHead>
+                    <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Estado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {progreso.map((p, i) => (
                     <TableRow key={`${p.nombre}-${i}`} className={i % 2 ? "bg-muted/30" : ""}>
-                      <TableCell className="text-sm font-light">{p.nombre}</TableCell>
+                      <TableCell className="text-sm">{p.nombre}</TableCell>
                       <TableCell className="text-sm">
                         {p.estado === "procesando" && <span className="text-blue-700 inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Procesando…</span>}
-                        {p.estado === "listo" && <span className="text-green-700">Listo ({p.detalle})</span>}
-                        {p.estado === "error" && <span className="text-destructive">Error: {p.detalle}</span>}
+                        {p.estado === "listo" && <span className="text-green-700 font-medium">Listo ({p.detalle})</span>}
+                        {p.estado === "error" && <span className="text-destructive font-medium">Error: {p.detalle}</span>}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -804,17 +804,17 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="uppercase text-[10px] tracking-wide">Código</TableHead>
-                        <TableHead className="uppercase text-[10px] tracking-wide">Producto</TableHead>
-                        <TableHead className="uppercase text-[10px] tracking-wide text-right">Cantidad</TableHead>
+                        <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Código</TableHead>
+                        <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Producto</TableHead>
+                        <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Cantidad</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {g.productos.map((p, i) => (
                         <TableRow key={`${p.codigo}-${i}`} className={i % 2 ? "bg-muted/30" : ""}>
-                          <TableCell className="font-mono text-xs">{p.codigo}</TableCell>
-                          <TableCell className="text-sm font-light">{p.nombre_producto || "—"}</TableCell>
-                          <TableCell className="text-sm text-right">{p.cantidad}</TableCell>
+                          <TableCell className="font-mono text-sm font-medium">{p.codigo}</TableCell>
+                          <TableCell className="text-sm">{p.nombre_producto || "—"}</TableCell>
+                          <TableCell className="text-sm font-medium text-right">{p.cantidad}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -834,10 +834,10 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-[10px] tracking-wide">Cliente</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Archivo</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Fecha</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Subido por</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Cliente</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Archivo</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Fecha</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Subido por</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -848,9 +848,9 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
               {calendarios.map((c, i) => (
                 <TableRow key={c.id} className={i % 2 ? "bg-muted/30" : ""}>
                   <TableCell className="text-sm">{c.cliente}</TableCell>
-                  <TableCell className="text-sm font-light">{c.nombre_archivo}</TableCell>
+                  <TableCell className="text-sm">{c.nombre_archivo}</TableCell>
                   <TableCell className="text-sm">{new Date(c.created_at).toLocaleDateString("es-MX")}</TableCell>
-                  <TableCell className="text-sm font-light">{c.subido_por ? perfiles[c.subido_por] || "—" : "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{c.subido_por ? perfiles[c.subido_por] || "—" : "—"}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => openSigned(c.storage_path)}>
                       <FileText className="h-3.5 w-3.5 mr-1" /> Ver archivo
@@ -1286,13 +1286,13 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-[10px] tracking-wide">Cliente</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Fecha</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">N° Pedido</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Lugar de entrega</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide text-center">N° de productos</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide">Estatus</TableHead>
-                <TableHead className="uppercase text-[10px] tracking-wide text-right">Acciones</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Cliente</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Fecha</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">N° Pedido</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Lugar de entrega</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-center">N° de productos</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Estatus</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1311,9 +1311,9 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                   <TableCell className="text-sm">
                     <div className="flex items-center gap-2">
                       {r.ubicacion?.nombre ? (
-                        <span>{r.ubicacion.nombre}</span>
+                        <span className="font-medium">{r.ubicacion.nombre}</span>
                       ) : (
-                        <span className="italic font-light text-muted-foreground">
+                        <span className="italic text-sm text-muted-foreground">
                           {r.lugar_entrega_texto || "Sin ubicación"}
                         </span>
                       )}
@@ -1331,7 +1331,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="outline" className="text-[10px]">{(lineas[r.id] ?? []).length}</Badge>
+                    <Badge variant="outline" className="text-xs font-semibold">{(lineas[r.id] ?? []).length}</Badge>
                   </TableCell>
                   <TableCell>{estatusBadge(r.estatus)}</TableCell>
                   <TableCell className="text-right">
@@ -1465,9 +1465,9 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50">
-                      <TableHead className="uppercase text-[10px] tracking-wide">Código</TableHead>
-                      <TableHead className="uppercase text-[10px] tracking-wide">Producto</TableHead>
-                      <TableHead className="uppercase text-[10px] tracking-wide text-right">Cantidad</TableHead>
+                      <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Código</TableHead>
+                      <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Producto</TableHead>
+                      <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Cantidad</TableHead>
                       {editMode && <TableHead className="w-10" />}
                     </TableRow>
                   </TableHeader>
@@ -1477,9 +1477,9 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     )}
                     {detalleLineas.filter((l) => !lineasQuitar.includes(l.id)).map((l, i) => (
                       <TableRow key={l.id} className={i % 2 ? "bg-muted/30" : ""}>
-                        <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
-                        <TableCell className="text-sm font-light">{l.nombre_producto || "—"}</TableCell>
-                        <TableCell className="text-sm text-right">
+                        <TableCell className="font-mono text-sm font-medium">{l.codigo_producto}</TableCell>
+                        <TableCell className="text-sm">{l.nombre_producto || "—"}</TableCell>
+                        <TableCell className="text-sm font-medium text-right">
                           {editMode ? (
                             <Input
                               type="number"
@@ -1502,7 +1502,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                     {editMode && lineasNuevas.map((n, idx) => (
                       <TableRow key={`n-${idx}`}>
                         <TableCell>
-                          <Input className="h-8 text-xs font-mono" value={n.codigo} placeholder="Código"
+                          <Input className="h-8 text-sm font-mono font-medium" value={n.codigo} placeholder="Código"
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
                         </TableCell>
                         <TableCell>
@@ -1510,7 +1510,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
                         </TableCell>
                         <TableCell>
-                          <Input type="number" className="h-8 w-24 text-sm text-right ml-auto" value={n.cantidad}
+                          <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={n.cantidad}
                             onChange={(e) => setLineasNuevas((p) => p.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
                         </TableCell>
                         <TableCell>
@@ -1939,7 +1939,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
     : [];
 
   const Th = ({ k, children, className }: { k: string; children: React.ReactNode; className?: string }) => (
-    <TableHead className={`cursor-pointer select-none ${className ?? ""}`} onClick={() => toggleSort(k)}>
+    <TableHead className={`cursor-pointer select-none uppercase text-xs text-slate-700 font-semibold tracking-wide ${className ?? ""}`} onClick={() => toggleSort(k)}>
       {children}{sortKey === k ? (sortAsc ? " ↑" : " ↓") : ""}
     </TableHead>
   );
@@ -2004,13 +2004,13 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
                 <Th k="cliente">Cliente</Th>
                 <Th k="ubicacion">Ubicación</Th>
                 <Th k="fecha">Fecha Programada</Th>
-                <TableHead>N° Pedido</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">N° Pedido</TableHead>
                 <Th k="cantidad" className="text-right">Cantidad</Th>
                 <Th k="stock" className="text-right">Stock en Almacén</Th>
                 <Th k="porllegar" className="text-right">Por Llegar</Th>
-                <TableHead>¿Tendremos Stock?</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">¿Tendremos Stock?</TableHead>
                 <Th k="deficit" className="text-right">Déficit</Th>
-                <TableHead>Acción</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Acción</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2021,29 +2021,29 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
                   </TableCell>
                 </TableRow>
               )}
-              {rows.map((r) => (
-                <TableRow key={r.key}>
-                  <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
-                  <TableCell className="text-sm font-light">{r.nombre}</TableCell>
+              {rows.map((r, i) => (
+                <TableRow key={r.key} className={i % 2 ? "bg-muted/30" : ""}>
+                  <TableCell className="font-mono text-sm font-medium">{r.codigo}</TableCell>
+                  <TableCell className="text-sm">{r.nombre}</TableCell>
                   <TableCell className="text-sm">{r.cliente}</TableCell>
-                  <TableCell className="text-sm font-light">{r.ubicacion}</TableCell>
+                  <TableCell className="text-sm">{r.ubicacion}</TableCell>
                   <TableCell className="text-sm">{r.fecha}</TableCell>
                   <TableCell className="text-sm">{r.numero_pedido || "—"}</TableCell>
-                  <TableCell className="text-right text-sm">{r.cantidad}</TableCell>
-                  <TableCell className="text-right text-sm">{r.stock_actual}</TableCell>
+                  <TableCell className="text-right text-sm font-medium">{r.cantidad}</TableCell>
+                  <TableCell className="text-right text-sm font-medium">{r.stock_actual}</TableCell>
                   <TableCell className="text-right text-sm">
                     {r.por_llegar > 0 ? (
-                      <button className="text-blue-600 underline underline-offset-2" onClick={() => setDetallePorLlegar(r)}>
+                      <button className="text-sm font-medium text-blue-700 underline underline-offset-2" onClick={() => setDetallePorLlegar(r)}>
                         {r.por_llegar}
                       </button>
                     ) : 0}
                   </TableCell>
                   <TableCell>
-                    <Badge className={r.tendremos ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "bg-red-100 text-red-700 hover:bg-red-100"}>
+                    <Badge className={`text-xs font-semibold ${r.tendremos ? "bg-emerald-200 text-emerald-800 hover:bg-emerald-200" : "bg-red-200 text-red-800 hover:bg-red-200"}`}>
                       {r.tendremos ? "Sí" : "No"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right text-sm text-red-600">{r.tendremos ? "" : r.deficit}</TableCell>
+                  <TableCell className="text-right text-sm font-semibold text-red-700">{r.tendremos ? "" : r.deficit}</TableCell>
                   <TableCell>
                     {!r.tendremos && (
                       <Button
@@ -2074,16 +2074,16 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>N° PO</TableHead>
-                <TableHead className="text-right">Cantidad</TableHead>
-                <TableHead>Fecha estimada</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">N° PO</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Cantidad</TableHead>
+                <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Fecha estimada</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {detalleTransito.map((t, i) => (
-                <TableRow key={i}>
-                  <TableCell className="text-sm">{t.numero_po}</TableCell>
-                  <TableCell className="text-right text-sm">{t.cantidad}</TableCell>
+                <TableRow key={i} className={i % 2 ? "bg-muted/30" : ""}>
+                  <TableCell className="text-sm font-medium">{t.numero_po}</TableCell>
+                  <TableCell className="text-right text-sm font-medium">{t.cantidad}</TableCell>
                   <TableCell className="text-sm">{t.fecha_entrega_estimada}</TableCell>
                 </TableRow>
               ))}
@@ -2211,17 +2211,17 @@ function NuevaEntregaManualDialog({
             <Table>
               <TableHeader>
                 <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50">
-                  <TableHead className="uppercase text-[10px] tracking-wide">Código</TableHead>
-                  <TableHead className="uppercase text-[10px] tracking-wide">Nombre</TableHead>
-                  <TableHead className="uppercase text-[10px] tracking-wide text-right">Cantidad</TableHead>
+                  <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Código</TableHead>
+                  <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Nombre</TableHead>
+                  <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Cantidad</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {productos.map((p, idx) => (
-                  <TableRow key={idx}>
+                  <TableRow key={idx} className={idx % 2 ? "bg-muted/30" : ""}>
                     <TableCell>
-                      <Input className="h-8 text-xs font-mono" value={p.codigo} placeholder="Código"
+                      <Input className="h-8 text-sm font-mono font-medium" value={p.codigo} placeholder="Código"
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))} />
                     </TableCell>
                     <TableCell>
@@ -2229,7 +2229,7 @@ function NuevaEntregaManualDialog({
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, nombre: e.target.value } : x))} />
                     </TableCell>
                     <TableCell>
-                      <Input type="number" className="h-8 w-24 text-sm text-right ml-auto" value={p.cantidad}
+                      <Input type="number" className="h-8 w-24 text-sm text-right ml-auto font-medium" value={p.cantidad}
                         onChange={(e) => setProductos((prev) => prev.map((x, i) => i === idx ? { ...x, cantidad: e.target.value } : x))} />
                     </TableCell>
                     <TableCell>
