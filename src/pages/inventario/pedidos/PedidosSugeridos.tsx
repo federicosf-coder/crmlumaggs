@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { EyeOff, Undo2, Settings, Check } from "lucide-react";
 import { toast } from "sonner";
 import { AjusteManualDialog, type Row as MinMaxRow, type NivelRow } from "@/pages/inventario/MinMaxInventario";
+import { ESTATUS_PEDIDO_LABEL, estatusPedidoColor } from "@/hooks/usePedidosInventario";
 
 const ALMACENES = [
   { code: "1001", label: "Mexicali" },
