@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Star, TrendingDown, RefreshCw } from "lucide-react";
+import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Star, TrendingDown, RefreshCw, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
-type Clasificacion = "estancado" | "baja_rotacion" | "rotacion_buena" | "estrella";
+type Clasificacion = "estancado" | "sin_stock" | "demanda_perdida" | "baja_rotacion" | "rotacion_buena" | "estrella";
 
 type Row = {
   id: string;
@@ -36,6 +36,8 @@ const fmtNum = (n: number | null | undefined, dec = 0) =>
 
 const CLAS_LABEL: Record<Clasificacion, string> = {
   estancado: "Estancado",
+  sin_stock: "Sin stock ni movimiento",
+  demanda_perdida: "Demanda perdida",
   baja_rotacion: "Baja rotación",
   rotacion_buena: "Rotación buena",
   estrella: "⭐ Estrella",
@@ -44,6 +46,8 @@ const CLAS_LABEL: Record<Clasificacion, string> = {
 function clasificacionBadge(c: Clasificacion) {
   const map: Record<Clasificacion, string> = {
     estancado: "bg-red-100 text-red-700 border-red-200",
+    sin_stock: "bg-slate-100 text-slate-600 border-slate-200",
+    demanda_perdida: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200",
     baja_rotacion: "bg-amber-100 text-amber-800 border-amber-200",
     rotacion_buena: "bg-emerald-100 text-emerald-700 border-emerald-200",
     estrella: "bg-violet-100 text-violet-700 border-violet-200",
@@ -83,6 +87,7 @@ export function RotacionInventarioTabContent() {
   const [marcas, setMarcas] = useState<Map<string, string>>(new Map());
   const [niveles, setNiveles] = useState<any[]>([]);
   const [ventas, setVentas] = useState<any[]>([]);
+  const [cotizaciones, setCotizaciones] = useState<any[]>([]);
 
   const [marcaSel, setMarcaSel] = useState("ALL");
   const [clasSel, setClasSel] = useState("ALL");
@@ -102,7 +107,7 @@ export function RotacionInventarioTabContent() {
   const recargar = async () => {
     setLoading(true);
     try {
-      const [prods, opts, nv, vts] = await Promise.all([
+      const [prods, opts, nv, vts, cots] = await Promise.all([
         fetchAll(() => (supabase as any).from("productos").select("id, codigo, nombre_producto, marca_id").eq("is_active", true).order("codigo")),
         (supabase as any).from("product_option_values").select("id, value").eq("option_type", "marca"),
         fetchAll(() => (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total, costo_promedio")),
@@ -114,11 +119,19 @@ export function RotacionInventarioTabContent() {
           .eq("documentos.is_active", true)
           .gte("documentos.fecha_documento", desde)
           .lte("documentos.fecha_documento", hasta)),
+        fetchAll(() => (supabase as any)
+          .from("documento_productos")
+          .select("producto_id, documentos!inner(fecha_documento, tipo_documento, is_active)")
+          .eq("documentos.tipo_documento", "cotizacion")
+          .eq("documentos.is_active", true)
+          .gte("documentos.fecha_documento", desde)
+          .lte("documentos.fecha_documento", hasta)),
       ]);
       setProductos(prods);
       setMarcas(new Map(((opts.data || []) as any[]).map((o) => [o.id, o.value])));
       setNiveles(nv);
       setVentas(vts);
+      setCotizaciones(cots);
     } catch (e: any) {
       toast.error("Error cargando rotación: " + e.message);
     } finally {
@@ -150,6 +163,12 @@ export function RotacionInventarioTabContent() {
     }
     return m;
   }, [ventas]);
+
+  const cotizacionesSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of cotizaciones) if (c.producto_id) s.add(c.producto_id);
+    return s;
+  }, [cotizaciones]);
 
   const rows = useMemo<Row[]>(() => {
     const base = productos.map((p) => {
@@ -190,7 +209,11 @@ export function RotacionInventarioTabContent() {
 
     for (const r of base) {
       r.pct = total > 0 ? (r.ue / total) * 100 : 0;
-      if (r.ue === 0) r.clasificacion = "estancado";
+      if (r.ue === 0) {
+        if (r.stock_total > 0) r.clasificacion = "estancado";
+        else if (cotizacionesSet.has(r.id)) r.clasificacion = "demanda_perdida";
+        else r.clasificacion = "sin_stock";
+      }
       else {
         const isTop80 = top80.has(r.id);
         if (isTop80 && r.meses_con_venta >= 9) r.clasificacion = "estrella";
@@ -199,7 +222,7 @@ export function RotacionInventarioTabContent() {
       }
     }
     return base;
-  }, [productos, ventasMap, nivelesMap, marcas]);
+  }, [productos, ventasMap, nivelesMap, marcas, cotizacionesSet]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -229,6 +252,7 @@ export function RotacionInventarioTabContent() {
       valorEstancado: estancados.reduce((s, r) => s + r.valor_stock, 0),
       estrella: filtered.filter((r) => r.clasificacion === "estrella").length,
       baja: filtered.filter((r) => r.clasificacion === "baja_rotacion").length,
+      demandaPerdida: filtered.filter((r) => r.clasificacion === "demanda_perdida").length,
     };
   }, [filtered]);
 
@@ -285,12 +309,13 @@ export function RotacionInventarioTabContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <Kpi label="Total SKUs" value={kpis.total.toLocaleString("es-MX")} icon={<Package className="h-4 w-4" />} tone="slate" />
         <Kpi label="Estancados" value={kpis.estancados.toLocaleString("es-MX")} icon={<AlertTriangle className="h-4 w-4" />} tone="red" />
         <Kpi label="Valor estancado" value={fmtMoney(kpis.valorEstancado)} icon={<DollarSign className="h-4 w-4" />} tone="blue" />
         <Kpi label="Estrella" value={kpis.estrella.toLocaleString("es-MX")} icon={<Star className="h-4 w-4" />} tone="violet" />
         <Kpi label="Baja rotación" value={kpis.baja.toLocaleString("es-MX")} icon={<TrendingDown className="h-4 w-4" />} tone="amber" />
+        <Kpi label="Demanda perdida" value={kpis.demandaPerdida.toLocaleString("es-MX")} icon={<ShoppingCart className="h-4 w-4" />} tone="fuchsia" />
       </div>
 
       <Card>
@@ -312,6 +337,8 @@ export function RotacionInventarioTabContent() {
                 <SelectItem value="rotacion_buena">Rotación buena</SelectItem>
                 <SelectItem value="baja_rotacion">Baja rotación</SelectItem>
                 <SelectItem value="estancado">Estancado</SelectItem>
+                <SelectItem value="demanda_perdida">Demanda perdida</SelectItem>
+                <SelectItem value="sin_stock">Sin stock ni movimiento</SelectItem>
               </SelectContent>
             </Select>
             <div className="relative flex-1 min-w-[220px]">
@@ -374,13 +401,14 @@ export function RotacionInventarioTabContent() {
   );
 }
 
-function Kpi({ label, value, icon, tone }: { label: string; value: string; icon: React.ReactNode; tone: "slate" | "blue" | "amber" | "red" | "violet" }) {
+function Kpi({ label, value, icon, tone }: { label: string; value: string; icon: React.ReactNode; tone: "slate" | "blue" | "amber" | "red" | "violet" | "fuchsia" }) {
   const tones: Record<string, string> = {
     slate: "from-slate-50 to-slate-100 text-slate-700 border-slate-200",
     blue: "from-blue-50 to-blue-100 text-blue-700 border-blue-200",
     amber: "from-amber-50 to-amber-100 text-amber-800 border-amber-200",
     red: "from-red-50 to-red-100 text-red-700 border-red-200",
     violet: "from-violet-50 to-violet-100 text-violet-700 border-violet-200",
+    fuchsia: "from-fuchsia-50 to-fuchsia-100 text-fuchsia-700 border-fuchsia-200",
   };
   return (
     <Card className={`bg-gradient-to-br ${tones[tone]} border`}>
