@@ -190,6 +190,18 @@ export default function Pareto8020Report() {
                 </PopoverContent>
               </Popover>
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide">Nivel</Label>
+              <Select value={nivel} onValueChange={(v) => setNivel(v as "base" | "individual")}>
+                <SelectTrigger className="w-[200px] font-light">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="base">Por Producto Base</SelectItem>
+                  <SelectItem value="individual">Por SKU Individual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
