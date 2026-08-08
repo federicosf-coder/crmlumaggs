@@ -239,8 +239,10 @@ export default function Pareto8020Report() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
-                  <TableHead>Producto Base</TableHead>
-                  <TableHead className="text-right">Presentaciones</TableHead>
+                  <TableHead>{nivel === "base" ? "Producto Base" : "Producto"}</TableHead>
+                  {nivel === "base" && (
+                    <TableHead className="text-right">Presentaciones</TableHead>
+                  )}
                   <TableHead className="text-right">Unidades Equivalentes</TableHead>
                   <TableHead className="text-right">% del total</TableHead>
                   <TableHead className="text-right">% acumulado</TableHead>
@@ -250,13 +252,13 @@ export default function Pareto8020Report() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={nivel === "base" ? 7 : 6} className="text-center text-muted-foreground py-8">
                       Cargando...
                     </TableCell>
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={nivel === "base" ? 7 : 6} className="text-center text-muted-foreground py-8">
                       Sin datos para los filtros seleccionados.
                     </TableCell>
                   </TableRow>
@@ -268,7 +270,9 @@ export default function Pareto8020Report() {
                     >
                       <TableCell className="text-muted-foreground">{r.pos}</TableCell>
                       <TableCell className="font-medium">{r.nombre}</TableCell>
-                      <TableCell className="text-right">{r.skus}</TableCell>
+                      {nivel === "base" && (
+                        <TableCell className="text-right">{r.skus}</TableCell>
+                      )}
                       <TableCell className="text-right">{fmt(r.ue)}</TableCell>
                       <TableCell className="text-right">{r.pct.toFixed(1)}%</TableCell>
                       <TableCell className="text-right">{r.accPct.toFixed(1)}%</TableCell>
@@ -286,7 +290,7 @@ export default function Pareto8020Report() {
                   <TableRow className="bg-muted/50 font-semibold">
                     <TableCell />
                     <TableCell>Total</TableCell>
-                    <TableCell />
+                    {nivel === "base" && <TableCell />}
                     <TableCell className="text-right">{fmt(total)}</TableCell>
                     <TableCell className="text-right">100.0%</TableCell>
                     <TableCell />
