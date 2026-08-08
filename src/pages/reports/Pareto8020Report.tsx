@@ -21,6 +21,7 @@ export default function Pareto8020Report() {
   const [marca, setMarca] = useState<string>("todas");
   const [plazasSel, setPlazasSel] = useState<string[]>([]);
   const [initPlazas, setInitPlazas] = useState(false);
+  const [nivel, setNivel] = useState<"base" | "individual">("base");
 
   const { desde, hasta } = useMemo(() => {
     const now = new Date();
