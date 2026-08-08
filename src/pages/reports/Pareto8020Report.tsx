@@ -21,6 +21,7 @@ export default function Pareto8020Report() {
   const [marca, setMarca] = useState<string>("todas");
   const [plazasSel, setPlazasSel] = useState<string[]>([]);
   const [initPlazas, setInitPlazas] = useState(false);
+  const [nivel, setNivel] = useState<"base" | "individual">("base");
 
   const { desde, hasta } = useMemo(() => {
     const now = new Date();
@@ -87,19 +88,27 @@ export default function Pareto8020Report() {
   const { rows, total, top80Count } = useMemo(() => {
     const map = new Map<string, { nombre: string; ue: number; skus: Set<string> }>();
     for (const l of lineas) {
-      const baseId = l.productos?.producto_base_id ?? "__sin_base__";
-      const nombre = l.productos?.productos_base?.nombre ?? "Sin producto base";
-      const entry = map.get(baseId) ?? { nombre, ue: 0, skus: new Set<string>() };
-      entry.ue += Number(l.unidades_equivalentes ?? 0);
-      if (l.productos?.id) entry.skus.add(l.productos.id);
-      map.set(baseId, entry);
+      if (nivel === "base") {
+        const baseId = l.productos?.producto_base_id ?? "__sin_base__";
+        const nombre = l.productos?.productos_base?.nombre ?? "Sin producto base";
+        const entry = map.get(baseId) ?? { nombre, ue: 0, skus: new Set<string>() };
+        entry.ue += Number(l.unidades_equivalentes ?? 0);
+        if (l.productos?.id) entry.skus.add(l.productos.id);
+        map.set(baseId, entry);
+      } else {
+        const prodId = l.productos?.id ?? "__sin_producto__";
+        const nombre = l.productos?.nombre_producto ?? "Sin producto";
+        const entry = map.get(prodId) ?? { nombre, ue: 0, skus: new Set<string>() };
+        entry.ue += Number(l.unidades_equivalentes ?? 0);
+        map.set(prodId, entry);
+      }
     }
     const sorted = [...map.entries()].sort((a, b) => b[1].ue - a[1].ue);
     const tot = sorted.reduce((a, [, v]) => a + v.ue, 0);
     let acc = 0;
     let reached = false;
     let count = 0;
-    const out = sorted.map(([baseId, v], i) => {
+    const out = sorted.map(([key, v], i) => {
       const ue = v.ue;
       acc += ue;
       const accPct = tot > 0 ? (acc / tot) * 100 : 0;
@@ -107,7 +116,7 @@ export default function Pareto8020Report() {
       if (isTop) count++;
       if (accPct >= 80) reached = true;
       return {
-        key: baseId,
+        key,
         pos: i + 1,
         nombre: v.nombre,
         skus: v.skus.size,
@@ -119,7 +128,7 @@ export default function Pareto8020Report() {
       };
     });
     return { rows: out, total: tot, top80Count: count };
-  }, [lineas]);
+  }, [lineas, nivel]);
 
   const fmt = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
 
@@ -130,7 +139,11 @@ export default function Pareto8020Report() {
     <>
       <PageBanner
         title="Análisis 80/20 — Productos Más Vendidos"
-        description="Concentración de unidades equivalentes por producto base en los últimos 12 meses."
+        description={
+          nivel === "base"
+            ? "Concentración de unidades equivalentes por producto base en los últimos 12 meses."
+            : "Concentración de unidades equivalentes por SKU individual en los últimos 12 meses."
+        }
       />
       <div className="container mx-auto p-4 space-y-4">
         <Card>
@@ -177,6 +190,18 @@ export default function Pareto8020Report() {
                 </PopoverContent>
               </Popover>
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide">Nivel</Label>
+              <Select value={nivel} onValueChange={(v) => setNivel(v as "base" | "individual")}>
+                <SelectTrigger className="w-[200px] font-light">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="base">Por Producto Base</SelectItem>
+                  <SelectItem value="individual">Por SKU Individual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
@@ -202,7 +227,7 @@ export default function Pareto8020Report() {
                 {top80Count} <span className="text-xl font-light text-muted-foreground">de {rows.length}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1 font-light">
-                productos base concentran el 80% de las ventas
+                {nivel === "base" ? "productos base" : "SKUs individuales"} concentran el 80% de las ventas
               </p>
             </CardContent>
           </Card>
@@ -214,8 +239,10 @@ export default function Pareto8020Report() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
-                  <TableHead>Producto Base</TableHead>
-                  <TableHead className="text-right">Presentaciones</TableHead>
+                  <TableHead>{nivel === "base" ? "Producto Base" : "Producto"}</TableHead>
+                  {nivel === "base" && (
+                    <TableHead className="text-right">Presentaciones</TableHead>
+                  )}
                   <TableHead className="text-right">Unidades Equivalentes</TableHead>
                   <TableHead className="text-right">% del total</TableHead>
                   <TableHead className="text-right">% acumulado</TableHead>
@@ -225,13 +252,13 @@ export default function Pareto8020Report() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={nivel === "base" ? 7 : 6} className="text-center text-muted-foreground py-8">
                       Cargando...
                     </TableCell>
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={nivel === "base" ? 7 : 6} className="text-center text-muted-foreground py-8">
                       Sin datos para los filtros seleccionados.
                     </TableCell>
                   </TableRow>
@@ -243,7 +270,9 @@ export default function Pareto8020Report() {
                     >
                       <TableCell className="text-muted-foreground">{r.pos}</TableCell>
                       <TableCell className="font-medium">{r.nombre}</TableCell>
-                      <TableCell className="text-right">{r.skus}</TableCell>
+                      {nivel === "base" && (
+                        <TableCell className="text-right">{r.skus}</TableCell>
+                      )}
                       <TableCell className="text-right">{fmt(r.ue)}</TableCell>
                       <TableCell className="text-right">{r.pct.toFixed(1)}%</TableCell>
                       <TableCell className="text-right">{r.accPct.toFixed(1)}%</TableCell>
@@ -261,7 +290,7 @@ export default function Pareto8020Report() {
                   <TableRow className="bg-muted/50 font-semibold">
                     <TableCell />
                     <TableCell>Total</TableCell>
-                    <TableCell />
+                    {nivel === "base" && <TableCell />}
                     <TableCell className="text-right">{fmt(total)}</TableCell>
                     <TableCell className="text-right">100.0%</TableCell>
                     <TableCell />
