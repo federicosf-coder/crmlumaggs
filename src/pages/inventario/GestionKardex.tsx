@@ -4,6 +4,7 @@ import { Boxes } from "lucide-react";
 import { KardexCargaTabContent } from "@/pages/inventario/KardexCarga";
 import { MinMaxTabContent } from "@/pages/inventario/MinMaxInventario";
 import { ReporteKardexTabContent } from "@/pages/inventario/ReporteKardex";
+import { RotacionInventarioTabContent } from "@/pages/inventario/RotacionInventario";
 
 export default function GestionKardex() {
   const [tab, setTab] = useState("carga");
@@ -26,6 +27,7 @@ export default function GestionKardex() {
           <TabsTrigger value="carga">Carga de Kárdex</TabsTrigger>
           <TabsTrigger value="minmax">Mínimos y Máximos</TabsTrigger>
           <TabsTrigger value="reporte">Reporte</TabsTrigger>
+          <TabsTrigger value="rotacion">Rotación</TabsTrigger>
         </TabsList>
 
         <TabsContent value="carga" className="mt-4">
@@ -36,6 +38,9 @@ export default function GestionKardex() {
         </TabsContent>
         <TabsContent value="reporte" className="mt-4">
           <ReporteKardexTabContent />
+        </TabsContent>
+        <TabsContent value="rotacion" className="mt-4">
+          <RotacionInventarioTabContent />
         </TabsContent>
       </Tabs>
     </div>
