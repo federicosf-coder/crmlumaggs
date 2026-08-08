@@ -227,7 +227,7 @@ export default function Pareto8020Report() {
                 {top80Count} <span className="text-xl font-light text-muted-foreground">de {rows.length}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1 font-light">
-                productos base concentran el 80% de las ventas
+                {nivel === "base" ? "productos base" : "SKUs individuales"} concentran el 80% de las ventas
               </p>
             </CardContent>
           </Card>
