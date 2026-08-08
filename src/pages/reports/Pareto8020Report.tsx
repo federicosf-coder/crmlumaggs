@@ -88,19 +88,27 @@ export default function Pareto8020Report() {
   const { rows, total, top80Count } = useMemo(() => {
     const map = new Map<string, { nombre: string; ue: number; skus: Set<string> }>();
     for (const l of lineas) {
-      const baseId = l.productos?.producto_base_id ?? "__sin_base__";
-      const nombre = l.productos?.productos_base?.nombre ?? "Sin producto base";
-      const entry = map.get(baseId) ?? { nombre, ue: 0, skus: new Set<string>() };
-      entry.ue += Number(l.unidades_equivalentes ?? 0);
-      if (l.productos?.id) entry.skus.add(l.productos.id);
-      map.set(baseId, entry);
+      if (nivel === "base") {
+        const baseId = l.productos?.producto_base_id ?? "__sin_base__";
+        const nombre = l.productos?.productos_base?.nombre ?? "Sin producto base";
+        const entry = map.get(baseId) ?? { nombre, ue: 0, skus: new Set<string>() };
+        entry.ue += Number(l.unidades_equivalentes ?? 0);
+        if (l.productos?.id) entry.skus.add(l.productos.id);
+        map.set(baseId, entry);
+      } else {
+        const prodId = l.productos?.id ?? "__sin_producto__";
+        const nombre = l.productos?.nombre_producto ?? "Sin producto";
+        const entry = map.get(prodId) ?? { nombre, ue: 0, skus: new Set<string>() };
+        entry.ue += Number(l.unidades_equivalentes ?? 0);
+        map.set(prodId, entry);
+      }
     }
     const sorted = [...map.entries()].sort((a, b) => b[1].ue - a[1].ue);
     const tot = sorted.reduce((a, [, v]) => a + v.ue, 0);
     let acc = 0;
     let reached = false;
     let count = 0;
-    const out = sorted.map(([baseId, v], i) => {
+    const out = sorted.map(([key, v], i) => {
       const ue = v.ue;
       acc += ue;
       const accPct = tot > 0 ? (acc / tot) * 100 : 0;
@@ -108,7 +116,7 @@ export default function Pareto8020Report() {
       if (isTop) count++;
       if (accPct >= 80) reached = true;
       return {
-        key: baseId,
+        key,
         pos: i + 1,
         nombre: v.nombre,
         skus: v.skus.size,
@@ -120,7 +128,7 @@ export default function Pareto8020Report() {
       };
     });
     return { rows: out, total: tot, top80Count: count };
-  }, [lineas]);
+  }, [lineas, nivel]);
 
   const fmt = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
 
