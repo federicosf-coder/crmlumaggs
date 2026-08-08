@@ -139,7 +139,11 @@ export default function Pareto8020Report() {
     <>
       <PageBanner
         title="Análisis 80/20 — Productos Más Vendidos"
-        description="Concentración de unidades equivalentes por producto base en los últimos 12 meses."
+        description={
+          nivel === "base"
+            ? "Concentración de unidades equivalentes por producto base en los últimos 12 meses."
+            : "Concentración de unidades equivalentes por SKU individual en los últimos 12 meses."
+        }
       />
       <div className="container mx-auto p-4 space-y-4">
         <Card>
