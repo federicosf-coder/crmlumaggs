@@ -39,10 +39,11 @@ export function SearchableSelect({
 
   const filtered = useMemo(() => {
     if (!search) return options;
-    const s = search.toLowerCase();
+    const words = search.trim().split(/\s+/).filter(Boolean).map((w) => w.toLowerCase());
+    if (words.length === 0) return options;
     return options.filter((o) => {
-      const text = o.searchText || o.label;
-      return text.toLowerCase().includes(s);
+      const text = (o.searchText || o.label).toLowerCase();
+      return words.every((word) => text.includes(word));
     });
   }, [options, search]);
 
