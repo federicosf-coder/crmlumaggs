@@ -1048,6 +1048,32 @@ export default function SeguimientoVentas() {
             <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
           </Button>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <MultiSelectFilter
+            label="Ejecutivo"
+            options={[
+              { id: "__none__", label: "Sin asignar", color: "#64748b" },
+              ...ejecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) })),
+            ]}
+            selected={fEjecutivo}
+            onToggle={(id) => setFEjecutivo((arr) => toggleInArray(arr, id))}
+            onClear={() => setFEjecutivo([])}
+            emptyText="Sin ejecutivos"
+            width="w-full sm:w-56"
+          />
+          <MultiSelectFilter
+            label="Plaza"
+            options={[
+              { id: "__none__", label: "Sin plaza", color: "#64748b" },
+              ...plazaOptions.map((p) => ({ id: p.id, label: p.name, color: p.color })),
+            ]}
+            selected={fPlaza}
+            onToggle={(id) => setFPlaza((arr) => toggleInArray(arr, id))}
+            onClear={() => setFPlaza([])}
+            emptyText="Sin plazas"
+            width="w-full sm:w-56"
+          />
+        </div>
       </div>
 
       {/* Panel de filtros colapsable */}
