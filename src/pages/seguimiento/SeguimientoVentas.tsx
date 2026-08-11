@@ -296,7 +296,7 @@ export default function SeguimientoVentas() {
   const brandTitle = brand === "phillips66" ? "Seguimiento — Phillips 66" : "Seguimiento — Chevron";
   const brandSubtitle = brand === "phillips66" ? "Galsa" : "Lumaggs";
 
-  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos">("con_venta");
+  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion">("con_venta");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<SeguimientoVentasRow | null>(null);
   const [sort, setSort] = useState<SortState | null>(null);
@@ -312,6 +312,7 @@ export default function SeguimientoVentas() {
 
   const isPerdidos = tab === "perdidos";
   const tieneVenta = tab === "con_venta" || tab === "perdidos";
+  const isRecuperacion = tab === "recuperacion";
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -352,6 +353,125 @@ export default function SeguimientoVentas() {
 
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta, perdidos: isPerdidos });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
+
+  // ─────────── Recuperación de Productos ───────────
+  const [recSearch, setRecSearch] = useState("");
+  const [recRangos, setRecRangos] = useState<string[]>([]);
+  const [recProducto, setRecProducto] = useState<string>("");
+  const [recSort, setRecSort] = useState<SortDir>("desc");
+
+  const { data: recActivos = [], isLoading: recActivosLoading } = useQuery({
+    queryKey: ["recuperacion-activos", empresaVendedora],
+    enabled: isRecuperacion,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("seguimiento_ventas")
+        .select("company_id, companies:company_id(name)")
+        .eq("empresa_vendedora", empresaVendedora)
+        .or("perdido.is.null,perdido.eq.false")
+        .limit(5000);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const { data: recFacturas = [], isLoading: recFacturasLoading } = useQuery({
+    queryKey: ["recuperacion-facturas", empresaVendedora],
+    enabled: isRecuperacion,
+    queryFn: async () => {
+      const all: any[] = [];
+      let from = 0;
+      const size = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("documento_productos")
+          .select("producto_id, cantidad, documentos!inner(empresa_id, fecha_documento, tipo_documento, estatus_factura, is_active, empresa_vendedora), productos:producto_id(nombre_producto, codigo)")
+          .eq("documentos.tipo_documento", "factura")
+          .neq("documentos.estatus_factura", "cancelada")
+          .eq("documentos.is_active", true)
+          .eq("documentos.empresa_vendedora", empresaVendedora)
+          .range(from, from + size - 1);
+        if (error) throw error;
+        const page = (data || []) as any[];
+        all.push(...page);
+        if (page.length < size) break;
+        from += size;
+      }
+      return all;
+    },
+  });
+
+  const recLoading = recActivosLoading || recFacturasLoading;
+
+  const recRows = useMemo(() => {
+    if (!isRecuperacion) return [] as any[];
+    const activos = new Map<string, string>();
+    for (const a of recActivos) {
+      if (a.company_id) activos.set(a.company_id, a.companies?.name || "—");
+    }
+    const grouped = new Map<string, {
+      key: string; empresa_id: string; empresa: string; producto_id: string;
+      producto: string; codigo: string; ultima: string; cantidad: number;
+    }>();
+    for (const r of recFacturas as any[]) {
+      const empresaId = r.documentos?.empresa_id;
+      const fecha = r.documentos?.fecha_documento;
+      if (!empresaId || !r.producto_id || !fecha) continue;
+      if (!activos.has(empresaId)) continue;
+      const key = `${empresaId}|${r.producto_id}`;
+      const prev = grouped.get(key);
+      if (prev) {
+        prev.cantidad += Number(r.cantidad || 0);
+        if (fecha > prev.ultima) prev.ultima = fecha;
+      } else {
+        grouped.set(key, {
+          key,
+          empresa_id: empresaId,
+          empresa: activos.get(empresaId) || "—",
+          producto_id: r.producto_id,
+          producto: r.productos?.nombre_producto || "—",
+          codigo: r.productos?.codigo || "—",
+          ultima: fecha,
+          cantidad: Number(r.cantidad || 0),
+        });
+      }
+    }
+    const hoy = new Date();
+    const out: (ReturnType<typeof Object> & any)[] = [];
+    grouped.forEach((g) => {
+      const [y, m, d] = String(g.ultima).slice(0, 10).split("-").map(Number);
+      const last = new Date(y, (m || 1) - 1, d || 1);
+      const dias = Math.floor((hoy.getTime() - last.getTime()) / 86400000);
+      if (dias < 90) return;
+      const rango = dias >= 180 ? "180+" : dias >= 120 ? "120-180" : "90-120";
+      out.push({ ...g, dias, rango });
+    });
+    return out;
+  }, [isRecuperacion, recActivos, recFacturas]);
+
+  const recProductoOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of recRows) if (!m.has(r.producto_id)) m.set(r.producto_id, `${r.producto}${r.codigo && r.codigo !== "—" ? ` (${r.codigo})` : ""}`);
+    return [{ value: "", label: "Todos los productos" }, ...Array.from(m.entries()).map(([value, label]) => ({ value, label }))];
+  }, [recRows]);
+
+  const recFiltered = useMemo(() => {
+    const q = recSearch.trim().toLowerCase();
+    let list = recRows.filter((r) => {
+      if (recRangos.length > 0 && !recRangos.includes(r.rango)) return false;
+      if (recProducto && r.producto_id !== recProducto) return false;
+      if (q) {
+        const words = q.split(/\s+/);
+        const text = `${r.empresa} ${r.producto} ${r.codigo}`.toLowerCase();
+        if (!words.every((w) => text.includes(w))) return false;
+      }
+      return true;
+    });
+    list = [...list].sort((a, b) => (recSort === "desc" ? b.dias - a.dias : a.dias - b.dias));
+    return list;
+  }, [recRows, recSearch, recRangos, recProducto, recSort]);
+
+  const recTotal180 = useMemo(() => recFiltered.filter((r) => r.rango === "180+").length, [recFiltered]);
 
   // Deep-link: ?company=<uuid> abre la ficha de esa empresa (crea registro si no existe)
   const [searchParams, setSearchParams] = useSearchParams();
