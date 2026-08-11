@@ -1079,7 +1079,19 @@ export default function SeguimientoVentas() {
           >
             Clientes Perdidos
           </button>
+          <button
+            onClick={() => setTab("recuperacion")}
+            className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-md transition-colors ${
+              tab === "recuperacion"
+                ? "bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Recuperación de Productos
+          </button>
         </div>
+        {!isRecuperacion && (
+        <>
         {/* Botones de filtro siempre visibles (desde catálogo) */}
         <div className="w-full space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -1194,9 +1206,12 @@ export default function SeguimientoVentas() {
             width="w-full sm:w-56"
           />
         </div>
+        </>
+        )}
       </div>
 
       {/* Panel de filtros colapsable */}
+      {!isRecuperacion && (
       <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
         <CollapsibleContent>
           <Card className="border-violet-200/60">
@@ -1349,9 +1364,10 @@ export default function SeguimientoVentas() {
           </Card>
         </CollapsibleContent>
       </Collapsible>
+      )}
 
       {/* Barra de acciones masivas */}
-      {selectedIds.size > 0 && (
+      {!isRecuperacion && selectedIds.size > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-violet-50 dark:bg-violet-950/30 px-3 py-2">
           <div className="text-xs font-semibold uppercase tracking-wide text-violet-900 dark:text-violet-200">
             {selectedIds.size} seleccionado{selectedIds.size === 1 ? "" : "s"}
@@ -1399,7 +1415,126 @@ export default function SeguimientoVentas() {
         </div>
       )}
 
+      {isRecuperacion && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Combinaciones</p>
+                <p className="text-2xl font-semibold">{recFiltered.length}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Rango 180+</p>
+                <p className="text-2xl font-semibold text-red-600">{recTotal180}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 sm:w-72 sm:flex-none">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar empresa o producto..."
+                value={recSearch}
+                onChange={(e) => setRecSearch(e.target.value)}
+                className="pl-8 h-9 font-light"
+              />
+            </div>
+            <MultiSelectFilter
+              label="Rango"
+              options={[
+                { id: "90-120", label: "90–120 días", color: "#f59e0b" },
+                { id: "120-180", label: "120–180 días", color: "#ea580c" },
+                { id: "180+", label: "180+ días", color: "#dc2626" },
+              ]}
+              selected={recRangos}
+              onToggle={(id) => setRecRangos((arr) => toggleInArray(arr, id))}
+              onClear={() => setRecRangos([])}
+              width="w-full sm:w-48"
+            />
+            <div className="w-full sm:w-72">
+              <SearchableSelect
+                value={recProducto}
+                onValueChange={setRecProducto}
+                options={recProductoOptions}
+                placeholder="Producto"
+              />
+            </div>
+          </div>
+
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Producto</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Última compra</TableHead>
+                  <TableHead
+                    className="cursor-pointer select-none text-right"
+                    onClick={() => setRecSort((d) => (d === "desc" ? "asc" : "desc"))}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Días sin comprar
+                      {recSort === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
+                    </span>
+                  </TableHead>
+                  <TableHead className="text-right">Cantidad histórica</TableHead>
+                  <TableHead className="text-center">Rango</TableHead>
+                  <TableHead className="text-center w-28">Acción</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recLoading ? (
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Cargando…</TableCell></TableRow>
+                ) : recFiltered.length === 0 ? (
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin registros.</TableCell></TableRow>
+                ) : (
+                  recFiltered.map((r) => (
+                    <TableRow key={r.key}>
+                      <TableCell className="font-medium">{r.empresa}</TableCell>
+                      <TableCell className="font-light">{r.producto}</TableCell>
+                      <TableCell className="font-light text-xs">{r.codigo}</TableCell>
+                      <TableCell className="font-light">{formatDate(r.ultima)}</TableCell>
+                      <TableCell className="text-right font-medium">{r.dias}</TableCell>
+                      <TableCell className="text-right font-light">{fmtNum(r.cantidad)}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant="outline"
+                          className={
+                            r.rango === "180+"
+                              ? "bg-red-100 text-red-700 border-red-200"
+                              : r.rango === "120-180"
+                                ? "bg-orange-100 text-orange-700 border-orange-200"
+                                : "bg-amber-100 text-amber-700 border-amber-200"
+                          }
+                        >
+                          {r.rango}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 gap-1"
+                          onClick={() => setTaskDialog({ companyId: r.empresa_id, type: "whatsapp" })}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" /> Reofrecer
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </div>
+      )}
+
       {/* Lista mobile (cards) */}
+      {!isRecuperacion && (
       <div className="grid gap-3 md:hidden">
         {isLoading ? (
           <p className="text-center text-sm text-muted-foreground py-8">Cargando…</p>
@@ -1490,8 +1625,10 @@ export default function SeguimientoVentas() {
           })
         )}
       </div>
+      )}
 
       {/* Tabla desktop */}
+      {!isRecuperacion && (
       <div className="hidden md:block">
         <Card>
           <div className="flex justify-end p-2 border-b bg-muted/30">
@@ -1586,6 +1723,7 @@ export default function SeguimientoVentas() {
           </DndContext>
         </Card>
       </div>
+      )}
 
       <SeguimientoDetailDialog
         row={selected}
