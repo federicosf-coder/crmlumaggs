@@ -184,6 +184,13 @@ function Pill({ cls, children }: { cls: string; children: React.ReactNode }) {
   );
 }
 
+function toYMD(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -469,8 +476,12 @@ export default function DocumentsList() {
       if (srcErr || !srcDoc) throw srcErr || new Error("No encontrado");
       const { data: srcItems } = await supabase.from("documento_productos").select("*").eq("documento_id", doc.id);
       const { id: _id, created_at, updated_at, numero_cotizacion, numero_pedido, numero_factura, pdf_url, estatus_cotizacion, ...rest } = srcDoc;
+      const hoy = toYMD(new Date());
+      const vencimiento = srcDoc.fecha_vencimiento ? toYMD(new Date(Date.now() + 6 * 24 * 60 * 60 * 1000)) : null;
       const newDoc: any = {
         ...rest, pdf_url: null,
+        fecha_documento: hoy,
+        fecha_vencimiento: vencimiento,
         estatus_cotizacion: srcDoc.tipo_documento === "cotizacion" ? "borrador" : null,
         numero_cotizacion: null, numero_pedido: null, numero_factura: null,
         cotizacion_original_id: srcDoc.tipo_documento === "cotizacion" ? doc.id : (srcDoc.cotizacion_original_id || null),
