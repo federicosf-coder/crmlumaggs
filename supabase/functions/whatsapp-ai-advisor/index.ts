@@ -147,19 +147,33 @@ async function buscarCatalogo(
         .slice(0, limit)
     : scored;
 
+  // Agrupamos por producto para exponer TODAS sus presentaciones disponibles.
+  const grupos = new Map<string, any>();
+  for (const { r } of partial) {
+    const key = norm(r.nombre_producto ?? r.codigo ?? "");
+    if (!grupos.has(key)) {
+      grupos.set(key, {
+        producto: r.nombre_producto,
+        descripcion: r.descripcion,
+        marca: r.marca,
+        linea: r.linea,
+        viscosidad: r.viscosidad,
+        aplicacion: r.aplicacion,
+        uso: r.uso,
+        presentaciones_disponibles: [] as Array<{ presentacion: string | null; codigo: string | null }>,
+      });
+    }
+    const g = grupos.get(key);
+    if (!g.presentaciones_disponibles.some((p: any) => norm(p.presentacion) === norm(r.presentacion))) {
+      g.presentaciones_disponibles.push({ presentacion: r.presentacion, codigo: r.codigo });
+    }
+  }
+
   return {
     coincidencia: scored.length > 0 ? "exacta" : partial.length > 0 ? "parcial" : "ninguna",
-    resultados: partial.map(({ r }) => ({
-      codigo: r.codigo,
-      producto: r.nombre_producto,
-      descripcion: r.descripcion,
-      marca: r.marca,
-      linea: r.linea,
-      viscosidad: r.viscosidad,
-      aplicacion: r.aplicacion,
-      uso: r.uso,
-      presentacion: r.presentacion,
-    })),
+    aviso_inventario:
+      "El catálogo indica qué productos MANEJA Lumaggs. NO representa inventario ni existencia. Nunca confirmes disponibilidad, existencia ni tiempos de entrega.",
+    resultados: [...grupos.values()],
   };
 }
 
