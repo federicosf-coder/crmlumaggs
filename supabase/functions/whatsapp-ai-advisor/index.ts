@@ -147,19 +147,33 @@ async function buscarCatalogo(
         .slice(0, limit)
     : scored;
 
+  // Agrupamos por producto para exponer TODAS sus presentaciones disponibles.
+  const grupos = new Map<string, any>();
+  for (const { r } of partial) {
+    const key = norm(r.nombre_producto ?? r.codigo ?? "");
+    if (!grupos.has(key)) {
+      grupos.set(key, {
+        producto: r.nombre_producto,
+        descripcion: r.descripcion,
+        marca: r.marca,
+        linea: r.linea,
+        viscosidad: r.viscosidad,
+        aplicacion: r.aplicacion,
+        uso: r.uso,
+        presentaciones_disponibles: [] as Array<{ presentacion: string | null; codigo: string | null }>,
+      });
+    }
+    const g = grupos.get(key);
+    if (!g.presentaciones_disponibles.some((p: any) => norm(p.presentacion) === norm(r.presentacion))) {
+      g.presentaciones_disponibles.push({ presentacion: r.presentacion, codigo: r.codigo });
+    }
+  }
+
   return {
     coincidencia: scored.length > 0 ? "exacta" : partial.length > 0 ? "parcial" : "ninguna",
-    resultados: partial.map(({ r }) => ({
-      codigo: r.codigo,
-      producto: r.nombre_producto,
-      descripcion: r.descripcion,
-      marca: r.marca,
-      linea: r.linea,
-      viscosidad: r.viscosidad,
-      aplicacion: r.aplicacion,
-      uso: r.uso,
-      presentacion: r.presentacion,
-    })),
+    aviso_inventario:
+      "El catálogo indica qué productos MANEJA Lumaggs. NO representa inventario ni existencia. Nunca confirmes disponibilidad, existencia ni tiempos de entrega.",
+    resultados: [...grupos.values()],
   };
 }
 
@@ -288,7 +302,20 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
   const vehiculos = Array.isArray(profile.vehiculos) ? profile.vehiculos : [];
   const detalle = [
     resumen,
-    productos.length ? `Productos: ${productos.map((p: any) => (typeof p === "string" ? p : p?.producto ?? JSON.stringify(p))).join(", ")}` : "",
+    productos.length
+      ? `Productos a cotizar:\n${productos
+          .map((p: any) => {
+            if (typeof p === "string") return `- ${p}`;
+            const partes = [
+              p?.producto,
+              p?.presentacion ? `presentación: ${p.presentacion}` : null,
+              p?.cantidad ? `cantidad: ${p.cantidad}${p?.unidad ? " " + p.unidad : ""}` : null,
+              p?.aplicacion ? `aplicación: ${p.aplicacion}` : null,
+            ].filter(Boolean);
+            return `- ${partes.join(" · ")}`;
+          })
+          .join("\n")}`
+      : "",
     vehiculos.length ? `Equipos/vehículos: ${vehiculos.map((v: any) => (typeof v === "string" ? v : JSON.stringify(v))).join(", ")}` : "",
     profile.notas_comerciales ? `Notas: ${profile.notas_comerciales}` : "",
   ].filter(Boolean).join("\n");
@@ -347,18 +374,27 @@ PRECISIÓN ANTES QUE NATURALIDAD. Nunca inventes. Si no tienes certeza, dilo y p
 
 SEPARACIÓN DE FUENTES (obligatoria):
 - buscar_catalogo: ÚNICA fuente para saber qué vendemos. Todo producto se busca aquí PRIMERO.
-- buscar_conocimiento: solo información técnica (digest Chevron, fichas). No define qué vendemos.
+- buscar_conocimiento: biblioteca técnica de Lumaggs (digest Chevron, guías de venta, comparativos, fichas). CONSÚLTALA SIEMPRE antes de responder sobre compatibilidad con maquinaria/equipo, aplicaciones, especificaciones o usos. No define qué vendemos.
 - buscar_internet: solo investigación de aplicaciones (qué requiere un motor/equipo). Nunca sustituye al catálogo.
 - Tú razonas y explicas; no generas datos técnicos que no vengan de esas fuentes.
 
 REGLAS DURAS:
 1. Nunca des precios, costos, descuentos, existencias, inventario, tiempos de entrega ni cotizaciones. Si lo piden: el asesor lo confirma.
+1b. NO HAY INTEGRACIÓN DE INVENTARIO. Que un producto esté en el catálogo solo significa que LO MANEJAMOS. Prohibido decir "sí tenemos en existencia", "está disponible", "hay X unidades", "te lo entregamos", "disponibilidad inmediata". Si preguntan disponibilidad responde en la línea de: "Sí manejamos ese producto; para confirmar existencia y disponibilidad, un asesor te envía la información."
 2. Máximo DOS recomendaciones. Si solo una opción es compatible, recomienda una sola. Si ninguna, dilo y transfiere.
 3. Si un producto no está en el catálogo, no lo ofrezcas: indica que el asesor puede revisar la alternativa.
 4. No pidas el teléfono (ya lo tienes). No repitas preguntas ya respondidas ni datos que ya conoces.
 5. Si el cliente ya nombró el producto, no preguntes por el vehículo.
 6. Si una consulta técnica no se puede resolver con certeza, pide ÚNICAMENTE el dato faltante (motor, año, servicio, tipo de equipo) o transfiere. Jamás completes con suposiciones.
 7. Mensajes cortos (2-6 líneas), sin listas largas ni tecnicismos innecesarios.
+8. Compatibilidad técnica: antes de afirmar que un producto sirve para cierta maquinaria/equipo, busca en la biblioteca (buscar_conocimiento). Nunca supongas compatibilidad por categoría. Si la biblioteca no lo cubre, dilo y canaliza con el asesor.
+
+PRESENTACIÓN Y CANTIDAD (para que el asesor pueda cotizar):
+- Si el producto tiene varias presentaciones (litro, cubeta, tambor, tote...), puedes informarlas y DEBES preguntar cuál necesita. Nunca asumas una presentación cuando hay varias. Al listarlas di "lo manejamos en ..." — nunca "lo tenemos disponible en ..." (eso sugiere existencia).
+- Pregunta la cantidad de forma natural, solo si aún no la dio. Interpreta "necesito 10", "quiero 5 cubetas", "cotízame 2 totes" como cantidad + presentación.
+- Nunca vuelvas a preguntar presentación o cantidad que el cliente ya indicó (revisa la ficha y el historial).
+- Guarda cada producto en la ficha como objeto { producto, presentacion, cantidad, unidad } vía actualizar_ficha_lead.
+- Antes de transferir una solicitud de cotización procura tener: producto + presentación + cantidad (y aplicación/maquinaria cuando sea relevante). Si el cliente no quiere darlos o no aplican, transfiere igual y anótalo en las notas.
 
 ETAPAS (conversation_stage): information, consultation, product_identified, quotation_requested, ready_for_salesperson, transferred, human_active, closed.
 - En information/consultation solo informas y asesoras: NO pidas municipio ni datos comerciales.
@@ -367,7 +403,7 @@ ETAPAS (conversation_stage): information, consultation, product_identified, quot
 
 FICHA PROGRESIVA: en CADA turno donde aparezca información nueva llama a actualizar_ficha_lead con solo los campos nuevos (nombre, empresa, tipo de cliente, municipio, intención, productos, vehículos, contexto de negocio, recomendaciones, resumen, notas y la etapa). No esperes al final.
 
-TRANSFERENCIA: cuando haya intención comercial suficiente y ya tengas el municipio, llama a transferir_a_asesor y despídete diciendo que un asesor de Lumaggs continuará la conversación. No prometas tiempos.
+TRANSFERENCIA: cuando haya intención comercial suficiente y ya tengas el municipio, llama a transferir_a_asesor y despídete diciendo que un asesor de Lumaggs continuará la conversación. No prometas tiempos. En el resumen incluye producto, presentación, cantidad y aplicación/maquinaria cuando existan.
 
 FICHA ACTUAL:
 ${JSON.stringify({
@@ -411,7 +447,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "buscar_conocimiento",
-      description: "Información técnica de los documentos Chevron indexados (digest, fichas técnicas, hojas de seguridad).",
+      description: "Biblioteca técnica de Lumaggs (digest Chevron, guías de venta, comparativos, fichas técnicas y hojas de seguridad). Úsala SIEMPRE antes de responder sobre compatibilidad con maquinaria/equipo, aplicaciones, especificaciones o usos.",
       parameters: {
         type: "object",
         properties: { consulta: { type: "string" }, fuente: { type: "string" } },
@@ -442,7 +478,20 @@ const TOOLS = [
           tipo_cliente: { type: "string" },
           municipio: { type: "string" },
           cotizacion_solicitada: { type: "boolean" },
-          productos_solicitados: { type: "array", items: { type: "string" } },
+          productos_solicitados: {
+            type: "array",
+            description: "Productos de interés con su presentación y cantidad cuando se conozcan.",
+            items: {
+              type: "object",
+              properties: {
+                producto: { type: "string" },
+                presentacion: { type: "string", description: "litro, cubeta, tambor, tote, etc." },
+                cantidad: { type: "number" },
+                unidad: { type: "string" },
+                aplicacion: { type: "string", description: "maquinaria o equipo donde se usará" },
+              },
+            },
+          },
           vehiculos: { type: "array", items: { type: "string" } },
           contexto_negocio: { type: "object", properties: { nota: { type: "string" } } },
           recomendaciones: { type: "array", items: { type: "string" } },
@@ -457,7 +506,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "transferir_a_asesor",
-      description: "Marca la conversación lista para el asesor humano y registra el prospecto. Requiere intención comercial y municipio.",
+      description: "Marca la conversación lista para el asesor humano y registra el prospecto. Requiere intención comercial y municipio. Si es cotización, procura tener producto, presentación y cantidad antes de llamarla.",
       parameters: {
         type: "object",
         properties: { resumen: { type: "string" }, notas_comerciales: { type: "string" }, municipio: { type: "string" } },
