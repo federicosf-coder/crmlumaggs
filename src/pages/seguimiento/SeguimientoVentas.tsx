@@ -2054,14 +2054,21 @@ export default function SeguimientoVentas() {
       {/* Lista mobile (cards) */}
       {isProductos && (
         <div className="space-y-3">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={prodSearch}
-              onChange={(e) => setProdSearch(e.target.value)}
-              placeholder="Buscar producto por nombre o código…"
-              className="pl-9 h-9 font-light"
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-full sm:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={prodSearch}
+                onChange={(e) => setProdSearch(e.target.value)}
+                placeholder="Buscar producto por nombre o código…"
+                className="pl-9 h-9 font-light"
+              />
+            </div>
+            {prodSearch && (
+              <Button size="sm" variant="outline" className="h-9 gap-1" onClick={() => { setProdSearch(""); setProdExpanded(null); }}>
+                <RotateCcw className="h-3.5 w-3.5" /> Reiniciar
+              </Button>
+            )}
           </div>
 
           <Card>
