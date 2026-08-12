@@ -648,6 +648,109 @@ export default function SeguimientoVentas() {
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
   }, [rows, profileMap]);
 
+  const recEjecutivoOptions = useMemo(() => {
+    const ids = new Set<string>();
+    let hasNone = false;
+    for (const r of recRows) {
+      if (r.owner_id) ids.add(r.owner_id);
+      else hasNone = true;
+    }
+    const list = Array.from(ids)
+      .map((id) => ({ id, name: profileMap.get(id) || "—" }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+    return hasNone ? [...list, { id: "__none__", name: "Sin asignar" }] : list;
+  }, [recRows, profileMap]);
+
+  const recFiltered = useMemo(() => {
+    const q = recSearch.trim().toLowerCase();
+    let list = recRows.filter((r) => {
+      const isIgnorado = recIgnoradosMap.has(`${r.empresa_id}|${r.producto_id}`);
+      if (recViewIgnorados ? !isIgnorado : isIgnorado) return false;
+      if (recRangos.length > 0 && !recRangos.includes(r.rango)) return false;
+      if (recProducto && r.producto_id !== recProducto) return false;
+      if (recEjecutivo.length > 0 && !recEjecutivo.includes(r.owner_id || "__none__")) return false;
+      if (q) {
+        const words = q.split(/\s+/);
+        const text = `${r.empresa} ${r.producto} ${r.codigo}`.toLowerCase();
+        if (!words.every((w) => text.includes(w))) return false;
+      }
+      return true;
+    });
+    const key = recSort?.key;
+    if (!key) {
+      list = [...list].sort((a, b) => b.dias - a.dias);
+    } else {
+      const dir = recSort?.dir === "desc" ? -1 : 1;
+      const val = (r: any) => {
+        switch (key) {
+          case "empresa": return String(r.empresa || "").toLowerCase();
+          case "producto": return String(r.producto || "").toLowerCase();
+          case "codigo": return String(r.codigo || "").toLowerCase();
+          case "ejecutivo": return (r.owner_id ? profileMap.get(r.owner_id) || "" : "").toLowerCase();
+          case "ultima": return String(r.ultima || "");
+          case "dias": return r.dias as number;
+          case "cantidad": return r.cantidad as number;
+          default: return "";
+        }
+      };
+      list = [...list].sort((a, b) => {
+        const va = val(a); const vb = val(b);
+        if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+        return String(va).localeCompare(String(vb), "es") * dir;
+      });
+    }
+    return list;
+  }, [recRows, recSearch, recRangos, recProducto, recEjecutivo, recSort, recIgnoradosMap, recViewIgnorados, profileMap]);
+
+  const recTotal180 = useMemo(() => recFiltered.filter((r) => r.rango === "180+").length, [recFiltered]);
+
+  const submitIgnorar = async () => {
+    if (!recIgnoreDialog) return;
+    setRecIgnoreSaving(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const byKey = new Map(recRows.map((r: any) => [r.key, r]));
+      const payload = recIgnoreDialog.keys
+        .map((k) => byKey.get(k))
+        .filter((r: any) => r && !recIgnoradosMap.has(`${r.empresa_id}|${r.producto_id}`))
+        .map((r: any) => ({
+          empresa_vendedora: empresaVendedora,
+          company_id: r.empresa_id,
+          producto_id: r.producto_id,
+          razon: recIgnoreRazon.trim() || null,
+          ignorado_por: auth?.user?.id ?? null,
+        }));
+      if (payload.length > 0) {
+        const { error } = await (supabase as any).from("seguimiento_recuperacion_ignorados").insert(payload);
+        if (error && !String(error.message || "").toLowerCase().includes("duplicate")) throw error;
+      }
+      toast({ title: "Productos ignorados", description: `${payload.length} combinación${payload.length === 1 ? "" : "es"} ignorada${payload.length === 1 ? "" : "s"}.` });
+      setRecIgnoreDialog(null);
+      setRecIgnoreRazon("");
+      setRecSelectedKeys(new Set());
+      queryClient.invalidateQueries({ queryKey: ["recuperacion-ignorados", empresaVendedora] });
+    } catch (e: any) {
+      toast({ title: "Error al ignorar", description: e?.message || "Intenta de nuevo.", variant: "destructive" });
+    } finally {
+      setRecIgnoreSaving(false);
+    }
+  };
+
+  const restaurarIgnorado = async (row: any) => {
+    const rec = recIgnoradosMap.get(`${row.empresa_id}|${row.producto_id}`);
+    if (!rec) return;
+    const { error } = await (supabase as any)
+      .from("seguimiento_recuperacion_ignorados")
+      .update({ is_active: false })
+      .eq("id", rec.id);
+    if (error) {
+      toast({ title: "Error al restaurar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Producto restaurado" });
+    queryClient.invalidateQueries({ queryKey: ["recuperacion-ignorados", empresaVendedora] });
+  };
+
   const ambito = tieneVenta ? "con_venta" : "sin_venta";
   const estatusOptions = useMemo(
     () => catalog.filter((c) => c.ambito === ambito && c.familia === (tieneVenta ? "riesgo" : "gestion")),
