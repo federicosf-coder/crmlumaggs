@@ -577,7 +577,8 @@ Deno.serve(async (req) => {
         });
         if (!profile.cliente_nombre || !profile.empresa_nombre) {
           await admin.from("bot_lead_profiles").update({
-            cliente_nombre: profile.cliente_nombre ?? `${(c as any).first_name ?? ""} ${(c as any).last_name ?? ""}`.trim() || null,
+            cliente_nombre: profile.cliente_nombre ??
+              (`${(c as any).first_name ?? ""} ${(c as any).last_name ?? ""}`.trim() || null),
             empresa_nombre: profile.empresa_nombre ?? (c as any).companies?.name ?? null,
             company_id: profile.company_id ?? (c as any).company_id ?? null,
           }).eq("id", profile.id);
