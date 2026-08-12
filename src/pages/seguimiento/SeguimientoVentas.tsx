@@ -931,6 +931,51 @@ export default function SeguimientoVentas() {
     queryClient.invalidateQueries({ queryKey: ["recuperacion-ignorados", empresaVendedora] });
   };
 
+  const submitIgnorarClientes = async () => {
+    setIgnoreSaving(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      const payload = Array.from(selectedIds)
+        .map((id) => byId.get(id))
+        .filter((r): r is SeguimientoVentasRow => !!r && !clientesIgnoradosMap.has(r.company_id))
+        .map((r) => ({
+          empresa_vendedora: empresaVendedora,
+          company_id: r.company_id,
+          razon: ignoreRazon.trim() || null,
+          ignorado_por: auth?.user?.id ?? null,
+        }));
+      if (payload.length > 0) {
+        const { error } = await (supabase as any).from("seguimiento_ventas_ignorados").insert(payload);
+        if (error) throw error;
+      }
+      toast({ title: "Clientes ignorados", description: `${payload.length} cliente${payload.length === 1 ? "" : "s"} ignorado${payload.length === 1 ? "" : "s"}.` });
+      setIgnoreDialogOpen(false);
+      setIgnoreRazon("");
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["ventas-ignorados", empresaVendedora] });
+    } catch (e: any) {
+      toast({ title: "Error al ignorar", description: e?.message || "Intenta de nuevo.", variant: "destructive" });
+    } finally {
+      setIgnoreSaving(false);
+    }
+  };
+
+  const restaurarClienteIgnorado = async (companyId: string) => {
+    const rec = clientesIgnoradosMap.get(companyId);
+    if (!rec) return;
+    const { error } = await (supabase as any)
+      .from("seguimiento_ventas_ignorados")
+      .update({ is_active: false })
+      .eq("id", rec.id);
+    if (error) {
+      toast({ title: "Error al restaurar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Cliente restaurado" });
+    queryClient.invalidateQueries({ queryKey: ["ventas-ignorados", empresaVendedora] });
+  };
+
   const ambito = tieneVenta ? "con_venta" : "sin_venta";
   const estatusOptions = useMemo(
     () => catalog.filter((c) => c.ambito === ambito && c.familia === (tieneVenta ? "riesgo" : "gestion")),
