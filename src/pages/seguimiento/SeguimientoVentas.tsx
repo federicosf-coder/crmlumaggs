@@ -443,13 +443,13 @@ export default function SeguimientoVentas() {
 
   const recRows = useMemo(() => {
     if (!isRecuperacion) return [] as any[];
-    const activos = new Map<string, string>();
+    const activos = new Map<string, { name: string; owner_id: string | null }>();
     for (const a of recActivos) {
-      if (a.company_id) activos.set(a.company_id, a.companies?.name || "—");
+      if (a.company_id) activos.set(a.company_id, { name: a.companies?.name || "—", owner_id: a.owner_id ?? null });
     }
     const grouped = new Map<string, {
       key: string; empresa_id: string; empresa: string; producto_id: string;
-      producto: string; codigo: string; ultima: string; cantidad: number;
+      producto: string; codigo: string; ultima: string; cantidad: number; owner_id: string | null;
     }>();
     for (const r of recFacturas as any[]) {
       const empresaId = r.documentos?.empresa_id;
@@ -465,7 +465,8 @@ export default function SeguimientoVentas() {
         grouped.set(key, {
           key,
           empresa_id: empresaId,
-          empresa: activos.get(empresaId) || "—",
+          empresa: activos.get(empresaId)?.name || "—",
+          owner_id: activos.get(empresaId)?.owner_id ?? null,
           producto_id: r.producto_id,
           producto: r.productos?.nombre_producto || "—",
           codigo: r.productos?.codigo || "—",
