@@ -360,7 +360,22 @@ export default function SeguimientoVentas() {
   const [recSearch, setRecSearch] = useState("");
   const [recRangos, setRecRangos] = useState<string[]>([]);
   const [recProducto, setRecProducto] = useState<string>("");
-  const [recSort, setRecSort] = useState<SortDir>("desc");
+  const [recEjecutivo, setRecEjecutivo] = useState<string[]>([]);
+  const [recSort, setRecSort] = useState<SortState | null>(null);
+  const [recViewIgnorados, setRecViewIgnorados] = useState(false);
+  const [recSelectedKeys, setRecSelectedKeys] = useState<Set<string>>(new Set());
+  const [recIgnoreDialog, setRecIgnoreDialog] = useState<null | { keys: string[] }>(null);
+  const [recIgnoreRazon, setRecIgnoreRazon] = useState("");
+  const [recIgnoreSaving, setRecIgnoreSaving] = useState(false);
+
+  useEffect(() => { setRecSelectedKeys(new Set()); }, [tab, empresaVendedora, recViewIgnorados]);
+
+  const handleRecSort = (key: string) => {
+    setRecSort((prev) => {
+      if (prev?.key === key) return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
+      return { key, dir: "asc" };
+    });
+  };
 
   const { data: recActivos = [], isLoading: recActivosLoading } = useQuery({
     queryKey: ["recuperacion-activos", empresaVendedora],
@@ -368,7 +383,7 @@ export default function SeguimientoVentas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("seguimiento_ventas")
-        .select("company_id, companies:company_id(name)")
+        .select("company_id, owner_id, companies:company_id(name)")
         .eq("empresa_vendedora", empresaVendedora)
         .or("perdido.is.null,perdido.eq.false")
         .limit(5000);
@@ -376,6 +391,27 @@ export default function SeguimientoVentas() {
       return (data || []) as any[];
     },
   });
+
+  const { data: recIgnorados = [] } = useQuery({
+    queryKey: ["recuperacion-ignorados", empresaVendedora],
+    enabled: isRecuperacion,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("seguimiento_recuperacion_ignorados")
+        .select("id, company_id, producto_id, razon, ignorado_at, ignorado_por")
+        .eq("empresa_vendedora", empresaVendedora)
+        .eq("is_active", true)
+        .limit(10000);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const recIgnoradosMap = useMemo(() => {
+    const m = new Map<string, any>();
+    for (const i of recIgnorados as any[]) m.set(`${i.company_id}|${i.producto_id}`, i);
+    return m;
+  }, [recIgnorados]);
 
   const { data: recFacturas = [], isLoading: recFacturasLoading } = useQuery({
     queryKey: ["recuperacion-facturas", empresaVendedora],
