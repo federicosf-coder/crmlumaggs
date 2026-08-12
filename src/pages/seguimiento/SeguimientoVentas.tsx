@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, Navigate, useSearchParams } from "react-router-dom";
+import { useParams, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { BackButton } from "@/components/BackButton";
 import { PageBanner } from "@/components/PageBanner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -298,7 +298,7 @@ export default function SeguimientoVentas() {
   const brandTitle = brand === "phillips66" ? "Seguimiento — Phillips 66" : "Seguimiento — Chevron";
   const brandSubtitle = brand === "phillips66" ? "Galsa" : "Lumaggs";
 
-  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion">("con_venta");
+  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion" | "productos">("con_venta");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<SeguimientoVentasRow | null>(null);
   const [sort, setSort] = useState<SortState | null>(null);
@@ -315,6 +315,9 @@ export default function SeguimientoVentas() {
   const isPerdidos = tab === "perdidos";
   const tieneVenta = tab === "con_venta" || tab === "perdidos";
   const isRecuperacion = tab === "recuperacion";
+  const isProductos = tab === "productos";
+  const showLista = !isRecuperacion && !isProductos;
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -415,7 +418,7 @@ export default function SeguimientoVentas() {
 
   const { data: recFacturas = [], isLoading: recFacturasLoading } = useQuery({
     queryKey: ["recuperacion-facturas", empresaVendedora],
-    enabled: isRecuperacion,
+    enabled: isRecuperacion || isProductos,
     queryFn: async () => {
       const all: any[] = [];
       let from = 0;
@@ -440,6 +443,96 @@ export default function SeguimientoVentas() {
   });
 
   const recLoading = recActivosLoading || recFacturasLoading;
+
+  // ─────────── Productos ───────────
+  const [prodSearch, setProdSearch] = useState("");
+  const [prodExpanded, setProdExpanded] = useState<string | null>(null);
+  const [prodClienteSearch, setProdClienteSearch] = useState("");
+  const [prodSelected, setProdSelected] = useState<Set<string>>(new Set());
+  useEffect(() => { setProdSelected(new Set()); setProdExpanded(null); }, [tab, empresaVendedora]);
+
+  const { data: prodCompanies = [] } = useQuery({
+    queryKey: ["productos-companies"],
+    enabled: isProductos,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("companies").select("id, name").limit(10000);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const prodRows = useMemo(() => {
+    if (!isProductos) return [] as any[];
+    const names = new Map<string, string>();
+    for (const c of prodCompanies as any[]) names.set(c.id, c.name || "—");
+    const map = new Map<string, {
+      producto_id: string; nombre: string; codigo: string; cantidad: number; ultima: string;
+      clientesMap: Map<string, { empresa_id: string; empresa: string; cantidad: number; ultima: string }>;
+    }>();
+    for (const r of recFacturas as any[]) {
+      const pid = r.producto_id;
+      const empresaId = r.documentos?.empresa_id;
+      const fecha = r.documentos?.fecha_documento;
+      if (!pid || !empresaId || !fecha) continue;
+      let p = map.get(pid);
+      if (!p) {
+        p = {
+          producto_id: pid,
+          nombre: r.productos?.nombre_producto || "—",
+          codigo: r.productos?.codigo || "—",
+          cantidad: 0,
+          ultima: fecha,
+          clientesMap: new Map(),
+        };
+        map.set(pid, p);
+      }
+      const cant = Number(r.cantidad || 0);
+      p.cantidad += cant;
+      if (fecha > p.ultima) p.ultima = fecha;
+      const cli = p.clientesMap.get(empresaId);
+      if (cli) {
+        cli.cantidad += cant;
+        if (fecha > cli.ultima) cli.ultima = fecha;
+      } else {
+        p.clientesMap.set(empresaId, { empresa_id: empresaId, empresa: names.get(empresaId) || "—", cantidad: cant, ultima: fecha });
+      }
+    }
+    return Array.from(map.values())
+      .map((p) => ({
+        producto_id: p.producto_id,
+        nombre: p.nombre,
+        codigo: p.codigo,
+        cantidad: p.cantidad,
+        ultima: p.ultima,
+        clientes: Array.from(p.clientesMap.values()).sort((a, b) => b.cantidad - a.cantidad),
+      }))
+      .sort((a, b) => b.cantidad - a.cantidad);
+  }, [isProductos, recFacturas, prodCompanies]);
+
+  const prodFiltered = useMemo(() => {
+    const s = prodSearch.trim().toLowerCase();
+    if (!s) return prodRows;
+    return prodRows.filter((p: any) =>
+      (p.nombre || "").toLowerCase().includes(s) || (p.codigo || "").toLowerCase().includes(s));
+  }, [prodRows, prodSearch]);
+
+  const prodSelectedCompanyIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of prodRows as any[]) {
+      if (!prodSelected.has(p.producto_id)) continue;
+      for (const c of p.clientes) set.add(c.empresa_id);
+    }
+    return Array.from(set);
+  }, [prodRows, prodSelected]);
+
+  const enviarWhatsappProductos = () => {
+    const label = (prodRows as any[])
+      .filter((p) => prodSelected.has(p.producto_id))
+      .map((p) => p.nombre)
+      .join(", ");
+    sessionStorage.setItem("wa_campaign_preselect", JSON.stringify({ companyIds: prodSelectedCompanyIds, label }));
+    navigate("/whatsapp/campaigns");
+  };
 
   const recRows = useMemo(() => {
     if (!isRecuperacion) return [] as any[];
@@ -1236,8 +1329,18 @@ export default function SeguimientoVentas() {
           >
             Recuperación de Productos
           </button>
+          <button
+            onClick={() => setTab("productos")}
+            className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-md transition-colors ${
+              tab === "productos"
+                ? "bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Productos
+          </button>
         </div>
-        {!isRecuperacion && (
+        {showLista && (
         <>
         {/* Botones de filtro siempre visibles (desde catálogo) */}
         <div className="w-full space-y-2">
@@ -1358,7 +1461,7 @@ export default function SeguimientoVentas() {
       </div>
 
       {/* Panel de filtros colapsable */}
-      {!isRecuperacion && (
+      {showLista && (
       <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
         <CollapsibleContent>
           <Card className="border-violet-200/60">
@@ -1514,7 +1617,7 @@ export default function SeguimientoVentas() {
       )}
 
       {/* Barra de acciones masivas */}
-      {!isRecuperacion && selectedIds.size > 0 && (
+      {showLista && selectedIds.size > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-violet-50 dark:bg-violet-950/30 px-3 py-2">
           <div className="text-xs font-semibold uppercase tracking-wide text-violet-900 dark:text-violet-200">
             {selectedIds.size} seleccionado{selectedIds.size === 1 ? "" : "s"}
@@ -1799,7 +1902,136 @@ export default function SeguimientoVentas() {
       )}
 
       {/* Lista mobile (cards) */}
-      {!isRecuperacion && (
+      {isProductos && (
+        <div className="space-y-3">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={prodSearch}
+              onChange={(e) => setProdSearch(e.target.value)}
+              placeholder="Buscar producto por nombre o código…"
+              className="pl-9 h-9 font-light"
+            />
+          </div>
+
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10"></TableHead>
+                  <TableHead>Producto</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead className="text-right"># Clientes</TableHead>
+                  <TableHead className="text-right">Cantidad total</TableHead>
+                  <TableHead>Última venta</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recFacturasLoading ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
+                ) : prodFiltered.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Sin productos.</TableCell></TableRow>
+                ) : (
+                  prodFiltered.map((p: any) => {
+                    const open = prodExpanded === p.producto_id;
+                    const cs = prodClienteSearch.trim().toLowerCase();
+                    const clientes = open && cs
+                      ? p.clientes.filter((c: any) => (c.empresa || "").toLowerCase().includes(cs))
+                      : p.clientes;
+                    return (
+                      <React.Fragment key={p.producto_id}>
+                        <TableRow
+                          className="cursor-pointer"
+                          onClick={() => { setProdExpanded(open ? null : p.producto_id); setProdClienteSearch(""); }}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={prodSelected.has(p.producto_id)}
+                              onCheckedChange={(v) =>
+                                setProdSelected((prev) => {
+                                  const next = new Set(prev);
+                                  if (v) next.add(p.producto_id); else next.delete(p.producto_id);
+                                  return next;
+                                })
+                              }
+                              aria-label="Seleccionar producto"
+                            />
+                          </TableCell>
+                          <TableCell className="font-light">
+                            <span className="inline-flex items-center gap-1">
+                              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "" : "-rotate-90"}`} />
+                              {p.nombre}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{p.codigo}</TableCell>
+                          <TableCell className="text-right font-light">{p.clientes.length}</TableCell>
+                          <TableCell className="text-right font-light">{fmtNum(p.cantidad)}</TableCell>
+                          <TableCell className="font-light">{formatDate(p.ultima)}</TableCell>
+                        </TableRow>
+                        {open && (
+                          <TableRow className="bg-muted/30 hover:bg-muted/30">
+                            <TableCell colSpan={6} className="p-3">
+                              <div className="relative w-full sm:w-72 mb-2">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                <Input
+                                  value={prodClienteSearch}
+                                  onChange={(e) => setProdClienteSearch(e.target.value)}
+                                  placeholder="Buscar cliente…"
+                                  className="pl-8 h-8 text-xs font-light"
+                                />
+                              </div>
+                              <div className="rounded-md border bg-background">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="text-[10px] uppercase tracking-widest">Cliente</TableHead>
+                                      <TableHead className="text-right text-[10px] uppercase tracking-widest">Cantidad</TableHead>
+                                      <TableHead className="text-[10px] uppercase tracking-widest">Última compra</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {clientes.length === 0 ? (
+                                      <TableRow><TableCell colSpan={3} className="text-center py-4 text-xs text-muted-foreground">Sin clientes.</TableCell></TableRow>
+                                    ) : clientes.map((c: any) => (
+                                      <TableRow key={c.empresa_id}>
+                                        <TableCell className="text-xs font-light">{c.empresa}</TableCell>
+                                        <TableCell className="text-xs text-right font-light">{fmtNum(c.cantidad)}</TableCell>
+                                        <TableCell className="text-xs font-light">{formatDate(c.ultima)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+
+          {prodSelected.size > 0 && (
+            <div className="sticky bottom-3 z-30 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-cyan-50 dark:bg-cyan-950/40 px-4 py-3 shadow-lg">
+              <div className="text-xs font-semibold uppercase tracking-wide text-cyan-900 dark:text-cyan-200">
+                {prodSelected.size} producto(s) seleccionado(s) · {prodSelectedCompanyIds.length} clientes únicos
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" className="h-8 gap-1" onClick={enviarWhatsappProductos}>
+                  <MessageCircle className="h-3.5 w-3.5" /> Enviar WhatsApp
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 gap-1" onClick={() => setProdSelected(new Set())}>
+                  <X className="h-3.5 w-3.5" /> Limpiar
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {showLista && (
       <div className="grid gap-3 md:hidden">
         {isLoading ? (
           <p className="text-center text-sm text-muted-foreground py-8">Cargando…</p>
@@ -1893,7 +2125,7 @@ export default function SeguimientoVentas() {
       )}
 
       {/* Tabla desktop */}
-      {!isRecuperacion && (
+      {showLista && (
       <div className="hidden md:block">
         <Card>
           <div className="flex justify-end p-2 border-b bg-muted/30">
