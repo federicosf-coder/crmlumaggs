@@ -564,13 +564,14 @@ Deno.serve(async (req) => {
     if (contactId) {
       const { data: c } = await admin
         .from("contacts")
-        .select("first_name,last_name,email,position,company_id,companies(name,industry,municipio)")
+        .select("first_name,last_name,email,job_title,company_id,companies(name,industry,city)")
         .eq("id", contactId)
         .maybeSingle();
       if (c) {
         contexto = JSON.stringify({
           contacto: `${(c as any).first_name ?? ""} ${(c as any).last_name ?? ""}`.trim(),
-          puesto: (c as any).position ?? null,
+          puesto: (c as any).job_title ?? null,
+          ciudad: (c as any).companies?.city ?? null,
           empresa: (c as any).companies?.name ?? null,
           giro: (c as any).companies?.industry ?? null,
         });
