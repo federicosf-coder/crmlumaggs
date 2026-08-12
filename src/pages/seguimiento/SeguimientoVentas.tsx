@@ -339,6 +339,13 @@ export default function SeguimientoVentas() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   useEffect(() => { setSelectedIds(new Set()); }, [tab, empresaVendedora]);
 
+  // Ignorar clientes (Clientes con Venta / sin Venta)
+  const [viewIgnorados, setViewIgnorados] = useState(false);
+  const [ignoreDialogOpen, setIgnoreDialogOpen] = useState(false);
+  const [ignoreRazon, setIgnoreRazon] = useState("");
+  const [ignoreSaving, setIgnoreSaving] = useState(false);
+  useEffect(() => { setSelectedIds(new Set()); }, [viewIgnorados]);
+
   // Diálogo crear tarea / actividad
   const [taskDialog, setTaskDialog] = useState<null | {
     companyId: string;
