@@ -302,7 +302,20 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
   const vehiculos = Array.isArray(profile.vehiculos) ? profile.vehiculos : [];
   const detalle = [
     resumen,
-    productos.length ? `Productos: ${productos.map((p: any) => (typeof p === "string" ? p : p?.producto ?? JSON.stringify(p))).join(", ")}` : "",
+    productos.length
+      ? `Productos a cotizar:\n${productos
+          .map((p: any) => {
+            if (typeof p === "string") return `- ${p}`;
+            const partes = [
+              p?.producto,
+              p?.presentacion ? `presentación: ${p.presentacion}` : null,
+              p?.cantidad ? `cantidad: ${p.cantidad}${p?.unidad ? " " + p.unidad : ""}` : null,
+              p?.aplicacion ? `aplicación: ${p.aplicacion}` : null,
+            ].filter(Boolean);
+            return `- ${partes.join(" · ")}`;
+          })
+          .join("\n")}`
+      : "",
     vehiculos.length ? `Equipos/vehículos: ${vehiculos.map((v: any) => (typeof v === "string" ? v : JSON.stringify(v))).join(", ")}` : "",
     profile.notas_comerciales ? `Notas: ${profile.notas_comerciales}` : "",
   ].filter(Boolean).join("\n");
