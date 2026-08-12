@@ -1902,6 +1902,135 @@ export default function SeguimientoVentas() {
       )}
 
       {/* Lista mobile (cards) */}
+      {isProductos && (
+        <div className="space-y-3">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={prodSearch}
+              onChange={(e) => setProdSearch(e.target.value)}
+              placeholder="Buscar producto por nombre o código…"
+              className="pl-9 h-9 font-light"
+            />
+          </div>
+
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10"></TableHead>
+                  <TableHead>Producto</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead className="text-right"># Clientes</TableHead>
+                  <TableHead className="text-right">Cantidad total</TableHead>
+                  <TableHead>Última venta</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recFacturasLoading ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
+                ) : prodFiltered.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Sin productos.</TableCell></TableRow>
+                ) : (
+                  prodFiltered.map((p: any) => {
+                    const open = prodExpanded === p.producto_id;
+                    const cs = prodClienteSearch.trim().toLowerCase();
+                    const clientes = open && cs
+                      ? p.clientes.filter((c: any) => (c.empresa || "").toLowerCase().includes(cs))
+                      : p.clientes;
+                    return (
+                      <React.Fragment key={p.producto_id}>
+                        <TableRow
+                          className="cursor-pointer"
+                          onClick={() => { setProdExpanded(open ? null : p.producto_id); setProdClienteSearch(""); }}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={prodSelected.has(p.producto_id)}
+                              onCheckedChange={(v) =>
+                                setProdSelected((prev) => {
+                                  const next = new Set(prev);
+                                  if (v) next.add(p.producto_id); else next.delete(p.producto_id);
+                                  return next;
+                                })
+                              }
+                              aria-label="Seleccionar producto"
+                            />
+                          </TableCell>
+                          <TableCell className="font-light">
+                            <span className="inline-flex items-center gap-1">
+                              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "" : "-rotate-90"}`} />
+                              {p.nombre}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{p.codigo}</TableCell>
+                          <TableCell className="text-right font-light">{p.clientes.length}</TableCell>
+                          <TableCell className="text-right font-light">{fmtNum(p.cantidad)}</TableCell>
+                          <TableCell className="font-light">{formatDate(p.ultima)}</TableCell>
+                        </TableRow>
+                        {open && (
+                          <TableRow className="bg-muted/30 hover:bg-muted/30">
+                            <TableCell colSpan={6} className="p-3">
+                              <div className="relative w-full sm:w-72 mb-2">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                <Input
+                                  value={prodClienteSearch}
+                                  onChange={(e) => setProdClienteSearch(e.target.value)}
+                                  placeholder="Buscar cliente…"
+                                  className="pl-8 h-8 text-xs font-light"
+                                />
+                              </div>
+                              <div className="rounded-md border bg-background">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="text-[10px] uppercase tracking-widest">Cliente</TableHead>
+                                      <TableHead className="text-right text-[10px] uppercase tracking-widest">Cantidad</TableHead>
+                                      <TableHead className="text-[10px] uppercase tracking-widest">Última compra</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {clientes.length === 0 ? (
+                                      <TableRow><TableCell colSpan={3} className="text-center py-4 text-xs text-muted-foreground">Sin clientes.</TableCell></TableRow>
+                                    ) : clientes.map((c: any) => (
+                                      <TableRow key={c.empresa_id}>
+                                        <TableCell className="text-xs font-light">{c.empresa}</TableCell>
+                                        <TableCell className="text-xs text-right font-light">{fmtNum(c.cantidad)}</TableCell>
+                                        <TableCell className="text-xs font-light">{formatDate(c.ultima)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+
+          {prodSelected.size > 0 && (
+            <div className="sticky bottom-3 z-30 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-cyan-50 dark:bg-cyan-950/40 px-4 py-3 shadow-lg">
+              <div className="text-xs font-semibold uppercase tracking-wide text-cyan-900 dark:text-cyan-200">
+                {prodSelected.size} producto(s) seleccionado(s) · {prodSelectedCompanyIds.length} clientes únicos
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" className="h-8 gap-1" onClick={enviarWhatsappProductos}>
+                  <MessageCircle className="h-3.5 w-3.5" /> Enviar WhatsApp
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 gap-1" onClick={() => setProdSelected(new Set())}>
+                  <X className="h-3.5 w-3.5" /> Limpiar
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {showLista && (
       <div className="grid gap-3 md:hidden">
         {isLoading ? (
