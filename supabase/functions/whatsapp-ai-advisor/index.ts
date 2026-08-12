@@ -539,24 +539,38 @@ Deno.serve(async (req) => {
       profile = data;
     }
 
-    if (["human_active", "closed"].includes(String(profile.conversation_stage))) {
+    if (String(profile.conversation_stage) === "closed") {
       return json({ skipped: true, reason: profile.conversation_stage });
     }
 
-    // ── historial ──
+    // ── historial (solo la sesión reciente: 12 h) ──
+    const SESSION_MS = 12 * 60 * 60 * 1000;
+    const sinceIso = new Date(Date.now() - SESSION_MS).toISOString();
     const { data: history } = await admin
       .from("whatsapp_messages")
       .select("direction,message_body,created_by,created_at")
       .eq("conversation_id", conversationId)
+      .gte("created_at", sinceIso)
       .order("created_at", { ascending: false })
       .limit(HISTORY_LIMIT);
     const ordered = (history ?? []).slice().reverse();
 
-    // Un humano contestó en la conversación → el bot se calla.
-    const humanReplied = ordered.some((m: any) => m.direction === "outbound" && m.created_by);
+    // Un asesor humano contestó recientemente (6 h) → el bot se calla.
+    const HUMAN_PAUSE_MS = 6 * 60 * 60 * 1000;
+    const humanReplied = ordered.some(
+      (m: any) =>
+        m.direction === "outbound" &&
+        m.created_by &&
+        Date.now() - new Date(m.created_at).getTime() < HUMAN_PAUSE_MS,
+    );
     if (humanReplied) {
       await admin.from("bot_lead_profiles").update({ conversation_stage: "human_active" }).eq("id", profile.id);
       return json({ skipped: true, reason: "human_active" });
+    }
+    // Sin intervención humana reciente → el bot retoma la conversación.
+    if (String(profile.conversation_stage) === "human_active") {
+      await admin.from("bot_lead_profiles").update({ conversation_stage: "consultation" }).eq("id", profile.id);
+      profile.conversation_stage = "consultation";
     }
 
     // ── contexto del CRM ──
