@@ -137,6 +137,17 @@ export default function WhatsAppCampaigns() {
   const [tplName, setTplName] = useState("");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [preselect, setPreselect] = useState<{ companyIds: string[]; label: string } | null>(() => {
+    try {
+      const raw = sessionStorage.getItem("wa_campaign_preselect");
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.companyIds)) return null;
+      return { companyIds: parsed.companyIds as string[], label: String(parsed.label || "") };
+    } catch {
+      return null;
+    }
+  });
   const [creating, setCreating] = useState(false);
   const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
   const [headerVideoUrl, setHeaderVideoUrl] = useState<string | null>(null);
@@ -328,6 +339,19 @@ export default function WhatsAppCampaigns() {
       return true;
     });
   }, [contacts, plazaFilter, giroFilter, excludeRecent, recentContactIds]);
+
+  // Preselección desde Seguimiento → Productos
+  useEffect(() => {
+    if (!preselect) return;
+    if (contacts.length === 0) return;
+    const set = new Set(preselect.companyIds);
+    const ids = eligible.filter((c) => c.company_id && set.has(c.company_id)).map((c) => c.id);
+    setSelected(new Set(ids));
+    setName(preselect.label ? `Promo: ${preselect.label}` : "Promo");
+    setOpen(true);
+    sessionStorage.removeItem("wa_campaign_preselect");
+    setPreselect(null);
+  }, [preselect, contacts, eligible]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
