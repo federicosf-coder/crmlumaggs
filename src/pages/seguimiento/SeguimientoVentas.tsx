@@ -537,6 +537,29 @@ export default function SeguimientoVentas() {
 
   // Deep-link: ?seguimiento_id=<uuid> abre la ficha de ese seguimiento
   const deepSeguimientoId = searchParams.get("seguimiento_id");
+
+  // Abre la ficha de una empresa en modal sin cambiar de pestaña
+  const abrirFichaEmpresa = async (companyId: string) => {
+    const { data: existing } = await (supabase as any)
+      .from("seguimiento_ventas")
+      .select("*, companies:company_id(id, name)")
+      .eq("company_id", companyId)
+      .eq("empresa_vendedora", empresaVendedora)
+      .maybeSingle();
+    if (existing) { setSelected(existing as any); return; }
+    const { data: created, error } = await (supabase as any)
+      .from("seguimiento_ventas")
+      .insert({ company_id: companyId, empresa_vendedora: empresaVendedora, tiene_venta: false })
+      .select("*, companies:company_id(id, name)")
+      .single();
+    if (!error && created) {
+      setSelected(created as any);
+      queryClient.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+    } else if (error) {
+      toast({ title: "No se pudo abrir la ficha", description: error.message, variant: "destructive" });
+    }
+  };
+
   useEffect(() => {
     if (!deepSeguimientoId || invalidBrand) return;
     let cancel = false;
@@ -1667,7 +1690,15 @@ export default function SeguimientoVentas() {
                           aria-label="Seleccionar fila"
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{r.empresa}</TableCell>
+                      <TableCell className="font-medium">
+                        <button
+                          type="button"
+                          className="text-left hover:underline text-primary"
+                          onClick={(e) => { e.stopPropagation(); abrirFichaEmpresa(r.empresa_id); }}
+                        >
+                          {r.empresa}
+                        </button>
+                      </TableCell>
                       <TableCell className="font-light">{r.producto}</TableCell>
                       <TableCell className="font-light text-xs">{r.codigo}</TableCell>
                       <TableCell className="font-light">
