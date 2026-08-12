@@ -1211,6 +1211,14 @@ export default function SeguimientoVentas() {
       ? accessFiltered.filter((r) => (r.companies?.name || "").toLowerCase().includes(term))
       : accessFiltered;
 
+    // Clientes ignorados (no aplica en Perdidos)
+    if (!isPerdidos) {
+      base = base.filter((r) => {
+        const ign = clientesIgnoradosMap.has(r.company_id);
+        return viewIgnorados ? ign : !ign;
+      });
+    }
+
     if (fEstatus.length > 0) {
       base = base.filter((r) => {
         // Usa el estatus EFECTIVO (manual si está activo, si no el calculado).
