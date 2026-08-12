@@ -1546,32 +1546,48 @@ export default function SeguimientoVentas() {
             )}
             <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
           </Button>
+          {activeFiltersCount > 0 && (
+            <Button variant="outline" size="sm" className="gap-2 h-9" onClick={clearAllFilters}>
+              <RotateCcw className="h-4 w-4" /> Reiniciar filtros
+            </Button>
+          )}
+          {(tab === "con_venta" || tab === "sin_venta") && (
+            <Button variant="outline" size="sm" className="gap-2 h-9" onClick={() => setViewIgnorados((v) => !v)}>
+              {viewIgnorados ? <><Eye className="h-4 w-4" /> Ver activos</> : <><EyeOff className="h-4 w-4" /> Ver ignorados</>}
+            </Button>
+          )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <MultiSelectFilter
-            label="Ejecutivo"
-            options={[
-              { id: "__none__", label: "Sin asignar", color: "#64748b" },
-              ...ejecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) })),
-            ]}
-            selected={fEjecutivo}
-            onToggle={(id) => setFEjecutivo((arr) => toggleInArray(arr, id))}
-            onClear={() => setFEjecutivo([])}
-            emptyText="Sin ejecutivos"
-            width="w-full sm:w-56"
-          />
-          <MultiSelectFilter
-            label="Plaza"
-            options={[
-              { id: "__none__", label: "Sin plaza", color: "#64748b" },
-              ...plazaOptions.map((p) => ({ id: p.id, label: p.name, color: p.color })),
-            ]}
-            selected={fPlaza}
-            onToggle={(id) => setFPlaza((arr) => toggleInArray(arr, id))}
-            onClear={() => setFPlaza([])}
-            emptyText="Sin plazas"
-            width="w-full sm:w-56"
-          />
+        <div className="flex flex-wrap items-end gap-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Ejecutivo</p>
+            <MultiSelectFilter
+              label="Ejecutivo"
+              options={[
+                { id: "__none__", label: "Sin asignar", color: "#64748b" },
+                ...ejecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) })),
+              ]}
+              selected={fEjecutivo}
+              onToggle={(id) => setFEjecutivo((arr) => toggleInArray(arr, id))}
+              onClear={() => setFEjecutivo([])}
+              emptyText="Sin ejecutivos"
+              width="w-full sm:w-56"
+            />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Plaza</p>
+            <MultiSelectFilter
+              label="Plaza"
+              options={[
+                { id: "__none__", label: "Sin plaza", color: "#64748b" },
+                ...plazaOptions.map((p) => ({ id: p.id, label: p.name, color: p.color })),
+              ]}
+              selected={fPlaza}
+              onToggle={(id) => setFPlaza((arr) => toggleInArray(arr, id))}
+              onClear={() => setFPlaza([])}
+              emptyText="Sin plazas"
+              width="w-full sm:w-56"
+            />
+          </div>
         </div>
         </>
         )}
