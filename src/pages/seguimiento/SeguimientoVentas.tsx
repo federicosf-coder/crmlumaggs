@@ -1815,7 +1815,7 @@ export default function SeguimientoVentas() {
             </Card>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-end gap-2">
             <div className="relative flex-1 sm:w-72 sm:flex-none">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -1825,19 +1825,23 @@ export default function SeguimientoVentas() {
                 className="pl-8 h-9 font-light"
               />
             </div>
-            <MultiSelectFilter
-              label="Rango"
-              options={[
-                { id: "90-120", label: "90–120 días", color: "#f59e0b" },
-                { id: "120-180", label: "120–180 días", color: "#ea580c" },
-                { id: "180+", label: "180+ días", color: "#dc2626" },
-              ]}
-              selected={recRangos}
-              onToggle={(id) => setRecRangos((arr) => toggleInArray(arr, id))}
-              onClear={() => setRecRangos([])}
-              width="w-full sm:w-48"
-            />
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Rango</p>
+              <MultiSelectFilter
+                label="Rango"
+                options={[
+                  { id: "90-120", label: "90–120 días", color: "#f59e0b" },
+                  { id: "120-180", label: "120–180 días", color: "#ea580c" },
+                  { id: "180+", label: "180+ días", color: "#dc2626" },
+                ]}
+                selected={recRangos}
+                onToggle={(id) => setRecRangos((arr) => toggleInArray(arr, id))}
+                onClear={() => setRecRangos([])}
+                width="w-full sm:w-48"
+              />
+            </div>
             <div className="w-full sm:w-72">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Producto</p>
               <SearchableSelect
                 value={recProducto}
                 onValueChange={setRecProducto}
@@ -1845,14 +1849,27 @@ export default function SeguimientoVentas() {
                 placeholder="Producto"
               />
             </div>
-            <MultiSelectFilter
-              label="Ejecutivo"
-              options={recEjecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) }))}
-              selected={recEjecutivo}
-              onToggle={(id) => setRecEjecutivo((arr) => toggleInArray(arr, id))}
-              onClear={() => setRecEjecutivo([])}
-              width="w-full sm:w-56"
-            />
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Ejecutivo</p>
+              <MultiSelectFilter
+                label="Ejecutivo"
+                options={recEjecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) }))}
+                selected={recEjecutivo}
+                onToggle={(id) => setRecEjecutivo((arr) => toggleInArray(arr, id))}
+                onClear={() => setRecEjecutivo([])}
+                width="w-full sm:w-56"
+              />
+            </div>
+            {(recSearch || recRangos.length > 0 || recProducto || recEjecutivo.length > 0) && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 gap-1"
+                onClick={() => { setRecSearch(""); setRecRangos([]); setRecProducto(""); setRecEjecutivo([]); }}
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Reiniciar filtros
+              </Button>
+            )}
             <Button
               size="sm"
               variant="outline"
