@@ -444,6 +444,96 @@ export default function SeguimientoVentas() {
 
   const recLoading = recActivosLoading || recFacturasLoading;
 
+  // ─────────── Productos ───────────
+  const [prodSearch, setProdSearch] = useState("");
+  const [prodExpanded, setProdExpanded] = useState<string | null>(null);
+  const [prodClienteSearch, setProdClienteSearch] = useState("");
+  const [prodSelected, setProdSelected] = useState<Set<string>>(new Set());
+  useEffect(() => { setProdSelected(new Set()); setProdExpanded(null); }, [tab, empresaVendedora]);
+
+  const { data: prodCompanies = [] } = useQuery({
+    queryKey: ["productos-companies"],
+    enabled: isProductos,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("companies").select("id, name").limit(10000);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const prodRows = useMemo(() => {
+    if (!isProductos) return [] as any[];
+    const names = new Map<string, string>();
+    for (const c of prodCompanies as any[]) names.set(c.id, c.name || "—");
+    const map = new Map<string, {
+      producto_id: string; nombre: string; codigo: string; cantidad: number; ultima: string;
+      clientesMap: Map<string, { empresa_id: string; empresa: string; cantidad: number; ultima: string }>;
+    }>();
+    for (const r of recFacturas as any[]) {
+      const pid = r.producto_id;
+      const empresaId = r.documentos?.empresa_id;
+      const fecha = r.documentos?.fecha_documento;
+      if (!pid || !empresaId || !fecha) continue;
+      let p = map.get(pid);
+      if (!p) {
+        p = {
+          producto_id: pid,
+          nombre: r.productos?.nombre_producto || "—",
+          codigo: r.productos?.codigo || "—",
+          cantidad: 0,
+          ultima: fecha,
+          clientesMap: new Map(),
+        };
+        map.set(pid, p);
+      }
+      const cant = Number(r.cantidad || 0);
+      p.cantidad += cant;
+      if (fecha > p.ultima) p.ultima = fecha;
+      const cli = p.clientesMap.get(empresaId);
+      if (cli) {
+        cli.cantidad += cant;
+        if (fecha > cli.ultima) cli.ultima = fecha;
+      } else {
+        p.clientesMap.set(empresaId, { empresa_id: empresaId, empresa: names.get(empresaId) || "—", cantidad: cant, ultima: fecha });
+      }
+    }
+    return Array.from(map.values())
+      .map((p) => ({
+        producto_id: p.producto_id,
+        nombre: p.nombre,
+        codigo: p.codigo,
+        cantidad: p.cantidad,
+        ultima: p.ultima,
+        clientes: Array.from(p.clientesMap.values()).sort((a, b) => b.cantidad - a.cantidad),
+      }))
+      .sort((a, b) => b.cantidad - a.cantidad);
+  }, [isProductos, recFacturas, prodCompanies]);
+
+  const prodFiltered = useMemo(() => {
+    const s = prodSearch.trim().toLowerCase();
+    if (!s) return prodRows;
+    return prodRows.filter((p: any) =>
+      (p.nombre || "").toLowerCase().includes(s) || (p.codigo || "").toLowerCase().includes(s));
+  }, [prodRows, prodSearch]);
+
+  const prodSelectedCompanyIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of prodRows as any[]) {
+      if (!prodSelected.has(p.producto_id)) continue;
+      for (const c of p.clientes) set.add(c.empresa_id);
+    }
+    return Array.from(set);
+  }, [prodRows, prodSelected]);
+
+  const enviarWhatsappProductos = () => {
+    const label = (prodRows as any[])
+      .filter((p) => prodSelected.has(p.producto_id))
+      .map((p) => p.nombre)
+      .join(", ");
+    sessionStorage.setItem("wa_campaign_preselect", JSON.stringify({ companyIds: prodSelectedCompanyIds, label }));
+    navigate("/whatsapp/campaigns");
+  };
+
   const recRows = useMemo(() => {
     if (!isRecuperacion) return [] as any[];
     const activos = new Map<string, { name: string; owner_id: string | null }>();
