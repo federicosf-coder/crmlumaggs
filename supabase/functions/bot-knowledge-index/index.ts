@@ -2,7 +2,8 @@
 // en fragmentos con embeddings, para la búsqueda semántica del asesor IA.
 //
 // Modo de uso (dos fases, reanudable):
-//   { action: "extract", bucket?, path, title?, source_type? } -> crea doc + fragmentos sin vector
+//   { action: "extract", bucket?, path, title?, source_type?, from_page?, page_size? }
+//        -> crea/continúa el doc y extrae un rango de páginas (reanudable con `next_page`)
 //   { action: "embed", doc_id, limit? }                        -> vectoriza pendientes, devuelve `remaining`
 //   { action: "status", doc_id? }                              -> avance por documento
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
@@ -69,6 +70,8 @@ Deno.serve(async (req) => {
       if (!path) return json({ error: "Falta `path` del archivo en la biblioteca" }, 400);
       const title = String(body?.title ?? path.split("/").pop() ?? path);
       const sourceType = String(body?.source_type ?? "digest");
+      const fromPage = Math.max(1, Number(body?.from_page ?? 1));
+      const pageSize = Math.min(Math.max(Number(body?.page_size ?? 40), 1), 200);
 
       const { data: existing } = await admin
         .from("bot_knowledge_docs")
@@ -79,10 +82,12 @@ Deno.serve(async (req) => {
 
       let docId = existing?.id as string | undefined;
       if (docId) {
-        await admin.from("bot_knowledge_chunks").delete().eq("doc_id", docId);
-        await admin.from("bot_knowledge_docs")
-          .update({ status: "extracting", title, source_type: sourceType, chunk_count: 0, error_message: null })
-          .eq("id", docId);
+        if (fromPage === 1) {
+          await admin.from("bot_knowledge_chunks").delete().eq("doc_id", docId);
+          await admin.from("bot_knowledge_docs")
+            .update({ status: "extracting", title, source_type: sourceType, chunk_count: 0, error_message: null })
+            .eq("id", docId);
+        }
       } else {
         const { data: created, error: createErr } = await admin
           .from("bot_knowledge_docs")
@@ -103,8 +108,8 @@ Deno.serve(async (req) => {
 
       const buf = new Uint8Array(await file.arrayBuffer());
       const pdf = await getDocumentProxy(buf);
-      const { text: pages } = await extractText(pdf, { mergePages: false });
-      const pageTexts = Array.isArray(pages) ? pages : [String(pages ?? "")];
+      const numPages = pdf.numPages as number;
+      const lastPage = Math.min(fromPage + pageSize - 1, numPages);
 
       let total = 0;
       let pending: Array<Record<string, unknown>> = [];
@@ -115,27 +120,47 @@ Deno.serve(async (req) => {
         total += pending.length;
         pending = [];
       };
-      for (let p = 0; p < pageTexts.length; p++) {
-        const chunks = chunkPage(String(pageTexts[p] ?? ""));
+      for (let p = fromPage; p <= lastPage; p++) {
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        const raw = (content.items as Array<{ str?: string }>)
+          .map((it) => it?.str ?? "")
+          .join(" ");
+        page.cleanup?.();
+        const chunks = chunkPage(raw);
         chunks.forEach((content, i) => {
           pending.push({
             doc_id: docId,
             source_type: sourceType,
             title,
-            page: p + 1,
+            page: p,
             chunk_index: i,
             content,
             model_version: EMBEDDING_MODEL,
           });
         });
-        if (pending.length >= 400) await flush();
+        if (pending.length >= 200) await flush();
       }
       await flush();
 
+      const { count: totalChunks } = await admin
+        .from("bot_knowledge_chunks")
+        .select("id", { count: "exact", head: true })
+        .eq("doc_id", docId!);
+      const done = lastPage >= numPages;
       await admin.from("bot_knowledge_docs")
-        .update({ status: "embedding", chunk_count: total })
+        .update({ status: done ? "embedding" : "extracting", chunk_count: totalChunks ?? total })
         .eq("id", docId!);
-      return json({ doc_id: docId, pages: pageTexts.length, chunks: total, status: "embedding" });
+      return json({
+        doc_id: docId,
+        num_pages: numPages,
+        from_page: fromPage,
+        to_page: lastPage,
+        chunks_added: total,
+        chunks_total: totalChunks ?? total,
+        next_page: done ? null : lastPage + 1,
+        status: done ? "embedding" : "extracting",
+      });
     }
 
     if (action === "embed") {
