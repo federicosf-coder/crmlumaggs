@@ -7390,6 +7390,42 @@ export type Database = {
           },
         ]
       }
+      seguimiento_ventas_ignorados: {
+        Row: {
+          company_id: string
+          created_at: string
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          id: string
+          ignorado_at: string
+          ignorado_por: string | null
+          is_active: boolean
+          razon: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          id?: string
+          ignorado_at?: string
+          ignorado_por?: string | null
+          is_active?: boolean
+          razon?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
+          id?: string
+          ignorado_at?: string
+          ignorado_por?: string | null
+          is_active?: boolean
+          razon?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       short_links: {
         Row: {
           code: string

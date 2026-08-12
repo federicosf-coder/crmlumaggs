@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { BackButton } from "@/components/BackButton";
 import { PageBanner } from "@/components/PageBanner";
@@ -298,19 +298,33 @@ export default function SeguimientoVentas() {
   const brandTitle = brand === "phillips66" ? "Seguimiento — Phillips 66" : "Seguimiento — Chevron";
   const brandSubtitle = brand === "phillips66" ? "Galsa" : "Lumaggs";
 
-  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion" | "productos">("con_venta");
-  const [search, setSearch] = useState("");
+  // ─── Persistencia de filtros (sessionStorage) ───
+  const filtrosKey = `seguimiento_filtros_${brand || "default"}`;
+  const persisted = useMemo<any>(() => {
+    try {
+      const raw = sessionStorage.getItem(`seguimiento_filtros_${brand || "default"}`);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion" | "productos">(
+    () => persisted.tab ?? "con_venta"
+  );
+  const [search, setSearch] = useState(() => persisted.search ?? "");
   const [selected, setSelected] = useState<SeguimientoVentasRow | null>(null);
-  const [sort, setSort] = useState<SortState | null>(null);
+  const [sort, setSort] = useState<SortState | null>(() => persisted.sort ?? null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [fEstatus, setFEstatus] = useState<string[]>([]);
-  const [fAvance, setFAvance] = useState<string[]>([]);
-  const [fDias, setFDias] = useState<string[]>([]);
-  const [fPotencial, setFPotencial] = useState<string[]>([]);
-  const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
-  const [fPlaza, setFPlaza] = useState<string[]>([]);
-  const [fRegistroFrom, setFRegistroFrom] = useState<string>("");
-  const [fRegistroTo, setFRegistroTo] = useState<string>("");
+  const [fEstatus, setFEstatus] = useState<string[]>(() => persisted.fEstatus ?? []);
+  const [fAvance, setFAvance] = useState<string[]>(() => persisted.fAvance ?? []);
+  const [fDias, setFDias] = useState<string[]>(() => persisted.fDias ?? []);
+  const [fPotencial, setFPotencial] = useState<string[]>(() => persisted.fPotencial ?? []);
+  const [fEjecutivo, setFEjecutivo] = useState<string[]>(() => persisted.fEjecutivo ?? []);
+  const [fPlaza, setFPlaza] = useState<string[]>(() => persisted.fPlaza ?? []);
+  const [fRegistroFrom, setFRegistroFrom] = useState<string>(() => persisted.fRegistroFrom ?? "");
+  const [fRegistroTo, setFRegistroTo] = useState<string>(() => persisted.fRegistroTo ?? "");
 
   const isPerdidos = tab === "perdidos";
   const tieneVenta = tab === "con_venta" || tab === "perdidos";
@@ -324,6 +338,13 @@ export default function SeguimientoVentas() {
   // Selección múltiple
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   useEffect(() => { setSelectedIds(new Set()); }, [tab, empresaVendedora]);
+
+  // Ignorar clientes (Clientes con Venta / sin Venta)
+  const [viewIgnorados, setViewIgnorados] = useState(false);
+  const [ignoreDialogOpen, setIgnoreDialogOpen] = useState(false);
+  const [ignoreRazon, setIgnoreRazon] = useState("");
+  const [ignoreSaving, setIgnoreSaving] = useState(false);
+  useEffect(() => { setSelectedIds(new Set()); }, [viewIgnorados]);
 
   // Diálogo crear tarea / actividad
   const [taskDialog, setTaskDialog] = useState<null | {
@@ -344,8 +365,10 @@ export default function SeguimientoVentas() {
   // Reactivar masivo
   const [bulkReactivating, setBulkReactivating] = useState(false);
 
-  // Al cambiar pestaña, limpiar filtros que no aplican
+  // Al cambiar pestaña, limpiar filtros que no aplican (no en el primer render: se restauran)
+  const firstTabRun = useRef(true);
   useEffect(() => {
+    if (firstTabRun.current) { firstTabRun.current = false; return; }
     setFEstatus([]);
     setFAvance([]);
     setFDias([]);
@@ -360,12 +383,12 @@ export default function SeguimientoVentas() {
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
 
   // ─────────── Recuperación de Productos ───────────
-  const [recSearch, setRecSearch] = useState("");
-  const [recRangos, setRecRangos] = useState<string[]>([]);
-  const [recProducto, setRecProducto] = useState<string>("");
-  const [recEjecutivo, setRecEjecutivo] = useState<string[]>([]);
-  const [recSort, setRecSort] = useState<SortState | null>(null);
-  const [recViewIgnorados, setRecViewIgnorados] = useState(false);
+  const [recSearch, setRecSearch] = useState(() => persisted.recSearch ?? "");
+  const [recRangos, setRecRangos] = useState<string[]>(() => persisted.recRangos ?? []);
+  const [recProducto, setRecProducto] = useState<string>(() => persisted.recProducto ?? "");
+  const [recEjecutivo, setRecEjecutivo] = useState<string[]>(() => persisted.recEjecutivo ?? []);
+  const [recSort, setRecSort] = useState<SortState | null>(() => persisted.recSort ?? null);
+  const [recViewIgnorados, setRecViewIgnorados] = useState<boolean>(() => persisted.recViewIgnorados ?? false);
   const [recSelectedKeys, setRecSelectedKeys] = useState<Set<string>>(new Set());
   const [recIgnoreDialog, setRecIgnoreDialog] = useState<null | { keys: string[] }>(null);
   const [recIgnoreRazon, setRecIgnoreRazon] = useState("");
@@ -416,6 +439,27 @@ export default function SeguimientoVentas() {
     return m;
   }, [recIgnorados]);
 
+  // Clientes ignorados (nivel empresa)
+  const { data: clientesIgnorados = [] } = useQuery({
+    queryKey: ["ventas-ignorados", empresaVendedora],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("seguimiento_ventas_ignorados")
+        .select("id, company_id, razon, ignorado_at, ignorado_por")
+        .eq("empresa_vendedora", empresaVendedora)
+        .eq("is_active", true)
+        .limit(10000);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const clientesIgnoradosMap = useMemo(() => {
+    const m = new Map<string, any>();
+    for (const i of clientesIgnorados as any[]) m.set(i.company_id, i);
+    return m;
+  }, [clientesIgnorados]);
+
   const { data: recFacturas = [], isLoading: recFacturasLoading } = useQuery({
     queryKey: ["recuperacion-facturas", empresaVendedora],
     enabled: isRecuperacion || isProductos,
@@ -445,11 +489,31 @@ export default function SeguimientoVentas() {
   const recLoading = recActivosLoading || recFacturasLoading;
 
   // ─────────── Productos ───────────
-  const [prodSearch, setProdSearch] = useState("");
+  const [prodSearch, setProdSearch] = useState(() => persisted.prodSearch ?? "");
   const [prodExpanded, setProdExpanded] = useState<string | null>(null);
   const [prodClienteSearch, setProdClienteSearch] = useState("");
   const [prodSelected, setProdSelected] = useState<Set<string>>(new Set());
   useEffect(() => { setProdSelected(new Set()); setProdExpanded(null); }, [tab, empresaVendedora]);
+
+  // Guarda todos los filtros en sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        filtrosKey,
+        JSON.stringify({
+          tab, search, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza,
+          fRegistroFrom, fRegistroTo, sort,
+          recSearch, recRangos, recProducto, recEjecutivo, recSort, recViewIgnorados,
+          prodSearch,
+        })
+      );
+    } catch {}
+  }, [
+    filtrosKey, tab, search, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza,
+    fRegistroFrom, fRegistroTo, sort,
+    recSearch, recRangos, recProducto, recEjecutivo, recSort, recViewIgnorados,
+    prodSearch,
+  ]);
 
   const { data: prodCompanies = [] } = useQuery({
     queryKey: ["productos-companies"],
@@ -867,6 +931,51 @@ export default function SeguimientoVentas() {
     queryClient.invalidateQueries({ queryKey: ["recuperacion-ignorados", empresaVendedora] });
   };
 
+  const submitIgnorarClientes = async () => {
+    setIgnoreSaving(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      const payload = Array.from(selectedIds)
+        .map((id) => byId.get(id))
+        .filter((r): r is SeguimientoVentasRow => !!r && !clientesIgnoradosMap.has(r.company_id))
+        .map((r) => ({
+          empresa_vendedora: empresaVendedora,
+          company_id: r.company_id,
+          razon: ignoreRazon.trim() || null,
+          ignorado_por: auth?.user?.id ?? null,
+        }));
+      if (payload.length > 0) {
+        const { error } = await (supabase as any).from("seguimiento_ventas_ignorados").insert(payload);
+        if (error) throw error;
+      }
+      toast({ title: "Clientes ignorados", description: `${payload.length} cliente${payload.length === 1 ? "" : "s"} ignorado${payload.length === 1 ? "" : "s"}.` });
+      setIgnoreDialogOpen(false);
+      setIgnoreRazon("");
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["ventas-ignorados", empresaVendedora] });
+    } catch (e: any) {
+      toast({ title: "Error al ignorar", description: e?.message || "Intenta de nuevo.", variant: "destructive" });
+    } finally {
+      setIgnoreSaving(false);
+    }
+  };
+
+  const restaurarClienteIgnorado = async (companyId: string) => {
+    const rec = clientesIgnoradosMap.get(companyId);
+    if (!rec) return;
+    const { error } = await (supabase as any)
+      .from("seguimiento_ventas_ignorados")
+      .update({ is_active: false })
+      .eq("id", rec.id);
+    if (error) {
+      toast({ title: "Error al restaurar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Cliente restaurado" });
+    queryClient.invalidateQueries({ queryKey: ["ventas-ignorados", empresaVendedora] });
+  };
+
   const ambito = tieneVenta ? "con_venta" : "sin_venta";
   const estatusOptions = useMemo(
     () => catalog.filter((c) => c.ambito === ambito && c.familia === (tieneVenta ? "riesgo" : "gestion")),
@@ -1102,6 +1211,14 @@ export default function SeguimientoVentas() {
       ? accessFiltered.filter((r) => (r.companies?.name || "").toLowerCase().includes(term))
       : accessFiltered;
 
+    // Clientes ignorados (no aplica en Perdidos)
+    if (!isPerdidos) {
+      base = base.filter((r) => {
+        const ign = clientesIgnoradosMap.has(r.company_id);
+        return viewIgnorados ? ign : !ign;
+      });
+    }
+
     if (fEstatus.length > 0) {
       base = base.filter((r) => {
         // Usa el estatus EFECTIVO (manual si está activo, si no el calculado).
@@ -1268,7 +1385,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, sort, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza, fRegistroFrom, fRegistroTo, profileMap, companyPlazaMap, plazaNameMap, access.accessLevel, access.teamMemberIds, access.userId]);
+  }, [rows, search, catalogMap, tieneVenta, isPerdidos, viewIgnorados, clientesIgnoradosMap, sort, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza, fRegistroFrom, fRegistroTo, profileMap, companyPlazaMap, plazaNameMap, access.accessLevel, access.teamMemberIds, access.userId]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
@@ -1429,32 +1546,48 @@ export default function SeguimientoVentas() {
             )}
             <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
           </Button>
+          {activeFiltersCount > 0 && (
+            <Button variant="outline" size="sm" className="gap-2 h-9" onClick={clearAllFilters}>
+              <RotateCcw className="h-4 w-4" /> Reiniciar filtros
+            </Button>
+          )}
+          {(tab === "con_venta" || tab === "sin_venta") && (
+            <Button variant="outline" size="sm" className="gap-2 h-9" onClick={() => setViewIgnorados((v) => !v)}>
+              {viewIgnorados ? <><Eye className="h-4 w-4" /> Ver activos</> : <><EyeOff className="h-4 w-4" /> Ver ignorados</>}
+            </Button>
+          )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <MultiSelectFilter
-            label="Ejecutivo"
-            options={[
-              { id: "__none__", label: "Sin asignar", color: "#64748b" },
-              ...ejecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) })),
-            ]}
-            selected={fEjecutivo}
-            onToggle={(id) => setFEjecutivo((arr) => toggleInArray(arr, id))}
-            onClear={() => setFEjecutivo([])}
-            emptyText="Sin ejecutivos"
-            width="w-full sm:w-56"
-          />
-          <MultiSelectFilter
-            label="Plaza"
-            options={[
-              { id: "__none__", label: "Sin plaza", color: "#64748b" },
-              ...plazaOptions.map((p) => ({ id: p.id, label: p.name, color: p.color })),
-            ]}
-            selected={fPlaza}
-            onToggle={(id) => setFPlaza((arr) => toggleInArray(arr, id))}
-            onClear={() => setFPlaza([])}
-            emptyText="Sin plazas"
-            width="w-full sm:w-56"
-          />
+        <div className="flex flex-wrap items-end gap-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Ejecutivo</p>
+            <MultiSelectFilter
+              label="Ejecutivo"
+              options={[
+                { id: "__none__", label: "Sin asignar", color: "#64748b" },
+                ...ejecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) })),
+              ]}
+              selected={fEjecutivo}
+              onToggle={(id) => setFEjecutivo((arr) => toggleInArray(arr, id))}
+              onClear={() => setFEjecutivo([])}
+              emptyText="Sin ejecutivos"
+              width="w-full sm:w-56"
+            />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Plaza</p>
+            <MultiSelectFilter
+              label="Plaza"
+              options={[
+                { id: "__none__", label: "Sin plaza", color: "#64748b" },
+                ...plazaOptions.map((p) => ({ id: p.id, label: p.name, color: p.color })),
+              ]}
+              selected={fPlaza}
+              onToggle={(id) => setFPlaza((arr) => toggleInArray(arr, id))}
+              onClear={() => setFPlaza([])}
+              emptyText="Sin plazas"
+              width="w-full sm:w-56"
+            />
+          </div>
         </div>
         </>
         )}
@@ -1629,6 +1762,11 @@ export default function SeguimientoVentas() {
             <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setBulkStatusId(""); setBulkStatusOpen(true); }}>
               <Filter className="h-3.5 w-3.5" /> Cambiar estatus
             </Button>
+            {!isPerdidos && !viewIgnorados && (
+              <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setIgnoreRazon(""); setIgnoreDialogOpen(true); }}>
+                <EyeOff className="h-3.5 w-3.5" /> Ignorar
+              </Button>
+            )}
             {isPerdidos && (
               <Button
                 size="sm"
@@ -1682,7 +1820,7 @@ export default function SeguimientoVentas() {
             </Card>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-end gap-2">
             <div className="relative flex-1 sm:w-72 sm:flex-none">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -1692,19 +1830,23 @@ export default function SeguimientoVentas() {
                 className="pl-8 h-9 font-light"
               />
             </div>
-            <MultiSelectFilter
-              label="Rango"
-              options={[
-                { id: "90-120", label: "90–120 días", color: "#f59e0b" },
-                { id: "120-180", label: "120–180 días", color: "#ea580c" },
-                { id: "180+", label: "180+ días", color: "#dc2626" },
-              ]}
-              selected={recRangos}
-              onToggle={(id) => setRecRangos((arr) => toggleInArray(arr, id))}
-              onClear={() => setRecRangos([])}
-              width="w-full sm:w-48"
-            />
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Rango</p>
+              <MultiSelectFilter
+                label="Rango"
+                options={[
+                  { id: "90-120", label: "90–120 días", color: "#f59e0b" },
+                  { id: "120-180", label: "120–180 días", color: "#ea580c" },
+                  { id: "180+", label: "180+ días", color: "#dc2626" },
+                ]}
+                selected={recRangos}
+                onToggle={(id) => setRecRangos((arr) => toggleInArray(arr, id))}
+                onClear={() => setRecRangos([])}
+                width="w-full sm:w-48"
+              />
+            </div>
             <div className="w-full sm:w-72">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Producto</p>
               <SearchableSelect
                 value={recProducto}
                 onValueChange={setRecProducto}
@@ -1712,14 +1854,27 @@ export default function SeguimientoVentas() {
                 placeholder="Producto"
               />
             </div>
-            <MultiSelectFilter
-              label="Ejecutivo"
-              options={recEjecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) }))}
-              selected={recEjecutivo}
-              onToggle={(id) => setRecEjecutivo((arr) => toggleInArray(arr, id))}
-              onClear={() => setRecEjecutivo([])}
-              width="w-full sm:w-56"
-            />
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Ejecutivo</p>
+              <MultiSelectFilter
+                label="Ejecutivo"
+                options={recEjecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) }))}
+                selected={recEjecutivo}
+                onToggle={(id) => setRecEjecutivo((arr) => toggleInArray(arr, id))}
+                onClear={() => setRecEjecutivo([])}
+                width="w-full sm:w-56"
+              />
+            </div>
+            {(recSearch || recRangos.length > 0 || recProducto || recEjecutivo.length > 0) && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 gap-1"
+                onClick={() => { setRecSearch(""); setRecRangos([]); setRecProducto(""); setRecEjecutivo([]); }}
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Reiniciar filtros
+              </Button>
+            )}
             <Button
               size="sm"
               variant="outline"
@@ -1904,14 +2059,21 @@ export default function SeguimientoVentas() {
       {/* Lista mobile (cards) */}
       {isProductos && (
         <div className="space-y-3">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={prodSearch}
-              onChange={(e) => setProdSearch(e.target.value)}
-              placeholder="Buscar producto por nombre o código…"
-              className="pl-9 h-9 font-light"
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-full sm:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={prodSearch}
+                onChange={(e) => setProdSearch(e.target.value)}
+                placeholder="Buscar producto por nombre o código…"
+                className="pl-9 h-9 font-light"
+              />
+            </div>
+            {prodSearch && (
+              <Button size="sm" variant="outline" className="h-9 gap-1" onClick={() => { setProdSearch(""); setProdExpanded(null); }}>
+                <RotateCcw className="h-3.5 w-3.5" /> Reiniciar
+              </Button>
+            )}
           </div>
 
           <Card>
@@ -2166,19 +2328,21 @@ export default function SeguimientoVentas() {
                       />
                     ))}
                   </SortableContext>
+                  {viewIgnorados && !isPerdidos && <TableHead>Razón</TableHead>}
+                  {viewIgnorados && !isPerdidos && <TableHead>Fecha ignorado</TableHead>}
                   <TableHead className="w-14 text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length + 2} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2)} className="text-center text-muted-foreground py-8">
                       Cargando…
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length + 2} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2)} className="text-center text-muted-foreground py-8">
                       Sin registros.
                     </TableCell>
                   </TableRow>
@@ -2206,11 +2370,30 @@ export default function SeguimientoVentas() {
                           {col.render(r)}
                         </TableCell>
                       ))}
+                      {viewIgnorados && !isPerdidos && (
+                        <TableCell className="font-light text-xs">
+                          {clientesIgnoradosMap.get(r.company_id)?.razon || "—"}
+                        </TableCell>
+                      )}
+                      {viewIgnorados && !isPerdidos && (
+                        <TableCell className="font-light text-xs">
+                          {(() => {
+                            const at = clientesIgnoradosMap.get(r.company_id)?.ignorado_at;
+                            return at ? formatDate(at) : "—";
+                          })()}
+                        </TableCell>
+                      )}
                       <TableCell className="w-14 text-center" onClick={(e) => e.stopPropagation()}>
-                        <RowActionsMenu
-                          row={r}
-                          onOpenTask={(type) => setTaskDialog({ companyId: r.company_id, type })}
-                        />
+                        {viewIgnorados && !isPerdidos ? (
+                          <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => restaurarClienteIgnorado(r.company_id)}>
+                            <RotateCcw className="h-3.5 w-3.5" /> Restaurar
+                          </Button>
+                        ) : (
+                          <RowActionsMenu
+                            row={r}
+                            onOpenTask={(type) => setTaskDialog({ companyId: r.company_id, type })}
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
@@ -2221,6 +2404,30 @@ export default function SeguimientoVentas() {
         </Card>
       </div>
       )}
+
+      {/* Diálogo: ignorar clientes */}
+      <Dialog open={ignoreDialogOpen} onOpenChange={(o) => { if (!o) { setIgnoreDialogOpen(false); setIgnoreRazon(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ignorar cliente(s)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label className="text-xs uppercase tracking-wide">Razón (opcional)</Label>
+            <Textarea
+              value={ignoreRazon}
+              onChange={(e) => setIgnoreRazon(e.target.value)}
+              placeholder="Motivo por el que se ignora…"
+              className="font-light"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIgnoreDialogOpen(false); setIgnoreRazon(""); }}>Cancelar</Button>
+            <Button onClick={submitIgnorarClientes} disabled={ignoreSaving}>
+              {ignoreSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <SeguimientoDetailDialog
         row={selected}
