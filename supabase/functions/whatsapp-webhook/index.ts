@@ -797,10 +797,36 @@ Deno.serve(async (req) => {
               if (insErr) console.error("Insert message error:", insErr);
               else inserted++;
 
-              // ===== Flujo automatizado de derivación por zona (sin IA) =====
-              let routingHandled = false;
+              // ===== Asesor IA (tiene prioridad sobre la derivación por zona) =====
+              let aiHandled = false;
               try {
-                routingHandled = await handleZoneRouting(admin, {
+                const { data: acct } = await admin
+                  .from("whatsapp_accounts")
+                  .select("ai_advisor_enabled")
+                  .eq("business_phone_number_id", businessPhoneId)
+                  .maybeSingle();
+                if (acct?.ai_advisor_enabled) {
+                  const res = await admin.functions.invoke("whatsapp-ai-advisor", {
+                    body: {
+                      conversation_id: conversationId,
+                      wa_phone: fromPhone,
+                      business_phone_number_id: businessPhoneId,
+                      contact_id: contactId,
+                      whatsapp_account_id: whatsappAccountId,
+                      text,
+                    },
+                  });
+                  if (res.error) console.error("[wa-webhook] asesor IA error:", res.error);
+                  aiHandled = true;
+                }
+              } catch (aiEx) {
+                console.warn("[wa-webhook] asesor IA exception:", aiEx);
+              }
+
+              // ===== Flujo automatizado de derivación por zona (sin IA) =====
+              let routingHandled = aiHandled;
+              try {
+                if (!aiHandled) routingHandled = await handleZoneRouting(admin, {
                   debugId,
                   businessPhoneId,
                   fromPhone,
