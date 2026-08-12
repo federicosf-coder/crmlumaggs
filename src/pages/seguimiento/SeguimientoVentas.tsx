@@ -418,7 +418,7 @@ export default function SeguimientoVentas() {
 
   const { data: recFacturas = [], isLoading: recFacturasLoading } = useQuery({
     queryKey: ["recuperacion-facturas", empresaVendedora],
-    enabled: isRecuperacion,
+    enabled: isRecuperacion || isProductos,
     queryFn: async () => {
       const all: any[] = [];
       let from = 0;
@@ -1240,7 +1240,7 @@ export default function SeguimientoVentas() {
             Recuperación de Productos
           </button>
         </div>
-        {!isRecuperacion && (
+        {showLista && (
         <>
         {/* Botones de filtro siempre visibles (desde catálogo) */}
         <div className="w-full space-y-2">
@@ -1361,7 +1361,7 @@ export default function SeguimientoVentas() {
       </div>
 
       {/* Panel de filtros colapsable */}
-      {!isRecuperacion && (
+      {showLista && (
       <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
         <CollapsibleContent>
           <Card className="border-violet-200/60">
@@ -1517,7 +1517,7 @@ export default function SeguimientoVentas() {
       )}
 
       {/* Barra de acciones masivas */}
-      {!isRecuperacion && selectedIds.size > 0 && (
+      {showLista && selectedIds.size > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-violet-50 dark:bg-violet-950/30 px-3 py-2">
           <div className="text-xs font-semibold uppercase tracking-wide text-violet-900 dark:text-violet-200">
             {selectedIds.size} seleccionado{selectedIds.size === 1 ? "" : "s"}
@@ -1802,7 +1802,7 @@ export default function SeguimientoVentas() {
       )}
 
       {/* Lista mobile (cards) */}
-      {!isRecuperacion && (
+      {showLista && (
       <div className="grid gap-3 md:hidden">
         {isLoading ? (
           <p className="text-center text-sm text-muted-foreground py-8">Cargando…</p>
@@ -1896,7 +1896,7 @@ export default function SeguimientoVentas() {
       )}
 
       {/* Tabla desktop */}
-      {!isRecuperacion && (
+      {showLista && (
       <div className="hidden md:block">
         <Card>
           <div className="flex justify-end p-2 border-b bg-muted/30">
