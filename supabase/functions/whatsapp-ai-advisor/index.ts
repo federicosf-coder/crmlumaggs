@@ -465,7 +465,20 @@ const TOOLS = [
           tipo_cliente: { type: "string" },
           municipio: { type: "string" },
           cotizacion_solicitada: { type: "boolean" },
-          productos_solicitados: { type: "array", items: { type: "string" } },
+          productos_solicitados: {
+            type: "array",
+            description: "Productos de interés con su presentación y cantidad cuando se conozcan.",
+            items: {
+              type: "object",
+              properties: {
+                producto: { type: "string" },
+                presentacion: { type: "string", description: "litro, cubeta, tambor, tote, etc." },
+                cantidad: { type: "number" },
+                unidad: { type: "string" },
+                aplicacion: { type: "string", description: "maquinaria o equipo donde se usará" },
+              },
+            },
+          },
           vehiculos: { type: "array", items: { type: "string" } },
           contexto_negocio: { type: "object", properties: { nota: { type: "string" } } },
           recomendaciones: { type: "array", items: { type: "string" } },
@@ -480,7 +493,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "transferir_a_asesor",
-      description: "Marca la conversación lista para el asesor humano y registra el prospecto. Requiere intención comercial y municipio.",
+      description: "Marca la conversación lista para el asesor humano y registra el prospecto. Requiere intención comercial y municipio. Si es cotización, procura tener producto, presentación y cantidad antes de llamarla.",
       parameters: {
         type: "object",
         properties: { resumen: { type: "string" }, notas_comerciales: { type: "string" }, municipio: { type: "string" } },
