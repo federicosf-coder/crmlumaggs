@@ -1586,41 +1586,93 @@ export default function SeguimientoVentas() {
                 placeholder="Producto"
               />
             </div>
+            <MultiSelectFilter
+              label="Ejecutivo"
+              options={recEjecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) }))}
+              selected={recEjecutivo}
+              onToggle={(id) => setRecEjecutivo((arr) => toggleInArray(arr, id))}
+              onClear={() => setRecEjecutivo([])}
+              width="w-full sm:w-56"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 gap-1"
+              onClick={() => setRecViewIgnorados((v) => !v)}
+            >
+              {recViewIgnorados ? <><Eye className="h-3.5 w-3.5" /> Ver por recuperar</> : <><EyeOff className="h-3.5 w-3.5" /> Ver ignorados</>}
+            </Button>
           </div>
+
+          {!recViewIgnorados && recSelectedKeys.size > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-violet-50 dark:bg-violet-950/30 px-3 py-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-violet-900 dark:text-violet-200">
+                {recSelectedKeys.size} seleccionado{recSelectedKeys.size === 1 ? "" : "s"}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setRecIgnoreRazon(""); setRecIgnoreDialog({ keys: Array.from(recSelectedKeys) }); }}>
+                  <EyeOff className="h-3.5 w-3.5" /> Ignorar seleccionados
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 gap-1" onClick={() => setRecSelectedKeys(new Set())}>
+                  <X className="h-3.5 w-3.5" /> Limpiar
+                </Button>
+              </div>
+            </div>
+          )}
 
           <Card>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Producto</TableHead>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Última compra</TableHead>
-                  <TableHead
-                    className="cursor-pointer select-none text-right"
-                    onClick={() => setRecSort((d) => (d === "desc" ? "asc" : "desc"))}
-                  >
-                    <span className="inline-flex items-center gap-1">
-                      Días sin comprar
-                      {recSort === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
-                    </span>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={recFiltered.length > 0 && recFiltered.every((r) => recSelectedKeys.has(r.key))}
+                      onCheckedChange={(v) =>
+                        setRecSelectedKeys(v ? new Set(recFiltered.map((r) => r.key)) : new Set())
+                      }
+                      aria-label="Seleccionar todos"
+                    />
                   </TableHead>
-                  <TableHead className="text-right">Cantidad histórica</TableHead>
+                  <SortableHead label="Empresa" sortKey="empresa" sort={recSort} onSort={handleRecSort} />
+                  <SortableHead label="Producto" sortKey="producto" sort={recSort} onSort={handleRecSort} />
+                  <SortableHead label="Código" sortKey="codigo" sort={recSort} onSort={handleRecSort} />
+                  <SortableHead label="Ejecutivo" sortKey="ejecutivo" sort={recSort} onSort={handleRecSort} />
+                  <SortableHead label="Última compra" sortKey="ultima" sort={recSort} onSort={handleRecSort} />
+                  <SortableHead label="Días sin comprar" sortKey="dias" sort={recSort} onSort={handleRecSort} align="right" />
+                  <SortableHead label="Cantidad histórica" sortKey="cantidad" sort={recSort} onSort={handleRecSort} align="right" />
                   <TableHead className="text-center">Rango</TableHead>
+                  {recViewIgnorados && <TableHead>Razón</TableHead>}
+                  {recViewIgnorados && <TableHead>Fecha ignorado</TableHead>}
                   <TableHead className="text-center w-28">Acción</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recLoading ? (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Cargando…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={recViewIgnorados ? 12 : 10} className="text-center text-muted-foreground py-8">Cargando…</TableCell></TableRow>
                 ) : recFiltered.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin registros.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={recViewIgnorados ? 12 : 10} className="text-center text-muted-foreground py-8">Sin registros.</TableCell></TableRow>
                 ) : (
                   recFiltered.map((r) => (
                     <TableRow key={r.key}>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={recSelectedKeys.has(r.key)}
+                          onCheckedChange={(v) =>
+                            setRecSelectedKeys((prev) => {
+                              const next = new Set(prev);
+                              if (v) next.add(r.key); else next.delete(r.key);
+                              return next;
+                            })
+                          }
+                          aria-label="Seleccionar fila"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{r.empresa}</TableCell>
                       <TableCell className="font-light">{r.producto}</TableCell>
                       <TableCell className="font-light text-xs">{r.codigo}</TableCell>
+                      <TableCell className="font-light">
+                        {r.owner_id ? (profileMap.get(r.owner_id) || "—") : <span className="italic text-muted-foreground">Sin asignar</span>}
+                      </TableCell>
                       <TableCell className="font-light">{formatDate(r.ultima)}</TableCell>
                       <TableCell className="text-right font-medium">{r.dias}</TableCell>
                       <TableCell className="text-right font-light">{fmtNum(r.cantidad)}</TableCell>
@@ -1638,15 +1690,50 @@ export default function SeguimientoVentas() {
                           {r.rango}
                         </Badge>
                       </TableCell>
+                      {recViewIgnorados && (
+                        <TableCell className="font-light text-xs">
+                          {recIgnoradosMap.get(`${r.empresa_id}|${r.producto_id}`)?.razon || "—"}
+                        </TableCell>
+                      )}
+                      {recViewIgnorados && (
+                        <TableCell className="font-light text-xs">
+                          {(() => {
+                            const at = recIgnoradosMap.get(`${r.empresa_id}|${r.producto_id}`)?.ignorado_at;
+                            return at ? formatDate(at) : "—";
+                          })()}
+                        </TableCell>
+                      )}
                       <TableCell className="text-center">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 gap-1"
-                          onClick={() => setTaskDialog({ companyId: r.empresa_id, type: "whatsapp" })}
-                        >
-                          <MessageCircle className="h-3.5 w-3.5" /> Reofrecer
-                        </Button>
+                        {recViewIgnorados ? (
+                          <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => restaurarIgnorado(r)}>
+                            <RotateCcw className="h-3.5 w-3.5" /> Restaurar
+                          </Button>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setTaskDialog({ companyId: r.empresa_id, type: "whatsapp" })}>
+                                <MessageCircle className="h-3.5 w-3.5 mr-2" /> Reofrecer
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  const next = new URLSearchParams(searchParams);
+                                  next.set("company", r.empresa_id);
+                                  setSearchParams(next, { replace: false });
+                                }}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir seguimiento a ventas
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setRecIgnoreRazon(""); setRecIgnoreDialog({ keys: [r.key] }); }}>
+                                <EyeOff className="h-3.5 w-3.5 mr-2" /> Ignorar
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
@@ -1654,6 +1741,29 @@ export default function SeguimientoVentas() {
               </TableBody>
             </Table>
           </Card>
+
+          <Dialog open={!!recIgnoreDialog} onOpenChange={(o) => { if (!o) { setRecIgnoreDialog(null); setRecIgnoreRazon(""); } }}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Ignorar producto(s) por recuperar</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 py-2">
+                <Label className="text-xs uppercase tracking-wide">Razón (opcional)</Label>
+                <Textarea
+                  value={recIgnoreRazon}
+                  onChange={(e) => setRecIgnoreRazon(e.target.value)}
+                  placeholder="Motivo por el que se ignora…"
+                  className="font-light"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setRecIgnoreDialog(null); setRecIgnoreRazon(""); }}>Cancelar</Button>
+                <Button onClick={submitIgnorar} disabled={recIgnoreSaving}>
+                  {recIgnoreSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Confirmar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 
