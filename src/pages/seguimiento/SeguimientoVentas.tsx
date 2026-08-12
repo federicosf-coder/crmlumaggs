@@ -494,24 +494,6 @@ export default function SeguimientoVentas() {
     return [{ value: "", label: "Todos los productos" }, ...Array.from(m.entries()).map(([value, label]) => ({ value, label }))];
   }, [recRows]);
 
-  const recFiltered = useMemo(() => {
-    const q = recSearch.trim().toLowerCase();
-    let list = recRows.filter((r) => {
-      if (recRangos.length > 0 && !recRangos.includes(r.rango)) return false;
-      if (recProducto && r.producto_id !== recProducto) return false;
-      if (q) {
-        const words = q.split(/\s+/);
-        const text = `${r.empresa} ${r.producto} ${r.codigo}`.toLowerCase();
-        if (!words.every((w) => text.includes(w))) return false;
-      }
-      return true;
-    });
-    list = [...list].sort((a, b) => (recSort === "desc" ? b.dias - a.dias : a.dias - b.dias));
-    return list;
-  }, [recRows, recSearch, recRangos, recProducto, recSort]);
-
-  const recTotal180 = useMemo(() => recFiltered.filter((r) => r.rango === "180+").length, [recFiltered]);
-
   // Deep-link: ?company=<uuid> abre la ficha de esa empresa (crea registro si no existe)
   const [searchParams, setSearchParams] = useSearchParams();
   const deepCompanyId = searchParams.get("company");
