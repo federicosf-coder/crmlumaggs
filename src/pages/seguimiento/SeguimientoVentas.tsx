@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X, GripVertical, RotateCcw, MoreHorizontal, MessageCircle, Mail, ListPlus, UserCog, Loader2 } from "lucide-react";
+import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X, GripVertical, RotateCcw, MoreHorizontal, MessageCircle, Mail, ListPlus, UserCog, Loader2, EyeOff, Eye, ExternalLink } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -358,7 +360,22 @@ export default function SeguimientoVentas() {
   const [recSearch, setRecSearch] = useState("");
   const [recRangos, setRecRangos] = useState<string[]>([]);
   const [recProducto, setRecProducto] = useState<string>("");
-  const [recSort, setRecSort] = useState<SortDir>("desc");
+  const [recEjecutivo, setRecEjecutivo] = useState<string[]>([]);
+  const [recSort, setRecSort] = useState<SortState | null>(null);
+  const [recViewIgnorados, setRecViewIgnorados] = useState(false);
+  const [recSelectedKeys, setRecSelectedKeys] = useState<Set<string>>(new Set());
+  const [recIgnoreDialog, setRecIgnoreDialog] = useState<null | { keys: string[] }>(null);
+  const [recIgnoreRazon, setRecIgnoreRazon] = useState("");
+  const [recIgnoreSaving, setRecIgnoreSaving] = useState(false);
+
+  useEffect(() => { setRecSelectedKeys(new Set()); }, [tab, empresaVendedora, recViewIgnorados]);
+
+  const handleRecSort = (key: string) => {
+    setRecSort((prev) => {
+      if (prev?.key === key) return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
+      return { key, dir: "asc" };
+    });
+  };
 
   const { data: recActivos = [], isLoading: recActivosLoading } = useQuery({
     queryKey: ["recuperacion-activos", empresaVendedora],
@@ -366,7 +383,7 @@ export default function SeguimientoVentas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("seguimiento_ventas")
-        .select("company_id, companies:company_id(name)")
+        .select("company_id, owner_id, companies:company_id(name)")
         .eq("empresa_vendedora", empresaVendedora)
         .or("perdido.is.null,perdido.eq.false")
         .limit(5000);
@@ -374,6 +391,27 @@ export default function SeguimientoVentas() {
       return (data || []) as any[];
     },
   });
+
+  const { data: recIgnorados = [] } = useQuery({
+    queryKey: ["recuperacion-ignorados", empresaVendedora],
+    enabled: isRecuperacion,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("seguimiento_recuperacion_ignorados")
+        .select("id, company_id, producto_id, razon, ignorado_at, ignorado_por")
+        .eq("empresa_vendedora", empresaVendedora)
+        .eq("is_active", true)
+        .limit(10000);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const recIgnoradosMap = useMemo(() => {
+    const m = new Map<string, any>();
+    for (const i of recIgnorados as any[]) m.set(`${i.company_id}|${i.producto_id}`, i);
+    return m;
+  }, [recIgnorados]);
 
   const { data: recFacturas = [], isLoading: recFacturasLoading } = useQuery({
     queryKey: ["recuperacion-facturas", empresaVendedora],
@@ -405,13 +443,13 @@ export default function SeguimientoVentas() {
 
   const recRows = useMemo(() => {
     if (!isRecuperacion) return [] as any[];
-    const activos = new Map<string, string>();
+    const activos = new Map<string, { name: string; owner_id: string | null }>();
     for (const a of recActivos) {
-      if (a.company_id) activos.set(a.company_id, a.companies?.name || "—");
+      if (a.company_id) activos.set(a.company_id, { name: a.companies?.name || "—", owner_id: a.owner_id ?? null });
     }
     const grouped = new Map<string, {
       key: string; empresa_id: string; empresa: string; producto_id: string;
-      producto: string; codigo: string; ultima: string; cantidad: number;
+      producto: string; codigo: string; ultima: string; cantidad: number; owner_id: string | null;
     }>();
     for (const r of recFacturas as any[]) {
       const empresaId = r.documentos?.empresa_id;
@@ -427,7 +465,8 @@ export default function SeguimientoVentas() {
         grouped.set(key, {
           key,
           empresa_id: empresaId,
-          empresa: activos.get(empresaId) || "—",
+          empresa: activos.get(empresaId)?.name || "—",
+          owner_id: activos.get(empresaId)?.owner_id ?? null,
           producto_id: r.producto_id,
           producto: r.productos?.nombre_producto || "—",
           codigo: r.productos?.codigo || "—",
@@ -454,24 +493,6 @@ export default function SeguimientoVentas() {
     for (const r of recRows) if (!m.has(r.producto_id)) m.set(r.producto_id, `${r.producto}${r.codigo && r.codigo !== "—" ? ` (${r.codigo})` : ""}`);
     return [{ value: "", label: "Todos los productos" }, ...Array.from(m.entries()).map(([value, label]) => ({ value, label }))];
   }, [recRows]);
-
-  const recFiltered = useMemo(() => {
-    const q = recSearch.trim().toLowerCase();
-    let list = recRows.filter((r) => {
-      if (recRangos.length > 0 && !recRangos.includes(r.rango)) return false;
-      if (recProducto && r.producto_id !== recProducto) return false;
-      if (q) {
-        const words = q.split(/\s+/);
-        const text = `${r.empresa} ${r.producto} ${r.codigo}`.toLowerCase();
-        if (!words.every((w) => text.includes(w))) return false;
-      }
-      return true;
-    });
-    list = [...list].sort((a, b) => (recSort === "desc" ? b.dias - a.dias : a.dias - b.dias));
-    return list;
-  }, [recRows, recSearch, recRangos, recProducto, recSort]);
-
-  const recTotal180 = useMemo(() => recFiltered.filter((r) => r.rango === "180+").length, [recFiltered]);
 
   // Deep-link: ?company=<uuid> abre la ficha de esa empresa (crea registro si no existe)
   const [searchParams, setSearchParams] = useSearchParams();
@@ -626,6 +647,109 @@ export default function SeguimientoVentas() {
       .map((id) => ({ id, name: profileMap.get(id) || "—" }))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
   }, [rows, profileMap]);
+
+  const recEjecutivoOptions = useMemo(() => {
+    const ids = new Set<string>();
+    let hasNone = false;
+    for (const r of recRows) {
+      if (r.owner_id) ids.add(r.owner_id);
+      else hasNone = true;
+    }
+    const list = Array.from(ids)
+      .map((id) => ({ id, name: profileMap.get(id) || "—" }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+    return hasNone ? [...list, { id: "__none__", name: "Sin asignar" }] : list;
+  }, [recRows, profileMap]);
+
+  const recFiltered = useMemo(() => {
+    const q = recSearch.trim().toLowerCase();
+    let list = recRows.filter((r) => {
+      const isIgnorado = recIgnoradosMap.has(`${r.empresa_id}|${r.producto_id}`);
+      if (recViewIgnorados ? !isIgnorado : isIgnorado) return false;
+      if (recRangos.length > 0 && !recRangos.includes(r.rango)) return false;
+      if (recProducto && r.producto_id !== recProducto) return false;
+      if (recEjecutivo.length > 0 && !recEjecutivo.includes(r.owner_id || "__none__")) return false;
+      if (q) {
+        const words = q.split(/\s+/);
+        const text = `${r.empresa} ${r.producto} ${r.codigo}`.toLowerCase();
+        if (!words.every((w) => text.includes(w))) return false;
+      }
+      return true;
+    });
+    const key = recSort?.key;
+    if (!key) {
+      list = [...list].sort((a, b) => b.dias - a.dias);
+    } else {
+      const dir = recSort?.dir === "desc" ? -1 : 1;
+      const val = (r: any) => {
+        switch (key) {
+          case "empresa": return String(r.empresa || "").toLowerCase();
+          case "producto": return String(r.producto || "").toLowerCase();
+          case "codigo": return String(r.codigo || "").toLowerCase();
+          case "ejecutivo": return (r.owner_id ? profileMap.get(r.owner_id) || "" : "").toLowerCase();
+          case "ultima": return String(r.ultima || "");
+          case "dias": return r.dias as number;
+          case "cantidad": return r.cantidad as number;
+          default: return "";
+        }
+      };
+      list = [...list].sort((a, b) => {
+        const va = val(a); const vb = val(b);
+        if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+        return String(va).localeCompare(String(vb), "es") * dir;
+      });
+    }
+    return list;
+  }, [recRows, recSearch, recRangos, recProducto, recEjecutivo, recSort, recIgnoradosMap, recViewIgnorados, profileMap]);
+
+  const recTotal180 = useMemo(() => recFiltered.filter((r) => r.rango === "180+").length, [recFiltered]);
+
+  const submitIgnorar = async () => {
+    if (!recIgnoreDialog) return;
+    setRecIgnoreSaving(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const byKey = new Map(recRows.map((r: any) => [r.key, r]));
+      const payload = recIgnoreDialog.keys
+        .map((k) => byKey.get(k))
+        .filter((r: any) => r && !recIgnoradosMap.has(`${r.empresa_id}|${r.producto_id}`))
+        .map((r: any) => ({
+          empresa_vendedora: empresaVendedora,
+          company_id: r.empresa_id,
+          producto_id: r.producto_id,
+          razon: recIgnoreRazon.trim() || null,
+          ignorado_por: auth?.user?.id ?? null,
+        }));
+      if (payload.length > 0) {
+        const { error } = await (supabase as any).from("seguimiento_recuperacion_ignorados").insert(payload);
+        if (error && !String(error.message || "").toLowerCase().includes("duplicate")) throw error;
+      }
+      toast({ title: "Productos ignorados", description: `${payload.length} combinación${payload.length === 1 ? "" : "es"} ignorada${payload.length === 1 ? "" : "s"}.` });
+      setRecIgnoreDialog(null);
+      setRecIgnoreRazon("");
+      setRecSelectedKeys(new Set());
+      queryClient.invalidateQueries({ queryKey: ["recuperacion-ignorados", empresaVendedora] });
+    } catch (e: any) {
+      toast({ title: "Error al ignorar", description: e?.message || "Intenta de nuevo.", variant: "destructive" });
+    } finally {
+      setRecIgnoreSaving(false);
+    }
+  };
+
+  const restaurarIgnorado = async (row: any) => {
+    const rec = recIgnoradosMap.get(`${row.empresa_id}|${row.producto_id}`);
+    if (!rec) return;
+    const { error } = await (supabase as any)
+      .from("seguimiento_recuperacion_ignorados")
+      .update({ is_active: false })
+      .eq("id", rec.id);
+    if (error) {
+      toast({ title: "Error al restaurar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Producto restaurado" });
+    queryClient.invalidateQueries({ queryKey: ["recuperacion-ignorados", empresaVendedora] });
+  };
 
   const ambito = tieneVenta ? "con_venta" : "sin_venta";
   const estatusOptions = useMemo(
@@ -1462,41 +1586,93 @@ export default function SeguimientoVentas() {
                 placeholder="Producto"
               />
             </div>
+            <MultiSelectFilter
+              label="Ejecutivo"
+              options={recEjecutivoOptions.map((opt, i) => ({ id: opt.id, label: opt.name, color: colorForIndex(i) }))}
+              selected={recEjecutivo}
+              onToggle={(id) => setRecEjecutivo((arr) => toggleInArray(arr, id))}
+              onClear={() => setRecEjecutivo([])}
+              width="w-full sm:w-56"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 gap-1"
+              onClick={() => setRecViewIgnorados((v) => !v)}
+            >
+              {recViewIgnorados ? <><Eye className="h-3.5 w-3.5" /> Ver por recuperar</> : <><EyeOff className="h-3.5 w-3.5" /> Ver ignorados</>}
+            </Button>
           </div>
+
+          {!recViewIgnorados && recSelectedKeys.size > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-violet-50 dark:bg-violet-950/30 px-3 py-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-violet-900 dark:text-violet-200">
+                {recSelectedKeys.size} seleccionado{recSelectedKeys.size === 1 ? "" : "s"}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setRecIgnoreRazon(""); setRecIgnoreDialog({ keys: Array.from(recSelectedKeys) }); }}>
+                  <EyeOff className="h-3.5 w-3.5" /> Ignorar seleccionados
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 gap-1" onClick={() => setRecSelectedKeys(new Set())}>
+                  <X className="h-3.5 w-3.5" /> Limpiar
+                </Button>
+              </div>
+            </div>
+          )}
 
           <Card>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Producto</TableHead>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Última compra</TableHead>
-                  <TableHead
-                    className="cursor-pointer select-none text-right"
-                    onClick={() => setRecSort((d) => (d === "desc" ? "asc" : "desc"))}
-                  >
-                    <span className="inline-flex items-center gap-1">
-                      Días sin comprar
-                      {recSort === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
-                    </span>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={recFiltered.length > 0 && recFiltered.every((r) => recSelectedKeys.has(r.key))}
+                      onCheckedChange={(v) =>
+                        setRecSelectedKeys(v ? new Set(recFiltered.map((r) => r.key)) : new Set())
+                      }
+                      aria-label="Seleccionar todos"
+                    />
                   </TableHead>
-                  <TableHead className="text-right">Cantidad histórica</TableHead>
+                  <SortableHead label="Empresa" sortKey="empresa" sort={recSort} onSort={handleRecSort} />
+                  <SortableHead label="Producto" sortKey="producto" sort={recSort} onSort={handleRecSort} />
+                  <SortableHead label="Código" sortKey="codigo" sort={recSort} onSort={handleRecSort} />
+                  <SortableHead label="Ejecutivo" sortKey="ejecutivo" sort={recSort} onSort={handleRecSort} />
+                  <SortableHead label="Última compra" sortKey="ultima" sort={recSort} onSort={handleRecSort} />
+                  <SortableHead label="Días sin comprar" sortKey="dias" sort={recSort} onSort={handleRecSort} align="right" />
+                  <SortableHead label="Cantidad histórica" sortKey="cantidad" sort={recSort} onSort={handleRecSort} align="right" />
                   <TableHead className="text-center">Rango</TableHead>
+                  {recViewIgnorados && <TableHead>Razón</TableHead>}
+                  {recViewIgnorados && <TableHead>Fecha ignorado</TableHead>}
                   <TableHead className="text-center w-28">Acción</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recLoading ? (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Cargando…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={recViewIgnorados ? 12 : 10} className="text-center text-muted-foreground py-8">Cargando…</TableCell></TableRow>
                 ) : recFiltered.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin registros.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={recViewIgnorados ? 12 : 10} className="text-center text-muted-foreground py-8">Sin registros.</TableCell></TableRow>
                 ) : (
                   recFiltered.map((r) => (
                     <TableRow key={r.key}>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={recSelectedKeys.has(r.key)}
+                          onCheckedChange={(v) =>
+                            setRecSelectedKeys((prev) => {
+                              const next = new Set(prev);
+                              if (v) next.add(r.key); else next.delete(r.key);
+                              return next;
+                            })
+                          }
+                          aria-label="Seleccionar fila"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{r.empresa}</TableCell>
                       <TableCell className="font-light">{r.producto}</TableCell>
                       <TableCell className="font-light text-xs">{r.codigo}</TableCell>
+                      <TableCell className="font-light">
+                        {r.owner_id ? (profileMap.get(r.owner_id) || "—") : <span className="italic text-muted-foreground">Sin asignar</span>}
+                      </TableCell>
                       <TableCell className="font-light">{formatDate(r.ultima)}</TableCell>
                       <TableCell className="text-right font-medium">{r.dias}</TableCell>
                       <TableCell className="text-right font-light">{fmtNum(r.cantidad)}</TableCell>
@@ -1514,15 +1690,50 @@ export default function SeguimientoVentas() {
                           {r.rango}
                         </Badge>
                       </TableCell>
+                      {recViewIgnorados && (
+                        <TableCell className="font-light text-xs">
+                          {recIgnoradosMap.get(`${r.empresa_id}|${r.producto_id}`)?.razon || "—"}
+                        </TableCell>
+                      )}
+                      {recViewIgnorados && (
+                        <TableCell className="font-light text-xs">
+                          {(() => {
+                            const at = recIgnoradosMap.get(`${r.empresa_id}|${r.producto_id}`)?.ignorado_at;
+                            return at ? formatDate(at) : "—";
+                          })()}
+                        </TableCell>
+                      )}
                       <TableCell className="text-center">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 gap-1"
-                          onClick={() => setTaskDialog({ companyId: r.empresa_id, type: "whatsapp" })}
-                        >
-                          <MessageCircle className="h-3.5 w-3.5" /> Reofrecer
-                        </Button>
+                        {recViewIgnorados ? (
+                          <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => restaurarIgnorado(r)}>
+                            <RotateCcw className="h-3.5 w-3.5" /> Restaurar
+                          </Button>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setTaskDialog({ companyId: r.empresa_id, type: "whatsapp" })}>
+                                <MessageCircle className="h-3.5 w-3.5 mr-2" /> Reofrecer
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  const next = new URLSearchParams(searchParams);
+                                  next.set("company", r.empresa_id);
+                                  setSearchParams(next, { replace: false });
+                                }}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5 mr-2" /> Abrir seguimiento a ventas
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setRecIgnoreRazon(""); setRecIgnoreDialog({ keys: [r.key] }); }}>
+                                <EyeOff className="h-3.5 w-3.5 mr-2" /> Ignorar
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
@@ -1530,6 +1741,29 @@ export default function SeguimientoVentas() {
               </TableBody>
             </Table>
           </Card>
+
+          <Dialog open={!!recIgnoreDialog} onOpenChange={(o) => { if (!o) { setRecIgnoreDialog(null); setRecIgnoreRazon(""); } }}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Ignorar producto(s) por recuperar</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 py-2">
+                <Label className="text-xs uppercase tracking-wide">Razón (opcional)</Label>
+                <Textarea
+                  value={recIgnoreRazon}
+                  onChange={(e) => setRecIgnoreRazon(e.target.value)}
+                  placeholder="Motivo por el que se ignora…"
+                  className="font-light"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setRecIgnoreDialog(null); setRecIgnoreRazon(""); }}>Cancelar</Button>
+                <Button onClick={submitIgnorar} disabled={recIgnoreSaving}>
+                  {recIgnoreSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Confirmar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 

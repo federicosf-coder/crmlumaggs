@@ -6998,6 +6998,60 @@ export type Database = {
           },
         ]
       }
+      seguimiento_recuperacion_ignorados: {
+        Row: {
+          company_id: string
+          created_at: string
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          id: string
+          ignorado_at: string
+          ignorado_por: string | null
+          is_active: boolean
+          producto_id: string
+          razon: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          id?: string
+          ignorado_at?: string
+          ignorado_por?: string | null
+          is_active?: boolean
+          producto_id: string
+          razon?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
+          id?: string
+          ignorado_at?: string
+          ignorado_por?: string | null
+          is_active?: boolean
+          producto_id?: string
+          razon?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seguimiento_recuperacion_ignorados_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimiento_recuperacion_ignorados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seguimiento_ventas: {
         Row: {
           actividades_activas: number
