@@ -1,0 +1,1 @@
+update public.whatsapp_accounts set ai_advisor_enabled = true where business_phone_number_id = '1128863556971458';
