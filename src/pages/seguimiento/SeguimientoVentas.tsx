@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X, GripVertical, RotateCcw, MoreHorizontal, MessageCircle, Mail, ListPlus, UserCog, Loader2 } from "lucide-react";
+import { Search, TrendingUp, AlertTriangle, Calendar as CalendarIcon, ArrowUp, ArrowDown, Filter, ChevronDown, X, GripVertical, RotateCcw, MoreHorizontal, MessageCircle, Mail, ListPlus, UserCog, Loader2, EyeOff, Eye, ExternalLink } from "lucide-react";
 import {
   DndContext,
   closestCenter,
