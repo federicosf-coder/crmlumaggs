@@ -1762,6 +1762,11 @@ export default function SeguimientoVentas() {
             <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setBulkStatusId(""); setBulkStatusOpen(true); }}>
               <Filter className="h-3.5 w-3.5" /> Cambiar estatus
             </Button>
+            {!isPerdidos && !viewIgnorados && (
+              <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setIgnoreRazon(""); setIgnoreDialogOpen(true); }}>
+                <EyeOff className="h-3.5 w-3.5" /> Ignorar
+              </Button>
+            )}
             {isPerdidos && (
               <Button
                 size="sm"
