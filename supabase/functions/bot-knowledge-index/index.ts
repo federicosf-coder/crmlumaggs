@@ -7,7 +7,7 @@
 //   { action: "embed", doc_id, limit? }                        -> vectoriza pendientes, devuelve `remaining`
 //   { action: "status", doc_id? }                              -> avance por documento
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
-import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@0.12.1";
+import { getDocumentProxy } from "https://esm.sh/unpdf@0.12.1";
 import { embedTexts, EMBEDDING_BATCH, EMBEDDING_MODEL } from "../_shared/ai-embeddings.ts";
 
 const corsHeaders = {
