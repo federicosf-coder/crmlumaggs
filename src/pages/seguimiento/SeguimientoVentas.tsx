@@ -298,19 +298,33 @@ export default function SeguimientoVentas() {
   const brandTitle = brand === "phillips66" ? "Seguimiento — Phillips 66" : "Seguimiento — Chevron";
   const brandSubtitle = brand === "phillips66" ? "Galsa" : "Lumaggs";
 
-  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion" | "productos">("con_venta");
-  const [search, setSearch] = useState("");
+  // ─── Persistencia de filtros (sessionStorage) ───
+  const filtrosKey = `seguimiento_filtros_${brand || "default"}`;
+  const persisted = useMemo<any>(() => {
+    try {
+      const raw = sessionStorage.getItem(`seguimiento_filtros_${brand || "default"}`);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion" | "productos">(
+    () => persisted.tab ?? "con_venta"
+  );
+  const [search, setSearch] = useState(() => persisted.search ?? "");
   const [selected, setSelected] = useState<SeguimientoVentasRow | null>(null);
-  const [sort, setSort] = useState<SortState | null>(null);
+  const [sort, setSort] = useState<SortState | null>(() => persisted.sort ?? null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [fEstatus, setFEstatus] = useState<string[]>([]);
-  const [fAvance, setFAvance] = useState<string[]>([]);
-  const [fDias, setFDias] = useState<string[]>([]);
-  const [fPotencial, setFPotencial] = useState<string[]>([]);
-  const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
-  const [fPlaza, setFPlaza] = useState<string[]>([]);
-  const [fRegistroFrom, setFRegistroFrom] = useState<string>("");
-  const [fRegistroTo, setFRegistroTo] = useState<string>("");
+  const [fEstatus, setFEstatus] = useState<string[]>(() => persisted.fEstatus ?? []);
+  const [fAvance, setFAvance] = useState<string[]>(() => persisted.fAvance ?? []);
+  const [fDias, setFDias] = useState<string[]>(() => persisted.fDias ?? []);
+  const [fPotencial, setFPotencial] = useState<string[]>(() => persisted.fPotencial ?? []);
+  const [fEjecutivo, setFEjecutivo] = useState<string[]>(() => persisted.fEjecutivo ?? []);
+  const [fPlaza, setFPlaza] = useState<string[]>(() => persisted.fPlaza ?? []);
+  const [fRegistroFrom, setFRegistroFrom] = useState<string>(() => persisted.fRegistroFrom ?? "");
+  const [fRegistroTo, setFRegistroTo] = useState<string>(() => persisted.fRegistroTo ?? "");
 
   const isPerdidos = tab === "perdidos";
   const tieneVenta = tab === "con_venta" || tab === "perdidos";
@@ -344,8 +358,10 @@ export default function SeguimientoVentas() {
   // Reactivar masivo
   const [bulkReactivating, setBulkReactivating] = useState(false);
 
-  // Al cambiar pestaña, limpiar filtros que no aplican
+  // Al cambiar pestaña, limpiar filtros que no aplican (no en el primer render: se restauran)
+  const firstTabRun = useRef(true);
   useEffect(() => {
+    if (firstTabRun.current) { firstTabRun.current = false; return; }
     setFEstatus([]);
     setFAvance([]);
     setFDias([]);
@@ -360,12 +376,12 @@ export default function SeguimientoVentas() {
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
 
   // ─────────── Recuperación de Productos ───────────
-  const [recSearch, setRecSearch] = useState("");
-  const [recRangos, setRecRangos] = useState<string[]>([]);
-  const [recProducto, setRecProducto] = useState<string>("");
-  const [recEjecutivo, setRecEjecutivo] = useState<string[]>([]);
-  const [recSort, setRecSort] = useState<SortState | null>(null);
-  const [recViewIgnorados, setRecViewIgnorados] = useState(false);
+  const [recSearch, setRecSearch] = useState(() => persisted.recSearch ?? "");
+  const [recRangos, setRecRangos] = useState<string[]>(() => persisted.recRangos ?? []);
+  const [recProducto, setRecProducto] = useState<string>(() => persisted.recProducto ?? "");
+  const [recEjecutivo, setRecEjecutivo] = useState<string[]>(() => persisted.recEjecutivo ?? []);
+  const [recSort, setRecSort] = useState<SortState | null>(() => persisted.recSort ?? null);
+  const [recViewIgnorados, setRecViewIgnorados] = useState<boolean>(() => persisted.recViewIgnorados ?? false);
   const [recSelectedKeys, setRecSelectedKeys] = useState<Set<string>>(new Set());
   const [recIgnoreDialog, setRecIgnoreDialog] = useState<null | { keys: string[] }>(null);
   const [recIgnoreRazon, setRecIgnoreRazon] = useState("");
@@ -445,11 +461,31 @@ export default function SeguimientoVentas() {
   const recLoading = recActivosLoading || recFacturasLoading;
 
   // ─────────── Productos ───────────
-  const [prodSearch, setProdSearch] = useState("");
+  const [prodSearch, setProdSearch] = useState(() => persisted.prodSearch ?? "");
   const [prodExpanded, setProdExpanded] = useState<string | null>(null);
   const [prodClienteSearch, setProdClienteSearch] = useState("");
   const [prodSelected, setProdSelected] = useState<Set<string>>(new Set());
   useEffect(() => { setProdSelected(new Set()); setProdExpanded(null); }, [tab, empresaVendedora]);
+
+  // Guarda todos los filtros en sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        filtrosKey,
+        JSON.stringify({
+          tab, search, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza,
+          fRegistroFrom, fRegistroTo, sort,
+          recSearch, recRangos, recProducto, recEjecutivo, recSort, recViewIgnorados,
+          prodSearch,
+        })
+      );
+    } catch {}
+  }, [
+    filtrosKey, tab, search, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza,
+    fRegistroFrom, fRegistroTo, sort,
+    recSearch, recRangos, recProducto, recEjecutivo, recSort, recViewIgnorados,
+    prodSearch,
+  ]);
 
   const { data: prodCompanies = [] } = useQuery({
     queryKey: ["productos-companies"],
