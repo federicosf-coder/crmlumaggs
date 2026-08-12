@@ -1329,6 +1329,16 @@ export default function SeguimientoVentas() {
           >
             Recuperación de Productos
           </button>
+          <button
+            onClick={() => setTab("productos")}
+            className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-md transition-colors ${
+              tab === "productos"
+                ? "bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Productos
+          </button>
         </div>
         {showLista && (
         <>
