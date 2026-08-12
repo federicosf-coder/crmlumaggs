@@ -655,6 +655,190 @@ export type Database = {
           },
         ]
       }
+      bot_knowledge_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          doc_id: string | null
+          embedding: string | null
+          id: string
+          model_version: string
+          page: number | null
+          source_type: string
+          title: string | null
+        }
+        Insert: {
+          chunk_index?: number
+          content: string
+          created_at?: string
+          doc_id?: string | null
+          embedding?: string | null
+          id?: string
+          model_version?: string
+          page?: number | null
+          source_type?: string
+          title?: string | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          doc_id?: string | null
+          embedding?: string | null
+          id?: string
+          model_version?: string
+          page?: number | null
+          source_type?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_knowledge_chunks_doc_id_fkey"
+            columns: ["doc_id"]
+            isOneToOne: false
+            referencedRelation: "bot_knowledge_docs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bot_knowledge_docs: {
+        Row: {
+          bucket: string
+          chunk_count: number
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          indexed_at: string | null
+          source_type: string
+          status: string
+          storage_path: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          bucket?: string
+          chunk_count?: number
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          indexed_at?: string | null
+          source_type?: string
+          status?: string
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          bucket?: string
+          chunk_count?: number
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          indexed_at?: string | null
+          source_type?: string
+          status?: string
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bot_lead_profiles: {
+        Row: {
+          assigned_salesperson: string | null
+          business_phone_number_id: string | null
+          cliente_nombre: string | null
+          company_id: string | null
+          contact_id: string | null
+          contexto_negocio: Json
+          conversation_id: string | null
+          conversation_stage: string
+          cotizacion_solicitada: boolean
+          created_at: string
+          empresa_nombre: string | null
+          id: string
+          intent: string | null
+          lead_id: string | null
+          municipio: string | null
+          notas_comerciales: string | null
+          productos_solicitados: Json
+          recomendaciones: Json
+          resumen: string | null
+          tipo_cliente: string | null
+          transferred_at: string | null
+          updated_at: string
+          vehiculos: Json
+          wa_phone: string
+          zone: string | null
+        }
+        Insert: {
+          assigned_salesperson?: string | null
+          business_phone_number_id?: string | null
+          cliente_nombre?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          contexto_negocio?: Json
+          conversation_id?: string | null
+          conversation_stage?: string
+          cotizacion_solicitada?: boolean
+          created_at?: string
+          empresa_nombre?: string | null
+          id?: string
+          intent?: string | null
+          lead_id?: string | null
+          municipio?: string | null
+          notas_comerciales?: string | null
+          productos_solicitados?: Json
+          recomendaciones?: Json
+          resumen?: string | null
+          tipo_cliente?: string | null
+          transferred_at?: string | null
+          updated_at?: string
+          vehiculos?: Json
+          wa_phone: string
+          zone?: string | null
+        }
+        Update: {
+          assigned_salesperson?: string | null
+          business_phone_number_id?: string | null
+          cliente_nombre?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          contexto_negocio?: Json
+          conversation_id?: string | null
+          conversation_stage?: string
+          cotizacion_solicitada?: boolean
+          created_at?: string
+          empresa_nombre?: string | null
+          id?: string
+          intent?: string | null
+          lead_id?: string | null
+          municipio?: string | null
+          notas_comerciales?: string | null
+          productos_solicitados?: Json
+          recomendaciones?: Json
+          resumen?: string | null
+          tipo_cliente?: string | null
+          transferred_at?: string | null
+          updated_at?: string
+          vehiculos?: Json
+          wa_phone?: string
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_lead_profiles_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_logos: {
         Row: {
           created_at: string | null
@@ -7878,6 +8062,7 @@ export type Database = {
       }
       whatsapp_accounts: {
         Row: {
+          ai_advisor_enabled: boolean
           business_phone_number_id: string
           color: string
           created_at: string
@@ -7890,6 +8075,7 @@ export type Database = {
           waba_id: string | null
         }
         Insert: {
+          ai_advisor_enabled?: boolean
           business_phone_number_id: string
           color?: string
           created_at?: string
@@ -7902,6 +8088,7 @@ export type Database = {
           waba_id?: string | null
         }
         Update: {
+          ai_advisor_enabled?: boolean
           business_phone_number_id?: string
           color?: string
           created_at?: string
@@ -8672,6 +8859,21 @@ export type Database = {
           subscribed_at: string
           tiene_token: boolean
           token_expira_at: string
+        }[]
+      }
+      match_bot_knowledge: {
+        Args: {
+          filter_source?: string
+          match_count?: number
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          id: string
+          page: number
+          similarity: number
+          source_type: string
+          title: string
         }[]
       }
       merge_companies: {
