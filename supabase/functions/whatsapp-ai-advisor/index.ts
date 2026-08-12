@@ -447,7 +447,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "buscar_conocimiento",
-      description: "Información técnica de los documentos Chevron indexados (digest, fichas técnicas, hojas de seguridad).",
+      description: "Biblioteca técnica de Lumaggs (digest Chevron, guías de venta, comparativos, fichas técnicas y hojas de seguridad). Úsala SIEMPRE antes de responder sobre compatibilidad con maquinaria/equipo, aplicaciones, especificaciones o usos.",
       parameters: {
         type: "object",
         properties: { consulta: { type: "string" }, fuente: { type: "string" } },
