@@ -2328,19 +2328,21 @@ export default function SeguimientoVentas() {
                       />
                     ))}
                   </SortableContext>
+                  {viewIgnorados && !isPerdidos && <TableHead>Razón</TableHead>}
+                  {viewIgnorados && !isPerdidos && <TableHead>Fecha ignorado</TableHead>}
                   <TableHead className="w-14 text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length + 2} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2)} className="text-center text-muted-foreground py-8">
                       Cargando…
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length + 2} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2)} className="text-center text-muted-foreground py-8">
                       Sin registros.
                     </TableCell>
                   </TableRow>
@@ -2368,11 +2370,30 @@ export default function SeguimientoVentas() {
                           {col.render(r)}
                         </TableCell>
                       ))}
+                      {viewIgnorados && !isPerdidos && (
+                        <TableCell className="font-light text-xs">
+                          {clientesIgnoradosMap.get(r.company_id)?.razon || "—"}
+                        </TableCell>
+                      )}
+                      {viewIgnorados && !isPerdidos && (
+                        <TableCell className="font-light text-xs">
+                          {(() => {
+                            const at = clientesIgnoradosMap.get(r.company_id)?.ignorado_at;
+                            return at ? formatDate(at) : "—";
+                          })()}
+                        </TableCell>
+                      )}
                       <TableCell className="w-14 text-center" onClick={(e) => e.stopPropagation()}>
-                        <RowActionsMenu
-                          row={r}
-                          onOpenTask={(type) => setTaskDialog({ companyId: r.company_id, type })}
-                        />
+                        {viewIgnorados && !isPerdidos ? (
+                          <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => restaurarClienteIgnorado(r.company_id)}>
+                            <RotateCcw className="h-3.5 w-3.5" /> Restaurar
+                          </Button>
+                        ) : (
+                          <RowActionsMenu
+                            row={r}
+                            onOpenTask={(type) => setTaskDialog({ companyId: r.company_id, type })}
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
@@ -2383,6 +2404,30 @@ export default function SeguimientoVentas() {
         </Card>
       </div>
       )}
+
+      {/* Diálogo: ignorar clientes */}
+      <Dialog open={ignoreDialogOpen} onOpenChange={(o) => { if (!o) { setIgnoreDialogOpen(false); setIgnoreRazon(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ignorar cliente(s)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label className="text-xs uppercase tracking-wide">Razón (opcional)</Label>
+            <Textarea
+              value={ignoreRazon}
+              onChange={(e) => setIgnoreRazon(e.target.value)}
+              placeholder="Motivo por el que se ignora…"
+              className="font-light"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIgnoreDialogOpen(false); setIgnoreRazon(""); }}>Cancelar</Button>
+            <Button onClick={submitIgnorarClientes} disabled={ignoreSaving}>
+              {ignoreSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <SeguimientoDetailDialog
         row={selected}
