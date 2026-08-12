@@ -439,6 +439,27 @@ export default function SeguimientoVentas() {
     return m;
   }, [recIgnorados]);
 
+  // Clientes ignorados (nivel empresa)
+  const { data: clientesIgnorados = [] } = useQuery({
+    queryKey: ["ventas-ignorados", empresaVendedora],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("seguimiento_ventas_ignorados")
+        .select("id, company_id, razon, ignorado_at, ignorado_por")
+        .eq("empresa_vendedora", empresaVendedora)
+        .eq("is_active", true)
+        .limit(10000);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const clientesIgnoradosMap = useMemo(() => {
+    const m = new Map<string, any>();
+    for (const i of clientesIgnorados as any[]) m.set(i.company_id, i);
+    return m;
+  }, [clientesIgnorados]);
+
   const { data: recFacturas = [], isLoading: recFacturasLoading } = useQuery({
     queryKey: ["recuperacion-facturas", empresaVendedora],
     enabled: isRecuperacion || isProductos,
