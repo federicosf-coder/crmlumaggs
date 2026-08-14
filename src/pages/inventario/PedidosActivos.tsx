@@ -34,10 +34,10 @@ const TABS = [
 ];
 
 export default function PedidosActivos() {
-  const navigate = useNavigate();
   const { data: pedidos = [], isLoading } = usePedidos();
   const [tab, setTab] = useState("chevron");
   const qc = useQueryClient();
+  const [openId, setOpenId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -147,7 +147,7 @@ export default function PedidosActivos() {
                         <TableRow
                           key={p.id}
                           className={`cursor-pointer ${idx % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-blue-50/40`}
-                          onClick={() => navigate("/inventario/pedidos/elaborados")}
+                          onClick={() => setOpenId(p.id)}
                         >
                           <TableCell className="font-mono text-xs">{p.numero_po_interno || "—"}</TableCell>
                           <TableCell className="text-sm">{p.numero_orden_proveedor || "—"}</TableCell>
@@ -181,6 +181,8 @@ export default function PedidosActivos() {
           );
         })}
       </Tabs>
+
+      <PedidoDetailSheet id={openId} onClose={() => setOpenId(null)} onDelete={(id) => setDeleteId(id)} />
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
         <AlertDialogContent>
