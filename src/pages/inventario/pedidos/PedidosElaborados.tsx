@@ -236,15 +236,22 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
       const path = `${p.id}/${Date.now()}_${file.name}`;
       const { error: upErr } = await supabase.storage.from("inventario-pedidos").upload(path, file);
       if (upErr) throw upErr;
-      await (supabase as any).from("inv_pedido_archivos").insert({
+      const { data: inserted, error: insErr } = await (supabase as any).from("inv_pedido_archivos").insert({
         pedido_id: p.id, nombre_archivo: file.name, url_archivo: path,
         tipo_archivo: file.type, usuario_carga: user?.id ?? null,
-      });
+      }).select().single();
+      if (insErr) throw insErr;
       toast.success("Archivo subido");
       qc.invalidateQueries({ queryKey: ["inv_pedido", p.id] });
       refetch();
+      return inserted;
     } catch (e: any) { toast.error(e?.message || "Error al subir"); }
     finally { setUploading(false); }
+  };
+
+  const onUploadActualizado = async (file: File) => {
+    const archivo = await onUpload(file);
+    if (archivo) await onExtract(archivo);
   };
 
   const onExtract = async (archivo: any) => {
@@ -291,10 +298,36 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
     }
 
     await (supabase as any).from("inv_pedidos").update(update).eq("id", p.id);
+
+    if (Array.isArray(d.lineas) && d.lineas.length > 0) {
+      const rows = d.lineas.map((l: any) => ({
+        pedido_id: p.id,
+        codigo_producto: l.codigo,
+        nombre_producto: l.descripcion,
+        cantidad_solicitada: l.cantidad,
+        unidad_pedido: l.unidad,
+        precio_unitario: l.precio_unitario,
+        precio_neto: l.precio_neto,
+        estatus_linea: String(l.estado || "").toLowerCase().includes("cancel") ? "cancelada" : "pendiente",
+      }));
+      const { error: linErr } = await (supabase as any)
+        .from("inv_pedido_lineas")
+        .upsert(rows, { onConflict: "pedido_id,codigo_producto" });
+      if (linErr) { toast.error(linErr.message || "Error al guardar líneas"); }
+    }
+
     toast.success("Datos aplicados");
     setExtracted(null);
     qc.invalidateQueries({ queryKey: ["inv_pedido", p.id] });
     qc.invalidateQueries({ queryKey: ["inv_pedidos"] });
+    qc.invalidateQueries({ queryKey: ["inv_pedido_lineas_abiertos"] });
+    qc.invalidateQueries({ queryKey: ["inv_pedido_lineas_abiertos_detalle"] });
+    qc.invalidateQueries({ queryKey: ["inv_niveles_sugeridos"] });
+    qc.invalidateQueries({ queryKey: ["inv_niveles_inventario"] });
+    qc.invalidateQueries({ queryKey: ["inv_niveles_inventario_min"] });
+    qc.invalidateQueries({ queryKey: ["inv_minmax"] });
+    qc.invalidateQueries({ queryKey: ["entregas_corporativas_programadas"] });
+    qc.invalidateQueries({ queryKey: ["dashred_configs"] });
     refetch();
   };
 
@@ -342,6 +375,14 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
                   <Button size="sm" variant="outline" onClick={() => verPdf(archivos[0].url_archivo)}>
                     <FileText className="h-3.5 w-3.5 mr-1.5" />Ver PDF
                   </Button>
+                  <div>
+                    <label className="inline-block">
+                      <input type="file" accept="application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadActualizado(f); e.currentTarget.value = ""; }} />
+                      <Button asChild variant="outline" size="sm" disabled={uploading || !!extracting}>
+                        <span><Upload className="h-3.5 w-3.5 mr-1.5" />{uploading ? "Subiendo..." : extracting ? "Extrayendo..." : "Subir PDF actualizado"}</span>
+                      </Button>
+                    </label>
+                  </div>
                 </div>
               ) : (
               <>
@@ -352,14 +393,14 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
                 </label>
               </div>
               <div className="text-xs text-muted-foreground">Sin archivos</div>
+              </>
+              )}
               {extracted && (
                 <div className="mt-3 border rounded p-3 bg-violet-50/50">
                   <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Vista previa de extracción</div>
                   <pre className="text-[10px] max-h-48 overflow-auto bg-background border rounded p-2">{JSON.stringify(extracted.data, null, 2)}</pre>
                   <Button size="sm" className="mt-2" onClick={aplicarExtraccion}>Aplicar datos extraídos</Button>
                 </div>
-              )}
-              </>
               )}
             </div>
 
