@@ -34,7 +34,6 @@ import EntregasCorporativas from "@/pages/EntregasCorporativas";
 import GestionKardex from "@/pages/inventario/GestionKardex";
 import PedidosSugeridos from "@/pages/inventario/pedidos/PedidosSugeridos";
 import PedidosSubir from "@/pages/inventario/pedidos/PedidosSubir";
-import PedidosElaborados from "@/pages/inventario/pedidos/PedidosElaborados";
 import PedidosRecibidos from "@/pages/inventario/pedidos/PedidosRecibidos";
 import PedidosReclamos from "@/pages/inventario/pedidos/PedidosReclamos";
 import SolicitudesExtraordinarias from "@/pages/inventario/pedidos/SolicitudesExtraordinarias";
@@ -147,7 +146,7 @@ const App = () => (
             <Route path="/inventario/kardex-gestion" element={<ProtectedRoute><GestionKardex /></ProtectedRoute>} />
             <Route path="/inventario/mapeo" element={<ProtectedRoute><MapeoProductos /></ProtectedRoute>} />
             <Route path="/inventario/minmax" element={<ProtectedRoute><MinMaxInventario /></ProtectedRoute>} />
-            <Route path="/inventario/pedidos-activos" element={<ProtectedRoute><PedidosActivos /></ProtectedRoute>} />
+            <Route path="/inventario/pedidos-activos" element={<Navigate to="/inventario/pedidos/activos" replace />} />
             <Route path="/inventario/restricciones" element={<ProtectedRoute><Restricciones /></ProtectedRoute>} />
             <Route path="/inventario/traspasos" element={<ProtectedRoute><Traspasos /></ProtectedRoute>} />
             <Route path="/inventario/dashboard" element={<ProtectedRoute><DashboardRed /></ProtectedRoute>} />
@@ -158,7 +157,7 @@ const App = () => (
               <Route index element={<PedidosSugeridos />} />
               <Route path="sugeridos" element={<PedidosSugeridos />} />
               <Route path="subir" element={<PedidosSubir />} />
-              <Route path="elaborados" element={<PedidosElaborados />} />
+              <Route path="activos" element={<PedidosActivos />} />
               <Route path="recibidos" element={<PedidosRecibidos />} />
               <Route path="reclamos" element={<PedidosReclamos />} />
               <Route path="extraordinarias" element={<SolicitudesExtraordinarias />} />

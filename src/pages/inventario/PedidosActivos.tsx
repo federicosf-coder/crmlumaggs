@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ALMACEN_LABELS } from "@/hooks/useInventario";
 import { usePedidos, estatusPedidoColor, ESTATUS_PEDIDO_LABEL } from "@/hooks/usePedidosInventario";
+import PedidoDetailSheet from "@/components/inventario/PedidoDetailSheet";
 
 type Pedido = {
   id: string;
