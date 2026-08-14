@@ -1,179 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Upload, Sparkles, FileText, Trash2 } from "lucide-react";
+import { Upload, FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { usePedidos, usePedido, useUpdatePedidoEstatus, ESTATUS_PEDIDO_LABEL, estatusPedidoColor, nextEstatus, nextEstatusLabel } from "@/hooks/usePedidosInventario";
+import { usePedido, useUpdatePedidoEstatus, ESTATUS_PEDIDO_LABEL, estatusPedidoColor, nextEstatus, nextEstatusLabel } from "@/hooks/usePedidosInventario";
 
-export default function PedidosElaborados() {
-  const { data: pedidos = [] } = usePedidos();
-  const qc = useQueryClient();
-  const [empresa, setEmpresa] = useState("todas");
-  const [almacen, setAlmacen] = useState("todos");
-  const [estatus, setEstatus] = useState("todos");
-  const [sinFecha, setSinFecha] = useState("todos");
-  const [search, setSearch] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    setDeleting(true);
-    try {
-      await deletePedido(deleteId);
-      toast.success("Pedido eliminado");
-      if (openId === deleteId) setOpenId(null);
-      setDeleteId(null);
-      qc.invalidateQueries({ queryKey: ["inv_pedidos"] });
-    } catch (e: any) {
-      toast.error(e?.message || "Error al eliminar");
-    } finally { setDeleting(false); }
-  };
-
-  const filtered = useMemo(() => pedidos.filter((p) => {
-    if (empresa !== "todas" && p.empresa_vendedora !== empresa) return false;
-    if (almacen !== "todos" && p.almacen_destino !== almacen) return false;
-    if (estatus !== "todos" && p.estatus !== estatus) return false;
-    if (sinFecha === "sin_fecha" && p.fecha_entrega_estimada) return false;
-    if (search && !String(p.numero_po_interno || "").toLowerCase().includes(search.toLowerCase())
-      && !String(p.numero_orden_proveedor || "").toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  }), [pedidos, empresa, almacen, estatus, sinFecha, search]);
-
-  return (
-    <div className="p-6 space-y-4">
-      <Card>
-        <CardContent className="p-4 flex flex-wrap gap-2 items-center">
-          <Input placeholder="Buscar PO" className="max-w-[200px]" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <Select value={empresa} onValueChange={setEmpresa}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas</SelectItem>
-              <SelectItem value="lumaggs">Lumaggs</SelectItem>
-              <SelectItem value="galsa">Galsa</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={almacen} onValueChange={setAlmacen}>
-            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los hubs</SelectItem>
-              <SelectItem value="1001">Mexicali</SelectItem>
-              <SelectItem value="1002">Tijuana</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={estatus} onValueChange={setEstatus}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los estatus</SelectItem>
-              {Object.entries(ESTATUS_PEDIDO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={sinFecha} onValueChange={setSinFecha}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas las entregas</SelectItem>
-              <SelectItem value="sin_fecha">Solo sin fecha estimada</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
-              <TableRow>
-                {["PO interno","N° Orden","Empresa","Almacén","Fuente","Fecha pedido","Despacho","Entrega est.","Tarimas","Monto","Estatus",""].map((h, idx) =>
-                  <TableHead key={`${h}-${idx}`} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>)}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((p, i) => (
-                <TableRow key={p.id} className={`cursor-pointer ${i % 2 === 0 ? "" : "bg-muted/20"}`} onClick={() => setOpenId(p.id)}>
-                  <TableCell className="font-mono text-xs">{p.numero_po_interno || "—"}</TableCell>
-                  <TableCell className="text-xs">{p.numero_orden_proveedor || "—"}</TableCell>
-                  <TableCell><Badge className={p.empresa_vendedora === "lumaggs" ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-800"}>{p.empresa_vendedora === "lumaggs" ? "Chevron" : "Phillips 66"}</Badge></TableCell>
-                  <TableCell>{p.almacen_destino}</TableCell>
-                  <TableCell className="text-xs">{p.fuente || "—"}</TableCell>
-                  <TableCell className="text-xs">{p.fecha_pedido || "—"}</TableCell>
-                  <TableCell className="text-xs">{p.fecha_despacho || "—"}</TableCell>
-                  <TableCell className="text-xs">
-                    {p.fecha_entrega_estimada ? p.fecha_entrega_estimada : (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Sin fecha ⚠</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">{p.total_tarimas ?? 0}</TableCell>
-                  <TableCell className="text-right tabular-nums">{p.total_monto ? `${Number(p.total_monto).toLocaleString("es-MX", { minimumFractionDigits: 2 })} ${p.moneda || ""}` : "—"}</TableCell>
-                  <TableCell><Badge variant="outline" className={estatusPedidoColor(p.estatus)}>{ESTATUS_PEDIDO_LABEL[p.estatus] || p.estatus}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"
-                      onClick={(e) => { e.stopPropagation(); setDeleteId(p.id); }}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Sin pedidos</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <PedidoDetailSheet id={openId} onClose={() => setOpenId(null)} onDelete={(id) => setDeleteId(id)} />
-
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar este pedido?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminarán también sus líneas y archivos asociados.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction disabled={deleting} onClick={(e) => { e.preventDefault(); confirmDelete(); }}>
-              {deleting ? "Eliminando..." : "Eliminar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-}
-
-async function deletePedido(id: string) {
-  return _deletePedido(id);
-}
-
-async function verPdf(path: string) {
-  const { data, error } = await supabase.storage.from("inventario-pedidos").createSignedUrl(path, 3600);
-  if (error || !data?.signedUrl) { toast.error("No se pudo abrir el PDF"); return; }
-  window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-}
-
-async function _deletePedido(id: string) {
-  const l = await (supabase as any).from("inv_pedido_lineas").delete().eq("pedido_id", id);
-  if (l.error) throw l.error;
-  const a = await (supabase as any).from("inv_pedido_archivos").delete().eq("pedido_id", id);
-  if (a.error) throw a.error;
-  const p = await (supabase as any).from("inv_pedidos").delete().eq("id", id);
-  if (p.error) throw p.error;
-}
-
-function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClose: () => void; onDelete: (id: string) => void }) {
+export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClose: () => void; onDelete: (id: string) => void }) {
   const { data, refetch } = usePedido(id);
   const upd = useUpdatePedidoEstatus();
   const navigate = useNavigate();
@@ -434,6 +273,25 @@ function PedidoDetailSheet({ id, onClose, onDelete }: { id: string | null; onClo
       </DialogContent>
     </Dialog>
   );
+}
+
+async function deletePedido(id: string) {
+  return _deletePedido(id);
+}
+
+async function verPdf(path: string) {
+  const { data, error } = await supabase.storage.from("inventario-pedidos").createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) { toast.error("No se pudo abrir el PDF"); return; }
+  window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+}
+
+async function _deletePedido(id: string) {
+  const l = await (supabase as any).from("inv_pedido_lineas").delete().eq("pedido_id", id);
+  if (l.error) throw l.error;
+  const a = await (supabase as any).from("inv_pedido_archivos").delete().eq("pedido_id", id);
+  if (a.error) throw a.error;
+  const p = await (supabase as any).from("inv_pedidos").delete().eq("id", id);
+  if (p.error) throw p.error;
 }
 
 function Field({ label, value }: { label: string; value: any }) {

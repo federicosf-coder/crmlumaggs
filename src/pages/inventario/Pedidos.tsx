@@ -4,8 +4,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { to: "/inventario/pedidos/sugeridos", label: "Pedidos Requeridos" },
   { to: "/inventario/pedidos/subir", label: "Subir Pedidos" },
-  { to: "/inventario/pedidos-activos", label: "Activos" },
-  { to: "/inventario/pedidos/elaborados", label: "Elaborados" },
+  { to: "/inventario/pedidos/activos", label: "Activos" },
   { to: "/inventario/pedidos/recibidos", label: "Recibidos" },
   { to: "/inventario/pedidos/reclamos", label: "Reclamos" },
   { to: "/inventario/pedidos/extraordinarias", label: "Extraordinarias" },
@@ -22,9 +21,7 @@ export default function Pedidos() {
         </div>
         <nav className="px-6 mt-4 flex gap-1">
           {TABS.map((t) => {
-            const active = t.to === "/inventario/pedidos-activos"
-              ? loc.pathname === t.to
-              : loc.pathname.startsWith(t.to);
+            const active = loc.pathname.startsWith(t.to);
             return (
               <NavLink
                 key={t.to}
