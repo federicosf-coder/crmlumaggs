@@ -184,29 +184,32 @@ export function useDocumentosCobranza(filters: CobranzaFilters = {}) {
       setLoading(false);
       return;
     }
-    let q: any = supabase
-      .from("documentos")
-      .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,fecha_vencimiento,total,saldo_pendiente_cobranza,estado_cobranza,estatus_factura,tipo_pago,empresa_id,plaza_id,ejecutivo_venta_id, empresa:companies(id,name), plaza:plazas(id,nombre)")
-      .eq("is_active", true)
-      .gt("total", 0)
-      .order("fecha_documento", { ascending: false });
-    if (empresaVendedora) q = q.eq("empresa_vendedora", empresaVendedora as any);
-    if (plazaId) q = q.eq("plaza_id", plazaId);
-    // Replicar la misma lógica de visibilidad que FacturasListEmbedded
-    if (accessLevel === "propio" && userId) {
-      const parts = [`created_by.eq.${userId}`, `ejecutivo_venta_id.eq.${userId}`];
-      if (assignedCompanyIds.length > 0) parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
-      q = q.or(parts.join(","));
-    } else if (accessLevel === "equipo" && teamMemberIds.length > 0) {
-      const parts = [
-        `created_by.in.(${teamMemberIds.join(",")})`,
-        `ejecutivo_venta_id.in.(${teamMemberIds.join(",")})`,
-      ];
-      if (assignedCompanyIds.length > 0) parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
-      q = q.or(parts.join(","));
-    }
-    const { data, error } = await q;
-    if (!error && data) setDocumentos(data as any);
+    const data = await fetchAllRows<DocumentoCobranza>(async (from, to) => {
+      let q: any = supabase
+        .from("documentos")
+        .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,fecha_vencimiento,total,saldo_pendiente_cobranza,estado_cobranza,estatus_factura,tipo_pago,empresa_id,plaza_id,ejecutivo_venta_id, empresa:companies(id,name), plaza:plazas(id,nombre)")
+        .eq("is_active", true)
+        .gt("total", 0)
+        .order("fecha_documento", { ascending: false })
+        .range(from, to);
+      if (empresaVendedora) q = q.eq("empresa_vendedora", empresaVendedora as any);
+      if (plazaId) q = q.eq("plaza_id", plazaId);
+      // Replicar la misma lógica de visibilidad que FacturasListEmbedded
+      if (accessLevel === "propio" && userId) {
+        const parts = [`created_by.eq.${userId}`, `ejecutivo_venta_id.eq.${userId}`];
+        if (assignedCompanyIds.length > 0) parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        q = q.or(parts.join(","));
+      } else if (accessLevel === "equipo" && teamMemberIds.length > 0) {
+        const parts = [
+          `created_by.in.(${teamMemberIds.join(",")})`,
+          `ejecutivo_venta_id.in.(${teamMemberIds.join(",")})`,
+        ];
+        if (assignedCompanyIds.length > 0) parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        q = q.or(parts.join(","));
+      }
+      return q;
+    });
+    if (data) setDocumentos(data as any);
     setLoading(false);
   }, [empresaVendedora, plazaId, accessLevel, userId, teamMemberIds.join(","), assignedCompanyIds.join(",")]);
 
