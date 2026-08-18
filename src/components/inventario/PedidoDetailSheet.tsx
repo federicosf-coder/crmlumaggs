@@ -77,7 +77,7 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
       if (upErr) throw upErr;
       const { data: inserted, error: insErr } = await (supabase as any).from("inv_pedido_archivos").insert({
         pedido_id: p.id, nombre_archivo: file.name, url_archivo: path,
-        tipo_archivo: file.type, usuario_carga: user?.id ?? null,
+        tipo_archivo: "confirmacion_proveedor", usuario_carga: user?.id ?? null,
       }).select().single();
       if (insErr) throw insErr;
       toast.success("Archivo subido");
@@ -215,12 +215,12 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
                     <FileText className="h-3.5 w-3.5 mr-1.5" />Ver PDF
                   </Button>
                   <div>
-                    <label className="inline-block">
-                      <input type="file" accept="application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadActualizado(f); e.currentTarget.value = ""; }} />
-                      <Button asChild variant="outline" size="sm" disabled={uploading || !!extracting}>
-                        <span><Upload className="h-3.5 w-3.5 mr-1.5" />{uploading ? "Subiendo..." : extracting ? "Extrayendo..." : "Subir PDF actualizado"}</span>
-                      </Button>
-                    </label>
+                  <label className="inline-block">
+                    <input type="file" accept="application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadActualizado(f); e.currentTarget.value = ""; }} />
+                    <Button asChild variant="outline" size="sm" disabled={uploading || !!extracting}>
+                      <span><Upload className="h-3.5 w-3.5 mr-1.5" />{uploading ? "Subiendo..." : extracting ? "Extrayendo..." : "Actualizar pedido con PDF"}</span>
+                    </Button>
+                  </label>
                   </div>
                 </div>
               ) : (
