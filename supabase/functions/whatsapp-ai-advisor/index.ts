@@ -362,23 +362,6 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
     profile.notas_comerciales ? `NOTAS: ${profile.notas_comerciales}` : "",
   ].filter(Boolean).join("\n");
 
-  const _legacy = [
-    productos.length
-      ? `Productos a cotizar:\n${productos
-          .map((p: any) => {
-            if (typeof p === "string") return `- ${p}`;
-            const partes = [
-              p?.producto,
-              p?.presentacion ? `presentación: ${p.presentacion}` : null,
-              p?.cantidad ? `cantidad: ${p.cantidad}${p?.unidad ? " " + p.unidad : ""}` : null,
-              p?.aplicacion ? `aplicación: ${p.aplicacion}` : null,
-            ].filter(Boolean);
-            return `- ${partes.join(" · ")}`;
-          })
-          .join("\n")}`
-      : "",
-  ].filter(Boolean).join("\n");
-
   let leadId = profile.lead_id as string | null;
   try {
     if (leadId) {
