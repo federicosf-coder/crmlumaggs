@@ -189,6 +189,9 @@ export function useDocumentosCobranza(filters: CobranzaFilters = {}) {
         .from("documentos")
         .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,fecha_vencimiento,total,saldo_pendiente_cobranza,estado_cobranza,estatus_factura,tipo_pago,empresa_id,plaza_id,ejecutivo_venta_id, empresa:companies(id,name), plaza:plazas(id,nombre)")
         .eq("is_active", true)
+        .eq("tipo_documento", "factura")
+        .gt("saldo_pendiente_cobranza", 0)
+        .not("estatus_factura", "in", "(cancelada,pagada)")
         .gt("total", 0)
         .order("fecha_documento", { ascending: false })
         .range(from, to);
