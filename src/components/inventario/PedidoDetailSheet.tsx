@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, FileText, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Upload, FileText, Trash2, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,6 +23,10 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
   const [extracting, setExtracting] = useState<string | null>(null);
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [savingFecha, setSavingFecha] = useState(false);
+  const [editandoPedido, setEditandoPedido] = useState(false);
+  const [formPedido, setFormPedido] = useState<any>({});
+  const [savingPedido, setSavingPedido] = useState(false);
+  const [lineaEditando, setLineaEditando] = useState<{ id: string; campo: string } | null>(null);
 
   useEffect(() => {
     setFechaEntrega(data?.pedido?.fecha_entrega_estimada || "");
@@ -65,6 +70,96 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
     } finally {
       setSavingFecha(false);
     }
+  };
+
+  const invalidarTodo = () => {
+    if (!p) return;
+    qc.invalidateQueries({ queryKey: ["inv_pedido", p.id] });
+    qc.invalidateQueries({ queryKey: ["inv_pedidos"] });
+    qc.invalidateQueries({ queryKey: ["inv_pedido_lineas_abiertos"] });
+    qc.invalidateQueries({ queryKey: ["inv_pedido_lineas_abiertos_detalle"] });
+    qc.invalidateQueries({ queryKey: ["inv_niveles_sugeridos"] });
+    qc.invalidateQueries({ queryKey: ["inv_niveles_inventario"] });
+    qc.invalidateQueries({ queryKey: ["inv_niveles_inventario_min"] });
+    qc.invalidateQueries({ queryKey: ["inv_minmax"] });
+    qc.invalidateQueries({ queryKey: ["entregas_corporativas_programadas"] });
+    qc.invalidateQueries({ queryKey: ["dashred_configs"] });
+  };
+
+  const iniciarEdicionPedido = () => {
+    if (!p) return;
+    setFormPedido({
+      numero_po_interno: p.numero_po_interno || "",
+      numero_orden_proveedor: p.numero_orden_proveedor || "",
+      empresa_vendedora: p.empresa_vendedora || "",
+      almacen_destino: p.almacen_destino || "",
+      proveedor: p.proveedor || "",
+      fuente: p.fuente || "",
+      total_monto: p.total_monto ?? "",
+      moneda: p.moneda || "",
+      total_tarimas: p.total_tarimas ?? "",
+    });
+    setEditandoPedido(true);
+  };
+
+  const guardarEdicionPedido = async () => {
+    if (!p) return;
+    setSavingPedido(true);
+    try {
+      const payload: any = {
+        numero_po_interno: formPedido.numero_po_interno || null,
+        numero_orden_proveedor: formPedido.numero_orden_proveedor || null,
+        empresa_vendedora: formPedido.empresa_vendedora || null,
+        almacen_destino: formPedido.almacen_destino || null,
+        proveedor: formPedido.proveedor || null,
+        fuente: formPedido.fuente || null,
+        moneda: formPedido.moneda || null,
+        total_monto: formPedido.total_monto === "" || formPedido.total_monto === null ? null : Number(formPedido.total_monto),
+        total_tarimas: formPedido.total_tarimas === "" || formPedido.total_tarimas === null ? null : Number(formPedido.total_tarimas),
+      };
+      const { error } = await (supabase as any).from("inv_pedidos").update(payload).eq("id", p.id);
+      if (error) throw error;
+      toast.success("Pedido actualizado");
+      invalidarTodo();
+      refetch();
+      setEditandoPedido(false);
+    } catch (e: any) {
+      toast.error(e?.message || "Error al guardar el pedido");
+    } finally {
+      setSavingPedido(false);
+    }
+  };
+
+  const guardarLinea = async (lineaId: string, campo: string, valor: any) => {
+    try {
+      const { error } = await (supabase as any).from("inv_pedido_lineas").update({ [campo]: valor }).eq("id", lineaId);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["inv_pedido", p?.id] });
+      refetch();
+    } catch (e: any) {
+      toast.error(e?.message || "Error al guardar la línea");
+    } finally {
+      setLineaEditando(null);
+    }
+  };
+
+  const agregarLinea = async () => {
+    if (!p) return;
+    const { error } = await (supabase as any).from("inv_pedido_lineas").insert({
+      pedido_id: p.id, codigo_producto: "", cantidad_solicitada: 0, estatus_linea: "pendiente",
+    });
+    if (error) { toast.error(error.message || "Error al agregar línea"); return; }
+    toast.success("Línea agregada");
+    qc.invalidateQueries({ queryKey: ["inv_pedido", p.id] });
+    refetch();
+  };
+
+  const eliminarLinea = async (lineaId: string) => {
+    const { error } = await (supabase as any).from("inv_pedido_lineas").delete().eq("id", lineaId);
+    if (error) { toast.error(error.message || "Error al eliminar línea"); return; }
+    toast.success("Línea eliminada");
+    qc.invalidateQueries({ queryKey: ["inv_pedido", p?.id] });
+    refetch();
   };
 
   const onUpload = async (file: File) => {
