@@ -18,7 +18,7 @@ const json = (b: unknown, s = 200) =>
 
 const MODEL = "google/gemini-3.6-flash";
 const CHAT_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const HISTORY_LIMIT = 30;
+const HISTORY_LIMIT = 60;
 
 const STAGES = [
   "information",
@@ -266,13 +266,47 @@ function mergeList(prev: unknown, next: unknown): unknown[] {
   return out;
 }
 
+/**
+ * Fusiona productos por nombre normalizado: el dato MÁS RECIENTE gana
+ * (cantidad, presentación, aplicación). Evita que "3 cubetas" y "1 cubeta"
+ * queden como dos productos distintos y que el bot vuelva a preguntar.
+ */
+function mergeProductos(prev: unknown, next: unknown): unknown[] {
+  const toObj = (p: any) => (typeof p === "string" ? { producto: p } : (p ?? {}));
+  const a = (Array.isArray(prev) ? prev : []).map(toObj);
+  const b = (Array.isArray(next) ? next : []).map(toObj);
+  const keyOf = (p: any) => norm(p?.producto ?? p?.nombre ?? JSON.stringify(p));
+  const map = new Map<string, any>();
+  for (const p of a) {
+    const k = keyOf(p);
+    if (k) map.set(k, { ...p });
+  }
+  for (const p of b) {
+    const k = keyOf(p);
+    if (!k) continue;
+    const base = map.get(k) ?? {};
+    const merged = { ...base };
+    // Solo sobreescribimos con valores realmente provistos en el turno actual.
+    for (const [field, value] of Object.entries(p)) {
+      if (value === undefined || value === null || value === "") continue;
+      merged[field] = value;
+    }
+    map.set(k, merged);
+  }
+  return [...map.values()];
+}
+
 async function actualizarFicha(admin: Admin, profile: any, args: Record<string, unknown>) {
   const patch: Record<string, unknown> = {};
   for (const f of PROFILE_FIELDS) {
     const v = (args as any)[f];
     if (v === undefined || v === null || v === "") continue;
     if (f === "conversation_stage" && !STAGES.includes(String(v) as any)) continue;
-    if (f === "productos_solicitados" || f === "vehiculos" || f === "recomendaciones") {
+    if (f === "productos_solicitados") {
+      patch[f] = args.reemplazar_productos === true
+        ? mergeProductos([], v)
+        : mergeProductos(profile?.[f], v);
+    } else if (f === "vehiculos" || f === "recomendaciones") {
       patch[f] = mergeList(profile?.[f], v);
     } else if (f === "contexto_negocio") {
       patch[f] = { ...(profile?.contexto_negocio ?? {}), ...(typeof v === "object" ? v : { nota: v }) };
@@ -300,24 +334,32 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
   const resumen = String(profile.resumen ?? args?.resumen ?? "").slice(0, 4000);
   const productos = Array.isArray(profile.productos_solicitados) ? profile.productos_solicitados : [];
   const vehiculos = Array.isArray(profile.vehiculos) ? profile.vehiculos : [];
-  const detalle = [
-    resumen,
+  const fichaTexto = [
+    `INTENCIÓN: ${profile.cotizacion_solicitada ? "Cotización" : (profile.intent ?? "Asesoría")}`,
+    `CLIENTE: ${profile.cliente_nombre ?? "Pendiente"}`,
+    `EMPRESA: ${profile.empresa_nombre ?? "Pendiente"}`,
+    `MUNICIPIO: ${profile.municipio ?? "Pendiente"}`,
     productos.length
-      ? `Productos a cotizar:\n${productos
+      ? `PRODUCTOS:\n${productos
           .map((p: any) => {
-            if (typeof p === "string") return `- ${p}`;
-            const partes = [
-              p?.producto,
-              p?.presentacion ? `presentación: ${p.presentacion}` : null,
-              p?.cantidad ? `cantidad: ${p.cantidad}${p?.unidad ? " " + p.unidad : ""}` : null,
-              p?.aplicacion ? `aplicación: ${p.aplicacion}` : null,
-            ].filter(Boolean);
-            return `- ${partes.join(" · ")}`;
+            if (typeof p === "string") return `  - ${p}`;
+            return `  - ${p?.producto ?? "—"} | presentación: ${p?.presentacion ?? "Pendiente"} | cantidad: ${
+              p?.cantidad ?? "Pendiente"
+            }${p?.unidad ? " " + p.unidad : ""}${p?.aplicacion ? ` | aplicación: ${p.aplicacion}` : ""}`;
           })
           .join("\n")}`
+      : "PRODUCTOS: Pendiente",
+    vehiculos.length
+      ? `EQUIPOS/VEHÍCULOS: ${vehiculos.map((v: any) => (typeof v === "string" ? v : JSON.stringify(v))).join(", ")}`
       : "",
-    vehiculos.length ? `Equipos/vehículos: ${vehiculos.map((v: any) => (typeof v === "string" ? v : JSON.stringify(v))).join(", ")}` : "",
-    profile.notas_comerciales ? `Notas: ${profile.notas_comerciales}` : "",
+    "PRECIO: No proporcionado por el agente",
+    "EXISTENCIA: Pendiente de validación del asesor",
+  ].filter(Boolean).join("\n");
+
+  const detalle = [
+    fichaTexto,
+    resumen ? `\nRESUMEN:\n${resumen}` : "",
+    profile.notas_comerciales ? `NOTAS: ${profile.notas_comerciales}` : "",
   ].filter(Boolean).join("\n");
 
   let leadId = profile.lead_id as string | null;
@@ -363,7 +405,7 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
     .update({ lead_id: leadId, transferred_at: new Date().toISOString() })
     .eq("id", profile.id);
   profile.lead_id = leadId;
-  return { ok: true, lead_id: leadId };
+  return { ok: true, lead_id: leadId, ficha_enviada: fichaTexto };
 }
 
 // ─────────────────────────── prompt ───────────────────────────
@@ -383,16 +425,26 @@ REGLAS DURAS:
 1b. NO HAY INTEGRACIÓN DE INVENTARIO. Que un producto esté en el catálogo solo significa que LO MANEJAMOS. Prohibido decir "sí tenemos en existencia", "está disponible", "hay X unidades", "te lo entregamos", "disponibilidad inmediata". Si preguntan disponibilidad responde en la línea de: "Sí manejamos ese producto; para confirmar existencia y disponibilidad, un asesor te envía la información."
 2. Máximo DOS recomendaciones. Si solo una opción es compatible, recomienda una sola. Si ninguna, dilo y transfiere.
 3. Si un producto no está en el catálogo, no lo ofrezcas: indica que el asesor puede revisar la alternativa.
-4. No pidas el teléfono (ya lo tienes). No repitas preguntas ya respondidas ni datos que ya conoces.
+4. No pidas el teléfono (ya lo tienes). PROHIBIDO repetir preguntas ya respondidas o datos que ya conoces (ficha o historial).
 5. Si el cliente ya nombró el producto, no preguntes por el vehículo.
 6. Si una consulta técnica no se puede resolver con certeza, pide ÚNICAMENTE el dato faltante (motor, año, servicio, tipo de equipo) o transfiere. Jamás completes con suposiciones.
 7. Mensajes cortos (2-6 líneas), sin listas largas ni tecnicismos innecesarios.
 8. Compatibilidad técnica: antes de afirmar que un producto sirve para cierta maquinaria/equipo, busca en la biblioteca (buscar_conocimiento). Nunca supongas compatibilidad por categoría. Si la biblioteca no lo cubre, dilo y canaliza con el asesor.
+9. UNA SOLA PREGUNTA PENDIENTE por mensaje. Si solo falta el municipio, pregunta únicamente el municipio.
+10. Nunca envíes dos mensajes seguidos pidiendo esencialmente lo mismo. Si tu mensaje anterior ya hizo esa pregunta, espera la respuesta.
+11. No cambies el producto solicitado por otra variante específica sin confirmación. Si "Delo 400 15W-40" tiene varias variantes en catálogo (XLE, SB...), confirma cuál; si la coincidencia es inequívoca, usa el nombre comercial del catálogo.
+
+MEMORIA Y ESTADO DE LA SOLICITUD (crítico):
+- Antes de responder RECONSTRUYE internamente el estado leyendo TODO el historial y la ficha: qué quiere comprar, cantidad actual, presentación, empresa, municipio, intención y qué falta REALMENTE.
+- Nunca actúes como si fuera una conversación nueva cuando hay historial. Un "Hola buen día" posterior es CONTINUACIÓN: retoma la solicitud previa (ej. "Seguimos con tu cotización de 1 cubeta de Delo 400 15W-40, solo me falta tu municipio").
+- PRIORIDAD AL DATO MÁS RECIENTE: si el cliente dice "3 cubetas" y luego "1 cubeta", la cantidad es 1. Actualiza la ficha con el nuevo valor (no preguntes de nuevo).
+- Si el cliente corrige/afina el producto (Delo 15W-40 → Delo 400 15W-40 Diesel), actualiza el producto usando actualizar_ficha_lead con reemplazar_productos=true y la lista completa ya corregida, para que no queden productos duplicados.
+- Solo puedes volver a preguntar un dato si el cliente lo cambió, se contradijo, es realmente ambiguo, o es indispensable y no existe en el historial.
 
 PRESENTACIÓN Y CANTIDAD (para que el asesor pueda cotizar):
 - Si el producto tiene varias presentaciones (litro, cubeta, tambor, tote...), puedes informarlas y DEBES preguntar cuál necesita. Nunca asumas una presentación cuando hay varias. Al listarlas di "lo manejamos en ..." — nunca "lo tenemos disponible en ..." (eso sugiere existencia).
 - Pregunta la cantidad de forma natural, solo si aún no la dio. Interpreta "necesito 10", "quiero 5 cubetas", "cotízame 2 totes" como cantidad + presentación.
-- Nunca vuelvas a preguntar presentación o cantidad que el cliente ya indicó (revisa la ficha y el historial).
+- Nunca vuelvas a preguntar presentación o cantidad que el cliente ya indicó (revisa la ficha y el historial). "3 cubetas" = presentación cubeta + cantidad 3.
 - Guarda cada producto en la ficha como objeto { producto, presentacion, cantidad, unidad } vía actualizar_ficha_lead.
 - Antes de transferir una solicitud de cotización procura tener: producto + presentación + cantidad (y aplicación/maquinaria cuando sea relevante). Si el cliente no quiere darlos o no aplican, transfiere igual y anótalo en las notas.
 
@@ -403,7 +455,7 @@ ETAPAS (conversation_stage): information, consultation, product_identified, quot
 
 FICHA PROGRESIVA: en CADA turno donde aparezca información nueva llama a actualizar_ficha_lead con solo los campos nuevos (nombre, empresa, tipo de cliente, municipio, intención, productos, vehículos, contexto de negocio, recomendaciones, resumen, notas y la etapa). No esperes al final.
 
-TRANSFERENCIA: cuando haya intención comercial suficiente y ya tengas el municipio, llama a transferir_a_asesor y despídete diciendo que un asesor de Lumaggs continuará la conversación. No prometas tiempos. En el resumen incluye producto, presentación, cantidad y aplicación/maquinaria cuando existan.
+TRANSFERENCIA: cuando haya intención comercial suficiente y ya tengas el municipio, llama a transferir_a_asesor y despídete diciendo que un asesor de Lumaggs continuará la conversación. No prometas tiempos. ANTES de transferir asegúrate de que la ficha tenga TODO lo conocido (empresa, contacto, producto con presentación y cantidad actualizadas, municipio, intención); el resumen debe permitir al asesor cotizar sin volver a preguntar nada.
 
 FICHA ACTUAL:
 ${JSON.stringify({
@@ -478,6 +530,10 @@ const TOOLS = [
           tipo_cliente: { type: "string" },
           municipio: { type: "string" },
           cotizacion_solicitada: { type: "boolean" },
+          reemplazar_productos: {
+            type: "boolean",
+            description: "true cuando el cliente corrigió o cambió el producto: reemplaza toda la lista de productos con la que envías ahora.",
+          },
           productos_solicitados: {
             type: "array",
             description: "Productos de interés con su presentación y cantidad cuando se conozcan.",
@@ -592,14 +648,12 @@ Deno.serve(async (req) => {
       return json({ skipped: true, reason: profile.conversation_stage });
     }
 
-    // ── historial (solo la sesión reciente: 12 h) ──
-    const SESSION_MS = 12 * 60 * 60 * 1000;
-    const sinceIso = new Date(Date.now() - SESSION_MS).toISOString();
+    // ── historial COMPLETO reciente de la conversación (sin ventana de tiempo:
+    //    el cliente puede volver horas o días después y debe conservarse el contexto) ──
     const { data: history } = await admin
       .from("whatsapp_messages")
       .select("direction,message_body,created_by,created_at")
       .eq("conversation_id", conversationId)
-      .gte("created_at", sinceIso)
       .order("created_at", { ascending: false })
       .limit(HISTORY_LIMIT);
     const ordered = (history ?? []).slice().reverse();
