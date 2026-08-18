@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, FileText, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Upload, FileText, Trash2, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,6 +23,10 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
   const [extracting, setExtracting] = useState<string | null>(null);
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [savingFecha, setSavingFecha] = useState(false);
+  const [editandoPedido, setEditandoPedido] = useState(false);
+  const [formPedido, setFormPedido] = useState<any>({});
+  const [savingPedido, setSavingPedido] = useState(false);
+  const [lineaEditando, setLineaEditando] = useState<{ id: string; campo: string } | null>(null);
 
   useEffect(() => {
     setFechaEntrega(data?.pedido?.fecha_entrega_estimada || "");
@@ -65,6 +70,96 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
     } finally {
       setSavingFecha(false);
     }
+  };
+
+  const invalidarTodo = () => {
+    if (!p) return;
+    qc.invalidateQueries({ queryKey: ["inv_pedido", p.id] });
+    qc.invalidateQueries({ queryKey: ["inv_pedidos"] });
+    qc.invalidateQueries({ queryKey: ["inv_pedido_lineas_abiertos"] });
+    qc.invalidateQueries({ queryKey: ["inv_pedido_lineas_abiertos_detalle"] });
+    qc.invalidateQueries({ queryKey: ["inv_niveles_sugeridos"] });
+    qc.invalidateQueries({ queryKey: ["inv_niveles_inventario"] });
+    qc.invalidateQueries({ queryKey: ["inv_niveles_inventario_min"] });
+    qc.invalidateQueries({ queryKey: ["inv_minmax"] });
+    qc.invalidateQueries({ queryKey: ["entregas_corporativas_programadas"] });
+    qc.invalidateQueries({ queryKey: ["dashred_configs"] });
+  };
+
+  const iniciarEdicionPedido = () => {
+    if (!p) return;
+    setFormPedido({
+      numero_po_interno: p.numero_po_interno || "",
+      numero_orden_proveedor: p.numero_orden_proveedor || "",
+      empresa_vendedora: p.empresa_vendedora || "",
+      almacen_destino: p.almacen_destino || "",
+      proveedor: p.proveedor || "",
+      fuente: p.fuente || "",
+      total_monto: p.total_monto ?? "",
+      moneda: p.moneda || "",
+      total_tarimas: p.total_tarimas ?? "",
+    });
+    setEditandoPedido(true);
+  };
+
+  const guardarEdicionPedido = async () => {
+    if (!p) return;
+    setSavingPedido(true);
+    try {
+      const payload: any = {
+        numero_po_interno: formPedido.numero_po_interno || null,
+        numero_orden_proveedor: formPedido.numero_orden_proveedor || null,
+        empresa_vendedora: formPedido.empresa_vendedora || null,
+        almacen_destino: formPedido.almacen_destino || null,
+        proveedor: formPedido.proveedor || null,
+        fuente: formPedido.fuente || null,
+        moneda: formPedido.moneda || null,
+        total_monto: formPedido.total_monto === "" || formPedido.total_monto === null ? null : Number(formPedido.total_monto),
+        total_tarimas: formPedido.total_tarimas === "" || formPedido.total_tarimas === null ? null : Number(formPedido.total_tarimas),
+      };
+      const { error } = await (supabase as any).from("inv_pedidos").update(payload).eq("id", p.id);
+      if (error) throw error;
+      toast.success("Pedido actualizado");
+      invalidarTodo();
+      refetch();
+      setEditandoPedido(false);
+    } catch (e: any) {
+      toast.error(e?.message || "Error al guardar el pedido");
+    } finally {
+      setSavingPedido(false);
+    }
+  };
+
+  const guardarLinea = async (lineaId: string, campo: string, valor: any) => {
+    try {
+      const { error } = await (supabase as any).from("inv_pedido_lineas").update({ [campo]: valor }).eq("id", lineaId);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["inv_pedido", p?.id] });
+      refetch();
+    } catch (e: any) {
+      toast.error(e?.message || "Error al guardar la línea");
+    } finally {
+      setLineaEditando(null);
+    }
+  };
+
+  const agregarLinea = async () => {
+    if (!p) return;
+    const { error } = await (supabase as any).from("inv_pedido_lineas").insert({
+      pedido_id: p.id, codigo_producto: "", cantidad_solicitada: 0, estatus_linea: "pendiente",
+    });
+    if (error) { toast.error(error.message || "Error al agregar línea"); return; }
+    toast.success("Línea agregada");
+    qc.invalidateQueries({ queryKey: ["inv_pedido", p.id] });
+    refetch();
+  };
+
+  const eliminarLinea = async (lineaId: string) => {
+    const { error } = await (supabase as any).from("inv_pedido_lineas").delete().eq("id", lineaId);
+    if (error) { toast.error(error.message || "Error al eliminar línea"); return; }
+    toast.success("Línea eliminada");
+    qc.invalidateQueries({ queryKey: ["inv_pedido", p?.id] });
+    refetch();
   };
 
   const onUpload = async (file: File) => {
@@ -175,13 +270,52 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
         {p && (
           <div className="space-y-6 mt-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <Field label="Empresa" value={p.empresa_vendedora === "lumaggs" ? "Lumaggs (Chevron)" : "Galsa (Phillips 66)"} />
-              <Field label="Almacén destino" value={p.almacen_destino} />
-              <Field label="Fuente" value={p.fuente || "—"} />
-              <Field label="Proveedor" value={p.proveedor} />
-              <Field label="N° Orden proveedor" value={p.numero_orden_proveedor || "—"} />
-              <Field label="Total tarimas" value={p.total_tarimas ?? 0} />
-              <Field label="Monto" value={p.total_monto ? `${Number(p.total_monto).toLocaleString("es-MX", { minimumFractionDigits: 2 })} ${p.moneda || ""}` : "—"} />
+              {editandoPedido ? (
+                <>
+                  <EditField label="N° PO interno">
+                    <Input className="h-8 text-sm" value={formPedido.numero_po_interno ?? ""} onChange={(e) => setFormPedido({ ...formPedido, numero_po_interno: e.target.value })} />
+                  </EditField>
+                  <EditField label="N° Orden proveedor">
+                    <Input className="h-8 text-sm" value={formPedido.numero_orden_proveedor ?? ""} onChange={(e) => setFormPedido({ ...formPedido, numero_orden_proveedor: e.target.value })} />
+                  </EditField>
+                  <EditField label="Empresa">
+                    <SelectField value={formPedido.empresa_vendedora} onChange={(v) => setFormPedido({ ...formPedido, empresa_vendedora: v })}
+                      options={[{ v: "lumaggs", l: "Lumaggs (Chevron)" }, { v: "galsa", l: "Galsa (Phillips 66)" }]} />
+                  </EditField>
+                  <EditField label="Almacén destino">
+                    <SelectField value={formPedido.almacen_destino} onChange={(v) => setFormPedido({ ...formPedido, almacen_destino: v })}
+                      options={[{ v: "1001", l: "1001" }, { v: "1002", l: "1002" }]} />
+                  </EditField>
+                  <EditField label="Proveedor">
+                    <SelectField value={formPedido.proveedor} onChange={(v) => setFormPedido({ ...formPedido, proveedor: v })}
+                      options={[{ v: "chevron", l: "Chevron" }, { v: "phillips66", l: "Phillips 66" }]} />
+                  </EditField>
+                  <EditField label="Fuente">
+                    <SelectField value={formPedido.fuente} onChange={(v) => setFormPedido({ ...formPedido, fuente: v })}
+                      options={[{ v: "usa", l: "USA" }, { v: "cedis", l: "CEDIS" }]} />
+                  </EditField>
+                  <EditField label="Total tarimas">
+                    <Input type="number" className="h-8 text-sm" value={formPedido.total_tarimas ?? ""} onChange={(e) => setFormPedido({ ...formPedido, total_tarimas: e.target.value })} />
+                  </EditField>
+                  <EditField label="Monto">
+                    <Input type="number" className="h-8 text-sm" value={formPedido.total_monto ?? ""} onChange={(e) => setFormPedido({ ...formPedido, total_monto: e.target.value })} />
+                  </EditField>
+                  <EditField label="Moneda">
+                    <SelectField value={formPedido.moneda} onChange={(v) => setFormPedido({ ...formPedido, moneda: v })}
+                      options={[{ v: "MXN", l: "MXN" }, { v: "USD", l: "USD" }]} />
+                  </EditField>
+                </>
+              ) : (
+                <>
+                  <Field label="Empresa" value={p.empresa_vendedora === "lumaggs" ? "Lumaggs (Chevron)" : "Galsa (Phillips 66)"} />
+                  <Field label="Almacén destino" value={p.almacen_destino} />
+                  <Field label="Fuente" value={p.fuente || "—"} />
+                  <Field label="Proveedor" value={p.proveedor} />
+                  <Field label="N° Orden proveedor" value={p.numero_orden_proveedor || "—"} />
+                  <Field label="Total tarimas" value={p.total_tarimas ?? 0} />
+                  <Field label="Monto" value={p.total_monto ? `${Number(p.total_monto).toLocaleString("es-MX", { minimumFractionDigits: 2 })} ${p.moneda || ""}` : "—"} />
+                </>
+              )}
               <Field label="Estatus" value={<Badge className={estatusPedidoColor(p.estatus)}>{ESTATUS_PEDIDO_LABEL[p.estatus]}</Badge>} />
               <div>
                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Entrega estimada</div>
@@ -193,12 +327,23 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
                 </div>
               </div>
             </div>
+            {editandoPedido && (
+              <div className="flex gap-2">
+                <Button size="sm" onClick={guardarEdicionPedido} disabled={savingPedido}>{savingPedido ? "Guardando..." : "Guardar cambios"}</Button>
+                <Button size="sm" variant="outline" onClick={() => setEditandoPedido(false)}>Cancelar</Button>
+              </div>
+            )}
             {nextEstatus(p.estatus) && (
               <Button onClick={onAdvance} className="w-full">{nextEstatusLabel(p.estatus)}</Button>
             )}
-            <Button variant="outline" className="w-full text-destructive" onClick={() => onDelete(p.id)}>
-              <Trash2 className="h-4 w-4 mr-1.5" />Eliminar pedido
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={iniciarEdicionPedido} disabled={editandoPedido}>
+                <Pencil className="h-4 w-4 mr-1.5" />Editar pedido
+              </Button>
+              <Button variant="outline" className="flex-1 text-destructive" onClick={() => onDelete(p.id)}>
+                <Trash2 className="h-4 w-4 mr-1.5" />Eliminar pedido
+              </Button>
+            </div>
 
             <div>
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Archivos adjuntos</div>
@@ -238,24 +383,72 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
                 <Table>
                   <TableHeader className="bg-muted/40">
                     <TableRow>
-                      {["Código","Producto","Cant.","Unidad","P. unit.","Total","Status"].map((h) => <TableHead key={h} className="text-xs uppercase">{h}</TableHead>)}
+                      {["Código","Producto","Cant.","Unidad","P. unit.","Total","Status",""].map((h, i) => <TableHead key={h || `acc-${i}`} className="text-xs uppercase">{h}</TableHead>)}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {lineas.map((l: any) => (
-                      <TableRow key={l.id}>
-                        <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
-                        <TableCell className="text-xs max-w-[160px] truncate">{l.nombre_producto || "—"}</TableCell>
-                        <TableCell className="text-right">{l.cantidad_solicitada}</TableCell>
-                        <TableCell className="text-xs">{l.unidad_pedido || "—"}</TableCell>
-                        <TableCell className="text-right text-xs">{l.precio_unitario ?? "—"}</TableCell>
-                        <TableCell className="text-right text-xs">{l.precio_neto ?? "—"}</TableCell>
-                        <TableCell className="text-xs">{l.estatus_linea || "—"}</TableCell>
-                      </TableRow>
-                    ))}
+                    {lineas.map((l: any) => {
+                      const cell = (campo: string, valor: any, opts?: { type?: string; className?: string; mono?: boolean }) => {
+                        const editing = lineaEditando?.id === l.id && lineaEditando?.campo === campo;
+                        if (editing) {
+                          return (
+                            <Input
+                              autoFocus
+                              type={opts?.type || "text"}
+                              defaultValue={valor ?? ""}
+                              className="h-7 text-xs"
+                              onBlur={(e) => {
+                                const raw = e.target.value;
+                                const next = opts?.type === "number" ? (raw === "" ? null : Number(raw)) : (raw === "" ? null : raw);
+                                if (String(next ?? "") === String(valor ?? "")) { setLineaEditando(null); return; }
+                                guardarLinea(l.id, campo, next);
+                              }}
+                            />
+                          );
+                        }
+                        return (
+                          <span className="cursor-pointer" onClick={() => setLineaEditando({ id: l.id, campo })}>
+                            {valor === null || valor === undefined || valor === "" ? "—" : valor}
+                          </span>
+                        );
+                      };
+                      const editingStatus = lineaEditando?.id === l.id && lineaEditando?.campo === "estatus_linea";
+                      return (
+                        <TableRow key={l.id}>
+                          <TableCell className="font-mono text-xs">{cell("codigo_producto", l.codigo_producto)}</TableCell>
+                          <TableCell className="text-xs max-w-[160px] truncate">{cell("nombre_producto", l.nombre_producto)}</TableCell>
+                          <TableCell className="text-right">{cell("cantidad_solicitada", l.cantidad_solicitada, { type: "number" })}</TableCell>
+                          <TableCell className="text-xs">{cell("unidad_pedido", l.unidad_pedido)}</TableCell>
+                          <TableCell className="text-right text-xs">{cell("precio_unitario", l.precio_unitario, { type: "number" })}</TableCell>
+                          <TableCell className="text-right text-xs">{cell("precio_neto", l.precio_neto, { type: "number" })}</TableCell>
+                          <TableCell className="text-xs">
+                            {editingStatus ? (
+                              <Select value={l.estatus_linea || "pendiente"} onValueChange={(v) => guardarLinea(l.id, "estatus_linea", v)}>
+                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {["pendiente","confirmada","recibida_completa","recibida_parcial","faltante","cancelada"].map((s) => (
+                                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <span className="cursor-pointer" onClick={() => setLineaEditando({ id: l.id, campo: "estatus_linea" })}>{l.estatus_linea || "—"}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => eliminarLinea(l.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
+              <Button size="sm" variant="outline" className="mt-2" onClick={agregarLinea}>
+                <Plus className="h-3.5 w-3.5 mr-1.5" />Agregar línea
+              </Button>
             </div>
           </div>
         )}
@@ -289,5 +482,25 @@ function Field({ label, value }: { label: string; value: any }) {
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="font-medium">{value}</div>
     </div>
+  );
+}
+
+function EditField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function SelectField({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { v: string; l: string }[] }) {
+  return (
+    <Select value={value || undefined} onValueChange={onChange}>
+      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+      <SelectContent>
+        {options.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+      </SelectContent>
+    </Select>
   );
 }
