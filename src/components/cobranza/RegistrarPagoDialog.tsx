@@ -34,6 +34,9 @@ interface DocOption {
   saldo: number;
 }
 
+/** Tolerancia en pesos para diferencias mínimas al aplicar pagos */
+const TOLERANCIA = 5;
+
 const TIPO_LABEL: Record<string, string> = {
   factura: "Factura",
   pedido: "Pedido",
