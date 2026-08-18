@@ -105,8 +105,7 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
       await (supabase as any).from("inv_pedido_archivos").update({
         extraido_por_ia: true, datos_extraidos: extractedData,
       }).eq("id", archivo.id);
-      setExtracted({ archivoId: archivo.id, data: extractedData });
-      toast.success("Extracción completada");
+      await aplicarExtraccion(extractedData);
     } catch (e: any) { toast.error(e?.message || "Error extrayendo"); }
     finally { setExtracting(null); }
   };
