@@ -171,7 +171,9 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
       if (checked) {
         // Auto-llenar con saldo o lo que quede del pago
         const restante = Math.max(0, montoNum - totalAsignado);
-        const sugerido = montoNum > 0 ? Math.min(doc.saldo, restante || doc.saldo) : doc.saldo;
+        let sugerido = montoNum > 0 ? Math.min(doc.saldo, restante || doc.saldo) : doc.saldo;
+        // Tolerancia de $5: si el restante excede el saldo por centavos, aplicar el restante completo
+        if (montoNum > 0 && restante > doc.saldo && restante - doc.saldo <= TOLERANCIA) sugerido = restante;
         next[doc.id] = String(sugerido.toFixed(2));
       } else {
         delete next[doc.id];
@@ -204,7 +206,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
     const aplicaciones = Object.entries(seleccion)
       .map(([doc_id, monto]) => ({ doc_id, monto: Number(monto) || 0 }))
       .filter((a) => a.monto > 0);
-    if (totalAsignado > montoNum + 0.01) { toast.error("La suma asignada excede el monto del pago"); return; }
+    if (totalAsignado > montoNum + TOLERANCIA) { toast.error("La suma asignada excede el monto del pago"); return; }
 
     setSaving(true);
     const { data: pago, error } = await supabase.from("cobranza_pagos").insert({
