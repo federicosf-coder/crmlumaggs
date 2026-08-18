@@ -153,15 +153,16 @@ export default function PedidosSubir() {
       if (error) throw new Error(error.message);
     }
 
-    await supabase.from("inv_pedido_archivos").insert({
+    const { error: archErr } = await supabase.from("inv_pedido_archivos").insert({
       pedido_id: pedidoId,
       nombre_archivo: file.name,
       url_archivo: path,
-      tipo_archivo: "application/pdf",
+      tipo_archivo: "confirmacion_proveedor",
       extraido_por_ia: true,
       datos_extraidos: extracted,
       usuario_carga: user?.id ?? null,
     });
+    if (archErr) throw new Error(archErr.message);
 
     upd(id, {
       estado: creado ? "creado" : "actualizado",
