@@ -227,7 +227,7 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
               <>
               <div className="flex items-center gap-2 mb-3">
                 <label className="inline-block">
-                  <input type="file" accept="application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); }} />
+                  <input type="file" accept="application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadActualizado(f); }} />
                   <Button asChild variant="outline" size="sm" disabled={uploading}><span><Upload className="h-3.5 w-3.5 mr-1.5" />{uploading ? "Subiendo..." : "Subir PDF del proveedor"}</span></Button>
                 </label>
               </div>
