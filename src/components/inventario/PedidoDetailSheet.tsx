@@ -383,24 +383,72 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
                 <Table>
                   <TableHeader className="bg-muted/40">
                     <TableRow>
-                      {["Código","Producto","Cant.","Unidad","P. unit.","Total","Status"].map((h) => <TableHead key={h} className="text-xs uppercase">{h}</TableHead>)}
+                      {["Código","Producto","Cant.","Unidad","P. unit.","Total","Status",""].map((h, i) => <TableHead key={h || `acc-${i}`} className="text-xs uppercase">{h}</TableHead>)}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {lineas.map((l: any) => (
-                      <TableRow key={l.id}>
-                        <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
-                        <TableCell className="text-xs max-w-[160px] truncate">{l.nombre_producto || "—"}</TableCell>
-                        <TableCell className="text-right">{l.cantidad_solicitada}</TableCell>
-                        <TableCell className="text-xs">{l.unidad_pedido || "—"}</TableCell>
-                        <TableCell className="text-right text-xs">{l.precio_unitario ?? "—"}</TableCell>
-                        <TableCell className="text-right text-xs">{l.precio_neto ?? "—"}</TableCell>
-                        <TableCell className="text-xs">{l.estatus_linea || "—"}</TableCell>
-                      </TableRow>
-                    ))}
+                    {lineas.map((l: any) => {
+                      const cell = (campo: string, valor: any, opts?: { type?: string; className?: string; mono?: boolean }) => {
+                        const editing = lineaEditando?.id === l.id && lineaEditando?.campo === campo;
+                        if (editing) {
+                          return (
+                            <Input
+                              autoFocus
+                              type={opts?.type || "text"}
+                              defaultValue={valor ?? ""}
+                              className="h-7 text-xs"
+                              onBlur={(e) => {
+                                const raw = e.target.value;
+                                const next = opts?.type === "number" ? (raw === "" ? null : Number(raw)) : (raw === "" ? null : raw);
+                                if (String(next ?? "") === String(valor ?? "")) { setLineaEditando(null); return; }
+                                guardarLinea(l.id, campo, next);
+                              }}
+                            />
+                          );
+                        }
+                        return (
+                          <span className="cursor-pointer" onClick={() => setLineaEditando({ id: l.id, campo })}>
+                            {valor === null || valor === undefined || valor === "" ? "—" : valor}
+                          </span>
+                        );
+                      };
+                      const editingStatus = lineaEditando?.id === l.id && lineaEditando?.campo === "estatus_linea";
+                      return (
+                        <TableRow key={l.id}>
+                          <TableCell className="font-mono text-xs">{cell("codigo_producto", l.codigo_producto)}</TableCell>
+                          <TableCell className="text-xs max-w-[160px] truncate">{cell("nombre_producto", l.nombre_producto)}</TableCell>
+                          <TableCell className="text-right">{cell("cantidad_solicitada", l.cantidad_solicitada, { type: "number" })}</TableCell>
+                          <TableCell className="text-xs">{cell("unidad_pedido", l.unidad_pedido)}</TableCell>
+                          <TableCell className="text-right text-xs">{cell("precio_unitario", l.precio_unitario, { type: "number" })}</TableCell>
+                          <TableCell className="text-right text-xs">{cell("precio_neto", l.precio_neto, { type: "number" })}</TableCell>
+                          <TableCell className="text-xs">
+                            {editingStatus ? (
+                              <Select value={l.estatus_linea || "pendiente"} onValueChange={(v) => guardarLinea(l.id, "estatus_linea", v)}>
+                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {["pendiente","confirmada","recibida_completa","recibida_parcial","faltante","cancelada"].map((s) => (
+                                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <span className="cursor-pointer" onClick={() => setLineaEditando({ id: l.id, campo: "estatus_linea" })}>{l.estatus_linea || "—"}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => eliminarLinea(l.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
+              <Button size="sm" variant="outline" className="mt-2" onClick={agregarLinea}>
+                <Plus className="h-3.5 w-3.5 mr-1.5" />Agregar línea
+              </Button>
             </div>
           </div>
         )}
@@ -434,5 +482,25 @@ function Field({ label, value }: { label: string; value: any }) {
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="font-medium">{value}</div>
     </div>
+  );
+}
+
+function EditField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function SelectField({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { v: string; l: string }[] }) {
+  return (
+    <Select value={value || undefined} onValueChange={onChange}>
+      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+      <SelectContent>
+        {options.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+      </SelectContent>
+    </Select>
   );
 }
