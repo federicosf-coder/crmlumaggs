@@ -18,7 +18,7 @@ const json = (b: unknown, s = 200) =>
 
 const MODEL = "google/gemini-3.6-flash";
 const CHAT_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const HISTORY_LIMIT = 30;
+const HISTORY_LIMIT = 60;
 
 const STAGES = [
   "information",
