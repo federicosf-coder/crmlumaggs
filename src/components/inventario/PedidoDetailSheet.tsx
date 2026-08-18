@@ -20,7 +20,6 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [extracting, setExtracting] = useState<string | null>(null);
-  const [extracted, setExtracted] = useState<{ archivoId: string; data: any } | null>(null);
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [savingFecha, setSavingFecha] = useState(false);
 
