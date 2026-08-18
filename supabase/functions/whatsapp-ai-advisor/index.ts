@@ -530,6 +530,10 @@ const TOOLS = [
           tipo_cliente: { type: "string" },
           municipio: { type: "string" },
           cotizacion_solicitada: { type: "boolean" },
+          reemplazar_productos: {
+            type: "boolean",
+            description: "true cuando el cliente corrigió o cambió el producto: reemplaza toda la lista de productos con la que envías ahora.",
+          },
           productos_solicitados: {
             type: "array",
             description: "Productos de interés con su presentación y cantidad cuando se conozcan.",
