@@ -303,7 +303,9 @@ async function actualizarFicha(admin: Admin, profile: any, args: Record<string, 
     if (v === undefined || v === null || v === "") continue;
     if (f === "conversation_stage" && !STAGES.includes(String(v) as any)) continue;
     if (f === "productos_solicitados") {
-      patch[f] = mergeProductos(profile?.[f], v);
+      patch[f] = args.reemplazar_productos === true
+        ? mergeProductos([], v)
+        : mergeProductos(profile?.[f], v);
     } else if (f === "vehiculos" || f === "recomendaciones") {
       patch[f] = mergeList(profile?.[f], v);
     } else if (f === "contexto_negocio") {
