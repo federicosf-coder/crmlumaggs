@@ -266,13 +266,45 @@ function mergeList(prev: unknown, next: unknown): unknown[] {
   return out;
 }
 
+/**
+ * Fusiona productos por nombre normalizado: el dato MÁS RECIENTE gana
+ * (cantidad, presentación, aplicación). Evita que "3 cubetas" y "1 cubeta"
+ * queden como dos productos distintos y que el bot vuelva a preguntar.
+ */
+function mergeProductos(prev: unknown, next: unknown): unknown[] {
+  const toObj = (p: any) => (typeof p === "string" ? { producto: p } : (p ?? {}));
+  const a = (Array.isArray(prev) ? prev : []).map(toObj);
+  const b = (Array.isArray(next) ? next : []).map(toObj);
+  const keyOf = (p: any) => norm(p?.producto ?? p?.nombre ?? JSON.stringify(p));
+  const map = new Map<string, any>();
+  for (const p of a) {
+    const k = keyOf(p);
+    if (k) map.set(k, { ...p });
+  }
+  for (const p of b) {
+    const k = keyOf(p);
+    if (!k) continue;
+    const base = map.get(k) ?? {};
+    const merged = { ...base };
+    // Solo sobreescribimos con valores realmente provistos en el turno actual.
+    for (const [field, value] of Object.entries(p)) {
+      if (value === undefined || value === null || value === "") continue;
+      merged[field] = value;
+    }
+    map.set(k, merged);
+  }
+  return [...map.values()];
+}
+
 async function actualizarFicha(admin: Admin, profile: any, args: Record<string, unknown>) {
   const patch: Record<string, unknown> = {};
   for (const f of PROFILE_FIELDS) {
     const v = (args as any)[f];
     if (v === undefined || v === null || v === "") continue;
     if (f === "conversation_stage" && !STAGES.includes(String(v) as any)) continue;
-    if (f === "productos_solicitados" || f === "vehiculos" || f === "recomendaciones") {
+    if (f === "productos_solicitados") {
+      patch[f] = mergeProductos(profile?.[f], v);
+    } else if (f === "vehiculos" || f === "recomendaciones") {
       patch[f] = mergeList(profile?.[f], v);
     } else if (f === "contexto_negocio") {
       patch[f] = { ...(profile?.contexto_negocio ?? {}), ...(typeof v === "object" ? v : { nota: v }) };
