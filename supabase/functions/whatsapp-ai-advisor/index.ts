@@ -592,14 +592,12 @@ Deno.serve(async (req) => {
       return json({ skipped: true, reason: profile.conversation_stage });
     }
 
-    // ── historial (solo la sesión reciente: 12 h) ──
-    const SESSION_MS = 12 * 60 * 60 * 1000;
-    const sinceIso = new Date(Date.now() - SESSION_MS).toISOString();
+    // ── historial COMPLETO reciente de la conversación (sin ventana de tiempo:
+    //    el cliente puede volver horas o días después y debe conservarse el contexto) ──
     const { data: history } = await admin
       .from("whatsapp_messages")
       .select("direction,message_body,created_by,created_at")
       .eq("conversation_id", conversationId)
-      .gte("created_at", sinceIso)
       .order("created_at", { ascending: false })
       .limit(HISTORY_LIMIT);
     const ordered = (history ?? []).slice().reverse();
