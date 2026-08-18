@@ -23,6 +23,9 @@ interface Props {
   onSaved: () => void;
 }
 
+/** Tolerancia en pesos para diferencias mínimas al aplicar pagos */
+const TOLERANCIA = 5;
+
 export function AplicarPagoDialog({ open, onOpenChange, pago, onSaved }: Props) {
   const { user } = useAuth();
   const [tipoDoc, setTipoDoc] = useState<"factura" | "pedido" | "cotizacion">("factura");
@@ -58,8 +61,8 @@ export function AplicarPagoDialog({ open, onOpenChange, pago, onSaved }: Props) 
     if (!pago || !docId) { toast.error("Selecciona un documento"); return; }
     const m = Number(monto);
     if (!m || m <= 0) { toast.error("Monto inválido"); return; }
-    if (m > pago.monto_disponible) { toast.error("Excede el disponible del pago"); return; }
-    if (selectedDoc && m > Number(selectedDoc.saldo_pendiente_cobranza)) {
+    if (m > pago.monto_disponible + TOLERANCIA) { toast.error("Excede el disponible del pago"); return; }
+    if (selectedDoc && m > Number(selectedDoc.saldo_pendiente_cobranza) + TOLERANCIA) {
       toast.error("Excede el saldo del documento"); return;
     }
     setSaving(true);
