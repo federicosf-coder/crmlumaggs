@@ -230,13 +230,6 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
               <div className="text-xs text-muted-foreground">Sin archivos</div>
               </>
               )}
-              {extracted && (
-                <div className="mt-3 border rounded p-3 bg-violet-50/50">
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Vista previa de extracción</div>
-                  <pre className="text-[10px] max-h-48 overflow-auto bg-background border rounded p-2">{JSON.stringify(extracted.data, null, 2)}</pre>
-                  <Button size="sm" className="mt-2" onClick={aplicarExtraccion}>Aplicar datos extraídos</Button>
-                </div>
-              )}
             </div>
 
             <div>
