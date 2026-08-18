@@ -110,9 +110,8 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
     finally { setExtracting(null); }
   };
 
-  const aplicarExtraccion = async () => {
-    if (!p || !extracted) return;
-    const d = extracted.data;
+  const aplicarExtraccion = async (d: any) => {
+    if (!p || !d) return;
     const update: any = {};
     if (d.numero_po) update.numero_po_interno = d.numero_po;
     if (d.numero_orden) update.numero_orden_proveedor = d.numero_orden;
@@ -154,7 +153,6 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
     }
 
     toast.success("Datos aplicados");
-    setExtracted(null);
     qc.invalidateQueries({ queryKey: ["inv_pedido", p.id] });
     qc.invalidateQueries({ queryKey: ["inv_pedidos"] });
     qc.invalidateQueries({ queryKey: ["inv_pedido_lineas_abiertos"] });
