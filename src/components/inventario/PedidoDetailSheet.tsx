@@ -270,13 +270,52 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
         {p && (
           <div className="space-y-6 mt-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <Field label="Empresa" value={p.empresa_vendedora === "lumaggs" ? "Lumaggs (Chevron)" : "Galsa (Phillips 66)"} />
-              <Field label="Almacén destino" value={p.almacen_destino} />
-              <Field label="Fuente" value={p.fuente || "—"} />
-              <Field label="Proveedor" value={p.proveedor} />
-              <Field label="N° Orden proveedor" value={p.numero_orden_proveedor || "—"} />
-              <Field label="Total tarimas" value={p.total_tarimas ?? 0} />
-              <Field label="Monto" value={p.total_monto ? `${Number(p.total_monto).toLocaleString("es-MX", { minimumFractionDigits: 2 })} ${p.moneda || ""}` : "—"} />
+              {editandoPedido ? (
+                <>
+                  <EditField label="N° PO interno">
+                    <Input className="h-8 text-sm" value={formPedido.numero_po_interno ?? ""} onChange={(e) => setFormPedido({ ...formPedido, numero_po_interno: e.target.value })} />
+                  </EditField>
+                  <EditField label="N° Orden proveedor">
+                    <Input className="h-8 text-sm" value={formPedido.numero_orden_proveedor ?? ""} onChange={(e) => setFormPedido({ ...formPedido, numero_orden_proveedor: e.target.value })} />
+                  </EditField>
+                  <EditField label="Empresa">
+                    <SelectField value={formPedido.empresa_vendedora} onChange={(v) => setFormPedido({ ...formPedido, empresa_vendedora: v })}
+                      options={[{ v: "lumaggs", l: "Lumaggs (Chevron)" }, { v: "galsa", l: "Galsa (Phillips 66)" }]} />
+                  </EditField>
+                  <EditField label="Almacén destino">
+                    <SelectField value={formPedido.almacen_destino} onChange={(v) => setFormPedido({ ...formPedido, almacen_destino: v })}
+                      options={[{ v: "1001", l: "1001" }, { v: "1002", l: "1002" }]} />
+                  </EditField>
+                  <EditField label="Proveedor">
+                    <SelectField value={formPedido.proveedor} onChange={(v) => setFormPedido({ ...formPedido, proveedor: v })}
+                      options={[{ v: "chevron", l: "Chevron" }, { v: "phillips66", l: "Phillips 66" }]} />
+                  </EditField>
+                  <EditField label="Fuente">
+                    <SelectField value={formPedido.fuente} onChange={(v) => setFormPedido({ ...formPedido, fuente: v })}
+                      options={[{ v: "usa", l: "USA" }, { v: "cedis", l: "CEDIS" }]} />
+                  </EditField>
+                  <EditField label="Total tarimas">
+                    <Input type="number" className="h-8 text-sm" value={formPedido.total_tarimas ?? ""} onChange={(e) => setFormPedido({ ...formPedido, total_tarimas: e.target.value })} />
+                  </EditField>
+                  <EditField label="Monto">
+                    <Input type="number" className="h-8 text-sm" value={formPedido.total_monto ?? ""} onChange={(e) => setFormPedido({ ...formPedido, total_monto: e.target.value })} />
+                  </EditField>
+                  <EditField label="Moneda">
+                    <SelectField value={formPedido.moneda} onChange={(v) => setFormPedido({ ...formPedido, moneda: v })}
+                      options={[{ v: "MXN", l: "MXN" }, { v: "USD", l: "USD" }]} />
+                  </EditField>
+                </>
+              ) : (
+                <>
+                  <Field label="Empresa" value={p.empresa_vendedora === "lumaggs" ? "Lumaggs (Chevron)" : "Galsa (Phillips 66)"} />
+                  <Field label="Almacén destino" value={p.almacen_destino} />
+                  <Field label="Fuente" value={p.fuente || "—"} />
+                  <Field label="Proveedor" value={p.proveedor} />
+                  <Field label="N° Orden proveedor" value={p.numero_orden_proveedor || "—"} />
+                  <Field label="Total tarimas" value={p.total_tarimas ?? 0} />
+                  <Field label="Monto" value={p.total_monto ? `${Number(p.total_monto).toLocaleString("es-MX", { minimumFractionDigits: 2 })} ${p.moneda || ""}` : "—"} />
+                </>
+              )}
               <Field label="Estatus" value={<Badge className={estatusPedidoColor(p.estatus)}>{ESTATUS_PEDIDO_LABEL[p.estatus]}</Badge>} />
               <div>
                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Entrega estimada</div>
@@ -288,12 +327,23 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
                 </div>
               </div>
             </div>
+            {editandoPedido && (
+              <div className="flex gap-2">
+                <Button size="sm" onClick={guardarEdicionPedido} disabled={savingPedido}>{savingPedido ? "Guardando..." : "Guardar cambios"}</Button>
+                <Button size="sm" variant="outline" onClick={() => setEditandoPedido(false)}>Cancelar</Button>
+              </div>
+            )}
             {nextEstatus(p.estatus) && (
               <Button onClick={onAdvance} className="w-full">{nextEstatusLabel(p.estatus)}</Button>
             )}
-            <Button variant="outline" className="w-full text-destructive" onClick={() => onDelete(p.id)}>
-              <Trash2 className="h-4 w-4 mr-1.5" />Eliminar pedido
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={iniciarEdicionPedido} disabled={editandoPedido}>
+                <Pencil className="h-4 w-4 mr-1.5" />Editar pedido
+              </Button>
+              <Button variant="outline" className="flex-1 text-destructive" onClick={() => onDelete(p.id)}>
+                <Trash2 className="h-4 w-4 mr-1.5" />Eliminar pedido
+              </Button>
+            </div>
 
             <div>
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Archivos adjuntos</div>
