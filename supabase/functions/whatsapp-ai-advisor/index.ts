@@ -334,8 +334,35 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
   const resumen = String(profile.resumen ?? args?.resumen ?? "").slice(0, 4000);
   const productos = Array.isArray(profile.productos_solicitados) ? profile.productos_solicitados : [];
   const vehiculos = Array.isArray(profile.vehiculos) ? profile.vehiculos : [];
+  const fichaTexto = [
+    `INTENCIÓN: ${profile.cotizacion_solicitada ? "Cotización" : (profile.intent ?? "Asesoría")}`,
+    `CLIENTE: ${profile.cliente_nombre ?? "Pendiente"}`,
+    `EMPRESA: ${profile.empresa_nombre ?? "Pendiente"}`,
+    `MUNICIPIO: ${profile.municipio ?? "Pendiente"}`,
+    productos.length
+      ? `PRODUCTOS:\n${productos
+          .map((p: any) => {
+            if (typeof p === "string") return `  - ${p}`;
+            return `  - ${p?.producto ?? "—"} | presentación: ${p?.presentacion ?? "Pendiente"} | cantidad: ${
+              p?.cantidad ?? "Pendiente"
+            }${p?.unidad ? " " + p.unidad : ""}${p?.aplicacion ? ` | aplicación: ${p.aplicacion}` : ""}`;
+          })
+          .join("\n")}`
+      : "PRODUCTOS: Pendiente",
+    vehiculos.length
+      ? `EQUIPOS/VEHÍCULOS: ${vehiculos.map((v: any) => (typeof v === "string" ? v : JSON.stringify(v))).join(", ")}`
+      : "",
+    "PRECIO: No proporcionado por el agente",
+    "EXISTENCIA: Pendiente de validación del asesor",
+  ].filter(Boolean).join("\n");
+
   const detalle = [
-    resumen,
+    fichaTexto,
+    resumen ? `\nRESUMEN:\n${resumen}` : "",
+    profile.notas_comerciales ? `NOTAS: ${profile.notas_comerciales}` : "",
+  ].filter(Boolean).join("\n");
+
+  const _legacy = [
     productos.length
       ? `Productos a cotizar:\n${productos
           .map((p: any) => {
@@ -350,8 +377,6 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
           })
           .join("\n")}`
       : "",
-    vehiculos.length ? `Equipos/vehículos: ${vehiculos.map((v: any) => (typeof v === "string" ? v : JSON.stringify(v))).join(", ")}` : "",
-    profile.notas_comerciales ? `Notas: ${profile.notas_comerciales}` : "",
   ].filter(Boolean).join("\n");
 
   let leadId = profile.lead_id as string | null;
@@ -397,7 +422,7 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
     .update({ lead_id: leadId, transferred_at: new Date().toISOString() })
     .eq("id", profile.id);
   profile.lead_id = leadId;
-  return { ok: true, lead_id: leadId };
+  return { ok: true, lead_id: leadId, ficha_enviada: fichaTexto };
 }
 
 // ─────────────────────────── prompt ───────────────────────────
