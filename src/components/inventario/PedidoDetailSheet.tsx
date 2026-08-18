@@ -20,7 +20,6 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [extracting, setExtracting] = useState<string | null>(null);
-  const [extracted, setExtracted] = useState<{ archivoId: string; data: any } | null>(null);
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [savingFecha, setSavingFecha] = useState(false);
 
@@ -106,15 +105,13 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
       await (supabase as any).from("inv_pedido_archivos").update({
         extraido_por_ia: true, datos_extraidos: extractedData,
       }).eq("id", archivo.id);
-      setExtracted({ archivoId: archivo.id, data: extractedData });
-      toast.success("Extracción completada");
+      await aplicarExtraccion(extractedData);
     } catch (e: any) { toast.error(e?.message || "Error extrayendo"); }
     finally { setExtracting(null); }
   };
 
-  const aplicarExtraccion = async () => {
-    if (!p || !extracted) return;
-    const d = extracted.data;
+  const aplicarExtraccion = async (d: any) => {
+    if (!p || !d) return;
     const update: any = {};
     if (d.numero_po) update.numero_po_interno = d.numero_po;
     if (d.numero_orden) update.numero_orden_proveedor = d.numero_orden;
@@ -156,7 +153,6 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
     }
 
     toast.success("Datos aplicados");
-    setExtracted(null);
     qc.invalidateQueries({ queryKey: ["inv_pedido", p.id] });
     qc.invalidateQueries({ queryKey: ["inv_pedidos"] });
     qc.invalidateQueries({ queryKey: ["inv_pedido_lineas_abiertos"] });
@@ -233,13 +229,6 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
               </div>
               <div className="text-xs text-muted-foreground">Sin archivos</div>
               </>
-              )}
-              {extracted && (
-                <div className="mt-3 border rounded p-3 bg-violet-50/50">
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Vista previa de extracción</div>
-                  <pre className="text-[10px] max-h-48 overflow-auto bg-background border rounded p-2">{JSON.stringify(extracted.data, null, 2)}</pre>
-                  <Button size="sm" className="mt-2" onClick={aplicarExtraccion}>Aplicar datos extraídos</Button>
-                </div>
               )}
             </div>
 
