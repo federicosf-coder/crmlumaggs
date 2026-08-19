@@ -318,9 +318,6 @@ export default function CreditoCescemexReport() {
       );
       const clientes = new Set(g.map((r) => r.empresa_id).filter(Boolean));
       const vencidas = g.filter((r) => r.estado_cobranza === "vencida");
-      const atrasos = vencidas
-        .filter((r) => r.fecha_vencimiento)
-        .map((r) => (hoy.getTime() - new Date(r.fecha_vencimiento).getTime()) / dayMs);
       const dso = conAplic
         .filter((r) => r.fecha_documento)
         .map((r) => diffDias(ultimaAplic.get(r.id)!, r.fecha_documento));
@@ -348,11 +345,11 @@ export default function CreditoCescemexReport() {
         pctPagadasATiempo: pagadas.length ? (aTiempo.length / pagadas.length) * 100 : 0,
         pctClientes: clientesTotales.size ? (clientes.size / clientesTotales.size) * 100 : 0,
         pctCarteraVencida: totalFacturas > 0 ? (vencidasPagadas / totalFacturas) * 100 : 0,
-        diasPromedioAtraso: avg(atrasos),
         diasPromedioPago: avg(dso),
         buckets,
       };
     };
+
       return { cescemex: calc("credito_cescemex"), directo: calc("credito_directo") };
     },
   });
