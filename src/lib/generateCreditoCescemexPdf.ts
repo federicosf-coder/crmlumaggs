@@ -212,17 +212,7 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
   autoTable(doc, {
     startY: 50,
     head: [["Cliente", "Tipo", "UE", "Subtotal", "Utilidad"]],
-    body: input.porCliente.map((c) => {
-      const soft = softFor(c.tipo);
-      const accent = accentFor(c.tipo);
-      return [
-        c.cliente,
-        { content: c.tipo, styles: { fillColor: soft, textColor: accent, fontStyle: "bold" } },
-        { content: fmtNum(c.ue), styles: { halign: "right" } },
-        { content: fmtCurrency(c.monto), styles: { halign: "right" } },
-        { content: fmtCurrency(c.utilidad), styles: { halign: "right", textColor: EMERALD, fontStyle: "bold" } },
-      ];
-    }),
+    body: buildClienteBody(input.porCliente),
     foot: [[
       "Total",
       "",
