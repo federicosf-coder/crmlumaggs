@@ -245,6 +245,7 @@ export default function CreditoCescemexReport() {
   }, [facturas, margenUtilidadPct, sortField, sortDir]);
 
   const toggleSort = (field: typeof sortField) => {
+    void 0;
     if (sortField === field) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
