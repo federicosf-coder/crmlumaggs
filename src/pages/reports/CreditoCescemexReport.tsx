@@ -318,9 +318,6 @@ export default function CreditoCescemexReport() {
       );
       const clientes = new Set(g.map((r) => r.empresa_id).filter(Boolean));
       const vencidas = g.filter((r) => r.estado_cobranza === "vencida");
-      const atrasos = vencidas
-        .filter((r) => r.fecha_vencimiento)
-        .map((r) => (hoy.getTime() - new Date(r.fecha_vencimiento).getTime()) / dayMs);
       const dso = conAplic
         .filter((r) => r.fecha_documento)
         .map((r) => diffDias(ultimaAplic.get(r.id)!, r.fecha_documento));
@@ -348,11 +345,11 @@ export default function CreditoCescemexReport() {
         pctPagadasATiempo: pagadas.length ? (aTiempo.length / pagadas.length) * 100 : 0,
         pctClientes: clientesTotales.size ? (clientes.size / clientesTotales.size) * 100 : 0,
         pctCarteraVencida: totalFacturas > 0 ? (vencidasPagadas / totalFacturas) * 100 : 0,
-        diasPromedioAtraso: avg(atrasos),
         diasPromedioPago: avg(dso),
         buckets,
       };
     };
+
       return { cescemex: calc("credito_cescemex"), directo: calc("credito_directo") };
     },
   });
@@ -493,75 +490,40 @@ export default function CreditoCescemexReport() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
-              Comportamiento de pago — Cescemex vs Directo
+              Indicadores de cobranza — Cescemex vs Directo
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Indicador</TableHead>
-                  <TableHead className="text-center">Cescemex</TableHead>
-                  <TableHead className="text-center">Directo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell>Facturas pagadas a tiempo</TableCell>
-                  <TableCell className="text-center">
-                    <div className="text-xl font-semibold text-emerald-600">
-                      {cobranzaKpis ? `${cobranzaKpis.cescemex.pctPagadasATiempo.toFixed(1)}%` : "—"}
+          <CardContent>
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+              {[
+                { label: "Facturas pagadas a tiempo", key: "pctPagadasATiempo", fmt: (v: number) => `${v.toFixed(1)}%` },
+                { label: "Clientes por tipo de crédito", key: "pctClientes", fmt: (v: number) => `${v.toFixed(1)}%` },
+                { label: "Facturas pagadas vencidas", key: "pctCarteraVencida", fmt: (v: number) => `${v.toFixed(1)}%` },
+                { label: "Días promedio para pagar (DSO)", key: "diasPromedioPago", fmt: (v: number) => `${v.toFixed(1)} días` },
+              ].map((kpi) => (
+                <div key={kpi.key} className="rounded-lg border p-4 space-y-3">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground font-light">{kpi.label}</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-center flex-1">
+                      <div className="text-xs text-emerald-600 font-medium uppercase tracking-wide">Cescemex</div>
+                      <div className="text-xl font-semibold text-emerald-600">
+                        {cobranzaKpis ? kpi.fmt(cobranzaKpis.cescemex[kpi.key as keyof typeof cobranzaKpis.cescemex] as number) : "—"}
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="text-xl font-semibold text-blue-600">
-                      {cobranzaKpis ? `${cobranzaKpis.directo.pctPagadasATiempo.toFixed(1)}%` : "—"}
+                    <div className="w-px h-8 bg-border" />
+                    <div className="text-center flex-1">
+                      <div className="text-xs text-blue-600 font-medium uppercase tracking-wide">Directo</div>
+                      <div className="text-xl font-semibold text-blue-600">
+                        {cobranzaKpis ? kpi.fmt(cobranzaKpis.directo[kpi.key as keyof typeof cobranzaKpis.directo] as number) : "—"}
+                      </div>
                     </div>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Clientes por tipo de crédito</TableCell>
-                  <TableCell className="text-center">
-                    <div className="text-xl font-semibold text-emerald-600">
-                      {cobranzaKpis ? `${cobranzaKpis.cescemex.pctClientes.toFixed(1)}%` : "—"}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="text-xl font-semibold text-blue-600">
-                      {cobranzaKpis ? `${cobranzaKpis.directo.pctClientes.toFixed(1)}%` : "—"}
-                    </div>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Facturas pagadas vencidas</TableCell>
-                  <TableCell className="text-center">
-                    <div className="text-xl font-semibold text-emerald-600">
-                      {cobranzaKpis ? `${cobranzaKpis.cescemex.pctCarteraVencida.toFixed(1)}%` : "—"}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="text-xl font-semibold text-blue-600">
-                      {cobranzaKpis ? `${cobranzaKpis.directo.pctCarteraVencida.toFixed(1)}%` : "—"}
-                    </div>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Días promedio para pagar (DSO)</TableCell>
-                  <TableCell className="text-center">
-                    <div className="text-xl font-semibold text-emerald-600">
-                      {cobranzaKpis ? `${cobranzaKpis.cescemex.diasPromedioPago.toFixed(1)} días` : "—"}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="text-xl font-semibold text-blue-600">
-                      {cobranzaKpis ? `${cobranzaKpis.directo.diasPromedioPago.toFixed(1)} días` : "—"}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
+
 
         <div className="grid gap-4 md:grid-cols-3">
           {CATS.map((c) => {
