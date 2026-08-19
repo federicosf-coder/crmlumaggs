@@ -923,6 +923,42 @@ export type Database = {
         }
         Relationships: []
       }
+      cescemex_costos_config: {
+        Row: {
+          anio: number
+          aportacion_chevron: number
+          costo_poliza_total: number
+          costo_por_cliente: number
+          id: string
+          notas: string | null
+          recuperacion_siniestros: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          anio: number
+          aportacion_chevron?: number
+          costo_poliza_total?: number
+          costo_por_cliente?: number
+          id?: string
+          notas?: string | null
+          recuperacion_siniestros?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          anio?: number
+          aportacion_chevron?: number
+          costo_poliza_total?: number
+          costo_por_cliente?: number
+          id?: string
+          notas?: string | null
+          recuperacion_siniestros?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       cliente_solicitud_lineas: {
         Row: {
           cantidad: number

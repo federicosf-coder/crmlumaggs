@@ -60,6 +60,8 @@ import DailyActivityReport from "@/pages/reports/DailyActivityReport";
 import DesgloseFacturasReport from "@/pages/reports/DesgloseFacturasReport";
 import DeloXLEReport from "@/pages/reports/DeloXLEReport";
 import Pareto8020Report from "@/pages/reports/Pareto8020Report";
+import CreditoCescemexReport from "@/pages/reports/CreditoCescemexReport";
+import CescemexROIReport from "@/pages/reports/CescemexROIReport";
 import SellerPortal from "@/pages/seller/SellerPortal";
 import LeadsInbox from "@/pages/leads/LeadsInbox";
 import GuiasDeVenta from "@/pages/seller/GuiasDeVenta";
@@ -181,6 +183,8 @@ const App = () => (
             <Route path="/reports/desglose-facturas" element={<ProtectedRoute><DesgloseFacturasReport /></ProtectedRoute>} />
             <Route path="/reports/delo-xle-15w40" element={<ProtectedRoute><DeloXLEReport /></ProtectedRoute>} />
             <Route path="/reports/pareto-8020" element={<ProtectedRoute><Pareto8020Report /></ProtectedRoute>} />
+            <Route path="/reports/credito-cescemex" element={<ProtectedRoute><CreditoCescemexReport /></ProtectedRoute>} />
+            <Route path="/reports/cescemex-roi" element={<ProtectedRoute><CescemexROIReport /></ProtectedRoute>} />
             <Route path="/seller-portal" element={<ProtectedRoute><SellerPortal /></ProtectedRoute>} />
             <Route path="/seller-portal/guias-de-venta" element={<ProtectedRoute><GuiasDeVenta /></ProtectedRoute>} />
             <Route path="/automations" element={<ProtectedRoute><AutomationsPage /></ProtectedRoute>} />
