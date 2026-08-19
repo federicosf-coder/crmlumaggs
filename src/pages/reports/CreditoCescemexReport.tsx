@@ -252,6 +252,72 @@ export default function CreditoCescemexReport() {
       });
   }, [facturas, margenUtilidadPct, sortField, sortDir]);
 
+  const calcularCobranzaKpis = async () => {
+    const { data: facts, error } = await (supabase as any)
+      .from("documentos")
+      .select("id, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, saldo_pendiente_cobranza, estado_cobranza")
+      .eq("tipo_documento", "factura")
+      .neq("estatus_factura", "cancelada")
+      .eq("is_active", true)
+      .in("tipo_pago", ["credito_cescemex", "credito_directo"])
+      .gte("fecha_documento", `${ANIO}-01-01`);
+    if (error) throw error;
+    const rows: any[] = facts ?? [];
+    const ids = rows.map((r) => r.id);
+    const ultimaAplic = new Map<string, string>();
+    for (let i = 0; i < ids.length; i += 500) {
+      const chunk = ids.slice(i, i + 500);
+      if (chunk.length === 0) break;
+      const { data: aplics, error: e2 } = await (supabase as any)
+        .from("cobranza_aplicaciones")
+        .select("documento_id, fecha_aplicacion")
+        .in("documento_id", chunk)
+        .eq("estatus_aplicacion", "activa");
+      if (e2) throw e2;
+      (aplics ?? []).forEach((a: any) => {
+        if (!a.fecha_aplicacion) return;
+        const prev = ultimaAplic.get(a.documento_id);
+        if (!prev || a.fecha_aplicacion > prev) ultimaAplic.set(a.documento_id, a.fecha_aplicacion);
+      });
+    }
+
+    const dayMs = 86400000;
+    const hoy = new Date();
+    const diffDias = (a: string, b: string) =>
+      (new Date(a).getTime() - new Date(b).getTime()) / dayMs;
+
+    const clientesTotales = new Set(rows.map((r) => r.empresa_id).filter(Boolean));
+    const calc = (tipo: string) => {
+      const g = rows.filter((r) => r.tipo_pago === tipo);
+      const pagadas = g.filter((r) => r.estado_cobranza === "pagada");
+      const conAplic = pagadas.filter((r) => ultimaAplic.get(r.id));
+      const aTiempo = conAplic.filter(
+        (r) => r.fecha_vencimiento && ultimaAplic.get(r.id)! <= r.fecha_vencimiento
+      );
+      const clientes = new Set(g.map((r) => r.empresa_id).filter(Boolean));
+      const vencidas = g.filter((r) => r.estado_cobranza === "vencida");
+      const saldoVencido = vencidas.reduce((s, r) => s + Number(r.saldo_pendiente_cobranza ?? 0), 0);
+      const saldoPendiente = g
+        .filter((r) => ["pendiente", "parcial", "vencida"].includes(r.estado_cobranza))
+        .reduce((s, r) => s + Number(r.saldo_pendiente_cobranza ?? 0), 0);
+      const atrasos = vencidas
+        .filter((r) => r.fecha_vencimiento)
+        .map((r) => (hoy.getTime() - new Date(r.fecha_vencimiento).getTime()) / dayMs);
+      const dso = conAplic
+        .filter((r) => r.fecha_documento)
+        .map((r) => diffDias(ultimaAplic.get(r.id)!, r.fecha_documento));
+      const avg = (arr: number[]) => (arr.length ? arr.reduce((s, n) => s + n, 0) / arr.length : 0);
+      return {
+        pctPagadasATiempo: pagadas.length ? (aTiempo.length / pagadas.length) * 100 : 0,
+        pctClientes: clientesTotales.size ? (clientes.size / clientesTotales.size) * 100 : 0,
+        pctCarteraVencida: saldoPendiente > 0 ? (saldoVencido / saldoPendiente) * 100 : 0,
+        diasPromedioAtraso: avg(atrasos),
+        diasPromedioPago: avg(dso),
+      };
+    };
+    return { cescemex: calc("credito_cescemex"), directo: calc("credito_directo") };
+  };
+
   const descargarPdf = async () => {
     const plazasLabel = todas
       ? "Todas las plazas"
