@@ -391,15 +391,24 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
       88
     );
     doc.setTextColor(0, 0, 0);
+    const rows = (kpis.buckets ?? []).map((b) => [
+      { content: b.label, styles: { fillColor: bucketFill(b.label) } },
+      { content: String(b.cuenta), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
+      { content: fmtCurrency(b.importe), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
+      { content: `${Number(b.pct || 0).toFixed(1)}%`, styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
+    ]);
+    if (kpis.total) {
+      rows.push([
+        { content: "Total", styles: { fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
+        { content: String(kpis.total.cuenta), styles: { halign: "right" as const, fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
+        { content: fmtCurrency(kpis.total.importe), styles: { halign: "right" as const, fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
+        { content: "100.0%", styles: { halign: "right" as const, fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
+      ]);
+    }
     autoTable(doc, {
       startY: 96,
       head: [["Rango", "Cuenta", "Importe", "%"]],
-      body: (kpis.buckets ?? []).map((b) => [
-        { content: b.label, styles: { fillColor: bucketFill(b.label) } },
-        { content: String(b.cuenta), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
-        { content: fmtCurrency(b.importe), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
-        { content: `${Number(b.pct || 0).toFixed(1)}%`, styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
-      ]),
+      body: rows,
       theme: "grid",
       styles: { fontSize: 8.5, cellPadding: 5, lineColor: borderColor, lineWidth: 0.3 },
       headStyles: { fillColor: accent, textColor: 255, fontStyle: "bold" },
