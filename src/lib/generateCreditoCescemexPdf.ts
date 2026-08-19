@@ -391,7 +391,7 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
       88
     );
     doc.setTextColor(0, 0, 0);
-    const rows = (kpis.buckets ?? []).map((b) => [
+    const rows: any[] = (kpis.buckets ?? []).map((b) => [
       { content: b.label, styles: { fillColor: bucketFill(b.label) } },
       { content: String(b.cuenta), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
       { content: fmtCurrency(b.importe), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },

@@ -60,8 +60,12 @@ export const BRAND_LABELS: Record<BrandKey, string> = {
 
 function diasParaVencer(fechaVenc: string | null): number | null {
   if (!fechaVenc) return null;
+  // Parsear la fecha como fecha LOCAL (evita el corrimiento de 1 día que provoca
+  // `new Date("YYYY-MM-DD")`, que se interpreta como UTC en zonas con offset negativo).
+  const [y, m, d] = String(fechaVenc).slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return null;
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const v = new Date(fechaVenc); v.setHours(0, 0, 0, 0);
+  const v = new Date(y, m - 1, d); v.setHours(0, 0, 0, 0);
   return Math.round((v.getTime() - hoy.getTime()) / 86400000);
 }
 
