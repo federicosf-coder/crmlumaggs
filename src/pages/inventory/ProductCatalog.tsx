@@ -381,10 +381,18 @@ function ProductosTab() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("inv_pedido_lineas")
-        .select("codigo_producto, cantidad_solicitada, cantidad_confirmada, inv_pedidos!inner(numero_po_interno, almacen_destino, fecha_pedido, fecha_entrega_estimada, estatus)")
-        .not("inv_pedidos.estatus", "in", "(cerrado,cancelado)");
+        .select("codigo_producto, cantidad_solicitada, cantidad_confirmada, cantidad_recibida, inv_pedidos!inner(numero_po_interno, almacen_destino, fecha_pedido, fecha_entrega_estimada, estatus)")
+        .not("inv_pedidos.estatus", "in", "(cerrado,cancelado,recibido)");
       if (error) throw error;
-      return (data || []) as any[];
+      return ((data || []) as any[])
+        .map((l) => ({
+          ...l,
+          cantidad_pendiente: Math.max(
+            0,
+            (Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0) || 0) - (Number(l.cantidad_recibida ?? 0) || 0),
+          ),
+        }))
+        .filter((l) => l.cantidad_pendiente > 0);
     },
     refetchInterval: 60_000,
   });
@@ -392,7 +400,7 @@ function ProductosTab() {
   const porLlegarPorCodigo = new Map<string, number>();
   (porLlegarLineas as any[]).forEach((l) => {
     if (!l.codigo_producto) return;
-    const cant = Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0) || 0;
+    const cant = Number(l.cantidad_pendiente ?? 0) || 0;
     porLlegarPorCodigo.set(l.codigo_producto, (porLlegarPorCodigo.get(l.codigo_producto) || 0) + cant);
   });
 
