@@ -356,7 +356,11 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...mutedText);
-  doc.text("Retraso al pagar (facturas pagadas del año en curso)", margin, 52);
+  doc.text(
+    "Retraso al pagar (facturas pagadas del año en curso). Sin cobrar = facturas sin aplicación de pago registrada.",
+    margin,
+    52
+  );
   doc.setTextColor(0, 0, 0);
 
   const bucketFill = (label: string): [number, number, number] =>
