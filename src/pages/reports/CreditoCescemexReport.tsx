@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -10,8 +11,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageBanner } from "@/components/PageBanner";
+import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, ShieldCheck, Wallet, HelpCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, ArrowUpDown, ExternalLink, ShieldCheck, Wallet, HelpCircle } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -61,9 +63,13 @@ interface FacturaRow {
 }
 
 export default function CreditoCescemexReport() {
+  const navigate = useNavigate();
   const [plazasSel, setPlazasSel] = useState<string[]>([]);
   const [initPlazas, setInitPlazas] = useState(false);
   const [abierta, setAbierta] = useState<string | null>(null);
+  const [catsSel, setCatsSel] = useState<Cat[]>(["cescemex", "directo", "sin_clasificar"]);
+  const [sortField, setSortField] = useState<"cliente" | "cat" | "ue" | "monto" | "utilidad">("monto");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const meses = useMemo(() => {
     const now = new Date();
@@ -93,7 +99,19 @@ export default function CreditoCescemexReport() {
 
   const todas = plazas.length > 0 && plazasSel.length === plazas.length;
 
-  const { data: facturas = [], isLoading } = useQuery({
+  const { data: margenUtilidadPct = 20 } = useQuery({
+    queryKey: ["cescemex-margen", ANIO],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("cescemex_costos_config")
+        .select("margen_utilidad_pct")
+        .eq("anio", ANIO)
+        .maybeSingle();
+      return Number(data?.margen_utilidad_pct ?? 20);
+    },
+  });
+
+  const { data: facturasRaw = [], isLoading } = useQuery({
     queryKey: ["credito-cescemex", todas ? "all" : plazasSel.join(",")],
     enabled: initPlazas,
     queryFn: async () => {
@@ -114,21 +132,30 @@ export default function CreditoCescemexReport() {
     },
   });
 
+  const facturas = useMemo(
+    () => facturasRaw.filter((f) => catsSel.includes(clasificar(f.tipo_pago))),
+    [facturasRaw, catsSel]
+  );
+
   const totales = useMemo(() => {
-    const base: Record<Cat, { monto: number; ue: number }> = {
-      cescemex: { monto: 0, ue: 0 },
-      directo: { monto: 0, ue: 0 },
-      sin_clasificar: { monto: 0, ue: 0 },
+    const base: Record<Cat, { monto: number; ue: number; utilidad: number }> = {
+      cescemex: { monto: 0, ue: 0, utilidad: 0 },
+      directo: { monto: 0, ue: 0, utilidad: 0 },
+      sin_clasificar: { monto: 0, ue: 0, utilidad: 0 },
     };
     for (const f of facturas) {
       const c = clasificar(f.tipo_pago);
       base[c].monto += Number(f.subtotal ?? 0);
       base[c].ue += Number(f.unidades_equivalentes_total ?? 0);
     }
+    (Object.keys(base) as Cat[]).forEach((k) => {
+      base[k].utilidad = base[k].monto * (Number(margenUtilidadPct) / 100);
+    });
     return base;
-  }, [facturas]);
+  }, [facturas, margenUtilidadPct]);
 
   const totalGeneral = totales.cescemex.monto + totales.directo.monto + totales.sin_clasificar.monto;
+  const utilidadTotal = totales.cescemex.utilidad + totales.directo.utilidad + totales.sin_clasificar.utilidad;
 
   const porMes = useMemo(() => {
     const map = new Map<string, Record<Cat, { monto: number; ue: number }>>();
@@ -160,7 +187,7 @@ export default function CreditoCescemexReport() {
   const porCliente = useMemo(() => {
     const map = new Map<
       string,
-      { cliente: string; cat: Cat; monto: number; ue: number; meses: Map<string, { monto: number; ue: number }> }
+      { cliente: string; cat: Cat; empresaId: string | null; monto: number; ue: number; meses: Map<string, { monto: number; ue: number }> }
     >();
     for (const f of facturas) {
       const cat = clasificar(f.tipo_pago);
@@ -168,7 +195,7 @@ export default function CreditoCescemexReport() {
       const key = `${f.empresa_id ?? "none"}|${cat}`;
       let e = map.get(key);
       if (!e) {
-        e = { cliente, cat, monto: 0, ue: 0, meses: new Map() };
+        e = { cliente, cat, empresaId: f.empresa_id ?? null, monto: 0, ue: 0, meses: new Map() };
         map.set(key, e);
       }
       e.monto += Number(f.subtotal ?? 0);
@@ -181,9 +208,34 @@ export default function CreditoCescemexReport() {
       });
     }
     return Array.from(map.entries())
-      .map(([key, v]) => ({ key, ...v }))
-      .sort((a, b) => b.monto - a.monto);
-  }, [facturas]);
+      .map(([key, v]) => ({ key, ...v, utilidad: v.monto * (Number(margenUtilidadPct) / 100) }))
+      .sort((a, b) => {
+        const dir = sortDir === "asc" ? 1 : -1;
+        switch (sortField) {
+          case "cliente": return a.cliente.localeCompare(b.cliente) * dir;
+          case "cat": return a.cat.localeCompare(b.cat) * dir;
+          case "ue": return (a.ue - b.ue) * dir;
+          case "utilidad": return (a.utilidad - b.utilidad) * dir;
+          default: return (a.monto - b.monto) * dir;
+        }
+      });
+  }, [facturas, margenUtilidadPct, sortField, sortDir]);
+
+  const toggleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
+
+  const SortIcon = ({ field }: { field: typeof sortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 inline opacity-50" />;
+    return sortDir === "asc"
+      ? <ChevronUp className="h-3 w-3 ml-1 inline" />
+      : <ChevronDown className="h-3 w-3 ml-1 inline" />;
+  };
 
   const money = (n: number) =>
     n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
@@ -192,8 +244,14 @@ export default function CreditoCescemexReport() {
   const togglePlaza = (id: string) =>
     setPlazasSel((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
 
+  const toggleCat = (c: Cat) =>
+    setCatsSel((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+
   return (
     <>
+      <div className="container mx-auto px-4 pt-4">
+        <BackButton fallback="/reports" label="Volver a Reportes" />
+      </div>
       <PageBanner
         title="Crédito Cescemex vs Directo"
         description={`Facturación a crédito ${ANIO}: participación por tipo de crédito, evolución mensual y detalle por cliente.`}
@@ -230,6 +288,17 @@ export default function CreditoCescemexReport() {
                 </PopoverContent>
               </Popover>
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide">Categorías</Label>
+              <div className="flex flex-wrap items-center gap-4 h-10">
+                {CATS.map((c) => (
+                  <label key={c.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={catsSel.includes(c.key)} onCheckedChange={() => toggleCat(c.key)} />
+                    <span className={cn("font-light", c.text)}>{c.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -250,11 +319,26 @@ export default function CreditoCescemexReport() {
                   <div className={cn("text-2xl font-semibold", c.text)}>{money(t.monto)}</div>
                   <div className="text-xs text-muted-foreground font-light">{fmt(t.ue)} UE</div>
                   <div className="text-xs font-light">{pct.toFixed(1)}% del crédito {ANIO}</div>
+                  <div className={cn("text-xs font-light", c.text)}>Utilidad estimada: {money(t.utilidad)}</div>
                 </CardContent>
               </Card>
             );
           })}
         </div>
+
+        <Card className="border-l-4 border-l-emerald-600">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+              Utilidad Total Generada {ANIO}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <div className="text-3xl font-semibold text-emerald-600">{money(utilidadTotal)}</div>
+            <p className="text-xs text-muted-foreground font-light">
+              Estimado con margen de utilidad de {margenUtilidadPct}% sobre precio de venta (categorías seleccionadas).
+            </p>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="pb-2">
