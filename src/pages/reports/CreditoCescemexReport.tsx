@@ -428,16 +428,28 @@ export default function CreditoCescemexReport() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8" />
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead className="text-right">UE {ANIO}</TableHead>
-                  <TableHead className="text-right">Subtotal {ANIO}</TableHead>
+                  <TableHead>
+                    <button type="button" onClick={() => toggleSort("cliente")} className="inline-flex items-center hover:text-foreground">Cliente<SortIcon field="cliente" /></button>
+                  </TableHead>
+                  <TableHead>
+                    <button type="button" onClick={() => toggleSort("cat")} className="inline-flex items-center hover:text-foreground">Tipo<SortIcon field="cat" /></button>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <button type="button" onClick={() => toggleSort("ue")} className="inline-flex items-center hover:text-foreground">UE {ANIO}<SortIcon field="ue" /></button>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <button type="button" onClick={() => toggleSort("monto")} className="inline-flex items-center hover:text-foreground">Subtotal {ANIO}<SortIcon field="monto" /></button>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <button type="button" onClick={() => toggleSort("utilidad")} className="inline-flex items-center hover:text-foreground">Utilidad<SortIcon field="utilidad" /></button>
+                  </TableHead>
+                  <TableHead className="w-12 text-right">Abrir</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {porCliente.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       {isLoading ? "Cargando…" : "Sin registros"}
                     </TableCell>
                   </TableRow>
@@ -461,11 +473,28 @@ export default function CreditoCescemexReport() {
                               </TableCell>
                               <TableCell className="text-right">{fmt(c.ue)}</TableCell>
                               <TableCell className="text-right">{money(c.monto)}</TableCell>
+                              <TableCell className="text-right">{money(c.utilidad)}</TableCell>
+                              <TableCell className="text-right">
+                                {c.empresaId && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(
+                                        `/directory?tab=companies&select=${c.empresaId}&subtab=facturacion&back=${encodeURIComponent("/reports/credito-cescemex")}`
+                                      );
+                                    }}
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </TableCell>
                             </TableRow>
                           </CollapsibleTrigger>
                           <CollapsibleContent asChild>
                             <TableRow>
-                              <TableCell colSpan={5} className="bg-muted/20 p-0">
+                              <TableCell colSpan={7} className="bg-muted/20 p-0">
                                 <Table>
                                   <TableHeader>
                                     <TableRow>
