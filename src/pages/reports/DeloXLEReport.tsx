@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import {
   Bar,
   BarChart,
@@ -201,6 +202,32 @@ export default function DeloXLEReport() {
   const togglePres = (id: string) =>
     setPresSel((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
 
+  const exportarDetalleMensual = () => {
+    if (productosSel.length === 0) return;
+    const rows = meses.map((m) => {
+      const [y, mo] = m.split("-");
+      const row: Record<string, string | number> = {
+        Mes: `${MESES_ABBR[Number(mo) - 1]} ${y}`,
+      };
+      productosSel.forEach((p) => {
+        row[p.presentacion] = Number(porPresentacion.map.get(m)?.get(p.id) ?? 0);
+      });
+      row.Total = productosSel.reduce((a, p) => a + (porPresentacion.map.get(m)?.get(p.id) ?? 0), 0);
+      return row;
+    });
+    const totalRow: Record<string, string | number> = { Mes: "Total" };
+    productosSel.forEach((p) => {
+      totalRow[p.presentacion] = porPresentacion.totales.find((t) => t.id === p.id)?.total ?? 0;
+    });
+    totalRow.Total = total;
+    rows.push(totalRow);
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Detalle mensual");
+    XLSX.writeFile(wb, `delo_xle_15w40_detalle_mensual_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   return (
     <>
       <div className="container mx-auto px-4 pt-4">
@@ -319,10 +346,19 @@ export default function DeloXLEReport() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between gap-4">
             <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
               Detalle mensual por presentación
             </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportarDetalleMensual}
+              disabled={productosSel.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar Excel
+            </Button>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
             <Table>
