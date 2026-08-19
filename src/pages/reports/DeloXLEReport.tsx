@@ -11,6 +11,16 @@ import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const PRODUCTO_IDS = [
   "36a85ea1-dfa5-46bf-9863-8f27cca12ee1",
@@ -18,6 +28,14 @@ const PRODUCTO_IDS = [
   "65b586dd-be9a-4f6c-a559-0fd6591c0404",
   "e10a5967-3a53-48dc-bc06-a1b360507ea8",
   "50f66dda-575b-4a8b-83c0-865a9d06a988",
+];
+
+const COLORES = [
+  "hsl(221 83% 53%)",
+  "hsl(262 83% 58%)",
+  "hsl(160 84% 39%)",
+  "hsl(25 95% 53%)",
+  "hsl(340 82% 52%)",
 ];
 
 const MESES_ABBR = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -29,6 +47,8 @@ function pad(n: number) {
 export default function DeloXLEReport() {
   const [plazasSel, setPlazasSel] = useState<string[]>([]);
   const [initPlazas, setInitPlazas] = useState(false);
+  const [presSel, setPresSel] = useState<string[]>([]);
+  const [initPres, setInitPres] = useState(false);
 
   const { desde, hasta, meses } = useMemo(() => {
     const now = new Date();
@@ -67,13 +87,42 @@ export default function DeloXLEReport() {
 
   const todas = plazas.length > 0 && plazasSel.length === plazas.length;
 
+  const { data: productos = [] } = useQuery({
+    queryKey: ["delo-xle-productos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("productos")
+        .select("id, codigo, presentaciones(nombre)")
+        .in("id", PRODUCTO_IDS);
+      if (error) throw error;
+      return (data ?? []).map((p: any) => ({
+        id: p.id as string,
+        codigo: p.codigo as string,
+        presentacion: (p.presentaciones?.nombre as string) ?? p.codigo,
+      }));
+    },
+  });
+
+  useEffect(() => {
+    if (!initPres && productos.length) {
+      setPresSel(productos.map((p) => p.id));
+      setInitPres(true);
+    }
+  }, [productos, initPres]);
+
+  const todasPres = productos.length > 0 && presSel.length === productos.length;
+  const productosSel = useMemo(
+    () => productos.filter((p) => presSel.includes(p.id)),
+    [productos, presSel]
+  );
+
   const { data: lineas = [], isLoading } = useQuery({
     queryKey: ["delo-xle", desde, hasta, todas ? "all" : plazasSel.join(",")],
     enabled: initPlazas,
     queryFn: async () => {
       let q = supabase
         .from("documento_productos")
-        .select("unidades_equivalentes, documentos!inner(fecha_documento, plaza_id)")
+        .select("producto_id, unidades_equivalentes, documentos!inner(fecha_documento, plaza_id)")
         .in("producto_id", PRODUCTO_IDS)
         .eq("documentos.tipo_documento", "factura")
         .neq("documentos.estatus_factura", "cancelada")
@@ -84,6 +133,7 @@ export default function DeloXLEReport() {
       const { data, error } = await q.limit(20000);
       if (error) throw error;
       return (data ?? []) as unknown as {
+        producto_id: string | null;
         unidades_equivalentes: number | null;
         documentos: { fecha_documento: string | null; plaza_id: string | null } | null;
       }[];
@@ -94,6 +144,7 @@ export default function DeloXLEReport() {
     const map = new Map<string, number>();
     meses.forEach((m) => map.set(m, 0));
     for (const l of lineas) {
+      if (l.producto_id && !presSel.includes(l.producto_id)) continue;
       const f = l.documentos?.fecha_documento;
       if (!f) continue;
       const key = f.slice(0, 7);
@@ -111,13 +162,44 @@ export default function DeloXLEReport() {
         pct: prev === null || prev === 0 ? null : ((ue - prev) / prev) * 100,
       };
     });
-  }, [lineas, meses]);
+  }, [lineas, meses, presSel]);
+
+  const porPresentacion = useMemo(() => {
+    const map = new Map<string, Map<string, number>>();
+    meses.forEach((m) => map.set(m, new Map()));
+    for (const l of lineas) {
+      const pid = l.producto_id ?? "";
+      if (!presSel.includes(pid)) continue;
+      const f = l.documentos?.fecha_documento;
+      if (!f) continue;
+      const key = f.slice(0, 7);
+      const mm = map.get(key);
+      if (!mm) continue;
+      mm.set(pid, (mm.get(pid) ?? 0) + Number(l.unidades_equivalentes ?? 0));
+    }
+    const chart = meses.map((m) => {
+      const [y, mo] = m.split("-");
+      const row: Record<string, any> = { label: `${MESES_ABBR[Number(mo) - 1]} ${y.slice(2)}` };
+      productosSel.forEach((p) => {
+        row[p.id] = map.get(m)?.get(p.id) ?? 0;
+      });
+      return row;
+    });
+    const totales = productosSel.map((p) => ({
+      ...p,
+      total: meses.reduce((s, m) => s + (map.get(m)?.get(p.id) ?? 0), 0),
+    }));
+    return { chart, totales, map };
+  }, [lineas, meses, presSel, productosSel]);
 
   const total = rows.reduce((a, r) => a + r.ue, 0);
   const fmt = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
 
   const togglePlaza = (id: string) =>
     setPlazasSel((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+
+  const togglePres = (id: string) =>
+    setPresSel((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
 
   return (
     <>
@@ -160,6 +242,68 @@ export default function DeloXLEReport() {
                 </PopoverContent>
               </Popover>
             </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide">Presentaciones</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="min-w-[260px] justify-between font-light">
+                    {todasPres
+                      ? "Todas las presentaciones"
+                      : `${presSel.length} presentaciones seleccionadas`}
+                    <ChevronDown className="h-4 w-4 opacity-60" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-2" align="start">
+                  <div className="flex justify-between pb-2 mb-2 border-b">
+                    <Button variant="ghost" size="sm" onClick={() => setPresSel(productos.map((p) => p.id))}>
+                      Todas
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setPresSel([])}>
+                      Ninguna
+                    </Button>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {productos.map((p) => (
+                      <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox checked={presSel.includes(p.id)} onCheckedChange={() => togglePres(p.id)} />
+                        {p.presentacion}
+                      </label>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+              Unidades equivalentes por presentación
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={porPresentacion.chart} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+                  <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(v: any) => fmt(Number(v))} />
+                  <Legend />
+                  {productosSel.map((p, i) => (
+                    <Bar
+                      key={p.id}
+                      dataKey={p.id}
+                      name={p.presentacion}
+                      fill={COLORES[i % COLORES.length]}
+                      radius={[3, 3, 0, 0]}
+                    />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
@@ -171,6 +315,57 @@ export default function DeloXLEReport() {
           </CardHeader>
           <CardContent>
             <div className="text-4xl font-semibold">{fmt(total)}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+              Detalle mensual por presentación
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mes</TableHead>
+                  {productosSel.map((p) => (
+                    <TableHead key={p.id} className="text-right">
+                      {p.presentacion}
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-right">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {meses.map((m) => {
+                  const [y, mo] = m.split("-");
+                  const fila = productosSel.map((p) => porPresentacion.map.get(m)?.get(p.id) ?? 0);
+                  return (
+                    <TableRow key={m}>
+                      <TableCell className="font-medium">{`${MESES_ABBR[Number(mo) - 1]} ${y}`}</TableCell>
+                      {fila.map((v, i) => (
+                        <TableCell key={i} className="text-right">
+                          {fmt(v)}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-right font-medium">
+                        {fmt(fila.reduce((a, b) => a + b, 0))}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-muted/50 font-semibold">
+                  <TableCell>Total</TableCell>
+                  {porPresentacion.totales.map((t) => (
+                    <TableCell key={t.id} className="text-right">
+                      {fmt(t.total)}
+                    </TableCell>
+                  ))}
+                  <TableCell className="text-right">{fmt(total)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
 
