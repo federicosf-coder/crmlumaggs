@@ -252,11 +252,14 @@ export default function CreditoCescemexReport() {
       });
   }, [facturas, margenUtilidadPct, sortField, sortDir]);
 
-  const descargarPdf = () => {
+  const descargarPdf = async () => {
     const plazasLabel = todas
       ? "Todas las plazas"
       : plazas.filter((p) => plazasSel.includes(p.id)).map((p) => p.nombre).join(", ") || "Ninguna";
-    generateCreditoCescemexPdf({
+    const toastId = toast.loading("Generando PDF...");
+    try {
+      const cobranzaKpis = await calcularCobranzaKpis();
+      generateCreditoCescemexPdf({
       fecha: new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" }),
       plazasLabel,
       categorias: CATS.filter((c) => catsSel.includes(c.key)).map((c) => ({
@@ -284,7 +287,14 @@ export default function CreditoCescemexReport() {
         monto: c.monto,
         utilidad: c.utilidad,
       })),
-    });
+        cobranzaKpis,
+      });
+      toast.dismiss(toastId);
+      toast.success("PDF generado");
+    } catch (e: any) {
+      toast.dismiss(toastId);
+      toast.error("No se pudo generar el PDF: " + (e?.message ?? "error desconocido"));
+    }
   };
 
   const toggleSort = (field: typeof sortField) => {
