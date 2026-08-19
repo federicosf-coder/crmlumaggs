@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PageBanner } from "@/components/PageBanner";
+import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -322,6 +323,9 @@ export default function DailyActivityReport() {
 
   return (
     <>
+      <div className="container mx-auto px-4 pt-4">
+        <BackButton fallback="/reports" label="Volver a Reportes" />
+      </div>
       <PageBanner title="Reporte Diario de Actividades" description="Genera un resumen de texto para copiar y pegar en correo." />
       <div className="container mx-auto p-4 space-y-4">
         {/* Filters */}

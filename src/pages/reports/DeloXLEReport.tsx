@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageBanner } from "@/components/PageBanner";
+import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
@@ -120,6 +121,9 @@ export default function DeloXLEReport() {
 
   return (
     <>
+      <div className="container mx-auto px-4 pt-4">
+        <BackButton fallback="/reports" label="Volver a Reportes" />
+      </div>
       <PageBanner
         title="Ventas Delo XLE 15W40 — Comparativo Mensual"
         description="Unidades equivalentes facturadas por mes en los últimos 12 meses (todas las presentaciones)."

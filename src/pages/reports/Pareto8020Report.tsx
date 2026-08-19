@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageBanner } from "@/components/PageBanner";
+import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
@@ -137,6 +138,9 @@ export default function Pareto8020Report() {
 
   return (
     <>
+      <div className="container mx-auto px-4 pt-4">
+        <BackButton fallback="/reports" label="Volver a Reportes" />
+      </div>
       <PageBanner
         title="Análisis 80/20 — Productos Más Vendidos"
         description={
