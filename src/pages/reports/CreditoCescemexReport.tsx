@@ -51,6 +51,26 @@ function clasificar(tipoPago: string | null): Cat {
   return "sin_clasificar";
 }
 
+const BUCKET_LABELS = ["En tiempo", "1-5 días", "6-10 días", "11-20 días", "21-30 días", "31+ días"] as const;
+
+const BUCKET_ROW_CLASS: Record<string, string> = {
+  "En tiempo": "text-emerald-700 bg-emerald-50/60",
+  "1-5 días": "text-amber-700 bg-amber-50/50",
+  "6-10 días": "text-orange-700 bg-orange-50/50",
+  "11-20 días": "text-orange-800 bg-orange-100/50",
+  "21-30 días": "text-red-700 bg-red-50/60",
+  "31+ días": "text-red-800 bg-red-100/60",
+};
+
+function retrasoBucket(retraso: number): string {
+  if (retraso <= 0) return "En tiempo";
+  if (retraso <= 5) return "1-5 días";
+  if (retraso <= 10) return "6-10 días";
+  if (retraso <= 20) return "11-20 días";
+  if (retraso <= 30) return "21-30 días";
+  return "31+ días";
+}
+
 function pad(n: number) {
   return String(n).padStart(2, "0");
 }
@@ -252,10 +272,12 @@ export default function CreditoCescemexReport() {
       });
   }, [facturas, margenUtilidadPct, sortField, sortDir]);
 
-  const calcularCobranzaKpis = async () => {
+  const { data: cobranzaKpis } = useQuery({
+    queryKey: ["credito-cescemex-cobranza", ANIO],
+    queryFn: async () => {
     const { data: facts, error } = await (supabase as any)
       .from("documentos")
-      .select("id, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, saldo_pendiente_cobranza, estado_cobranza")
+      .select("id, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, estado_cobranza")
       .eq("tipo_documento", "factura")
       .neq("estatus_factura", "cancelada")
       .eq("is_active", true)
@@ -296,10 +318,6 @@ export default function CreditoCescemexReport() {
       );
       const clientes = new Set(g.map((r) => r.empresa_id).filter(Boolean));
       const vencidas = g.filter((r) => r.estado_cobranza === "vencida");
-      const saldoVencido = vencidas.reduce((s, r) => s + Number(r.saldo_pendiente_cobranza ?? 0), 0);
-      const saldoPendiente = g
-        .filter((r) => ["pendiente", "parcial", "vencida"].includes(r.estado_cobranza))
-        .reduce((s, r) => s + Number(r.saldo_pendiente_cobranza ?? 0), 0);
       const atrasos = vencidas
         .filter((r) => r.fecha_vencimiento)
         .map((r) => (hoy.getTime() - new Date(r.fecha_vencimiento).getTime()) / dayMs);
@@ -307,16 +325,37 @@ export default function CreditoCescemexReport() {
         .filter((r) => r.fecha_documento)
         .map((r) => diffDias(ultimaAplic.get(r.id)!, r.fecha_documento));
       const avg = (arr: number[]) => (arr.length ? arr.reduce((s, n) => s + n, 0) / arr.length : 0);
+      const totalFacturas = g.length;
+      const bucketAcc: Record<string, { cuenta: number; importe: number }> = {};
+      BUCKET_LABELS.forEach((b) => { bucketAcc[b] = { cuenta: 0, importe: 0 }; });
+      conAplic.forEach((r) => {
+        if (!r.fecha_vencimiento) return;
+        const retraso = diffDias(ultimaAplic.get(r.id)!, r.fecha_vencimiento);
+        const lbl = retrasoBucket(retraso);
+        bucketAcc[lbl].cuenta += 1;
+        bucketAcc[lbl].importe += Number(r.total ?? 0);
+      });
+      const buckets = BUCKET_LABELS.map((label) => ({
+        label,
+        cuenta: bucketAcc[label].cuenta,
+        importe: bucketAcc[label].importe,
+        pct: totalFacturas > 0 ? (bucketAcc[label].cuenta / totalFacturas) * 100 : 0,
+      }));
+      const vencidasPagadas = BUCKET_LABELS.filter((b) => b !== "En tiempo")
+        .reduce((s, b) => s + bucketAcc[b].cuenta, 0);
       return {
+        totalFacturas,
         pctPagadasATiempo: pagadas.length ? (aTiempo.length / pagadas.length) * 100 : 0,
         pctClientes: clientesTotales.size ? (clientes.size / clientesTotales.size) * 100 : 0,
-        pctCarteraVencida: saldoPendiente > 0 ? (saldoVencido / saldoPendiente) * 100 : 0,
+        pctCarteraVencida: totalFacturas > 0 ? (vencidasPagadas / totalFacturas) * 100 : 0,
         diasPromedioAtraso: avg(atrasos),
         diasPromedioPago: avg(dso),
+        buckets,
       };
     };
-    return { cescemex: calc("credito_cescemex"), directo: calc("credito_directo") };
-  };
+      return { cescemex: calc("credito_cescemex"), directo: calc("credito_directo") };
+    },
+  });
 
   const descargarPdf = async () => {
     const plazasLabel = todas
@@ -324,7 +363,7 @@ export default function CreditoCescemexReport() {
       : plazas.filter((p) => plazasSel.includes(p.id)).map((p) => p.nombre).join(", ") || "Ninguna";
     const toastId = toast.loading("Generando PDF...");
     try {
-      const cobranzaKpis = await calcularCobranzaKpis();
+      if (!cobranzaKpis) throw new Error("Los indicadores de cobranza aún se están cargando");
       generateCreditoCescemexPdf({
       fecha: new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" }),
       plazasLabel,
@@ -489,6 +528,21 @@ export default function CreditoCescemexReport() {
             </p>
           </CardContent>
         </Card>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {CATS.map((c) => (
+            <Card key={`ut-${c.key}`} className={cn("border-l-4", c.border)}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+                  Utilidad {c.label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={cn("text-2xl font-semibold", c.text)}>{money(totales[c.key].utilidad)}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
         <Card>
           <CardHeader className="pb-2">
@@ -693,6 +747,59 @@ export default function CreditoCescemexReport() {
                 )}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+              Comportamiento de pago por tipo de crédito
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-6 md:grid-cols-2">
+            {([
+              { key: "directo" as const, label: "Directo", text: "text-blue-600" },
+              { key: "cescemex" as const, label: "Cescemex", text: "text-emerald-600" },
+            ]).map((t) => {
+              const k = cobranzaKpis?.[t.key];
+              return (
+                <div key={t.key} className="space-y-2">
+                  <div className={cn("text-sm font-semibold uppercase tracking-wide", t.text)}>{t.label}</div>
+                  <div className="text-xs font-light">
+                    <span className="font-semibold">{(k?.pctCarteraVencida ?? 0).toFixed(1)}%</span> de las facturas se pagan vencidas
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge variant="secondary" className="text-[10px] font-light">Pagadas a tiempo: {(k?.pctPagadasATiempo ?? 0).toFixed(1)}%</Badge>
+                    <Badge variant="secondary" className="text-[10px] font-light">Clientes: {(k?.pctClientes ?? 0).toFixed(1)}%</Badge>
+                    <Badge variant="secondary" className="text-[10px] font-light">Atraso prom.: {(k?.diasPromedioAtraso ?? 0).toFixed(1)} días</Badge>
+                    <Badge variant="secondary" className="text-[10px] font-light">DSO: {(k?.diasPromedioPago ?? 0).toFixed(1)} días</Badge>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Rango</TableHead>
+                        <TableHead className="text-right">Cuenta</TableHead>
+                        <TableHead className="text-right">Importe</TableHead>
+                        <TableHead className="text-right">%</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {BUCKET_LABELS.map((label) => {
+                        const b = k?.buckets.find((x) => x.label === label);
+                        return (
+                          <TableRow key={label} className={BUCKET_ROW_CLASS[label]}>
+                            <TableCell className="font-medium">{label}</TableCell>
+                            <TableCell className="text-right">{b?.cuenta ?? 0}</TableCell>
+                            <TableCell className="text-right">{money(b?.importe ?? 0)}</TableCell>
+                            <TableCell className="text-right">{(b?.pct ?? 0).toFixed(1)}%</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       </div>

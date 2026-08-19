@@ -33,6 +33,8 @@ export interface CobranzaKpis {
   pctCarteraVencida: number;
   diasPromedioAtraso: number;
   diasPromedioPago: number;
+  totalFacturas?: number;
+  buckets?: { label: string; cuenta: number; importe: number; pct: number }[];
 }
 
 export interface CreditoCescemexPdfInput {
@@ -203,6 +205,27 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
     margin + 14,
     y + 60
   );
+  y += blockH + 14;
+
+  // ===== Utilidad por tipo (3 tarjetas) =====
+  const utCardH = 60;
+  input.categorias.slice(0, 3).forEach((c, i) => {
+    const x = margin + i * (cardW + gap);
+    const accent = accentFor(c.label);
+    doc.setDrawColor(...borderColor);
+    doc.setLineWidth(0.6);
+    doc.rect(x, y, cardW, utCardH, "S");
+    doc.setFillColor(...accent);
+    doc.rect(x, y, 4, utCardH, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...mutedText);
+    doc.text(`Utilidad ${c.label}`, x + 12, y + 20);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    doc.setTextColor(...accent);
+    doc.text(fmtCurrency(c.utilidad), x + 12, y + 44);
+  });
   footer();
 
   // ===== Página 2: tabla mensual =====
@@ -296,7 +319,7 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
   const kpiRows: { kpi: string; nota: string; c: string; d: string }[] = [
     { kpi: "Facturas pagadas a tiempo", nota: "Pagadas dentro del vencimiento", c: pct(k.cescemex.pctPagadasATiempo), d: pct(k.directo.pctPagadasATiempo) },
     { kpi: "Clientes por tipo de crédito", nota: "Distribución de la base de clientes", c: pct(k.cescemex.pctClientes), d: pct(k.directo.pctClientes) },
-    { kpi: "Cartera vencida", nota: "% del saldo pendiente que está vencido", c: pct(k.cescemex.pctCarteraVencida), d: pct(k.directo.pctCarteraVencida) },
+    { kpi: "Facturas pagadas vencidas", nota: "% del total de facturas del año que se pagaron después del vencimiento", c: pct(k.cescemex.pctCarteraVencida), d: pct(k.directo.pctCarteraVencida) },
     { kpi: "Días promedio de atraso", nota: "Solo facturas vencidas", c: dias(k.cescemex.diasPromedioAtraso), d: dias(k.directo.diasPromedioAtraso) },
     { kpi: "Días promedio para pagar (DSO)", nota: "De emisión a pago", c: dias(k.cescemex.diasPromedioPago), d: dias(k.directo.diasPromedioPago) },
   ];
@@ -323,6 +346,59 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
     margin: { left: margin, right: margin },
     didDrawPage: footer,
   });
+
+  // ===== Página 5: comportamiento de pago (buckets) =====
+  doc.addPage();
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(...brandColor);
+  doc.text("Comportamiento de Pago por Tipo de Crédito", margin, 36);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...mutedText);
+  doc.text("Retraso al pagar (facturas pagadas del año en curso)", margin, 52);
+  doc.setTextColor(0, 0, 0);
+
+  const bucketFill = (label: string): [number, number, number] =>
+    label === "En tiempo" ? [230, 247, 240] : label === "1-5 días" ? [254, 249, 231]
+      : label === "6-10 días" ? [254, 243, 222] : label === "11-20 días" ? [253, 235, 213]
+      : label === "21-30 días" ? [253, 226, 226] : [252, 211, 211];
+
+  const tableW = (pageW - margin * 2 - 20) / 2;
+  const bucketTable = (kpis: CobranzaKpis, titulo: string, accent: [number, number, number], left: number) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...accent);
+    doc.text(titulo, left, 74);
+    doc.setTextColor(...mutedText);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(
+      `${Number(kpis.pctCarteraVencida || 0).toFixed(1)}% de las facturas se pagan vencidas  ·  DSO ${Number(kpis.diasPromedioPago || 0).toFixed(1)} días`,
+      left,
+      88
+    );
+    doc.setTextColor(0, 0, 0);
+    autoTable(doc, {
+      startY: 96,
+      head: [["Rango", "Cuenta", "Importe", "%"]],
+      body: (kpis.buckets ?? []).map((b) => [
+        { content: b.label, styles: { fillColor: bucketFill(b.label) } },
+        { content: String(b.cuenta), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
+        { content: fmtCurrency(b.importe), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
+        { content: `${Number(b.pct || 0).toFixed(1)}%`, styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
+      ]),
+      theme: "grid",
+      styles: { fontSize: 8.5, cellPadding: 5, lineColor: borderColor, lineWidth: 0.3 },
+      headStyles: { fillColor: accent, textColor: 255, fontStyle: "bold" },
+      tableWidth: tableW,
+      margin: { left, right: margin },
+    });
+  };
+
+  bucketTable(k.directo, "Directo", BLUE, margin);
+  bucketTable(k.cescemex, "Cescemex", EMERALD, margin + tableW + 20);
+  footer();
 
   return doc;
 }
