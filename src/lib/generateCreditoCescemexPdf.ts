@@ -34,6 +34,7 @@ export interface CobranzaKpis {
   diasPromedioPago: number;
   totalFacturas?: number;
   buckets?: { label: string; cuenta: number; importe: number; pct: number }[];
+  total?: { cuenta: number; importe: number };
 }
 
 
