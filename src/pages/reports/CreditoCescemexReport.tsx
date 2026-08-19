@@ -252,10 +252,12 @@ export default function CreditoCescemexReport() {
       });
   }, [facturas, margenUtilidadPct, sortField, sortDir]);
 
-  const calcularCobranzaKpis = async () => {
+  const { data: cobranzaKpis } = useQuery({
+    queryKey: ["credito-cescemex-cobranza", ANIO],
+    queryFn: async () => {
     const { data: facts, error } = await (supabase as any)
       .from("documentos")
-      .select("id, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, saldo_pendiente_cobranza, estado_cobranza")
+      .select("id, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, estado_cobranza")
       .eq("tipo_documento", "factura")
       .neq("estatus_factura", "cancelada")
       .eq("is_active", true)
@@ -296,10 +298,6 @@ export default function CreditoCescemexReport() {
       );
       const clientes = new Set(g.map((r) => r.empresa_id).filter(Boolean));
       const vencidas = g.filter((r) => r.estado_cobranza === "vencida");
-      const saldoVencido = vencidas.reduce((s, r) => s + Number(r.saldo_pendiente_cobranza ?? 0), 0);
-      const saldoPendiente = g
-        .filter((r) => ["pendiente", "parcial", "vencida"].includes(r.estado_cobranza))
-        .reduce((s, r) => s + Number(r.saldo_pendiente_cobranza ?? 0), 0);
       const atrasos = vencidas
         .filter((r) => r.fecha_vencimiento)
         .map((r) => (hoy.getTime() - new Date(r.fecha_vencimiento).getTime()) / dayMs);
@@ -307,16 +305,37 @@ export default function CreditoCescemexReport() {
         .filter((r) => r.fecha_documento)
         .map((r) => diffDias(ultimaAplic.get(r.id)!, r.fecha_documento));
       const avg = (arr: number[]) => (arr.length ? arr.reduce((s, n) => s + n, 0) / arr.length : 0);
+      const totalFacturas = g.length;
+      const bucketAcc: Record<string, { cuenta: number; importe: number }> = {};
+      BUCKET_LABELS.forEach((b) => { bucketAcc[b] = { cuenta: 0, importe: 0 }; });
+      conAplic.forEach((r) => {
+        if (!r.fecha_vencimiento) return;
+        const retraso = diffDias(ultimaAplic.get(r.id)!, r.fecha_vencimiento);
+        const lbl = retrasoBucket(retraso);
+        bucketAcc[lbl].cuenta += 1;
+        bucketAcc[lbl].importe += Number(r.total ?? 0);
+      });
+      const buckets = BUCKET_LABELS.map((label) => ({
+        label,
+        cuenta: bucketAcc[label].cuenta,
+        importe: bucketAcc[label].importe,
+        pct: totalFacturas > 0 ? (bucketAcc[label].cuenta / totalFacturas) * 100 : 0,
+      }));
+      const vencidasPagadas = BUCKET_LABELS.filter((b) => b !== "En tiempo")
+        .reduce((s, b) => s + bucketAcc[b].cuenta, 0);
       return {
+        totalFacturas,
         pctPagadasATiempo: pagadas.length ? (aTiempo.length / pagadas.length) * 100 : 0,
         pctClientes: clientesTotales.size ? (clientes.size / clientesTotales.size) * 100 : 0,
-        pctCarteraVencida: saldoPendiente > 0 ? (saldoVencido / saldoPendiente) * 100 : 0,
+        pctCarteraVencida: totalFacturas > 0 ? (vencidasPagadas / totalFacturas) * 100 : 0,
         diasPromedioAtraso: avg(atrasos),
         diasPromedioPago: avg(dso),
+        buckets,
       };
     };
-    return { cescemex: calc("credito_cescemex"), directo: calc("credito_directo") };
-  };
+      return { cescemex: calc("credito_cescemex"), directo: calc("credito_directo") };
+    },
+  });
 
   const descargarPdf = async () => {
     const plazasLabel = todas
@@ -324,7 +343,7 @@ export default function CreditoCescemexReport() {
       : plazas.filter((p) => plazasSel.includes(p.id)).map((p) => p.nombre).join(", ") || "Ninguna";
     const toastId = toast.loading("Generando PDF...");
     try {
-      const cobranzaKpis = await calcularCobranzaKpis();
+      if (!cobranzaKpis) throw new Error("Los indicadores de cobranza aún se están cargando");
       generateCreditoCescemexPdf({
       fecha: new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" }),
       plazasLabel,
