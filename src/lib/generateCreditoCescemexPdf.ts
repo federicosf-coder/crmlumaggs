@@ -34,6 +34,7 @@ export interface CobranzaKpis {
   diasPromedioPago: number;
   totalFacturas?: number;
   buckets?: { label: string; cuenta: number; importe: number; pct: number }[];
+  total?: { cuenta: number; importe: number };
 }
 
 
@@ -355,13 +356,25 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...mutedText);
-  doc.text("Retraso al pagar (facturas pagadas del año en curso)", margin, 52);
+  doc.text(
+    "Retraso al pagar (facturas pagadas del año en curso). Sin cobrar = facturas sin aplicación de pago registrada.",
+    margin,
+    52
+  );
   doc.setTextColor(0, 0, 0);
 
   const bucketFill = (label: string): [number, number, number] =>
-    label === "En tiempo" ? [230, 247, 240] : label === "1-5 días" ? [254, 249, 231]
-      : label === "6-10 días" ? [254, 243, 222] : label === "11-20 días" ? [253, 235, 213]
-      : label === "21-30 días" ? [253, 226, 226] : [252, 211, 211];
+    label === "En tiempo" ? [230, 247, 240]
+    : label === "1-5 días" ? [254, 249, 231]
+    : label === "6-10 días" ? [254, 243, 222]
+    : label === "11-20 días" ? [253, 235, 213]
+    : label === "21-30 días" ? [253, 226, 226]
+    : label === "31-45 días" ? [252, 211, 211]
+    : label === "45-60 días" ? [254, 205, 210]
+    : label === "60-90 días" ? [254, 195, 199]
+    : label === "Más de 90 días" ? [252, 165, 165]
+    : label === "Sin cobrar" ? [241, 245, 249]
+    : [252, 211, 211];
 
   const tableW = (pageW - margin * 2 - 20) / 2;
   const bucketTable = (kpis: CobranzaKpis, titulo: string, accent: [number, number, number], left: number) => {
@@ -378,15 +391,24 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
       88
     );
     doc.setTextColor(0, 0, 0);
+    const rows = (kpis.buckets ?? []).map((b) => [
+      { content: b.label, styles: { fillColor: bucketFill(b.label) } },
+      { content: String(b.cuenta), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
+      { content: fmtCurrency(b.importe), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
+      { content: `${Number(b.pct || 0).toFixed(1)}%`, styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
+    ]);
+    if (kpis.total) {
+      rows.push([
+        { content: "Total", styles: { fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
+        { content: String(kpis.total.cuenta), styles: { halign: "right" as const, fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
+        { content: fmtCurrency(kpis.total.importe), styles: { halign: "right" as const, fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
+        { content: "100.0%", styles: { halign: "right" as const, fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
+      ]);
+    }
     autoTable(doc, {
       startY: 96,
       head: [["Rango", "Cuenta", "Importe", "%"]],
-      body: (kpis.buckets ?? []).map((b) => [
-        { content: b.label, styles: { fillColor: bucketFill(b.label) } },
-        { content: String(b.cuenta), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
-        { content: fmtCurrency(b.importe), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
-        { content: `${Number(b.pct || 0).toFixed(1)}%`, styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
-      ]),
+      body: rows as any,
       theme: "grid",
       styles: { fontSize: 8.5, cellPadding: 5, lineColor: borderColor, lineWidth: 0.3 },
       headStyles: { fillColor: accent, textColor: 255, fontStyle: "bold" },

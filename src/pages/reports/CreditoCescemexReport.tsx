@@ -51,7 +51,18 @@ function clasificar(tipoPago: string | null): Cat {
   return "sin_clasificar";
 }
 
-const BUCKET_LABELS = ["En tiempo", "1-5 días", "6-10 días", "11-20 días", "21-30 días", "31+ días"] as const;
+const BUCKET_LABELS = [
+  "En tiempo",
+  "1-5 días",
+  "6-10 días",
+  "11-20 días",
+  "21-30 días",
+  "31-45 días",
+  "45-60 días",
+  "60-90 días",
+  "Más de 90 días",
+  "Sin cobrar",
+] as const;
 
 const BUCKET_ROW_CLASS: Record<string, string> = {
   "En tiempo": "text-emerald-700 bg-emerald-50/60",
@@ -59,7 +70,11 @@ const BUCKET_ROW_CLASS: Record<string, string> = {
   "6-10 días": "text-orange-700 bg-orange-50/50",
   "11-20 días": "text-orange-800 bg-orange-100/50",
   "21-30 días": "text-red-700 bg-red-50/60",
-  "31+ días": "text-red-800 bg-red-100/60",
+  "31-45 días": "text-red-800 bg-red-100/60",
+  "45-60 días": "text-rose-700 bg-rose-100/60",
+  "60-90 días": "text-rose-800 bg-rose-200/60",
+  "Más de 90 días": "text-red-900 bg-red-200/80",
+  "Sin cobrar": "text-slate-700 bg-slate-100/60",
 };
 
 function retrasoBucket(retraso: number): string {
@@ -68,7 +83,10 @@ function retrasoBucket(retraso: number): string {
   if (retraso <= 10) return "6-10 días";
   if (retraso <= 20) return "11-20 días";
   if (retraso <= 30) return "21-30 días";
-  return "31+ días";
+  if (retraso <= 45) return "31-45 días";
+  if (retraso <= 60) return "45-60 días";
+  if (retraso <= 90) return "60-90 días";
+  return "Más de 90 días";
 }
 
 function pad(n: number) {
@@ -331,6 +349,7 @@ export default function CreditoCescemexReport() {
       const g = rows.filter((r) => r.tipo_pago === tipo);
       const pagadas = g.filter((r) => r.estado_cobranza === "pagada");
       const conAplic = pagadas.filter((r) => ultimaAplic.get(r.id));
+      const sinCobrar = g.filter((r) => !ultimaAplic.get(r.id));
       const aTiempo = conAplic.filter(
         (r) => r.fecha_vencimiento && ultimaAplic.get(r.id)! <= r.fecha_vencimiento
       );
@@ -339,12 +358,12 @@ export default function CreditoCescemexReport() {
           .filter(([, t]) => t === tipo)
           .map(([empresaId]) => empresaId)
       );
-      const vencidas = g.filter((r) => r.estado_cobranza === "vencida");
       const dso = conAplic
         .filter((r) => r.fecha_documento)
         .map((r) => diffDias(ultimaAplic.get(r.id)!, r.fecha_documento));
       const avg = (arr: number[]) => (arr.length ? arr.reduce((s, n) => s + n, 0) / arr.length : 0);
       const totalFacturas = g.length;
+      const totalImporte = g.reduce((s, r) => s + Number(r.total ?? 0), 0);
       const bucketAcc: Record<string, { cuenta: number; importe: number }> = {};
       BUCKET_LABELS.forEach((b) => { bucketAcc[b] = { cuenta: 0, importe: 0 }; });
       conAplic.forEach((r) => {
@@ -354,23 +373,28 @@ export default function CreditoCescemexReport() {
         bucketAcc[lbl].cuenta += 1;
         bucketAcc[lbl].importe += Number(r.total ?? 0);
       });
-      const basePagadas = conAplic.length;
+      sinCobrar.forEach((r) => {
+        bucketAcc["Sin cobrar"].cuenta += 1;
+        bucketAcc["Sin cobrar"].importe += Number(r.total ?? 0);
+      });
+      const baseTotal = totalFacturas;
       const buckets = BUCKET_LABELS.map((label) => ({
         label,
         cuenta: bucketAcc[label].cuenta,
         importe: bucketAcc[label].importe,
-        pct: basePagadas > 0 ? (bucketAcc[label].cuenta / basePagadas) * 100 : 0,
+        pct: baseTotal > 0 ? (bucketAcc[label].cuenta / baseTotal) * 100 : 0,
       }));
-      const vencidasPagadas = BUCKET_LABELS.filter((b) => b !== "En tiempo")
+      const vencidasPagadas = BUCKET_LABELS.filter((b) => b !== "En tiempo" && b !== "Sin cobrar")
         .reduce((s, b) => s + bucketAcc[b].cuenta, 0);
       return {
         totalFacturas,
-        facturasPagadasConAplicacion: basePagadas,
+        facturasPagadasConAplicacion: conAplic.length,
         pctPagadasATiempo: pagadas.length ? (aTiempo.length / pagadas.length) * 100 : 0,
         pctClientes: clientesTotales.size ? (clientes.size / clientesTotales.size) * 100 : 0,
         pctCarteraVencida: pagadas.length > 0 ? (vencidasPagadas / pagadas.length) * 100 : 0,
         diasPromedioPago: avg(dso),
         buckets,
+        total: { cuenta: totalFacturas, importe: totalImporte },
       };
     };
 
@@ -833,7 +857,7 @@ export default function CreditoCescemexReport() {
                     <Badge variant="secondary" className="text-[10px] font-light">DSO: {(k?.diasPromedioPago ?? 0).toFixed(1)} días</Badge>
                   </div>
                   <div className="text-[10px] font-light text-muted-foreground">
-                    % = facturas del rango / facturas pagadas con aplicación ({k?.facturasPagadasConAplicacion ?? 0}). Suma 100%.
+                    % = facturas del rango / total de facturas del tipo ({k?.total?.cuenta ?? 0}). Suma 100%.
                   </div>
                   <Table>
                     <TableHeader>
@@ -856,6 +880,12 @@ export default function CreditoCescemexReport() {
                           </TableRow>
                         );
                       })}
+                      <TableRow className="font-semibold bg-muted/50">
+                        <TableCell className="font-medium">Total</TableCell>
+                        <TableCell className="text-right">{k?.total?.cuenta ?? 0}</TableCell>
+                        <TableCell className="text-right">{money(k?.total?.importe ?? 0)}</TableCell>
+                        <TableCell className="text-right">100.0%</TableCell>
+                      </TableRow>
                     </TableBody>
                   </Table>
                 </div>
