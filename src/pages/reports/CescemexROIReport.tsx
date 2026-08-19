@@ -31,6 +31,7 @@ export default function CescemexROIReport() {
     aportacion_chevron: 0,
     costo_por_cliente: 0,
     recuperacion_siniestros: 0,
+    margen_utilidad_pct: 20,
   });
   const [guardando, setGuardando] = useState(false);
 
