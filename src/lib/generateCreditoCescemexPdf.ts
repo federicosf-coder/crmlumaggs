@@ -360,9 +360,17 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
   doc.setTextColor(0, 0, 0);
 
   const bucketFill = (label: string): [number, number, number] =>
-    label === "En tiempo" ? [230, 247, 240] : label === "1-5 días" ? [254, 249, 231]
-      : label === "6-10 días" ? [254, 243, 222] : label === "11-20 días" ? [253, 235, 213]
-      : label === "21-30 días" ? [253, 226, 226] : [252, 211, 211];
+    label === "En tiempo" ? [230, 247, 240]
+    : label === "1-5 días" ? [254, 249, 231]
+    : label === "6-10 días" ? [254, 243, 222]
+    : label === "11-20 días" ? [253, 235, 213]
+    : label === "21-30 días" ? [253, 226, 226]
+    : label === "31-45 días" ? [252, 211, 211]
+    : label === "45-60 días" ? [254, 205, 210]
+    : label === "60-90 días" ? [254, 195, 199]
+    : label === "Más de 90 días" ? [252, 165, 165]
+    : label === "Sin cobrar" ? [241, 245, 249]
+    : [252, 211, 211];
 
   const tableW = (pageW - margin * 2 - 20) / 2;
   const bucketTable = (kpis: CobranzaKpis, titulo: string, accent: [number, number, number], left: number) => {
