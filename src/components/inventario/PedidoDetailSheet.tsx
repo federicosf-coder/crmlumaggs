@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, FileText, Trash2, Pencil, Plus } from "lucide-react";
+import { Upload, FileText, Trash2, Pencil, Plus, PackageCheck } from "lucide-react";
+import RecepcionDialog from "@/components/inventario/RecepcionDialog";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -27,6 +28,7 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
   const [formPedido, setFormPedido] = useState<any>({});
   const [savingPedido, setSavingPedido] = useState(false);
   const [lineaEditando, setLineaEditando] = useState<{ id: string; campo: string } | null>(null);
+  const [recepcionOpen, setRecepcionOpen] = useState(false);
 
   useEffect(() => {
     setFechaEntrega(data?.pedido?.fecha_entrega_estimada || "");
@@ -41,7 +43,10 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
     if (!p) return;
     const next = nextEstatus(p.estatus);
     if (!next) return;
-    if (p.estatus === "en_transito") { navigate(`/inventario/pedidos/recibidos?pedido=${p.id}`); return; }
+    if (next === "recibido" || next === "recibido_parcial" || p.estatus === "en_transito") {
+      setRecepcionOpen(true);
+      return;
+    }
     await upd.mutateAsync({ id: p.id, estatus: next });
     toast.success(`Estatus actualizado a ${ESTATUS_PEDIDO_LABEL[next]}`);
   };
@@ -336,6 +341,10 @@ export default function PedidoDetailSheet({ id, onClose, onDelete }: { id: strin
             {nextEstatus(p.estatus) && (
               <Button onClick={onAdvance} className="w-full">{nextEstatusLabel(p.estatus)}</Button>
             )}
+            <Button variant="outline" className="w-full" onClick={() => setRecepcionOpen(true)}>
+              <PackageCheck className="h-4 w-4 mr-1.5" />Registrar recepción (cantidades recibidas)
+            </Button>
+            <RecepcionDialog open={recepcionOpen} onOpenChange={setRecepcionOpen} pedidoId={p.id} lockPedido />
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={iniciarEdicionPedido} disabled={editandoPedido}>
                 <Pencil className="h-4 w-4 mr-1.5" />Editar pedido
