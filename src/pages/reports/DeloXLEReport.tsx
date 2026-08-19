@@ -346,10 +346,19 @@ export default function DeloXLEReport() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between gap-4">
             <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
               Detalle mensual por presentación
             </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportarDetalleMensual}
+              disabled={productosSel.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar Excel
+            </Button>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
             <Table>
