@@ -202,6 +202,32 @@ export default function DeloXLEReport() {
   const togglePres = (id: string) =>
     setPresSel((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
 
+  const exportarDetalleMensual = () => {
+    if (productosSel.length === 0) return;
+    const rows = meses.map((m) => {
+      const [y, mo] = m.split("-");
+      const row: Record<string, string | number> = {
+        Mes: `${MESES_ABBR[Number(mo) - 1]} ${y}`,
+      };
+      productosSel.forEach((p) => {
+        row[p.presentacion] = Number(porPresentacion.map.get(m)?.get(p.id) ?? 0);
+      });
+      row.Total = productosSel.reduce((a, p) => a + (porPresentacion.map.get(m)?.get(p.id) ?? 0), 0);
+      return row;
+    });
+    const totalRow: Record<string, string | number> = { Mes: "Total" };
+    productosSel.forEach((p) => {
+      totalRow[p.presentacion] = porPresentacion.totales.find((t) => t.id === p.id)?.total ?? 0;
+    });
+    totalRow.Total = total;
+    rows.push(totalRow);
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Detalle mensual");
+    XLSX.writeFile(wb, `delo_xle_15w40_detalle_mensual_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   return (
     <>
       <div className="container mx-auto px-4 pt-4">
