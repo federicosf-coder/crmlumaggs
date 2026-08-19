@@ -354,16 +354,18 @@ export default function CreditoCescemexReport() {
         bucketAcc[lbl].cuenta += 1;
         bucketAcc[lbl].importe += Number(r.total ?? 0);
       });
+      const basePagadas = conAplic.length;
       const buckets = BUCKET_LABELS.map((label) => ({
         label,
         cuenta: bucketAcc[label].cuenta,
         importe: bucketAcc[label].importe,
-        pct: totalFacturas > 0 ? (bucketAcc[label].cuenta / totalFacturas) * 100 : 0,
+        pct: basePagadas > 0 ? (bucketAcc[label].cuenta / basePagadas) * 100 : 0,
       }));
       const vencidasPagadas = BUCKET_LABELS.filter((b) => b !== "En tiempo")
         .reduce((s, b) => s + bucketAcc[b].cuenta, 0);
       return {
         totalFacturas,
+        facturasPagadasConAplicacion: basePagadas,
         pctPagadasATiempo: pagadas.length ? (aTiempo.length / pagadas.length) * 100 : 0,
         pctClientes: clientesTotales.size ? (clientes.size / clientesTotales.size) * 100 : 0,
         pctCarteraVencida: pagadas.length > 0 ? (vencidasPagadas / pagadas.length) * 100 : 0,
@@ -829,6 +831,9 @@ export default function CreditoCescemexReport() {
                     <Badge variant="secondary" className="text-[10px] font-light">Pagadas a tiempo: {(k?.pctPagadasATiempo ?? 0).toFixed(1)}%</Badge>
                     <Badge variant="secondary" className="text-[10px] font-light">Clientes: {(k?.pctClientes ?? 0).toFixed(1)}%</Badge>
                     <Badge variant="secondary" className="text-[10px] font-light">DSO: {(k?.diasPromedioPago ?? 0).toFixed(1)} días</Badge>
+                  </div>
+                  <div className="text-[10px] font-light text-muted-foreground">
+                    % = facturas del rango / facturas pagadas con aplicación ({k?.facturasPagadasConAplicacion ?? 0}). Suma 100%.
                   </div>
                   <Table>
                     <TableHeader>
