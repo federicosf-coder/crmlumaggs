@@ -102,8 +102,8 @@ export default function PedidosSugeridos() {
     queryKey: ["inv_pedido_lineas_abiertos"],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("inv_pedido_lineas")
-        .select("codigo_producto, cantidad_solicitada, cantidad_confirmada, inv_pedidos!inner(estatus)")
-        .not("inv_pedidos.estatus", "in", "(cerrado,cancelado)");
+        .select("codigo_producto, cantidad_solicitada, cantidad_confirmada, cantidad_recibida, estatus_linea, inv_pedidos!inner(estatus)")
+        .not("inv_pedidos.estatus", "in", "(cerrado,cancelado,recibido)");
       if (error) throw error;
       return (data || []) as any[];
     },
@@ -118,7 +118,7 @@ export default function PedidosSugeridos() {
         .from("inv_pedido_lineas")
         .select("*, inv_pedidos!inner(numero_po_interno, empresa_vendedora, almacen_destino, fecha_pedido, fecha_entrega_estimada, estatus)")
         .eq("codigo_producto", detalleCodigo!.codigo)
-        .not("inv_pedidos.estatus", "in", "(cerrado,cancelado)");
+        .not("inv_pedidos.estatus", "in", "(cerrado,cancelado,recibido)");
       if (error) throw error;
       return (data || []) as any[];
     },
@@ -235,8 +235,11 @@ export default function PedidosSugeridos() {
     const m: Record<string, number> = {};
     (pedidoLineas as any[]).forEach((l) => {
       if (!l.codigo_producto) return;
-      const cant = Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0) || 0;
-      m[l.codigo_producto] = (m[l.codigo_producto] || 0) + cant;
+      const pedida = Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0) || 0;
+      const recibida = Number(l.cantidad_recibida ?? 0) || 0;
+      const pendiente = Math.max(0, pedida - recibida);
+      if (pendiente <= 0) return;
+      m[l.codigo_producto] = (m[l.codigo_producto] || 0) + pendiente;
     });
     return m;
   }, [pedidoLineas]);
