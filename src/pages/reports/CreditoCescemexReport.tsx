@@ -309,6 +309,24 @@ export default function CreditoCescemexReport() {
       (new Date(a).getTime() - new Date(b).getTime()) / dayMs;
 
     const clientesTotales = new Set(rows.map((r) => r.empresa_id).filter(Boolean));
+    // Una empresa puede tener facturas de ambos tipos; se asigna a un solo tipo
+    // (el de mayor importe facturado) para que los porcentajes sumen 100%.
+    const importePorEmpresa = new Map<string, { credito_cescemex: number; credito_directo: number }>();
+    rows.forEach((r) => {
+      if (!r.empresa_id) return;
+      const acc = importePorEmpresa.get(r.empresa_id) ?? { credito_cescemex: 0, credito_directo: 0 };
+      if (r.tipo_pago === "credito_cescemex" || r.tipo_pago === "credito_directo") {
+        acc[r.tipo_pago as "credito_cescemex" | "credito_directo"] += Number(r.total ?? 0);
+      }
+      importePorEmpresa.set(r.empresa_id, acc);
+    });
+    const tipoPorEmpresa = new Map<string, string>();
+    importePorEmpresa.forEach((v, empresaId) => {
+      tipoPorEmpresa.set(
+        empresaId,
+        v.credito_cescemex >= v.credito_directo ? "credito_cescemex" : "credito_directo"
+      );
+    });
     const calc = (tipo: string) => {
       const g = rows.filter((r) => r.tipo_pago === tipo);
       const pagadas = g.filter((r) => r.estado_cobranza === "pagada");
@@ -316,7 +334,11 @@ export default function CreditoCescemexReport() {
       const aTiempo = conAplic.filter(
         (r) => r.fecha_vencimiento && ultimaAplic.get(r.id)! <= r.fecha_vencimiento
       );
-      const clientes = new Set(g.map((r) => r.empresa_id).filter(Boolean));
+      const clientes = new Set(
+        Array.from(tipoPorEmpresa.entries())
+          .filter(([, t]) => t === tipo)
+          .map(([empresaId]) => empresaId)
+      );
       const vencidas = g.filter((r) => r.estado_cobranza === "vencida");
       const dso = conAplic
         .filter((r) => r.fecha_documento)
