@@ -19,6 +19,7 @@ interface CostosConfig {
   aportacion_chevron: number;
   costo_por_cliente: number;
   recuperacion_siniestros: number;
+  margen_utilidad_pct: number;
   notas: string | null;
 }
 
