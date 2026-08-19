@@ -66,12 +66,32 @@ interface FacturaRow {
 
 export default function CreditoCescemexReport() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [plazasSel, setPlazasSel] = useState<string[]>([]);
   const [initPlazas, setInitPlazas] = useState(false);
   const [abierta, setAbierta] = useState<string | null>(null);
   const [catsSel, setCatsSel] = useState<Cat[]>(["cescemex", "directo", "sin_clasificar"]);
   const [sortField, setSortField] = useState<"cliente" | "cat" | "ue" | "monto" | "utilidad">("monto");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const reclasificar = async (empresaId: string | null, cliente: string, nuevo: "credito_cescemex" | "credito_directo") => {
+    if (!empresaId) return;
+    const n = facturasRaw.filter((f: any) => f.empresa_id === empresaId && f.tipo_pago === "credito").length;
+    const label = nuevo === "credito_cescemex" ? "Cescemex" : "Directo";
+    if (!window.confirm(`Se reclasificarán ${n} factura(s) de ${ANIO} de ${cliente} como Crédito ${label}. ¿Continuar?`)) return;
+    const { error } = await supabase
+      .from("documentos")
+      .update({ tipo_pago: nuevo })
+      .eq("empresa_id", empresaId)
+      .eq("tipo_pago", "credito")
+      .gte("fecha_documento", `${ANIO}-01-01`);
+    if (error) {
+      toast.error("Error al reclasificar: " + error.message);
+      return;
+    }
+    toast.success(`${n} factura(s) reclasificadas como Crédito ${label}`);
+    queryClient.invalidateQueries({ queryKey: ["credito-cescemex"] });
+  };
 
   const meses = useMemo(() => {
     const now = new Date();
