@@ -366,7 +366,7 @@ export default function CreditoCescemexReport() {
         totalFacturas,
         pctPagadasATiempo: pagadas.length ? (aTiempo.length / pagadas.length) * 100 : 0,
         pctClientes: clientesTotales.size ? (clientes.size / clientesTotales.size) * 100 : 0,
-        pctCarteraVencida: totalFacturas > 0 ? (vencidasPagadas / totalFacturas) * 100 : 0,
+        pctCarteraVencida: pagadas.length > 0 ? (vencidasPagadas / pagadas.length) * 100 : 0,
         diasPromedioPago: avg(dso),
         buckets,
       };
