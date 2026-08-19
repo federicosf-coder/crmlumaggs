@@ -823,12 +823,11 @@ export default function CreditoCescemexReport() {
                 <div key={t.key} className="space-y-2">
                   <div className={cn("text-sm font-semibold uppercase tracking-wide", t.text)}>{t.label}</div>
                   <div className="text-xs font-light">
-                    <span className="font-semibold">{(k?.pctCarteraVencida ?? 0).toFixed(1)}%</span> de las facturas se pagan vencidas
+                    <span className="font-semibold">{(k?.pctCarteraVencida ?? 0).toFixed(1)}%</span> de las facturas pagadas se pagan vencidas
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     <Badge variant="secondary" className="text-[10px] font-light">Pagadas a tiempo: {(k?.pctPagadasATiempo ?? 0).toFixed(1)}%</Badge>
                     <Badge variant="secondary" className="text-[10px] font-light">Clientes: {(k?.pctClientes ?? 0).toFixed(1)}%</Badge>
-                    
                     <Badge variant="secondary" className="text-[10px] font-light">DSO: {(k?.diasPromedioPago ?? 0).toFixed(1)} días</Badge>
                   </div>
                   <Table>
