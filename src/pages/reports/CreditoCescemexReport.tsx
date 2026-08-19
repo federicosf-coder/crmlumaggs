@@ -880,6 +880,12 @@ export default function CreditoCescemexReport() {
                           </TableRow>
                         );
                       })}
+                      <TableRow className="font-semibold bg-muted/50">
+                        <TableCell className="font-medium">Total</TableCell>
+                        <TableCell className="text-right">{k?.total?.cuenta ?? 0}</TableCell>
+                        <TableCell className="text-right">{money(k?.total?.importe ?? 0)}</TableCell>
+                        <TableCell className="text-right">100.0%</TableCell>
+                      </TableRow>
                     </TableBody>
                   </Table>
                 </div>
