@@ -266,6 +266,55 @@ export default function CescemexROIReport() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+              Utilidad Generada y ROI de la Póliza
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Utilidad generada estimada</div>
+              <div className="text-2xl font-semibold text-emerald-600">{money(utilidadGenerada)}</div>
+              <div className="text-xs text-muted-foreground font-light">
+                Cartera protegida × {form.margen_utilidad_pct}% de margen
+              </div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Utilidad neta después del costo</div>
+              <div
+                className={cn(
+                  "text-2xl font-semibold",
+                  utilidadNeta >= 0 ? "text-emerald-600" : "text-red-600"
+                )}
+              >
+                {money(utilidadNeta)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">ROI (%)</div>
+              <div
+                className={cn(
+                  "text-2xl font-semibold",
+                  roi >= 0 ? "text-emerald-600" : "text-red-600"
+                )}
+              >
+                {roi >= 0 ? "+" : ""}{roi.toFixed(1)}%
+              </div>
+              {costoRealTotal > 0 && (
+                <div className="text-xs text-muted-foreground font-light">
+                  Por cada peso que cuesta la póliza, genera {relacion.toFixed(2)} pesos de utilidad en la cartera que protege.
+                </div>
+              )}
+            </div>
+            <div className="sm:col-span-3">
+              <div className="text-xs text-muted-foreground font-light">
+                Se asume que sin la cobertura de Cescemex estos clientes no recibirían crédito y la venta se perdería. Por eso la utilidad de esa cartera se atribuye como beneficio de la póliza.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </>
   );
