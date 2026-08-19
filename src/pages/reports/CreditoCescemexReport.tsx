@@ -79,7 +79,7 @@ export default function CreditoCescemexReport() {
     const n = facturasRaw.filter((f: any) => f.empresa_id === empresaId && f.tipo_pago === "credito").length;
     const label = nuevo === "credito_cescemex" ? "Cescemex" : "Directo";
     if (!window.confirm(`Se reclasificarán ${n} factura(s) de ${ANIO} de ${cliente} como Crédito ${label}. ¿Continuar?`)) return;
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("documentos")
       .update({ tipo_pago: nuevo })
       .eq("empresa_id", empresaId)
@@ -497,6 +497,23 @@ export default function CreditoCescemexReport() {
                               <TableCell className="text-right">{money(c.monto)}</TableCell>
                               <TableCell className="text-right">{money(c.utilidad)}</TableCell>
                               <TableCell className="text-right">
+                                {c.cat === "sin_clasificar" && c.empresaId && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="outline" size="sm" className="mr-2" onClick={(e) => e.stopPropagation()}>
+                                        Reclasificar
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); reclasificar(c.empresaId, c.cliente, "credito_cescemex"); }}>
+                                        Marcar todas como Cescemex
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); reclasificar(c.empresaId, c.cliente, "credito_directo"); }}>
+                                        Marcar todas como Directo
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
                                 {c.empresaId && (
                                   <Button
                                     variant="ghost"
