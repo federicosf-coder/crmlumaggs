@@ -320,7 +320,6 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
     { kpi: "Facturas pagadas a tiempo", nota: "Pagadas dentro del vencimiento", c: pct(k.cescemex.pctPagadasATiempo), d: pct(k.directo.pctPagadasATiempo) },
     { kpi: "Clientes por tipo de crédito", nota: "Distribución de la base de clientes", c: pct(k.cescemex.pctClientes), d: pct(k.directo.pctClientes) },
     { kpi: "Facturas pagadas vencidas", nota: "% del total de facturas del año que se pagaron después del vencimiento", c: pct(k.cescemex.pctCarteraVencida), d: pct(k.directo.pctCarteraVencida) },
-    { kpi: "Días promedio de atraso", nota: "Solo facturas vencidas", c: dias(k.cescemex.diasPromedioAtraso), d: dias(k.directo.diasPromedioAtraso) },
     { kpi: "Días promedio para pagar (DSO)", nota: "De emisión a pago", c: dias(k.cescemex.diasPromedioPago), d: dias(k.directo.diasPromedioPago) },
   ];
 

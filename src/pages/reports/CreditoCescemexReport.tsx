@@ -490,6 +490,78 @@ export default function CreditoCescemexReport() {
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+              Comportamiento de pago — Cescemex vs Directo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Indicador</TableHead>
+                  <TableHead className="text-center">Cescemex</TableHead>
+                  <TableHead className="text-center">Directo</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell>Facturas pagadas a tiempo</TableCell>
+                  <TableCell className="text-center">
+                    <div className="text-xl font-semibold text-emerald-600">
+                      {cobranzaKpis ? `${cobranzaKpis.cescemex.pctPagadasATiempo.toFixed(1)}%` : "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="text-xl font-semibold text-blue-600">
+                      {cobranzaKpis ? `${cobranzaKpis.directo.pctPagadasATiempo.toFixed(1)}%` : "—"}
+                    </div>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Clientes por tipo de crédito</TableCell>
+                  <TableCell className="text-center">
+                    <div className="text-xl font-semibold text-emerald-600">
+                      {cobranzaKpis ? `${cobranzaKpis.cescemex.pctClientes.toFixed(1)}%` : "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="text-xl font-semibold text-blue-600">
+                      {cobranzaKpis ? `${cobranzaKpis.directo.pctClientes.toFixed(1)}%` : "—"}
+                    </div>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Facturas pagadas vencidas</TableCell>
+                  <TableCell className="text-center">
+                    <div className="text-xl font-semibold text-emerald-600">
+                      {cobranzaKpis ? `${cobranzaKpis.cescemex.pctCarteraVencida.toFixed(1)}%` : "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="text-xl font-semibold text-blue-600">
+                      {cobranzaKpis ? `${cobranzaKpis.directo.pctCarteraVencida.toFixed(1)}%` : "—"}
+                    </div>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Días promedio para pagar (DSO)</TableCell>
+                  <TableCell className="text-center">
+                    <div className="text-xl font-semibold text-emerald-600">
+                      {cobranzaKpis ? `${cobranzaKpis.cescemex.diasPromedioPago.toFixed(1)} días` : "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="text-xl font-semibold text-blue-600">
+                      {cobranzaKpis ? `${cobranzaKpis.directo.diasPromedioPago.toFixed(1)} días` : "—"}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-4 md:grid-cols-3">
           {CATS.map((c) => {
@@ -771,7 +843,7 @@ export default function CreditoCescemexReport() {
                   <div className="flex flex-wrap gap-1.5">
                     <Badge variant="secondary" className="text-[10px] font-light">Pagadas a tiempo: {(k?.pctPagadasATiempo ?? 0).toFixed(1)}%</Badge>
                     <Badge variant="secondary" className="text-[10px] font-light">Clientes: {(k?.pctClientes ?? 0).toFixed(1)}%</Badge>
-                    <Badge variant="secondary" className="text-[10px] font-light">Atraso prom.: {(k?.diasPromedioAtraso ?? 0).toFixed(1)} días</Badge>
+                    
                     <Badge variant="secondary" className="text-[10px] font-light">DSO: {(k?.diasPromedioPago ?? 0).toFixed(1)} días</Badge>
                   </div>
                   <Table>
