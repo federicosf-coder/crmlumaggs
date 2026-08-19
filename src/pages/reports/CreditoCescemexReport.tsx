@@ -518,10 +518,10 @@ export default function CreditoCescemexReport() {
           <CardContent>
             <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               {[
-                { label: "Facturas pagadas a tiempo", key: "pctPagadasATiempo", fmt: (v: number) => `${v.toFixed(1)}%` },
-                { label: "Clientes por tipo de crédito", key: "pctClientes", fmt: (v: number) => `${v.toFixed(1)}%` },
-                { label: "Facturas pagadas vencidas", key: "pctCarteraVencida", fmt: (v: number) => `${v.toFixed(1)}%` },
-                { label: "Días promedio para pagar (DSO)", key: "diasPromedioPago", fmt: (v: number) => `${v.toFixed(1)} días` },
+                { label: "Pagadas a tiempo", key: "pctPagadasATiempo", fmt: (v: number) => `${v.toFixed(1)}%`, hint: "Pagadas a tiempo / Facturas pagadas" },
+                { label: "Clientes por tipo de crédito", key: "pctClientes", fmt: (v: number) => `${v.toFixed(1)}%`, hint: "Clientes del tipo / Clientes totales" },
+                { label: "Pagadas vencidas", key: "pctCarteraVencida", fmt: (v: number) => `${v.toFixed(1)}%`, hint: "Pagadas con retraso / Facturas pagadas" },
+                { label: "Días promedio para pagar (DSO)", key: "diasPromedioPago", fmt: (v: number) => `${v.toFixed(1)} días`, hint: "Promedio de días de emisión a pago" },
               ].map((kpi) => (
                 <div key={kpi.key} className="rounded-lg border p-4 space-y-3">
                   <div className="text-xs uppercase tracking-wide text-muted-foreground font-light">{kpi.label}</div>
@@ -540,6 +540,7 @@ export default function CreditoCescemexReport() {
                       </div>
                     </div>
                   </div>
+                  <div className="text-[10px] text-muted-foreground font-light leading-tight">{kpi.hint}</div>
                 </div>
               ))}
             </div>
