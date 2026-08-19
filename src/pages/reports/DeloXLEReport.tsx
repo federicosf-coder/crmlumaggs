@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import {
   Bar,
   BarChart,
