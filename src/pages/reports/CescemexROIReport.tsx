@@ -19,6 +19,7 @@ interface CostosConfig {
   aportacion_chevron: number;
   costo_por_cliente: number;
   recuperacion_siniestros: number;
+  margen_utilidad_pct: number;
   notas: string | null;
 }
 
@@ -31,6 +32,7 @@ export default function CescemexROIReport() {
     aportacion_chevron: 0,
     costo_por_cliente: 0,
     recuperacion_siniestros: 0,
+    margen_utilidad_pct: 20,
   });
   const [guardando, setGuardando] = useState(false);
 
@@ -61,6 +63,7 @@ export default function CescemexROIReport() {
         aportacion_chevron: Number(config.aportacion_chevron ?? 0),
         costo_por_cliente: Number(config.costo_por_cliente ?? 0),
         recuperacion_siniestros: Number(config.recuperacion_siniestros ?? 0),
+        margen_utilidad_pct: Number(config.margen_utilidad_pct ?? 20),
       });
     }
   }, [config]);
@@ -117,6 +120,11 @@ export default function CescemexROIReport() {
   const beneficioNeto = costoRealTotal - form.recuperacion_siniestros;
   const pctCartera = carteraProtegida > 0 ? (costoRealTotal / carteraProtegida) * 100 : 0;
 
+  const utilidadGenerada = carteraProtegida * (form.margen_utilidad_pct / 100);
+  const utilidadNeta = utilidadGenerada - costoRealTotal;
+  const roi = costoRealTotal > 0 ? ((utilidadGenerada - costoRealTotal) / costoRealTotal) * 100 : 0;
+  const relacion = costoRealTotal > 0 ? utilidadGenerada / costoRealTotal : 0;
+
   const money = (n: number) =>
     n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
 
@@ -172,20 +180,22 @@ export default function CescemexROIReport() {
           </CardHeader>
           <CardContent>
             {!puedeEditar ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm font-light">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 text-sm font-light">
                 <div><span className="text-muted-foreground">Costo total póliza:</span> {money(form.costo_poliza_total)}</div>
                 <div><span className="text-muted-foreground">Aportación Chevron:</span> {money(form.aportacion_chevron)}</div>
                 <div><span className="text-muted-foreground">Costo por cliente/año:</span> {money(form.costo_por_cliente)}</div>
                 <div><span className="text-muted-foreground">Recuperación siniestros:</span> {money(form.recuperacion_siniestros)}</div>
+                <div><span className="text-muted-foreground">Margen de utilidad:</span> {form.margen_utilidad_pct}%</div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                   {([
                     ["costo_poliza_total", "Costo total póliza"],
                     ["aportacion_chevron", "Aportación Chevron"],
                     ["costo_por_cliente", "Costo por cliente / año"],
                     ["recuperacion_siniestros", "Recuperación por siniestros"],
+                    ["margen_utilidad_pct", "Margen de utilidad promedio (%)"],
                   ] as const).map(([campo, label]) => (
                     <div key={campo} className="space-y-1.5">
                       <Label className="text-xs uppercase tracking-wide">{label}</Label>
@@ -252,6 +262,55 @@ export default function CescemexROIReport() {
               <div className="text-2xl font-semibold">{pctCartera.toFixed(2)}%</div>
               <div className="text-xs text-muted-foreground font-light">
                 La póliza cuesta {pctCartera.toFixed(2)}% de la cartera que protege.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+              Utilidad Generada y ROI de la Póliza
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Utilidad generada estimada</div>
+              <div className="text-2xl font-semibold text-emerald-600">{money(utilidadGenerada)}</div>
+              <div className="text-xs text-muted-foreground font-light">
+                Cartera protegida × {form.margen_utilidad_pct}% de margen
+              </div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Utilidad neta después del costo</div>
+              <div
+                className={cn(
+                  "text-2xl font-semibold",
+                  utilidadNeta >= 0 ? "text-emerald-600" : "text-red-600"
+                )}
+              >
+                {money(utilidadNeta)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">ROI (%)</div>
+              <div
+                className={cn(
+                  "text-2xl font-semibold",
+                  roi >= 0 ? "text-emerald-600" : "text-red-600"
+                )}
+              >
+                {roi >= 0 ? "+" : ""}{roi.toFixed(1)}%
+              </div>
+              {costoRealTotal > 0 && (
+                <div className="text-xs text-muted-foreground font-light">
+                  Por cada peso que cuesta la póliza, genera {relacion.toFixed(2)} pesos de utilidad en la cartera que protege.
+                </div>
+              )}
+            </div>
+            <div className="sm:col-span-3">
+              <div className="text-xs text-muted-foreground font-light">
+                Se asume que sin la cobertura de Cescemex estos clientes no recibirían crédito y la venta se perdería. Por eso la utilidad de esa cartera se atribuye como beneficio de la póliza.
               </div>
             </div>
           </CardContent>

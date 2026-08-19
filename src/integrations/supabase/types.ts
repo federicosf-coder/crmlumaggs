@@ -930,6 +930,7 @@ export type Database = {
           costo_poliza_total: number
           costo_por_cliente: number
           id: string
+          margen_utilidad_pct: number
           notas: string | null
           recuperacion_siniestros: number
           updated_at: string
@@ -941,6 +942,7 @@ export type Database = {
           costo_poliza_total?: number
           costo_por_cliente?: number
           id?: string
+          margen_utilidad_pct?: number
           notas?: string | null
           recuperacion_siniestros?: number
           updated_at?: string
@@ -952,6 +954,7 @@ export type Database = {
           costo_poliza_total?: number
           costo_por_cliente?: number
           id?: string
+          margen_utilidad_pct?: number
           notas?: string | null
           recuperacion_siniestros?: number
           updated_at?: string
