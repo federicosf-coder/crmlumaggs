@@ -749,6 +749,59 @@ export default function CreditoCescemexReport() {
             </Table>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+              Comportamiento de pago por tipo de crédito
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-6 md:grid-cols-2">
+            {([
+              { key: "directo" as const, label: "Directo", text: "text-blue-600" },
+              { key: "cescemex" as const, label: "Cescemex", text: "text-emerald-600" },
+            ]).map((t) => {
+              const k = cobranzaKpis?.[t.key];
+              return (
+                <div key={t.key} className="space-y-2">
+                  <div className={cn("text-sm font-semibold uppercase tracking-wide", t.text)}>{t.label}</div>
+                  <div className="text-xs font-light">
+                    <span className="font-semibold">{(k?.pctCarteraVencida ?? 0).toFixed(1)}%</span> de las facturas se pagan vencidas
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge variant="secondary" className="text-[10px] font-light">Pagadas a tiempo: {(k?.pctPagadasATiempo ?? 0).toFixed(1)}%</Badge>
+                    <Badge variant="secondary" className="text-[10px] font-light">Clientes: {(k?.pctClientes ?? 0).toFixed(1)}%</Badge>
+                    <Badge variant="secondary" className="text-[10px] font-light">Atraso prom.: {(k?.diasPromedioAtraso ?? 0).toFixed(1)} días</Badge>
+                    <Badge variant="secondary" className="text-[10px] font-light">DSO: {(k?.diasPromedioPago ?? 0).toFixed(1)} días</Badge>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Rango</TableHead>
+                        <TableHead className="text-right">Cuenta</TableHead>
+                        <TableHead className="text-right">Importe</TableHead>
+                        <TableHead className="text-right">%</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {BUCKET_LABELS.map((label) => {
+                        const b = k?.buckets.find((x) => x.label === label);
+                        return (
+                          <TableRow key={label} className={BUCKET_ROW_CLASS[label]}>
+                            <TableCell className="font-medium">{label}</TableCell>
+                            <TableCell className="text-right">{b?.cuenta ?? 0}</TableCell>
+                            <TableCell className="text-right">{money(b?.importe ?? 0)}</TableCell>
+                            <TableCell className="text-right">{(b?.pct ?? 0).toFixed(1)}%</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
       </div>
     </>
   );
