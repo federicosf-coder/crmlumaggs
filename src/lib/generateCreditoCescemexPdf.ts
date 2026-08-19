@@ -69,8 +69,53 @@ function softFor(label: string): [number, number, number] {
   return [241, 245, 249];
 }
 
+const GROUP_ORDER = ["Cescemex", "Directo", "Sin clasificar"];
+
+function buildClienteBody(porCliente: ClientePdf[]): any[] {
+  const rows: any[] = [];
+  const tipos = [
+    ...GROUP_ORDER.filter((t) => porCliente.some((c) => c.tipo === t)),
+    ...Array.from(new Set(porCliente.map((c) => c.tipo))).filter((t) => !GROUP_ORDER.includes(t)),
+  ];
+  tipos.forEach((tipo) => {
+    const grupo = porCliente
+      .filter((c) => c.tipo === tipo)
+      .sort((a, b) => a.cliente.localeCompare(b.cliente));
+    if (grupo.length === 0) return;
+    const soft = softFor(tipo);
+    const accent = accentFor(tipo);
+    rows.push([
+      {
+        content: `${tipo} — ${grupo.length} cliente(s)`,
+        colSpan: 5,
+        styles: { fillColor: soft, textColor: accent, fontStyle: "bold" },
+      },
+    ]);
+    grupo.forEach((c) => {
+      rows.push([
+        c.cliente,
+        { content: c.tipo, styles: { fillColor: soft, textColor: accent, fontStyle: "bold" } },
+        { content: fmtNum(c.ue), styles: { halign: "right" } },
+        { content: fmtCurrency(c.monto), styles: { halign: "right" } },
+        { content: fmtCurrency(c.utilidad), styles: { halign: "right", textColor: EMERALD, fontStyle: "bold" } },
+      ]);
+    });
+    const sub = grupo.reduce(
+      (s, c) => ({ ue: s.ue + c.ue, monto: s.monto + c.monto, utilidad: s.utilidad + c.utilidad }),
+      { ue: 0, monto: 0, utilidad: 0 }
+    );
+    const subStyle = { fillColor: [237, 240, 245] as [number, number, number], fontStyle: "bold" as const };
+    rows.push([
+      { content: `Subtotal ${tipo}`, colSpan: 2, styles: subStyle },
+      { content: fmtNum(sub.ue), styles: { ...subStyle, halign: "right" } },
+      { content: fmtCurrency(sub.monto), styles: { ...subStyle, halign: "right" } },
+      { content: fmtCurrency(sub.utilidad), styles: { ...subStyle, halign: "right" } },
+    ]);
+  });
+  return rows;
+}
+
 export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPDF {
-  const _unused = 0;
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
