@@ -43,7 +43,12 @@ const ESTATUS_ENT_CORP = [
   { v: "entregada", l: "Entregadas" },
   { v: "acuse_enviado", l: "Acuse Enviado" },
 ];
-const TIPO_PAGO_OPTS = [{ v: "contado", l: "Contado" }, { v: "credito", l: "Crédito Directo" }, { v: "credito_cescemex", l: "Crédito Cescemex" }];
+const TIPO_PAGO_OPTS = [
+  { v: "contado", l: "Contado" },
+  { v: "credito", l: "Crédito (sin clasificar)" },
+  { v: "credito_directo", l: "Crédito Directo" },
+  { v: "credito_cescemex", l: "Crédito Cescemex" },
+];
 const METODO_PAGO_OPTS = [{ v: "PUE", l: "PUE - Pago en una sola exhibición" }, { v: "PPD", l: "PPD - Pago en parcialidades o diferido" }];
 const FORMA_PAGO_OPTS = [
   { v: "01", l: "01 - Efectivo" },

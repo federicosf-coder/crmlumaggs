@@ -15,7 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, ChevronUp, ArrowUpDown, ExternalLink, ShieldCheck, Wallet, HelpCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, ArrowUpDown, ExternalLink, ShieldCheck, Wallet, HelpCircle, Download } from "lucide-react";
+import { generateCreditoCescemexPdf } from "@/lib/generateCreditoCescemexPdf";
 import {
   Bar,
   BarChart,
@@ -243,6 +244,41 @@ export default function CreditoCescemexReport() {
       });
   }, [facturas, margenUtilidadPct, sortField, sortDir]);
 
+  const descargarPdf = () => {
+    const plazasLabel = todas
+      ? "Todas las plazas"
+      : plazas.filter((p) => plazasSel.includes(p.id)).map((p) => p.nombre).join(", ") || "Ninguna";
+    generateCreditoCescemexPdf({
+      fecha: new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" }),
+      plazasLabel,
+      categorias: CATS.filter((c) => catsSel.includes(c.key)).map((c) => ({
+        label: c.label,
+        monto: totales[c.key].monto,
+        ue: totales[c.key].ue,
+        utilidad: totales[c.key].utilidad,
+        pct: totalGeneral > 0 ? (totales[c.key].monto / totalGeneral) * 100 : 0,
+      })),
+      utilidadTotal,
+      margenUtilidadPct: Number(margenUtilidadPct),
+      porMes: porMes.map((m) => ({
+        label: m.label,
+        cescemexMonto: m.cescemex.monto,
+        cescemexUe: m.cescemex.ue,
+        directoMonto: m.directo.monto,
+        directoUe: m.directo.ue,
+        sinClasificarMonto: m.sin_clasificar.monto,
+        sinClasificarUe: m.sin_clasificar.ue,
+      })),
+      porCliente: porCliente.map((c) => ({
+        cliente: c.cliente,
+        tipo: CATS.find((x) => x.key === c.cat)?.label ?? c.cat,
+        ue: c.ue,
+        monto: c.monto,
+        utilidad: c.utilidad,
+      })),
+    });
+  };
+
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -319,6 +355,14 @@ export default function CreditoCescemexReport() {
                     <span className={cn("font-light", c.text)}>{c.label}</span>
                   </label>
                 ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide">Exportar</Label>
+              <div className="h-10 flex items-center">
+                <Button variant="outline" onClick={descargarPdf}>
+                  <Download className="h-4 w-4 mr-2" /> Descargar PDF
+                </Button>
               </div>
             </div>
           </CardContent>

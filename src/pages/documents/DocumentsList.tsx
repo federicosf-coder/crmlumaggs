@@ -142,10 +142,10 @@ function getStatusBadgeClass(doc: any): string {
 function getTipoPagoInfo(valor: any): { label: string; cls: string } {
   const v = String(valor || "").trim().toLowerCase();
   if (!v) return { label: "-", cls: "" };
-  if (v.includes("cescemex")) return { label: "Crédito Cescemex", cls: "bg-amber-50 text-amber-700 border-amber-200" };
-  if (v.includes("directo")) return { label: "Crédito Directo", cls: "bg-purple-50 text-purple-700 border-purple-200" };
-  if (v.includes("contado")) return { label: "Contado", cls: "bg-blue-50 text-blue-700 border-blue-200" };
-  if (v.includes("credito") || v.includes("crédito")) return { label: "Crédito Directo", cls: "bg-purple-50 text-purple-700 border-purple-200" };
+  if (v === "credito_cescemex") return { label: "Crédito Cescemex", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+  if (v === "credito_directo") return { label: "Crédito Directo", cls: "bg-purple-50 text-purple-700 border-purple-200" };
+  if (v === "contado") return { label: "Contado", cls: "bg-blue-50 text-blue-700 border-blue-200" };
+  if (v === "credito") return { label: "Crédito (sin clasificar)", cls: "bg-slate-100 text-slate-700 border-slate-300" };
   return { label: "-", cls: "" };
 }
 
@@ -354,6 +354,7 @@ export default function DocumentsList() {
       if (tipoPagoFilter === "contado") q = q.eq("tipo_pago", "contado" as any);
       else if (tipoPagoFilter === "directo") q = q.eq("tipo_pago", "credito_directo" as any);
       else if (tipoPagoFilter === "cescemex") q = q.eq("tipo_pago", "credito_cescemex" as any);
+      else if (tipoPagoFilter === "sin_clasificar") q = q.eq("tipo_pago", "credito" as any);
       if (fechaDesde) q = q.gte("fecha_documento", fechaDesde);
       if (fechaHasta) q = q.lte("fecha_documento", fechaHasta);
       if (tipoFilter === "cotizacion" && estatusCotFilter !== "all") q = q.eq("estatus_cotizacion", estatusCotFilter as any);
@@ -925,6 +926,7 @@ export default function DocumentsList() {
                             <SelectItem value="all"><Pill cls={NEUTRAL_PILL}>Todos</Pill></SelectItem>
                             <SelectItem value="contado"><Pill cls="bg-blue-50 text-blue-700 border-blue-200">Contado</Pill></SelectItem>
                             <SelectItem value="directo"><Pill cls="bg-purple-50 text-purple-700 border-purple-200">Crédito Directo</Pill></SelectItem>
+                            <SelectItem value="sin_clasificar"><Pill cls="bg-slate-100 text-slate-700 border-slate-300">Crédito (sin clasificar)</Pill></SelectItem>
                             <SelectItem value="cescemex"><Pill cls="bg-amber-50 text-amber-700 border-amber-200">Crédito Cescemex</Pill></SelectItem>
                           </SelectContent>
                         </Select>
