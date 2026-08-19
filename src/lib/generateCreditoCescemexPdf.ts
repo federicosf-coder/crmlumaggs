@@ -373,7 +373,7 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(
-      `${Number(kpis.pctCarteraVencida || 0).toFixed(1)}% de las facturas se pagan vencidas  ·  DSO ${Number(kpis.diasPromedioPago || 0).toFixed(1)} días`,
+      `${Number(kpis.pctCarteraVencida || 0).toFixed(1)}% de las facturas pagadas se pagan vencidas  ·  DSO ${Number(kpis.diasPromedioPago || 0).toFixed(1)} días`,
       left,
       88
     );
