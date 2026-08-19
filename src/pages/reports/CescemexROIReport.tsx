@@ -120,6 +120,11 @@ export default function CescemexROIReport() {
   const beneficioNeto = costoRealTotal - form.recuperacion_siniestros;
   const pctCartera = carteraProtegida > 0 ? (costoRealTotal / carteraProtegida) * 100 : 0;
 
+  const utilidadGenerada = carteraProtegida * (form.margen_utilidad_pct / 100);
+  const utilidadNeta = utilidadGenerada - costoRealTotal;
+  const roi = costoRealTotal > 0 ? ((utilidadGenerada - costoRealTotal) / costoRealTotal) * 100 : 0;
+  const relacion = costoRealTotal > 0 ? utilidadGenerada / costoRealTotal : 0;
+
   const money = (n: number) =>
     n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
 
