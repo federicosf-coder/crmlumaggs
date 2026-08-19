@@ -184,12 +184,13 @@ export default function CescemexROIReport() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                   {([
                     ["costo_poliza_total", "Costo total póliza"],
                     ["aportacion_chevron", "Aportación Chevron"],
                     ["costo_por_cliente", "Costo por cliente / año"],
                     ["recuperacion_siniestros", "Recuperación por siniestros"],
+                    ["margen_utilidad_pct", "Margen de utilidad promedio (%)"],
                   ] as const).map(([campo, label]) => (
                     <div key={campo} className="space-y-1.5">
                       <Label className="text-xs uppercase tracking-wide">{label}</Label>
