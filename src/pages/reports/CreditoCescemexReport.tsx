@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
@@ -64,12 +66,32 @@ interface FacturaRow {
 
 export default function CreditoCescemexReport() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [plazasSel, setPlazasSel] = useState<string[]>([]);
   const [initPlazas, setInitPlazas] = useState(false);
   const [abierta, setAbierta] = useState<string | null>(null);
   const [catsSel, setCatsSel] = useState<Cat[]>(["cescemex", "directo", "sin_clasificar"]);
   const [sortField, setSortField] = useState<"cliente" | "cat" | "ue" | "monto" | "utilidad">("monto");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const reclasificar = async (empresaId: string | null, cliente: string, nuevo: "credito_cescemex" | "credito_directo") => {
+    if (!empresaId) return;
+    const n = facturasRaw.filter((f: any) => f.empresa_id === empresaId && f.tipo_pago === "credito").length;
+    const label = nuevo === "credito_cescemex" ? "Cescemex" : "Directo";
+    if (!window.confirm(`Se reclasificarán ${n} factura(s) de ${ANIO} de ${cliente} como Crédito ${label}. ¿Continuar?`)) return;
+    const { error } = await (supabase as any)
+      .from("documentos")
+      .update({ tipo_pago: nuevo })
+      .eq("empresa_id", empresaId)
+      .eq("tipo_pago", "credito")
+      .gte("fecha_documento", `${ANIO}-01-01`);
+    if (error) {
+      toast.error("Error al reclasificar: " + error.message);
+      return;
+    }
+    toast.success(`${n} factura(s) reclasificadas como Crédito ${label}`);
+    queryClient.invalidateQueries({ queryKey: ["credito-cescemex"] });
+  };
 
   const meses = useMemo(() => {
     const now = new Date();
@@ -475,6 +497,23 @@ export default function CreditoCescemexReport() {
                               <TableCell className="text-right">{money(c.monto)}</TableCell>
                               <TableCell className="text-right">{money(c.utilidad)}</TableCell>
                               <TableCell className="text-right">
+                                {c.cat === "sin_clasificar" && c.empresaId && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="outline" size="sm" className="mr-2" onClick={(e) => e.stopPropagation()}>
+                                        Reclasificar
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); reclasificar(c.empresaId, c.cliente, "credito_cescemex"); }}>
+                                        Marcar todas como Cescemex
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); reclasificar(c.empresaId, c.cliente, "credito_directo"); }}>
+                                        Marcar todas como Directo
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
                                 {c.empresaId && (
                                   <Button
                                     variant="ghost"
