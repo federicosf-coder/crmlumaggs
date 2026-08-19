@@ -31,11 +31,11 @@ export interface CobranzaKpis {
   pctPagadasATiempo: number;
   pctClientes: number;
   pctCarteraVencida: number;
-  diasPromedioAtraso: number;
   diasPromedioPago: number;
   totalFacturas?: number;
   buckets?: { label: string; cuenta: number; importe: number; pct: number }[];
 }
+
 
 export interface CreditoCescemexPdfInput {
   fecha: string;
