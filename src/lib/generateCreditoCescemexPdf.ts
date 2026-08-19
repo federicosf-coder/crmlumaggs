@@ -278,6 +278,52 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
     didDrawPage: footer,
   });
 
+  // ===== Página 4: Crédito y Cobranza — comportamiento por tipo =====
+  doc.addPage();
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(...brandColor);
+  doc.text("Crédito y Cobranza — comportamiento por tipo", margin, 36);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...mutedText);
+  doc.text("Comparativo Cescemex vs Directo (facturas del año en curso)", margin, 52);
+  doc.setTextColor(0, 0, 0);
+
+  const k = input.cobranzaKpis;
+  const pct = (n: number) => `${Number(n || 0).toFixed(1)}%`;
+  const dias = (n: number) => `${Number(n || 0).toFixed(1)} días`;
+  const kpiRows: { kpi: string; nota: string; c: string; d: string }[] = [
+    { kpi: "Facturas pagadas a tiempo", nota: "Pagadas dentro del vencimiento", c: pct(k.cescemex.pctPagadasATiempo), d: pct(k.directo.pctPagadasATiempo) },
+    { kpi: "Clientes por tipo de crédito", nota: "Distribución de la base de clientes", c: pct(k.cescemex.pctClientes), d: pct(k.directo.pctClientes) },
+    { kpi: "Cartera vencida", nota: "% del saldo pendiente que está vencido", c: pct(k.cescemex.pctCarteraVencida), d: pct(k.directo.pctCarteraVencida) },
+    { kpi: "Días promedio de atraso", nota: "Solo facturas vencidas", c: dias(k.cescemex.diasPromedioAtraso), d: dias(k.directo.diasPromedioAtraso) },
+    { kpi: "Días promedio para pagar (DSO)", nota: "De emisión a pago", c: dias(k.cescemex.diasPromedioPago), d: dias(k.directo.diasPromedioPago) },
+  ];
+
+  autoTable(doc, {
+    startY: 66,
+    head: [["Indicador", "Cescemex", "Directo"]],
+    body: kpiRows.flatMap((r) => [
+      [
+        { content: r.kpi, styles: { fontStyle: "bold" as const, fontSize: 10 } },
+        { content: r.c, styles: { halign: "center" as const, fontStyle: "bold" as const, fontSize: 15, textColor: EMERALD } },
+        { content: r.d, styles: { halign: "center" as const, fontStyle: "bold" as const, fontSize: 15, textColor: BLUE } },
+      ],
+      [
+        { content: r.nota, styles: { fontSize: 7.5, textColor: mutedText } },
+        { content: "Cescemex", styles: { halign: "center" as const, fontSize: 7.5, textColor: mutedText, fillColor: softFor("cescemex") } },
+        { content: "Directo", styles: { halign: "center" as const, fontSize: 7.5, textColor: mutedText, fillColor: softFor("directo") } },
+      ],
+    ]),
+    theme: "grid",
+    styles: { fontSize: 9, cellPadding: 6, lineColor: borderColor, lineWidth: 0.3 },
+    headStyles: { fillColor: brandColor, textColor: 255, fontStyle: "bold", halign: "center" },
+    columnStyles: { 0: { cellWidth: 300 } },
+    margin: { left: margin, right: margin },
+    didDrawPage: footer,
+  });
+
   return doc;
 }
 
