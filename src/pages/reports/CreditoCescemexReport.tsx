@@ -857,7 +857,7 @@ export default function CreditoCescemexReport() {
                     <Badge variant="secondary" className="text-[10px] font-light">DSO: {(k?.diasPromedioPago ?? 0).toFixed(1)} días</Badge>
                   </div>
                   <div className="text-[10px] font-light text-muted-foreground">
-                    % = facturas del rango / facturas pagadas con aplicación ({k?.facturasPagadasConAplicacion ?? 0}). Suma 100%.
+                    % = facturas del rango / total de facturas del tipo ({k?.total?.cuenta ?? 0}). Suma 100%.
                   </div>
                   <Table>
                     <TableHeader>
