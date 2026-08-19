@@ -1085,7 +1085,7 @@ function ProductosTab() {
                       {l.inv_pedidos?.fecha_entrega_estimada || <span className="text-amber-600">Sin fecha ⚠</span>}
                     </TableCell>
                     <TableCell className="text-sm">{ALMACEN_LABELS[l.inv_pedidos?.almacen_destino || ""] || l.inv_pedidos?.almacen_destino || "—"}</TableCell>
-                    <TableCell className="text-sm text-right tabular-nums">{Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0)}</TableCell>
+                    <TableCell className="text-sm text-right tabular-nums">{Number(l.cantidad_pendiente ?? l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0)}</TableCell>
                   </TableRow>
                 ))}
                 {detallePorLlegar.length === 0 && (
