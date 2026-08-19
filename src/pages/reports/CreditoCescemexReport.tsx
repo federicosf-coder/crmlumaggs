@@ -51,6 +51,26 @@ function clasificar(tipoPago: string | null): Cat {
   return "sin_clasificar";
 }
 
+const BUCKET_LABELS = ["En tiempo", "1-5 días", "6-10 días", "11-20 días", "21-30 días", "31+ días"] as const;
+
+const BUCKET_ROW_CLASS: Record<string, string> = {
+  "En tiempo": "text-emerald-700 bg-emerald-50/60",
+  "1-5 días": "text-amber-700 bg-amber-50/50",
+  "6-10 días": "text-orange-700 bg-orange-50/50",
+  "11-20 días": "text-orange-800 bg-orange-100/50",
+  "21-30 días": "text-red-700 bg-red-50/60",
+  "31+ días": "text-red-800 bg-red-100/60",
+};
+
+function retrasoBucket(retraso: number): string {
+  if (retraso <= 0) return "En tiempo";
+  if (retraso <= 5) return "1-5 días";
+  if (retraso <= 10) return "6-10 días";
+  if (retraso <= 20) return "11-20 días";
+  if (retraso <= 30) return "21-30 días";
+  return "31+ días";
+}
+
 function pad(n: number) {
   return String(n).padStart(2, "0");
 }
