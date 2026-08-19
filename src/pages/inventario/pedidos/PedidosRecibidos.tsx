@@ -1,21 +1,12 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { usePedidos, useRecepciones } from "@/hooks/usePedidosInventario";
-
-const TIPO_DIF = ["completo", "faltante", "sobrante", "danado", "incorrecto"];
+import { useRecepciones } from "@/hooks/usePedidosInventario";
+import RecepcionDialog from "@/components/inventario/RecepcionDialog";
 
 export default function PedidosRecibidos() {
   const { data: recepciones = [] } = useRecepciones();
