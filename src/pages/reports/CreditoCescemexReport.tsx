@@ -366,7 +366,7 @@ export default function CreditoCescemexReport() {
         totalFacturas,
         pctPagadasATiempo: pagadas.length ? (aTiempo.length / pagadas.length) * 100 : 0,
         pctClientes: clientesTotales.size ? (clientes.size / clientesTotales.size) * 100 : 0,
-        pctCarteraVencida: totalFacturas > 0 ? (vencidasPagadas / totalFacturas) * 100 : 0,
+        pctCarteraVencida: pagadas.length > 0 ? (vencidasPagadas / pagadas.length) * 100 : 0,
         diasPromedioPago: avg(dso),
         buckets,
       };
@@ -518,10 +518,10 @@ export default function CreditoCescemexReport() {
           <CardContent>
             <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               {[
-                { label: "Facturas pagadas a tiempo", key: "pctPagadasATiempo", fmt: (v: number) => `${v.toFixed(1)}%` },
-                { label: "Clientes por tipo de crédito", key: "pctClientes", fmt: (v: number) => `${v.toFixed(1)}%` },
-                { label: "Facturas pagadas vencidas", key: "pctCarteraVencida", fmt: (v: number) => `${v.toFixed(1)}%` },
-                { label: "Días promedio para pagar (DSO)", key: "diasPromedioPago", fmt: (v: number) => `${v.toFixed(1)} días` },
+                { label: "Pagadas a tiempo", key: "pctPagadasATiempo", fmt: (v: number) => `${v.toFixed(1)}%`, hint: "Pagadas a tiempo / Facturas pagadas" },
+                { label: "Clientes por tipo de crédito", key: "pctClientes", fmt: (v: number) => `${v.toFixed(1)}%`, hint: "Clientes del tipo / Clientes totales" },
+                { label: "Pagadas vencidas", key: "pctCarteraVencida", fmt: (v: number) => `${v.toFixed(1)}%`, hint: "Pagadas con retraso / Facturas pagadas" },
+                { label: "Días promedio para pagar (DSO)", key: "diasPromedioPago", fmt: (v: number) => `${v.toFixed(1)} días`, hint: "Promedio de días de emisión a pago" },
               ].map((kpi) => (
                 <div key={kpi.key} className="rounded-lg border p-4 space-y-3">
                   <div className="text-xs uppercase tracking-wide text-muted-foreground font-light">{kpi.label}</div>
@@ -540,6 +540,7 @@ export default function CreditoCescemexReport() {
                       </div>
                     </div>
                   </div>
+                  <div className="text-[10px] text-muted-foreground font-light leading-tight">{kpi.hint}</div>
                 </div>
               ))}
             </div>
@@ -822,12 +823,11 @@ export default function CreditoCescemexReport() {
                 <div key={t.key} className="space-y-2">
                   <div className={cn("text-sm font-semibold uppercase tracking-wide", t.text)}>{t.label}</div>
                   <div className="text-xs font-light">
-                    <span className="font-semibold">{(k?.pctCarteraVencida ?? 0).toFixed(1)}%</span> de las facturas se pagan vencidas
+                    <span className="font-semibold">{(k?.pctCarteraVencida ?? 0).toFixed(1)}%</span> de las facturas pagadas se pagan vencidas
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     <Badge variant="secondary" className="text-[10px] font-light">Pagadas a tiempo: {(k?.pctPagadasATiempo ?? 0).toFixed(1)}%</Badge>
                     <Badge variant="secondary" className="text-[10px] font-light">Clientes: {(k?.pctClientes ?? 0).toFixed(1)}%</Badge>
-                    
                     <Badge variant="secondary" className="text-[10px] font-light">DSO: {(k?.diasPromedioPago ?? 0).toFixed(1)} días</Badge>
                   </div>
                   <Table>

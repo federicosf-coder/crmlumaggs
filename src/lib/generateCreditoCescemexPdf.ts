@@ -317,10 +317,10 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
   const pct = (n: number) => `${Number(n || 0).toFixed(1)}%`;
   const dias = (n: number) => `${Number(n || 0).toFixed(1)} días`;
   const kpiRows: { kpi: string; nota: string; c: string; d: string }[] = [
-    { kpi: "Facturas pagadas a tiempo", nota: "Pagadas dentro del vencimiento", c: pct(k.cescemex.pctPagadasATiempo), d: pct(k.directo.pctPagadasATiempo) },
-    { kpi: "Clientes por tipo de crédito", nota: "Distribución de la base de clientes", c: pct(k.cescemex.pctClientes), d: pct(k.directo.pctClientes) },
-    { kpi: "Facturas pagadas vencidas", nota: "% del total de facturas del año que se pagaron después del vencimiento", c: pct(k.cescemex.pctCarteraVencida), d: pct(k.directo.pctCarteraVencida) },
-    { kpi: "Días promedio para pagar (DSO)", nota: "De emisión a pago", c: dias(k.cescemex.diasPromedioPago), d: dias(k.directo.diasPromedioPago) },
+    { kpi: "Facturas pagadas a tiempo", nota: "Pagadas dentro del vencimiento / Facturas pagadas", c: pct(k.cescemex.pctPagadasATiempo), d: pct(k.directo.pctPagadasATiempo) },
+    { kpi: "Clientes por tipo de crédito", nota: "Clientes del tipo / Clientes totales", c: pct(k.cescemex.pctClientes), d: pct(k.directo.pctClientes) },
+    { kpi: "Facturas pagadas vencidas", nota: "Pagadas con retraso / Facturas pagadas", c: pct(k.cescemex.pctCarteraVencida), d: pct(k.directo.pctCarteraVencida) },
+    { kpi: "Días promedio para pagar (DSO)", nota: "Promedio de días de emisión a pago", c: dias(k.cescemex.diasPromedioPago), d: dias(k.directo.diasPromedioPago) },
   ];
 
   autoTable(doc, {
@@ -373,7 +373,7 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(
-      `${Number(kpis.pctCarteraVencida || 0).toFixed(1)}% de las facturas se pagan vencidas  ·  DSO ${Number(kpis.diasPromedioPago || 0).toFixed(1)} días`,
+      `${Number(kpis.pctCarteraVencida || 0).toFixed(1)}% de las facturas pagadas se pagan vencidas  ·  DSO ${Number(kpis.diasPromedioPago || 0).toFixed(1)} días`,
       left,
       88
     );
