@@ -175,11 +175,12 @@ export default function CescemexROIReport() {
           </CardHeader>
           <CardContent>
             {!puedeEditar ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm font-light">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 text-sm font-light">
                 <div><span className="text-muted-foreground">Costo total póliza:</span> {money(form.costo_poliza_total)}</div>
                 <div><span className="text-muted-foreground">Aportación Chevron:</span> {money(form.aportacion_chevron)}</div>
                 <div><span className="text-muted-foreground">Costo por cliente/año:</span> {money(form.costo_por_cliente)}</div>
                 <div><span className="text-muted-foreground">Recuperación siniestros:</span> {money(form.recuperacion_siniestros)}</div>
+                <div><span className="text-muted-foreground">Margen de utilidad:</span> {form.margen_utilidad_pct}%</div>
               </div>
             ) : (
               <div className="space-y-4">
