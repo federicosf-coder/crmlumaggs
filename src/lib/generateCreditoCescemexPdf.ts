@@ -205,6 +205,27 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
     margin + 14,
     y + 60
   );
+  y += blockH + 14;
+
+  // ===== Utilidad por tipo (3 tarjetas) =====
+  const utCardH = 60;
+  input.categorias.slice(0, 3).forEach((c, i) => {
+    const x = margin + i * (cardW + gap);
+    const accent = accentFor(c.label);
+    doc.setDrawColor(...borderColor);
+    doc.setLineWidth(0.6);
+    doc.rect(x, y, cardW, utCardH, "S");
+    doc.setFillColor(...accent);
+    doc.rect(x, y, 4, utCardH, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...mutedText);
+    doc.text(`Utilidad ${c.label}`, x + 12, y + 20);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    doc.setTextColor(...accent);
+    doc.text(fmtCurrency(c.utilidad), x + 12, y + 44);
+  });
   footer();
 
   // ===== Página 2: tabla mensual =====
