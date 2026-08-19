@@ -529,6 +529,21 @@ export default function CreditoCescemexReport() {
           </CardContent>
         </Card>
 
+        <div className="grid gap-4 md:grid-cols-3">
+          {CATS.map((c) => (
+            <Card key={`ut-${c.key}`} className={cn("border-l-4", c.border)}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+                  Utilidad {c.label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={cn("text-2xl font-semibold", c.text)}>{money(totales[c.key].utilidad)}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
