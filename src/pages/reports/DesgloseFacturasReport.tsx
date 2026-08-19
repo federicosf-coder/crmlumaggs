@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageBanner } from "@/components/PageBanner";
+import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
 
 const MARCAS = [
@@ -85,6 +86,9 @@ export default function DesgloseFacturasReport() {
 
   return (
     <>
+      <div className="container mx-auto px-4 pt-4">
+        <BackButton fallback="/reports" label="Volver a Reportes" />
+      </div>
       <PageBanner
         title="Desglose de Facturas con Unidades"
         description="Detalle de facturas del mes por producto para verificar su cuantificación."

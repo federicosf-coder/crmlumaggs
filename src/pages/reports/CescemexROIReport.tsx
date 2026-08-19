@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageBanner } from "@/components/PageBanner";
+import { BackButton } from "@/components/BackButton";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -167,6 +168,9 @@ export default function CescemexROIReport() {
 
   return (
     <>
+      <div className="container mx-auto px-4 pt-4">
+        <BackButton fallback="/reports" label="Volver a Reportes" />
+      </div>
       <PageBanner
         title={`ROI Póliza Cescemex ${ANIO}`}
         description="Costo real anual de la póliza de crédito y su peso sobre la cartera protegida."
