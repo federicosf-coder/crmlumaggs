@@ -1867,7 +1867,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
       (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_total"),
       (supabase as any)
         .from("inv_pedido_lineas")
-        .select("codigo_producto, cantidad_confirmada, cantidad_solicitada, pedido:inv_pedidos!inner(id, numero_po_interno, numero_orden_proveedor, fecha_entrega_estimada, estatus)"),
+        .select("codigo_producto, cantidad_confirmada, cantidad_solicitada, cantidad_recibida, pedido:inv_pedidos!inner(id, numero_po_interno, numero_orden_proveedor, fecha_entrega_estimada, estatus)"),
     ]);
 
     setLineas((lin ?? []).filter((l: any) => l.entrega));
@@ -1879,13 +1879,14 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
     setStock(smap);
 
     const tr: PedidoTransito[] = ((pl ?? []) as any[])
-      .filter((l) => l.pedido && !["cerrado", "cancelado"].includes(String(l.pedido.estatus)))
+      .filter((l) => l.pedido && !["cerrado", "cancelado", "recibido"].includes(String(l.pedido.estatus)))
       .map((l) => ({
         codigo_producto: l.codigo_producto,
-        cantidad: Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0),
+        cantidad: Math.max(0, Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0) - Number(l.cantidad_recibida ?? 0)),
         fecha_entrega_estimada: l.pedido.fecha_entrega_estimada ?? null,
         numero_po: l.pedido.numero_po_interno || l.pedido.numero_orden_proveedor || "—",
-      }));
+      }))
+      .filter((t) => t.cantidad > 0);
     setTransito(tr);
     setLoading(false);
   };
@@ -2186,7 +2187,7 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
       (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_total"),
       (supabase as any)
         .from("inv_pedido_lineas")
-        .select("codigo_producto, cantidad_confirmada, cantidad_solicitada, pedido:inv_pedidos!inner(numero_po_interno, numero_orden_proveedor, fecha_entrega_estimada, estatus)"),
+        .select("codigo_producto, cantidad_confirmada, cantidad_solicitada, cantidad_recibida, pedido:inv_pedidos!inner(numero_po_interno, numero_orden_proveedor, fecha_entrega_estimada, estatus)"),
     ]);
 
     setLineas((lin ?? []).filter((l: any) => l.entrega?.estatus === "programada"));
@@ -2200,9 +2201,10 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
     const tmap: Record<string, number> = {};
     const dmap: Record<string, PedidoTransito[]> = {};
     ((pl ?? []) as any[])
-      .filter((l) => l.pedido && !["cerrado", "cancelado"].includes(String(l.pedido.estatus)))
+      .filter((l) => l.pedido && !["cerrado", "cancelado", "recibido"].includes(String(l.pedido.estatus)))
       .forEach((l) => {
-        const cant = Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0);
+        const cant = Math.max(0, Number(l.cantidad_confirmada ?? l.cantidad_solicitada ?? 0) - Number(l.cantidad_recibida ?? 0));
+        if (cant <= 0) return;
         tmap[l.codigo_producto] = (tmap[l.codigo_producto] ?? 0) + cant;
         (dmap[l.codigo_producto] ??= []).push({
           codigo_producto: l.codigo_producto,
