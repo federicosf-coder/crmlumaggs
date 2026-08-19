@@ -349,6 +349,7 @@ export default function CreditoCescemexReport() {
       const g = rows.filter((r) => r.tipo_pago === tipo);
       const pagadas = g.filter((r) => r.estado_cobranza === "pagada");
       const conAplic = pagadas.filter((r) => ultimaAplic.get(r.id));
+      const sinCobrar = g.filter((r) => !ultimaAplic.get(r.id));
       const aTiempo = conAplic.filter(
         (r) => r.fecha_vencimiento && ultimaAplic.get(r.id)! <= r.fecha_vencimiento
       );
@@ -357,12 +358,12 @@ export default function CreditoCescemexReport() {
           .filter(([, t]) => t === tipo)
           .map(([empresaId]) => empresaId)
       );
-      const vencidas = g.filter((r) => r.estado_cobranza === "vencida");
       const dso = conAplic
         .filter((r) => r.fecha_documento)
         .map((r) => diffDias(ultimaAplic.get(r.id)!, r.fecha_documento));
       const avg = (arr: number[]) => (arr.length ? arr.reduce((s, n) => s + n, 0) / arr.length : 0);
       const totalFacturas = g.length;
+      const totalImporte = g.reduce((s, r) => s + Number(r.total ?? 0), 0);
       const bucketAcc: Record<string, { cuenta: number; importe: number }> = {};
       BUCKET_LABELS.forEach((b) => { bucketAcc[b] = { cuenta: 0, importe: 0 }; });
       conAplic.forEach((r) => {
@@ -372,23 +373,28 @@ export default function CreditoCescemexReport() {
         bucketAcc[lbl].cuenta += 1;
         bucketAcc[lbl].importe += Number(r.total ?? 0);
       });
-      const basePagadas = conAplic.length;
+      sinCobrar.forEach((r) => {
+        bucketAcc["Sin cobrar"].cuenta += 1;
+        bucketAcc["Sin cobrar"].importe += Number(r.total ?? 0);
+      });
+      const baseTotal = totalFacturas;
       const buckets = BUCKET_LABELS.map((label) => ({
         label,
         cuenta: bucketAcc[label].cuenta,
         importe: bucketAcc[label].importe,
-        pct: basePagadas > 0 ? (bucketAcc[label].cuenta / basePagadas) * 100 : 0,
+        pct: baseTotal > 0 ? (bucketAcc[label].cuenta / baseTotal) * 100 : 0,
       }));
-      const vencidasPagadas = BUCKET_LABELS.filter((b) => b !== "En tiempo")
+      const vencidasPagadas = BUCKET_LABELS.filter((b) => b !== "En tiempo" && b !== "Sin cobrar")
         .reduce((s, b) => s + bucketAcc[b].cuenta, 0);
       return {
         totalFacturas,
-        facturasPagadasConAplicacion: basePagadas,
+        facturasPagadasConAplicacion: conAplic.length,
         pctPagadasATiempo: pagadas.length ? (aTiempo.length / pagadas.length) * 100 : 0,
         pctClientes: clientesTotales.size ? (clientes.size / clientesTotales.size) * 100 : 0,
         pctCarteraVencida: pagadas.length > 0 ? (vencidasPagadas / pagadas.length) * 100 : 0,
         diasPromedioPago: avg(dso),
         buckets,
+        total: { cuenta: totalFacturas, importe: totalImporte },
       };
     };
 
