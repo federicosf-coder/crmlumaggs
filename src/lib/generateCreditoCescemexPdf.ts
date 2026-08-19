@@ -27,6 +27,14 @@ export interface ClientePdf {
   utilidad: number;
 }
 
+export interface CobranzaKpis {
+  pctPagadasATiempo: number;
+  pctClientes: number;
+  pctCarteraVencida: number;
+  diasPromedioAtraso: number;
+  diasPromedioPago: number;
+}
+
 export interface CreditoCescemexPdfInput {
   fecha: string;
   plazasLabel: string;
@@ -35,6 +43,7 @@ export interface CreditoCescemexPdfInput {
   margenUtilidadPct: number;
   porMes: MesPdf[];
   porCliente: ClientePdf[];
+  cobranzaKpis: { cescemex: CobranzaKpis; directo: CobranzaKpis };
 }
 
 const EMERALD: [number, number, number] = [5, 150, 105];
