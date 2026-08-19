@@ -392,17 +392,17 @@ export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPD
     );
     doc.setTextColor(0, 0, 0);
     const rows = (kpis.buckets ?? []).map((b) => [
-      { content: b.label, styles: { fillColor: bucketFill(b.label) } },
-      { content: String(b.cuenta), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
-      { content: fmtCurrency(b.importe), styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
-      { content: `${Number(b.pct || 0).toFixed(1)}%`, styles: { halign: "right" as const, fillColor: bucketFill(b.label) } },
+      { content: b.label, styles: { fontStyle: "normal" as const, fillColor: bucketFill(b.label) } },
+      { content: String(b.cuenta), styles: { fontStyle: "normal" as const, halign: "right" as const, fillColor: bucketFill(b.label) } },
+      { content: fmtCurrency(b.importe), styles: { fontStyle: "normal" as const, halign: "right" as const, fillColor: bucketFill(b.label) } },
+      { content: `${Number(b.pct || 0).toFixed(1)}%`, styles: { fontStyle: "normal" as const, halign: "right" as const, fillColor: bucketFill(b.label) } },
     ]);
     if (kpis.total) {
       rows.push([
         { content: "Total", styles: { fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
-        { content: String(kpis.total.cuenta), styles: { halign: "right" as const, fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
-        { content: fmtCurrency(kpis.total.importe), styles: { halign: "right" as const, fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
-        { content: "100.0%", styles: { halign: "right" as const, fontStyle: "bold" as const, fillColor: [248, 250, 252] } },
+        { content: String(kpis.total.cuenta), styles: { fontStyle: "bold" as const, halign: "right" as const, fillColor: [248, 250, 252] } },
+        { content: fmtCurrency(kpis.total.importe), styles: { fontStyle: "bold" as const, halign: "right" as const, fillColor: [248, 250, 252] } },
+        { content: "100.0%", styles: { fontStyle: "bold" as const, halign: "right" as const, fillColor: [248, 250, 252] } },
       ]);
     }
     autoTable(doc, {
