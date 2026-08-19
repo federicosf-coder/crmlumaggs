@@ -90,7 +90,15 @@ export default function CreditoCescemexReport() {
       toast.error("Error al reclasificar: " + error.message);
       return;
     }
-    toast.success(`${n} factura(s) reclasificadas como Crédito ${label}`);
+    const { error: companyError } = await (supabase as any)
+      .from("companies")
+      .update({ tipo_pago: nuevo })
+      .eq("id", empresaId)
+      .or("tipo_pago.eq.credito,tipo_pago.is.null");
+    if (companyError) {
+      console.error("No se pudo sincronizar el tipo de pago de la empresa:", companyError);
+    }
+    toast.success(`${n} factura(s) reclasificadas como Crédito ${label} (ficha del cliente actualizada)`);
     queryClient.invalidateQueries({ queryKey: ["credito-cescemex"] });
   };
 
