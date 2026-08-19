@@ -15,7 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, ChevronUp, ArrowUpDown, ExternalLink, ShieldCheck, Wallet, HelpCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, ArrowUpDown, ExternalLink, ShieldCheck, Wallet, HelpCircle, Download } from "lucide-react";
+import { generateCreditoCescemexPdf } from "@/lib/generateCreditoCescemexPdf";
 import {
   Bar,
   BarChart,
@@ -319,6 +320,14 @@ export default function CreditoCescemexReport() {
                     <span className={cn("font-light", c.text)}>{c.label}</span>
                   </label>
                 ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide">Exportar</Label>
+              <div className="h-10 flex items-center">
+                <Button variant="outline" onClick={descargarPdf}>
+                  <Download className="h-4 w-4 mr-2" /> Descargar PDF
+                </Button>
               </div>
             </div>
           </CardContent>
