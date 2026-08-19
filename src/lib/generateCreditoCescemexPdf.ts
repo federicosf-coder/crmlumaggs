@@ -33,6 +33,8 @@ export interface CobranzaKpis {
   pctCarteraVencida: number;
   diasPromedioAtraso: number;
   diasPromedioPago: number;
+  totalFacturas?: number;
+  buckets?: { label: string; cuenta: number; importe: number; pct: number }[];
 }
 
 export interface CreditoCescemexPdfInput {
