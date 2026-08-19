@@ -69,7 +69,8 @@ function DetailRow({ label, value }: { label: string; value: string | null | und
 
 const TIPO_PAGO_LABEL: Record<string, string> = {
   contado: "Contado",
-  credito: "Crédito Directo",
+  credito: "Crédito (sin clasificar)",
+  credito_directo: "Crédito Directo",
   credito_cescemex: "Crédito Cescemex",
 };
 const METODO_PAGO_LABEL: Record<string, string> = {
@@ -1097,7 +1098,19 @@ export default function Directory() {
         open={!!editCompany}
         onOpenChange={open => { if (!open) setEditCompany(null); }}
         editData={editCompany}
-        onCreated={() => { fetchData(); setSelectedCompany(null); }}
+        onCreated={() => {
+          fetchData();
+          setEditCompany(null);
+          if (backUrl) {
+            const b = backUrl;
+            setSelectedCompany(null);
+            setBackUrl(null);
+            setInitialSubtab("general");
+            navigate(b);
+          } else {
+            setSelectedCompany(null);
+          }
+        }}
       />
       <ContactFormDialog open={contactOpen} onOpenChange={setContactOpen} onCreated={() => fetchData()} />
       <ContactFormDialog
