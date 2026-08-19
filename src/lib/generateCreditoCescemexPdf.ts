@@ -70,6 +70,7 @@ function softFor(label: string): [number, number, number] {
 }
 
 export function buildCreditoCescemexPdfDoc(input: CreditoCescemexPdfInput): jsPDF {
+  const _unused = 0;
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
