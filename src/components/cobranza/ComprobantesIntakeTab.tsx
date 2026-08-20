@@ -63,6 +63,9 @@ interface IntakeRow {
   clabe_extraida: string | null;
   tarjeta_ultimos4_extraida: string | null;
   extraccion_error: string | null;
+  nombre_detectado: string | null;
+  metodo_extraido: string | null;
+  empresa_id: string | null;
 }
 
 export function ComprobantesIntakeTab() {
