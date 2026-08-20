@@ -94,6 +94,9 @@ function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
+const money = (n: number) =>
+  n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
+
 interface FacturaRow {
   fecha_documento: string | null;
   tipo_pago: string | null;
