@@ -480,6 +480,8 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         tipo_pago: (editData as any).tipo_pago || "",
         forma_pago: (editData as any).forma_pago || "",
         id_contpaq: (editData as any).id_contpaq || "",
+        clabe_bancaria: (editData as any).clabe_bancaria || "",
+        tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
         limite_credito: Number((editData as any).limite_credito ?? 0),
         plaza_ids: [],
         ejecutivo_ids: [],
@@ -508,10 +510,13 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         tipo_pago: (editData as any).tipo_pago || "",
         forma_pago: (editData as any).forma_pago || "",
         id_contpaq: (editData as any).id_contpaq || "",
+        clabe_bancaria: (editData as any).clabe_bancaria || "",
+        tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
         limite_credito: Number((editData as any).limite_credito ?? 0),
         plaza_ids: [],
         ejecutivo_ids: [],
       });
+
       // Enable after mount tick so initial state changes don't trigger saves
       setTimeout(() => autosave.setEnabled(isEdit), 0);
     } else if (open && !editData) {
@@ -597,8 +602,11 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       tipo_pago: form.tipo_pago || null,
       forma_pago: form.forma_pago || null,
       id_contpaq: form.id_contpaq?.trim() || null,
+      clabe_bancaria: form.clabe_bancaria?.trim() || null,
+      tarjeta_ultimos4: form.tarjeta_ultimos4?.trim() || null,
       limite_credito: Number((form as any).limite_credito ?? 0),
     } as any;
+
 
     let result;
     if (isEdit) {
