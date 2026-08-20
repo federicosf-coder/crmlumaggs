@@ -17,6 +17,7 @@ import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, ChevronUp, ArrowUpDown, ExternalLink, ShieldCheck, Wallet, HelpCircle, Download } from "lucide-react";
 import { generateCreditoCescemexPdf } from "@/lib/generateCreditoCescemexPdf";
+import * as XLSX from "xlsx";
 import {
   Bar,
   BarChart,
@@ -93,6 +94,9 @@ function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
+const money = (n: number) =>
+  n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
+
 interface FacturaRow {
   fecha_documento: string | null;
   tipo_pago: string | null;
@@ -101,6 +105,164 @@ interface FacturaRow {
   empresa_id: string | null;
   plaza_id: string | null;
   companies: { name: string | null; razon_social: string | null } | null;
+}
+
+interface FacturaDetalle {
+  id: string;
+  folio: string;
+  cliente: string;
+  tipo: string;
+  fecha_documento: string | null;
+  fecha_vencimiento: string | null;
+  fecha_pago: string | null;
+  dias_retraso: number | null;
+  rango: string;
+  total: number;
+  saldo: number;
+}
+
+const DET_COLS: { key: keyof FacturaDetalle; label: string; align?: "right" }[] = [
+  { key: "folio", label: "Folio" },
+  { key: "cliente", label: "Cliente" },
+  { key: "tipo", label: "Tipo" },
+  { key: "fecha_documento", label: "Emisión" },
+  { key: "fecha_vencimiento", label: "Vencimiento" },
+  { key: "fecha_pago", label: "Pago" },
+  { key: "dias_retraso", label: "Días", align: "right" },
+  { key: "rango", label: "Rango" },
+  { key: "total", label: "Importe", align: "right" },
+  { key: "saldo", label: "Saldo", align: "right" },
+];
+
+function FacturasDetalleTabla({ rows }: { rows: FacturaDetalle[] }) {
+  const navigate = useNavigate();
+  const [field, setField] = useState<keyof FacturaDetalle>("fecha_documento");
+  const [dir, setDir] = useState<"asc" | "desc">("desc");
+  const [rango, setRango] = useState<string>("todos");
+
+  const filtered = useMemo(
+    () => (rango === "todos" ? rows : rows.filter((r) => r.rango === rango)),
+    [rows, rango]
+  );
+
+  const sorted = useMemo(() => {
+    const m = dir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      const av = a[field];
+      const bv = b[field];
+      if (av === null || av === undefined) return 1;
+      if (bv === null || bv === undefined) return -1;
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * m;
+      return String(av).localeCompare(String(bv)) * m;
+    });
+  }, [filtered, field, dir]);
+
+  const toggle = (k: keyof FacturaDetalle) => {
+    if (field === k) setDir(dir === "asc" ? "desc" : "asc");
+    else {
+      setField(k);
+      setDir("asc");
+    }
+  };
+
+  const exportar = () => {
+    const data = sorted.map((r) => ({
+      Folio: r.folio,
+      Cliente: r.cliente,
+      Tipo: r.tipo === "credito_cescemex" ? "Cescemex" : "Directo",
+      Emisión: r.fecha_documento ?? "",
+      Vencimiento: r.fecha_vencimiento ?? "",
+      "Fecha de pago": r.fecha_pago ?? "",
+      "Días de retraso": r.dias_retraso ?? "",
+      Rango: r.rango,
+      Importe: r.total,
+      Saldo: r.saldo,
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Facturas");
+    XLSX.writeFile(wb, `facturas_comportamiento_pago_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={rango}
+          onChange={(e) => setRango(e.target.value)}
+          className="h-8 rounded-md border bg-background px-2 text-xs"
+        >
+          <option value="todos">Todos los rangos</option>
+          {BUCKET_LABELS.map((b) => (
+            <option key={b} value={b}>{b}</option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground">{sorted.length} factura(s)</span>
+        <Button size="sm" variant="outline" className="ml-auto h-8 text-xs" onClick={exportar}>
+          <Download className="mr-1 h-3.5 w-3.5" /> Exportar Excel
+        </Button>
+      </div>
+      <div className="max-h-[520px] overflow-auto rounded-md border">
+        <Table>
+          <TableHeader className="sticky top-0 z-10 bg-background">
+            <TableRow>
+              {DET_COLS.map((c) => (
+                <TableHead
+                  key={c.key}
+                  onClick={() => toggle(c.key)}
+                  className={cn("cursor-pointer select-none whitespace-nowrap", c.align === "right" && "text-right")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {c.label}
+                    {field === c.key ? (
+                      dir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 opacity-30" />
+                    )}
+                  </span>
+                </TableHead>
+              ))}
+              <TableHead className="w-10" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sorted.map((r) => (
+              <TableRow key={r.id} className={BUCKET_ROW_CLASS[r.rango]}>
+                <TableCell className="font-mono text-xs">{r.folio}</TableCell>
+                <TableCell className="max-w-[220px] truncate text-xs">{r.cliente}</TableCell>
+                <TableCell className="text-xs">{r.tipo === "credito_cescemex" ? "Cescemex" : "Directo"}</TableCell>
+                <TableCell className="text-xs">{r.fecha_documento ?? "—"}</TableCell>
+                <TableCell className="text-xs">{r.fecha_vencimiento ?? "—"}</TableCell>
+                <TableCell className="text-xs">{r.fecha_pago ?? "—"}</TableCell>
+                <TableCell className="text-right text-xs">{r.dias_retraso ?? "—"}</TableCell>
+                <TableCell className="text-xs">{r.rango}</TableCell>
+                <TableCell className="text-right text-xs">{money(r.total)}</TableCell>
+                <TableCell className="text-right text-xs">{money(r.saldo)}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    title="Abrir y editar factura"
+                    onClick={() => navigate(`/documents/${r.id}/edit`)}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {sorted.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={DET_COLS.length + 1} className="py-6 text-center text-xs text-muted-foreground">
+                  Sin facturas
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
 }
 
 export default function CreditoCescemexReport() {
@@ -312,7 +474,7 @@ export default function CreditoCescemexReport() {
     const desde = primeraFecha && primeraFecha > inicioAnio ? primeraFecha : inicioAnio;
     const { data: facts, error } = await (supabase as any)
       .from("documentos")
-      .select("id, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, estado_cobranza")
+      .select("id, numero_factura, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, estado_cobranza, companies(name, razon_social)")
       .eq("tipo_documento", "factura")
       .neq("estatus_factura", "cancelada")
       .eq("is_active", true)
@@ -403,6 +565,24 @@ export default function CreditoCescemexReport() {
       }));
       const vencidasPagadas = BUCKET_LABELS.filter((b) => b !== "En tiempo" && b !== "Sin cobrar")
         .reduce((s, b) => s + bucketAcc[b].cuenta, 0);
+      const detalle: FacturaDetalle[] = g.map((r) => {
+        const pago = ultimaAplic.get(r.id) ?? null;
+        const retraso =
+          pago && r.fecha_vencimiento ? Math.round(diffDias(pago, r.fecha_vencimiento)) : null;
+        return {
+          id: r.id,
+          folio: r.numero_factura ?? r.id.slice(0, 8),
+          cliente: r.companies?.name ?? r.companies?.razon_social ?? "Sin cliente",
+          tipo,
+          fecha_documento: r.fecha_documento ?? null,
+          fecha_vencimiento: r.fecha_vencimiento ?? null,
+          fecha_pago: pago,
+          dias_retraso: retraso,
+          rango: pago ? (r.fecha_vencimiento ? retrasoBucket(retraso ?? 0) : "Sin cobrar") : "Sin cobrar",
+          total: Number(r.total ?? 0),
+          saldo: Number(r.saldo_pendiente_cobranza ?? 0),
+        };
+      });
       return {
         totalFacturas,
         facturasPagadasConAplicacion: conAplic.length,
@@ -411,6 +591,7 @@ export default function CreditoCescemexReport() {
         pctCarteraVencida: pagadas.length > 0 ? (vencidasPagadas / pagadas.length) * 100 : 0,
         diasPromedioPago: avg(dso),
         buckets,
+        detalle,
         total: { cuenta: totalFacturas, importe: totalImporte },
       };
     };
@@ -480,8 +661,6 @@ export default function CreditoCescemexReport() {
       : <ChevronDown className="h-3 w-3 ml-1 inline" />;
   };
 
-  const money = (n: number) =>
-    n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
   const fmt = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
 
   const togglePlaza = (id: string) =>
@@ -909,6 +1088,19 @@ export default function CreditoCescemexReport() {
                 </div>
               );
             })}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+              Desglose de facturas consideradas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FacturasDetalleTabla
+              rows={[...(cobranzaKpis?.directo.detalle ?? []), ...(cobranzaKpis?.cescemex.detalle ?? [])]}
+            />
           </CardContent>
         </Card>
       </div>
