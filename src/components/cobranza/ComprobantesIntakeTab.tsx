@@ -159,6 +159,7 @@ function ComprobanteCard({
   onDone: () => void;
 }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState(row.empresa_id || "");
   const autoVinculado = !!row.empresa_id;
@@ -173,6 +174,10 @@ function ComprobanteCard({
     row.metodo_extraido && METODOS_VALIDOS.includes(row.metodo_extraido) ? row.metodo_extraido : "transferencia"
   );
   const [saving, setSaving] = useState(false);
+  const [docs, setDocs] = useState<DocOption[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [seleccion, setSeleccion] = useState<Record<string, string>>({});
+  const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
 
   const isImage = (row.mime_type || "").startsWith("image/");
 
