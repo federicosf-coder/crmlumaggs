@@ -130,7 +130,8 @@ function ComprobanteCard({
 }) {
   const { user } = useAuth();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [empresaId, setEmpresaId] = useState("");
+  const [empresaId, setEmpresaId] = useState(row.empresa_id || "");
+  const autoVinculado = !!row.empresa_id;
   const [empresaDatos, setEmpresaDatos] = useState<{ clabe_bancaria: string | null; tarjeta_ultimos4: string | null } | null>(null);
   const [monto, setMonto] = useState(row.monto_extraido != null ? String(row.monto_extraido) : "");
   const [fecha, setFecha] = useState(row.fecha_extraida || new Date().toISOString().slice(0, 10));
