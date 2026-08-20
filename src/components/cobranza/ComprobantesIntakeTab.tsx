@@ -215,6 +215,61 @@ function ComprobanteCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empresaId]);
 
+  // Cargar documentos al cambiar empresa
+  useEffect(() => {
+    if (!empresaId) { setDocs([]); setSeleccion({}); return; }
+    setLoadingDocs(true);
+    supabase.from("documentos")
+      .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,total,saldo_pendiente_cobranza,estatus_factura")
+      .eq("empresa_id", empresaId)
+      .eq("is_active", true)
+      .gt("total", 0)
+      .in("tipo_documento", ["factura", "pedido", "cotizacion"])
+      .order("fecha_documento", { ascending: false })
+      .then(({ data }) => {
+        const mapped: DocOption[] = (data || [])
+          .filter((d: any) => {
+            const status = (d.estatus_factura || "").toLowerCase();
+            return status !== "pagada" && status !== "cancelada";
+          })
+          .map((d: any) => ({
+            id: d.id,
+            tipo_documento: d.tipo_documento,
+            numero: d.numero_factura || d.numero_pedido || d.numero_cotizacion || "—",
+            fecha_documento: d.fecha_documento,
+            total: Number(d.total || 0),
+            saldo: Number(d.saldo_pendiente_cobranza ?? d.total ?? 0),
+          }));
+        setDocs(mapped);
+        setSeleccion({});
+        setLoadingDocs(false);
+      });
+  }, [empresaId]);
+
+  const totalAsignado = useMemo(
+    () => Object.values(seleccion).reduce((s, v) => s + (Number(v) || 0), 0),
+    [seleccion]
+  );
+  const montoNum = Number(monto) || 0;
+  const diferencia = montoNum - totalAsignado;
+
+  const toggleDoc = (doc: DocOption, checked: boolean) => {
+    setSeleccion((prev) => {
+      const next = { ...prev };
+      if (checked) {
+        const restante = Math.max(0, montoNum - totalAsignado);
+        let sugerido = montoNum > 0 ? Math.min(doc.saldo, restante || doc.saldo) : doc.saldo;
+        if (montoNum > 0 && restante > doc.saldo && restante - doc.saldo <= TOLERANCIA) sugerido = restante;
+        next[doc.id] = String(sugerido.toFixed(2));
+      } else {
+        delete next[doc.id];
+      }
+      return next;
+    });
+  };
+
+
+
   const mismatchClabe =
     !!empresaDatos?.clabe_bancaria &&
     !!row.clabe_extraida &&
