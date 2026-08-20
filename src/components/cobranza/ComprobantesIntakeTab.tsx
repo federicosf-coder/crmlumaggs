@@ -333,10 +333,27 @@ function ComprobanteCard({
           estatus_pago: "recibido" as any,
           observaciones: `Comprobante recibido vía ${CANAL_LABEL[row.canal] || row.canal}. Creado desde bandeja de clasificación.`,
           creado_por: user?.id,
+          ...(empresaVendedora ? { empresa_vendedora: empresaVendedora } : {}),
         } as any)
         .select("id")
         .single();
       if (pagoErr) throw pagoErr;
+
+      // Aplicaciones a documentos seleccionados
+      if (aplicaciones.length > 0) {
+        const aplicacionesPayload = aplicaciones.map((a) => {
+          const doc = docs.find((d) => d.id === a.doc_id)!;
+          return {
+            pago_id: pago.id,
+            documento_id: a.doc_id,
+            tipo_documento: doc.tipo_documento,
+            monto_aplicado: a.monto,
+            creado_por: user?.id,
+          };
+        });
+        const { error: appErr } = await supabase.from("cobranza_aplicaciones").insert(aplicacionesPayload as any);
+        if (appErr) toast.warning("Pago creado, pero falló alguna aplicación: " + appErr.message);
+      }
 
       // Aprendizaje de alias cliente
       if (row.nombre_detectado) {
