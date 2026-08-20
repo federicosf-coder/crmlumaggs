@@ -293,6 +293,23 @@ export default function CreditoCescemexReport() {
   const { data: cobranzaKpis } = useQuery({
     queryKey: ["credito-cescemex-cobranza", ANIO],
     queryFn: async () => {
+    // El análisis de comportamiento de pago sólo es válido a partir de que se
+    // empezaron a registrar pagos en el sistema: antes de esa fecha muchas
+    // facturas se marcaron como pagadas manualmente (sin aplicación), lo que
+    // inflaba el renglón "Sin cobrar".
+    const { data: primeraAplic } = await (supabase as any)
+      .from("cobranza_aplicaciones")
+      .select("fecha_aplicacion")
+      .eq("estatus_aplicacion", "activa")
+      .not("fecha_aplicacion", "is", null)
+      .order("fecha_aplicacion", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const inicioAnio = `${ANIO}-01-01`;
+    const primeraFecha = primeraAplic?.fecha_aplicacion
+      ? String(primeraAplic.fecha_aplicacion).slice(0, 10)
+      : null;
+    const desde = primeraFecha && primeraFecha > inicioAnio ? primeraFecha : inicioAnio;
     const { data: facts, error } = await (supabase as any)
       .from("documentos")
       .select("id, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, estado_cobranza")
@@ -300,7 +317,7 @@ export default function CreditoCescemexReport() {
       .neq("estatus_factura", "cancelada")
       .eq("is_active", true)
       .in("tipo_pago", ["credito_cescemex", "credito_directo"])
-      .gte("fecha_documento", `${ANIO}-01-01`);
+      .gte("fecha_documento", desde);
     if (error) throw error;
     const rows: any[] = facts ?? [];
     const ids = rows.map((r) => r.id);
@@ -398,7 +415,7 @@ export default function CreditoCescemexReport() {
       };
     };
 
-      return { cescemex: calc("credito_cescemex"), directo: calc("credito_directo") };
+      return { desde, cescemex: calc("credito_cescemex"), directo: calc("credito_directo") };
     },
   });
 
@@ -858,6 +875,7 @@ export default function CreditoCescemexReport() {
                   </div>
                   <div className="text-[10px] font-light text-muted-foreground">
                     % = facturas del rango / total de facturas del tipo ({k?.total?.cuenta ?? 0}). Suma 100%.
+                    {cobranzaKpis?.desde ? ` Sólo facturas emitidas desde el ${cobranzaKpis.desde} (primer pago registrado en el sistema).` : ""}
                   </div>
                   <Table>
                     <TableHeader>
