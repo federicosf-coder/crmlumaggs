@@ -1648,6 +1648,93 @@ export type Database = {
           },
         ]
       }
+      comprobantes_intake: {
+        Row: {
+          banco_extraido: string | null
+          canal: Database["public"]["Enums"]["comprobante_intake_canal"]
+          clabe_extraida: string | null
+          clasificado_at: string | null
+          clasificado_por: string | null
+          cobranza_pago_id: string | null
+          created_at: string
+          ejecutivo_id: string
+          empresa_id: string | null
+          estatus: Database["public"]["Enums"]["comprobante_intake_estatus"]
+          extraccion_error: string | null
+          extraccion_raw: Json | null
+          fecha_extraida: string | null
+          id: string
+          mime_type: string | null
+          monto_extraido: number | null
+          nombre_archivo: string | null
+          referencia_extraida: string | null
+          storage_path: string
+          tarjeta_ultimos4_extraida: string | null
+          updated_at: string
+        }
+        Insert: {
+          banco_extraido?: string | null
+          canal: Database["public"]["Enums"]["comprobante_intake_canal"]
+          clabe_extraida?: string | null
+          clasificado_at?: string | null
+          clasificado_por?: string | null
+          cobranza_pago_id?: string | null
+          created_at?: string
+          ejecutivo_id: string
+          empresa_id?: string | null
+          estatus?: Database["public"]["Enums"]["comprobante_intake_estatus"]
+          extraccion_error?: string | null
+          extraccion_raw?: Json | null
+          fecha_extraida?: string | null
+          id?: string
+          mime_type?: string | null
+          monto_extraido?: number | null
+          nombre_archivo?: string | null
+          referencia_extraida?: string | null
+          storage_path: string
+          tarjeta_ultimos4_extraida?: string | null
+          updated_at?: string
+        }
+        Update: {
+          banco_extraido?: string | null
+          canal?: Database["public"]["Enums"]["comprobante_intake_canal"]
+          clabe_extraida?: string | null
+          clasificado_at?: string | null
+          clasificado_por?: string | null
+          cobranza_pago_id?: string | null
+          created_at?: string
+          ejecutivo_id?: string
+          empresa_id?: string | null
+          estatus?: Database["public"]["Enums"]["comprobante_intake_estatus"]
+          extraccion_error?: string | null
+          extraccion_raw?: Json | null
+          fecha_extraida?: string | null
+          id?: string
+          mime_type?: string | null
+          monto_extraido?: number | null
+          nombre_archivo?: string | null
+          referencia_extraida?: string | null
+          storage_path?: string
+          tarjeta_ultimos4_extraida?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprobantes_intake_cobranza_pago_id_fkey"
+            columns: ["cobranza_pago_id"]
+            isOneToOne: false
+            referencedRelation: "cobranza_pagos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprobantes_intake_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       condiciones_comerciales: {
         Row: {
           contenido: string
@@ -8105,6 +8192,33 @@ export type Database = {
           },
         ]
       }
+      user_upload_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          last_used_at: string | null
+          revoked: boolean
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          revoked?: boolean
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          revoked?: boolean
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vehiculos: {
         Row: {
           color: string
@@ -8898,6 +9012,10 @@ export type Database = {
         Args: { p_company_id: string; p_marca: string; p_mes?: string }
         Returns: string
       }
+      get_or_create_upload_token: {
+        Args: { _regenerate?: boolean }
+        Returns: string
+      }
       get_user_module_access: {
         Args: {
           _module: Database["public"]["Enums"]["app_module"]
@@ -9102,6 +9220,12 @@ export type Database = {
         | "customer_service"
         | "accounting"
       approval_status: "pendiente" | "aprobado" | "rechazado"
+      comprobante_intake_canal:
+        | "android_share"
+        | "ios_shortcut"
+        | "app_manual"
+        | "email"
+      comprobante_intake_estatus: "pendiente" | "clasificado" | "descartado"
       cotizacion_followup_status:
         | "enviada"
         | "seguimiento_1"
@@ -9453,6 +9577,13 @@ export const Constants = {
         "accounting",
       ],
       approval_status: ["pendiente", "aprobado", "rechazado"],
+      comprobante_intake_canal: [
+        "android_share",
+        "ios_shortcut",
+        "app_manual",
+        "email",
+      ],
+      comprobante_intake_estatus: ["pendiente", "clasificado", "descartado"],
       cotizacion_followup_status: [
         "enviada",
         "seguimiento_1",

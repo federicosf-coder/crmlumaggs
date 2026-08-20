@@ -47,3 +47,7 @@ verify_jwt = false
 
 [functions.facebook-leads-webhook]
 verify_jwt = false
+
+[functions.intake-comprobante]
+verify_jwt = false
+
