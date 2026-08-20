@@ -234,6 +234,7 @@ function ComprobanteCard({
           monto_disponible: montoNum,
           moneda: "MXN",
           tipo_pago: formaPago as any,
+          metodo_pago: metodoPago,
           referencia_pago: referencia || null,
           banco: banco || null,
           estatus_pago: "recibido" as any,
