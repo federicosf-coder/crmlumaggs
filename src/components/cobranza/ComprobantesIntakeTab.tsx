@@ -422,6 +422,7 @@ function ComprobanteCard({
 
       toast.success("Pago creado y comprobante clasificado");
       onDone();
+      navigate(`/cobranza/${empresaVendedora === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
     } catch (e: any) {
       toast.error(e.message || "No se pudo crear el pago");
     } finally {
