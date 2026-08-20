@@ -174,8 +174,11 @@ export interface CompanyData {
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
   uso_cfdi?: string | null; metodo_pago?: string | null; tipo_pago?: string | null; forma_pago?: string | null;
   id_contpaq?: string | null;
+  clabe_bancaria?: string | null;
+  tarjeta_ultimos4?: string | null;
   limite_credito?: number | null;
 }
+
 
 interface Props {
   open: boolean;
@@ -194,10 +197,13 @@ const emptyForm = {
   evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
   uso_cfdi: "", metodo_pago: "", tipo_pago: "", forma_pago: "",
   id_contpaq: "",
+  clabe_bancaria: "",
+  tarjeta_ultimos4: "",
   limite_credito: 0,
   plaza_ids: [] as string[],
   ejecutivo_ids: [] as string[],
 };
+
 
 export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: Props) {
   const { user } = useAuth();
@@ -336,11 +342,12 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       // empty string -> null for nullable text/select fields, except name/razon_social
       if (k === "name" || k === "razon_social") {
         dbPayload[k] = (v ?? "").toString();
-      } else if (k === "id_contpaq") {
+      } else if (k === "id_contpaq" || k === "clabe_bancaria" || k === "tarjeta_ultimos4") {
         dbPayload[k] = (v ?? "").toString().trim() || null;
       } else {
         dbPayload[k] = v === "" || v == null ? null : v;
       }
+
     }
     if (Object.keys(dbPayload).length > 0) {
       const { error } = await supabase.from("companies").update(dbPayload as any).eq("id", editData!.id!);
