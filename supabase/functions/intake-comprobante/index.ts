@@ -153,9 +153,34 @@ Deno.serve(async (req) => {
       insertPayload.clabe_extraida = soloDigitos(extraido.clabe);
       insertPayload.tarjeta_ultimos4_extraida = soloDigitos(extraido.tarjeta_ultimos4);
       insertPayload.extraccion_raw = extraido;
+
+      const nombreDetectado = asText(extraido.nombre_detectado);
+      insertPayload.nombre_detectado = nombreDetectado;
+
+      const metodoRaw = (asText(extraido.metodo) || '').toLowerCase();
+      insertPayload.metodo_extraido = METODOS.includes(metodoRaw) ? metodoRaw : 'transferencia';
+
+      if (nombreDetectado) {
+        const aliasNorm = normalizarAlias(nombreDetectado);
+        if (aliasNorm) {
+          const { data: alias } = await admin
+            .from('comprobante_cliente_aliases')
+            .select('id, empresa_id, veces_usado')
+            .eq('alias_normalizado', aliasNorm)
+            .maybeSingle();
+          if (alias?.empresa_id) {
+            insertPayload.empresa_id = alias.empresa_id;
+            await admin
+              .from('comprobante_cliente_aliases')
+              .update({ veces_usado: (alias.veces_usado || 0) + 1, updated_at: new Date().toISOString() })
+              .eq('id', alias.id);
+          }
+        }
+      }
     } else {
       insertPayload.extraccion_error = extraccionError;
     }
+
 
     const { data: inserted, error: insErr } = await admin
       .from('comprobantes_intake')
