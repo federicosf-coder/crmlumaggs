@@ -240,7 +240,10 @@ function ComprobanteCard({
             numero: d.numero_factura || d.numero_pedido || d.numero_cotizacion || "—",
             fecha_documento: d.fecha_documento,
             total: Number(d.total || 0),
-            saldo: Number(d.saldo_pendiente_cobranza ?? d.total ?? 0),
+            saldo:
+              d.tipo_documento === "factura"
+                ? Number(d.saldo_pendiente_cobranza ?? d.total ?? 0)
+                : Number(d.total || 0),
           }));
         setDocs(mapped);
         setSeleccion({});
