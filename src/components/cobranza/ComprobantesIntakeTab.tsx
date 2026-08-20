@@ -75,7 +75,7 @@ export function ComprobantesIntakeTab() {
       const { data, error } = await supabase
         .from("comprobantes_intake")
         .select(
-          "id,canal,created_at,storage_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error"
+          "id,canal,created_at,storage_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error,nombre_detectado,metodo_extraido,empresa_id"
         )
         .eq("estatus", "pendiente")
         .order("created_at", { ascending: true });
