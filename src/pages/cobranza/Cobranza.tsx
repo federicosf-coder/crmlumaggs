@@ -889,7 +889,12 @@ export default function Cobranza() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="pagos">Pagos</TabsTrigger>
           <TabsTrigger value="facturas">Seguimiento de facturas</TabsTrigger>
+          <TabsTrigger value="intake" className="gap-2">
+            Comprobantes
+            {intakePendientes > 0 && <Badge variant="secondary">{intakePendientes}</Badge>}
+          </TabsTrigger>
         </TabsList>
+
 
         {/* DASHBOARD */}
         <TabsContent value="dashboard" className="space-y-6">
