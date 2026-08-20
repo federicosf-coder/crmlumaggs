@@ -1186,6 +1186,7 @@ export type Database = {
           estatus_pago: Database["public"]["Enums"]["estatus_pago_cobranza"]
           fecha_pago: string
           id: string
+          metodo_pago: string
           moneda: string
           monto_aplicado: number
           monto_disponible: number
@@ -1208,6 +1209,7 @@ export type Database = {
           estatus_pago?: Database["public"]["Enums"]["estatus_pago_cobranza"]
           fecha_pago?: string
           id?: string
+          metodo_pago?: string
           moneda?: string
           monto_aplicado?: number
           monto_disponible?: number
@@ -1230,6 +1232,7 @@ export type Database = {
           estatus_pago?: Database["public"]["Enums"]["estatus_pago_cobranza"]
           fecha_pago?: string
           id?: string
+          metodo_pago?: string
           moneda?: string
           monto_aplicado?: number
           monto_disponible?: number
@@ -1648,6 +1651,44 @@ export type Database = {
           },
         ]
       }
+      comprobante_cliente_aliases: {
+        Row: {
+          alias_normalizado: string
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          id: string
+          updated_at: string
+          veces_usado: number
+        }
+        Insert: {
+          alias_normalizado: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          id?: string
+          updated_at?: string
+          veces_usado?: number
+        }
+        Update: {
+          alias_normalizado?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          id?: string
+          updated_at?: string
+          veces_usado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprobante_cliente_aliases_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comprobantes_intake: {
         Row: {
           banco_extraido: string | null
@@ -1664,9 +1705,11 @@ export type Database = {
           extraccion_raw: Json | null
           fecha_extraida: string | null
           id: string
+          metodo_extraido: string | null
           mime_type: string | null
           monto_extraido: number | null
           nombre_archivo: string | null
+          nombre_detectado: string | null
           referencia_extraida: string | null
           storage_path: string
           tarjeta_ultimos4_extraida: string | null
@@ -1687,9 +1730,11 @@ export type Database = {
           extraccion_raw?: Json | null
           fecha_extraida?: string | null
           id?: string
+          metodo_extraido?: string | null
           mime_type?: string | null
           monto_extraido?: number | null
           nombre_archivo?: string | null
+          nombre_detectado?: string | null
           referencia_extraida?: string | null
           storage_path: string
           tarjeta_ultimos4_extraida?: string | null
@@ -1710,9 +1755,11 @@ export type Database = {
           extraccion_raw?: Json | null
           fecha_extraida?: string | null
           id?: string
+          metodo_extraido?: string | null
           mime_type?: string | null
           monto_extraido?: number | null
           nombre_archivo?: string | null
+          nombre_detectado?: string | null
           referencia_extraida?: string | null
           storage_path?: string
           tarjeta_ultimos4_extraida?: string | null
