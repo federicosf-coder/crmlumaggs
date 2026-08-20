@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabasePagination";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -87,12 +88,16 @@ export function ComprobantesIntakeTab() {
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-activas-intake"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("companies")
-        .select("id,name")
-        .eq("is_active", true)
-        .order("name");
-      return (data || []) as { id: string; name: string }[];
+      return await fetchAllRows<{ id: string; name: string }>(
+        (from, to) =>
+          supabase
+            .from("companies")
+            .select("id,name")
+            .eq("is_active", true)
+            .order("name")
+            .range(from, to),
+        1000
+      );
     },
   });
 
