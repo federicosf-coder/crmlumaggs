@@ -175,6 +175,7 @@ function ComprobanteCard({
     row.metodo_extraido && METODOS_VALIDOS.includes(row.metodo_extraido) ? row.metodo_extraido : "transferencia"
   );
   const [saving, setSaving] = useState(false);
+  const [savingEnviar, setSavingEnviar] = useState(false);
   const [docs, setDocs] = useState<DocOption[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [seleccion, setSeleccion] = useState<Record<string, string>>({});
