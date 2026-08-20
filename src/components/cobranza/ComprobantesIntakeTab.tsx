@@ -292,24 +292,7 @@ function ComprobanteCard({
     onDone();
   };
 
-  const handleCrearPago = async () => {
-    if (!empresaId) {
-      toast.error("Selecciona el cliente");
-      return;
-    }
-    if (!montoNum || montoNum <= 0) {
-      toast.error("El monto debe ser mayor a 0");
-      return;
-    }
-    if (!formaPago) {
-      toast.error("Selecciona la forma de pago");
-      return;
-    }
-    const aplicaciones = Object.entries(seleccion)
-      .map(([doc_id, m]) => ({ doc_id, monto: Number(m) || 0 }))
-      .filter((a) => a.monto > 0);
-    if (totalAsignado > montoNum + TOLERANCIA) { toast.error("La suma asignada excede el monto del pago"); return; }
-    setSaving(true);
+  const crearPago = async (aplicaciones: { doc_id: string; monto: number }[]): Promise<{ id: string } | null> => {
     try {
       const { data: cp } = await supabase
         .from("company_plazas")
@@ -386,7 +369,6 @@ function ComprobanteCard({
         }
       }
 
-
       // Copiar archivo al bucket de documentos y registrarlo
       try {
         const { data: file, error: dlErr } = await supabase.storage.from("comprobantes-intake").download(row.storage_path);
@@ -422,13 +404,88 @@ function ComprobanteCard({
         .eq("id", row.id);
       if (updErr) throw updErr;
 
+      return pago;
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo crear el pago");
+      return null;
+    }
+  };
+
+  const handleCrearPago = async () => {
+    if (!empresaId) {
+      toast.error("Selecciona el cliente");
+      return;
+    }
+    if (!montoNum || montoNum <= 0) {
+      toast.error("El monto debe ser mayor a 0");
+      return;
+    }
+    if (!formaPago) {
+      toast.error("Selecciona la forma de pago");
+      return;
+    }
+    const aplicaciones = Object.entries(seleccion)
+      .map(([doc_id, m]) => ({ doc_id, monto: Number(m) || 0 }))
+      .filter((a) => a.monto > 0);
+    if (totalAsignado > montoNum + TOLERANCIA) { toast.error("La suma asignada excede el monto del pago"); return; }
+    setSaving(true);
+    try {
+      const pago = await crearPago(aplicaciones);
+      if (!pago) return;
       toast.success("Pago creado y comprobante clasificado");
       onDone();
       navigate(`/cobranza/${empresaVendedora === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
-    } catch (e: any) {
-      toast.error(e.message || "No se pudo crear el pago");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGuardarYEnviar = async () => {
+    if (!empresaId) {
+      toast.error("Selecciona el cliente");
+      return;
+    }
+    if (!montoNum || montoNum <= 0) {
+      toast.error("El monto debe ser mayor a 0");
+      return;
+    }
+    if (!formaPago) {
+      toast.error("Selecciona la forma de pago");
+      return;
+    }
+    const aplicaciones = Object.entries(seleccion)
+      .map(([doc_id, m]) => ({ doc_id, monto: Number(m) || 0 }))
+      .filter((a) => a.monto > 0);
+    if (totalAsignado > montoNum + TOLERANCIA) { toast.error("La suma asignada excede el monto del pago"); return; }
+    setSavingEnviar(true);
+    try {
+      const pago = await crearPago(aplicaciones);
+      if (!pago) return;
+
+      const triggerKey =
+        formaPago === "contado"
+          ? "cobranza.enviar_correo_contado"
+          : formaPago === "credito"
+          ? "cobranza.enviar_correo_credito_directo"
+          : "cobranza.enviar_correo_credito_cescemex";
+
+      await fireAutomation({
+        trigger_type: "existing_button_click",
+        entity_type: "payment",
+        entity_id: pago.id,
+        trigger_key: triggerKey,
+      });
+
+      await supabase
+        .from("cobranza_pagos")
+        .update({ estatus_pago: "enviado_validar" as any })
+        .eq("id", pago.id);
+
+      toast.success("Pago creado y enviado a validar");
+      onDone();
+      navigate(`/cobranza/${empresaVendedora === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
+    } finally {
+      setSavingEnviar(false);
     }
   };
 
