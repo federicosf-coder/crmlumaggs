@@ -497,6 +497,92 @@ function ComprobanteCard({
             </Alert>
           )}
 
+          {empresaId && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label>Documentos a ligar</Label>
+                {montoNum > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    Asignado: <span className="font-medium text-foreground">{formatCurrency(totalAsignado)}</span> /{" "}
+                    {formatCurrency(montoNum)}{" "}
+                    {Math.abs(diferencia) > 0.01 && (
+                      <span className={diferencia < 0 ? "text-destructive" : "text-amber-600"}>
+                        ({diferencia > 0 ? "+" : ""}{formatCurrency(diferencia)})
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-1 mb-2">
+                {(["factura", "pedido", "cotizacion"] as const).map((t) => {
+                  const count = docs.filter((d) => d.tipo_documento === t).length;
+                  return (
+                    <Button
+                      key={t}
+                      type="button"
+                      size="sm"
+                      variant={tipoFiltro === t ? "default" : "outline"}
+                      onClick={() => setTipoFiltro(t)}
+                    >
+                      {TIPO_LABEL[t]}s <span className="ml-1 opacity-70">({count})</span>
+                    </Button>
+                  );
+                })}
+              </div>
+              <div className="border rounded-md">
+                {loadingDocs && (
+                  <div className="p-6 text-sm text-center text-muted-foreground">Cargando documentos...</div>
+                )}
+                {!loadingDocs && docs.filter((d) => d.tipo_documento === tipoFiltro).length === 0 && (
+                  <div className="p-6 text-sm text-center text-muted-foreground">No hay {TIPO_LABEL[tipoFiltro].toLowerCase()}s para esta empresa</div>
+                )}
+                {!loadingDocs && docs.filter((d) => d.tipo_documento === tipoFiltro).length > 0 && (
+                  <ScrollArea className="h-48">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-muted/50 border-b">
+                        <tr className="text-left">
+                          <th className="p-2 w-8"></th>
+                          <th className="p-2">Folio</th>
+                          <th className="p-2">Fecha</th>
+                          <th className="p-2 text-right">Total</th>
+                          <th className="p-2 text-right">Saldo</th>
+                          <th className="p-2 text-right w-32">Aplicar</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {docs.filter((d) => d.tipo_documento === tipoFiltro).map((d) => {
+                          const checked = seleccion[d.id] !== undefined;
+                          return (
+                            <tr key={d.id} className="border-b last:border-0 hover:bg-muted/30">
+                              <td className="p-2">
+                                <Checkbox checked={checked} onCheckedChange={(v) => toggleDoc(d, !!v)} />
+                              </td>
+                              <td className="p-2 font-mono text-xs">{d.numero}</td>
+                              <td className="p-2 text-xs">{formatDate(d.fecha_documento)}</td>
+                              <td className="p-2 text-right">{formatCurrency(d.total)}</td>
+                              <td className="p-2 text-right font-medium">{formatCurrency(d.saldo)}</td>
+                              <td className="p-2 text-right">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  disabled={!checked}
+                                  value={seleccion[d.id] ?? ""}
+                                  onChange={(e) => setSeleccion((p) => ({ ...p, [d.id]: e.target.value }))}
+                                  className="h-8 text-right"
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </ScrollArea>
+                )}
+              </div>
+            </div>
+          )}
+
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <Label>Monto *</Label>
