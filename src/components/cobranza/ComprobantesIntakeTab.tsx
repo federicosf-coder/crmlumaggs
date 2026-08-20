@@ -360,13 +360,21 @@ function ComprobanteCard({
           )}
 
           <div>
-            <Label>Cliente *</Label>
+            <div className="flex items-center gap-2">
+              <Label>Cliente *</Label>
+              {autoVinculado && (
+                <Badge variant="secondary" className="text-[10px]">Vinculado automáticamente</Badge>
+              )}
+            </div>
             <SearchableSelect
               value={empresaId}
               onValueChange={setEmpresaId}
               options={companies.map((c) => ({ value: c.id, label: c.name }))}
               placeholder="Selecciona cliente..."
             />
+            {!autoVinculado && row.nombre_detectado && (
+              <p className="text-xs text-muted-foreground mt-1">Nombre detectado: "{row.nombre_detectado}"</p>
+            )}
           </div>
 
           {(mismatchClabe || mismatchTarjeta) && (
