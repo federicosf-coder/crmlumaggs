@@ -88,12 +88,16 @@ export function ComprobantesIntakeTab() {
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-activas-intake"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("companies")
-        .select("id,name")
-        .eq("is_active", true)
-        .order("name");
-      return (data || []) as { id: string; name: string }[];
+      return await fetchAllRows<{ id: string; name: string }>(
+        (from, to) =>
+          supabase
+            .from("companies")
+            .select("id,name")
+            .eq("is_active", true)
+            .order("name")
+            .range(from, to),
+        1000
+      );
     },
   });
 
