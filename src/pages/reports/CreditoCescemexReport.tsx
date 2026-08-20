@@ -1072,6 +1072,19 @@ export default function CreditoCescemexReport() {
             })}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal uppercase tracking-wide text-muted-foreground">
+              Desglose de facturas consideradas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FacturasDetalleTabla
+              rows={[...(cobranzaKpis?.directo.detalle ?? []), ...(cobranzaKpis?.cescemex.detalle ?? [])]}
+            />
+          </CardContent>
+        </Card>
       </div>
     </>
   );
