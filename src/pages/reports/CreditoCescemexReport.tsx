@@ -472,6 +472,7 @@ export default function CreditoCescemexReport() {
       ? String(primeraAplic.fecha_aplicacion).slice(0, 10)
       : null;
     const desde = primeraFecha && primeraFecha > inicioAnio ? primeraFecha : inicioAnio;
+    const hoyIso = new Date().toISOString();
     const { data: facts, error } = await (supabase as any)
       .from("documentos")
       .select("id, numero_factura, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, estado_cobranza, companies(name, razon_social)")
@@ -480,6 +481,8 @@ export default function CreditoCescemexReport() {
       .eq("is_active", true)
       .in("tipo_pago", ["credito_cescemex", "credito_directo"])
       .gte("fecha_documento", desde)
+      .not("fecha_vencimiento", "is", null)
+      .lte("fecha_vencimiento", hoyIso)
       .not("numero_factura", "ilike", "ENS%");
     if (error) throw error;
     const rows: any[] = facts ?? [];
