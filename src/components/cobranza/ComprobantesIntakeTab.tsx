@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/supabasePagination";
@@ -7,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { FileText, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
@@ -37,6 +40,26 @@ const METODO_PAGO_OPTIONS = [
 
 const METODOS_VALIDOS = METODO_PAGO_OPTIONS.map((o) => o.value);
 const FORMAS_VALIDAS = FORMA_PAGO_OPTIONS.map((o) => o.value);
+
+interface DocOption {
+  id: string;
+  tipo_documento: "factura" | "pedido" | "cotizacion";
+  numero: string;
+  fecha_documento: string;
+  total: number;
+  saldo: number;
+}
+
+/** Tolerancia en pesos para diferencias mínimas al aplicar pagos */
+const TOLERANCIA = 5;
+
+const TIPO_LABEL: Record<string, string> = {
+  factura: "Factura",
+  pedido: "Pedido",
+  cotizacion: "Cotización",
+};
+
+type EmpresaVendedora = "lumaggs_chevron" | "galsa_phillips66" | null | undefined;
 
 function normalizarAlias(input: string): string {
   return input
@@ -69,7 +92,7 @@ interface IntakeRow {
   empresa_id: string | null;
 }
 
-export function ComprobantesIntakeTab() {
+export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?: EmpresaVendedora }) {
   const { data: comprobantes = [], isLoading, refetch } = useQuery({
     queryKey: ["comprobantes-intake-pendientes"],
     queryFn: async () => {
@@ -118,7 +141,7 @@ export function ComprobantesIntakeTab() {
   return (
     <div className="space-y-4">
       {comprobantes.map((c) => (
-        <ComprobanteCard key={c.id} row={c} companies={companies} onDone={() => refetch()} />
+        <ComprobanteCard key={c.id} row={c} companies={companies} empresaVendedora={empresaVendedora} onDone={() => refetch()} />
       ))}
     </div>
   );
@@ -127,13 +150,16 @@ export function ComprobantesIntakeTab() {
 function ComprobanteCard({
   row,
   companies,
+  empresaVendedora,
   onDone,
 }: {
   row: IntakeRow;
   companies: { id: string; name: string }[];
+  empresaVendedora?: EmpresaVendedora;
   onDone: () => void;
 }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState(row.empresa_id || "");
   const autoVinculado = !!row.empresa_id;
@@ -148,6 +174,10 @@ function ComprobanteCard({
     row.metodo_extraido && METODOS_VALIDOS.includes(row.metodo_extraido) ? row.metodo_extraido : "transferencia"
   );
   const [saving, setSaving] = useState(false);
+  const [docs, setDocs] = useState<DocOption[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [seleccion, setSeleccion] = useState<Record<string, string>>({});
+  const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
 
   const isImage = (row.mime_type || "").startsWith("image/");
 
@@ -185,6 +215,61 @@ function ComprobanteCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empresaId]);
 
+  // Cargar documentos al cambiar empresa
+  useEffect(() => {
+    if (!empresaId) { setDocs([]); setSeleccion({}); return; }
+    setLoadingDocs(true);
+    supabase.from("documentos")
+      .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,total,saldo_pendiente_cobranza,estatus_factura")
+      .eq("empresa_id", empresaId)
+      .eq("is_active", true)
+      .gt("total", 0)
+      .in("tipo_documento", ["factura", "pedido", "cotizacion"])
+      .order("fecha_documento", { ascending: false })
+      .then(({ data }) => {
+        const mapped: DocOption[] = (data || [])
+          .filter((d: any) => {
+            const status = (d.estatus_factura || "").toLowerCase();
+            return status !== "pagada" && status !== "cancelada";
+          })
+          .map((d: any) => ({
+            id: d.id,
+            tipo_documento: d.tipo_documento,
+            numero: d.numero_factura || d.numero_pedido || d.numero_cotizacion || "—",
+            fecha_documento: d.fecha_documento,
+            total: Number(d.total || 0),
+            saldo: Number(d.saldo_pendiente_cobranza ?? d.total ?? 0),
+          }));
+        setDocs(mapped);
+        setSeleccion({});
+        setLoadingDocs(false);
+      });
+  }, [empresaId]);
+
+  const totalAsignado = useMemo(
+    () => Object.values(seleccion).reduce((s, v) => s + (Number(v) || 0), 0),
+    [seleccion]
+  );
+  const montoNum = Number(monto) || 0;
+  const diferencia = montoNum - totalAsignado;
+
+  const toggleDoc = (doc: DocOption, checked: boolean) => {
+    setSeleccion((prev) => {
+      const next = { ...prev };
+      if (checked) {
+        const restante = Math.max(0, montoNum - totalAsignado);
+        let sugerido = montoNum > 0 ? Math.min(doc.saldo, restante || doc.saldo) : doc.saldo;
+        if (montoNum > 0 && restante > doc.saldo && restante - doc.saldo <= TOLERANCIA) sugerido = restante;
+        next[doc.id] = String(sugerido.toFixed(2));
+      } else {
+        delete next[doc.id];
+      }
+      return next;
+    });
+  };
+
+
+
   const mismatchClabe =
     !!empresaDatos?.clabe_bancaria &&
     !!row.clabe_extraida &&
@@ -206,7 +291,6 @@ function ComprobanteCard({
   };
 
   const handleCrearPago = async () => {
-    const montoNum = Number(monto);
     if (!empresaId) {
       toast.error("Selecciona el cliente");
       return;
@@ -219,6 +303,10 @@ function ComprobanteCard({
       toast.error("Selecciona la forma de pago");
       return;
     }
+    const aplicaciones = Object.entries(seleccion)
+      .map(([doc_id, m]) => ({ doc_id, monto: Number(m) || 0 }))
+      .filter((a) => a.monto > 0);
+    if (totalAsignado > montoNum + TOLERANCIA) { toast.error("La suma asignada excede el monto del pago"); return; }
     setSaving(true);
     try {
       const { data: cp } = await supabase
@@ -245,10 +333,27 @@ function ComprobanteCard({
           estatus_pago: "recibido" as any,
           observaciones: `Comprobante recibido vía ${CANAL_LABEL[row.canal] || row.canal}. Creado desde bandeja de clasificación.`,
           creado_por: user?.id,
+          ...(empresaVendedora ? { empresa_vendedora: empresaVendedora } : {}),
         } as any)
         .select("id")
         .single();
       if (pagoErr) throw pagoErr;
+
+      // Aplicaciones a documentos seleccionados
+      if (aplicaciones.length > 0) {
+        const aplicacionesPayload = aplicaciones.map((a) => {
+          const doc = docs.find((d) => d.id === a.doc_id)!;
+          return {
+            pago_id: pago.id,
+            documento_id: a.doc_id,
+            tipo_documento: doc.tipo_documento,
+            monto_aplicado: a.monto,
+            creado_por: user?.id,
+          };
+        });
+        const { error: appErr } = await supabase.from("cobranza_aplicaciones").insert(aplicacionesPayload as any);
+        if (appErr) toast.warning("Pago creado, pero falló alguna aplicación: " + appErr.message);
+      }
 
       // Aprendizaje de alias cliente
       if (row.nombre_detectado) {
@@ -317,6 +422,7 @@ function ComprobanteCard({
 
       toast.success("Pago creado y comprobante clasificado");
       onDone();
+      navigate(`/cobranza/${empresaVendedora === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
     } catch (e: any) {
       toast.error(e.message || "No se pudo crear el pago");
     } finally {
@@ -390,6 +496,92 @@ function ComprobanteCard({
               </AlertDescription>
             </Alert>
           )}
+
+          {empresaId && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label>Documentos a ligar</Label>
+                {montoNum > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    Asignado: <span className="font-medium text-foreground">{formatCurrency(totalAsignado)}</span> /{" "}
+                    {formatCurrency(montoNum)}{" "}
+                    {Math.abs(diferencia) > 0.01 && (
+                      <span className={diferencia < 0 ? "text-destructive" : "text-amber-600"}>
+                        ({diferencia > 0 ? "+" : ""}{formatCurrency(diferencia)})
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-1 mb-2">
+                {(["factura", "pedido", "cotizacion"] as const).map((t) => {
+                  const count = docs.filter((d) => d.tipo_documento === t).length;
+                  return (
+                    <Button
+                      key={t}
+                      type="button"
+                      size="sm"
+                      variant={tipoFiltro === t ? "default" : "outline"}
+                      onClick={() => setTipoFiltro(t)}
+                    >
+                      {TIPO_LABEL[t]}s <span className="ml-1 opacity-70">({count})</span>
+                    </Button>
+                  );
+                })}
+              </div>
+              <div className="border rounded-md">
+                {loadingDocs && (
+                  <div className="p-6 text-sm text-center text-muted-foreground">Cargando documentos...</div>
+                )}
+                {!loadingDocs && docs.filter((d) => d.tipo_documento === tipoFiltro).length === 0 && (
+                  <div className="p-6 text-sm text-center text-muted-foreground">No hay {TIPO_LABEL[tipoFiltro].toLowerCase()}s para esta empresa</div>
+                )}
+                {!loadingDocs && docs.filter((d) => d.tipo_documento === tipoFiltro).length > 0 && (
+                  <ScrollArea className="h-48">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-muted/50 border-b">
+                        <tr className="text-left">
+                          <th className="p-2 w-8"></th>
+                          <th className="p-2">Folio</th>
+                          <th className="p-2">Fecha</th>
+                          <th className="p-2 text-right">Total</th>
+                          <th className="p-2 text-right">Saldo</th>
+                          <th className="p-2 text-right w-32">Aplicar</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {docs.filter((d) => d.tipo_documento === tipoFiltro).map((d) => {
+                          const checked = seleccion[d.id] !== undefined;
+                          return (
+                            <tr key={d.id} className="border-b last:border-0 hover:bg-muted/30">
+                              <td className="p-2">
+                                <Checkbox checked={checked} onCheckedChange={(v) => toggleDoc(d, !!v)} />
+                              </td>
+                              <td className="p-2 font-mono text-xs">{d.numero}</td>
+                              <td className="p-2 text-xs">{formatDate(d.fecha_documento)}</td>
+                              <td className="p-2 text-right">{formatCurrency(d.total)}</td>
+                              <td className="p-2 text-right font-medium">{formatCurrency(d.saldo)}</td>
+                              <td className="p-2 text-right">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  disabled={!checked}
+                                  value={seleccion[d.id] ?? ""}
+                                  onChange={(e) => setSeleccion((p) => ({ ...p, [d.id]: e.target.value }))}
+                                  className="h-8 text-right"
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </ScrollArea>
+                )}
+              </div>
+            </div>
+          )}
+
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>

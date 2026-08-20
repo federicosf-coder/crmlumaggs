@@ -1193,7 +1193,7 @@ export default function Cobranza() {
 
         {/* COMPROBANTES */}
         <TabsContent value="intake" className="space-y-4">
-          <ComprobantesIntakeTab />
+          <ComprobantesIntakeTab empresaVendedora={empresaVendedora} />
         </TabsContent>
       </Tabs>
 
