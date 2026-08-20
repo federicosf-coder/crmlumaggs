@@ -1262,6 +1262,7 @@ export type Database = {
           address: string | null
           barrera_entrada: string | null
           city: string | null
+          clabe_bancaria: string | null
           created_at: string
           created_by: string | null
           customer_score: number | null
@@ -1307,6 +1308,7 @@ export type Database = {
           rol_lubricante: string | null
           segmento_id: string | null
           state: string | null
+          tarjeta_ultimos4: string | null
           ticket_promedio: number | null
           ticket_promedio_chevron: number | null
           ticket_promedio_phillips66: number | null
@@ -1327,6 +1329,7 @@ export type Database = {
           address?: string | null
           barrera_entrada?: string | null
           city?: string | null
+          clabe_bancaria?: string | null
           created_at?: string
           created_by?: string | null
           customer_score?: number | null
@@ -1372,6 +1375,7 @@ export type Database = {
           rol_lubricante?: string | null
           segmento_id?: string | null
           state?: string | null
+          tarjeta_ultimos4?: string | null
           ticket_promedio?: number | null
           ticket_promedio_chevron?: number | null
           ticket_promedio_phillips66?: number | null
@@ -1392,6 +1396,7 @@ export type Database = {
           address?: string | null
           barrera_entrada?: string | null
           city?: string | null
+          clabe_bancaria?: string | null
           created_at?: string
           created_by?: string | null
           customer_score?: number | null
@@ -1437,6 +1442,7 @@ export type Database = {
           rol_lubricante?: string | null
           segmento_id?: string | null
           state?: string | null
+          tarjeta_ultimos4?: string | null
           ticket_promedio?: number | null
           ticket_promedio_chevron?: number | null
           ticket_promedio_phillips66?: number | null

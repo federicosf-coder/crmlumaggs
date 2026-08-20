@@ -174,8 +174,11 @@ export interface CompanyData {
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
   uso_cfdi?: string | null; metodo_pago?: string | null; tipo_pago?: string | null; forma_pago?: string | null;
   id_contpaq?: string | null;
+  clabe_bancaria?: string | null;
+  tarjeta_ultimos4?: string | null;
   limite_credito?: number | null;
 }
+
 
 interface Props {
   open: boolean;
@@ -194,10 +197,13 @@ const emptyForm = {
   evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
   uso_cfdi: "", metodo_pago: "", tipo_pago: "", forma_pago: "",
   id_contpaq: "",
+  clabe_bancaria: "",
+  tarjeta_ultimos4: "",
   limite_credito: 0,
   plaza_ids: [] as string[],
   ejecutivo_ids: [] as string[],
 };
+
 
 export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: Props) {
   const { user } = useAuth();
@@ -336,11 +342,12 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       // empty string -> null for nullable text/select fields, except name/razon_social
       if (k === "name" || k === "razon_social") {
         dbPayload[k] = (v ?? "").toString();
-      } else if (k === "id_contpaq") {
+      } else if (k === "id_contpaq" || k === "clabe_bancaria" || k === "tarjeta_ultimos4") {
         dbPayload[k] = (v ?? "").toString().trim() || null;
       } else {
         dbPayload[k] = v === "" || v == null ? null : v;
       }
+
     }
     if (Object.keys(dbPayload).length > 0) {
       const { error } = await supabase.from("companies").update(dbPayload as any).eq("id", editData!.id!);
@@ -473,6 +480,8 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         tipo_pago: (editData as any).tipo_pago || "",
         forma_pago: (editData as any).forma_pago || "",
         id_contpaq: (editData as any).id_contpaq || "",
+        clabe_bancaria: (editData as any).clabe_bancaria || "",
+        tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
         limite_credito: Number((editData as any).limite_credito ?? 0),
         plaza_ids: [],
         ejecutivo_ids: [],
@@ -501,10 +510,13 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         tipo_pago: (editData as any).tipo_pago || "",
         forma_pago: (editData as any).forma_pago || "",
         id_contpaq: (editData as any).id_contpaq || "",
+        clabe_bancaria: (editData as any).clabe_bancaria || "",
+        tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
         limite_credito: Number((editData as any).limite_credito ?? 0),
         plaza_ids: [],
         ejecutivo_ids: [],
       });
+
       // Enable after mount tick so initial state changes don't trigger saves
       setTimeout(() => autosave.setEnabled(isEdit), 0);
     } else if (open && !editData) {
@@ -590,8 +602,11 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       tipo_pago: form.tipo_pago || null,
       forma_pago: form.forma_pago || null,
       id_contpaq: form.id_contpaq?.trim() || null,
+      clabe_bancaria: form.clabe_bancaria?.trim() || null,
+      tarjeta_ultimos4: form.tarjeta_ultimos4?.trim() || null,
       limite_credito: Number((form as any).limite_credito ?? 0),
     } as any;
+
 
     let result;
     if (isEdit) {
@@ -1083,6 +1098,31 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 {renderEnumSelect("Método de Pago", form.metodo_pago, "metodo_pago", METODO_PAGO_OPTS)}
                 {renderEnumSelect("Uso de CFDI", form.uso_cfdi, "uso_cfdi", USO_CFDI_OPTS)}
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">CLABE Bancaria</Label>
+                  <Input
+                    value={form.clabe_bancaria}
+                    onChange={e => setAndSchedule("clabe_bancaria", e.target.value.replace(/\D/g, ""))}
+                    onBlur={e => autosave.saveNow("clabe_bancaria", e.target.value.replace(/\D/g, ""))}
+                    className="h-9"
+                    placeholder="18 dígitos"
+                    maxLength={18}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Últimos 4 dígitos de tarjeta</Label>
+                  <Input
+                    value={form.tarjeta_ultimos4}
+                    onChange={e => setAndSchedule("tarjeta_ultimos4", e.target.value.replace(/\D/g, ""))}
+                    onBlur={e => autosave.saveNow("tarjeta_ultimos4", e.target.value.replace(/\D/g, ""))}
+                    className="h-9"
+                    placeholder="0000"
+                    maxLength={4}
+                  />
+                </div>
+              </div>
+
             </TabsContent>
 
             <TabsContent value="decision" className="space-y-4 mt-4 min-h-[580px] overflow-y-auto">
