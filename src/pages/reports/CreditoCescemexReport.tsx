@@ -479,7 +479,8 @@ export default function CreditoCescemexReport() {
       .neq("estatus_factura", "cancelada")
       .eq("is_active", true)
       .in("tipo_pago", ["credito_cescemex", "credito_directo"])
-      .gte("fecha_documento", desde);
+      .gte("fecha_documento", desde)
+      .not("numero_factura", "ilike", "ENS%");
     if (error) throw error;
     const rows: any[] = facts ?? [];
     const ids = rows.map((r) => r.id);
