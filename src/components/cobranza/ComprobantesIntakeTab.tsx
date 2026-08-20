@@ -15,6 +15,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { FileText, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useAuth } from "@/contexts/AuthContext";
+import { fireAutomation } from "@/hooks/useFireAutomation";
 import { toast } from "sonner";
 
 const CANAL_LABEL: Record<string, string> = {
