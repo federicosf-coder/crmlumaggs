@@ -1056,6 +1056,7 @@ export default function CreditoCescemexReport() {
                   <div className="text-[10px] font-light text-muted-foreground">
                     % = facturas del rango / total de facturas del tipo ({k?.total?.cuenta ?? 0}). Suma 100%.
                     {cobranzaKpis?.desde ? ` Sólo facturas emitidas desde el ${cobranzaKpis.desde} (primer pago registrado en el sistema).` : ""}
+                    Se excluyen facturas con folio que inicie con ENS (esta plaza no registra pagos en el sistema).
                   </div>
                   <Table>
                     <TableHeader>
