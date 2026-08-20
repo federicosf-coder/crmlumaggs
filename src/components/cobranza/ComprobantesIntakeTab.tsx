@@ -686,10 +686,13 @@ function ComprobanteCard({
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <Button onClick={handleCrearPago} disabled={saving}>
+            <Button onClick={handleCrearPago} disabled={saving || savingEnviar}>
               {saving ? "Creando..." : "Crear pago"}
             </Button>
-            <Button variant="ghost" onClick={handleDescartar} disabled={saving}>
+            <Button onClick={handleGuardarYEnviar} disabled={saving || savingEnviar || !formaPago}>
+              {savingEnviar ? "Enviando..." : "Guardar y Enviar por Correo"}
+            </Button>
+            <Button variant="ghost" onClick={handleDescartar} disabled={saving || savingEnviar}>
               <Trash2 className="h-4 w-4 mr-1" /> Descartar
             </Button>
           </div>
