@@ -291,7 +291,6 @@ function ComprobanteCard({
   };
 
   const handleCrearPago = async () => {
-    const montoNum = Number(monto);
     if (!empresaId) {
       toast.error("Selecciona el cliente");
       return;
@@ -304,6 +303,10 @@ function ComprobanteCard({
       toast.error("Selecciona la forma de pago");
       return;
     }
+    const aplicaciones = Object.entries(seleccion)
+      .map(([doc_id, m]) => ({ doc_id, monto: Number(m) || 0 }))
+      .filter((a) => a.monto > 0);
+    if (totalAsignado > montoNum + TOLERANCIA) { toast.error("La suma asignada excede el monto del pago"); return; }
     setSaving(true);
     try {
       const { data: cp } = await supabase
