@@ -529,7 +529,11 @@ export default function CreditoCescemexReport() {
       );
     });
     const calc = (tipo: string) => {
-      const g = rows.filter((r) => r.tipo_pago === tipo);
+      const g = rows.filter(
+        (r) =>
+          r.tipo_pago === tipo &&
+          !(r.estado_cobranza === "pagada" && !ultimaAplic.get(r.id))
+      );
       const pagadas = g.filter((r) => r.estado_cobranza === "pagada");
       const conAplic = pagadas.filter((r) => ultimaAplic.get(r.id));
       const sinCobrar = g.filter((r) => !ultimaAplic.get(r.id));
