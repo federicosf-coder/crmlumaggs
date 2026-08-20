@@ -26,6 +26,29 @@ const FORMA_PAGO_OPTIONS = [
   { value: "credito_cescemex", label: "Crédito Cescemex" },
 ];
 
+const METODO_PAGO_OPTIONS = [
+  { value: "transferencia", label: "Transferencia" },
+  { value: "efectivo", label: "Efectivo" },
+  { value: "tarjeta", label: "Tarjeta" },
+  { value: "cheque", label: "Cheque" },
+  { value: "otro", label: "Otro" },
+];
+
+const METODOS_VALIDOS = METODO_PAGO_OPTIONS.map((o) => o.value);
+const FORMAS_VALIDAS = FORMA_PAGO_OPTIONS.map((o) => o.value);
+
+function normalizarAlias(input: string): string {
+  return input
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+
 interface IntakeRow {
   id: string;
   canal: string;
@@ -40,6 +63,9 @@ interface IntakeRow {
   clabe_extraida: string | null;
   tarjeta_ultimos4_extraida: string | null;
   extraccion_error: string | null;
+  nombre_detectado: string | null;
+  metodo_extraido: string | null;
+  empresa_id: string | null;
 }
 
 export function ComprobantesIntakeTab() {
@@ -49,7 +75,7 @@ export function ComprobantesIntakeTab() {
       const { data, error } = await supabase
         .from("comprobantes_intake")
         .select(
-          "id,canal,created_at,storage_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error"
+          "id,canal,created_at,storage_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error,nombre_detectado,metodo_extraido,empresa_id"
         )
         .eq("estatus", "pendiente")
         .order("created_at", { ascending: true });
@@ -104,13 +130,18 @@ function ComprobanteCard({
 }) {
   const { user } = useAuth();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [empresaId, setEmpresaId] = useState("");
+  const [empresaId, setEmpresaId] = useState(row.empresa_id || "");
+  const autoVinculado = !!row.empresa_id;
   const [empresaDatos, setEmpresaDatos] = useState<{ clabe_bancaria: string | null; tarjeta_ultimos4: string | null } | null>(null);
   const [monto, setMonto] = useState(row.monto_extraido != null ? String(row.monto_extraido) : "");
   const [fecha, setFecha] = useState(row.fecha_extraida || new Date().toISOString().slice(0, 10));
   const [banco, setBanco] = useState(row.banco_extraido || "");
   const [referencia, setReferencia] = useState(row.referencia_extraida || "");
   const [formaPago, setFormaPago] = useState("");
+  const [formaPagoTocada, setFormaPagoTocada] = useState(false);
+  const [metodoPago, setMetodoPago] = useState(
+    row.metodo_extraido && METODOS_VALIDOS.includes(row.metodo_extraido) ? row.metodo_extraido : "transferencia"
+  );
   const [saving, setSaving] = useState(false);
 
   const isImage = (row.mime_type || "").startsWith("image/");
@@ -135,14 +166,18 @@ function ComprobanteCard({
     (async () => {
       const { data } = await supabase
         .from("companies")
-        .select("clabe_bancaria,tarjeta_ultimos4")
+        .select("clabe_bancaria,tarjeta_ultimos4,tipo_pago")
         .eq("id", empresaId)
         .maybeSingle();
-      if (active) setEmpresaDatos((data as any) ?? null);
+      if (!active) return;
+      setEmpresaDatos((data as any) ?? null);
+      const tp = (data as any)?.tipo_pago as string | null;
+      if (tp && FORMAS_VALIDAS.includes(tp) && !formaPagoTocada) setFormaPago(tp);
     })();
     return () => {
       active = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empresaId]);
 
   const mismatchClabe =
@@ -199,6 +234,7 @@ function ComprobanteCard({
           monto_disponible: montoNum,
           moneda: "MXN",
           tipo_pago: formaPago as any,
+          metodo_pago: metodoPago,
           referencia_pago: referencia || null,
           banco: banco || null,
           estatus_pago: "recibido" as any,
@@ -208,6 +244,36 @@ function ComprobanteCard({
         .select("id")
         .single();
       if (pagoErr) throw pagoErr;
+
+      // Aprendizaje de alias cliente
+      if (row.nombre_detectado) {
+        const aliasNorm = normalizarAlias(row.nombre_detectado);
+        if (aliasNorm) {
+          const { data: existente } = await supabase
+            .from("comprobante_cliente_aliases")
+            .select("id,veces_usado")
+            .eq("alias_normalizado", aliasNorm)
+            .maybeSingle();
+          if (existente) {
+            await supabase
+              .from("comprobante_cliente_aliases")
+              .update({
+                empresa_id: empresaId,
+                veces_usado: ((existente as any).veces_usado || 0) + 1,
+                updated_at: new Date().toISOString(),
+              } as any)
+              .eq("id", (existente as any).id);
+          } else {
+            await supabase.from("comprobante_cliente_aliases").insert({
+              alias_normalizado: aliasNorm,
+              empresa_id: empresaId,
+              veces_usado: 1,
+              created_by: user?.id,
+            } as any);
+          }
+        }
+      }
+
 
       // Copiar archivo al bucket de documentos y registrarlo
       try {
@@ -294,13 +360,21 @@ function ComprobanteCard({
           )}
 
           <div>
-            <Label>Cliente *</Label>
+            <div className="flex items-center gap-2">
+              <Label>Cliente *</Label>
+              {autoVinculado && (
+                <Badge variant="secondary" className="text-[10px]">Vinculado automáticamente</Badge>
+              )}
+            </div>
             <SearchableSelect
               value={empresaId}
               onValueChange={setEmpresaId}
               options={companies.map((c) => ({ value: c.id, label: c.name }))}
               placeholder="Selecciona cliente..."
             />
+            {!autoVinculado && row.nombre_detectado && (
+              <p className="text-xs text-muted-foreground mt-1">Nombre detectado: "{row.nombre_detectado}"</p>
+            )}
           </div>
 
           {(mismatchClabe || mismatchTarjeta) && (
@@ -331,14 +405,28 @@ function ComprobanteCard({
             </div>
           </div>
 
-          <div className="md:max-w-xs">
-            <Label>Forma de pago *</Label>
-            <SearchableSelect
-              value={formaPago}
-              onValueChange={setFormaPago}
-              options={FORMA_PAGO_OPTIONS}
-              placeholder="Selecciona forma de pago..."
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:max-w-2xl">
+            <div>
+              <Label>Forma de pago *</Label>
+              <SearchableSelect
+                value={formaPago}
+                onValueChange={(v) => {
+                  setFormaPagoTocada(true);
+                  setFormaPago(v);
+                }}
+                options={FORMA_PAGO_OPTIONS}
+                placeholder="Selecciona forma de pago..."
+              />
+            </div>
+            <div>
+              <Label>Método de pago *</Label>
+              <SearchableSelect
+                value={metodoPago}
+                onValueChange={setMetodoPago}
+                options={METODO_PAGO_OPTIONS}
+                placeholder="Selecciona método..."
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-2 pt-1">

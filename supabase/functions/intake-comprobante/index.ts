@@ -4,7 +4,20 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MODEL = 'google/gemini-2.5-flash';
 
-const PROMPT = `Del comprobante de pago (transferencia, depósito o pago con tarjeta) extrae SOLO este JSON sin texto adicional ni markdown: {"monto":0,"fecha":"YYYY-MM-DD o null","banco":"string o null","referencia":"string o null","clabe":"string de 18 dígitos o null","tarjeta_ultimos4":"4 dígitos o null"}. Si el comprobante no trae alguno de estos datos, usa null en ese campo. No inventes valores.`;
+const PROMPT = `Del comprobante de pago (transferencia, depósito o pago con tarjeta) extrae SOLO este JSON sin texto adicional ni markdown: {"monto":0,"fecha":"YYYY-MM-DD o null","banco":"string o null","referencia":"string o null","clabe":"string de 18 dígitos o null","tarjeta_ultimos4":"4 dígitos o null","nombre_detectado":"string o null","metodo":"transferencia|efectivo|tarjeta|cheque|otro"}. "nombre_detectado" es el nombre de la empresa o persona que aparece como ordenante, beneficiario, titular de la cuenta o en el concepto (el nombre más probable del cliente). "metodo" debe ser uno de: transferencia, efectivo, tarjeta, cheque, otro, según lo que indique el comprobante; si no es claro usa "transferencia" porque es el método más común. Si el comprobante no trae alguno de estos datos, usa null en ese campo. No inventes valores.`;
+
+const METODOS = ['transferencia', 'efectivo', 'tarjeta', 'cheque', 'otro'];
+
+function normalizarAlias(input: string): string {
+  return input
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 const CANALES = ['android_share', 'ios_shortcut', 'app_manual'];
 
@@ -140,9 +153,34 @@ Deno.serve(async (req) => {
       insertPayload.clabe_extraida = soloDigitos(extraido.clabe);
       insertPayload.tarjeta_ultimos4_extraida = soloDigitos(extraido.tarjeta_ultimos4);
       insertPayload.extraccion_raw = extraido;
+
+      const nombreDetectado = asText(extraido.nombre_detectado);
+      insertPayload.nombre_detectado = nombreDetectado;
+
+      const metodoRaw = (asText(extraido.metodo) || '').toLowerCase();
+      insertPayload.metodo_extraido = METODOS.includes(metodoRaw) ? metodoRaw : 'transferencia';
+
+      if (nombreDetectado) {
+        const aliasNorm = normalizarAlias(nombreDetectado);
+        if (aliasNorm) {
+          const { data: alias } = await admin
+            .from('comprobante_cliente_aliases')
+            .select('id, empresa_id, veces_usado')
+            .eq('alias_normalizado', aliasNorm)
+            .maybeSingle();
+          if (alias?.empresa_id) {
+            insertPayload.empresa_id = alias.empresa_id;
+            await admin
+              .from('comprobante_cliente_aliases')
+              .update({ veces_usado: (alias.veces_usado || 0) + 1, updated_at: new Date().toISOString() })
+              .eq('id', alias.id);
+          }
+        }
+      }
     } else {
       insertPayload.extraccion_error = extraccionError;
     }
+
 
     const { data: inserted, error: insErr } = await admin
       .from('comprobantes_intake')
