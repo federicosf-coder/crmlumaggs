@@ -1098,6 +1098,31 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 {renderEnumSelect("Método de Pago", form.metodo_pago, "metodo_pago", METODO_PAGO_OPTS)}
                 {renderEnumSelect("Uso de CFDI", form.uso_cfdi, "uso_cfdi", USO_CFDI_OPTS)}
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">CLABE Bancaria</Label>
+                  <Input
+                    value={form.clabe_bancaria}
+                    onChange={e => setAndSchedule("clabe_bancaria", e.target.value.replace(/\D/g, ""))}
+                    onBlur={e => autosave.saveNow("clabe_bancaria", e.target.value.replace(/\D/g, ""))}
+                    className="h-9"
+                    placeholder="18 dígitos"
+                    maxLength={18}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Últimos 4 dígitos de tarjeta</Label>
+                  <Input
+                    value={form.tarjeta_ultimos4}
+                    onChange={e => setAndSchedule("tarjeta_ultimos4", e.target.value.replace(/\D/g, ""))}
+                    onBlur={e => autosave.saveNow("tarjeta_ultimos4", e.target.value.replace(/\D/g, ""))}
+                    className="h-9"
+                    placeholder="0000"
+                    maxLength={4}
+                  />
+                </div>
+              </div>
+
             </TabsContent>
 
             <TabsContent value="decision" className="space-y-4 mt-4 min-h-[580px] overflow-y-auto">
