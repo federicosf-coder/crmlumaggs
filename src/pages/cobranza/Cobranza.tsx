@@ -24,6 +24,7 @@ import { AplicarPagoDialog } from "@/components/cobranza/AplicarPagoDialog";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 import { ColumnFilterBuilder, evaluateConditions, type ColumnFilterCondition, type ColumnFilterDef } from "@/components/cobranza/ColumnFilterBuilder";
 import { FacturasListEmbedded, type CobranzaPrefilter, type DaysBucket } from "@/components/cobranza/FacturasListEmbedded";
+import { ComprobantesIntakeTab } from "@/components/cobranza/ComprobantesIntakeTab";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderTemplate, resolveEmailRecipients, type EmailRecipientItem } from "@/lib/templates";
@@ -287,6 +288,17 @@ export default function Cobranza() {
   };
   const { pagos, breakdowns, loading: loadingPagos, refetch: refetchPagos } = useCobranzaPagos(filterArgs);
   const { documentos, loading: loadingDocs, refetch: refetchDocs } = useDocumentosCobranza(docsFilterArgs);
+
+  const { data: intakePendientes = 0 } = useQuery({
+    queryKey: ["comprobantes-intake-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("comprobantes_intake")
+        .select("id", { count: "exact", head: true })
+        .eq("estatus", "pendiente");
+      return count || 0;
+    },
+  });
 
   // Facturas pagadas del mes (por aplicaciones activas en el mes en curso)
   const { data: facturasPagadasMes = 0 } = useQuery({
@@ -889,7 +901,12 @@ export default function Cobranza() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="pagos">Pagos</TabsTrigger>
           <TabsTrigger value="facturas">Seguimiento de facturas</TabsTrigger>
+          <TabsTrigger value="intake" className="gap-2">
+            Comprobantes
+            {intakePendientes > 0 && <Badge variant="secondary">{intakePendientes}</Badge>}
+          </TabsTrigger>
         </TabsList>
+
 
         {/* DASHBOARD */}
         <TabsContent value="dashboard" className="space-y-6">
@@ -1172,6 +1189,11 @@ export default function Cobranza() {
             }
             initialViewMode={facturasViewMode}
           />
+        </TabsContent>
+
+        {/* COMPROBANTES */}
+        <TabsContent value="intake" className="space-y-4">
+          <ComprobantesIntakeTab />
         </TabsContent>
       </Tabs>
 
