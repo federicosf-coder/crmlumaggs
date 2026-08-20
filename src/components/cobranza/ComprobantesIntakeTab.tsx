@@ -92,7 +92,7 @@ interface IntakeRow {
   empresa_id: string | null;
 }
 
-export function ComprobantesIntakeTab() {
+export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?: EmpresaVendedora }) {
   const { data: comprobantes = [], isLoading, refetch } = useQuery({
     queryKey: ["comprobantes-intake-pendientes"],
     queryFn: async () => {
@@ -141,7 +141,7 @@ export function ComprobantesIntakeTab() {
   return (
     <div className="space-y-4">
       {comprobantes.map((c) => (
-        <ComprobanteCard key={c.id} row={c} companies={companies} onDone={() => refetch()} />
+        <ComprobanteCard key={c.id} row={c} companies={companies} empresaVendedora={empresaVendedora} onDone={() => refetch()} />
       ))}
     </div>
   );
@@ -150,10 +150,12 @@ export function ComprobantesIntakeTab() {
 function ComprobanteCard({
   row,
   companies,
+  empresaVendedora,
   onDone,
 }: {
   row: IntakeRow;
   companies: { id: string; name: string }[];
+  empresaVendedora?: EmpresaVendedora;
   onDone: () => void;
 }) {
   const { user } = useAuth();
