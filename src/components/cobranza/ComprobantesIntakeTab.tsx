@@ -258,7 +258,7 @@ function ComprobanteCard({
       const next = { ...prev };
       if (checked) {
         const restante = Math.max(0, montoNum - totalAsignado);
-        let sugerido = montoNum > 0 ? Math.min(doc.saldo, restante || doc.saldo) : doc.saldo;
+        let sugerido = montoNum > 0 ? Math.min(doc.saldo, restante) : doc.saldo;
         if (montoNum > 0 && restante > doc.saldo && restante - doc.saldo <= TOLERANCIA) sugerido = restante;
         next[doc.id] = String(sugerido.toFixed(2));
       } else {
