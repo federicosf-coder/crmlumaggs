@@ -26,6 +26,29 @@ const FORMA_PAGO_OPTIONS = [
   { value: "credito_cescemex", label: "Crédito Cescemex" },
 ];
 
+const METODO_PAGO_OPTIONS = [
+  { value: "transferencia", label: "Transferencia" },
+  { value: "efectivo", label: "Efectivo" },
+  { value: "tarjeta", label: "Tarjeta" },
+  { value: "cheque", label: "Cheque" },
+  { value: "otro", label: "Otro" },
+];
+
+const METODOS_VALIDOS = METODO_PAGO_OPTIONS.map((o) => o.value);
+const FORMAS_VALIDAS = FORMA_PAGO_OPTIONS.map((o) => o.value);
+
+function normalizarAlias(input: string): string {
+  return input
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+
 interface IntakeRow {
   id: string;
   canal: string;
