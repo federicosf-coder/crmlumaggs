@@ -138,6 +138,10 @@ function ComprobanteCard({
   const [banco, setBanco] = useState(row.banco_extraido || "");
   const [referencia, setReferencia] = useState(row.referencia_extraida || "");
   const [formaPago, setFormaPago] = useState("");
+  const [formaPagoTocada, setFormaPagoTocada] = useState(false);
+  const [metodoPago, setMetodoPago] = useState(
+    row.metodo_extraido && METODOS_VALIDOS.includes(row.metodo_extraido) ? row.metodo_extraido : "transferencia"
+  );
   const [saving, setSaving] = useState(false);
 
   const isImage = (row.mime_type || "").startsWith("image/");
