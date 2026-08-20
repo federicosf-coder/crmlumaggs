@@ -1062,7 +1062,7 @@ export default function CreditoCescemexReport() {
                   </div>
                   <div className="text-[10px] font-light text-muted-foreground">
                     % = facturas del rango / total de facturas del tipo ({k?.total?.cuenta ?? 0}). Suma 100%.
-                    Se analizan solo facturas con fecha de vencimiento ya vencida.
+                    Se analizan solo facturas con fecha de vencimiento ya vencida. Se excluyen facturas marcadas como pagadas sin un pago registrado.
                     {cobranzaKpis?.desde ? ` Sólo facturas emitidas desde el ${cobranzaKpis.desde} (primer pago registrado en el sistema).` : ""}
                     Se excluyen facturas con folio que inicie con ENS (esta plaza no registra pagos en el sistema).
                   </div>
