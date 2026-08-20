@@ -472,6 +472,7 @@ export default function CreditoCescemexReport() {
       ? String(primeraAplic.fecha_aplicacion).slice(0, 10)
       : null;
     const desde = primeraFecha && primeraFecha > inicioAnio ? primeraFecha : inicioAnio;
+    const hoyIso = new Date().toISOString();
     const { data: facts, error } = await (supabase as any)
       .from("documentos")
       .select("id, numero_factura, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, estado_cobranza, companies(name, razon_social)")
@@ -480,6 +481,8 @@ export default function CreditoCescemexReport() {
       .eq("is_active", true)
       .in("tipo_pago", ["credito_cescemex", "credito_directo"])
       .gte("fecha_documento", desde)
+      .not("fecha_vencimiento", "is", null)
+      .lte("fecha_vencimiento", hoyIso)
       .not("numero_factura", "ilike", "ENS%");
     if (error) throw error;
     const rows: any[] = facts ?? [];
@@ -1055,6 +1058,7 @@ export default function CreditoCescemexReport() {
                   </div>
                   <div className="text-[10px] font-light text-muted-foreground">
                     % = facturas del rango / total de facturas del tipo ({k?.total?.cuenta ?? 0}). Suma 100%.
+                    Se analizan solo facturas con fecha de vencimiento ya vencida.
                     {cobranzaKpis?.desde ? ` Sólo facturas emitidas desde el ${cobranzaKpis.desde} (primer pago registrado en el sistema).` : ""}
                     Se excluyen facturas con folio que inicie con ENS (esta plaza no registra pagos en el sistema).
                   </div>
