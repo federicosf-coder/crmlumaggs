@@ -295,7 +295,7 @@ export default function CreditoCescemexReport() {
     queryFn: async () => {
     const { data: facts, error } = await (supabase as any)
       .from("documentos")
-      .select("id, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, estado_cobranza")
+      .select("id, numero_factura, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, estado_cobranza, companies(name, razon_social)")
       .eq("tipo_documento", "factura")
       .neq("estatus_factura", "cancelada")
       .eq("is_active", true)
@@ -386,6 +386,24 @@ export default function CreditoCescemexReport() {
       }));
       const vencidasPagadas = BUCKET_LABELS.filter((b) => b !== "En tiempo" && b !== "Sin cobrar")
         .reduce((s, b) => s + bucketAcc[b].cuenta, 0);
+      const detalle: FacturaDetalle[] = g.map((r) => {
+        const pago = ultimaAplic.get(r.id) ?? null;
+        const retraso =
+          pago && r.fecha_vencimiento ? Math.round(diffDias(pago, r.fecha_vencimiento)) : null;
+        return {
+          id: r.id,
+          folio: r.numero_factura ?? r.id.slice(0, 8),
+          cliente: r.companies?.name ?? r.companies?.razon_social ?? "Sin cliente",
+          tipo,
+          fecha_documento: r.fecha_documento ?? null,
+          fecha_vencimiento: r.fecha_vencimiento ?? null,
+          fecha_pago: pago,
+          dias_retraso: retraso,
+          rango: pago ? (r.fecha_vencimiento ? retrasoBucket(retraso ?? 0) : "Sin cobrar") : "Sin cobrar",
+          total: Number(r.total ?? 0),
+          saldo: Number(r.saldo_pendiente_cobranza ?? 0),
+        };
+      });
       return {
         totalFacturas,
         facturasPagadasConAplicacion: conAplic.length,
@@ -394,6 +412,7 @@ export default function CreditoCescemexReport() {
         pctCarteraVencida: pagadas.length > 0 ? (vencidasPagadas / pagadas.length) * 100 : 0,
         diasPromedioPago: avg(dso),
         buckets,
+        detalle,
         total: { cuenta: totalFacturas, importe: totalImporte },
       };
     };
