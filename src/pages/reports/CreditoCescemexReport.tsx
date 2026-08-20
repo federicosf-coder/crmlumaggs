@@ -529,7 +529,11 @@ export default function CreditoCescemexReport() {
       );
     });
     const calc = (tipo: string) => {
-      const g = rows.filter((r) => r.tipo_pago === tipo);
+      const g = rows.filter(
+        (r) =>
+          r.tipo_pago === tipo &&
+          !(r.estado_cobranza === "pagada" && !ultimaAplic.get(r.id))
+      );
       const pagadas = g.filter((r) => r.estado_cobranza === "pagada");
       const conAplic = pagadas.filter((r) => ultimaAplic.get(r.id));
       const sinCobrar = g.filter((r) => !ultimaAplic.get(r.id));
@@ -1058,7 +1062,7 @@ export default function CreditoCescemexReport() {
                   </div>
                   <div className="text-[10px] font-light text-muted-foreground">
                     % = facturas del rango / total de facturas del tipo ({k?.total?.cuenta ?? 0}). Suma 100%.
-                    Se analizan solo facturas con fecha de vencimiento ya vencida.
+                    Se analizan solo facturas con fecha de vencimiento ya vencida. Se excluyen facturas marcadas como pagadas sin un pago registrado.
                     {cobranzaKpis?.desde ? ` Sólo facturas emitidas desde el ${cobranzaKpis.desde} (primer pago registrado en el sistema).` : ""}
                     Se excluyen facturas con folio que inicie con ENS (esta plaza no registra pagos en el sistema).
                   </div>
