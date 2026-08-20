@@ -15,7 +15,8 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { FileText, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useAuth } from "@/contexts/AuthContext";
-import { fireAutomation } from "@/hooks/useFireAutomation";
+import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
+import { buildValidacionEmailFlow, type ValidacionEmailFlow } from "@/lib/cobranzaValidacionEmail";
 import { toast } from "sonner";
 
 const CANAL_LABEL: Record<string, string> = {
@@ -166,6 +167,9 @@ function ComprobanteCard({
   const autoVinculado = !!row.empresa_id;
   const [empresaDatos, setEmpresaDatos] = useState<{ clabe_bancaria: string | null; tarjeta_ultimos4: string | null } | null>(null);
   const [monto, setMonto] = useState(row.monto_extraido != null ? String(row.monto_extraido) : "");
+  const [openPreview, setOpenPreview] = useState(false);
+  const [previewFlow, setPreviewFlow] = useState<ValidacionEmailFlow | null>(null);
+  const [previewPagoId, setPreviewPagoId] = useState<string | null>(null);
   const [fecha, setFecha] = useState(row.fecha_extraida || new Date().toISOString().slice(0, 10));
   const [banco, setBanco] = useState(row.banco_extraido || "");
   const [referencia, setReferencia] = useState(row.referencia_extraida || "");
@@ -465,28 +469,14 @@ function ComprobanteCard({
       const pago = await crearPago(aplicaciones);
       if (!pago) return;
 
-      const triggerKey =
-        formaPago === "contado"
-          ? "cobranza.enviar_correo_contado"
-          : formaPago === "credito"
-          ? "cobranza.enviar_correo_credito_directo"
-          : "cobranza.enviar_correo_credito_cescemex";
-
-      await fireAutomation({
-        trigger_type: "existing_button_click",
-        entity_type: "payment",
-        entity_id: pago.id,
-        trigger_key: triggerKey,
-      });
-
-      await supabase
-        .from("cobranza_pagos")
-        .update({ estatus_pago: "enviado_validar" as any })
-        .eq("id", pago.id);
-
-      toast.success("Pago creado y enviado a validar");
-      onDone();
-      navigate(`/cobranza/${empresaVendedora === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
+      const flowData = await buildValidacionEmailFlow(
+        pago.id,
+        formaPago as any,
+        user?.email || undefined
+      );
+      setPreviewFlow(flowData);
+      setPreviewPagoId(pago.id);
+      setOpenPreview(true);
     } finally {
       setSavingEnviar(false);
     }
@@ -495,6 +485,7 @@ function ComprobanteCard({
   const dash = (v: any) => (v === null || v === undefined || v === "" ? "—" : v);
 
   return (
+    <>
     <Card>
       <CardContent className="p-4 grid gap-4 md:grid-cols-[220px_1fr]">
         <div className="space-y-2">
@@ -702,5 +693,44 @@ function ComprobanteCard({
         </div>
       </CardContent>
     </Card>
+    <EnviarConfirmacionPagoDialog
+      open={openPreview}
+      onOpenChange={setOpenPreview}
+      pagoId={previewPagoId || ""}
+      empresa={previewFlow?.empresaNombre || ""}
+      fechaPago={previewFlow?.fechaPagoFormateada || fecha}
+      montoTotal={previewFlow?.montoTotalFormateado || ""}
+      moneda={previewFlow?.moneda || "MXN"}
+      observaciones={previewFlow?.observaciones}
+      documentos={previewFlow?.documentosLigados || []}
+      comprobantes={previewFlow?.comprobantes || []}
+      registradoPor={user?.email || undefined}
+      defaultEmails={previewFlow?.defaultEmails || []}
+      blockedEmails={previewFlow?.blockedEmails || []}
+      previouslySentEmails={previewFlow?.previouslySentEmails || []}
+      templateName={previewFlow?.templateName}
+      subjectOverride={previewFlow?.subjectOverride}
+      htmlOverride={previewFlow?.htmlOverride}
+      ccEmails={previewFlow?.cc}
+      bccEmails={previewFlow?.bcc}
+      replyTo={previewFlow?.replyTo}
+      title={previewFlow?.title}
+      description={previewFlow?.description}
+      logContext={{ user_id: user?.id || null, company_id: empresaId || null }}
+      onSent={async () => {
+        if (previewPagoId) {
+          await supabase
+            .from("cobranza_pagos")
+            .update({ estatus_pago: "enviado_validar" as any })
+            .eq("id", previewPagoId);
+        }
+        toast.success("Pago enviado a validar");
+        onDone();
+        navigate(
+          `/cobranza/${empresaVendedora === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${previewPagoId}`
+        );
+      }}
+    />
+    </>
   );
 }
