@@ -479,7 +479,8 @@ export default function CreditoCescemexReport() {
       .neq("estatus_factura", "cancelada")
       .eq("is_active", true)
       .in("tipo_pago", ["credito_cescemex", "credito_directo"])
-      .gte("fecha_documento", desde);
+      .gte("fecha_documento", desde)
+      .not("numero_factura", "ilike", "ENS%");
     if (error) throw error;
     const rows: any[] = facts ?? [];
     const ids = rows.map((r) => r.id);
@@ -1055,6 +1056,7 @@ export default function CreditoCescemexReport() {
                   <div className="text-[10px] font-light text-muted-foreground">
                     % = facturas del rango / total de facturas del tipo ({k?.total?.cuenta ?? 0}). Suma 100%.
                     {cobranzaKpis?.desde ? ` Sólo facturas emitidas desde el ${cobranzaKpis.desde} (primer pago registrado en el sistema).` : ""}
+                    Se excluyen facturas con folio que inicie con ENS (esta plaza no registra pagos en el sistema).
                   </div>
                   <Table>
                     <TableHeader>
