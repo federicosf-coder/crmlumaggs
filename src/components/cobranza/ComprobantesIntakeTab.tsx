@@ -405,14 +405,28 @@ function ComprobanteCard({
             </div>
           </div>
 
-          <div className="md:max-w-xs">
-            <Label>Forma de pago *</Label>
-            <SearchableSelect
-              value={formaPago}
-              onValueChange={setFormaPago}
-              options={FORMA_PAGO_OPTIONS}
-              placeholder="Selecciona forma de pago..."
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:max-w-2xl">
+            <div>
+              <Label>Forma de pago *</Label>
+              <SearchableSelect
+                value={formaPago}
+                onValueChange={(v) => {
+                  setFormaPagoTocada(true);
+                  setFormaPago(v);
+                }}
+                options={FORMA_PAGO_OPTIONS}
+                placeholder="Selecciona forma de pago..."
+              />
+            </div>
+            <div>
+              <Label>Método de pago *</Label>
+              <SearchableSelect
+                value={metodoPago}
+                onValueChange={setMetodoPago}
+                options={METODO_PAGO_OPTIONS}
+                placeholder="Selecciona método..."
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-2 pt-1">
