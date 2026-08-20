@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { roleLabel } from "@/lib/roles";
+import { Copy, RefreshCw } from "lucide-react";
 
 export default function Profile() {
   const { profile, roles, refreshProfile } = useAuth();
@@ -21,6 +22,36 @@ export default function Profile() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPwd, setSavingPwd] = useState(false);
+  const [uploadToken, setUploadToken] = useState<string>("");
+  const [loadingToken, setLoadingToken] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      setLoadingToken(true);
+      const { data, error } = await supabase.rpc("get_or_create_upload_token", { _regenerate: false });
+      setLoadingToken(false);
+      if (!error && data) setUploadToken(data as string);
+    })();
+  }, []);
+
+  const handleCopyToken = async () => {
+    if (!uploadToken) return;
+    await navigator.clipboard.writeText(uploadToken);
+    toast({ title: "Token copiado" });
+  };
+
+  const handleRegenerateToken = async () => {
+    if (!window.confirm("¿Regenerar tu token? El anterior dejará de funcionar.")) return;
+    setLoadingToken(true);
+    const { data, error } = await supabase.rpc("get_or_create_upload_token", { _regenerate: true });
+    setLoadingToken(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    setUploadToken((data as string) || "");
+    toast({ title: "Token regenerado" });
+  };
 
   useEffect(() => {
     setFullName(profile?.full_name || "");
@@ -122,6 +153,23 @@ export default function Profile() {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>Carga de comprobantes desde tu celular</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input value={uploadToken} readOnly className="font-mono" placeholder={loadingToken ? "Cargando..." : ""} />
+            <Button type="button" variant="secondary" onClick={handleCopyToken} disabled={!uploadToken}>
+              <Copy className="h-4 w-4 mr-1" /> Copiar
+            </Button>
+          </div>
+          <Button type="button" variant="outline" onClick={handleRegenerateToken} disabled={loadingToken}>
+            <RefreshCw className="h-4 w-4 mr-1" /> Regenerar token
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Este código identifica tus comprobantes cuando los envías desde tu celular. Es personal, no lo compartas. Pronto podrás compartir fotos y PDFs directo a la app usando este código.
+          </p>
         </CardContent>
       </Card>
       <Card>
