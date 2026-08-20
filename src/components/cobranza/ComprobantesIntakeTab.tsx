@@ -41,6 +41,26 @@ const METODO_PAGO_OPTIONS = [
 const METODOS_VALIDOS = METODO_PAGO_OPTIONS.map((o) => o.value);
 const FORMAS_VALIDAS = FORMA_PAGO_OPTIONS.map((o) => o.value);
 
+interface DocOption {
+  id: string;
+  tipo_documento: "factura" | "pedido" | "cotizacion";
+  numero: string;
+  fecha_documento: string;
+  total: number;
+  saldo: number;
+}
+
+/** Tolerancia en pesos para diferencias mínimas al aplicar pagos */
+const TOLERANCIA = 5;
+
+const TIPO_LABEL: Record<string, string> = {
+  factura: "Factura",
+  pedido: "Pedido",
+  cotizacion: "Cotización",
+};
+
+type EmpresaVendedora = "lumaggs_chevron" | "galsa_phillips66" | null | undefined;
+
 function normalizarAlias(input: string): string {
   return input
     .toString()
