@@ -166,14 +166,18 @@ function ComprobanteCard({
     (async () => {
       const { data } = await supabase
         .from("companies")
-        .select("clabe_bancaria,tarjeta_ultimos4")
+        .select("clabe_bancaria,tarjeta_ultimos4,tipo_pago")
         .eq("id", empresaId)
         .maybeSingle();
-      if (active) setEmpresaDatos((data as any) ?? null);
+      if (!active) return;
+      setEmpresaDatos((data as any) ?? null);
+      const tp = (data as any)?.tipo_pago as string | null;
+      if (tp && FORMAS_VALIDAS.includes(tp) && !formaPagoTocada) setFormaPago(tp);
     })();
     return () => {
       active = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empresaId]);
 
   const mismatchClabe =
