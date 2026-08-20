@@ -245,6 +245,36 @@ function ComprobanteCard({
         .single();
       if (pagoErr) throw pagoErr;
 
+      // Aprendizaje de alias cliente
+      if (row.nombre_detectado) {
+        const aliasNorm = normalizarAlias(row.nombre_detectado);
+        if (aliasNorm) {
+          const { data: existente } = await supabase
+            .from("comprobante_cliente_aliases")
+            .select("id,veces_usado")
+            .eq("alias_normalizado", aliasNorm)
+            .maybeSingle();
+          if (existente) {
+            await supabase
+              .from("comprobante_cliente_aliases")
+              .update({
+                empresa_id: empresaId,
+                veces_usado: ((existente as any).veces_usado || 0) + 1,
+                updated_at: new Date().toISOString(),
+              } as any)
+              .eq("id", (existente as any).id);
+          } else {
+            await supabase.from("comprobante_cliente_aliases").insert({
+              alias_normalizado: aliasNorm,
+              empresa_id: empresaId,
+              veces_usado: 1,
+              created_by: user?.id,
+            } as any);
+          }
+        }
+      }
+
+
       // Copiar archivo al bucket de documentos y registrarlo
       try {
         const { data: file, error: dlErr } = await supabase.storage.from("comprobantes-intake").download(row.storage_path);
