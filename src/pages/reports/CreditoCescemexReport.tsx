@@ -644,8 +644,6 @@ export default function CreditoCescemexReport() {
       : <ChevronDown className="h-3 w-3 ml-1 inline" />;
   };
 
-  const money = (n: number) =>
-    n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
   const fmt = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
 
   const togglePlaza = (id: string) =>
