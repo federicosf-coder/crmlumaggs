@@ -5104,6 +5104,44 @@ export type Database = {
         }
         Relationships: []
       }
+      inv_kardex_fechas_venta: {
+        Row: {
+          almacen: string
+          cantidad: number
+          carga_id: string | null
+          codigo_producto: string
+          created_at: string
+          fecha: string
+          id: string
+        }
+        Insert: {
+          almacen: string
+          cantidad?: number
+          carga_id?: string | null
+          codigo_producto: string
+          created_at?: string
+          fecha: string
+          id?: string
+        }
+        Update: {
+          almacen?: string
+          cantidad?: number
+          carga_id?: string | null
+          codigo_producto?: string
+          created_at?: string
+          fecha?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_kardex_fechas_venta_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "inv_kardex_cargas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inv_kardex_lineas: {
         Row: {
           carga_id: string

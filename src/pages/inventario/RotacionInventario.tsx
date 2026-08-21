@@ -5,12 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Star, TrendingDown, RefreshCw, ShoppingCart } from "lucide-react";
+import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Star, TrendingDown, RefreshCw, ChevronsUpDown, Clock, AlertOctagon, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 
-type Clasificacion = "estancado" | "sin_stock" | "demanda_perdida" | "baja_rotacion" | "rotacion_buena" | "estrella";
+type Clasificacion =
+  | "estancado"
+  | "estancado_urgente"
+  | "en_riesgo"
+  | "nunca_vendido"
+  | "sin_stock"
+  | "baja_rotacion"
+  | "rotacion_buena"
+  | "estrella";
 
 type Row = {
   id: string;
@@ -35,24 +45,40 @@ const fmtNum = (n: number | null | undefined, dec = 0) =>
   n == null || isNaN(Number(n)) ? "—" : Number(n).toLocaleString("es-MX", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
 const CLAS_LABEL: Record<Clasificacion, string> = {
-  estancado: "Estancado",
+  estancado: "Estancado (6-12m)",
+  estancado_urgente: "Estancado Urgente (12m+)",
+  en_riesgo: "En Riesgo (3-6m)",
+  nunca_vendido: "Nunca vendido",
   sin_stock: "Sin stock ni movimiento",
-  demanda_perdida: "Demanda perdida",
   baja_rotacion: "Baja rotación",
   rotacion_buena: "Rotación buena",
   estrella: "⭐ Estrella",
 };
 
+const CLAS_ORDER: Clasificacion[] = [
+  "estrella",
+  "rotacion_buena",
+  "baja_rotacion",
+  "en_riesgo",
+  "estancado",
+  "estancado_urgente",
+  "nunca_vendido",
+  "sin_stock",
+];
+
+const CLAS_STYLE: Record<Clasificacion, string> = {
+  estancado: "bg-red-100 text-red-700 border-red-200",
+  estancado_urgente: "bg-red-700 text-white border-red-800",
+  en_riesgo: "bg-orange-100 text-orange-700 border-orange-200",
+  nunca_vendido: "bg-sky-100 text-sky-700 border-sky-200",
+  sin_stock: "bg-slate-100 text-slate-600 border-slate-200",
+  baja_rotacion: "bg-amber-100 text-amber-800 border-amber-200",
+  rotacion_buena: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  estrella: "bg-violet-100 text-violet-700 border-violet-200",
+};
+
 function clasificacionBadge(c: Clasificacion) {
-  const map: Record<Clasificacion, string> = {
-    estancado: "bg-red-100 text-red-700 border-red-200",
-    sin_stock: "bg-slate-100 text-slate-600 border-slate-200",
-    demanda_perdida: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200",
-    baja_rotacion: "bg-amber-100 text-amber-800 border-amber-200",
-    rotacion_buena: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    estrella: "bg-violet-100 text-violet-700 border-violet-200",
-  };
-  return <Badge variant="outline" className={`text-[10px] font-medium whitespace-nowrap ${map[c]}`}>{CLAS_LABEL[c]}</Badge>;
+  return <Badge variant="outline" className={`text-[10px] font-medium whitespace-nowrap ${CLAS_STYLE[c]}`}>{CLAS_LABEL[c]}</Badge>;
 }
 
 async function fetchAll(build: () => any) {
@@ -74,7 +100,7 @@ export default function RotacionInventario() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Rotación de Inventario</h1>
-        <p className="text-sm text-muted-foreground font-light">Clasificación de productos por rotación de ventas de los últimos 12 meses.</p>
+        <p className="text-sm text-muted-foreground font-light">Clasificación de productos por rotación de ventas registradas en el Kárdex.</p>
       </div>
       <RotacionInventarioTabContent />
     </div>
@@ -86,52 +112,41 @@ export function RotacionInventarioTabContent() {
   const [productos, setProductos] = useState<any[]>([]);
   const [marcas, setMarcas] = useState<Map<string, string>>(new Map());
   const [niveles, setNiveles] = useState<any[]>([]);
-  const [ventas, setVentas] = useState<any[]>([]);
-  const [cotizaciones, setCotizaciones] = useState<any[]>([]);
+  const [fechasVenta, setFechasVenta] = useState<any[]>([]);
+  const [demanda, setDemanda] = useState<any[]>([]);
 
   const [marcaSel, setMarcaSel] = useState("ALL");
-  const [clasSel, setClasSel] = useState("ALL");
+  const [clasSel, setClasSel] = useState<Clasificacion[]>([...CLAS_ORDER]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("ue");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  const { desde, hasta } = useMemo(() => {
+  const { desde, hasta, hace3Meses } = useMemo(() => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const tres = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
     return {
       desde: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-01`,
       hasta: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+      hace3Meses: `${tres.getFullYear()}-${pad(tres.getMonth() + 1)}-${pad(tres.getDate())}`,
     };
   }, []);
 
   const recargar = async () => {
     setLoading(true);
     try {
-      const [prods, opts, nv, vts, cots] = await Promise.all([
+      const [prods, opts, nv, fv, dm] = await Promise.all([
         fetchAll(() => (supabase as any).from("productos").select("id, codigo, nombre_producto, marca_id").eq("is_active", true).order("codigo")),
         (supabase as any).from("product_option_values").select("id, value").eq("option_type", "marca"),
         fetchAll(() => (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total, costo_promedio")),
-        fetchAll(() => (supabase as any)
-          .from("documento_productos")
-          .select("producto_id, unidades_equivalentes, documentos!inner(fecha_documento, tipo_documento, estatus_factura, is_active)")
-          .eq("documentos.tipo_documento", "factura")
-          .neq("documentos.estatus_factura", "cancelada")
-          .eq("documentos.is_active", true)
-          .gte("documentos.fecha_documento", desde)
-          .lte("documentos.fecha_documento", hasta)),
-        fetchAll(() => (supabase as any)
-          .from("documento_productos")
-          .select("producto_id, documentos!inner(fecha_documento, tipo_documento, is_active)")
-          .eq("documentos.tipo_documento", "cotizacion")
-          .eq("documentos.is_active", true)
-          .gte("documentos.fecha_documento", desde)
-          .lte("documentos.fecha_documento", hasta)),
+        fetchAll(() => (supabase as any).from("inv_kardex_fechas_venta").select("codigo_producto, almacen, fecha, cantidad")),
+        fetchAll(() => (supabase as any).from("inv_demanda_plaza").select("codigo_producto, almacen, periodo_fin, demanda_mensual_promedio, ultima_venta")),
       ]);
       setProductos(prods);
       setMarcas(new Map(((opts.data || []) as any[]).map((o) => [o.id, o.value])));
       setNiveles(nv);
-      setVentas(vts);
-      setCotizaciones(cots);
+      setFechasVenta(fv);
+      setDemanda(dm);
     } catch (e: any) {
       toast.error("Error cargando rotación: " + e.message);
     } finally {
@@ -147,32 +162,43 @@ export function RotacionInventarioTabContent() {
     return m;
   }, [niveles]);
 
-  const ventasMap = useMemo(() => {
-    const m = new Map<string, { ue: number; meses: Set<string>; ultima: string | null }>();
-    for (const l of ventas) {
-      const pid = l.producto_id;
-      if (!pid) continue;
-      const fecha: string | null = l.documentos?.fecha_documento ?? null;
-      const cur = m.get(pid) ?? { ue: 0, meses: new Set<string>(), ultima: null };
-      cur.ue += Number(l.unidades_equivalentes ?? 0);
+  // Por código: última venta real, meses con venta y si hay venta en los últimos 3 meses
+  const kardexMap = useMemo(() => {
+    const m = new Map<string, { ultima: string | null; meses: Set<string>; reciente: boolean }>();
+    for (const f of fechasVenta) {
+      const cod = f.codigo_producto;
+      if (!cod) continue;
+      const fecha: string | null = f.fecha ?? null;
+      const cur = m.get(cod) ?? { ultima: null, meses: new Set<string>(), reciente: false };
       if (fecha) {
-        cur.meses.add(fecha.slice(0, 7));
         if (!cur.ultima || fecha > cur.ultima) cur.ultima = fecha;
+        cur.meses.add(fecha.slice(0, 7));
+        if (fecha >= hace3Meses) cur.reciente = true;
       }
-      m.set(pid, cur);
+      m.set(cod, cur);
     }
     return m;
-  }, [ventas]);
+  }, [fechasVenta, hace3Meses]);
 
-  const cotizacionesSet = useMemo(() => {
-    const s = new Set<string>();
-    for (const c of cotizaciones) if (c.producto_id) s.add(c.producto_id);
-    return s;
-  }, [cotizaciones]);
+  // Por código: suma de (demanda_mensual_promedio * 12) tomando por almacén la fila con periodo_fin más reciente
+  const demandaMap = useMemo(() => {
+    const latest = new Map<string, any>();
+    for (const d of demanda) {
+      const k = `${d.codigo_producto}|${d.almacen}`;
+      const prev = latest.get(k);
+      if (!prev || String(d.periodo_fin || "") > String(prev.periodo_fin || "")) latest.set(k, d);
+    }
+    const m = new Map<string, number>();
+    for (const d of latest.values()) {
+      const ue = Number(d.demanda_mensual_promedio || 0) * 12;
+      m.set(d.codigo_producto, (m.get(d.codigo_producto) || 0) + ue);
+    }
+    return m;
+  }, [demanda]);
 
   const rows = useMemo<Row[]>(() => {
     const base = productos.map((p) => {
-      const v = ventasMap.get(p.id);
+      const k = kardexMap.get(p.codigo);
       const n = nivelesMap.get(p.codigo);
       const costo = n?.costo_promedio != null ? Number(n.costo_promedio) : null;
       const stock_total = Number(n?.stock_total || 0);
@@ -188,11 +214,11 @@ export function RotacionInventarioTabContent() {
         stock_total,
         costo_prom: costo,
         valor_stock: (costo || 0) * stock_total,
-        ue: Number(v?.ue || 0),
+        ue: Number(demandaMap.get(p.codigo) || 0),
         pct: 0,
-        meses_con_venta: v?.meses.size || 0,
-        ultima_venta: v?.ultima ?? null,
-        clasificacion: "estancado" as Clasificacion,
+        meses_con_venta: k?.meses.size || 0,
+        ultima_venta: k?.ultima ?? null,
+        clasificacion: "nunca_vendido" as Clasificacion,
       };
     });
 
@@ -207,28 +233,45 @@ export function RotacionInventarioTabContent() {
       if (total > 0 && (acc / total) * 100 >= 80) reached = true;
     }
 
+    const hoy = new Date();
     for (const r of base) {
       r.pct = total > 0 ? (r.ue / total) * 100 : 0;
-      if (r.ue === 0) {
-        if (r.stock_total > 0) r.clasificacion = "estancado";
-        else if (cotizacionesSet.has(r.id)) r.clasificacion = "demanda_perdida";
-        else r.clasificacion = "sin_stock";
+      const k = kardexMap.get(r.codigo);
+      const tieneHistorico = !!k?.ultima;
+
+      if (r.stock_total <= 0) {
+        r.clasificacion = "sin_stock";
+        continue;
       }
-      else {
+
+      if (k?.reciente) {
         const isTop80 = top80.has(r.id);
         if (isTop80 && r.meses_con_venta >= 9) r.clasificacion = "estrella";
         else if (r.meses_con_venta <= 3 || !isTop80) r.clasificacion = "baja_rotacion";
         else r.clasificacion = "rotacion_buena";
+        continue;
       }
+
+      if (tieneHistorico) {
+        const ult = new Date(`${k!.ultima}T00:00:00`);
+        const meses = (hoy.getFullYear() - ult.getFullYear()) * 12 + (hoy.getMonth() - ult.getMonth());
+        if (meses < 6) r.clasificacion = "en_riesgo";
+        else if (meses < 12) r.clasificacion = "estancado";
+        else r.clasificacion = "estancado_urgente";
+        continue;
+      }
+
+      // Sin registros en kárdex de fechas: si tiene demanda histórica se considera estancado
+      r.clasificacion = r.ue > 0 ? "estancado" : "nunca_vendido";
     }
     return base;
-  }, [productos, ventasMap, nivelesMap, marcas, cotizacionesSet]);
+  }, [productos, kardexMap, demandaMap, nivelesMap, marcas]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let out = rows.filter((r) => {
       if (marcaSel !== "ALL" && r.marca !== marcaSel) return false;
-      if (clasSel !== "ALL" && r.clasificacion !== clasSel) return false;
+      if (!clasSel.includes(r.clasificacion)) return false;
       if (q && !(r.codigo.toLowerCase().includes(q) || r.nombre.toLowerCase().includes(q))) return false;
       return true;
     });
@@ -246,13 +289,16 @@ export function RotacionInventarioTabContent() {
 
   const kpis = useMemo(() => {
     const estancados = filtered.filter((r) => r.clasificacion === "estancado");
+    const urgentes = filtered.filter((r) => r.clasificacion === "estancado_urgente");
     return {
       total: filtered.length,
+      enRiesgo: filtered.filter((r) => r.clasificacion === "en_riesgo").length,
       estancados: estancados.length,
-      valorEstancado: estancados.reduce((s, r) => s + r.valor_stock, 0),
+      urgentes: urgentes.length,
+      valorEstancado: [...estancados, ...urgentes].reduce((s, r) => s + r.valor_stock, 0),
       estrella: filtered.filter((r) => r.clasificacion === "estrella").length,
       baja: filtered.filter((r) => r.clasificacion === "baja_rotacion").length,
-      demandaPerdida: filtered.filter((r) => r.clasificacion === "demanda_perdida").length,
+      nuncaVendido: filtered.filter((r) => r.clasificacion === "nunca_vendido").length,
     };
   }, [filtered]);
 
@@ -283,7 +329,7 @@ export function RotacionInventarioTabContent() {
       "Stock Total": r.stock_total,
       "Costo Promedio": r.costo_prom ?? "",
       "Valor Stock": Number(r.valor_stock.toFixed(2)),
-      "UE vendidas (12m)": Number(r.ue.toFixed(2)),
+      "UE anualizadas": Number(r.ue.toFixed(2)),
       "% participación": Number(r.pct.toFixed(2)),
       "Meses con venta": `${r.meses_con_venta}/12`,
       "Última venta": r.ultima_venta || "",
@@ -295,10 +341,15 @@ export function RotacionInventarioTabContent() {
     XLSX.writeFile(wb, `rotacion_inventario_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
+  const clasLabelBtn =
+    clasSel.length === CLAS_ORDER.length ? "Clasificación: Todas" :
+    clasSel.length === 0 ? "Clasificación: Ninguna" :
+    `Clasificación: ${clasSel.length} seleccionadas`;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-sm text-muted-foreground font-light">Ventas facturadas del {desde} al {hasta}.</p>
+        <p className="text-sm text-muted-foreground font-light">Ventas registradas en Kárdex del {desde} al {hasta}.</p>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={recargar} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Actualizar
@@ -309,13 +360,14 @@ export function RotacionInventarioTabContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-7 gap-4">
         <Kpi label="Total SKUs" value={kpis.total.toLocaleString("es-MX")} icon={<Package className="h-4 w-4" />} tone="slate" />
-        <Kpi label="Estancados" value={kpis.estancados.toLocaleString("es-MX")} icon={<AlertTriangle className="h-4 w-4" />} tone="red" />
+        <Kpi label="En Riesgo (3-6m)" value={kpis.enRiesgo.toLocaleString("es-MX")} icon={<Clock className="h-4 w-4" />} tone="orange" />
+        <Kpi label="Estancado (6-12m)" value={kpis.estancados.toLocaleString("es-MX")} icon={<AlertTriangle className="h-4 w-4" />} tone="red" />
+        <Kpi label="Estancado Urgente (12m+)" value={kpis.urgentes.toLocaleString("es-MX")} icon={<AlertOctagon className="h-4 w-4" />} tone="redDark" />
         <Kpi label="Valor estancado" value={fmtMoney(kpis.valorEstancado)} icon={<DollarSign className="h-4 w-4" />} tone="blue" />
         <Kpi label="Estrella" value={kpis.estrella.toLocaleString("es-MX")} icon={<Star className="h-4 w-4" />} tone="violet" />
         <Kpi label="Baja rotación" value={kpis.baja.toLocaleString("es-MX")} icon={<TrendingDown className="h-4 w-4" />} tone="amber" />
-        <Kpi label="Demanda perdida" value={kpis.demandaPerdida.toLocaleString("es-MX")} icon={<ShoppingCart className="h-4 w-4" />} tone="fuchsia" />
       </div>
 
       <Card>
@@ -329,22 +381,42 @@ export function RotacionInventarioTabContent() {
                 <SelectItem value="Phillips 66">Phillips 66</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={clasSel} onValueChange={setClasSel}>
-              <SelectTrigger className="h-9 w-48"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Clasificación: Todas</SelectItem>
-                <SelectItem value="estrella">⭐ Estrella</SelectItem>
-                <SelectItem value="rotacion_buena">Rotación buena</SelectItem>
-                <SelectItem value="baja_rotacion">Baja rotación</SelectItem>
-                <SelectItem value="estancado">Estancado</SelectItem>
-                <SelectItem value="demanda_perdida">Demanda perdida</SelectItem>
-                <SelectItem value="sin_stock">Sin stock ni movimiento</SelectItem>
-              </SelectContent>
-            </Select>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-9 w-64 justify-between font-normal">
+                  <span className="truncate">{clasLabelBtn}</span>
+                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-64 p-3 space-y-2">
+                <div className="flex gap-2">
+                  <Button size="sm" variant="secondary" className="h-7 text-xs flex-1" onClick={() => setClasSel([...CLAS_ORDER])}>Todas</Button>
+                  <Button size="sm" variant="secondary" className="h-7 text-xs flex-1" onClick={() => setClasSel([])}>Ninguna</Button>
+                </div>
+                <div className="space-y-2 pt-1">
+                  {CLAS_ORDER.map((c) => (
+                    <label key={c} className="flex items-center gap-2 text-sm font-light cursor-pointer">
+                      <Checkbox
+                        checked={clasSel.includes(c)}
+                        onCheckedChange={(v) =>
+                          setClasSel((prev) => (v ? [...prev, c] : prev.filter((x) => x !== c)))
+                        }
+                      />
+                      {CLAS_LABEL[c]}
+                    </label>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
             <div className="relative flex-1 min-w-[220px]">
               <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código o nombre…" className="pl-8 h-9" />
             </div>
+            <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+              <HelpCircle className="h-3 w-3" /> {kpis.nuncaVendido.toLocaleString("es-MX")} nunca vendidos
+            </span>
           </div>
 
           <div className="rounded-md border overflow-auto max-h-[70vh]">
@@ -401,14 +473,16 @@ export function RotacionInventarioTabContent() {
   );
 }
 
-function Kpi({ label, value, icon, tone }: { label: string; value: string; icon: React.ReactNode; tone: "slate" | "blue" | "amber" | "red" | "violet" | "fuchsia" }) {
+function Kpi({ label, value, icon, tone }: { label: string; value: string; icon: React.ReactNode; tone: "slate" | "blue" | "amber" | "red" | "redDark" | "violet" | "orange" | "sky" }) {
   const tones: Record<string, string> = {
     slate: "from-slate-50 to-slate-100 text-slate-700 border-slate-200",
     blue: "from-blue-50 to-blue-100 text-blue-700 border-blue-200",
     amber: "from-amber-50 to-amber-100 text-amber-800 border-amber-200",
     red: "from-red-50 to-red-100 text-red-700 border-red-200",
+    redDark: "from-red-100 to-red-200 text-red-900 border-red-300",
     violet: "from-violet-50 to-violet-100 text-violet-700 border-violet-200",
-    fuchsia: "from-fuchsia-50 to-fuchsia-100 text-fuchsia-700 border-fuchsia-200",
+    orange: "from-orange-50 to-orange-100 text-orange-700 border-orange-200",
+    sky: "from-sky-50 to-sky-100 text-sky-700 border-sky-200",
   };
   return (
     <Card className={`bg-gradient-to-br ${tones[tone]} border`}>
