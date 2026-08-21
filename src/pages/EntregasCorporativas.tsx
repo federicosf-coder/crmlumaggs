@@ -2627,6 +2627,7 @@ function ReportesTab({ refreshKey }: { refreshKey: number }) {
   const [fClientes, setFClientes] = useState<string[]>(CLIENTES);
   const [fProductos, setFProductos] = useState<string[]>([]);
   const [prodInit, setProdInit] = useState(false);
+  const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
   const [periodo, setPeriodo] = useState<"futuro" | "pasado" | "todo">("futuro");
 
@@ -2680,12 +2681,13 @@ function ReportesTab({ refreshKey }: { refreshKey: number }) {
     return lineas.filter((l) => {
       if (!fClientes.includes(l.cliente)) return false;
       if (prodInit && !fProductos.includes(l.codigo)) return false;
+      if (fechaDesde && l.fecha < fechaDesde) return false;
       if (fechaHasta && l.fecha > fechaHasta) return false;
       if (periodo === "futuro" && !(l.fecha >= hoy)) return false;
       if (periodo === "pasado" && !(l.fecha < hoy)) return false;
       return true;
     });
-  }, [lineas, fClientes, fProductos, prodInit, fechaHasta, periodo]);
+  }, [lineas, fClientes, fProductos, prodInit, fechaDesde, fechaHasta, periodo]);
 
   const porProducto = useMemo(() => {
     const m = new Map<string, { codigo: string; nombre: string; cantidad: number; importe: number; costo: number | null; sinCosto: boolean }>();
@@ -2814,6 +2816,10 @@ function ReportesTab({ refreshKey }: { refreshKey: number }) {
                 onChange={setFProductos}
                 searchable
               />
+            </div>
+            <div className="w-44">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Fecha desde</Label>
+              <Input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
             </div>
             <div className="w-44">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Fecha hasta</Label>
