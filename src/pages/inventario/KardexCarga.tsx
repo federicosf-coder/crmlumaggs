@@ -794,7 +794,32 @@ async function procesarKardexUnidades(
   console.log("[DIAG kardex_unidades] movimientos:", totalMovimientos,
     "ventas:", ventas.size, "conPlaza:", conPlaza, "muestra:", parsed.movimientos.slice(0, 3));
 
+  // 0) Detalle de fechas de venta (histórico por movimiento)
+  try {
+    const fechasMap = new Map<string, { codigo_producto: string; almacen: string; fecha: string; cantidad: number; carga_id: string }>();
+    for (const m of movimientos12m) {
+      if (!m.plaza) continue;
+      if (!(m.salidas > 0)) continue;
+      const k = `${m.codigo}|${m.plaza}|${m.fecha}`;
+      const cur = fechasMap.get(k) || { codigo_producto: m.codigo, almacen: m.plaza, fecha: m.fecha, cantidad: 0, carga_id: carga.id };
+      cur.cantidad += m.salidas;
+      fechasMap.set(k, cur);
+    }
+    const fechasRows = Array.from(fechasMap.values());
+    for (let i = 0; i < fechasRows.length; i += 200) {
+      const { error: fvErr } = await (supabase as any)
+        .from("inv_kardex_fechas_venta")
+        .upsert(fechasRows.slice(i, i + 200), { onConflict: "codigo_producto,almacen,fecha", ignoreDuplicates: false });
+      if (fvErr) throw fvErr;
+      setProgress(20 + Math.round(((i + 200) / Math.max(1, fechasRows.length)) * 10));
+    }
+  } catch (e: any) {
+    console.error("Error guardando inv_kardex_fechas_venta:", e);
+    toast.warning("No se pudo guardar el detalle de fechas de venta: " + (e?.message || ""));
+  }
+
   // 1) UPSERT inv_demanda_plaza
+
   const batchSize = 200;
   const demandaRows = Array.from(ventas.values()).map((v) => {
     const ddia = v.uds / diasPeriodo;
