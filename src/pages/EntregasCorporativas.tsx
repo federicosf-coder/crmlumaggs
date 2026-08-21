@@ -2543,3 +2543,401 @@ function NuevaEntregaManualDialog({
     </Dialog>
   );
 }
+
+/* --------------------------- Reportes --------------------------- */
+
+const mxn = (n: number) =>
+  new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n || 0);
+
+type ReporteLinea = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  cliente: string;
+  fecha: string;
+  cantidad: number;
+  costo_unitario: number | null;
+  importe: number;
+};
+
+function MultiSelectFilter({
+  label, options, selected, onChange, searchable,
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+  searchable?: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const term = q.trim().toLowerCase();
+  const visibles = term ? options.filter((o) => o.label.toLowerCase().includes(term)) : options;
+  const resumen = selected.length === options.length
+    ? "Todos"
+    : selected.length === 0 ? "Ninguno" : `${selected.length} seleccionados`;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-full justify-between font-normal">
+          <span className="truncate">{resumen}</span>
+          <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[320px] p-0" align="start">
+        <div className="p-2 border-b space-y-2">
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="h-7 text-xs flex-1"
+              onClick={() => onChange(options.map((o) => o.value))}>Todos</Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs flex-1"
+              onClick={() => onChange([])}>Ninguno</Button>
+          </div>
+          {searchable && (
+            <Input className="h-8 text-sm" placeholder="Buscar código o nombre…" value={q}
+              onChange={(e) => setQ(e.target.value)} />
+          )}
+        </div>
+        <div className="max-h-64 overflow-y-auto p-2 space-y-1">
+          {visibles.length === 0 && (
+            <p className="text-xs text-muted-foreground py-2 text-center">Sin resultados</p>
+          )}
+          {visibles.map((o) => (
+            <label key={o.value} className="flex items-center gap-2 text-sm py-1 cursor-pointer">
+              <Checkbox
+                checked={selected.includes(o.value)}
+                onCheckedChange={(c) =>
+                  onChange(c ? [...selected, o.value] : selected.filter((v) => v !== o.value))
+                }
+              />
+              <span className="truncate">{o.label}</span>
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function ReportesTab({ refreshKey }: { refreshKey: number }) {
+  const [loading, setLoading] = useState(false);
+  const [lineas, setLineas] = useState<ReporteLinea[]>([]);
+  const [fClientes, setFClientes] = useState<string[]>(CLIENTES);
+  const [fProductos, setFProductos] = useState<string[]>([]);
+  const [prodInit, setProdInit] = useState(false);
+  const [fechaHasta, setFechaHasta] = useState("");
+  const [periodo, setPeriodo] = useState<"futuro" | "pasado" | "todo">("futuro");
+
+  const [sortProd, setSortProd] = useState<{ k: string; asc: boolean }>({ k: "importe", asc: false });
+  const [sortCli, setSortCli] = useState<{ k: string; asc: boolean }>({ k: "importe", asc: false });
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await (supabase as any)
+      .from("entregas_corporativas_lineas")
+      .select("id, codigo_producto, nombre_producto, cantidad, costo_unitario, entrega:entregas_corporativas(cliente, fecha_programada, estatus)");
+    const rows: ReporteLinea[] = ((data ?? []) as any[])
+      .filter((l) => l.entrega && l.entrega.estatus !== "cancelada")
+      .map((l) => {
+        const cantidad = Number(l.cantidad ?? 0);
+        const costo = l.costo_unitario === null || l.costo_unitario === undefined ? null : Number(l.costo_unitario);
+        return {
+          id: l.id,
+          codigo: l.codigo_producto ?? "",
+          nombre: l.nombre_producto ?? "",
+          cliente: l.entrega.cliente ?? "—",
+          fecha: l.entrega.fecha_programada as string,
+          cantidad,
+          costo_unitario: costo,
+          importe: cantidad * (costo ?? 0),
+        };
+      });
+    setLineas(rows);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [refreshKey]);
+
+  const productosOpts = useMemo(() => {
+    const m = new Map<string, string>();
+    lineas.forEach((l) => { if (l.codigo && !m.has(l.codigo)) m.set(l.codigo, `${l.codigo} — ${l.nombre}`); });
+    return Array.from(m.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.value.localeCompare(b.value));
+  }, [lineas]);
+
+  useEffect(() => {
+    if (!prodInit && productosOpts.length > 0) {
+      setFProductos(productosOpts.map((o) => o.value));
+      setProdInit(true);
+    }
+  }, [productosOpts, prodInit]);
+
+  const filtradas = useMemo(() => {
+    const hoy = new Date().toISOString().slice(0, 10);
+    return lineas.filter((l) => {
+      if (!fClientes.includes(l.cliente)) return false;
+      if (prodInit && !fProductos.includes(l.codigo)) return false;
+      if (fechaHasta && l.fecha > fechaHasta) return false;
+      if (periodo === "futuro" && !(l.fecha >= hoy)) return false;
+      if (periodo === "pasado" && !(l.fecha < hoy)) return false;
+      return true;
+    });
+  }, [lineas, fClientes, fProductos, prodInit, fechaHasta, periodo]);
+
+  const porProducto = useMemo(() => {
+    const m = new Map<string, { codigo: string; nombre: string; cantidad: number; importe: number; costo: number | null; sinCosto: boolean }>();
+    filtradas.forEach((l) => {
+      const cur = m.get(l.codigo) ?? { codigo: l.codigo, nombre: l.nombre, cantidad: 0, importe: 0, costo: l.costo_unitario, sinCosto: false };
+      cur.cantidad += l.cantidad;
+      cur.importe += l.importe;
+      if (l.costo_unitario === null) cur.sinCosto = true;
+      else if (cur.costo === null) cur.costo = l.costo_unitario;
+      if (!cur.nombre && l.nombre) cur.nombre = l.nombre;
+      m.set(l.codigo, cur);
+    });
+    const arr = Array.from(m.values());
+    const dir = sortProd.asc ? 1 : -1;
+    const val = (r: typeof arr[number]) => {
+      switch (sortProd.k) {
+        case "codigo": return r.codigo;
+        case "nombre": return r.nombre;
+        case "cantidad": return r.cantidad;
+        case "costo": return r.costo ?? 0;
+        default: return r.importe;
+      }
+    };
+    return arr.sort((a, b) => {
+      const va = val(a), vb = val(b);
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+      return String(va).localeCompare(String(vb)) * dir;
+    });
+  }, [filtradas, sortProd]);
+
+  const porCliente = useMemo(() => {
+    const m = new Map<string, { cliente: string; cantidad: number; importe: number }>();
+    filtradas.forEach((l) => {
+      const cur = m.get(l.cliente) ?? { cliente: l.cliente, cantidad: 0, importe: 0 };
+      cur.cantidad += l.cantidad;
+      cur.importe += l.importe;
+      m.set(l.cliente, cur);
+    });
+    const arr = Array.from(m.values());
+    const dir = sortCli.asc ? 1 : -1;
+    const val = (r: typeof arr[number]) => {
+      switch (sortCli.k) {
+        case "cliente": return r.cliente;
+        case "cantidad": return r.cantidad;
+        default: return r.importe;
+      }
+    };
+    return arr.sort((a, b) => {
+      const va = val(a), vb = val(b);
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+      return String(va).localeCompare(String(vb)) * dir;
+    });
+  }, [filtradas, sortCli]);
+
+  const totalProdCant = porProducto.reduce((s, r) => s + r.cantidad, 0);
+  const totalProdImp = porProducto.reduce((s, r) => s + r.importe, 0);
+  const totalCliCant = porCliente.reduce((s, r) => s + r.cantidad, 0);
+  const totalCliImp = porCliente.reduce((s, r) => s + r.importe, 0);
+
+  const ThProd = ({ k, children, className }: { k: string; children: React.ReactNode; className?: string }) => (
+    <TableHead
+      className={`cursor-pointer select-none uppercase text-xs text-slate-700 font-semibold tracking-wide ${className ?? ""}`}
+      onClick={() => setSortProd((s) => (s.k === k ? { k, asc: !s.asc } : { k, asc: true }))}
+    >
+      {children}{sortProd.k === k ? (sortProd.asc ? " ↑" : " ↓") : ""}
+    </TableHead>
+  );
+
+  const ThCli = ({ k, children, className }: { k: string; children: React.ReactNode; className?: string }) => (
+    <TableHead
+      className={`cursor-pointer select-none uppercase text-xs text-slate-700 font-semibold tracking-wide ${className ?? ""}`}
+      onClick={() => setSortCli((s) => (s.k === k ? { k, asc: !s.asc } : { k, asc: true }))}
+    >
+      {children}{sortCli.k === k ? (sortCli.asc ? " ↑" : " ↓") : ""}
+    </TableHead>
+  );
+
+  const exportarProductos = () => {
+    const data = porProducto.map((r) => ({
+      "Código": r.codigo,
+      Producto: r.nombre,
+      "Cantidad Total": r.cantidad,
+      "Costo Unitario": r.costo ?? 0,
+      "Importe Total": r.importe,
+    }));
+    data.push({ "Código": "TOTAL", Producto: "", "Cantidad Total": totalProdCant, "Costo Unitario": 0, "Importe Total": totalProdImp } as any);
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Por Producto");
+    XLSX.writeFile(wb, `reporte_entregas_producto_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const exportarClientes = () => {
+    const data = porCliente.map((r) => ({
+      Cliente: r.cliente,
+      "Cantidad Total": r.cantidad,
+      "Importe Total": r.importe,
+    }));
+    data.push({ Cliente: "TOTAL", "Cantidad Total": totalCliCant, "Importe Total": totalCliImp });
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Por Cliente");
+    XLSX.writeFile(wb, `reporte_entregas_cliente_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-3">
+            <div className="w-56">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Cliente</Label>
+              <MultiSelectFilter
+                label="Cliente"
+                options={CLIENTES.map((c) => ({ value: c, label: c }))}
+                selected={fClientes}
+                onChange={setFClientes}
+              />
+            </div>
+            <div className="w-64">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Producto</Label>
+              <MultiSelectFilter
+                label="Producto"
+                options={productosOpts}
+                selected={fProductos}
+                onChange={setFProductos}
+                searchable
+              />
+            </div>
+            <div className="w-44">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Fecha hasta</Label>
+              <Input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
+            </div>
+            <div className="w-56">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Periodo</Label>
+              <ToggleGroup
+                type="single"
+                value={periodo}
+                onValueChange={(v) => v && setPeriodo(v as any)}
+                className="justify-start border rounded-md p-0.5"
+              >
+                <ToggleGroupItem value="futuro" className="h-8 px-3 text-xs">Futuro</ToggleGroupItem>
+                <ToggleGroupItem value="pasado" className="h-8 px-3 text-xs">Pasado</ToggleGroupItem>
+                <ToggleGroupItem value="todo" className="h-8 px-3 text-xs">Todo</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            <div className="flex items-end">
+              <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base font-medium">Desglose por Producto</CardTitle>
+          <Button variant="outline" size="sm" onClick={exportarProductos}>
+            <Download className="h-4 w-4 mr-1.5" /> Exportar Excel
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50">
+                  <ThProd k="codigo">Código</ThProd>
+                  <ThProd k="nombre">Producto</ThProd>
+                  <ThProd k="cantidad" className="text-right">Cantidad Total</ThProd>
+                  <ThProd k="costo" className="text-right">Costo Unitario</ThProd>
+                  <ThProd k="importe" className="text-right">Importe Total</ThProd>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {porProducto.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
+                      {loading ? "Cargando…" : "Sin productos que mostrar"}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {porProducto.map((r) => (
+                  <TableRow key={r.codigo} className="odd:bg-muted/30">
+                    <TableCell className="font-mono text-sm font-medium py-2.5">{r.codigo}</TableCell>
+                    <TableCell className="text-sm py-2.5">
+                      <span className="mr-2">{r.nombre}</span>
+                      {r.sinCosto && (
+                        <Badge className="text-xs font-semibold bg-amber-200 text-amber-900 hover:bg-amber-200">Sin costo</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right text-sm font-medium py-2.5">{r.cantidad}</TableCell>
+                    <TableCell className="text-right text-sm py-2.5">{mxn(r.costo ?? 0)}</TableCell>
+                    <TableCell className="text-right text-sm font-medium py-2.5">{mxn(r.importe)}</TableCell>
+                  </TableRow>
+                ))}
+                {porProducto.length > 0 && (
+                  <TableRow className="bg-muted/60">
+                    <TableCell className="text-sm font-bold py-2.5">TOTAL</TableCell>
+                    <TableCell />
+                    <TableCell className="text-right text-sm font-bold py-2.5">{totalProdCant}</TableCell>
+                    <TableCell />
+                    <TableCell className="text-right text-sm font-bold py-2.5">{mxn(totalProdImp)}</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base font-medium">Desglose por Cliente</CardTitle>
+          <Button variant="outline" size="sm" onClick={exportarClientes}>
+            <Download className="h-4 w-4 mr-1.5" /> Exportar Excel
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50">
+                  <ThCli k="cliente">Cliente</ThCli>
+                  <ThCli k="cantidad" className="text-right">Cantidad Total</ThCli>
+                  <ThCli k="importe" className="text-right">Importe Total</ThCli>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {porCliente.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">
+                      {loading ? "Cargando…" : "Sin datos que mostrar"}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {porCliente.map((r) => (
+                  <TableRow key={r.cliente} className="odd:bg-muted/30">
+                    <TableCell className="text-sm py-2.5">{r.cliente}</TableCell>
+                    <TableCell className="text-right text-sm font-medium py-2.5">{r.cantidad}</TableCell>
+                    <TableCell className="text-right text-sm font-medium py-2.5">{mxn(r.importe)}</TableCell>
+                  </TableRow>
+                ))}
+                {porCliente.length > 0 && (
+                  <TableRow className="bg-muted/60">
+                    <TableCell className="text-sm font-bold py-2.5">TOTAL</TableCell>
+                    <TableCell className="text-right text-sm font-bold py-2.5">{totalCliCant}</TableCell>
+                    <TableCell className="text-right text-sm font-bold py-2.5">{mxn(totalCliImp)}</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
