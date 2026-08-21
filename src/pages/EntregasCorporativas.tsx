@@ -1811,6 +1811,9 @@ export default function EntregasCorporativas() {
         <TabsContent value="resumen" className="mt-4">
           <ResumenPorProductoTab refreshKey={refreshKey} />
         </TabsContent>
+        <TabsContent value="reportes" className="mt-4">
+          <ReportesTab refreshKey={refreshKey} />
+        </TabsContent>
       </Tabs>
     </div>
   );
