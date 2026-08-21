@@ -2818,6 +2818,10 @@ function ReportesTab({ refreshKey }: { refreshKey: number }) {
               />
             </div>
             <div className="w-44">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Fecha desde</Label>
+              <Input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
+            </div>
+            <div className="w-44">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Fecha hasta</Label>
               <Input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
             </div>
