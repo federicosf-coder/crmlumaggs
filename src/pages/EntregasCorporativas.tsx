@@ -1794,6 +1794,7 @@ export default function EntregasCorporativas() {
           <TabsTrigger value="entregas">Entregas Programadas</TabsTrigger>
           <TabsTrigger value="desglose">Desglose de Productos</TabsTrigger>
           <TabsTrigger value="resumen">Resumen por Producto</TabsTrigger>
+          <TabsTrigger value="reportes">Reportes</TabsTrigger>
         </TabsList>
         <TabsContent value="calendarios" className="mt-4">
           <CalendariosTab onImported={() => setRefreshKey((k) => k + 1)} />
