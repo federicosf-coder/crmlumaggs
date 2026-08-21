@@ -4473,6 +4473,7 @@ export type Database = {
         Row: {
           cantidad: number
           codigo_producto: string
+          costo_unitario: number | null
           created_at: string
           entrega_id: string
           id: string
@@ -4481,6 +4482,7 @@ export type Database = {
         Insert: {
           cantidad: number
           codigo_producto: string
+          costo_unitario?: number | null
           created_at?: string
           entrega_id: string
           id?: string
@@ -4489,6 +4491,7 @@ export type Database = {
         Update: {
           cantidad?: number
           codigo_producto?: string
+          costo_unitario?: number | null
           created_at?: string
           entrega_id?: string
           id?: string
