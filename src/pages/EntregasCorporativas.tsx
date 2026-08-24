@@ -1807,6 +1807,10 @@ export default function EntregasCorporativas() {
       <Tabs defaultValue="calendarios">
         <TabsList>
           <TabsTrigger value="calendarios">Subir Pedidos Clientes</TabsTrigger>
+          <TabsTrigger value="correos-chevron" className="gap-2">
+            Correos de Chevron
+            {intakePendientes > 0 && <Badge variant="secondary">{intakePendientes}</Badge>}
+          </TabsTrigger>
           <TabsTrigger value="ubicaciones">Ubicaciones</TabsTrigger>
           <TabsTrigger value="entregas">Entregas Programadas</TabsTrigger>
           <TabsTrigger value="desglose">Desglose de Productos</TabsTrigger>
