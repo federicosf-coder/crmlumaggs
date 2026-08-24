@@ -518,6 +518,18 @@ function ComprobanteCard({
             <span className="text-xs text-muted-foreground">{formatDate(row.created_at)}</span>
             <Badge variant="secondary">{CANAL_LABEL[row.canal] || row.canal}</Badge>
           </div>
+          {row.canal === "email" && row.email_html_storage_path && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={handleVerCorreo}
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Ver correo completo
+            </Button>
+          )}
         </div>
 
         <div className="space-y-3">
