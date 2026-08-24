@@ -1820,6 +1820,9 @@ export default function EntregasCorporativas() {
         <TabsContent value="calendarios" className="mt-4">
           <CalendariosTab onImported={() => setRefreshKey((k) => k + 1)} />
         </TabsContent>
+        <TabsContent value="correos-chevron" className="mt-4">
+          <EntregasCorpIntakeTab />
+        </TabsContent>
         <TabsContent value="ubicaciones" className="mt-4">
           <UbicacionesTab refreshKey={ubicKey} onChanged={() => setRefreshKey((k) => k + 1)} />
         </TabsContent>
