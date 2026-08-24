@@ -34,7 +34,7 @@ const TIPOS_ARCHIVO: { value: string; label: string; empresa: "lumaggs" | "galsa
   { value: "lista_general_gonher", label: "Lista Precios Gonher / GW Galper", empresa: "galsa", categoria: "lista" },
 ];
 
-const ceilTo5 = (n: number) => (!isFinite(n) || n <= 0 ? 0 : Math.ceil(n / 5) * 5);
+const ceilTo5 = (n: number) => (!isFinite(n) || n <= 0 ? 0 : Math.round(n * 100) / 100);
 
 type MarcaFiltro = "lumaggs" | "galsa" | "gonher";
 
