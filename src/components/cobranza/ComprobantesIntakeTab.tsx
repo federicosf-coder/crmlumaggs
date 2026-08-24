@@ -519,14 +519,28 @@ function ComprobanteCard({
 
   const handleVerCorreo = async () => {
     if (!row.email_html_storage_path) return;
-    const { data, error } = await supabase.storage
-      .from("comprobantes-intake")
-      .createSignedUrl(row.email_html_storage_path, 3600);
-    if (error || !data?.signedUrl) {
-      toast.error("No se pudo generar la liga del correo");
-      return;
+    setLoadingEmailPreview(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from("comprobantes-intake")
+        .createSignedUrl(row.email_html_storage_path, 3600);
+      if (error || !data?.signedUrl) {
+        toast.error("No se pudo generar la liga del correo");
+        return;
+      }
+      const res = await fetch(data.signedUrl);
+      if (!res.ok) {
+        toast.error("No se pudo cargar el contenido del correo");
+        return;
+      }
+      const html = await res.text();
+      setEmailPreviewHtml(html);
+      setEmailPreviewOpen(true);
+    } catch (e: any) {
+      toast.error(e.message || "Error al abrir el correo");
+    } finally {
+      setLoadingEmailPreview(false);
     }
-    window.open(data.signedUrl, "_blank");
   };
 
   const handleVerPdfGenerado = async () => {
