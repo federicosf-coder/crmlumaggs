@@ -224,8 +224,7 @@ Deno.serve(async (req) => {
         const meta = listado.find((l: any) => String(l?.id) === String(att.id)) ?? null;
         const sizeReal = Number(meta?.size ?? 0) || 0;
         if (ct.startsWith('image/') && sizeReal <= 15000) continue;
-      try {
-        const meta = listado.find((l: any) => String(l?.id) === String(att.id)) ?? null;
+
         const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
         if (!downloadUrl) throw new Error(`sin_download_url para adjunto ${att.id}`);
 
