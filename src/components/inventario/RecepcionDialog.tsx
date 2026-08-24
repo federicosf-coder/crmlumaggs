@@ -46,7 +46,7 @@ export default function RecepcionDialog({
       const { data } = await (supabase as any).from("inv_pedido_lineas").select("*").eq("pedido_id", pedidoId).order("created_at");
       setLineas((data || []).map((l: any) => ({
         ...l,
-        recibido: l.cantidad_recibida ?? l.cantidad_solicitada ?? 0,
+        recibido: (l.cantidad_recibida && l.cantidad_recibida > 0) ? l.cantidad_recibida : (l.cantidad_solicitada ?? 0),
         tipo: "completo",
       })));
     })();
