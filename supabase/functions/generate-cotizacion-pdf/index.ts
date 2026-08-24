@@ -104,13 +104,25 @@ serve(async (req) => {
 
     const fontSize = 9; // consistent size for the whole document
 
+    // Sanitiza texto para las fuentes estandar (WinAnsi): quita saltos de linea,
+    // tabuladores y caracteres no codificables (emojis, etc.)
+    const sanitize = (text: unknown): string =>
+      String(text ?? "")
+        .replace(/[\r\n\t\v\f]+/g, " ")
+        .replace(/[\u2018\u2019]/g, "'")
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/[\u2013\u2014]/g, "-")
+        .replace(/\u2026/g, "...")
+        .replace(/[^\u0020-\u007E\u00A0-\u00FF]/g, "");
+
     const drawText = (text: string, x: number, yPos: number, size = fontSize, f = font, color = rgb(0, 0, 0)) => {
-      page.drawText(text || "", { x, y: yPos, size, font: f, color });
+      page.drawText(sanitize(text), { x, y: yPos, size, font: f, color });
     };
 
     // Word-wrap text within a max width, returns lines
     const wrapText = (text: string, maxWidth: number, size = fontSize, f = font): string[] => {
-      const words = (text || "").split(" ");
+      const words = sanitize(text).split(" ");
+
       const lines: string[] = [];
       let current = "";
       for (const word of words) {
@@ -127,8 +139,9 @@ serve(async (req) => {
     };
 
     const drawTextRight = (text: string, xRight: number, yPos: number, size = fontSize, f = font, color = rgb(0, 0, 0)) => {
-      const w = f.widthOfTextAtSize(text || "", size);
-      page.drawText(text || "", { x: xRight - w, y: yPos, size, font: f, color });
+      const t = sanitize(text);
+      const w = f.widthOfTextAtSize(t, size);
+      page.drawText(t, { x: xRight - w, y: yPos, size, font: f, color });
     };
 
     const drawLine = (x1: number, y1: number, x2: number, thickness = 0.5, color = rgb(0.7, 0.7, 0.7)) => {
@@ -345,7 +358,7 @@ serve(async (req) => {
       addNewPageIfNeeded(30);
       drawText("Notas:", margin, y, fontSize, fontBold);
       y -= 14;
-      const notaLines = wrapText(doc.notas, contentWidth);
+      const notaLines = String(doc.notas).split(/\r?\n/).flatMap((l: string) => wrapText(l, contentWidth));
       for (const nl of notaLines) {
         addNewPageIfNeeded(14);
         drawText(nl, margin, y);
