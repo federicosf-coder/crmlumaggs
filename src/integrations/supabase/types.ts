@@ -1700,6 +1700,7 @@ export type Database = {
           cobranza_pago_id: string | null
           created_at: string
           ejecutivo_id: string | null
+          email_html_storage_path: string | null
           empresa_id: string | null
           estatus: Database["public"]["Enums"]["comprobante_intake_estatus"]
           extraccion_error: string | null
@@ -1728,6 +1729,7 @@ export type Database = {
           cobranza_pago_id?: string | null
           created_at?: string
           ejecutivo_id?: string | null
+          email_html_storage_path?: string | null
           empresa_id?: string | null
           estatus?: Database["public"]["Enums"]["comprobante_intake_estatus"]
           extraccion_error?: string | null
@@ -1756,6 +1758,7 @@ export type Database = {
           cobranza_pago_id?: string | null
           created_at?: string
           ejecutivo_id?: string | null
+          email_html_storage_path?: string | null
           empresa_id?: string | null
           estatus?: Database["public"]["Enums"]["comprobante_intake_estatus"]
           extraccion_error?: string | null
