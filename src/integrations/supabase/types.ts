@@ -4490,6 +4490,69 @@ export type Database = {
           },
         ]
       }
+      entregas_corporativas_intake: {
+        Row: {
+          asunto_email: string | null
+          canal: string
+          cliente_detectado: string | null
+          created_at: string
+          email_html_storage_path: string | null
+          entregas_extraidas: Json | null
+          estatus: string
+          extraccion_error: string | null
+          extraccion_raw: Json | null
+          id: string
+          lugar_entrega_detectado: string | null
+          mime_type: string | null
+          numero_pedido_detectado: string | null
+          procesado_at: string | null
+          procesado_por: string | null
+          remitente_email: string | null
+          resend_email_id: string | null
+          storage_path: string | null
+        }
+        Insert: {
+          asunto_email?: string | null
+          canal?: string
+          cliente_detectado?: string | null
+          created_at?: string
+          email_html_storage_path?: string | null
+          entregas_extraidas?: Json | null
+          estatus?: string
+          extraccion_error?: string | null
+          extraccion_raw?: Json | null
+          id?: string
+          lugar_entrega_detectado?: string | null
+          mime_type?: string | null
+          numero_pedido_detectado?: string | null
+          procesado_at?: string | null
+          procesado_por?: string | null
+          remitente_email?: string | null
+          resend_email_id?: string | null
+          storage_path?: string | null
+        }
+        Update: {
+          asunto_email?: string | null
+          canal?: string
+          cliente_detectado?: string | null
+          created_at?: string
+          email_html_storage_path?: string | null
+          entregas_extraidas?: Json | null
+          estatus?: string
+          extraccion_error?: string | null
+          extraccion_raw?: Json | null
+          id?: string
+          lugar_entrega_detectado?: string | null
+          mime_type?: string | null
+          numero_pedido_detectado?: string | null
+          procesado_at?: string | null
+          procesado_por?: string | null
+          remitente_email?: string | null
+          resend_email_id?: string | null
+          storage_path?: string | null
+        }
+        Relationships: []
+      }
       entregas_corporativas_lineas: {
         Row: {
           cantidad: number
