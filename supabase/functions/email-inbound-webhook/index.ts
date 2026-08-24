@@ -217,6 +217,9 @@ Deno.serve(async (req) => {
       console.error('error listando adjuntos:', (e as Error).message);
     }
 
+    console.log('listado adjuntos gateway:', JSON.stringify(listado.map((l: any) => ({ id: l?.id, size: l?.size, has_url: !!(l?.download_url ?? l?.downloadUrl) }))));
+    console.log('attachments del webhook:', JSON.stringify(validos.map((a: any) => ({ id: a?.id, content_type: a?.content_type, disposition: a?.content_disposition }))));
+
     let procesados = 0;
 
     for (const att of validos) {
@@ -224,6 +227,7 @@ Deno.serve(async (req) => {
         const ct = String(att?.content_type ?? '').toLowerCase();
         const meta = listado.find((l: any) => String(l?.id) === String(att.id)) ?? null;
         const sizeReal = Number(meta?.size ?? 0) || 0;
+        console.log(`att ${att.id}: ct=${ct} meta_encontrado=${!!meta} sizeReal=${sizeReal}`);
         if (ct.startsWith('image/') && sizeReal <= 15000) continue;
 
         const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
@@ -337,6 +341,7 @@ Deno.serve(async (req) => {
         const { error: insErr } = await admin.from('comprobantes_intake').insert(insertPayload);
         if (insErr) throw new Error(`insert_failed: ${insErr.message}`);
 
+        console.log(`att ${att.id} insertado OK`);
         procesados++;
       } catch (e) {
         console.error(`adjunto ${att?.id} fallo:`, (e as Error).message);
