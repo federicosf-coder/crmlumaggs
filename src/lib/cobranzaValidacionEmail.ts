@@ -78,7 +78,7 @@ export async function buildValidacionEmailFlow(
   const { data: pago } = await (supabase as any)
     .from("cobranza_pagos")
     .select(
-      "id, empresa_id, fecha_pago, monto_total, moneda, tipo_pago, referencia_pago, banco, observaciones, empresa:companies(name, razon_social, id_contpaq, email)"
+      "id, empresa_id, fecha_pago, monto_total, moneda, tipo_pago, referencia_pago, banco, clabe_origen, tarjeta_ultimos4_origen, observaciones, empresa:companies(name, razon_social, id_contpaq, email)"
     )
     .eq("id", pagoId)
     .maybeSingle();
