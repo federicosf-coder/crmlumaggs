@@ -219,6 +219,17 @@ export async function buildValidacionEmailFlow(
     liga_documento: signedComprobantes[0]?.url ?? "",
   };
 
+  const cuentaOrigen =
+    pago.clabe_origen && pago.tarjeta_ultimos4_origen
+      ? `CLABE ${pago.clabe_origen} · Tarjeta term. ${pago.tarjeta_ultimos4_origen}`
+      : pago.clabe_origen
+      ? `CLABE ${pago.clabe_origen}`
+      : pago.tarjeta_ultimos4_origen
+      ? `Tarjeta terminación ${pago.tarjeta_ultimos4_origen}`
+      : "No detectada";
+
+  tplVars.cuenta_origen = cuentaOrigen;
+
   const perFlowKey =
     flow === "contado"
       ? "pago_validacion_contado"
