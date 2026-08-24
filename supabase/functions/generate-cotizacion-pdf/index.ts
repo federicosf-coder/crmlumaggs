@@ -139,8 +139,9 @@ serve(async (req) => {
     };
 
     const drawTextRight = (text: string, xRight: number, yPos: number, size = fontSize, f = font, color = rgb(0, 0, 0)) => {
-      const w = f.widthOfTextAtSize(text || "", size);
-      page.drawText(text || "", { x: xRight - w, y: yPos, size, font: f, color });
+      const t = sanitize(text);
+      const w = f.widthOfTextAtSize(t, size);
+      page.drawText(t, { x: xRight - w, y: yPos, size, font: f, color });
     };
 
     const drawLine = (x1: number, y1: number, x2: number, thickness = 0.5, color = rgb(0.7, 0.7, 0.7)) => {
