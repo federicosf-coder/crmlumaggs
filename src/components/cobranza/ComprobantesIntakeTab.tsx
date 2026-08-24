@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { FileText, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
+import { FileText, Trash2, AlertTriangle, ExternalLink, Mail } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useAuth } from "@/contexts/AuthContext";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
