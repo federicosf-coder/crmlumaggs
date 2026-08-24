@@ -66,38 +66,66 @@ Deno.serve(async (req) => {
     const rawBody = await req.text();
     const resend = new Resend(RESEND_API_KEY);
 
-    let event: any;
-    try {
-      event = await resend.webhooks.verify({
-        payload: rawBody,
-        headers: {
-          'svix-id': req.headers.get('svix-id') ?? '',
-          'svix-timestamp': req.headers.get('svix-timestamp') ?? '',
-          'svix-signature': req.headers.get('svix-signature') ?? '',
-        },
-        secret: RESEND_WEBHOOK_SECRET,
-      });
-    } catch (e) {
-      console.error('firma invalida en email-inbound-webhook:', (e as Error).message);
+    const svixId = req.headers.get('svix-id');
+    const svixTimestamp = req.headers.get('svix-timestamp');
+    const svixSignature = req.headers.get('svix-signature');
+
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      console.error('headers svix faltantes en email-inbound-webhook');
       return jsonRes({ error: 'firma_invalida' }, 401);
     }
 
-    // Algunas versiones del SDK devuelven { data, error } en vez de lanzar
-    if (event?.error) {
-      console.error('firma invalida en email-inbound-webhook:', event.error);
+    let firmaOk = false;
+    try {
+      const secretB64 = RESEND_WEBHOOK_SECRET.replace(/^whsec_/, '');
+      const keyBytes = Uint8Array.from(atob(secretB64), (c) => c.charCodeAt(0));
+      const key = await crypto.subtle.importKey(
+        'raw',
+        keyBytes,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign'],
+      );
+      const mensaje = `${svixId}.${svixTimestamp}.${rawBody}`;
+      const firmaBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(mensaje));
+      const firmaBytes = new Uint8Array(firmaBuf);
+      let firmaBin = '';
+      for (let i = 0; i < firmaBytes.length; i++) firmaBin += String.fromCharCode(firmaBytes[i]);
+      const esperada = btoa(firmaBin);
+
+      const iguales = (a: string, b: string) => {
+        if (a.length !== b.length) return false;
+        let diff = 0;
+        for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+        return diff === 0;
+      };
+
+      for (const parte of svixSignature.split(' ')) {
+        const [version, firma] = parte.split(',');
+        if (version === 'v1' && firma && iguales(esperada, firma)) {
+          firmaOk = true;
+          break;
+        }
+      }
+    } catch (e) {
+      console.error('error verificando firma en email-inbound-webhook:', (e as Error).message);
       return jsonRes({ error: 'firma_invalida' }, 401);
     }
-    const payload = event?.data ?? event;
-    if (!payload?.type) {
-      try {
-        event = JSON.parse(rawBody);
-      } catch {
-        return jsonRes({ error: 'payload_invalido' }, 400);
-      }
+
+    if (!firmaOk) {
+      console.error('firma invalida en email-inbound-webhook');
+      return jsonRes({ error: 'firma_invalida' }, 401);
     }
-    const evt = payload?.type ? payload : event;
+
+    let evt: any;
+    try {
+      evt = JSON.parse(rawBody);
+    } catch {
+      return jsonRes({ error: 'payload_invalido' }, 400);
+    }
 
     if (evt?.type !== 'email.received') return jsonRes({ ok: true, ignorado: evt?.type ?? null });
+
 
     const data = evt.data ?? {};
     const emailId: string = String(data.email_id ?? data.id ?? '');
