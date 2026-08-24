@@ -498,6 +498,18 @@ function ComprobanteCard({
     window.open(data.signedUrl, "_blank");
   };
 
+  const handleVerPdfGenerado = async () => {
+    if (!row.comprobante_generado_path) return;
+    const { data, error } = await supabase.storage
+      .from("comprobantes-intake")
+      .createSignedUrl(row.comprobante_generado_path, 3600);
+    if (error || !data?.signedUrl) {
+      toast.error("No se pudo abrir el PDF generado");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  };
+
   return (
     <>
     <Card>
