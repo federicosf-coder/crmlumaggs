@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { FileText, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
+import { FileText, Trash2, AlertTriangle, ExternalLink, Mail } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useAuth } from "@/contexts/AuthContext";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
@@ -80,6 +80,7 @@ interface IntakeRow {
   canal: string;
   created_at: string;
   storage_path: string;
+  email_html_storage_path: string | null;
   nombre_archivo: string | null;
   mime_type: string | null;
   monto_extraido: number | null;
@@ -101,7 +102,7 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
       const { data, error } = await supabase
         .from("comprobantes_intake")
         .select(
-          "id,canal,created_at,storage_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error,nombre_detectado,metodo_extraido,empresa_id"
+          "id,canal,created_at,storage_path,email_html_storage_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error,nombre_detectado,metodo_extraido,empresa_id"
         )
         .eq("estatus", "pendiente")
         .order("created_at", { ascending: true });
@@ -484,6 +485,18 @@ function ComprobanteCard({
 
   const dash = (v: any) => (v === null || v === undefined || v === "" ? "—" : v);
 
+  const handleVerCorreo = async () => {
+    if (!row.email_html_storage_path) return;
+    const { data, error } = await supabase.storage
+      .from("comprobantes-intake")
+      .createSignedUrl(row.email_html_storage_path, 3600);
+    if (error || !data?.signedUrl) {
+      toast.error("No se pudo generar la liga del correo");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  };
+
   return (
     <>
     <Card>
@@ -505,6 +518,18 @@ function ComprobanteCard({
             <span className="text-xs text-muted-foreground">{formatDate(row.created_at)}</span>
             <Badge variant="secondary">{CANAL_LABEL[row.canal] || row.canal}</Badge>
           </div>
+          {row.canal === "email" && row.email_html_storage_path && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={handleVerCorreo}
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Ver correo completo
+            </Button>
+          )}
         </div>
 
         <div className="space-y-3">
