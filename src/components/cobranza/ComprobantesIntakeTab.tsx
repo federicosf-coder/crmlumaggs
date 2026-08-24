@@ -81,6 +81,7 @@ interface IntakeRow {
   created_at: string;
   storage_path: string;
   email_html_storage_path: string | null;
+  comprobante_generado_path: string | null;
   nombre_archivo: string | null;
   mime_type: string | null;
   monto_extraido: number | null;
@@ -102,7 +103,7 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
       const { data, error } = await supabase
         .from("comprobantes_intake")
         .select(
-          "id,canal,created_at,storage_path,email_html_storage_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error,nombre_detectado,metodo_extraido,empresa_id"
+          "id,canal,created_at,storage_path,email_html_storage_path,comprobante_generado_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error,nombre_detectado,metodo_extraido,empresa_id"
         )
         .eq("estatus", "pendiente")
         .order("created_at", { ascending: true });
@@ -400,6 +401,31 @@ function ComprobanteCard({
         toast.warning("El pago se creó, pero no se pudo adjuntar el archivo.");
       }
 
+      // Copiar PDF generado automáticamente (si existe)
+      if (row.comprobante_generado_path) {
+        try {
+          const { data: pdfFile, error: pdfDlErr } = await supabase.storage
+            .from("comprobantes-intake")
+            .download(row.comprobante_generado_path);
+          if (pdfDlErr) throw pdfDlErr;
+          const pdfPath = `pagos/${pago.id}/${Date.now()}-comprobante-generado.pdf`;
+          const { error: pdfUpErr } = await supabase.storage
+            .from("document-files")
+            .upload(pdfPath, pdfFile, { contentType: "application/pdf" });
+          if (pdfUpErr) throw pdfUpErr;
+          const { data: pdfPub } = supabase.storage.from("document-files").getPublicUrl(pdfPath);
+          await supabase.from("cobranza_pago_archivos").insert({
+            pago_id: pago.id,
+            url_archivo: pdfPub.publicUrl,
+            nombre_archivo: "Comprobante generado.pdf",
+            tipo_archivo: "application/pdf",
+            usuario_carga: user?.id,
+          } as any);
+        } catch (e: any) {
+          console.error("copiar comprobante generado", e);
+        }
+      }
+
       const { error: updErr } = await supabase
         .from("comprobantes_intake")
         .update({
@@ -497,6 +523,18 @@ function ComprobanteCard({
     window.open(data.signedUrl, "_blank");
   };
 
+  const handleVerPdfGenerado = async () => {
+    if (!row.comprobante_generado_path) return;
+    const { data, error } = await supabase.storage
+      .from("comprobantes-intake")
+      .createSignedUrl(row.comprobante_generado_path, 3600);
+    if (error || !data?.signedUrl) {
+      toast.error("No se pudo abrir el PDF generado");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  };
+
   return (
     <>
     <Card>
@@ -528,6 +566,18 @@ function ComprobanteCard({
             >
               <Mail className="h-3.5 w-3.5 mr-1.5" />
               Ver correo original
+            </Button>
+          )}
+          {row.comprobante_generado_path && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-auto px-2 py-1 text-xs"
+              onClick={handleVerPdfGenerado}
+            >
+              <FileText className="h-3.5 w-3.5 mr-1.5" />
+              Ver comprobante (PDF)
             </Button>
           )}
         </div>
