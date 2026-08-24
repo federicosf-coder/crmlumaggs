@@ -401,6 +401,31 @@ function ComprobanteCard({
         toast.warning("El pago se creó, pero no se pudo adjuntar el archivo.");
       }
 
+      // Copiar PDF generado automáticamente (si existe)
+      if (row.comprobante_generado_path) {
+        try {
+          const { data: pdfFile, error: pdfDlErr } = await supabase.storage
+            .from("comprobantes-intake")
+            .download(row.comprobante_generado_path);
+          if (pdfDlErr) throw pdfDlErr;
+          const pdfPath = `pagos/${pago.id}/${Date.now()}-comprobante-generado.pdf`;
+          const { error: pdfUpErr } = await supabase.storage
+            .from("document-files")
+            .upload(pdfPath, pdfFile, { contentType: "application/pdf" });
+          if (pdfUpErr) throw pdfUpErr;
+          const { data: pdfPub } = supabase.storage.from("document-files").getPublicUrl(pdfPath);
+          await supabase.from("cobranza_pago_archivos").insert({
+            pago_id: pago.id,
+            url_archivo: pdfPub.publicUrl,
+            nombre_archivo: "Comprobante generado.pdf",
+            tipo_archivo: "application/pdf",
+            usuario_carga: user?.id,
+          } as any);
+        } catch (e: any) {
+          console.error("copiar comprobante generado", e);
+        }
+      }
+
       const { error: updErr } = await supabase
         .from("comprobantes_intake")
         .update({
