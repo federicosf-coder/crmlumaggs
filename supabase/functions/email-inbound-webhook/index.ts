@@ -341,6 +341,7 @@ Deno.serve(async (req) => {
         const { error: insErr } = await admin.from('comprobantes_intake').insert(insertPayload);
         if (insErr) throw new Error(`insert_failed: ${insErr.message}`);
 
+        console.log(`att ${att.id} insertado OK`);
         procesados++;
       } catch (e) {
         console.error(`adjunto ${att?.id} fallo:`, (e as Error).message);
