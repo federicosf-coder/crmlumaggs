@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ProductoSelector, fetchProductosCatalogo } from "@/components/entregas/ProductoSelector";
+import EntregasCorpIntakeTab from "@/components/entregas/EntregasCorpIntakeTab";
+import { useQuery } from "@tanstack/react-query";
 
 const CLIENTES = ["Hyundai", "Kenworth", "Mecánica Tek", "Otro"];
 const BUCKET = "entregas-corporativas";
@@ -1779,6 +1781,18 @@ export default function EntregasCorporativas() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [ubicKey, setUbicKey] = useState(0);
 
+  const { data: intakePendientes = 0 } = useQuery({
+    queryKey: ["entregas-corp-intake-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("entregas_corporativas_intake")
+        .select("id", { count: "exact", head: true })
+        .eq("estatus", "pendiente");
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -1793,6 +1807,10 @@ export default function EntregasCorporativas() {
       <Tabs defaultValue="calendarios">
         <TabsList>
           <TabsTrigger value="calendarios">Subir Pedidos Clientes</TabsTrigger>
+          <TabsTrigger value="correos-chevron" className="gap-2">
+            Correos de Chevron
+            {intakePendientes > 0 && <Badge variant="secondary">{intakePendientes}</Badge>}
+          </TabsTrigger>
           <TabsTrigger value="ubicaciones">Ubicaciones</TabsTrigger>
           <TabsTrigger value="entregas">Entregas Programadas</TabsTrigger>
           <TabsTrigger value="desglose">Desglose de Productos</TabsTrigger>
@@ -1801,6 +1819,9 @@ export default function EntregasCorporativas() {
         </TabsList>
         <TabsContent value="calendarios" className="mt-4">
           <CalendariosTab onImported={() => setRefreshKey((k) => k + 1)} />
+        </TabsContent>
+        <TabsContent value="correos-chevron" className="mt-4">
+          <EntregasCorpIntakeTab />
         </TabsContent>
         <TabsContent value="ubicaciones" className="mt-4">
           <UbicacionesTab refreshKey={ubicKey} onChanged={() => setRefreshKey((k) => k + 1)} />
