@@ -776,6 +776,15 @@ function ComprobanteCard({
         </div>
       </CardContent>
     </Card>
+    <Dialog open={zoomOpen} onOpenChange={setZoomOpen}>
+      <DialogContent className="max-w-3xl p-1">
+        <img
+          src={signedUrl || undefined}
+          alt={row.nombre_archivo || "Comprobante ampliado"}
+          className="w-full max-h-[85vh] object-contain rounded-md"
+        />
+      </DialogContent>
+    </Dialog>
     <EnviarConfirmacionPagoDialog
       open={openPreview}
       onOpenChange={setOpenPreview}
