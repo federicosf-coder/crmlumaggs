@@ -369,6 +369,8 @@ Deno.serve(async (req) => {
           resend_email_id: emailId,
         };
         if (empresaId) insertPayload.empresa_id = empresaId;
+        if (emailHtmlPath) insertPayload.email_html_storage_path = emailHtmlPath;
+
 
         if (extraido) {
           insertPayload.monto_extraido = asNumber(extraido.monto);
