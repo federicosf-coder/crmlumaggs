@@ -1,5 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib@1.17.1';
 
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MODEL = 'google/gemini-2.5-flash';
