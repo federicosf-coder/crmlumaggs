@@ -759,8 +759,9 @@ function ProductosTab() {
     save.mutate(undefined);
   };
 
-  const ceilTo5 = (n: number) => {
+  const roundPrice = (n: number) => {
     if (!isFinite(n) || n <= 0) return 0;
+    if (n < 100) return Math.ceil(n);
     return Math.round(n * 100) / 100;
   };
 
