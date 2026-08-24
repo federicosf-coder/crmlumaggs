@@ -298,12 +298,22 @@ Deno.serve(async (req) => {
             ? { type: 'image_url', image_url: { url: dataUrl } }
             : { type: 'file', file: { filename: sanitizado || 'comprobante.pdf', file_data: dataUrl } };
 
+          const aiContent: any[] = [];
+          if (bodyText) {
+            aiContent.push({
+              type: 'text',
+              text: `Contexto: este archivo venía adjunto a un correo. Este es el texto del cuerpo del correo, que puede contener el comprobante real en formato texto en vez de en la imagen/PDF adjunto — si aquí están los datos del comprobante (banco, monto, ordenante, etc.), úsalos en vez de o junto con el adjunto:\n\n${bodyText}`,
+            });
+          }
+          aiContent.push({ type: 'text', text: PROMPT });
+          aiContent.push(contentPart);
+
           const res = await fetch(GATEWAY_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
             body: JSON.stringify({
               model: MODEL,
-              messages: [{ role: 'user', content: [{ type: 'text', text: PROMPT }, contentPart] }],
+              messages: [{ role: 'user', content: aiContent }],
               max_tokens: 1000,
             }),
           });
