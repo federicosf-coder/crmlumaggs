@@ -1691,6 +1691,7 @@ export type Database = {
       }
       comprobantes_intake: {
         Row: {
+          asunto_email: string | null
           banco_extraido: string | null
           canal: Database["public"]["Enums"]["comprobante_intake_canal"]
           clabe_extraida: string | null
@@ -1698,7 +1699,7 @@ export type Database = {
           clasificado_por: string | null
           cobranza_pago_id: string | null
           created_at: string
-          ejecutivo_id: string
+          ejecutivo_id: string | null
           empresa_id: string | null
           estatus: Database["public"]["Enums"]["comprobante_intake_estatus"]
           extraccion_error: string | null
@@ -1711,11 +1712,14 @@ export type Database = {
           nombre_archivo: string | null
           nombre_detectado: string | null
           referencia_extraida: string | null
+          remitente_email: string | null
+          resend_email_id: string | null
           storage_path: string
           tarjeta_ultimos4_extraida: string | null
           updated_at: string
         }
         Insert: {
+          asunto_email?: string | null
           banco_extraido?: string | null
           canal: Database["public"]["Enums"]["comprobante_intake_canal"]
           clabe_extraida?: string | null
@@ -1723,7 +1727,7 @@ export type Database = {
           clasificado_por?: string | null
           cobranza_pago_id?: string | null
           created_at?: string
-          ejecutivo_id: string
+          ejecutivo_id?: string | null
           empresa_id?: string | null
           estatus?: Database["public"]["Enums"]["comprobante_intake_estatus"]
           extraccion_error?: string | null
@@ -1736,11 +1740,14 @@ export type Database = {
           nombre_archivo?: string | null
           nombre_detectado?: string | null
           referencia_extraida?: string | null
+          remitente_email?: string | null
+          resend_email_id?: string | null
           storage_path: string
           tarjeta_ultimos4_extraida?: string | null
           updated_at?: string
         }
         Update: {
+          asunto_email?: string | null
           banco_extraido?: string | null
           canal?: Database["public"]["Enums"]["comprobante_intake_canal"]
           clabe_extraida?: string | null
@@ -1748,7 +1755,7 @@ export type Database = {
           clasificado_por?: string | null
           cobranza_pago_id?: string | null
           created_at?: string
-          ejecutivo_id?: string
+          ejecutivo_id?: string | null
           empresa_id?: string | null
           estatus?: Database["public"]["Enums"]["comprobante_intake_estatus"]
           extraccion_error?: string | null
@@ -1761,6 +1768,8 @@ export type Database = {
           nombre_archivo?: string | null
           nombre_detectado?: string | null
           referencia_extraida?: string | null
+          remitente_email?: string | null
+          resend_email_id?: string | null
           storage_path?: string
           tarjeta_ultimos4_extraida?: string | null
           updated_at?: string

@@ -51,3 +51,7 @@ verify_jwt = false
 [functions.intake-comprobante]
 verify_jwt = false
 
+[functions.email-inbound-webhook]
+verify_jwt = false
+
+
