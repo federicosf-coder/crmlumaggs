@@ -192,15 +192,14 @@ Deno.serve(async (req) => {
 
     const validos = attachments.filter((a) => {
       const ct = String(a?.content_type ?? '').toLowerCase();
-      const size = Number(a?.size ?? 0) || 0;
       if (ct === 'application/pdf') return true;
-      if (ct.startsWith('image/')) return size > 15000;
+      if (ct.startsWith('image/')) return true;
       return false;
     });
 
     if (validos.length === 0) return jsonRes({ ok: true, procesados: 0, motivo: 'sin_adjuntos_validos' });
 
-    // Lista de adjuntos con download_url (REST directo; el SDK resend@4 no expone este método)
+    // Lista de adjuntos con download_url y size real (REST directo; el SDK resend@4 no expone este método)
     let listado: Array<any> = [];
     try {
       const attRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}/attachments`, {
@@ -220,6 +219,11 @@ Deno.serve(async (req) => {
     let procesados = 0;
 
     for (const att of validos) {
+      try {
+        const ct = String(att?.content_type ?? '').toLowerCase();
+        const meta = listado.find((l: any) => String(l?.id) === String(att.id)) ?? null;
+        const sizeReal = Number(meta?.size ?? 0) || 0;
+        if (ct.startsWith('image/') && sizeReal <= 15000) continue;
       try {
         const meta = listado.find((l: any) => String(l?.id) === String(att.id)) ?? null;
         const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
