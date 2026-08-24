@@ -543,7 +543,13 @@ function ComprobanteCard({
       <CardContent className="p-4 grid gap-4 md:grid-cols-[220px_1fr]">
         <div className="space-y-2">
           {isImage && signedUrl ? (
-            <img src={signedUrl} alt={row.nombre_archivo || "Comprobante"} className="w-full rounded-md border object-contain max-h-56" loading="lazy" />
+            <img
+              src={signedUrl}
+              alt={row.nombre_archivo || "Comprobante"}
+              className="w-full rounded-md border object-contain max-h-56 cursor-pointer"
+              loading="lazy"
+              onClick={() => setZoomOpen(true)}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 rounded-md border bg-muted/30 p-6">
               <FileText className="h-10 w-10 text-muted-foreground" />
