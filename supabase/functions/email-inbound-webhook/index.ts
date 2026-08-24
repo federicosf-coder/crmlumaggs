@@ -192,17 +192,27 @@ Deno.serve(async (req) => {
 
     const validos = attachments.filter((a) => {
       const ct = String(a?.content_type ?? '').toLowerCase();
-      return ct.startsWith('image/') || ct === 'application/pdf';
+      const size = Number(a?.size ?? 0) || 0;
+      if (ct === 'application/pdf') return true;
+      if (ct.startsWith('image/')) return size > 15000;
+      return false;
     });
 
     if (validos.length === 0) return jsonRes({ ok: true, procesados: 0, motivo: 'sin_adjuntos_validos' });
 
-    // Lista de adjuntos con download_url
+    // Lista de adjuntos con download_url (REST directo; el SDK resend@4 no expone este método)
     let listado: Array<any> = [];
     try {
-      const res: any = await (resend as any).emails.receiving.attachments.list({ emailId });
-      listado = res?.data?.data ?? res?.data ?? [];
-      if (!Array.isArray(listado)) listado = [];
+      const attRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}/attachments`, {
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+      });
+      if (!attRes.ok) {
+        console.error('error listando adjuntos:', attRes.status);
+      } else {
+        const attJson = await attRes.json();
+        listado = attJson?.data ?? attJson ?? [];
+        if (!Array.isArray(listado)) listado = [];
+      }
     } catch (e) {
       console.error('error listando adjuntos:', (e as Error).message);
     }
