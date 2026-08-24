@@ -761,7 +761,7 @@ function ProductosTab() {
 
   const ceilTo5 = (n: number) => {
     if (!isFinite(n) || n <= 0) return 0;
-    return Math.ceil(n / 5) * 5;
+    return Math.round(n * 100) / 100;
   };
 
   const saveWithRecalc = async () => {
