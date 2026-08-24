@@ -485,6 +485,18 @@ function ComprobanteCard({
 
   const dash = (v: any) => (v === null || v === undefined || v === "" ? "—" : v);
 
+  const handleVerCorreo = async () => {
+    if (!row.email_html_storage_path) return;
+    const { data, error } = await supabase.storage
+      .from("comprobantes-intake")
+      .createSignedUrl(row.email_html_storage_path, 3600);
+    if (error || !data?.signedUrl) {
+      toast.error("No se pudo generar la liga del correo");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  };
+
   return (
     <>
     <Card>
