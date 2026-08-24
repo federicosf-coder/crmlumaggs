@@ -1698,6 +1698,7 @@ export type Database = {
           clasificado_at: string | null
           clasificado_por: string | null
           cobranza_pago_id: string | null
+          comprobante_generado_path: string | null
           created_at: string
           ejecutivo_id: string | null
           email_html_storage_path: string | null
@@ -1727,6 +1728,7 @@ export type Database = {
           clasificado_at?: string | null
           clasificado_por?: string | null
           cobranza_pago_id?: string | null
+          comprobante_generado_path?: string | null
           created_at?: string
           ejecutivo_id?: string | null
           email_html_storage_path?: string | null
@@ -1756,6 +1758,7 @@ export type Database = {
           clasificado_at?: string | null
           clasificado_por?: string | null
           cobranza_pago_id?: string | null
+          comprobante_generado_path?: string | null
           created_at?: string
           ejecutivo_id?: string | null
           email_html_storage_path?: string | null
