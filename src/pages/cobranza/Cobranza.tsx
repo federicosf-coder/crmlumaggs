@@ -1674,48 +1674,30 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
         </DialogHeader>
          <div className="space-y-4 mt-6">
            <div className="flex flex-wrap justify-end gap-4 items-start">
-             {(!pago.tipo_pago || pago.tipo_pago === "contado") && (
-               <div className="flex flex-col items-stretch">
-                 <Button size="sm" variant="outline" onClick={async () => {
-                   setLoadingEmails("contado");
-                   const res = await fireAutomation({ trigger_type: "existing_button_click", entity_type: "payment", entity_id: pago.id, trigger_key: "cobranza.enviar_correo_contado" });
-                   setLoadingEmails(null);
-                   if (res) toast.success(res.matched > 0 ? "Automatización ejecutada" : "Sin automatizaciones activas para este botón");
-                   setTimeout(() => refetchLastSends(), 800);
-                 }} disabled={loadingEmails !== null}>
-                   <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "contado" ? "Ejecutando..." : "Enviar correo Contado"}
-                 </Button>
-                 <LastSendStamp at={lastSends?.["cobranza.enviar_correo_contado"]} />
-               </div>
-             )}
-             {(!pago.tipo_pago || pago.tipo_pago === "credito") && (
-               <div className="flex flex-col items-stretch">
-                 <Button size="sm" variant="outline" onClick={async () => {
-                   setLoadingEmails("credito");
-                   const res = await fireAutomation({ trigger_type: "existing_button_click", entity_type: "payment", entity_id: pago.id, trigger_key: "cobranza.enviar_correo_credito_directo" });
-                   setLoadingEmails(null);
-                   if (res) toast.success(res.matched > 0 ? "Automatización ejecutada" : "Sin automatizaciones activas para este botón");
-                   setTimeout(() => refetchLastSends(), 800);
-                 }} disabled={loadingEmails !== null}>
-                   <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito" ? "Ejecutando..." : "Enviar correo Crédito Directo"}
-                 </Button>
-                 <LastSendStamp at={lastSends?.["cobranza.enviar_correo_credito_directo"]} />
-               </div>
-             )}
-             {(!pago.tipo_pago || pago.tipo_pago === "credito_cescemex") && (
-               <div className="flex flex-col items-stretch">
-                 <Button size="sm" variant="outline" onClick={async () => {
-                   setLoadingEmails("credito_cescemex");
-                   const res = await fireAutomation({ trigger_type: "existing_button_click", entity_type: "payment", entity_id: pago.id, trigger_key: "cobranza.enviar_correo_credito_cescemex" });
-                   setLoadingEmails(null);
-                   if (res) toast.success(res.matched > 0 ? "Automatización ejecutada" : "Sin automatizaciones activas para este botón");
-                   setTimeout(() => refetchLastSends(), 800);
-                 }} disabled={loadingEmails !== null}>
-                   <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito_cescemex" ? "Ejecutando..." : "Enviar correo Crédito Cescemex"}
-                 </Button>
-                 <LastSendStamp at={lastSends?.["cobranza.enviar_correo_credito_cescemex"]} />
-               </div>
-             )}
+              {(!pago.tipo_pago || pago.tipo_pago === "contado") && (
+                <div className="flex flex-col items-stretch">
+                  <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("contado")} disabled={loadingEmails !== null}>
+                    <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "contado" ? "Cargando..." : "Enviar correo Contado"}
+                  </Button>
+                  <LastSendStamp at={lastSends?.["cobranza.enviar_correo_contado"]} />
+                </div>
+              )}
+              {(!pago.tipo_pago || pago.tipo_pago === "credito") && (
+                <div className="flex flex-col items-stretch">
+                  <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("credito")} disabled={loadingEmails !== null}>
+                    <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito" ? "Cargando..." : "Enviar correo Crédito Directo"}
+                  </Button>
+                  <LastSendStamp at={lastSends?.["cobranza.enviar_correo_credito_directo"]} />
+                </div>
+              )}
+              {(!pago.tipo_pago || pago.tipo_pago === "credito_cescemex") && (
+                <div className="flex flex-col items-stretch">
+                  <Button size="sm" variant="outline" onClick={() => loadEmailsAndOpen("credito_cescemex")} disabled={loadingEmails !== null}>
+                    <Mail className="h-4 w-4 mr-2" /> {loadingEmails === "credito_cescemex" ? "Cargando..." : "Enviar correo Crédito Cescemex"}
+                  </Button>
+                  <LastSendStamp at={lastSends?.["cobranza.enviar_correo_credito_cescemex"]} />
+                </div>
+              )}
              <Button size="sm" variant="ghost" onClick={() => setEditandoFormaPago(true)}>
                <Pencil className="h-4 w-4 mr-2" /> Editar
              </Button>
