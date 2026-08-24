@@ -194,16 +194,6 @@ Deno.serve(async (req) => {
     }
 
 
-    // Idempotencia
-    const { data: previos } = await admin
-      .from('comprobantes_intake')
-      .select('id')
-      .eq('resend_email_id', emailId)
-      .limit(1);
-    if (previos && previos.length > 0) {
-      return jsonRes({ ok: true, duplicado: true, procesados: 0 });
-    }
-
     // Identificación del remitente
     let ejecutivoId: string | null = null;
     let empresaId: string | null = null;
