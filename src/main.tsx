@@ -21,8 +21,6 @@ if (isPreviewHost || isInIframe) {
   navigator.serviceWorker?.getRegistrations().then((registrations) => {
     registrations.forEach((r) => r.unregister());
   });
-} else if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw-share.js').catch(() => {});
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
