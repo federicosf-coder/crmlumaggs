@@ -803,6 +803,17 @@ function ComprobanteCard({
         />
       </DialogContent>
     </Dialog>
+    <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
+      <DialogContent className="max-w-4xl h-[85vh] p-0 flex flex-col">
+        <div className="flex items-center justify-between border-b p-3">
+          <span className="text-sm font-medium">Correo original</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => emailIframeRef.current?.contentWindow?.print()}>
+            Imprimir
+          </Button>
+        </div>
+        <iframe ref={emailIframeRef} srcDoc={emailPreviewHtml || ""} className="w-full flex-1 border-0" sandbox="allow-same-origin" />
+      </DialogContent>
+    </Dialog>
     <EnviarConfirmacionPagoDialog
       open={openPreview}
       onOpenChange={setOpenPreview}
