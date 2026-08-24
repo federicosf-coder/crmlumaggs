@@ -132,6 +132,39 @@ Deno.serve(async (req) => {
     const subject: string | null = asText(data.subject);
     const attachments: Array<any> = Array.isArray(data.attachments) ? data.attachments : [];
 
+    // Texto del cuerpo del correo como contexto adicional para la extracción con IA
+    let bodyText = '';
+    const textFromPayload = asText(data.text);
+    if (textFromPayload) {
+      bodyText = textFromPayload.slice(0, 6000);
+    } else if (emailId && LOVABLE_API_KEY && RESEND_API_KEY) {
+      try {
+        const emailRes = await fetch(`https://connector-gateway.lovable.dev/resend/emails/receiving/${emailId}`, {
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            'X-Connection-Api-Key': RESEND_API_KEY,
+          },
+        });
+        if (emailRes.ok) {
+          const emailJson = await emailRes.json();
+          let rawText = asText(emailJson?.text) || '';
+          if (!rawText && emailJson?.html) {
+            rawText = String(emailJson.html)
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/&nbsp;/gi, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/\s+/g, ' ')
+              .trim();
+          }
+          if (rawText) bodyText = rawText.slice(0, 6000);
+        }
+      } catch (e) {
+        console.error('error obteniendo cuerpo del correo:', (e as Error).message);
+      }
+    }
+
     if (!emailId) return jsonRes({ error: 'email_id_faltante' }, 400);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -265,12 +298,22 @@ Deno.serve(async (req) => {
             ? { type: 'image_url', image_url: { url: dataUrl } }
             : { type: 'file', file: { filename: sanitizado || 'comprobante.pdf', file_data: dataUrl } };
 
+          const aiContent: any[] = [];
+          if (bodyText) {
+            aiContent.push({
+              type: 'text',
+              text: `Contexto: este archivo venía adjunto a un correo. Este es el texto del cuerpo del correo, que puede contener el comprobante real en formato texto en vez de en la imagen/PDF adjunto — si aquí están los datos del comprobante (banco, monto, ordenante, etc.), úsalos en vez de o junto con el adjunto:\n\n${bodyText}`,
+            });
+          }
+          aiContent.push({ type: 'text', text: PROMPT });
+          aiContent.push(contentPart);
+
           const res = await fetch(GATEWAY_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
             body: JSON.stringify({
               model: MODEL,
-              messages: [{ role: 'user', content: [{ type: 'text', text: PROMPT }, contentPart] }],
+              messages: [{ role: 'user', content: aiContent }],
               max_tokens: 1000,
             }),
           });
