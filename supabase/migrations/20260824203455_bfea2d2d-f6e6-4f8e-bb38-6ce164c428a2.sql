@@ -1,0 +1,1 @@
+ALTER TABLE public.comprobantes_intake ADD COLUMN IF NOT EXISTS email_html_storage_path text;
