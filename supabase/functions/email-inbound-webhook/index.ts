@@ -134,10 +134,12 @@ Deno.serve(async (req) => {
 
     // Texto del cuerpo del correo como contexto adicional para la extracción con IA
     let bodyText = '';
+    let emailHtmlRaw = '';
     const textFromPayload = asText(data.text);
-    if (textFromPayload) {
-      bodyText = textFromPayload.slice(0, 6000);
-    } else if (emailId && LOVABLE_API_KEY && RESEND_API_KEY) {
+    if (textFromPayload) bodyText = textFromPayload.slice(0, 6000);
+    if (data.html) emailHtmlRaw = String(data.html);
+
+    if (emailId && LOVABLE_API_KEY && RESEND_API_KEY && (!textFromPayload || !emailHtmlRaw)) {
       try {
         const emailRes = await fetch(`https://connector-gateway.lovable.dev/resend/emails/receiving/${emailId}`, {
           headers: {
@@ -147,18 +149,21 @@ Deno.serve(async (req) => {
         });
         if (emailRes.ok) {
           const emailJson = await emailRes.json();
-          let rawText = asText(emailJson?.text) || '';
-          if (!rawText && emailJson?.html) {
-            rawText = String(emailJson.html)
-              .replace(/<[^>]+>/g, ' ')
-              .replace(/&nbsp;/gi, ' ')
-              .replace(/&amp;/g, '&')
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/\s+/g, ' ')
-              .trim();
+          if (!emailHtmlRaw && emailJson?.html) emailHtmlRaw = String(emailJson.html);
+          if (!textFromPayload) {
+            let rawText = asText(emailJson?.text) || '';
+            if (!rawText && emailHtmlRaw) {
+              rawText = emailHtmlRaw
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/&nbsp;/gi, ' ')
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/\s+/g, ' ')
+                .trim();
+            }
+            if (rawText) bodyText = rawText.slice(0, 6000);
           }
-          if (rawText) bodyText = rawText.slice(0, 6000);
         }
       } catch (e) {
         console.error('error obteniendo cuerpo del correo:', (e as Error).message);
@@ -168,6 +173,26 @@ Deno.serve(async (req) => {
     if (!emailId) return jsonRes({ error: 'email_id_faltante' }, 400);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Snapshot visual del correo completo (HTML) para verlo/imprimirlo después
+    let emailHtmlPath: string | null = null;
+    if (emailHtmlRaw) {
+      try {
+        const htmlPath = `email/${emailId}/cuerpo.html`;
+        const { error: htmlErr } = await admin.storage
+          .from('comprobantes-intake')
+          .upload(htmlPath, new TextEncoder().encode(emailHtmlRaw), {
+            contentType: 'text/html',
+            upsert: true,
+          });
+        if (htmlErr) throw new Error(htmlErr.message);
+        emailHtmlPath = htmlPath;
+      } catch (e) {
+        console.error('error subiendo snapshot html del correo:', (e as Error).message);
+        emailHtmlPath = null;
+      }
+    }
+
 
     // Idempotencia
     const { data: previos } = await admin
@@ -344,6 +369,8 @@ Deno.serve(async (req) => {
           resend_email_id: emailId,
         };
         if (empresaId) insertPayload.empresa_id = empresaId;
+        if (emailHtmlPath) insertPayload.email_html_storage_path = emailHtmlPath;
+
 
         if (extraido) {
           insertPayload.monto_extraido = asNumber(extraido.monto);
