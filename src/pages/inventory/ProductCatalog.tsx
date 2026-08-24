@@ -759,8 +759,9 @@ function ProductosTab() {
     save.mutate(undefined);
   };
 
-  const ceilTo5 = (n: number) => {
+  const roundPrice = (n: number) => {
     if (!isFinite(n) || n <= 0) return 0;
+    if (n < 100) return Math.ceil(n);
     return Math.round(n * 100) / 100;
   };
 
@@ -803,7 +804,7 @@ function ProductosTab() {
       for (const lvl of MARGIN_LEVELS) marginRecord[lvl.key] = Number(margins?.[lvl.key] ?? 0);
       const raw = computePricesFromCost(costo, marginRecord);
       const newPrices: Record<string, number> = {};
-      for (const [k, v] of Object.entries(raw)) newPrices[k] = ceilTo5(Number(v));
+      for (const [k, v] of Object.entries(raw)) newPrices[k] = roundPrice(Number(v));
       setForm(prev => ({ ...prev, ...newPrices } as any));
       save.mutate(newPrices);
     } catch (e: any) {
