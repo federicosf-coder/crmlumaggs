@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { FileText, Trash2, AlertTriangle, ExternalLink, Mail } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -186,6 +187,7 @@ function ComprobanteCard({
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [seleccion, setSeleccion] = useState<Record<string, string>>({});
   const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   const isImage = (row.mime_type || "").startsWith("image/");
 
@@ -541,7 +543,13 @@ function ComprobanteCard({
       <CardContent className="p-4 grid gap-4 md:grid-cols-[220px_1fr]">
         <div className="space-y-2">
           {isImage && signedUrl ? (
-            <img src={signedUrl} alt={row.nombre_archivo || "Comprobante"} className="w-full rounded-md border object-contain max-h-56" loading="lazy" />
+            <img
+              src={signedUrl}
+              alt={row.nombre_archivo || "Comprobante"}
+              className="w-full rounded-md border object-contain max-h-56 cursor-pointer"
+              loading="lazy"
+              onClick={() => setZoomOpen(true)}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 rounded-md border bg-muted/30 p-6">
               <FileText className="h-10 w-10 text-muted-foreground" />
@@ -768,6 +776,15 @@ function ComprobanteCard({
         </div>
       </CardContent>
     </Card>
+    <Dialog open={zoomOpen} onOpenChange={setZoomOpen}>
+      <DialogContent className="max-w-3xl p-1">
+        <img
+          src={signedUrl || undefined}
+          alt={row.nombre_archivo || "Comprobante ampliado"}
+          className="w-full max-h-[85vh] object-contain rounded-md"
+        />
+      </DialogContent>
+    </Dialog>
     <EnviarConfirmacionPagoDialog
       open={openPreview}
       onOpenChange={setOpenPreview}
