@@ -1781,6 +1781,18 @@ export default function EntregasCorporativas() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [ubicKey, setUbicKey] = useState(0);
 
+  const { data: intakePendientes = 0 } = useQuery({
+    queryKey: ["entregas-corp-intake-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("entregas_corporativas_intake")
+        .select("id", { count: "exact", head: true })
+        .eq("estatus", "pendiente");
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
   return (
     <div className="p-6 space-y-6">
       <div>
