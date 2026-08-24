@@ -187,6 +187,7 @@ function ComprobanteCard({
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [seleccion, setSeleccion] = useState<Record<string, string>>({});
   const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   const isImage = (row.mime_type || "").startsWith("image/");
 
