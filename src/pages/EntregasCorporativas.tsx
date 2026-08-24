@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ProductoSelector, fetchProductosCatalogo } from "@/components/entregas/ProductoSelector";
+import EntregasCorpIntakeTab from "@/components/entregas/EntregasCorpIntakeTab";
+import { useQuery } from "@tanstack/react-query";
 
 const CLIENTES = ["Hyundai", "Kenworth", "Mecánica Tek", "Otro"];
 const BUCKET = "entregas-corporativas";
