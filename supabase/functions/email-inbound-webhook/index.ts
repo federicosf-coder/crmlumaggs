@@ -153,11 +153,11 @@ Deno.serve(async (req) => {
     if (from) {
       const { data: perfil } = await admin
         .from('profiles')
-        .select('id')
+        .select('user_id')
         .ilike('email', from)
         .limit(1)
         .maybeSingle();
-      if (perfil?.id) ejecutivoId = perfil.id;
+      if (perfil?.user_id) ejecutivoId = perfil.user_id;
 
       const { data: contacto } = await admin
         .from('contacts')
