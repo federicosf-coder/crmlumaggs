@@ -30,7 +30,6 @@ import { toast } from "sonner";
 import { renderTemplate, resolveEmailRecipients, type EmailRecipientItem } from "@/lib/templates";
 import { generateCobranzaReportPdf } from "@/lib/generateCobranzaReportPdf";
 import { generateCobranzaReportXlsx } from "@/lib/generateCobranzaReportXlsx";
-import { fireAutomation } from "@/hooks/useFireAutomation";
 import { useLastAutomationRuns } from "@/hooks/useLastAutomationRuns";
 import { LastSendStamp } from "@/components/automations/LastSendStamp";
 
