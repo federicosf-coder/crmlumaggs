@@ -227,6 +227,7 @@ Deno.serve(async (req) => {
         const ct = String(att?.content_type ?? '').toLowerCase();
         const meta = listado.find((l: any) => String(l?.id) === String(att.id)) ?? null;
         const sizeReal = Number(meta?.size ?? 0) || 0;
+        console.log(`att ${att.id}: ct=${ct} meta_encontrado=${!!meta} sizeReal=${sizeReal}`);
         if (ct.startsWith('image/') && sizeReal <= 15000) continue;
 
         const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
