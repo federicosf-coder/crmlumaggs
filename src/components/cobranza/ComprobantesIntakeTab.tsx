@@ -543,6 +543,18 @@ function ComprobanteCard({
               Ver correo original
             </Button>
           )}
+          {row.comprobante_generado_path && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-auto px-2 py-1 text-xs"
+              onClick={handleVerPdfGenerado}
+            >
+              <FileText className="h-3.5 w-3.5 mr-1.5" />
+              Ver comprobante (PDF)
+            </Button>
+          )}
         </div>
 
         <div className="space-y-3">
