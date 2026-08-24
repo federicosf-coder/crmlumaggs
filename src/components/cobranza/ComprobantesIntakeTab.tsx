@@ -330,6 +330,8 @@ function ComprobanteCard({
           metodo_pago: metodoPago,
           referencia_pago: referencia || null,
           banco: banco || null,
+          clabe_origen: row.clabe_extraida || null,
+          tarjeta_ultimos4_origen: row.tarjeta_ultimos4_extraida || null,
           estatus_pago: "recibido" as any,
           observaciones: `Comprobante recibido vía ${CANAL_LABEL[row.canal] || row.canal}. Creado desde bandeja de clasificación.`,
           creado_por: user?.id,

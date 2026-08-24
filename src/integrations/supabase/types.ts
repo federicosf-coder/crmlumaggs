@@ -1176,6 +1176,7 @@ export type Database = {
       cobranza_pagos: {
         Row: {
           banco: string | null
+          clabe_origen: string | null
           creado_por: string | null
           created_at: string
           empresa_id: string
@@ -1194,11 +1195,13 @@ export type Database = {
           observaciones: string | null
           plaza_id: string | null
           referencia_pago: string | null
+          tarjeta_ultimos4_origen: string | null
           tipo_pago: string | null
           updated_at: string
         }
         Insert: {
           banco?: string | null
+          clabe_origen?: string | null
           creado_por?: string | null
           created_at?: string
           empresa_id: string
@@ -1217,11 +1220,13 @@ export type Database = {
           observaciones?: string | null
           plaza_id?: string | null
           referencia_pago?: string | null
+          tarjeta_ultimos4_origen?: string | null
           tipo_pago?: string | null
           updated_at?: string
         }
         Update: {
           banco?: string | null
+          clabe_origen?: string | null
           creado_por?: string | null
           created_at?: string
           empresa_id?: string
@@ -1240,6 +1245,7 @@ export type Database = {
           observaciones?: string | null
           plaza_id?: string | null
           referencia_pago?: string | null
+          tarjeta_ultimos4_origen?: string | null
           tipo_pago?: string | null
           updated_at?: string
         }

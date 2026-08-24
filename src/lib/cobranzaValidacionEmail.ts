@@ -78,7 +78,7 @@ export async function buildValidacionEmailFlow(
   const { data: pago } = await (supabase as any)
     .from("cobranza_pagos")
     .select(
-      "id, empresa_id, fecha_pago, monto_total, moneda, tipo_pago, referencia_pago, banco, observaciones, empresa:companies(name, razon_social, id_contpaq, email)"
+      "id, empresa_id, fecha_pago, monto_total, moneda, tipo_pago, referencia_pago, banco, clabe_origen, tarjeta_ultimos4_origen, observaciones, empresa:companies(name, razon_social, id_contpaq, email)"
     )
     .eq("id", pagoId)
     .maybeSingle();
@@ -218,6 +218,17 @@ export async function buildValidacionEmailFlow(
     comprobantes_lista: compsHtml,
     liga_documento: signedComprobantes[0]?.url ?? "",
   };
+
+  const cuentaOrigen =
+    pago.clabe_origen && pago.tarjeta_ultimos4_origen
+      ? `CLABE ${pago.clabe_origen} · Tarjeta term. ${pago.tarjeta_ultimos4_origen}`
+      : pago.clabe_origen
+      ? `CLABE ${pago.clabe_origen}`
+      : pago.tarjeta_ultimos4_origen
+      ? `Tarjeta terminación ${pago.tarjeta_ultimos4_origen}`
+      : "No detectada";
+
+  tplVars.cuenta_origen = cuentaOrigen;
 
   const perFlowKey =
     flow === "contado"
