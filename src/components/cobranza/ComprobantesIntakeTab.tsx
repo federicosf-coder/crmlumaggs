@@ -81,6 +81,7 @@ interface IntakeRow {
   created_at: string;
   storage_path: string;
   email_html_storage_path: string | null;
+  comprobante_generado_path: string | null;
   nombre_archivo: string | null;
   mime_type: string | null;
   monto_extraido: number | null;
