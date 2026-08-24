@@ -1,6 +1,5 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { Resend } from 'npm:resend@4';
 
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MODEL = 'google/gemini-2.5-flash';
@@ -64,7 +63,6 @@ Deno.serve(async (req) => {
     }
 
     const rawBody = await req.text();
-    const resend = new Resend(RESEND_API_KEY);
 
     const svixId = req.headers.get('svix-id');
     const svixTimestamp = req.headers.get('svix-timestamp');
@@ -199,11 +197,14 @@ Deno.serve(async (req) => {
 
     if (validos.length === 0) return jsonRes({ ok: true, procesados: 0, motivo: 'sin_adjuntos_validos' });
 
-    // Lista de adjuntos con download_url y size real (REST directo; el SDK resend@4 no expone este método)
+    // Lista de adjuntos con download_url y size real a través del gateway de conectores de Lovable
     let listado: Array<any> = [];
     try {
-      const attRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}/attachments`, {
-        headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+      const attRes = await fetch(`https://connector-gateway.lovable.dev/resend/emails/receiving/${emailId}/attachments`, {
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          'X-Connection-Api-Key': RESEND_API_KEY,
+        },
       });
       if (!attRes.ok) {
         console.error('error listando adjuntos:', attRes.status);
