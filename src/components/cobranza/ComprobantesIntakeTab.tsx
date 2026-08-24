@@ -521,13 +521,13 @@ function ComprobanteCard({
           {row.canal === "email" && row.email_html_storage_path && (
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="w-full"
+              className="h-auto px-2 py-1 text-xs"
               onClick={handleVerCorreo}
             >
-              <Mail className="h-4 w-4 mr-2" />
-              Ver correo completo
+              <Mail className="h-3.5 w-3.5 mr-1.5" />
+              Ver correo original
             </Button>
           )}
         </div>
