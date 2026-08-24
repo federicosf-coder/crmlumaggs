@@ -188,6 +188,10 @@ function ComprobanteCard({
   const [seleccion, setSeleccion] = useState<Record<string, string>>({});
   const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
   const [zoomOpen, setZoomOpen] = useState(false);
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null);
+  const [loadingEmailPreview, setLoadingEmailPreview] = useState(false);
+  const emailIframeRef = useRef<HTMLIFrameElement>(null);
 
   const isImage = (row.mime_type || "").startsWith("image/");
 
