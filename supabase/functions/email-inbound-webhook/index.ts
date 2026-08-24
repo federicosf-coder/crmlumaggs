@@ -132,6 +132,39 @@ Deno.serve(async (req) => {
     const subject: string | null = asText(data.subject);
     const attachments: Array<any> = Array.isArray(data.attachments) ? data.attachments : [];
 
+    // Texto del cuerpo del correo como contexto adicional para la extracción con IA
+    let bodyText = '';
+    const textFromPayload = asText(data.text);
+    if (textFromPayload) {
+      bodyText = textFromPayload.slice(0, 6000);
+    } else if (emailId && LOVABLE_API_KEY && RESEND_API_KEY) {
+      try {
+        const emailRes = await fetch(`https://connector-gateway.lovable.dev/resend/emails/receiving/${emailId}`, {
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            'X-Connection-Api-Key': RESEND_API_KEY,
+          },
+        });
+        if (emailRes.ok) {
+          const emailJson = await emailRes.json();
+          let rawText = asText(emailJson?.text) || '';
+          if (!rawText && emailJson?.html) {
+            rawText = String(emailJson.html)
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/&nbsp;/gi, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/\s+/g, ' ')
+              .trim();
+          }
+          if (rawText) bodyText = rawText.slice(0, 6000);
+        }
+      } catch (e) {
+        console.error('error obteniendo cuerpo del correo:', (e as Error).message);
+      }
+    }
+
     if (!emailId) return jsonRes({ error: 'email_id_faltante' }, 400);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
