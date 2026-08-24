@@ -358,7 +358,7 @@ serve(async (req) => {
       addNewPageIfNeeded(30);
       drawText("Notas:", margin, y, fontSize, fontBold);
       y -= 14;
-      const notaLines = wrapText(doc.notas, contentWidth);
+      const notaLines = String(doc.notas).split(/\r?\n/).flatMap((l: string) => wrapText(l, contentWidth));
       for (const nl of notaLines) {
         addNewPageIfNeeded(14);
         drawText(nl, margin, y);
