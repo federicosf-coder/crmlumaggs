@@ -217,6 +217,9 @@ Deno.serve(async (req) => {
       console.error('error listando adjuntos:', (e as Error).message);
     }
 
+    console.log('listado adjuntos gateway:', JSON.stringify(listado.map((l: any) => ({ id: l?.id, size: l?.size, has_url: !!(l?.download_url ?? l?.downloadUrl) }))));
+    console.log('attachments del webhook:', JSON.stringify(validos.map((a: any) => ({ id: a?.id, content_type: a?.content_type, disposition: a?.content_disposition }))));
+
     let procesados = 0;
 
     for (const att of validos) {
