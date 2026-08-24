@@ -1,5 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib@1.17.1';
 
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MODEL = 'google/gemini-2.5-flash';
@@ -347,6 +348,80 @@ Deno.serve(async (req) => {
           extraido = null;
         }
 
+        let comprobanteGeneradoPath: string | null = null;
+        if (extraido) {
+          try {
+            const doc = await PDFDocument.create();
+            const page = doc.addPage([612, 792]);
+            const font = await doc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+            const black = rgb(0, 0, 0);
+            const gray = rgb(0.4, 0.4, 0.4);
+
+            let y = 720;
+            page.drawText('Comprobante de Pago', { x: 72, y, font: fontBold, size: 18, color: black });
+            y -= 28;
+            page.drawText('Generado automáticamente a partir de un correo electrónico', { x: 72, y, font, size: 9, color: gray });
+            y -= 40;
+
+            const montoNum = asNumber(extraido.monto);
+            const montoStr = montoNum != null
+              ? `$${montoNum.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : 'No detectado';
+
+            const fields = [
+              { label: 'Ordenante:', value: asText(extraido.nombre_detectado) || 'No detectado' },
+              { label: 'Monto:', value: montoStr },
+              { label: 'Fecha:', value: asText(extraido.fecha) || 'No detectada' },
+              { label: 'Banco:', value: asText(extraido.banco) || 'No detectado' },
+              { label: 'Referencia:', value: asText(extraido.referencia) || 'No detectada' },
+              { label: 'CLABE:', value: soloDigitos(extraido.clabe) || 'No detectada' },
+              { label: 'Método de pago:', value: asText(extraido.metodo) || 'transferencia' },
+            ];
+
+            for (const f of fields) {
+              page.drawText(f.label, { x: 72, y, font: fontBold, size: 11, color: black });
+              const labelWidth = fontBold.widthOfTextAtSize(f.label, 11);
+              page.drawText(f.value, { x: 72 + labelWidth + 6, y, font, size: 11, color: black });
+              y -= 24;
+            }
+
+            y -= 24;
+            page.drawText('Datos del correo de origen', { x: 72, y, font: fontBold, size: 12, color: black });
+            y -= 28;
+
+            const emailFields = [
+              { label: 'Remitente:', value: from || 'No disponible' },
+              { label: 'Asunto:', value: subject || 'Sin asunto' },
+              { label: 'Recibido:', value: new Date().toLocaleString('es-MX') },
+            ];
+            for (const f of emailFields) {
+              page.drawText(f.label, { x: 72, y, font: fontBold, size: 11, color: black });
+              const labelWidth = fontBold.widthOfTextAtSize(f.label, 11);
+              page.drawText(f.value, { x: 72 + labelWidth + 6, y, font, size: 11, color: black });
+              y -= 24;
+            }
+
+            y -= 36;
+            page.drawText('Este documento fue generado automáticamente por el sistema a partir de la información extraída del correo.', { x: 72, y, font, size: 9, color: gray });
+            y -= 14;
+            page.drawText('Verifica contra el correo original antes de aplicar el pago.', { x: 72, y, font, size: 9, color: gray });
+
+            const pdfBytes = await doc.save();
+            const pdfPath = `email/${emailId}/${att.id}-comprobante-generado.pdf`;
+            const { error: pdfUploadErr } = await admin.storage
+              .from('comprobantes-intake')
+              .upload(pdfPath, pdfBytes, { contentType: 'application/pdf', upsert: true });
+            if (pdfUploadErr) {
+              console.error('error subiendo pdf generado:', pdfUploadErr.message);
+            } else {
+              comprobanteGeneradoPath = pdfPath;
+            }
+          } catch (e) {
+            console.error('error generando pdf de comprobante:', (e as Error).message);
+          }
+        }
+
         const insertPayload: Record<string, unknown> = {
           ejecutivo_id: ejecutivoId,
           canal: 'email',
@@ -360,6 +435,7 @@ Deno.serve(async (req) => {
         };
         if (empresaId) insertPayload.empresa_id = empresaId;
         if (emailHtmlPath) insertPayload.email_html_storage_path = emailHtmlPath;
+        if (comprobanteGeneradoPath) insertPayload.comprobante_generado_path = comprobanteGeneradoPath;
 
 
         if (extraido) {
