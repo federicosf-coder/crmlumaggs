@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -188,6 +188,10 @@ function ComprobanteCard({
   const [seleccion, setSeleccion] = useState<Record<string, string>>({});
   const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
   const [zoomOpen, setZoomOpen] = useState(false);
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null);
+  const [loadingEmailPreview, setLoadingEmailPreview] = useState(false);
+  const emailIframeRef = useRef<HTMLIFrameElement>(null);
 
   const isImage = (row.mime_type || "").startsWith("image/");
 
@@ -515,14 +519,28 @@ function ComprobanteCard({
 
   const handleVerCorreo = async () => {
     if (!row.email_html_storage_path) return;
-    const { data, error } = await supabase.storage
-      .from("comprobantes-intake")
-      .createSignedUrl(row.email_html_storage_path, 3600);
-    if (error || !data?.signedUrl) {
-      toast.error("No se pudo generar la liga del correo");
-      return;
+    setLoadingEmailPreview(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from("comprobantes-intake")
+        .createSignedUrl(row.email_html_storage_path, 3600);
+      if (error || !data?.signedUrl) {
+        toast.error("No se pudo generar la liga del correo");
+        return;
+      }
+      const res = await fetch(data.signedUrl);
+      if (!res.ok) {
+        toast.error("No se pudo cargar el contenido del correo");
+        return;
+      }
+      const html = await res.text();
+      setEmailPreviewHtml(html);
+      setEmailPreviewOpen(true);
+    } catch (e: any) {
+      toast.error(e.message || "Error al abrir el correo");
+    } finally {
+      setLoadingEmailPreview(false);
     }
-    window.open(data.signedUrl, "_blank");
   };
 
   const handleVerPdfGenerado = async () => {
@@ -783,6 +801,17 @@ function ComprobanteCard({
           alt={row.nombre_archivo || "Comprobante ampliado"}
           className="w-full max-h-[85vh] object-contain rounded-md"
         />
+      </DialogContent>
+    </Dialog>
+    <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
+      <DialogContent className="max-w-4xl h-[85vh] p-0 flex flex-col">
+        <div className="flex items-center justify-between border-b p-3">
+          <span className="text-sm font-medium">Correo original</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => emailIframeRef.current?.contentWindow?.print()}>
+            Imprimir
+          </Button>
+        </div>
+        <iframe ref={emailIframeRef} srcDoc={emailPreviewHtml || ""} className="w-full flex-1 border-0" sandbox="allow-same-origin" />
       </DialogContent>
     </Dialog>
     <EnviarConfirmacionPagoDialog
