@@ -9,6 +9,8 @@ import {
   labelUsoCfdi,
   labelListaPrecios,
 } from "@/lib/autorizacionDatosCliente";
+import { extractDocFilesPath } from "@/lib/storageSignedUrl";
+
 
 
 function resolveEmpresaCosto(empresaVendedora: string): "lumaggs" | "galsa" {
