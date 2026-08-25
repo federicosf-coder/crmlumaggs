@@ -811,6 +811,16 @@ export default function DocumentForm() {
         await supabase.from("documento_productos").insert(newItems);
       }
 
+      if (targetType === "pedido") {
+        try {
+          await buildAutorizacionPrecioDraft(inserted.id, user?.id ?? null);
+          await supabase.from("documentos").update({ estatus_pedido: "espera_autorizacion_precio" }).eq("id", inserted.id);
+        } catch (draftErr: any) {
+          console.error("Error al preparar autorización de precio:", draftErr);
+          toast.warning("El pedido se creó, pero no se pudo preparar la autorización de precio automáticamente. Contacta a soporte.");
+        }
+      }
+
       qc.invalidateQueries({ queryKey: ["documentos"] });
       toast.success(`${label} creado desde cotización`);
       navigate(`/documents/${inserted.id}`);
