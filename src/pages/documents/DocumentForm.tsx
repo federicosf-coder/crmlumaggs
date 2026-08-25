@@ -831,7 +831,7 @@ export default function DocumentForm() {
   };
 
   const td = form.tipo_documento;
-  const puedeEditarConPdf = isAdmin || (td === "pedido" && (hasRole("customer_service") || hasRole("accounting")));
+  const puedeEditarConPdf = isAdmin || hasRole("customer_service") || (td === "pedido" && hasRole("accounting"));
 
 
   return (
