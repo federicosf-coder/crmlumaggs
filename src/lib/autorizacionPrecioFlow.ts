@@ -409,6 +409,8 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     promedio_mensual: fmtNumber(historicoSnapshot.promedioMensual),
     justificacion: autorizacion.justificacion || "—",
     evidencias_lista: evidenciasLista,
+    documento_pdf_lista: documentoPdfLista,
+
     clasificacion_lista: clasificacionLista,
     facturacion_lista: facturacionLista,
   };
