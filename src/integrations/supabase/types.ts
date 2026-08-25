@@ -3794,6 +3794,8 @@ export type Database = {
           margen_snapshot: Json | null
           motivo: string | null
           numero_pedido_ref: string | null
+          pospuesto: boolean
+          pospuesto_at: string | null
           ronda: number
           updated_at: string
         }
@@ -3819,6 +3821,8 @@ export type Database = {
           margen_snapshot?: Json | null
           motivo?: string | null
           numero_pedido_ref?: string | null
+          pospuesto?: boolean
+          pospuesto_at?: string | null
           ronda?: number
           updated_at?: string
         }
@@ -3844,6 +3848,8 @@ export type Database = {
           margen_snapshot?: Json | null
           motivo?: string | null
           numero_pedido_ref?: string | null
+          pospuesto?: boolean
+          pospuesto_at?: string | null
           ronda?: number
           updated_at?: string
         }
