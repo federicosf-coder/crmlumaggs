@@ -142,6 +142,29 @@ function AutorizacionCard({
         .update({ justificacion })
         .eq("id", row.id);
       if (error) throw error;
+
+      if (company.id) {
+        const { data: comp } = await (supabase as any)
+          .from("companies")
+          .select("justificacion_precio_default")
+          .eq("id", company.id)
+          .maybeSingle();
+        const defaultJust = (comp?.justificacion_precio_default as string | null) ?? "";
+        if ((justificacion || "") !== defaultJust) {
+          const sync = window.confirm(
+            "¿También quieres actualizar la justificación guardada en el perfil de este cliente para futuros pedidos?"
+          );
+          if (sync) {
+            const { error: updErr } = await (supabase as any)
+              .from("companies")
+              .update({ justificacion_precio_default: justificacion || null })
+              .eq("id", company.id);
+            if (updErr) throw updErr;
+            toast.success("Justificación del perfil actualizada");
+          }
+        }
+      }
+
       toast.success("Justificación actualizada");
       onRefetch();
     } catch (e: any) {
