@@ -1298,6 +1298,7 @@ export type Database = {
           industrias: string[] | null
           industry: string | null
           is_active: boolean
+          justificacion_precio_default: string | null
           limite_credito: number | null
           lista_precios: string | null
           metodo_pago: Database["public"]["Enums"]["metodo_pago_sat"] | null
@@ -1365,6 +1366,7 @@ export type Database = {
           industrias?: string[] | null
           industry?: string | null
           is_active?: boolean
+          justificacion_precio_default?: string | null
           limite_credito?: number | null
           lista_precios?: string | null
           metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
@@ -1432,6 +1434,7 @@ export type Database = {
           industrias?: string[] | null
           industry?: string | null
           is_active?: boolean
+          justificacion_precio_default?: string | null
           limite_credito?: number | null
           lista_precios?: string | null
           metodo_pago?: Database["public"]["Enums"]["metodo_pago_sat"] | null
@@ -3607,6 +3610,171 @@ export type Database = {
           usuario_carga?: string | null
         }
         Relationships: []
+      }
+      documento_autorizacion_evidencias: {
+        Row: {
+          autorizacion_id: string
+          created_at: string
+          id: string
+          nombre_archivo: string | null
+          storage_path: string
+          subido_por: string | null
+        }
+        Insert: {
+          autorizacion_id: string
+          created_at?: string
+          id?: string
+          nombre_archivo?: string | null
+          storage_path: string
+          subido_por?: string | null
+        }
+        Update: {
+          autorizacion_id?: string
+          created_at?: string
+          id?: string
+          nombre_archivo?: string | null
+          storage_path?: string
+          subido_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_autorizacion_evidencias_autorizacion_id_fkey"
+            columns: ["autorizacion_id"]
+            isOneToOne: false
+            referencedRelation: "documento_autorizaciones_precio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documento_autorizacion_respuestas: {
+        Row: {
+          asunto: string | null
+          autorizacion_id: string
+          clasificacion: string | null
+          contenido_extraido: Json | null
+          created_at: string
+          email_html_storage_path: string | null
+          id: string
+          remitente_email: string | null
+          remitente_nombre_detectado: string | null
+          resend_email_id: string | null
+        }
+        Insert: {
+          asunto?: string | null
+          autorizacion_id: string
+          clasificacion?: string | null
+          contenido_extraido?: Json | null
+          created_at?: string
+          email_html_storage_path?: string | null
+          id?: string
+          remitente_email?: string | null
+          remitente_nombre_detectado?: string | null
+          resend_email_id?: string | null
+        }
+        Update: {
+          asunto?: string | null
+          autorizacion_id?: string
+          clasificacion?: string | null
+          contenido_extraido?: Json | null
+          created_at?: string
+          email_html_storage_path?: string | null
+          id?: string
+          remitente_email?: string | null
+          remitente_nombre_detectado?: string | null
+          resend_email_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_autorizacion_respuestas_autorizacion_id_fkey"
+            columns: ["autorizacion_id"]
+            isOneToOne: false
+            referencedRelation: "documento_autorizaciones_precio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documento_autorizaciones_precio: {
+        Row: {
+          asunto_enviado: string | null
+          autorizacion_respondido_at: string | null
+          autorizado: boolean | null
+          autorizado_por_texto: string | null
+          costo_margen_snapshot: Json | null
+          creado_por: string | null
+          created_at: string
+          documento_id: string
+          enviado_at: string | null
+          enviado_por: string | null
+          estatus: string
+          historico_snapshot: Json | null
+          id: string
+          justificacion: string | null
+          margen_reportado_texto: string | null
+          margen_respondido_at: string | null
+          margen_respondido_por: string | null
+          margen_snapshot: Json | null
+          motivo: string | null
+          numero_pedido_ref: string | null
+          ronda: number
+          updated_at: string
+        }
+        Insert: {
+          asunto_enviado?: string | null
+          autorizacion_respondido_at?: string | null
+          autorizado?: boolean | null
+          autorizado_por_texto?: string | null
+          costo_margen_snapshot?: Json | null
+          creado_por?: string | null
+          created_at?: string
+          documento_id: string
+          enviado_at?: string | null
+          enviado_por?: string | null
+          estatus?: string
+          historico_snapshot?: Json | null
+          id?: string
+          justificacion?: string | null
+          margen_reportado_texto?: string | null
+          margen_respondido_at?: string | null
+          margen_respondido_por?: string | null
+          margen_snapshot?: Json | null
+          motivo?: string | null
+          numero_pedido_ref?: string | null
+          ronda?: number
+          updated_at?: string
+        }
+        Update: {
+          asunto_enviado?: string | null
+          autorizacion_respondido_at?: string | null
+          autorizado?: boolean | null
+          autorizado_por_texto?: string | null
+          costo_margen_snapshot?: Json | null
+          creado_por?: string | null
+          created_at?: string
+          documento_id?: string
+          enviado_at?: string | null
+          enviado_por?: string | null
+          estatus?: string
+          historico_snapshot?: Json | null
+          id?: string
+          justificacion?: string | null
+          margen_reportado_texto?: string | null
+          margen_respondido_at?: string | null
+          margen_respondido_por?: string | null
+          margen_snapshot?: Json | null
+          motivo?: string | null
+          numero_pedido_ref?: string | null
+          ronda?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_autorizaciones_precio_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documento_direccion_bitacora: {
         Row: {
