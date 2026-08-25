@@ -854,6 +854,17 @@ export default function DocumentForm() {
           </Button>
         </div>
       )}
+      {td === "pedido" && existingDoc?.id && (
+        <div>
+          <PedidoAccionesPanel documentoId={existingDoc.id} onSolicitada={() => setAutorizacionOpen(true)} />
+          <PedidoStatusStepper estatus={form.estatus_pedido} />
+          <AutorizacionPrecioDialog
+            open={autorizacionOpen}
+            onOpenChange={setAutorizacionOpen}
+            documentoId={existingDoc.id}
+          />
+        </div>
+      )}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => {
           if (backSeguimientoId && backBrand) {
@@ -948,16 +959,6 @@ export default function DocumentForm() {
       <Card>
         <CardHeader><CardTitle>Información General</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {td === "pedido" && existingDoc?.id && (
-            <div className="md:col-span-3">
-              <PedidoAccionesPanel documentoId={existingDoc.id} onSolicitada={() => setAutorizacionOpen(true)} />
-              <AutorizacionPrecioDialog
-                open={autorizacionOpen}
-                onOpenChange={setAutorizacionOpen}
-                documentoId={existingDoc.id}
-              />
-            </div>
-          )}
           <fieldset disabled={viewMode} className="contents">
             <div>
               <Label>Empresa Vendedora *</Label>
@@ -1172,9 +1173,6 @@ export default function DocumentForm() {
             )}
             {td === "pedido" && (
               <>
-                <div className="mb-4">
-                  <PedidoStatusStepper estatus={form.estatus_pedido} />
-                </div>
                 <div>
                   <Label>Número Pedido</Label>
                   <Input value={form.numero_pedido} onChange={e => set("numero_pedido", e.target.value)} />
