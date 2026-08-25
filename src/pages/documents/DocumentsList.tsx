@@ -58,6 +58,24 @@ const ESTATUS_PED_LABELS: Record<string, string> = {
   precio_autorizado: "Precio Autoriz.", validado_contabilidad: "Validado Contab.",
   programado_entrega: "Prog. Entrega", entregado: "Entregado", cancelado: "Cancelado",
 };
+const PEDIDO_STATUS_CHIP_LABELS: Record<string, string> = {
+  confirmado_cliente: "Confirmado",
+  espera_autorizacion_precio: "Autorización",
+  precio_autorizado: "Precio OK",
+  validado_contabilidad: "Contabilidad",
+  programado_entrega: "Programado",
+  entregado: "Entregado",
+  cancelado: "Cancelado",
+};
+const PEDIDO_STATUS_ORDER = [
+  "confirmado_cliente",
+  "espera_autorizacion_precio",
+  "precio_autorizado",
+  "validado_contabilidad",
+  "programado_entrega",
+  "entregado",
+  "cancelado",
+];
 const ESTATUS_FAC_LABELS: Record<string, string> = {
   vigente: "Vigente", pendiente: "Vigente", pagada: "Pagada", parcial: "Parcial",
   vencida: "Vencida", cancelada: "Cancelada",
