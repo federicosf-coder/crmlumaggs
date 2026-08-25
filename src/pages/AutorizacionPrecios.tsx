@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, BadgeDollarSign, Eye, Send, Upload } from "lucide-react";
+import { Loader2, BadgeDollarSign, Eye, Send, Upload, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 import { buildAutorizacionPrecioEmailFlow } from "@/lib/autorizacionPrecioFlow";
+import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 
 const BUCKET = "autorizacion-precios";
 
@@ -32,7 +33,7 @@ export default function AutorizacionPrecios() {
       const { data: rows, error } = await (supabase as any)
         .from("documento_autorizaciones_precio")
         .select(
-          "id, documento_id, ronda, estatus, justificacion, costo_margen_snapshot, historico_snapshot, created_at, enviado_at, documentos(id, numero_pedido, fecha_documento, ejecutivo_venta_id, companies(name, razon_social))"
+          "id, documento_id, ronda, estatus, justificacion, costo_margen_snapshot, historico_snapshot, created_at, enviado_at, documentos(id, numero_pedido, fecha_documento, ejecutivo_venta_id, companies(id, name, razon_social))"
         )
         .in("estatus", ["pendiente_revision", "enviado"])
         .order("created_at", { ascending: true });
@@ -107,6 +108,9 @@ function AutorizacionCard({
   const [flow, setFlow] = useState<any>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [preparing, setPreparing] = useState(false);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [companyEditData, setCompanyEditData] = useState<CompanyData | null>(null);
+  const [loadingCompany, setLoadingCompany] = useState(false);
 
   const editable = row.estatus === "pendiente_revision";
   const doc = row.documentos || {};
@@ -138,6 +142,29 @@ function AutorizacionCard({
         .update({ justificacion })
         .eq("id", row.id);
       if (error) throw error;
+
+      if (company.id) {
+        const { data: comp } = await (supabase as any)
+          .from("companies")
+          .select("justificacion_precio_default")
+          .eq("id", company.id)
+          .maybeSingle();
+        const defaultJust = (comp?.justificacion_precio_default as string | null) ?? "";
+        if ((justificacion || "") !== defaultJust) {
+          const sync = window.confirm(
+            "¿También quieres actualizar la justificación guardada en el perfil de este cliente para futuros pedidos?"
+          );
+          if (sync) {
+            const { error: updErr } = await (supabase as any)
+              .from("companies")
+              .update({ justificacion_precio_default: justificacion || null })
+              .eq("id", company.id);
+            if (updErr) throw updErr;
+            toast.success("Justificación del perfil actualizada");
+          }
+        }
+      }
+
       toast.success("Justificación actualizada");
       onRefetch();
     } catch (e: any) {
@@ -155,6 +182,30 @@ function AutorizacionCard({
       return;
     }
     window.open(data.signedUrl, "_blank");
+  };
+
+  const abrirCliente = async () => {
+    if (!company.id) return;
+    setLoadingCompany(true);
+    try {
+      const { data, error } = await (supabase as any)
+        .from("companies")
+        .select("*")
+        .eq("id", company.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast.error("No se encontró la empresa");
+        return;
+      }
+      setCompanyEditData((data ?? null) as CompanyData);
+      setCompanyDialogOpen(true);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo cargar la empresa");
+    } finally {
+      setLoadingCompany(false);
+    }
   };
 
   const subir = async (files: FileList | null) => {
@@ -224,7 +275,25 @@ function AutorizacionCard({
       <CardHeader className="bg-gradient-to-r from-violet-50 to-blue-50 border-b">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-lg font-medium">{company.name || "Sin cliente"}</CardTitle>
+            <CardTitle className="text-lg font-medium flex items-center gap-2">
+              {company.name || "Sin cliente"}
+              {company.id && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={abrirCliente}
+                  disabled={loadingCompany}
+                  title="Ver / editar cliente"
+                >
+                  {loadingCompany ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              )}
+            </CardTitle>
             <p className="text-xs text-muted-foreground">{company.razon_social || "—"}</p>
             <p className="text-xs text-muted-foreground mt-1">
               Pedido {doc.numero_pedido || "—"} · {doc.fecha_documento ? formatDate(doc.fecha_documento) : "—"} ·{" "}
@@ -384,6 +453,18 @@ function AutorizacionCard({
           onSent={marcarEnviado}
         />
       )}
+
+      <CompanyFormDialog
+        open={companyDialogOpen}
+        onOpenChange={(open) => {
+          setCompanyDialogOpen(open);
+          if (!open) {
+            setCompanyEditData(null);
+            onRefetch();
+          }
+        }}
+        editData={companyEditData}
+      />
     </Card>
   );
 }
