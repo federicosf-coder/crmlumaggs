@@ -187,7 +187,7 @@ export function AppSidebar() {
                 );
               })}
 
-              {hasAnyRole(["admin", "manager", "sales", "customer_service"]) && (
+              {hasAnyRole(["admin", "manager", "sales", "customer_service", "accounting"]) && (
                 <Collapsible open={documentosOpen} onOpenChange={setDocumentosOpen}>
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>

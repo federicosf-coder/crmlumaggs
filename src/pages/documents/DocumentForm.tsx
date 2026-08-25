@@ -831,6 +831,8 @@ export default function DocumentForm() {
   };
 
   const td = form.tipo_documento;
+  const puedeEditarConPdf = isAdmin || (td === "pedido" && (hasRole("customer_service") || hasRole("accounting")));
+
 
   return (
     <div className="space-y-6">
@@ -922,12 +924,12 @@ export default function DocumentForm() {
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
             </Button>
-            {(!existingDoc?.pdf_url || isAdmin) && (
+            {(!existingDoc?.pdf_url || puedeEditarConPdf) && (
               <Button variant="outline" onClick={() => setViewMode(false)}>
                 <Pencil className="mr-2 h-4 w-4" /> Editar
               </Button>
             )}
-            {existingDoc?.pdf_url && !isAdmin && (
+            {existingDoc?.pdf_url && !puedeEditarConPdf && (
               <span className="text-sm text-muted-foreground italic">Documento con PDF — solo Admin puede editar</span>
             )}
           </div>
