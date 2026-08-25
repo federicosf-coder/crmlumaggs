@@ -94,7 +94,7 @@ export async function buildAutorizacionPrecioDraft(
   const { data: documento, error: docError } = await (supabase as any)
     .from("documentos")
     .select(
-      "id, empresa_id, empresa_vendedora, numero_pedido, ejecutivo_venta_id, tipo_pago, companies(name, razon_social, justificacion_precio_default, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi, clabe_bancaria, tarjeta_ultimos4)"
+      "id, empresa_id, empresa_vendedora, numero_pedido, ejecutivo_venta_id, tipo_pago, companies(name, razon_social, justificacion_precio_default, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi)"
     )
     .eq("id", documentoId)
     .maybeSingle();
@@ -170,8 +170,6 @@ export async function buildAutorizacionPrecioDraft(
     forma_pago: c.forma_pago || null,
     metodo_pago: c.metodo_pago || null,
     uso_cfdi: c.uso_cfdi || null,
-    clabe_bancaria: c.clabe_bancaria || null,
-    tarjeta_ultimos4: c.tarjeta_ultimos4 || null,
   };
 
 
@@ -216,7 +214,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   const { data: autorizacion, error: authError } = await (supabase as any)
     .from("documento_autorizaciones_precio")
     .select(
-      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, numero_pedido_ref, documentos(id, numero_pedido, pdf_url, ejecutivo_venta_id, companies(name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi, clabe_bancaria, tarjeta_ultimos4))"
+      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, numero_pedido_ref, documentos(id, numero_pedido, pdf_url, ejecutivo_venta_id, companies(name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
     )
     .eq("id", autorizacionId)
     .maybeSingle();
@@ -374,8 +372,6 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     ["Forma de pago (SAT)", labelFormaPago(datos.forma_pago)],
     ["Método de pago", labelMetodoPago(datos.metodo_pago)],
     ["Uso de CFDI", labelUsoCfdi(datos.uso_cfdi)],
-    ["CLABE Bancaria", datos.clabe_bancaria],
-    ["Últimos 4 dígitos de tarjeta", datos.tarjeta_ultimos4],
   ]);
 
   // 6. Variables de plantilla
