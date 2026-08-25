@@ -134,6 +134,113 @@ export default function AutorizacionPrecioCard({
     }
   };
 
+  // ---- Resultado de la autorización (respuesta de Galper) ----
+  const [margenTexto, setMargenTexto] = useState<string>(row.margen_reportado_texto || "");
+  const [savingMargen, setSavingMargen] = useState(false);
+  const [resultado, setResultado] = useState<"si" | "no" | "nc">(
+    row.autorizado === true ? "si" : row.autorizado === false ? "no" : "nc"
+  );
+  const [autorizadoPor, setAutorizadoPor] = useState<string>(row.autorizado_por_texto || "");
+  const [motivo, setMotivo] = useState<string>(row.motivo || "");
+  const [savingResultado, setSavingResultado] = useState(false);
+  const [editandoResultado, setEditandoResultado] = useState(false);
+  const [posponiendo, setPosponiendo] = useState(false);
+
+  useEffect(() => {
+    setMargenTexto(row.margen_reportado_texto || "");
+    setResultado(row.autorizado === true ? "si" : row.autorizado === false ? "no" : "nc");
+    setAutorizadoPor(row.autorizado_por_texto || "");
+    setMotivo(row.motivo || "");
+    setEditandoResultado(false);
+  }, [row.id, row.margen_reportado_texto, row.autorizado, row.autorizado_por_texto, row.motivo]);
+
+  const resultadoCerrado =
+    (row.estatus === "autorizado" || row.estatus === "rechazado") && !editandoResultado;
+
+  const guardarMargen = async () => {
+    setSavingMargen(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .update({
+          margen_reportado_texto: margenTexto.trim() || null,
+          margen_respondido_por: user?.email ?? null,
+          margen_respondido_at: new Date().toISOString(),
+        })
+        .eq("id", row.id);
+      if (error) throw error;
+      toast.success("Margen reportado guardado");
+      onRefetch();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo guardar el margen");
+    } finally {
+      setSavingMargen(false);
+    }
+  };
+
+  const guardarResultado = async () => {
+    setSavingResultado(true);
+    try {
+      const autorizado = resultado === "si" ? true : resultado === "no" ? false : null;
+      const nuevoEstatus =
+        resultado === "si" ? "autorizado" : resultado === "no" ? "rechazado" : "indeterminado";
+      const { error } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .update({
+          autorizado,
+          autorizado_por_texto: autorizadoPor.trim() || null,
+          motivo: motivo.trim() || null,
+          autorizacion_respondido_at: new Date().toISOString(),
+          estatus: nuevoEstatus,
+        })
+        .eq("id", row.id);
+      if (error) throw error;
+
+      if (autorizado === true && row.documento_id) {
+        const { error: docErr } = await (supabase as any)
+          .from("documentos")
+          .update({ estatus_pedido: "precio_autorizado" })
+          .eq("id", row.documento_id);
+        if (docErr) throw docErr;
+      }
+
+      toast.success("Resultado de la autorización guardado");
+      setEditandoResultado(false);
+      queryClient.invalidateQueries({ queryKey: ["documentos"] });
+      queryClient.invalidateQueries({ queryKey: ["documento", row.documento_id] });
+      queryClient.invalidateQueries({ queryKey: ["pedido-autorizacion-precio", row.documento_id] });
+      onRefetch();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo guardar el resultado");
+    } finally {
+      setSavingResultado(false);
+    }
+  };
+
+  const enviarMasTarde = async () => {
+    setPosponiendo(true);
+    try {
+      if ((justificacion || "") !== (row.justificacion || "")) {
+        await guardar();
+      }
+      const { error } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .update({ pospuesto: true, pospuesto_at: new Date().toISOString() })
+        .eq("id", row.id);
+      if (error) throw error;
+      toast.success("Guardado, puedes enviarlo cuando quieras.");
+      onRefetch();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo posponer el envío");
+    } finally {
+      setPosponiendo(false);
+    }
+  };
+
+
 
   useEffect(() => {
     setDatos(datosIniciales());
