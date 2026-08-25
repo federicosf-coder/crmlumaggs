@@ -558,6 +558,10 @@ export default function AutorizacionPrecioCard({
               ) : (
                 <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Enviado</Badge>
               )}
+              {row.pospuesto && (
+                <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pospuesto</Badge>
+              )}
+
             </div>
           </div>
         </CardHeader>
