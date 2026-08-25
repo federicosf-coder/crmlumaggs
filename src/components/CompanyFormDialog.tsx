@@ -1225,12 +1225,15 @@ function LimiteCreditoField({
       .from("documentos")
       .select("saldo_pendiente_cobranza")
       .eq("empresa_id", companyId)
-      .neq("estatus_factura", "cancelada")
+      .eq("tipo_documento", "factura")
+      .eq("is_active", true)
+      .not("estatus_factura", "in", "(cancelada,pagada)")
       .then(({ data }) => {
         const total = (data || []).reduce((s: number, d: any) => s + Number(d.saldo_pendiente_cobranza || 0), 0);
         setCreditoUtilizado(total);
       });
   }, [companyId]);
+
 
   const handleSave = async () => {
     const num = parseFloat(inputVal.replace(/,/g, "")) || 0;
