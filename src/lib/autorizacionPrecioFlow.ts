@@ -216,7 +216,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   const { data: autorizacion, error: authError } = await (supabase as any)
     .from("documento_autorizaciones_precio")
     .select(
-      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, numero_pedido_ref, documentos(id, numero_pedido, pdf_url, ejecutivo_venta_id, companies(name, razon_social))"
+      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, numero_pedido_ref, documentos(id, numero_pedido, pdf_url, ejecutivo_venta_id, companies(name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi, clabe_bancaria, tarjeta_ultimos4))"
     )
     .eq("id", autorizacionId)
     .maybeSingle();
@@ -333,7 +333,10 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     : "<em>Sin evidencia adjunta</em>";
 
   // 5b. Clasificación y detalles de facturación (snapshot editable del documento)
-  const datos = normalizeDatosCliente(autorizacion.datos_cliente_snapshot);
+  const snapDatos = autorizacion.datos_cliente_snapshot;
+  const datos = normalizeDatosCliente(
+    snapDatos && Object.keys(snapDatos).length > 0 ? snapDatos : documento?.companies || {}
+  );
 
   let industriasEtiquetas: string[] = datos.industrias;
   if (datos.industrias.length > 0) {
