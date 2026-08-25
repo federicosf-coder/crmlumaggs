@@ -178,16 +178,7 @@ export default function PedidoAccionesPanel({
 
   return (
     <Card className={`mb-4 border ${config.border} ${config.bg}`}>
-      <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${config.iconColor}`} />
-          <div>
-            <p className={`text-sm font-medium ${config.text}`}>{mensaje}</p>
-            {fila.margen_reportado_texto && (
-              <p className="mt-1 text-xs text-muted-foreground">{fila.margen_reportado_texto}</p>
-            )}
-          </div>
-        </div>
+      <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
         {fila.estatus === "pendiente_revision" ? (
           <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
             <Button size="sm" onClick={() => abrirEnvio(fila.id)} disabled={preparing}>
@@ -207,6 +198,15 @@ export default function PedidoAccionesPanel({
             </Link>
           </Button>
         )}
+        <div className="flex items-start gap-3">
+          <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${config.iconColor}`} />
+          <div>
+            <p className={`text-sm font-medium ${config.text}`}>{mensaje}</p>
+            {fila.margen_reportado_texto && (
+              <p className="mt-1 text-xs text-muted-foreground">{fila.margen_reportado_texto}</p>
+            )}
+          </div>
+        </div>
       </CardContent>
 
       {previewFlow && (
