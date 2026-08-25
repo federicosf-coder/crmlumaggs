@@ -1153,6 +1153,9 @@ export default function DocumentForm() {
             )}
             {td === "pedido" && (
               <>
+                <div className="mb-4">
+                  <PedidoStatusStepper estatus={form.estatus_pedido} />
+                </div>
                 <div>
                   <Label>Número Pedido</Label>
                   <Input value={form.numero_pedido} onChange={e => set("numero_pedido", e.target.value)} />
