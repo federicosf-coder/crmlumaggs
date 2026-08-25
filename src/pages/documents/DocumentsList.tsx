@@ -270,6 +270,20 @@ export default function DocumentsList() {
     (tipoFilter === "factura" && estatusFacFilter !== "all" ? 1 : 0) +
     (tipoFilter === "factura" && estatusCobFilter !== "all" ? 1 : 0);
 
+  // Sync pedido status filter with URL ?estatus
+  useEffect(() => {
+    if (tipoFilter !== "pedido") return;
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (estatusPedFilter && estatusPedFilter !== "all") {
+        next.set("estatus", estatusPedFilter);
+      } else {
+        next.delete("estatus");
+      }
+      return next;
+    }, { replace: true });
+  }, [estatusPedFilter, tipoFilter, setSearchParams]);
+
   const setFilter = useCallback((key: string, value: string) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
