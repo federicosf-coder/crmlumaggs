@@ -856,7 +856,8 @@ export default function DocumentForm() {
       )}
       {td === "pedido" && existingDoc?.id && (
         <div>
-          <PedidoAccionesPanel documentoId={existingDoc.id} onSolicitada={() => setAutorizacionOpen(true)} />
+          <InstruccionesEspecialesCard documentoId={existingDoc.id} />
+          <PedidoAccionesPanel documentoId={existingDoc.id} />
           <PedidoStatusStepper estatus={form.estatus_pedido} />
           <AutorizacionPrecioDialog
             open={autorizacionOpen}
