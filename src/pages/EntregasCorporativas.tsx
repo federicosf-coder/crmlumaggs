@@ -29,8 +29,8 @@ import { ProductoSelector, fetchProductosCatalogo } from "@/components/entregas/
 import EntregasCorpIntakeTab from "@/components/entregas/EntregasCorpIntakeTab";
 import { useQuery } from "@tanstack/react-query";
 
-const CLIENTES = ["Hyundai", "Kenworth", "Mecánica Tek", "Otro"];
-const BUCKET = "entregas-corporativas";
+export const CLIENTES = ["Hyundai", "Kenworth", "Mecánica Tek", "Otro"];
+export const BUCKET = "entregas-corporativas";
 
 type Ubicacion = {
   id: string;
@@ -109,7 +109,7 @@ function palabrasEmparejamiento(s: string) {
     .filter((w) => w.length >= 3);
 }
 
-function emparejarUbicacion(lugarEntrega: string, ubicaciones: Ubicacion[]): Ubicacion | null {
+export function emparejarUbicacion(lugarEntrega: string, ubicaciones: Ubicacion[]): Ubicacion | null {
   const target = normalizarEmparejamiento(lugarEntrega);
   if (!target) return null;
   const targetWords = palabrasEmparejamiento(lugarEntrega);
@@ -178,7 +178,7 @@ async function openSigned(path: string) {
   window.open(data.signedUrl, "_blank");
 }
 
-async function fetchUbicaciones(cliente?: string) {
+export async function fetchUbicaciones(cliente?: string) {
   let q = (supabase as any)
     .from("entregas_corporativas_ubicaciones")
     .select("id, cliente, nombre, direccion, lat, lng, instrucciones, activo")
