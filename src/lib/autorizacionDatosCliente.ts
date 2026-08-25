@@ -16,8 +16,6 @@ export type DatosClienteAutorizacion = {
   forma_pago: string | null;
   metodo_pago: string | null;
   uso_cfdi: string | null;
-  clabe_bancaria: string | null;
-  tarjeta_ultimos4: string | null;
 };
 
 export const DATOS_CLIENTE_VACIO: DatosClienteAutorizacion = {
@@ -29,8 +27,6 @@ export const DATOS_CLIENTE_VACIO: DatosClienteAutorizacion = {
   forma_pago: null,
   metodo_pago: null,
   uso_cfdi: null,
-  clabe_bancaria: null,
-  tarjeta_ultimos4: null,
 };
 
 export function normalizeDatosCliente(raw: any): DatosClienteAutorizacion {
@@ -44,8 +40,6 @@ export function normalizeDatosCliente(raw: any): DatosClienteAutorizacion {
     forma_pago: r.forma_pago || null,
     metodo_pago: r.metodo_pago || null,
     uso_cfdi: r.uso_cfdi || null,
-    clabe_bancaria: r.clabe_bancaria || null,
-    tarjeta_ultimos4: r.tarjeta_ultimos4 || null,
   };
 }
 

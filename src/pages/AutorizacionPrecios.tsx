@@ -15,7 +15,7 @@ export default function AutorizacionPrecios() {
       const { data: rows, error } = await (supabase as any)
         .from("documento_autorizaciones_precio")
         .select(
-          "id, documento_id, ronda, estatus, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, created_at, enviado_at, documentos(id, numero_pedido, fecha_documento, ejecutivo_venta_id, companies(id, name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi, clabe_bancaria, tarjeta_ultimos4))"
+          "id, documento_id, ronda, estatus, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, created_at, enviado_at, documentos(id, numero_pedido, fecha_documento, ejecutivo_venta_id, companies(id, name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
         )
         .in("estatus", ["pendiente_revision", "enviado"])
         .order("created_at", { ascending: true });

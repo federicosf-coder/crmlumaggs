@@ -209,8 +209,6 @@ export default function AutorizacionPrecioCard({
           forma_pago: datos.forma_pago || null,
           metodo_pago: datos.metodo_pago || null,
           uso_cfdi: datos.uso_cfdi || null,
-          clabe_bancaria: datos.clabe_bancaria || null,
-          tarjeta_ultimos4: datos.tarjeta_ultimos4 || null,
         })
         .eq("id", company.id);
       if (error) throw error;

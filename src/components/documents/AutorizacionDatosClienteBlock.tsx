@@ -44,14 +44,14 @@ export function AutorizacionDatosClienteBlock({
     key: keyof DatosClienteAutorizacion,
     opts: Opt[]
   ) => (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       <Label className="text-xs font-normal text-muted-foreground">{label}</Label>
       <Select
         disabled={disabled}
         value={(value[key] as string) || "none"}
         onValueChange={(v) => set(key, (v === "none" ? null : v) as any)}
       >
-        <SelectTrigger className="h-9 font-light">
+        <SelectTrigger className="h-8 font-light text-sm">
           <SelectValue placeholder="Sin definir" />
         </SelectTrigger>
         <SelectContent>
@@ -71,26 +71,26 @@ export function AutorizacionDatosClienteBlock({
   );
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">Clasificación</p>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <Label className="text-xs font-normal text-muted-foreground">
             Industria (multiopción)
           </Label>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1">
             {value.industrias.length === 0 && (
               <span className="text-sm text-muted-foreground italic">Sin industrias</span>
             )}
             {value.industrias.map((ind) => (
-              <Badge key={ind} variant="secondary" className="font-light">
+              <Badge key={ind} variant="secondary" className="font-light py-0 h-5">
                 {industriasCatalog.find((c) => c.clave === ind)?.etiqueta || ind}
                 {!disabled && (
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-4 w-4 ml-1"
+                    className="h-3.5 w-3.5 ml-1"
                     onClick={() =>
                       set(
                         "industrias",
@@ -98,7 +98,7 @@ export function AutorizacionDatosClienteBlock({
                       )
                     }
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-2.5 w-2.5" />
                   </Button>
                 )}
               </Badge>
@@ -113,7 +113,7 @@ export function AutorizacionDatosClienteBlock({
                 }
               }}
             >
-              <SelectTrigger className="h-9 font-light">
+              <SelectTrigger className="h-8 font-light text-sm">
                 <SelectValue placeholder="Agregar industria..." />
               </SelectTrigger>
               <SelectContent>
@@ -127,7 +127,7 @@ export function AutorizacionDatosClienteBlock({
           )}
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           {renderSelect(
             "Tipo según destino del lubricante",
             "tipo_destino_lubricante",
@@ -137,12 +137,12 @@ export function AutorizacionDatosClienteBlock({
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
           Detalles de facturación
         </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="space-y-1">
             <Label className="text-xs font-normal text-muted-foreground">
               Límite de crédito
             </Label>
@@ -150,7 +150,7 @@ export function AutorizacionDatosClienteBlock({
               type="number"
               step="0.01"
               disabled={disabled}
-              className="h-9 font-light"
+              className="h-8 font-light text-sm"
               value={value.limite_credito ?? ""}
               placeholder="0.00"
               onChange={(e) =>
@@ -162,30 +162,6 @@ export function AutorizacionDatosClienteBlock({
           {renderSelect("Forma de Pago (SAT)", "forma_pago", FORMA_PAGO_OPTS)}
           {renderSelect("Método de Pago", "metodo_pago", METODO_PAGO_OPTS)}
           {renderSelect("Uso de CFDI", "uso_cfdi", USO_CFDI_OPTS)}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-normal text-muted-foreground">CLABE Bancaria</Label>
-            <Input
-              disabled={disabled}
-              className="h-9 font-light"
-              maxLength={18}
-              placeholder="18 dígitos"
-              value={value.clabe_bancaria ?? ""}
-              onChange={(e) => set("clabe_bancaria", e.target.value.replace(/\D/g, "") || null)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-normal text-muted-foreground">
-              Últimos 4 dígitos de tarjeta
-            </Label>
-            <Input
-              disabled={disabled}
-              className="h-9 font-light"
-              maxLength={4}
-              placeholder="0000"
-              value={value.tarjeta_ultimos4 ?? ""}
-              onChange={(e) => set("tarjeta_ultimos4", e.target.value.replace(/\D/g, "") || null)}
-            />
-          </div>
         </div>
       </div>
     </div>
