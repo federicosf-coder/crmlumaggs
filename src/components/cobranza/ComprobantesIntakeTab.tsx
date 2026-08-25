@@ -340,7 +340,7 @@ function ComprobanteCard({
           estatus_pago: "recibido" as any,
           observaciones: `Comprobante recibido vía ${CANAL_LABEL[row.canal] || row.canal}. Creado desde bandeja de clasificación.`,
           creado_por: user?.id,
-          ...(empresaVendedora ? { empresa_vendedora: empresaVendedora } : {}),
+          empresa_vendedora: empVend,
         } as any)
         .select("id")
         .single();
@@ -481,7 +481,7 @@ function ComprobanteCard({
       if (!pago) return;
       toast.success("Pago creado y comprobante clasificado");
       onDone();
-      navigate(`/cobranza/${empresaVendedora === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
+      navigate(`/cobranza/${empVend === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
     } finally {
       setSaving(false);
     }
@@ -872,7 +872,7 @@ function ComprobanteCard({
         toast.success("Pago enviado a validar");
         onDone();
         navigate(
-          `/cobranza/${empresaVendedora === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${previewPagoId}`
+          `/cobranza/${empVend === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${previewPagoId}`
         );
       }}
     />
