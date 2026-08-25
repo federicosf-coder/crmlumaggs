@@ -43,7 +43,6 @@ const mainItems: NavItem[] = [
   { title: "Bandeja de Prospectos", url: "/leads", icon: Inbox, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
   { title: "Seguimiento a Ventas", url: "/seguimiento", icon: TrendingUp, roles: ["admin", "manager", "sales", "customer_service"] },
-  { title: "Documentos", url: "/documents", icon: FileText, roles: ["admin", "manager", "sales"] },
   { title: "Cobranza", url: "/cobranza", icon: Wallet, roles: ["admin", "manager", "accounting"] },
   { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
   { title: "Biblioteca", url: "/biblioteca", icon: FolderOpen, roles: "all" },
@@ -51,7 +50,6 @@ const mainItems: NavItem[] = [
   { title: "Catálogo de Productos", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
   { title: "Entregas", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
   { title: "Entregas Corporativas", url: "/entregas-corporativas", icon: CalendarCheck, roles: ["admin", "manager", "warehouse", "sales"] },
-  { title: "Autorización de Precios", url: "/autorizacion-precios", icon: BadgeDollarSign, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
   { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
   { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
@@ -85,6 +83,9 @@ export function AppSidebar() {
   const whatsappAccess = useModuleAccess("whatsapp");
   const inventarioAccess = useModuleAccess("inventario");
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
+  const [documentosOpen, setDocumentosOpen] = useState(
+    location.pathname.startsWith("/documents") || location.pathname.startsWith("/autorizacion-precios")
+  );
   const { data: huerfanosCount = 0 } = useHuerfanosCount();
   const { data: leadsPendientes = 0 } = usePendingLeadsCount();
 
@@ -161,7 +162,64 @@ export function AppSidebar() {
           <SidebarGroupLabel>Módulos</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {visibleMain.map((item) => {
+              {visibleMain.slice(0, 5).map((item) => {
+                const showBadge = item.url === "/whatsapp" && unreadWhatsApp > 0;
+                const showLeadsBadge = item.url === "/leads" && leadsPendientes > 0;
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild>
+                      <NavLink to={item.url} end={item.url === "/"} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span className="flex-1">{item.title}</span>}
+                        {showBadge && (
+                          <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px]">
+                            {unreadWhatsApp}
+                          </Badge>
+                        )}
+                        {showLeadsBadge && (
+                          <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px]">
+                            {leadsPendientes}
+                          </Badge>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+
+              {hasAnyRole(["admin", "manager", "sales", "customer_service"]) && (
+                <Collapsible open={documentosOpen} onOpenChange={setDocumentosOpen}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="hover:bg-sidebar-accent/50">
+                        <FileText className="mr-2 h-4 w-4" />
+                        {!collapsed && <span className="flex-1 text-left">Documentos</span>}
+                        {!collapsed && <ChevronDown className={`h-4 w-4 transition-transform ${documentosOpen ? "rotate-180" : ""}`} />}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                  </SidebarMenuItem>
+                  <CollapsibleContent>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/documents" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <FileText className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Todos los Documentos</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/autorizacion-precios" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <BadgeDollarSign className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Autorización de Precios</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
+              {visibleMain.slice(5).map((item) => {
                 const showBadge = item.url === "/whatsapp" && unreadWhatsApp > 0;
                 const showLeadsBadge = item.url === "/leads" && leadsPendientes > 0;
                 return (
