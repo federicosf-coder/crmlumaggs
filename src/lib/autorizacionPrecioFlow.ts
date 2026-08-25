@@ -98,7 +98,7 @@ export async function buildAutorizacionPrecioDraft(
   const { data: lineas, error: lineasError } = await (supabase as any)
     .from("documento_productos")
     .select(
-      "cantidad, precio_unitario, subtotal, producto:productos(codigo, descripcion)"
+      "cantidad, precio_unitario, subtotal, producto:productos(codigo, nombre_producto, presentacion:presentaciones(nombre))"
     )
     .eq("documento_id", documentoId);
 
@@ -115,21 +115,26 @@ export async function buildAutorizacionPrecioDraft(
 
   for (const linea of lineas || []) {
     const codigo = linea.producto?.codigo || "";
-    const descripcion = linea.producto?.descripcion || "";
+    const descripcion = `${linea.producto?.nombre_producto || ""}${
+      linea.producto?.presentacion?.nombre
+        ? " — " + linea.producto.presentacion.nombre
+        : ""
+    }`.trim();
     const cantidad = Number(linea.cantidad) || 0;
     const precio_unitario = Number(linea.precio_unitario) || 0;
 
     let costo: number | null = null;
     if (codigo) {
-      const { data: costoRow } = await (supabase as any)
+      const { data: costoRows } = await (supabase as any)
         .from("inv_costos_producto")
         .select("costo_efectivo")
         .eq("codigo_producto", codigo)
         .eq("empresa", empresaCosto)
-        .maybeSingle();
+        .order("updated_at", { ascending: false })
+        .limit(1);
 
-      if (costoRow?.costo_efectivo != null) {
-        costo = Number(costoRow.costo_efectivo);
+      if (costoRows?.[0]?.costo_efectivo != null) {
+        costo = Number(costoRows[0].costo_efectivo);
       }
     }
 
