@@ -265,7 +265,8 @@ function ComprobanteCard({
         setSeleccion({});
         setLoadingDocs(false);
       });
-  }, [empresaId]);
+  }, [empresaId, empVend]);
+
 
   const totalAsignado = useMemo(
     () => Object.values(seleccion).reduce((s, v) => s + (Number(v) || 0), 0),
