@@ -176,13 +176,13 @@ export async function buildAutorizacionPrecioDraft(
   }
   const justificacion = partes.join("\n").trim();
 
-  const { data: existentes, error: countError } = await (supabase as any)
+  const { count: countExistentes, error: countError } = await (supabase as any)
     .from("documento_autorizaciones_precio")
     .select("id", { count: "exact", head: true })
     .eq("documento_id", documentoId);
 
   if (countError) throw countError;
-  const ronda = (existentes?.length ?? 0) + 1;
+  const ronda = (countExistentes ?? 0) + 1;
 
   const { data: insertado, error: insertError } = await (supabase as any)
     .from("documento_autorizaciones_precio")
