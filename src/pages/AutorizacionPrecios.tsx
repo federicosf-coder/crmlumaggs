@@ -111,13 +111,24 @@ function AutorizacionCard({
   row,
   ejecutivo,
   onRefetch,
+  isHighlighted,
 }: {
   row: Autorizacion;
   ejecutivo?: string | null;
   onRefetch: () => void;
+  isHighlighted?: boolean;
 }) {
   const { user } = useAuth();
+  const [flash, setFlash] = useState(false);
   const [justificacion, setJustificacion] = useState<string>(row.justificacion || "");
+
+  useEffect(() => {
+    if (isHighlighted) {
+      setFlash(true);
+      const t = setTimeout(() => setFlash(false), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [isHighlighted]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [flow, setFlow] = useState<any>(null);
