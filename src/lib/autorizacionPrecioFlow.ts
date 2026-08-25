@@ -507,8 +507,13 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   }
 
   // 9. CC
-  const cc: string[] = ["precios@correo.lumaggs.com.mx"];
-  if (ejecutivoEmail) cc.push(ejecutivoEmail);
+  const cc: string[] = [
+    "precios@correo.lumaggs.com.mx",
+    "f.sarinanaf@lumaggs.com.mx",
+    "atencionclientes.tijuana@dagal.com.mx",
+  ];
+  if (ejecutivoEmail && !cc.includes(ejecutivoEmail)) cc.push(ejecutivoEmail);
+
 
   // 10. Retorno
   return {
