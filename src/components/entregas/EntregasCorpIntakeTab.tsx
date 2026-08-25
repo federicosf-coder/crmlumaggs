@@ -24,6 +24,14 @@ function normalizarCliente(s: string) {
     .trim();
 }
 
+function tituloCase(s: string) {
+  return s
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => (w.length > 2 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
 
 type IntakeRow = {
   id: string;
@@ -144,13 +152,20 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
       let ubicacion: any = ubicacionSel !== LIBRE ? (ubicaciones.find((u) => u.id === ubicacionSel) ?? null) : null;
       let lugarTexto: string | null = null;
       if (!ubicacion && lugarLibre.trim()) {
-        const { data: nuevaUbic, error: ubicErr } = await supabase
-          .from("entregas_corporativas_ubicaciones")
-          .insert({ cliente, nombre: lugarLibre.trim(), activo: true })
-          .select("id, cliente, nombre, direccion, lat, lng, instrucciones, activo")
-          .single();
-        if (ubicErr) throw ubicErr;
-        ubicacion = nuevaUbic;
+        const listaFresca = await fetchUbicaciones(cliente);
+        const reintento = emparejarUbicacion(lugarLibre.trim(), listaFresca);
+        if (reintento) {
+          ubicacion = reintento;
+        } else {
+          const formateada = tituloCase(lugarLibre.trim());
+          const { data: nuevaUbic, error: ubicErr } = await supabase
+            .from("entregas_corporativas_ubicaciones")
+            .insert({ cliente, nombre: formateada, direccion: formateada, activo: true })
+            .select("id, cliente, nombre, direccion, lat, lng, instrucciones, activo")
+            .single();
+          if (ubicErr) throw ubicErr;
+          ubicacion = nuevaUbic;
+        }
       }
       const numeroPedido = row.numero_pedido_detectado || null;
 
