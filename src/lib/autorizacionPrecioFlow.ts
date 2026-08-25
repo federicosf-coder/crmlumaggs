@@ -9,6 +9,8 @@ import {
   labelUsoCfdi,
   labelListaPrecios,
 } from "@/lib/autorizacionDatosCliente";
+import { extractDocFilesPath } from "@/lib/storageSignedUrl";
+
 
 
 function resolveEmpresaCosto(empresaVendedora: string): "lumaggs" | "galsa" {
@@ -309,6 +311,25 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     .eq("autorizacion_id", autorizacionId);
 
   const comprobantes: { nombre: string; url: string }[] = [];
+
+  // 5a. PDF del pedido / cotización original (bucket privado document-files)
+  let documentoPdfLista = "<em>Sin PDF del documento</em>";
+  if (documento?.pdf_url) {
+    try {
+      const pdfPath = extractDocFilesPath(documento.pdf_url);
+      const { data: signedPdf } = await supabase.storage
+        .from("document-files")
+        .createSignedUrl(pdfPath, 60 * 60 * 24 * 7);
+      if (signedPdf?.signedUrl) {
+        const nombrePdf = `${documento?.numero_pedido || autorizacion.numero_pedido_ref || "documento"}.pdf`;
+        comprobantes.push({ nombre: nombrePdf, url: signedPdf.signedUrl });
+        documentoPdfLista = `<ul><li><a href="${signedPdf.signedUrl}">${nombrePdf}</a></li></ul>`;
+      }
+    } catch {
+      /* sin PDF disponible */
+    }
+  }
+
   for (const ev of evidenciasRows || []) {
     try {
       const { data: signed } = await supabase.storage
@@ -324,11 +345,13 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
       /* omitir evidencia sin URL */
     }
   }
-  const evidenciasLista = comprobantes.length
-    ? `<ul>${comprobantes
+  const evidencias = comprobantes.filter((c) => !documentoPdfLista.includes(c.url));
+  const evidenciasLista = evidencias.length
+    ? `<ul>${evidencias
         .map((c) => `<li><a href="${c.url}">${c.nombre}</a></li>`)
         .join("")}</ul>`
     : "<em>Sin evidencia adjunta</em>";
+
 
   // 5b. Clasificación y detalles de facturación (snapshot editable del documento)
   const snapDatos = autorizacion.datos_cliente_snapshot;
@@ -388,6 +411,8 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     promedio_mensual: fmtNumber(historicoSnapshot.promedioMensual),
     justificacion: autorizacion.justificacion || "—",
     evidencias_lista: evidenciasLista,
+    documento_pdf_lista: documentoPdfLista,
+
     clasificacion_lista: clasificacionLista,
     facturacion_lista: facturacionLista,
   };
@@ -435,16 +460,10 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
        <p><strong>Evidencias:</strong></p>
        {evidencias_lista}`;
 
-  // Si la plantilla guardada no incluye los bloques nuevos, se agregan al final.
-  const extras: string[] = [];
-  if (!bodyTemplate.includes("{clasificacion_lista}")) {
-    extras.push(`<p><strong>Clasificación:</strong></p>${clasificacionLista}`);
-  }
-  if (!bodyTemplate.includes("{facturacion_lista}")) {
-    extras.push(`<p><strong>Detalles de facturación:</strong></p>${facturacionLista}`);
-  }
+  // La plantilla es la única fuente de verdad: lo que se ve en la vista previa
+  // de Plantillas es exactamente lo que se envía.
+  const htmlOverride = render(bodyTemplate, tplVars);
 
-  const htmlOverride = render(bodyTemplate, tplVars) + extras.join("");
 
 
   // 8. Destinatarios del grupo "Autorización de Precio"
