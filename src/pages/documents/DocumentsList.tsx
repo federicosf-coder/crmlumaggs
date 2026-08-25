@@ -432,6 +432,60 @@ export default function DocumentsList() {
     enabled: !access.isLoading,
   });
 
+  // Pedido status counts: fetch the same documents but without the estatus_pedido
+  // filter so the status chips always show the real count for every status.
+  const { data: pedidosForCounts = [] } = useQuery({
+    queryKey: ["documentos-pedido-counts", search, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, access.accessLevel, access.teamMemberIds, assignedCompanyIds],
+    queryFn: async () => {
+      if (!access.canView || tipoFilter !== "pedido") return [];
+      let q = supabase
+        .from("documentos")
+        .select("estatus_pedido, numero_cotizacion, numero_pedido, numero_factura, companies(name)")
+        .eq("is_active", true)
+        .eq("empresa_vendedora", empresaFilter as any)
+        .eq("tipo_documento", "pedido" as any)
+        .order("created_at", { ascending: false });
+      if (ejecutivoFilter !== "all") q = q.eq("ejecutivo_venta_id", ejecutivoFilter);
+      if (plazaFilter && plazaFilter !== "all") q = q.or(`plaza_id.eq.${plazaFilter},plaza_id.is.null`);
+      if (tipoPagoFilter === "contado") q = q.eq("tipo_pago", "contado" as any);
+      else if (tipoPagoFilter === "directo") q = q.eq("tipo_pago", "credito_directo" as any);
+      else if (tipoPagoFilter === "cescemex") q = q.eq("tipo_pago", "credito_cescemex" as any);
+      else if (tipoPagoFilter === "sin_clasificar") q = q.eq("tipo_pago", "credito" as any);
+      if (fechaDesde) q = q.gte("fecha_documento", fechaDesde);
+      if (fechaHasta) q = q.lte("fecha_documento", fechaHasta);
+      if (access.accessLevel === "propio" && access.userId) {
+        const parts = [
+          `created_by.eq.${access.userId}`,
+          `ejecutivo_venta_id.eq.${access.userId}`,
+        ];
+        if (assignedCompanyIds.length > 0) {
+          parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        }
+        q = q.or(parts.join(","));
+      } else if (access.accessLevel === "equipo" && access.teamMemberIds.length > 0) {
+        const parts = [
+          `created_by.in.(${access.teamMemberIds.join(",")})`,
+          `ejecutivo_venta_id.in.(${access.teamMemberIds.join(",")})`,
+        ];
+        if (assignedCompanyIds.length > 0) {
+          parts.push(`empresa_id.in.(${assignedCompanyIds.join(",")})`);
+        }
+        q = q.or(parts.join(","));
+      }
+      const data = await fetchAllRows<any>((from, to) => q.range(from, to));
+      if (search) {
+        const s = search.toLowerCase();
+        return data.filter((doc: any) => {
+          const num = (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "").toLowerCase();
+          const clientName = ((doc.companies as any)?.name || "").toLowerCase();
+          return num.includes(s) || clientName.includes(s);
+        });
+      }
+      return data;
+    },
+    enabled: !access.isLoading && tipoFilter === "pedido",
+  });
+
   const sortedDocs = [...docs].sort((a: any, b: any) => {
     switch (sortBy) {
       case "date_desc": return new Date(b.fecha_documento).getTime() - new Date(a.fecha_documento).getTime();
