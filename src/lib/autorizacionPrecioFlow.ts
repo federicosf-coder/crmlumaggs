@@ -96,7 +96,7 @@ export async function buildAutorizacionPrecioDraft(
   const { data: documento, error: docError } = await (supabase as any)
     .from("documentos")
     .select(
-      "id, empresa_id, empresa_vendedora, numero_pedido, ejecutivo_venta_id, tipo_pago, companies(name, razon_social, justificacion_precio_default, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi)"
+      "id, empresa_id, empresa_vendedora, numero_pedido, numero_factura, ejecutivo_venta_id, tipo_pago, companies(name, razon_social, justificacion_precio_default, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi)"
     )
     .eq("id", documentoId)
     .maybeSingle();
@@ -202,7 +202,7 @@ export async function buildAutorizacionPrecioDraft(
       datos_cliente_snapshot: datosClienteSnapshot,
 
       creado_por: creadoPor,
-      numero_pedido_ref: documento.numero_pedido,
+      numero_pedido_ref: documento.numero_pedido || documento.numero_factura || "—",
     })
     .select()
     .single();
@@ -427,7 +427,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     razon_social: documento?.companies?.razon_social || "—",
     ejecutivo: ejecutivoNombre,
     numero_pedido:
-      documento?.numero_pedido || autorizacion.numero_pedido_ref || "—",
+      documento?.numero_pedido || documento?.numero_factura || autorizacion.numero_pedido_ref || "—",
     numero_factura: numeroFacturaDoc,
     factura_bloque: facturaBloque,
     productos_lista: productosLista,
