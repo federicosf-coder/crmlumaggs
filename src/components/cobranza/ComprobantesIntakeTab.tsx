@@ -167,7 +167,9 @@ function ComprobanteCard({
   const navigate = useNavigate();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState(row.empresa_id || "");
+  const [empVend, setEmpVend] = useState<EmpresaVendedora>(empresaVendedora || ("lumaggs_chevron" as EmpresaVendedora));
   const autoVinculado = !!row.empresa_id;
+
   const [empresaDatos, setEmpresaDatos] = useState<{ clabe_bancaria: string | null; tarjeta_ultimos4: string | null } | null>(null);
   const [monto, setMonto] = useState(row.monto_extraido != null ? String(row.monto_extraido) : "");
   const [openPreview, setOpenPreview] = useState(false);
