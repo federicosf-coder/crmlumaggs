@@ -8,7 +8,9 @@ import { formatDate } from "@/lib/formatters";
 import { Clock, Send, CheckCircle2, XCircle, HelpCircle, FileCheck2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { buildAutorizacionPrecioDraft } from "@/lib/autorizacionPrecioFlow";
+import { buildAutorizacionPrecioDraft, buildAutorizacionPrecioEmailFlow } from "@/lib/autorizacionPrecioFlow";
+import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AutorizacionFila {
   id: string;
@@ -71,7 +73,11 @@ export default function PedidoAccionesPanel({
   onSolicitada?: () => void;
 }) {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const [creando, setCreando] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewFlow, setPreviewFlow] = useState<any>(null);
+  const [preparing, setPreparing] = useState(false);
   const { data: fila, refetch } = useQuery({
     queryKey: ["pedido-autorizacion-precio", documentoId],
     queryFn: async () => {
@@ -87,6 +93,38 @@ export default function PedidoAccionesPanel({
     },
     enabled: !!documentoId,
   });
+
+  const abrirEnvio = async (filaId: string) => {
+    setPreparing(true);
+    try {
+      const f = await buildAutorizacionPrecioEmailFlow(filaId);
+      setPreviewFlow(f);
+      setPreviewOpen(true);
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo preparar el correo");
+    } finally {
+      setPreparing(false);
+    }
+  };
+
+  const marcarEnviado = async (filaId: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .update({
+          estatus: "enviado",
+          enviado_por: user?.id ?? null,
+          enviado_at: new Date().toISOString(),
+          asunto_enviado: previewFlow?.subjectOverride ?? null,
+        })
+        .eq("id", filaId);
+      if (error) throw error;
+      toast.success("Correo enviado, pedido en espera de respuesta");
+      qc.invalidateQueries({ queryKey: ["pedido-autorizacion-precio", documentoId] });
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo actualizar el estatus");
+    }
+  };
 
   const solicitarAutorizacion = async () => {
     setCreando(true);
@@ -150,12 +188,52 @@ export default function PedidoAccionesPanel({
             )}
           </div>
         </div>
-        <Button size="sm" variant="outline" asChild className="shrink-0 self-start sm:self-center">
-          <Link to={`/autorizacion-precios?id=${fila.id}`} target="_self">
-            {fila.estatus === "pendiente_revision" ? "Ver en Autorización de Precios" : "Ver detalle"}
-          </Link>
-        </Button>
+        {fila.estatus === "pendiente_revision" ? (
+          <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
+            <Button size="sm" onClick={() => abrirEnvio(fila.id)} disabled={preparing}>
+              {preparing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              Enviar a autorizar
+            </Button>
+            <Button size="sm" variant="ghost" asChild className="text-xs">
+              <Link to={`/autorizacion-precios?id=${fila.id}`} target="_self">
+                Ver en Autorización de Precios
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <Button size="sm" variant="outline" asChild className="shrink-0 self-start sm:self-center">
+            <Link to={`/autorizacion-precios?id=${fila.id}`} target="_self">
+              Ver detalle
+            </Link>
+          </Button>
+        )}
       </CardContent>
+
+      {previewFlow && (
+        <EnviarConfirmacionPagoDialog
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+          pagoId={fila.id}
+          empresa=""
+          fechaPago=""
+          montoTotal=""
+          moneda=""
+          documentos={[]}
+          comprobantes={previewFlow.comprobantes}
+          defaultEmails={previewFlow.defaultEmails}
+          blockedEmails={[]}
+          previouslySentEmails={previewFlow.previouslySentEmails}
+          templateName={previewFlow.templateName}
+          subjectOverride={previewFlow.subjectOverride}
+          htmlOverride={previewFlow.htmlOverride}
+          ccEmails={previewFlow.cc}
+          bccEmails={previewFlow?.bcc}
+          fromAddress={previewFlow?.fromAddress}
+          title={previewFlow.title}
+          description={previewFlow.description}
+          onSent={() => marcarEnviado(fila.id)}
+        />
+      )}
     </Card>
   );
 }
