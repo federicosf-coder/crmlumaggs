@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,6 +56,19 @@ export default function AutorizacionPrecios() {
   });
 
   const rows = data?.rows || [];
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("id");
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && highlightId && rows.some((r) => r.id === highlightId)) {
+      const el = document.getElementById(highlightId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightedId(highlightId);
+      }
+    }
+  }, [isLoading, highlightId, rows]);
 
   return (
     <div className="p-6 space-y-6">
@@ -85,6 +99,7 @@ export default function AutorizacionPrecios() {
             row={row}
             ejecutivo={row.documentos?.ejecutivo_venta_id ? data?.ejecutivos?.[row.documentos.ejecutivo_venta_id] : null}
             onRefetch={refetch}
+            isHighlighted={highlightedId === row.id}
           />
         ))
       )}
@@ -96,13 +111,24 @@ function AutorizacionCard({
   row,
   ejecutivo,
   onRefetch,
+  isHighlighted,
 }: {
   row: Autorizacion;
   ejecutivo?: string | null;
   onRefetch: () => void;
+  isHighlighted?: boolean;
 }) {
   const { user } = useAuth();
+  const [flash, setFlash] = useState(false);
   const [justificacion, setJustificacion] = useState<string>(row.justificacion || "");
+
+  useEffect(() => {
+    if (isHighlighted) {
+      setFlash(true);
+      const t = setTimeout(() => setFlash(false), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [isHighlighted]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [flow, setFlow] = useState<any>(null);
@@ -271,7 +297,10 @@ function AutorizacionCard({
   };
 
   return (
-    <Card>
+    <Card
+      id={row.id}
+      className={flash ? "ring-2 ring-blue-400 ring-offset-2 transition-all duration-300" : undefined}
+    >
       <CardHeader className="bg-gradient-to-r from-violet-50 to-blue-50 border-b">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

@@ -34,6 +34,7 @@ import { LastSendStamp } from "@/components/automations/LastSendStamp";
 import { EntregaCorporativaSection } from "@/components/documentos/EntregaCorporativaSection";
 import { buildAutorizacionPrecioDraft } from "@/lib/autorizacionPrecioFlow";
 import PedidoStatusStepper from "@/components/documents/PedidoStatusStepper";
+import PedidoAccionesPanel from "@/components/documents/PedidoAccionesPanel";
 import { EMPRESA_STYLES, TIPO_DOC_STYLES, plazaColor } from "./documentStyles";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
@@ -1155,6 +1156,9 @@ export default function DocumentForm() {
             )}
             {td === "pedido" && (
               <>
+                {existingDoc?.id && (
+                  <PedidoAccionesPanel documentoId={existingDoc.id} />
+                )}
                 <div className="mb-4">
                   <PedidoStatusStepper estatus={form.estatus_pedido} />
                 </div>
