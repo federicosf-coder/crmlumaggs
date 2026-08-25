@@ -141,8 +141,17 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
       } catch { /* conserva el nombre extraído por la IA */ }
 
       // Ubicación seleccionada por el usuario
-      const ubicacion: any = ubicacionSel !== LIBRE ? (ubicaciones.find((u) => u.id === ubicacionSel) ?? null) : null;
-      const lugarTexto = ubicacion ? null : (lugarLibre.trim() || null);
+      let ubicacion: any = ubicacionSel !== LIBRE ? (ubicaciones.find((u) => u.id === ubicacionSel) ?? null) : null;
+      let lugarTexto: string | null = null;
+      if (!ubicacion && lugarLibre.trim()) {
+        const { data: nuevaUbic, error: ubicErr } = await supabase
+          .from("entregas_corporativas_ubicaciones")
+          .insert({ cliente, nombre: lugarLibre.trim(), activo: true })
+          .select("id, cliente, nombre, direccion, lat, lng, instrucciones, activo")
+          .single();
+        if (ubicErr) throw ubicErr;
+        ubicacion = nuevaUbic;
+      }
       const numeroPedido = row.numero_pedido_detectado || null;
 
       // Agrupar por fecha
@@ -429,7 +438,7 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
                   {ubicaciones.map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.nombre}</SelectItem>
                   ))}
-                  <SelectItem value={LIBRE}>Otro (especificar texto)</SelectItem>
+                  <SelectItem value={LIBRE}>+ Nueva ubicación (con este texto)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -439,7 +448,7 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
                 <Input
                   value={lugarLibre}
                   onChange={(e) => setLugarLibre(e.target.value)}
-                  placeholder="Escribe el lugar de entrega"
+                  placeholder="Nombre o dirección de la nueva ubicación"
                   className="h-8 w-56 text-sm"
                 />
               </div>
