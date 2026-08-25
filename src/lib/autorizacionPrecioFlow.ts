@@ -98,9 +98,10 @@ export async function buildAutorizacionPrecioDraft(
   const { data: lineas, error: lineasError } = await (supabase as any)
     .from("documento_productos")
     .select(
-      "cantidad, precio_unitario, subtotal, producto:productos(codigo, nombre_producto, presentacion:presentaciones(nombre))"
+      "cantidad, precio_unitario, subtotal, producto:productos(codigo, nombre_producto, costo_actual, presentacion:presentaciones(nombre))"
     )
     .eq("documento_id", documentoId);
+
 
   if (lineasError) throw lineasError;
 
@@ -123,20 +124,9 @@ export async function buildAutorizacionPrecioDraft(
     const cantidad = Number(linea.cantidad) || 0;
     const precio_unitario = Number(linea.precio_unitario) || 0;
 
-    let costo: number | null = null;
-    if (codigo) {
-      const { data: costoRows } = await (supabase as any)
-        .from("inv_costos_producto")
-        .select("costo_efectivo")
-        .eq("codigo_producto", codigo)
-        .eq("empresa", empresaCosto)
-        .order("updated_at", { ascending: false })
-        .limit(1);
+    let costo: number | null =
+      linea.producto?.costo_actual != null ? Number(linea.producto.costo_actual) : null;
 
-      if (costoRows?.[0]?.costo_efectivo != null) {
-        costo = Number(costoRows[0].costo_efectivo);
-      }
-    }
 
     let margen_porcentaje: number | null = null;
     if (costo != null && precio_unitario > 0) {
@@ -158,28 +148,8 @@ export async function buildAutorizacionPrecioDraft(
     documento.empresa_vendedora
   );
 
-  const historicoTexto =
-    historico.mesesRaw.length > 0
-      ? historico.mesesRaw
-          .map((m) => `${formatMonthYearUpper(m.mes)}: ${m.unidades} unidades`)
-          .join("\n")
-      : "Sin historial de facturación";
+  const justificacion = (documento.companies?.justificacion_precio_default || "").trim();
 
-  const justificacionDefault = documento.companies?.justificacion_precio_default;
-  const partes: string[] = [];
-  partes.push(
-    `Histórico:\n${historicoTexto}\nAcumulado desde ${
-      historico.fechaDesde ?? "—"
-    }: ${new Intl.NumberFormat("es-MX").format(
-      historico.acumuladoUnidades
-    )} unidades. Promedio mensual: ${new Intl.NumberFormat("es-MX").format(
-      historico.promedioMensual
-    )} unidades.`
-  );
-  if (justificacionDefault) {
-    partes.push("", justificacionDefault);
-  }
-  const justificacion = partes.join("\n").trim();
 
   const { count: countExistentes, error: countError } = await (supabase as any)
     .from("documento_autorizaciones_precio")
