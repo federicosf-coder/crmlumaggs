@@ -181,6 +181,9 @@ Deno.serve(async (req) => {
             }
             if (rawText) bodyText = rawText.slice(0, 6000);
           }
+        } else {
+          const errorBody = await emailRes.text();
+          console.error('fetch cuerpo correo no OK:', emailRes.status, errorBody);
         }
       } catch (e) {
         console.error('error obteniendo cuerpo del correo:', (e as Error).message);
@@ -459,6 +462,8 @@ Deno.serve(async (req) => {
       if (ct.startsWith('image/')) return true;
       return false;
     });
+
+    console.log('diagnóstico previo al descarte: attachments=', attachments.length, 'bodyText_length=', (bodyText || '').length);
 
     if (validos.length === 0) return jsonRes({ ok: true, procesados: 0, motivo: 'sin_adjuntos_validos' });
 
