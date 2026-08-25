@@ -297,7 +297,10 @@ function AutorizacionCard({
   };
 
   return (
-    <Card>
+    <Card
+      id={row.id}
+      className={flash ? "ring-2 ring-blue-400 ring-offset-2 transition-all duration-300" : undefined}
+    >
       <CardHeader className="bg-gradient-to-r from-violet-50 to-blue-50 border-b">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
