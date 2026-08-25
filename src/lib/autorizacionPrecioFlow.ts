@@ -10,6 +10,7 @@ import {
   labelListaPrecios,
 } from "@/lib/autorizacionDatosCliente";
 import { extractDocFilesPath } from "@/lib/storageSignedUrl";
+import { resolveEmailRecipients } from "@/lib/templates";
 
 
 
@@ -451,7 +452,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   try {
     const { data } = await (supabase as any)
       .from("templates")
-      .select("subject, body")
+      .select("subject, body, to_emails, cc_emails, bcc_emails")
       .eq("system_key", "autorizacion_precio")
       .eq("is_active", true)
       .limit(1);
@@ -459,6 +460,10 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   } catch {
     tpl = null;
   }
+
+  const tplToEmails = tpl ? await resolveEmailRecipients(tpl.to_emails) : [];
+  const tplCc = tpl ? await resolveEmailRecipients(tpl.cc_emails) : [];
+  const tplBcc = tpl ? await resolveEmailRecipients(tpl.bcc_emails) : [];
 
   function render(text: string, vars: Record<string, string>): string {
     let out = text || "";
@@ -515,6 +520,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   } catch {
     defaultEmails = [];
   }
+  defaultEmails = Array.from(new Set([...defaultEmails, ...tplToEmails]));
 
   // 9. CC
   const cc: string[] = [
@@ -523,6 +529,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     "atencionclientes.tijuana@dagal.com.mx",
   ];
   if (ejecutivoEmail && !cc.includes(ejecutivoEmail)) cc.push(ejecutivoEmail);
+  for (const e of tplCc) if (e && !cc.includes(e)) cc.push(e);
 
 
   // 10. Retorno
@@ -533,6 +540,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     htmlOverride,
     defaultEmails,
     cc,
+    bcc: tplBcc,
     comprobantes,
     previouslySentEmails: [] as string[],
     templateName: "raw-html",

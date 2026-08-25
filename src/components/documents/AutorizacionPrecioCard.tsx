@@ -710,6 +710,7 @@ export default function AutorizacionPrecioCard({
           subjectOverride={flow.subjectOverride}
           htmlOverride={flow.htmlOverride}
           ccEmails={flow.cc}
+          bccEmails={flow?.bcc}
           fromAddress={flow?.fromAddress}
           title={flow.title}
           description={flow.description}
