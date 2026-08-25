@@ -831,7 +831,7 @@ export default function DocumentForm() {
 
       qc.invalidateQueries({ queryKey: ["documentos"] });
       toast.success(`${label} creado desde cotización`);
-      navigate(`/documents/${inserted.id}${targetType === "pedido" ? "?autorizacion=1" : ""}`);
+      navigate(`/documents/${inserted.id}`);
     } catch (err: any) {
       toast.error(`Error al convertir: ${err.message}`);
     }
