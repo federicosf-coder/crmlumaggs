@@ -181,6 +181,9 @@ Deno.serve(async (req) => {
             }
             if (rawText) bodyText = rawText.slice(0, 6000);
           }
+        } else {
+          const errorBody = await emailRes.text();
+          console.error('fetch cuerpo correo no OK:', emailRes.status, errorBody);
         }
       } catch (e) {
         console.error('error obteniendo cuerpo del correo:', (e as Error).message);
