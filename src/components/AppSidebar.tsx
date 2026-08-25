@@ -72,6 +72,16 @@ const whatsappItems: NavItem[] = [
   { title: "Configuración", url: "/whatsapp/settings", icon: Settings, roles: ["admin", "manager"], group: "whatsapp" },
 ];
 
+const PEDIDO_SIDEBAR_ITEMS = [
+  { key: "confirmado_cliente", label: "Confirmado" },
+  { key: "espera_autorizacion_precio", label: "Autorización" },
+  { key: "precio_autorizado", label: "Precio OK" },
+  { key: "validado_contabilidad", label: "Contabilidad" },
+  { key: "programado_entrega", label: "Programado" },
+  { key: "entregado", label: "Entregado" },
+  { key: "cancelado", label: "Cancelado" },
+];
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
