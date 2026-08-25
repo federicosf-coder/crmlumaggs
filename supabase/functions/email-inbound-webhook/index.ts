@@ -9,6 +9,12 @@ const PROMPT = `Este documento puede ser un comprobante de pago (transferencia S
 
 const METODOS = ['transferencia', 'efectivo', 'tarjeta', 'cheque', 'otro'];
 
+const BUZON_COMPROBANTES = 'comprobantes@correo.lumaggs.com.mx';
+const BUZON_CREDITO = 'documentos@correo.lumaggs.com.mx';
+const FOLIO_REGEX = /CR-\d{4}-\d{4}/i;
+const CONFIANZAS = ['alta', 'media', 'baja'];
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function normalizarAlias(input: string): string {
   return input
     .toString()
@@ -128,11 +134,12 @@ Deno.serve(async (req) => {
 
     const data = evt.data ?? {};
 
-    const BUZON_COMPROBANTES = 'comprobantes@correo.lumaggs.com.mx';
     const destinatarios: string[] = Array.isArray(data.to)
       ? data.to.map((t: unknown) => extraerEmail(String(t ?? '')))
       : [extraerEmail(String(data.to ?? ''))];
-    if (!destinatarios.some((d) => d.includes(BUZON_COMPROBANTES))) {
+    const esComprobantes = destinatarios.some((d) => d.includes(BUZON_COMPROBANTES));
+    const esCredito = !esComprobantes && destinatarios.some((d) => d.includes(BUZON_CREDITO));
+    if (!esComprobantes && !esCredito) {
       return jsonRes({ ok: true, ignorado: 'destinatario_no_coincide' });
     }
 
@@ -183,6 +190,206 @@ Deno.serve(async (req) => {
     if (!emailId) return jsonRes({ error: 'email_id_faltante' }, 400);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // ===================== FLUJO CRÉDITO (documentos@) =====================
+    if (esCredito) {
+      const folioMatch = (subject && subject.match(FOLIO_REGEX)) || (bodyText && bodyText.match(FOLIO_REGEX)) || null;
+      const folioDetectado = folioMatch ? folioMatch[0].toUpperCase() : null;
+
+      let creditRequestId: string | null = null;
+      if (folioDetectado) {
+        const { data: solicitud } = await admin
+          .from('credit_requests')
+          .select('id')
+          .eq('folio', folioDetectado)
+          .limit(1)
+          .maybeSingle();
+        if (solicitud?.id) creditRequestId = solicitud.id;
+      }
+
+      if (!creditRequestId && from) {
+        const { data: porCorreo } = await admin
+          .from('credit_requests')
+          .select('id, created_at')
+          .ilike('correo_contacto', from)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (porCorreo && porCorreo.length > 0) creditRequestId = porCorreo[0].id;
+      }
+
+      console.log(`credito intake: folio=${folioDetectado} credit_request_id=${creditRequestId} from=${from}`);
+
+      const validosCredito = attachments.filter((a) => {
+        const ct = String(a?.content_type ?? '').toLowerCase();
+        if (ct === 'application/pdf') return true;
+        if (ct.startsWith('image/')) return true;
+        return false;
+      });
+
+      if (validosCredito.length === 0) return jsonRes({ ok: true, procesados: 0, motivo: 'sin_adjuntos_validos' });
+
+      let tipos: Array<{ id: string; nombre: string; instrucciones_cliente: string | null }> = [];
+      try {
+        const { data: tiposData, error: tiposErr } = await admin
+          .from('credit_doc_types')
+          .select('id, nombre, instrucciones_cliente, sort_order')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+        if (tiposErr) throw new Error(tiposErr.message);
+        tipos = (tiposData ?? []) as any;
+      } catch (e) {
+        console.error('error cargando credit_doc_types:', (e as Error).message);
+      }
+
+      const listaTipos = tipos
+        .map((t) => `- id: ${t.id} | nombre: ${t.nombre}${t.instrucciones_cliente ? ` | instrucciones: ${t.instrucciones_cliente}` : ''}`)
+        .join('\n');
+
+      const PROMPT_CREDITO = `Eres un clasificador de documentos para un expediente de solicitud de crédito empresarial en México. Se te entrega un archivo adjunto que llegó por correo electrónico. Debes decidir a cuál de los siguientes tipos de documento corresponde:\n\n${listaTipos || '(sin tipos configurados)'}\n\nIGNORA firmas de correo, logos de empresas, fotos de personas y encabezados de correo reenviado. Si el archivo no parece ninguno de los documentos listados (por ejemplo es una firma de correo, un logo, o un documento no relacionado con el expediente de crédito), devuelve doc_type_id en null.\n\nResponde SOLO este JSON sin texto adicional ni markdown: {"doc_type_id":"uuid del tipo que corresponde o null si no coincide con ninguno","confianza":"alta|media|baja","razon":"explicación breve"}. El doc_type_id debe ser exactamente uno de los ids listados arriba. No inventes ids.`;
+
+      let listadoCredito: Array<any> = [];
+      try {
+        const attRes = await fetch(`https://connector-gateway.lovable.dev/resend/emails/receiving/${emailId}/attachments`, {
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            'X-Connection-Api-Key': RESEND_API_KEY,
+          },
+        });
+        if (!attRes.ok) {
+          console.error('error listando adjuntos:', attRes.status);
+        } else {
+          const attJson = await attRes.json();
+          listadoCredito = attJson?.data ?? attJson ?? [];
+          if (!Array.isArray(listadoCredito)) listadoCredito = [];
+        }
+      } catch (e) {
+        console.error('error listando adjuntos:', (e as Error).message);
+      }
+
+      let procesadosCredito = 0;
+
+      for (const att of validosCredito) {
+        try {
+          const ct = String(att?.content_type ?? '').toLowerCase();
+          const meta = listadoCredito.find((l: any) => String(l?.id) === String(att.id)) ?? null;
+          const sizeReal = Number(meta?.size ?? 0) || 0;
+          console.log(`att ${att.id}: ct=${ct} meta=${!!meta} size=${sizeReal}`);
+          if (ct.startsWith('image/') && sizeReal <= 15000) continue;
+
+          const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
+          if (!downloadUrl) throw new Error(`sin_download_url para adjunto ${att.id}`);
+
+          const dl = await fetch(downloadUrl);
+          if (!dl.ok) throw new Error(`descarga_fallida_${dl.status}`);
+          const bytes = new Uint8Array(await dl.arrayBuffer());
+
+          const nombreOriginal = att.filename || 'documento';
+          const sanitizado = String(nombreOriginal).replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120);
+          const mime = String(att.content_type || 'application/octet-stream');
+          const storagePath = `email-intake/${emailId}/${att.id}-${sanitizado}`;
+
+          const { error: upErr } = await admin.storage
+            .from('credit-docs')
+            .upload(storagePath, bytes, { contentType: mime, upsert: false });
+          if (upErr) throw new Error(`upload_failed: ${upErr.message}`);
+
+          let extraido: Record<string, unknown> | null = null;
+          let extraccionError: string | null = null;
+
+          try {
+            if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY no configurada');
+            if (tipos.length === 0) throw new Error('sin_tipos_activos');
+            if (!mime.startsWith('image/') && mime !== 'application/pdf') {
+              throw new Error(`tipo_no_soportado: ${mime}`);
+            }
+
+            let bin = '';
+            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+            const dataUrl = `data:${mime};base64,${btoa(bin)}`;
+
+            const contentPart = mime.startsWith('image/')
+              ? { type: 'image_url', image_url: { url: dataUrl } }
+              : { type: 'file', file: { filename: sanitizado || 'documento.pdf', file_data: dataUrl } };
+
+            const aiContent: any[] = [];
+            if (bodyText) {
+              aiContent.push({
+                type: 'text',
+                text: `Contexto: este archivo venía adjunto a un correo. Texto del cuerpo del correo (puede ayudar a identificar el documento):\n\n${bodyText}`,
+              });
+            }
+            aiContent.push({ type: 'text', text: PROMPT_CREDITO });
+            aiContent.push(contentPart);
+
+            const res = await fetch(GATEWAY_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
+              body: JSON.stringify({
+                model: MODEL,
+                messages: [{ role: 'user', content: aiContent }],
+                max_tokens: 1000,
+              }),
+            });
+
+            if (res.status === 429) throw new Error('rate_limit');
+            if (res.status === 402) throw new Error('credits_exhausted');
+            if (!res.ok) throw new Error(`gateway_${res.status}`);
+
+            const json = await res.json();
+            const text = json?.choices?.[0]?.message?.content || '';
+            const m = text.match(/\{[\s\S]*\}/);
+            if (!m) throw new Error('json_not_found');
+            extraido = JSON.parse(m[0]);
+          } catch (e) {
+            extraccionError = (e as Error).message?.slice(0, 500) || 'error_clasificacion';
+            extraido = null;
+          }
+
+          const insertPayload: Record<string, unknown> = {
+            credit_request_id: creditRequestId,
+            folio_detectado: folioDetectado,
+            storage_path: storagePath,
+            nombre_archivo: nombreOriginal,
+            mime_type: mime,
+            estatus: 'pendiente',
+            remitente_email: from || null,
+            asunto_email: subject,
+            resend_email_id: emailId,
+          };
+
+          if (extraido) {
+            const docTypeRaw = asText(extraido.doc_type_id);
+            const docTypeValido =
+              docTypeRaw && UUID_REGEX.test(docTypeRaw) && tipos.some((t) => t.id === docTypeRaw) ? docTypeRaw : null;
+            insertPayload.doc_type_sugerido_id = docTypeValido;
+
+            const confRaw = (asText(extraido.confianza) || '').toLowerCase();
+            insertPayload.confianza_ia = CONFIANZAS.includes(confRaw) ? confRaw : null;
+            insertPayload.extraccion_raw = extraido;
+          } else {
+            insertPayload.doc_type_sugerido_id = null;
+            insertPayload.extraccion_error = extraccionError;
+          }
+
+          const { error: insErr } = await admin.from('credito_docs_intake').insert(insertPayload);
+          if (insErr) throw new Error(`insert_failed: ${insErr.message}`);
+
+          console.log(`att ${att.id} insertado OK (credito)`);
+          procesadosCredito++;
+        } catch (e) {
+          console.error(`adjunto ${att?.id} fallo:`, (e as Error).message);
+        }
+      }
+
+      return jsonRes({
+        ok: true,
+        procesados: procesadosCredito,
+        credit_request_id: creditRequestId,
+        folio_detectado: folioDetectado,
+      });
+    }
+    // ===================== FIN FLUJO CRÉDITO =====================
+
 
     // Snapshot visual del correo completo (HTML) para verlo/imprimirlo después
     let emailHtmlPath: string | null = null;
