@@ -85,7 +85,7 @@ export async function buildAutorizacionPrecioDraft(
   const { data: documento, error: docError } = await (supabase as any)
     .from("documentos")
     .select(
-      "id, empresa_id, empresa_vendedora, numero_pedido, ejecutivo_venta_id, tipo_pago, companies(name, razon_social, justificacion_precio_default)"
+      "id, empresa_id, empresa_vendedora, numero_pedido, ejecutivo_venta_id, tipo_pago, companies(name, razon_social, justificacion_precio_default, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi, clabe_bancaria, tarjeta_ultimos4)"
     )
     .eq("id", documentoId)
     .maybeSingle();
@@ -94,6 +94,7 @@ export async function buildAutorizacionPrecioDraft(
   if (!documento) throw new Error("Documento no encontrado");
 
   const empresaCosto = resolveEmpresaCosto(documento.empresa_vendedora);
+
 
   const { data: lineas, error: lineasError } = await (supabase as any)
     .from("documento_productos")
