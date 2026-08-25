@@ -1156,6 +1156,9 @@ export default function DocumentForm() {
             )}
             {td === "pedido" && (
               <>
+                {existingDoc?.id && (
+                  <PedidoAccionesPanel documentoId={existingDoc.id} />
+                )}
                 <div className="mb-4">
                   <PedidoStatusStepper estatus={form.estatus_pedido} />
                 </div>
