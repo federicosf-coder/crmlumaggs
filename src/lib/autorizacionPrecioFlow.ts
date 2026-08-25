@@ -460,16 +460,10 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
        <p><strong>Evidencias:</strong></p>
        {evidencias_lista}`;
 
-  // Si la plantilla guardada no incluye los bloques nuevos, se agregan al final.
-  const extras: string[] = [];
-  if (!bodyTemplate.includes("{clasificacion_lista}")) {
-    extras.push(`<p><strong>Clasificación:</strong></p>${clasificacionLista}`);
-  }
-  if (!bodyTemplate.includes("{facturacion_lista}")) {
-    extras.push(`<p><strong>Detalles de facturación:</strong></p>${facturacionLista}`);
-  }
+  // La plantilla es la única fuente de verdad: lo que se ve en la vista previa
+  // de Plantillas es exactamente lo que se envía.
+  const htmlOverride = render(bodyTemplate, tplVars);
 
-  const htmlOverride = render(bodyTemplate, tplVars) + extras.join("");
 
 
   // 8. Destinatarios del grupo "Autorización de Precio"
