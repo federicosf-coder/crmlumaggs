@@ -49,7 +49,6 @@ const mainItems: NavItem[] = [
   { title: "Solicitudes de Crédito", url: "/credito", icon: FileCheck, roles: ["admin", "manager", "sales", "customer_service", "accounting"] },
   { title: "Catálogo de Productos", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
   { title: "Entregas", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
-  { title: "Entregas Corporativas", url: "/entregas-corporativas", icon: CalendarCheck, roles: ["admin", "manager", "warehouse", "sales"] },
   { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
   { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
   { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
