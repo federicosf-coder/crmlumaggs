@@ -184,6 +184,30 @@ function AutorizacionCard({
     window.open(data.signedUrl, "_blank");
   };
 
+  const abrirCliente = async () => {
+    if (!company.id) return;
+    setLoadingCompany(true);
+    try {
+      const { data, error } = await (supabase as any)
+        .from("companies")
+        .select("*")
+        .eq("id", company.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast.error("No se encontró la empresa");
+        return;
+      }
+      setCompanyEditData((data ?? null) as CompanyData);
+      setCompanyDialogOpen(true);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo cargar la empresa");
+    } finally {
+      setLoadingCompany(false);
+    }
+  };
+
   const subir = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setUploading(true);
