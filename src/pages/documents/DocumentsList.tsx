@@ -875,6 +875,35 @@ export default function DocumentsList() {
         </div>
       </div>
 
+      {/* Pedido status chips */}
+      {tipoFilter === "pedido" && (
+        <div className="flex gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setEstatusPedFilter("all")}
+            className={`rounded-full transition-all ${estatusPedFilter === "all" ? "ring-2 ring-primary ring-offset-1" : ""}`}
+          >
+            <Pill cls={NEUTRAL_PILL}>Todos ({docs.length})</Pill>
+          </button>
+          {PEDIDO_STATUS_ORDER.map((key) => {
+            const count = docs.filter((d: any) => d.estatus_pedido === key).length;
+            const isActive = estatusPedFilter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setEstatusPedFilter(key)}
+                className={`rounded-full transition-all ${isActive ? "ring-2 ring-primary ring-offset-1" : ""}`}
+              >
+                <Pill cls={STATUS_PILL_MAP[key] || NEUTRAL_PILL}>
+                  {PEDIDO_STATUS_CHIP_LABELS[key]} ({count})
+                </Pill>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Plaza filter buttons */}
       {plazas.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
