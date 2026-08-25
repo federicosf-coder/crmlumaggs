@@ -391,7 +391,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     const { data: groupRow } = await (supabase as any)
       .from("email_groups")
       .select("id")
-      .eq("name", "Autorización de Precio")
+      .eq("nombre", "Autorización de Precio")
       .maybeSingle();
     if (groupRow?.id) {
       const { data: members } = await (supabase as any)
