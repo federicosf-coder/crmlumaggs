@@ -1165,42 +1165,39 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
       const correos = (miembros ?? []).map((m: any) => m.email).filter(Boolean);
       if (!correos.length) throw new Error("El grupo seleccionado no tiene correos");
 
-      const r = detalle;
-      const lugar = r.ubicacion?.nombre || r.lugar_entrega_texto || "—";
-      const asunto = `Entrega Corporativa — ${r.cliente} — ${lugar} — ${r.fecha_programada}`;
-      const productos = (lineas[r.id] ?? [])
-        .map((l) => `• ${l.codigo_producto} ${l.nombre_producto || ""} — ${Number(l.cantidad)}`)
-        .join("\n");
-      const cuerpo = [
-        `Cliente: ${r.cliente}`,
-        `Lugar de entrega: ${lugar}`,
-        r.ubicacion?.direccion ? `Dirección: ${r.ubicacion.direccion}` : null,
-        `Fecha programada: ${r.fecha_programada}`,
-        `Factura de referencia: ${r.factura_referencia || "—"}`,
-        "",
-        "Productos:",
-        productos || "—",
-      ].filter(Boolean).join("\n");
+      const { data: userData } = await supabase.auth.getUser();
+      const flow = await buildEntregaEmailFlow(detalle.id, userData?.user?.email || undefined);
+      const merged = [...correos, ...(flow.defaultEmails || [])];
+      const defaultEmails = Array.from(
+        new Map(merged.map((e: string) => [e.toLowerCase(), e])).values()
+      );
 
+      setPreviewFlow({ ...flow, defaultEmails });
+      setPreviewEntregaId(detalle.id);
+      setNotifOpen(false);
+      setPreviewOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message || "Error al notificar");
+    } finally { setBusy(false); }
+  };
+
+  const onPreviewSent = async () => {
+    if (!previewEntregaId) return;
+    try {
       const { data: userData } = await supabase.auth.getUser();
       const { error } = await (supabase as any).from("entregas_corporativas").update({
         estatus: "entregada",
         notificado_at: new Date().toISOString(),
         notificado_por: userData?.user?.id ?? null,
-      }).eq("id", r.id);
+      }).eq("id", previewEntregaId);
       if (error) throw error;
-
-      window.location.href =
-        `mailto:${correos.join(",")}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
-
       toast.success("Entrega marcada como entregada");
-      setNotifOpen(false);
       setGrupoSel("");
       setDetalle(null);
       load();
     } catch (e: any) {
-      toast.error(e?.message || "Error al notificar");
-    } finally { setBusy(false); }
+      toast.error(e?.message || "Error al marcar como entregada");
+    }
   };
 
   const doCancelar = async () => {
