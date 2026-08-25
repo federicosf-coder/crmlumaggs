@@ -1089,9 +1089,9 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
               <div className="space-y-1.5 pt-2 border-t">
                 <Label className="text-xs">Justificación de Precio</Label>
-                <Textarea
+                <DictationTextarea
                   value={form.justificacion_precio_default}
-                  onChange={e => setAndSchedule("justificacion_precio_default", e.target.value)}
+                  onChange={v => setAndSchedule("justificacion_precio_default", v)}
                   onBlur={e => autosave.saveNow("justificacion_precio_default", e.target.value)}
                   rows={4}
                   placeholder="Ej. Cliente con alto potencial, volumen anual comprometido..."

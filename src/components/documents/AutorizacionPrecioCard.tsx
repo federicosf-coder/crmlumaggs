@@ -356,9 +356,9 @@ export default function AutorizacionPrecioCard({
 
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Justificación de Precio</p>
-              <Textarea
+              <DictationTextarea
                 value={justificacion}
-                onChange={(e) => setJustificacion(e.target.value)}
+                onChange={(v) => setJustificacion(v)}
                 rows={6}
                 disabled={!editable}
                 className="font-light"
