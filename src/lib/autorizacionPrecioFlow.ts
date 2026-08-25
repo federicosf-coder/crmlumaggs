@@ -323,6 +323,49 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
         .join("")}</ul>`
     : "<em>Sin evidencia adjunta</em>";
 
+  // 5b. Clasificación y detalles de facturación (snapshot editable del documento)
+  const datos = normalizeDatosCliente(autorizacion.datos_cliente_snapshot);
+
+  let industriasEtiquetas: string[] = datos.industrias;
+  if (datos.industrias.length > 0) {
+    try {
+      const { data: catalogo } = await (supabase as any)
+        .from("industrias_catalog")
+        .select("clave, etiqueta");
+      industriasEtiquetas = datos.industrias.map(
+        (clave) => (catalogo || []).find((c: any) => c.clave === clave)?.etiqueta || clave
+      );
+    } catch {
+      industriasEtiquetas = datos.industrias;
+    }
+  }
+
+  const rowsHtml = (pares: [string, string | null][]) =>
+    `<table cellpadding="4" cellspacing="0" style="font-family:Arial,sans-serif;font-size:14px">
+      ${pares
+        .map(
+          ([k, v]) =>
+            `<tr><td style="color:#6b7280">${k}</td><td><strong>${v && String(v).trim() ? v : "—"}</strong></td></tr>`
+        )
+        .join("")}
+    </table>`.trim();
+
+  const clasificacionLista = rowsHtml([
+    ["Industria", industriasEtiquetas.length ? industriasEtiquetas.join(", ") : null],
+    ["Tipo según destino del lubricante", datos.tipo_destino_lubricante],
+    ["Lista de precios", labelListaPrecios(datos.lista_precios)],
+  ]);
+
+  const facturacionLista = rowsHtml([
+    ["Límite de crédito", datos.limite_credito != null ? fmtCurrency(datos.limite_credito) : null],
+    ["Tipo de pago", labelTipoPago(datos.tipo_pago)],
+    ["Forma de pago (SAT)", labelFormaPago(datos.forma_pago)],
+    ["Método de pago", labelMetodoPago(datos.metodo_pago)],
+    ["Uso de CFDI", labelUsoCfdi(datos.uso_cfdi)],
+    ["CLABE Bancaria", datos.clabe_bancaria],
+    ["Últimos 4 dígitos de tarjeta", datos.tarjeta_ultimos4],
+  ]);
+
   // 6. Variables de plantilla
   const tplVars: Record<string, string> = {
     cliente: documento?.companies?.name || "—",
@@ -337,7 +380,10 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     promedio_mensual: fmtNumber(historicoSnapshot.promedioMensual),
     justificacion: autorizacion.justificacion || "—",
     evidencias_lista: evidenciasLista,
+    clasificacion_lista: clasificacionLista,
+    facturacion_lista: facturacionLista,
   };
+
 
   // 7. Plantilla del sistema
   let tpl: any = null;
