@@ -1638,7 +1638,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       size="sm" className="text-xs h-8"
-                      disabled={evidencias.length === 0 || !detalle.factura_referencia || faltaUbicacion || busy}
+                      disabled={evidencias.length === 0 || faltaUbicacion || busy}
                       onClick={() => { setGrupoSel(""); setNotifOpen(true); }}
                     >
                       <Mail className="h-3 w-3 mr-1" /> Notificar y Marcar Entregada
