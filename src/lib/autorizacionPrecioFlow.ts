@@ -124,20 +124,9 @@ export async function buildAutorizacionPrecioDraft(
     const cantidad = Number(linea.cantidad) || 0;
     const precio_unitario = Number(linea.precio_unitario) || 0;
 
-    let costo: number | null = null;
-    if (codigo) {
-      const { data: costoRows } = await (supabase as any)
-        .from("inv_costos_producto")
-        .select("costo_efectivo")
-        .eq("codigo_producto", codigo)
-        .eq("empresa", empresaCosto)
-        .order("updated_at", { ascending: false })
-        .limit(1);
+    let costo: number | null =
+      linea.producto?.costo_actual != null ? Number(linea.producto.costo_actual) : null;
 
-      if (costoRows?.[0]?.costo_efectivo != null) {
-        costo = Number(costoRows[0].costo_efectivo);
-      }
-    }
 
     let margen_porcentaje: number | null = null;
     if (costo != null && precio_unitario > 0) {
