@@ -49,7 +49,6 @@ const mainItems: NavItem[] = [
   { title: "Solicitudes de Crédito", url: "/credito", icon: FileCheck, roles: ["admin", "manager", "sales", "customer_service", "accounting"] },
   { title: "Catálogo de Productos", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
   { title: "Entregas", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
-  { title: "Entregas Corporativas", url: "/entregas-corporativas", icon: CalendarCheck, roles: ["admin", "manager", "warehouse", "sales"] },
   { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
   { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
   { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
@@ -84,7 +83,7 @@ export function AppSidebar() {
   const inventarioAccess = useModuleAccess("inventario");
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
   const [documentosOpen, setDocumentosOpen] = useState(
-    location.pathname.startsWith("/documents") || location.pathname.startsWith("/autorizacion-precios")
+    location.pathname.startsWith("/documents") || location.pathname.startsWith("/autorizacion-precios") || location.pathname.startsWith("/entregas-corporativas")
   );
   const { data: huerfanosCount = 0 } = useHuerfanosCount();
   const { data: leadsPendientes = 0 } = usePendingLeadsCount();
@@ -187,7 +186,7 @@ export function AppSidebar() {
                 );
               })}
 
-              {hasAnyRole(["admin", "manager", "sales", "customer_service", "accounting"]) && (
+              {hasAnyRole(["admin", "manager", "sales", "customer_service", "accounting", "warehouse"]) && (
                 <Collapsible open={documentosOpen} onOpenChange={setDocumentosOpen}>
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
@@ -201,9 +200,25 @@ export function AppSidebar() {
                   <CollapsibleContent>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
-                        <NavLink to="/documents" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                        <NavLink to="/documents?tipo=cotizacion" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <FileText className="mr-2 h-4 w-4" />
-                          {!collapsed && <span>Todos los Documentos</span>}
+                          {!collapsed && <span>Cotizaciones</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/documents?tipo=pedido" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <ClipboardList className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Pedidos</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/documents?tipo=factura" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <Receipt className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Facturas</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -212,6 +227,14 @@ export function AppSidebar() {
                         <NavLink to="/autorizacion-precios" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <BadgeDollarSign className="mr-2 h-4 w-4" />
                           {!collapsed && <span>Autorización de Precios</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/entregas-corporativas" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <CalendarCheck className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Entregas Corporativas</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
