@@ -8,7 +8,7 @@ import {
   FileCheck, Boxes, ChevronDown, Link2,
   Sliders, ClipboardList, ShieldAlert, Network, DollarSign, TableProperties,
   Workflow,
-  CalendarCheck,
+  CalendarCheck, BadgeDollarSign,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -51,6 +51,7 @@ const mainItems: NavItem[] = [
   { title: "Catálogo de Productos", url: "/inventory", icon: Package, roles: ["admin", "manager", "warehouse", "delivery"] },
   { title: "Entregas", url: "/delivery", icon: Truck, roles: ["admin", "manager", "delivery"] },
   { title: "Entregas Corporativas", url: "/entregas-corporativas", icon: CalendarCheck, roles: ["admin", "manager", "warehouse", "sales"] },
+  { title: "Autorización de Precios", url: "/autorizacion-precios", icon: BadgeDollarSign, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
   { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
   { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },

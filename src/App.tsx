@@ -31,6 +31,7 @@ import GestionCostos from "@/pages/inventario/GestionCostos";
 
 import ReporteKardex from "@/pages/inventario/ReporteKardex";
 import EntregasCorporativas from "@/pages/EntregasCorporativas";
+import AutorizacionPrecios from "@/pages/AutorizacionPrecios";
 import GestionKardex from "@/pages/inventario/GestionKardex";
 import PedidosSugeridos from "@/pages/inventario/pedidos/PedidosSugeridos";
 import PedidosSubir from "@/pages/inventario/pedidos/PedidosSubir";
@@ -143,6 +144,7 @@ const App = () => (
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/entregas-corporativas" element={<ProtectedRoute><EntregasCorporativas /></ProtectedRoute>} />
+            <Route path="/autorizacion-precios" element={<ProtectedRoute><AutorizacionPrecios /></ProtectedRoute>} />
             <Route path="/inventario/niveles" element={<ProtectedRoute><NivelesInventario /></ProtectedRoute>} />
             <Route path="/inventario/kardex" element={<ProtectedRoute><KardexCarga /></ProtectedRoute>} />
             <Route path="/inventario/kardex-gestion" element={<ProtectedRoute><GestionKardex /></ProtectedRoute>} />
