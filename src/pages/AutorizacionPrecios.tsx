@@ -1,29 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, BadgeDollarSign, Eye, Send, Upload, ExternalLink } from "lucide-react";
-import { toast } from "sonner";
-import { formatDate } from "@/lib/formatters";
-import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
-import { buildAutorizacionPrecioEmailFlow } from "@/lib/autorizacionPrecioFlow";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, BadgeDollarSign } from "lucide-react";
 import AutorizacionPrecioCard from "@/components/documents/AutorizacionPrecioCard";
-
-const BUCKET = "autorizacion-precios";
-
-const money = (v: number | null | undefined) =>
-  v === null || v === undefined
-    ? "—"
-    : new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(v));
-
-const numFmt = (v: any) => new Intl.NumberFormat("es-MX").format(Number(v || 0));
 
 type Autorizacion = any;
 
