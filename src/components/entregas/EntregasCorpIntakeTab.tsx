@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -33,6 +33,7 @@ type IntakeRow = {
   storage_path: string | null;
   mime_type: string | null;
   email_html_storage_path: string | null;
+  resend_email_id: string | null;
   cliente_detectado: string | null;
   lugar_entrega_detectado: string | null;
   numero_pedido_detectado: string | null;
@@ -48,7 +49,16 @@ type EntregaLinea = {
   cantidad?: number | string | null;
 };
 
-function IntakeCard({ row, onChanged }: { row: IntakeRow; onChanged: () => void }) {
+const LIBRE = "__libre__";
+
+function nombreArchivo(storagePath: string | null) {
+  if (!storagePath) return "(solo texto del correo)";
+  const last = storagePath.split("/").pop() || storagePath;
+  const sinUuid = last.length > 37 ? last.slice(37) : last;
+  return sinUuid || last;
+}
+
+function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: IntakeRow[]; onChanged: () => void }) {
   const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
   const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null);
   const [loadingEmailPreview, setLoadingEmailPreview] = useState(false);
@@ -62,11 +72,51 @@ function IntakeCard({ row, onChanged }: { row: IntakeRow; onChanged: () => void 
   const [clienteSel, setClienteSel] = useState<string>(match ? match : detectado ? "Otro" : "");
   const [clienteOtro, setClienteOtro] = useState<string>(match ? "" : detectado);
   const [creando, setCreando] = useState(false);
+  const [ubicaciones, setUbicaciones] = useState<any[]>([]);
+  const [ubicacionSel, setUbicacionSel] = useState<string>(LIBRE);
+  const [lugarLibre, setLugarLibre] = useState<string>(row.lugar_entrega_detectado || "");
 
   const cliente = clienteSel === "Otro" ? clienteOtro.trim() : clienteSel;
 
+  useEffect(() => {
+    let cancelado = false;
+    if (!cliente) {
+      setUbicaciones([]);
+      setUbicacionSel(LIBRE);
+      return;
+    }
+    fetchUbicaciones(cliente).then((list) => {
+      if (cancelado) return;
+      setUbicaciones(list);
+      if (cliente === "Kenworth" && list.length > 0) {
+        setUbicacionSel(list[0].id);
+        return;
+      }
+      if (row.lugar_entrega_detectado) {
+        const hit = emparejarUbicacion(row.lugar_entrega_detectado, list);
+        setUbicacionSel(hit ? hit.id : LIBRE);
+      } else {
+        setUbicacionSel(LIBRE);
+      }
+    });
+    return () => { cancelado = true; };
+  }, [cliente, row.lugar_entrega_detectado]);
+
   const lineas: EntregaLinea[] = Array.isArray(row.entregas_extraidas) ? row.entregas_extraidas : [];
   const esImagen = (row.mime_type || "").startsWith("image/");
+
+  const handleVerHermana = async (h: IntakeRow) => {
+    if (!h.storage_path) return;
+    const { data, error } = await supabase.storage
+      .from("entregas-corporativas")
+      .createSignedUrl(h.storage_path, 3600);
+    if (error || !data?.signedUrl) {
+      toast.error("No se pudo generar la liga del archivo");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  };
+
 
   const handleCrearEntregas = async () => {
     if (!cliente || lineas.length === 0) return;
@@ -90,15 +140,9 @@ function IntakeCard({ row, onChanged }: { row: IntakeRow; onChanged: () => void 
         });
       } catch { /* conserva el nombre extraído por la IA */ }
 
-      // Resolver ubicación
-      const ubicaciones = await fetchUbicaciones(cliente);
-      let ubicacion: any = null;
-      if (cliente === "Kenworth") {
-        ubicacion = ubicaciones[0] ?? null;
-      } else if (row.lugar_entrega_detectado) {
-        ubicacion = emparejarUbicacion(row.lugar_entrega_detectado, ubicaciones);
-      }
-      const lugarTexto = ubicacion ? null : (row.lugar_entrega_detectado || null);
+      // Ubicación seleccionada por el usuario
+      const ubicacion: any = ubicacionSel !== LIBRE ? (ubicaciones.find((u) => u.id === ubicacionSel) ?? null) : null;
+      const lugarTexto = ubicacion ? null : (lugarLibre.trim() || null);
       const numeroPedido = row.numero_pedido_detectado || null;
 
       // Agrupar por fecha
@@ -375,6 +419,31 @@ function IntakeCard({ row, onChanged }: { row: IntakeRow; onChanged: () => void 
                 />
               </div>
             )}
+            <div className="space-y-1">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Lugar de entrega</Label>
+              <Select value={ubicacionSel} onValueChange={setUbicacionSel}>
+                <SelectTrigger className="h-8 w-56 text-sm">
+                  <SelectValue placeholder="Selecciona lugar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ubicaciones.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nombre}</SelectItem>
+                  ))}
+                  <SelectItem value={LIBRE}>Otro (especificar texto)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {ubicacionSel === LIBRE && (
+              <div className="space-y-1">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Lugar (texto)</Label>
+                <Input
+                  value={lugarLibre}
+                  onChange={(e) => setLugarLibre(e.target.value)}
+                  placeholder="Escribe el lugar de entrega"
+                  className="h-8 w-56 text-sm"
+                />
+              </div>
+            )}
             <Button
               size="sm"
               onClick={handleCrearEntregas}
@@ -407,6 +476,31 @@ function IntakeCard({ row, onChanged }: { row: IntakeRow; onChanged: () => void 
               </Button>
             )}
           </div>
+
+          {hermanas.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Otros archivos de este correo:</p>
+              <div className="flex flex-wrap gap-2">
+                {hermanas.map((h) => {
+                  const nombre = nombreArchivo(h.storage_path);
+                  const img = /\.(png|jpe?g|gif|webp|heic)$/i.test(nombre);
+                  return (
+                    <Button
+                      key={h.id}
+                      variant="outline"
+                      size="sm"
+                      disabled={!h.storage_path}
+                      onClick={() => handleVerHermana(h)}
+                      className="h-7 gap-1 text-xs"
+                    >
+                      {img ? <ImageIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                      {nombre}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -442,7 +536,7 @@ export default function EntregasCorpIntakeTab() {
       const { data, error } = await supabase
         .from("entregas_corporativas_intake")
         .select(
-          "id, canal, remitente_email, asunto_email, storage_path, mime_type, email_html_storage_path, cliente_detectado, lugar_entrega_detectado, numero_pedido_detectado, entregas_extraidas, extraccion_error, created_at"
+          "id, canal, remitente_email, asunto_email, storage_path, mime_type, email_html_storage_path, resend_email_id, cliente_detectado, lugar_entrega_detectado, numero_pedido_detectado, entregas_extraidas, extraccion_error, created_at"
         )
         .eq("estatus", "pendiente")
         .order("created_at", { ascending: true });
@@ -450,6 +544,17 @@ export default function EntregasCorpIntakeTab() {
       return (data || []) as IntakeRow[];
     },
   });
+
+  const porEmail = useMemo(() => {
+    const m = new Map<string, IntakeRow[]>();
+    rows.forEach((r) => {
+      if (!r.resend_email_id) return;
+      const arr = m.get(r.resend_email_id) ?? [];
+      arr.push(r);
+      m.set(r.resend_email_id, arr);
+    });
+    return m;
+  }, [rows]);
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Cargando correos...</p>;
@@ -468,8 +573,18 @@ export default function EntregasCorpIntakeTab() {
   return (
     <div className="space-y-4">
       {rows.map((row) => (
-        <IntakeCard key={row.id} row={row} onChanged={() => refetch()} />
+        <IntakeCard
+          key={row.id}
+          row={row}
+          hermanas={
+            row.resend_email_id
+              ? (porEmail.get(row.resend_email_id) ?? []).filter((h) => h.id !== row.id)
+              : []
+          }
+          onChanged={() => refetch()}
+        />
       ))}
+
     </div>
   );
 }
