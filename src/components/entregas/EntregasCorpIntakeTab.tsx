@@ -476,6 +476,31 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
               </Button>
             )}
           </div>
+
+          {hermanas.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Otros archivos de este correo:</p>
+              <div className="flex flex-wrap gap-2">
+                {hermanas.map((h) => {
+                  const nombre = nombreArchivo(h.storage_path);
+                  const img = /\.(png|jpe?g|gif|webp|heic)$/i.test(nombre);
+                  return (
+                    <Button
+                      key={h.id}
+                      variant="outline"
+                      size="sm"
+                      disabled={!h.storage_path}
+                      onClick={() => handleVerHermana(h)}
+                      className="h-7 gap-1 text-xs"
+                    >
+                      {img ? <ImageIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                      {nombre}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
