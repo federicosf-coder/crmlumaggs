@@ -72,10 +72,14 @@ export default function AutorizacionPrecioCard({
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(defaultOpen);
   const [flash, setFlash] = useState(false);
+  const companyRef = row.documentos?.companies || {};
+  const datosIniciales = () =>
+    row.datos_cliente_snapshot && Object.keys(row.datos_cliente_snapshot).length > 0
+      ? normalizeDatosCliente(row.datos_cliente_snapshot)
+      : normalizeDatosCliente(companyRef);
   const [justificacion, setJustificacion] = useState<string>(row.justificacion || "");
-  const [datos, setDatos] = useState<DatosClienteAutorizacion>(
-    normalizeDatosCliente(row.datos_cliente_snapshot)
-  );
+  const [datos, setDatos] = useState<DatosClienteAutorizacion>(datosIniciales);
+
   const [savingDatos, setSavingDatos] = useState(false);
   const [savingDatosPerfil, setSavingDatosPerfil] = useState(false);
   const [saving, setSaving] = useState(false);
