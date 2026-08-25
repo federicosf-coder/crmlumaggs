@@ -312,11 +312,29 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
 
   const comprobantes: { nombre: string; url: string }[] = [];
 
-  // 5a. PDF del pedido / cotización original (bucket privado document-files)
+  // 5a. PDF del pedido / cotización original (bucket privado document-files).
+  // Si el documento aún no tiene PDF, se genera con la misma función de cotización.
   let documentoPdfLista = "<em>Sin PDF del documento</em>";
-  if (documento?.pdf_url) {
+  let pdfUrlDoc: string | null = documento?.pdf_url || null;
+  const documentoIdReal = documento?.id || autorizacion.documento_id;
+  if (!pdfUrlDoc && documentoIdReal) {
     try {
-      const pdfPath = extractDocFilesPath(documento.pdf_url);
+      await supabase.functions.invoke("generate-cotizacion-pdf", {
+        body: { documento_id: documentoIdReal },
+      });
+      const { data: refetched } = await (supabase as any)
+        .from("documentos")
+        .select("pdf_url")
+        .eq("id", documentoIdReal)
+        .maybeSingle();
+      pdfUrlDoc = refetched?.pdf_url || null;
+    } catch {
+      /* no se pudo generar el PDF */
+    }
+  }
+  if (pdfUrlDoc) {
+    try {
+      const pdfPath = extractDocFilesPath(pdfUrlDoc);
       const { data: signedPdf } = await supabase.storage
         .from("document-files")
         .createSignedUrl(pdfPath, 60 * 60 * 24 * 7);
@@ -329,6 +347,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
       /* sin PDF disponible */
     }
   }
+
 
   for (const ev of evidenciasRows || []) {
     try {
