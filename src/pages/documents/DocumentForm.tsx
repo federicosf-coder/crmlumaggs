@@ -35,6 +35,7 @@ import { EntregaCorporativaSection } from "@/components/documentos/EntregaCorpor
 import { buildAutorizacionPrecioDraft } from "@/lib/autorizacionPrecioFlow";
 import PedidoStatusStepper from "@/components/documents/PedidoStatusStepper";
 import PedidoAccionesPanel from "@/components/documents/PedidoAccionesPanel";
+import AutorizacionPrecioDialog from "@/components/documents/AutorizacionPrecioDialog";
 import { EMPRESA_STYLES, TIPO_DOC_STYLES, plazaColor } from "./documentStyles";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
@@ -124,6 +125,11 @@ export default function DocumentForm() {
   const initialEditFlag = searchParams.get("edit") === "1";
   const qc = useQueryClient();
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const autorizacionFlag = searchParams.get("autorizacion") === "1";
+  const [autorizacionOpen, setAutorizacionOpen] = useState(autorizacionFlag);
+  useEffect(() => {
+    if (autorizacionFlag) setAutorizacionOpen(true);
+  }, [autorizacionFlag, id]);
   const { user, profile, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   const isManager = hasRole("manager");
@@ -825,7 +831,7 @@ export default function DocumentForm() {
 
       qc.invalidateQueries({ queryKey: ["documentos"] });
       toast.success(`${label} creado desde cotización`);
-      navigate(`/documents/${inserted.id}`);
+      navigate(`/documents/${inserted.id}${targetType === "pedido" ? "?autorizacion=1" : ""}`);
     } catch (err: any) {
       toast.error(`Error al convertir: ${err.message}`);
     }
@@ -1158,6 +1164,13 @@ export default function DocumentForm() {
               <>
                 {existingDoc?.id && (
                   <PedidoAccionesPanel documentoId={existingDoc.id} />
+                )}
+                {existingDoc?.id && (
+                  <AutorizacionPrecioDialog
+                    open={autorizacionOpen}
+                    onOpenChange={setAutorizacionOpen}
+                    documentoId={existingDoc.id}
+                  />
                 )}
                 <div className="mb-4">
                   <PedidoStatusStepper estatus={form.estatus_pedido} />
