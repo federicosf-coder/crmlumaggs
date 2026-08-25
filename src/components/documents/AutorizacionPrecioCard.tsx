@@ -108,6 +108,33 @@ export default function AutorizacionPrecioCard({
     setJustificacion(row.justificacion || "");
   }, [row.id, row.justificacion]);
 
+  const [numeroFactura, setNumeroFactura] = useState<string>(row.documentos?.numero_factura || "");
+  const [savingFactura, setSavingFactura] = useState(false);
+
+  useEffect(() => {
+    setNumeroFactura(row.documentos?.numero_factura || "");
+  }, [row.id, row.documentos?.numero_factura]);
+
+  const guardarNumeroFactura = async () => {
+    if (!row.documento_id) return;
+    setSavingFactura(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("documentos")
+        .update({ numero_factura: numeroFactura.trim() || null })
+        .eq("id", row.documento_id);
+      if (error) throw error;
+      toast.success("Número de factura guardado");
+      onRefetch();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo guardar el número de factura");
+    } finally {
+      setSavingFactura(false);
+    }
+  };
+
+
   useEffect(() => {
     setDatos(datosIniciales());
     // eslint-disable-next-line react-hooks/exhaustive-deps
