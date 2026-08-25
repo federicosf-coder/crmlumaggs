@@ -937,10 +937,10 @@ export default function DocumentsList() {
             onClick={() => setEstatusPedFilter("all")}
             className={`rounded-full transition-all ${estatusPedFilter === "all" ? "ring-2 ring-primary ring-offset-1" : ""}`}
           >
-            <Pill cls={NEUTRAL_PILL}>Todos ({docs.length})</Pill>
+            <Pill cls={NEUTRAL_PILL}>Todos ({pedidosForCounts.length})</Pill>
           </button>
           {PEDIDO_STATUS_ORDER.map((key) => {
-            const count = docs.filter((d: any) => d.estatus_pedido === key).length;
+            const count = pedidosForCounts.filter((d: any) => d.estatus_pedido === key).length;
             const isActive = estatusPedFilter === key;
             return (
               <button
