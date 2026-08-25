@@ -99,6 +99,7 @@ export default function AutorizacionPrecios() {
             row={row}
             ejecutivo={row.documentos?.ejecutivo_venta_id ? data?.ejecutivos?.[row.documentos.ejecutivo_venta_id] : null}
             onRefetch={refetch}
+            isHighlighted={highlightedId === row.id}
           />
         ))
       )}
