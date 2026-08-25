@@ -1714,6 +1714,32 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
         }}
       />
 
+      <EnviarConfirmacionPagoDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        pagoId={previewEntregaId || ""}
+        empresa={detalle?.cliente || ""}
+        fechaPago={detalle?.fecha_programada || ""}
+        montoTotal=""
+        moneda=""
+        observaciones={undefined}
+        documentos={[]}
+        comprobantes={previewFlow?.comprobantes || []}
+        registradoPor={undefined}
+        defaultEmails={previewFlow?.defaultEmails || []}
+        blockedEmails={[]}
+        previouslySentEmails={previewFlow?.previouslySentEmails || []}
+        templateName={previewFlow?.templateName}
+        subjectOverride={previewFlow?.subjectOverride}
+        htmlOverride={previewFlow?.htmlOverride}
+        ccEmails={previewFlow?.cc}
+        bccEmails={previewFlow?.bcc}
+        replyTo={previewFlow?.replyTo}
+        title={previewFlow?.title}
+        description={previewFlow?.description}
+        onSent={onPreviewSent}
+      />
+
       {/* Notificar */}
       <Dialog open={notifOpen} onOpenChange={setNotifOpen}>
         <DialogContent>
