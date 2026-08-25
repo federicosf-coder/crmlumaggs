@@ -190,6 +190,8 @@ export async function buildAutorizacionPrecioDraft(
         promedioMensual: historico.promedioMensual,
       },
       costo_margen_snapshot: costoMargenSnapshot,
+      datos_cliente_snapshot: datosClienteSnapshot,
+
       creado_por: creadoPor,
       numero_pedido_ref: documento.numero_pedido,
     })
