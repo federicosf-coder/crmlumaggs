@@ -46,6 +46,8 @@ import CrmActivitiesTasks from "@/pages/crm/CrmActivitiesTasks";
 import SeguimientoLanding from "@/pages/seguimiento/SeguimientoLanding";
 import SeguimientoVentas from "@/pages/seguimiento/SeguimientoVentas";
 import NotFound from "@/pages/NotFound";
+import Alertas from "@/pages/Alertas";
+
 import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
 import Cobranza from "@/pages/cobranza/Cobranza";
 import CobranzaLanding from "@/pages/cobranza/CobranzaLanding";
@@ -145,6 +147,8 @@ const App = () => (
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/entregas-corporativas" element={<ProtectedRoute><EntregasCorporativas /></ProtectedRoute>} />
             <Route path="/autorizacion-precios" element={<ProtectedRoute><AutorizacionPrecios /></ProtectedRoute>} />
+            <Route path="/alertas" element={<ProtectedRoute><Alertas /></ProtectedRoute>} />
+
             <Route path="/inventario/niveles" element={<ProtectedRoute><NivelesInventario /></ProtectedRoute>} />
             <Route path="/inventario/kardex" element={<ProtectedRoute><KardexCarga /></ProtectedRoute>} />
             <Route path="/inventario/kardex-gestion" element={<ProtectedRoute><GestionKardex /></ProtectedRoute>} />
