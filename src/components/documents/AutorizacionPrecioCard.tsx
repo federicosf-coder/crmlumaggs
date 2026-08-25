@@ -34,7 +34,13 @@ import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 import { buildAutorizacionPrecioEmailFlow } from "@/lib/autorizacionPrecioFlow";
+import {
+  normalizeDatosCliente,
+  type DatosClienteAutorizacion,
+} from "@/lib/autorizacionDatosCliente";
+import { AutorizacionDatosClienteBlock } from "@/components/documents/AutorizacionDatosClienteBlock";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
+
 
 const BUCKET = "autorizacion-precios";
 
@@ -67,9 +73,15 @@ export default function AutorizacionPrecioCard({
   const [open, setOpen] = useState(defaultOpen);
   const [flash, setFlash] = useState(false);
   const [justificacion, setJustificacion] = useState<string>(row.justificacion || "");
+  const [datos, setDatos] = useState<DatosClienteAutorizacion>(
+    normalizeDatosCliente(row.datos_cliente_snapshot)
+  );
+  const [savingDatos, setSavingDatos] = useState(false);
+  const [savingDatosPerfil, setSavingDatosPerfil] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingPerfil, setSavingPerfil] = useState(false);
   const [uploading, setUploading] = useState(false);
+
   const [deleting, setDeleting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [flow, setFlow] = useState<any>(null);
@@ -91,6 +103,11 @@ export default function AutorizacionPrecioCard({
   useEffect(() => {
     setJustificacion(row.justificacion || "");
   }, [row.id, row.justificacion]);
+
+  useEffect(() => {
+    setDatos(normalizeDatosCliente(row.datos_cliente_snapshot));
+  }, [row.id, row.datos_cliente_snapshot]);
+
 
   const editable = row.estatus === "pendiente_revision";
   const doc = row.documentos || {};
@@ -152,6 +169,55 @@ export default function AutorizacionPrecioCard({
       setSavingPerfil(false);
     }
   };
+
+  const guardarDatos = async () => {
+    setSavingDatos(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .update({ datos_cliente_snapshot: datos })
+        .eq("id", row.id);
+      if (error) throw error;
+      toast.success("Clasificación y facturación actualizadas en este documento");
+      onRefetch();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo guardar");
+    } finally {
+      setSavingDatos(false);
+    }
+  };
+
+  const guardarDatosEnPerfil = async () => {
+    if (!company.id) return;
+    setSavingDatosPerfil(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("companies")
+        .update({
+          industrias: datos.industrias || [],
+          tipo_destino_lubricante: datos.tipo_destino_lubricante || null,
+          lista_precios: datos.lista_precios || null,
+          limite_credito: datos.limite_credito ?? 0,
+          tipo_pago: datos.tipo_pago || null,
+          forma_pago: datos.forma_pago || null,
+          metodo_pago: datos.metodo_pago || null,
+          uso_cfdi: datos.uso_cfdi || null,
+          clabe_bancaria: datos.clabe_bancaria || null,
+          tarjeta_ultimos4: datos.tarjeta_ultimos4 || null,
+        })
+        .eq("id", company.id);
+      if (error) throw error;
+      toast.success("Datos guardados en el perfil del cliente");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo guardar en el perfil del cliente");
+    } finally {
+      setSavingDatosPerfil(false);
+    }
+  };
+
+
 
   const verArchivo = async (path: string) => {
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60);
@@ -447,6 +513,42 @@ export default function AutorizacionPrecioCard({
                 </div>
               )}
             </div>
+
+            <div className="space-y-3 border-t pt-4">
+              <AutorizacionDatosClienteBlock
+                value={datos}
+                onChange={setDatos}
+                disabled={!editable}
+              />
+              {editable && (
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={guardarDatos} disabled={savingDatos}>
+                    {savingDatos && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
+                    Guardar solo en este documento
+                  </Button>
+                  {company.id && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={guardarDatosEnPerfil}
+                      disabled={savingDatosPerfil}
+                    >
+                      {savingDatosPerfil ? (
+                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                      ) : (
+                        <Building2 className="h-3 w-3 mr-2" />
+                      )}
+                      Guardar en el perfil del cliente
+                    </Button>
+                  )}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Estos datos se envían en el correo de autorización. Guárdalos solo en el documento o
+                también en el perfil del cliente para futuros pedidos.
+              </p>
+            </div>
+
 
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Evidencia</p>

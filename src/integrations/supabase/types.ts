@@ -3780,6 +3780,7 @@ export type Database = {
           costo_margen_snapshot: Json | null
           creado_por: string | null
           created_at: string
+          datos_cliente_snapshot: Json
           documento_id: string
           enviado_at: string | null
           enviado_por: string | null
@@ -3804,6 +3805,7 @@ export type Database = {
           costo_margen_snapshot?: Json | null
           creado_por?: string | null
           created_at?: string
+          datos_cliente_snapshot?: Json
           documento_id: string
           enviado_at?: string | null
           enviado_por?: string | null
@@ -3828,6 +3830,7 @@ export type Database = {
           costo_margen_snapshot?: Json | null
           creado_por?: string | null
           created_at?: string
+          datos_cliente_snapshot?: Json
           documento_id?: string
           enviado_at?: string | null
           enviado_por?: string | null
