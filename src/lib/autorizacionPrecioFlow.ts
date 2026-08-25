@@ -417,12 +417,19 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   ]);
 
   // 6. Variables de plantilla
+  const numeroFacturaDoc = String(documento?.numero_factura || "").trim();
+  const facturaBloque = numeroFacturaDoc
+    ? `<p style="font-family:Arial,sans-serif;font-size:14px"><strong>Número de factura:</strong> ${numeroFacturaDoc}</p>`
+    : "";
+
   const tplVars: Record<string, string> = {
     cliente: documento?.companies?.name || "—",
     razon_social: documento?.companies?.razon_social || "—",
     ejecutivo: ejecutivoNombre,
     numero_pedido:
       documento?.numero_pedido || autorizacion.numero_pedido_ref || "—",
+    numero_factura: numeroFacturaDoc,
+    factura_bloque: facturaBloque,
     productos_lista: productosLista,
     historico_lista: historicoLista,
     acumulado_unidades: fmtNumber(historicoSnapshot.acumuladoUnidades),
