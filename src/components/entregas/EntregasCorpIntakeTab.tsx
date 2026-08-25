@@ -33,6 +33,7 @@ type IntakeRow = {
   storage_path: string | null;
   mime_type: string | null;
   email_html_storage_path: string | null;
+  resend_email_id: string | null;
   cliente_detectado: string | null;
   lugar_entrega_detectado: string | null;
   numero_pedido_detectado: string | null;
@@ -48,7 +49,16 @@ type EntregaLinea = {
   cantidad?: number | string | null;
 };
 
-function IntakeCard({ row, onChanged }: { row: IntakeRow; onChanged: () => void }) {
+const LIBRE = "__libre__";
+
+function nombreArchivo(storagePath: string | null) {
+  if (!storagePath) return "(solo texto del correo)";
+  const last = storagePath.split("/").pop() || storagePath;
+  const sinUuid = last.length > 37 ? last.slice(37) : last;
+  return sinUuid || last;
+}
+
+function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: IntakeRow[]; onChanged: () => void }) {
   const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
   const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null);
   const [loadingEmailPreview, setLoadingEmailPreview] = useState(false);
@@ -62,6 +72,10 @@ function IntakeCard({ row, onChanged }: { row: IntakeRow; onChanged: () => void 
   const [clienteSel, setClienteSel] = useState<string>(match ? match : detectado ? "Otro" : "");
   const [clienteOtro, setClienteOtro] = useState<string>(match ? "" : detectado);
   const [creando, setCreando] = useState(false);
+  const [ubicaciones, setUbicaciones] = useState<any[]>([]);
+  const [ubicacionSel, setUbicacionSel] = useState<string>(LIBRE);
+  const [lugarLibre, setLugarLibre] = useState<string>(row.lugar_entrega_detectado || "");
+
 
   const cliente = clienteSel === "Otro" ? clienteOtro.trim() : clienteSel;
 
