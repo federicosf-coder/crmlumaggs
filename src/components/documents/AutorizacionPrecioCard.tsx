@@ -109,8 +109,10 @@ export default function AutorizacionPrecioCard({
   }, [row.id, row.justificacion]);
 
   useEffect(() => {
-    setDatos(normalizeDatosCliente(row.datos_cliente_snapshot));
-  }, [row.id, row.datos_cliente_snapshot]);
+    setDatos(datosIniciales());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row.id, row.datos_cliente_snapshot, companyRef.id]);
+
 
 
   const editable = row.estatus === "pendiente_revision";
