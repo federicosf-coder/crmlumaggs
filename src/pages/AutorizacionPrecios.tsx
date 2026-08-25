@@ -108,6 +108,9 @@ function AutorizacionCard({
   const [flow, setFlow] = useState<any>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [preparing, setPreparing] = useState(false);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [companyEditData, setCompanyEditData] = useState<CompanyData | null>(null);
+  const [loadingCompany, setLoadingCompany] = useState(false);
 
   const editable = row.estatus === "pendiente_revision";
   const doc = row.documentos || {};
