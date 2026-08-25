@@ -536,7 +536,7 @@ export default function EntregasCorpIntakeTab() {
       const { data, error } = await supabase
         .from("entregas_corporativas_intake")
         .select(
-          "id, canal, remitente_email, asunto_email, storage_path, mime_type, email_html_storage_path, cliente_detectado, lugar_entrega_detectado, numero_pedido_detectado, entregas_extraidas, extraccion_error, created_at"
+          "id, canal, remitente_email, asunto_email, storage_path, mime_type, email_html_storage_path, resend_email_id, cliente_detectado, lugar_entrega_detectado, numero_pedido_detectado, entregas_extraidas, extraccion_error, created_at"
         )
         .eq("estatus", "pendiente")
         .order("created_at", { ascending: true });
