@@ -757,6 +757,109 @@ export default function AutorizacionPrecioCard({
               )}
             </div>
 
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Resultado de la autorización
+              </p>
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Margen reportado
+                </Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    value={margenTexto}
+                    onChange={(e) => setMargenTexto(e.target.value)}
+                    placeholder="Ej. 16%"
+                    className="h-8 max-w-[160px] text-sm"
+                  />
+                  <Button size="sm" variant="outline" onClick={guardarMargen} disabled={savingMargen}>
+                    {savingMargen && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
+                    Guardar margen
+                  </Button>
+                  {row.margen_respondido_por && (
+                    <span className="text-xs text-muted-foreground font-light">
+                      Registrado por {row.margen_respondido_por}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {resultadoCerrado ? (
+                <div className="space-y-1 text-sm font-light">
+                  <p>
+                    <span className="text-muted-foreground">Resultado:</span>{" "}
+                    {row.autorizado === true ? "Autorizado" : "Rechazado"}
+                    {row.autorizado_por_texto ? ` por ${row.autorizado_por_texto}` : ""}
+                  </p>
+                  {row.motivo && (
+                    <p>
+                      <span className="text-muted-foreground">Motivo:</span> {row.motivo}
+                    </p>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => setEditandoResultado(true)}>
+                    Editar
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                      ¿Se autorizó el precio?
+                    </Label>
+                    <RadioGroup
+                      value={resultado}
+                      onValueChange={(v) => setResultado(v as "si" | "no" | "nc")}
+                      className="flex flex-wrap gap-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="si" id={`res-si-${row.id}`} />
+                        <Label htmlFor={`res-si-${row.id}`} className="font-light">Sí</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="no" id={`res-no-${row.id}`} />
+                        <Label htmlFor={`res-no-${row.id}`} className="font-light">No</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="nc" id={`res-nc-${row.id}`} />
+                        <Label htmlFor={`res-nc-${row.id}`} className="font-light">No está claro</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Autorizado/rechazado por
+                    </Label>
+                    <Input
+                      value={autorizadoPor}
+                      onChange={(e) => setAutorizadoPor(e.target.value)}
+                      placeholder="Ej. José Tostado"
+                      className="h-8 max-w-[280px] text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Motivo {resultado === "no" ? "" : "(opcional)"}
+                    </Label>
+                    <Textarea
+                      value={motivo}
+                      onChange={(e) => setMotivo(e.target.value)}
+                      rows={3}
+                      className="text-sm font-light"
+                      placeholder="Motivo de la decisión"
+                    />
+                  </div>
+
+                  <Button size="sm" onClick={guardarResultado} disabled={savingResultado}>
+                    {savingResultado && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
+                    Guardar resultado
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
               <Button
                 size="sm"
@@ -769,11 +872,18 @@ export default function AutorizacionPrecioCard({
                 Eliminar autorización
               </Button>
               {editable && (
-                <Button onClick={abrirEnvio} disabled={preparing}>
-                  {preparing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                  Enviar
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" onClick={enviarMasTarde} disabled={posponiendo || saving}>
+                    {posponiendo ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Clock className="h-4 w-4 mr-2" />}
+                    Enviar más tarde
+                  </Button>
+                  <Button onClick={abrirEnvio} disabled={preparing}>
+                    {preparing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                    Enviar
+                  </Button>
+                </div>
               )}
+
             </div>
           </CardContent>
         </CollapsibleContent>
