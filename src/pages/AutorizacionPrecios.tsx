@@ -453,6 +453,18 @@ function AutorizacionCard({
           onSent={marcarEnviado}
         />
       )}
+
+      <CompanyFormDialog
+        open={companyDialogOpen}
+        onOpenChange={(open) => {
+          setCompanyDialogOpen(open);
+          if (!open) {
+            setCompanyEditData(null);
+            onRefetch();
+          }
+        }}
+        editData={companyEditData}
+      />
     </Card>
   );
 }
