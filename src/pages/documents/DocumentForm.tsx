@@ -36,6 +36,7 @@ import { buildAutorizacionPrecioDraft } from "@/lib/autorizacionPrecioFlow";
 import PedidoStatusStepper from "@/components/documents/PedidoStatusStepper";
 import PedidoAccionesPanel from "@/components/documents/PedidoAccionesPanel";
 import AutorizacionPrecioDialog from "@/components/documents/AutorizacionPrecioDialog";
+import InstruccionesEspecialesCard from "@/components/documents/InstruccionesEspecialesCard";
 import { EMPRESA_STYLES, TIPO_DOC_STYLES, plazaColor } from "./documentStyles";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
