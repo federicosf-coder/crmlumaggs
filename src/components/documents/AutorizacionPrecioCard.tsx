@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DictationTextarea } from "@/components/ui/DictationTextarea";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
@@ -28,6 +31,7 @@ import {
   ChevronDown,
   ChevronRight,
   Building2,
+  Clock,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -133,6 +137,113 @@ export default function AutorizacionPrecioCard({
       setSavingFactura(false);
     }
   };
+
+  // ---- Resultado de la autorización (respuesta de Galper) ----
+  const [margenTexto, setMargenTexto] = useState<string>(row.margen_reportado_texto || "");
+  const [savingMargen, setSavingMargen] = useState(false);
+  const [resultado, setResultado] = useState<"si" | "no" | "nc">(
+    row.autorizado === true ? "si" : row.autorizado === false ? "no" : "nc"
+  );
+  const [autorizadoPor, setAutorizadoPor] = useState<string>(row.autorizado_por_texto || "");
+  const [motivo, setMotivo] = useState<string>(row.motivo || "");
+  const [savingResultado, setSavingResultado] = useState(false);
+  const [editandoResultado, setEditandoResultado] = useState(false);
+  const [posponiendo, setPosponiendo] = useState(false);
+
+  useEffect(() => {
+    setMargenTexto(row.margen_reportado_texto || "");
+    setResultado(row.autorizado === true ? "si" : row.autorizado === false ? "no" : "nc");
+    setAutorizadoPor(row.autorizado_por_texto || "");
+    setMotivo(row.motivo || "");
+    setEditandoResultado(false);
+  }, [row.id, row.margen_reportado_texto, row.autorizado, row.autorizado_por_texto, row.motivo]);
+
+  const resultadoCerrado =
+    (row.estatus === "autorizado" || row.estatus === "rechazado") && !editandoResultado;
+
+  const guardarMargen = async () => {
+    setSavingMargen(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .update({
+          margen_reportado_texto: margenTexto.trim() || null,
+          margen_respondido_por: user?.email ?? null,
+          margen_respondido_at: new Date().toISOString(),
+        })
+        .eq("id", row.id);
+      if (error) throw error;
+      toast.success("Margen reportado guardado");
+      onRefetch();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo guardar el margen");
+    } finally {
+      setSavingMargen(false);
+    }
+  };
+
+  const guardarResultado = async () => {
+    setSavingResultado(true);
+    try {
+      const autorizado = resultado === "si" ? true : resultado === "no" ? false : null;
+      const nuevoEstatus =
+        resultado === "si" ? "autorizado" : resultado === "no" ? "rechazado" : "indeterminado";
+      const { error } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .update({
+          autorizado,
+          autorizado_por_texto: autorizadoPor.trim() || null,
+          motivo: motivo.trim() || null,
+          autorizacion_respondido_at: new Date().toISOString(),
+          estatus: nuevoEstatus,
+        })
+        .eq("id", row.id);
+      if (error) throw error;
+
+      if (autorizado === true && row.documento_id) {
+        const { error: docErr } = await (supabase as any)
+          .from("documentos")
+          .update({ estatus_pedido: "precio_autorizado" })
+          .eq("id", row.documento_id);
+        if (docErr) throw docErr;
+      }
+
+      toast.success("Resultado de la autorización guardado");
+      setEditandoResultado(false);
+      queryClient.invalidateQueries({ queryKey: ["documentos"] });
+      queryClient.invalidateQueries({ queryKey: ["documento", row.documento_id] });
+      queryClient.invalidateQueries({ queryKey: ["pedido-autorizacion-precio", row.documento_id] });
+      onRefetch();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo guardar el resultado");
+    } finally {
+      setSavingResultado(false);
+    }
+  };
+
+  const enviarMasTarde = async () => {
+    setPosponiendo(true);
+    try {
+      if ((justificacion || "") !== (row.justificacion || "")) {
+        await guardar();
+      }
+      const { error } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .update({ pospuesto: true, pospuesto_at: new Date().toISOString() })
+        .eq("id", row.id);
+      if (error) throw error;
+      toast.success("Guardado, puedes enviarlo cuando quieras.");
+      onRefetch();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo posponer el envío");
+    } finally {
+      setPosponiendo(false);
+    }
+  };
+
 
 
   useEffect(() => {
@@ -451,6 +562,10 @@ export default function AutorizacionPrecioCard({
               ) : (
                 <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Enviado</Badge>
               )}
+              {row.pospuesto && (
+                <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pospuesto</Badge>
+              )}
+
             </div>
           </div>
         </CardHeader>
@@ -646,6 +761,109 @@ export default function AutorizacionPrecioCard({
               )}
             </div>
 
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Resultado de la autorización
+              </p>
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Margen reportado
+                </Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    value={margenTexto}
+                    onChange={(e) => setMargenTexto(e.target.value)}
+                    placeholder="Ej. 16%"
+                    className="h-8 max-w-[160px] text-sm"
+                  />
+                  <Button size="sm" variant="outline" onClick={guardarMargen} disabled={savingMargen}>
+                    {savingMargen && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
+                    Guardar margen
+                  </Button>
+                  {row.margen_respondido_por && (
+                    <span className="text-xs text-muted-foreground font-light">
+                      Registrado por {row.margen_respondido_por}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {resultadoCerrado ? (
+                <div className="space-y-1 text-sm font-light">
+                  <p>
+                    <span className="text-muted-foreground">Resultado:</span>{" "}
+                    {row.autorizado === true ? "Autorizado" : "Rechazado"}
+                    {row.autorizado_por_texto ? ` por ${row.autorizado_por_texto}` : ""}
+                  </p>
+                  {row.motivo && (
+                    <p>
+                      <span className="text-muted-foreground">Motivo:</span> {row.motivo}
+                    </p>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => setEditandoResultado(true)}>
+                    Editar
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                      ¿Se autorizó el precio?
+                    </Label>
+                    <RadioGroup
+                      value={resultado}
+                      onValueChange={(v) => setResultado(v as "si" | "no" | "nc")}
+                      className="flex flex-wrap gap-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="si" id={`res-si-${row.id}`} />
+                        <Label htmlFor={`res-si-${row.id}`} className="font-light">Sí</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="no" id={`res-no-${row.id}`} />
+                        <Label htmlFor={`res-no-${row.id}`} className="font-light">No</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="nc" id={`res-nc-${row.id}`} />
+                        <Label htmlFor={`res-nc-${row.id}`} className="font-light">No está claro</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Autorizado/rechazado por
+                    </Label>
+                    <Input
+                      value={autorizadoPor}
+                      onChange={(e) => setAutorizadoPor(e.target.value)}
+                      placeholder="Ej. José Tostado"
+                      className="h-8 max-w-[280px] text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Motivo {resultado === "no" ? "" : "(opcional)"}
+                    </Label>
+                    <Textarea
+                      value={motivo}
+                      onChange={(e) => setMotivo(e.target.value)}
+                      rows={3}
+                      className="text-sm font-light"
+                      placeholder="Motivo de la decisión"
+                    />
+                  </div>
+
+                  <Button size="sm" onClick={guardarResultado} disabled={savingResultado}>
+                    {savingResultado && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
+                    Guardar resultado
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
               <Button
                 size="sm"
@@ -658,11 +876,18 @@ export default function AutorizacionPrecioCard({
                 Eliminar autorización
               </Button>
               {editable && (
-                <Button onClick={abrirEnvio} disabled={preparing}>
-                  {preparing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                  Enviar
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" onClick={enviarMasTarde} disabled={posponiendo || saving}>
+                    {posponiendo ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Clock className="h-4 w-4 mr-2" />}
+                    Enviar más tarde
+                  </Button>
+                  <Button onClick={abrirEnvio} disabled={preparing}>
+                    {preparing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                    Enviar
+                  </Button>
+                </div>
               )}
+
             </div>
           </CardContent>
         </CollapsibleContent>

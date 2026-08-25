@@ -20,7 +20,7 @@ export default function AutorizacionPrecioDialog({
       const { data: rows, error } = await (supabase as any)
         .from("documento_autorizaciones_precio")
         .select(
-          "id, documento_id, ronda, estatus, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, created_at, enviado_at, documentos(id, numero_pedido, numero_factura, fecha_documento, ejecutivo_venta_id, companies(id, name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
+          "id, documento_id, ronda, estatus, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, created_at, enviado_at, margen_reportado_texto, margen_respondido_por, margen_respondido_at, autorizado, autorizado_por_texto, motivo, autorizacion_respondido_at, pospuesto, pospuesto_at, documentos(id, numero_pedido, numero_factura, fecha_documento, ejecutivo_venta_id, companies(id, name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
         )
         .eq("documento_id", documentoId)
         .order("ronda", { ascending: false })
