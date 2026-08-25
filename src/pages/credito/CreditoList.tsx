@@ -110,6 +110,18 @@ export default function CreditoList() {
     navigate(`/credito/${data!.id}`);
   };
 
+  const { data: intakeCount = 0 } = useQuery({
+    queryKey: ["credito-docs-intake-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("credito_docs_intake")
+        .select("id", { count: "exact", head: true })
+        .eq("estatus", "pendiente");
+      return count || 0;
+    },
+    enabled: canVerIntake,
+  });
+
   const contenidoSolicitudes = (
     <>
           {/* Resumen por estado */}
