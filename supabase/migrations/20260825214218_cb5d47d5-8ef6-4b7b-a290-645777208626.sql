@@ -1,0 +1,2 @@
+ALTER TABLE public.documentos ADD COLUMN IF NOT EXISTS dividido_de_id uuid REFERENCES public.documentos(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_documentos_dividido_de_id ON public.documentos(dividido_de_id);

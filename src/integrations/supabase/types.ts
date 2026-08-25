@@ -4067,6 +4067,7 @@ export type Database = {
           direccion_envio_lat: number | null
           direccion_envio_lng: number | null
           direccion_envio_nombre: string | null
+          dividido_de_id: string | null
           ejecutivo_venta_id: string | null
           empresa_id: string | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
@@ -4123,6 +4124,7 @@ export type Database = {
           direccion_envio_lat?: number | null
           direccion_envio_lng?: number | null
           direccion_envio_nombre?: string | null
+          dividido_de_id?: string | null
           ejecutivo_venta_id?: string | null
           empresa_id?: string | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
@@ -4181,6 +4183,7 @@ export type Database = {
           direccion_envio_lat?: number | null
           direccion_envio_lng?: number | null
           direccion_envio_nombre?: string | null
+          dividido_de_id?: string | null
           ejecutivo_venta_id?: string | null
           empresa_id?: string | null
           empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
@@ -4249,6 +4252,13 @@ export type Database = {
             columns: ["direccion_envio_id"]
             isOneToOne: false
             referencedRelation: "direcciones_empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_dividido_de_id_fkey"
+            columns: ["dividido_de_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
             referencedColumns: ["id"]
           },
           {

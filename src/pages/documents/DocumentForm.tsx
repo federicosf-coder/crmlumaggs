@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart, ExternalLink, MessageCircle, Send } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart, ExternalLink, MessageCircle, Send, Split } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
 import { format, addDays } from "date-fns";
@@ -37,6 +37,8 @@ import PedidoStatusStepper from "@/components/documents/PedidoStatusStepper";
 import PedidoAccionesPanel from "@/components/documents/PedidoAccionesPanel";
 import AutorizacionPrecioDialog from "@/components/documents/AutorizacionPrecioDialog";
 import InstruccionesEspecialesCard from "@/components/documents/InstruccionesEspecialesCard";
+import DividirPedidoDialog from "@/components/documents/DividirPedidoDialog";
+import DivisionesPedidoCard from "@/components/documents/DivisionesPedidoCard";
 import { EMPRESA_STYLES, TIPO_DOC_STYLES, plazaColor } from "./documentStyles";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
@@ -128,6 +130,7 @@ export default function DocumentForm() {
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const autorizacionFlag = searchParams.get("autorizacion") === "1";
   const [autorizacionOpen, setAutorizacionOpen] = useState(autorizacionFlag);
+  const [dividirOpen, setDividirOpen] = useState(false);
   useEffect(() => {
     if (autorizacionFlag) setAutorizacionOpen(true);
   }, [autorizacionFlag, id]);
@@ -858,11 +861,17 @@ export default function DocumentForm() {
       {td === "pedido" && existingDoc?.id && (
         <div>
           <InstruccionesEspecialesCard documentoId={existingDoc.id} />
+          <DivisionesPedidoCard documentoId={existingDoc.id} />
           <PedidoAccionesPanel documentoId={existingDoc.id} />
           <PedidoStatusStepper estatus={form.estatus_pedido} />
           <AutorizacionPrecioDialog
             open={autorizacionOpen}
             onOpenChange={setAutorizacionOpen}
+            documentoId={existingDoc.id}
+          />
+          <DividirPedidoDialog
+            open={dividirOpen}
+            onOpenChange={setDividirOpen}
             documentoId={existingDoc.id}
           />
         </div>
@@ -940,6 +949,11 @@ export default function DocumentForm() {
               </Button>
               <LastSendStamp at={lastDocSends?.["documents.enviar_acuse"]} />
             </div>
+            )}
+            {form.tipo_documento === "pedido" && (
+              <Button variant="outline" onClick={() => setDividirOpen(true)}>
+                <Split className="mr-2 h-4 w-4" /> Dividir pedido
+              </Button>
             )}
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
