@@ -55,8 +55,168 @@ function IntakeCard({ row, onChanged }: { row: IntakeRow; onChanged: () => void 
   const [descartando, setDescartando] = useState(false);
   const emailIframeRef = useRef<HTMLIFrameElement>(null);
 
+  const detectado = row.cliente_detectado?.trim() || "";
+  const match = detectado
+    ? CLIENTES.filter((c) => c !== "Otro").find((c) => normalizarCliente(c) === normalizarCliente(detectado))
+    : undefined;
+  const [clienteSel, setClienteSel] = useState<string>(match ? match : detectado ? "Otro" : "");
+  const [clienteOtro, setClienteOtro] = useState<string>(match ? "" : detectado);
+  const [creando, setCreando] = useState(false);
+
+  const cliente = clienteSel === "Otro" ? clienteOtro.trim() : clienteSel;
+
   const lineas: EntregaLinea[] = Array.isArray(row.entregas_extraidas) ? row.entregas_extraidas : [];
   const esImagen = (row.mime_type || "").startsWith("image/");
+
+  const handleCrearEntregas = async () => {
+    if (!cliente || lineas.length === 0) return;
+    setCreando(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id ?? null;
+
+      const entregas = lineas
+        .filter((e) => e?.codigo && e?.fecha && Number(e.cantidad) > 0)
+        .map((e) => ({ ...e })) as Required<EntregaLinea>[];
+      if (!entregas.length) throw new Error("No hay líneas válidas para crear entregas");
+
+      // Validar productos contra el catálogo
+      try {
+        const catalogo = await fetchProductosCatalogo();
+        const mapCat = new Map(catalogo.map((p) => [p.codigo.trim().toUpperCase(), p.nombre]));
+        entregas.forEach((e) => {
+          const hit = mapCat.get(String(e.codigo).trim().toUpperCase());
+          if (hit) e.nombre_producto = hit;
+        });
+      } catch { /* conserva el nombre extraído por la IA */ }
+
+      // Resolver ubicación
+      const ubicaciones = await fetchUbicaciones(cliente);
+      let ubicacion: any = null;
+      if (cliente === "Kenworth") {
+        ubicacion = ubicaciones[0] ?? null;
+      } else if (row.lugar_entrega_detectado) {
+        ubicacion = emparejarUbicacion(row.lugar_entrega_detectado, ubicaciones);
+      }
+      const lugarTexto = ubicacion ? null : (row.lugar_entrega_detectado || null);
+      const numeroPedido = row.numero_pedido_detectado || null;
+
+      // Agrupar por fecha
+      const porFecha = new Map<string, Required<EntregaLinea>[]>();
+      entregas.forEach((e) => {
+        const f = String(e.fecha);
+        const arr = porFecha.get(f) ?? [];
+        arr.push(e);
+        porFecha.set(f, arr);
+      });
+
+      let lineasNuevas = 0;
+      let lineasActualizadas = 0;
+
+      for (const [fecha, productos] of [...porFecha.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+        let existente: any = null;
+        if (numeroPedido) {
+          let q = (supabase as any)
+            .from("entregas_corporativas")
+            .select("id")
+            .eq("cliente", cliente)
+            .eq("fecha_programada", fecha)
+            .eq("numero_pedido", numeroPedido);
+          if (ubicacion) {
+            q = q.eq("ubicacion_id", ubicacion.id);
+          } else if (lugarTexto) {
+            q = q.eq("lugar_entrega_texto", lugarTexto);
+          } else {
+            q = q.is("ubicacion_id", null);
+          }
+          const { data } = await q.maybeSingle();
+          existente = data;
+        } else {
+          let q = (supabase as any)
+            .from("entregas_corporativas")
+            .select("id")
+            .eq("cliente", cliente)
+            .eq("fecha_programada", fecha);
+          q = ubicacion ? q.eq("ubicacion_id", ubicacion.id) : q.is("ubicacion_id", null);
+          const { data } = await q.maybeSingle();
+          existente = data;
+        }
+
+        let entregaId: string;
+        if (existente?.id) {
+          entregaId = existente.id;
+          const upd: any = { calendario_id: null, lugar_entrega_texto: lugarTexto };
+          if (numeroPedido) upd.numero_pedido = numeroPedido;
+          await (supabase as any).from("entregas_corporativas").update(upd).eq("id", entregaId);
+        } else {
+          const { data: nueva, error: insErr } = await (supabase as any)
+            .from("entregas_corporativas")
+            .insert({
+              cliente,
+              ubicacion_id: ubicacion?.id ?? null,
+              fecha_programada: fecha,
+              numero_pedido: numeroPedido,
+              lugar_entrega_texto: lugarTexto,
+              calendario_id: null,
+              creado_por: uid,
+              estatus: "programada",
+            })
+            .select("id")
+            .single();
+          if (insErr) throw insErr;
+          entregaId = nueva.id;
+        }
+
+        const { data: lineasExist } = await (supabase as any)
+          .from("entregas_corporativas_lineas")
+          .select("id, codigo_producto")
+          .eq("entrega_id", entregaId);
+        const mapLineas = new Map<string, string>(
+          (lineasExist ?? []).map((l: any) => [String(l.codigo_producto), l.id]),
+        );
+
+        for (const p of productos) {
+          const codigo = String(p.codigo);
+          const existId = mapLineas.get(codigo);
+          if (existId) {
+            const { error } = await (supabase as any)
+              .from("entregas_corporativas_lineas")
+              .update({ cantidad: Number(p.cantidad), nombre_producto: p.nombre_producto ?? null })
+              .eq("id", existId);
+            if (error) throw error;
+            lineasActualizadas++;
+          } else {
+            const { error } = await (supabase as any)
+              .from("entregas_corporativas_lineas")
+              .insert({
+                entrega_id: entregaId,
+                codigo_producto: codigo,
+                nombre_producto: p.nombre_producto ?? null,
+                cantidad: Number(p.cantidad),
+              });
+            if (error) throw error;
+            lineasNuevas++;
+          }
+        }
+      }
+
+      const { error: updErr } = await (supabase as any)
+        .from("entregas_corporativas_intake")
+        .update({ estatus: "procesado", procesado_at: new Date().toISOString(), procesado_por: uid })
+        .eq("id", row.id);
+      if (updErr) throw updErr;
+
+      toast.success(
+        `${porFecha.size} entregas creadas/actualizadas, ${lineasNuevas + lineasActualizadas} líneas`,
+      );
+      onChanged();
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudieron crear las entregas");
+    } finally {
+      setCreando(false);
+    }
+  };
+
 
   const handleVerArchivo = async () => {
     if (!row.storage_path) return;
