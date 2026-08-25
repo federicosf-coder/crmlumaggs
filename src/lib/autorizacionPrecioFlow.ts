@@ -151,6 +151,22 @@ export async function buildAutorizacionPrecioDraft(
 
   const justificacion = (documento.companies?.justificacion_precio_default || "").trim();
 
+  const c = documento.companies || {};
+  const datosClienteSnapshot = {
+    industrias: Array.isArray(c.industrias) ? c.industrias : [],
+    tipo_destino_lubricante: c.tipo_destino_lubricante || null,
+    lista_precios: c.lista_precios || null,
+    limite_credito: c.limite_credito != null ? Number(c.limite_credito) : null,
+    tipo_pago: c.tipo_pago || null,
+    forma_pago: c.forma_pago || null,
+    metodo_pago: c.metodo_pago || null,
+    uso_cfdi: c.uso_cfdi || null,
+    clabe_bancaria: c.clabe_bancaria || null,
+    tarjeta_ultimos4: c.tarjeta_ultimos4 || null,
+  };
+
+
+
 
   const { count: countExistentes, error: countError } = await (supabase as any)
     .from("documento_autorizaciones_precio")
