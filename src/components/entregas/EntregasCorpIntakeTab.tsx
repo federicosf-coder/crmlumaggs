@@ -76,11 +76,47 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
   const [ubicacionSel, setUbicacionSel] = useState<string>(LIBRE);
   const [lugarLibre, setLugarLibre] = useState<string>(row.lugar_entrega_detectado || "");
 
-
   const cliente = clienteSel === "Otro" ? clienteOtro.trim() : clienteSel;
+
+  useEffect(() => {
+    let cancelado = false;
+    if (!cliente) {
+      setUbicaciones([]);
+      setUbicacionSel(LIBRE);
+      return;
+    }
+    fetchUbicaciones(cliente).then((list) => {
+      if (cancelado) return;
+      setUbicaciones(list);
+      if (cliente === "Kenworth" && list.length > 0) {
+        setUbicacionSel(list[0].id);
+        return;
+      }
+      if (row.lugar_entrega_detectado) {
+        const hit = emparejarUbicacion(row.lugar_entrega_detectado, list);
+        setUbicacionSel(hit ? hit.id : LIBRE);
+      } else {
+        setUbicacionSel(LIBRE);
+      }
+    });
+    return () => { cancelado = true; };
+  }, [cliente, row.lugar_entrega_detectado]);
 
   const lineas: EntregaLinea[] = Array.isArray(row.entregas_extraidas) ? row.entregas_extraidas : [];
   const esImagen = (row.mime_type || "").startsWith("image/");
+
+  const handleVerHermana = async (h: IntakeRow) => {
+    if (!h.storage_path) return;
+    const { data, error } = await supabase.storage
+      .from("entregas-corporativas")
+      .createSignedUrl(h.storage_path, 3600);
+    if (error || !data?.signedUrl) {
+      toast.error("No se pudo generar la liga del archivo");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  };
+
 
   const handleCrearEntregas = async () => {
     if (!cliente || lineas.length === 0) return;
