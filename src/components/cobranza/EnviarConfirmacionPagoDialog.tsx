@@ -50,6 +50,7 @@ interface Props {
   ccEmails?: string[];
   bccEmails?: string[];
   replyTo?: string;
+  fromAddress?: string;
   title?: string;
   description?: string;
   /** Contexto opcional para registrar la actividad en el historial del CRM */
@@ -86,6 +87,7 @@ export function EnviarConfirmacionPagoDialog({
   ccEmails,
   bccEmails,
   replyTo,
+  fromAddress,
   title,
   description,
   logContext,
@@ -188,6 +190,7 @@ export function EnviarConfirmacionPagoDialog({
             // Intencionalmente sin BCC: todos visibles para Reply-All
             bcc: undefined,
             replyTo: replyTo || undefined,
+            ...(fromAddress ? { from: fromAddress } : {}),
             templateData: {
               empresa,
               fechaPago,
