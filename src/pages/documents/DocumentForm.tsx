@@ -1163,7 +1163,7 @@ export default function DocumentForm() {
             {td === "pedido" && (
               <>
                 {existingDoc?.id && (
-                  <PedidoAccionesPanel documentoId={existingDoc.id} />
+                  <PedidoAccionesPanel documentoId={existingDoc.id} onSolicitada={() => setAutorizacionOpen(true)} />
                 )}
                 {existingDoc?.id && (
                   <AutorizacionPrecioDialog
