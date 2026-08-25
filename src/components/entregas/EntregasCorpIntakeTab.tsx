@@ -419,6 +419,31 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
                 />
               </div>
             )}
+            <div className="space-y-1">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Lugar de entrega</Label>
+              <Select value={ubicacionSel} onValueChange={setUbicacionSel}>
+                <SelectTrigger className="h-8 w-56 text-sm">
+                  <SelectValue placeholder="Selecciona lugar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ubicaciones.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nombre}</SelectItem>
+                  ))}
+                  <SelectItem value={LIBRE}>Otro (especificar texto)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {ubicacionSel === LIBRE && (
+              <div className="space-y-1">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Lugar (texto)</Label>
+                <Input
+                  value={lugarLibre}
+                  onChange={(e) => setLugarLibre(e.target.value)}
+                  placeholder="Escribe el lugar de entrega"
+                  className="h-8 w-56 text-sm"
+                />
+              </div>
+            )}
             <Button
               size="sm"
               onClick={handleCrearEntregas}
