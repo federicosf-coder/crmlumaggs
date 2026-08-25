@@ -177,6 +177,7 @@ export interface CompanyData {
   clabe_bancaria?: string | null;
   tarjeta_ultimos4?: string | null;
   limite_credito?: number | null;
+  justificacion_precio_default?: string | null;
 }
 
 
@@ -200,6 +201,7 @@ const emptyForm = {
   clabe_bancaria: "",
   tarjeta_ultimos4: "",
   limite_credito: 0,
+  justificacion_precio_default: "",
   plaza_ids: [] as string[],
   ejecutivo_ids: [] as string[],
 };
@@ -483,6 +485,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         clabe_bancaria: (editData as any).clabe_bancaria || "",
         tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
         limite_credito: Number((editData as any).limite_credito ?? 0),
+        justificacion_precio_default: (editData as any).justificacion_precio_default || "",
         plaza_ids: [],
         ejecutivo_ids: [],
       });
@@ -513,6 +516,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         clabe_bancaria: (editData as any).clabe_bancaria || "",
         tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
         limite_credito: Number((editData as any).limite_credito ?? 0),
+        justificacion_precio_default: (editData as any).justificacion_precio_default || "",
         plaza_ids: [],
         ejecutivo_ids: [],
       });
@@ -605,6 +609,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       clabe_bancaria: form.clabe_bancaria?.trim() || null,
       tarjeta_ultimos4: form.tarjeta_ultimos4?.trim() || null,
       limite_credito: Number((form as any).limite_credito ?? 0),
+      justificacion_precio_default: form.justificacion_precio_default?.trim() || null,
     } as any;
 
 
@@ -1079,6 +1084,20 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-1.5 pt-2 border-t">
+                <Label className="text-xs">Justificación para precio</Label>
+                <Textarea
+                  value={form.justificacion_precio_default}
+                  onChange={e => setAndSchedule("justificacion_precio_default", e.target.value)}
+                  onBlur={e => autosave.saveNow("justificacion_precio_default", e.target.value)}
+                  rows={4}
+                  placeholder="Ej. Cliente con alto potencial, volumen anual comprometido..."
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Este texto se reutiliza como justificación por default al solicitar autorización de precio para pedidos de este cliente.
+                </p>
               </div>
             </TabsContent>
 
