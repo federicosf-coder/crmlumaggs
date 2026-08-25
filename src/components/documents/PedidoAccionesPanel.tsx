@@ -1,10 +1,14 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/formatters";
-import { Clock, Send, CheckCircle2, XCircle, HelpCircle } from "lucide-react";
+import { Clock, Send, CheckCircle2, XCircle, HelpCircle, FileCheck2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { buildAutorizacionPrecioDraft } from "@/lib/autorizacionPrecioFlow";
 
 interface AutorizacionFila {
   id: string;
@@ -59,8 +63,16 @@ const STATUS_CONFIG: Record<string, { icon: React.ElementType; label: string; bo
   },
 };
 
-export default function PedidoAccionesPanel({ documentoId }: { documentoId: string }) {
-  const { data: fila } = useQuery({
+export default function PedidoAccionesPanel({
+  documentoId,
+  onSolicitada,
+}: {
+  documentoId: string;
+  onSolicitada?: () => void;
+}) {
+  const { user } = useAuth();
+  const [creando, setCreando] = useState(false);
+  const { data: fila, refetch } = useQuery({
     queryKey: ["pedido-autorizacion-precio", documentoId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -76,7 +88,42 @@ export default function PedidoAccionesPanel({ documentoId }: { documentoId: stri
     enabled: !!documentoId,
   });
 
-  if (!fila) return null;
+  const solicitarAutorizacion = async () => {
+    setCreando(true);
+    try {
+      await buildAutorizacionPrecioDraft(documentoId, user?.id ?? null);
+      await (supabase as any)
+        .from("documentos")
+        .update({ estatus_pedido: "espera_autorizacion_precio" })
+        .eq("id", documentoId);
+      await refetch();
+      toast.success("Autorización de precio creada");
+      onSolicitada?.();
+    } catch (err: any) {
+      toast.error(`No se pudo crear la autorización: ${err.message}`);
+    } finally {
+      setCreando(false);
+    }
+  };
+
+  if (!fila) {
+    return (
+      <Card className="mb-4 border border-slate-300 bg-slate-50">
+        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <FileCheck2 className="mt-0.5 h-5 w-5 shrink-0 text-slate-600" />
+            <p className="text-sm font-medium text-slate-900">
+              Este pedido no tiene autorización de precio. Puedes solicitarla ahora.
+            </p>
+          </div>
+          <Button size="sm" onClick={solicitarAutorizacion} disabled={creando} className="shrink-0 self-start sm:self-center">
+            {creando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Solicitar autorización de precio
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const config = STATUS_CONFIG[fila.estatus] || STATUS_CONFIG.indeterminado;
   const Icon = config.icon;
