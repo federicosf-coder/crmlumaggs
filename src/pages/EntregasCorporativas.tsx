@@ -27,6 +27,8 @@ import {
 import { toast } from "sonner";
 import { ProductoSelector, fetchProductosCatalogo } from "@/components/entregas/ProductoSelector";
 import EntregasCorpIntakeTab from "@/components/entregas/EntregasCorpIntakeTab";
+import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
+import { buildEntregaEmailFlow, type EntregaEmailFlow } from "@/lib/entregaEmailFlow";
 import { useQuery } from "@tanstack/react-query";
 
 export const CLIENTES = ["Hyundai", "Kenworth", "Mecánica Tek", "Otro"];
