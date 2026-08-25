@@ -142,7 +142,7 @@ export async function buildAutorizacionPrecioDraft(
 
     let margen_porcentaje: number | null = null;
     if (costo != null && precio_unitario > 0) {
-      margen_porcentaje = Math.round(((precio_unitario - costo) / precio_unitario) * 1000) / 10;
+      margen_porcentaje = Math.round(((precio_unitario - costo) / precio_unitario) * 100);
     }
 
     costoMargenSnapshot.push({
@@ -259,7 +259,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
         <tr style="background:#f3f4f6;">
           <th style="text-align:left">Código</th>
           <th style="text-align:left">Descripción</th>
-          <th style="text-align:right">Cantidad</th>
+          <th style="text-align:center">Cantidad</th>
           <th style="text-align:right">Precio venta</th>
           <th style="text-align:right">Costo (CRM)</th>
           <th style="text-align:right">Margen % (CRM)</th>
@@ -272,7 +272,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
           <tr>
             <td>${p.codigo || "—"}</td>
             <td>${p.descripcion || "—"}</td>
-            <td style="text-align:right">${fmtNumber(p.cantidad)}</td>
+            <td style="text-align:center">${fmtNumber(p.cantidad)}</td>
             <td style="text-align:right">${fmtCurrency(p.precio_unitario)}</td>
             <td style="text-align:right">${fmtCurrency(p.costo)}</td>
             <td style="text-align:right">${
@@ -392,15 +392,17 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     }
   }
 
-  const rowsHtml = (pares: [string, string | null][]) =>
-    `<table cellpadding="4" cellspacing="0" style="font-family:Arial,sans-serif;font-size:14px">
-      ${pares
+  const rowsHtml = (pares: [string, string | null][]) => {
+    const filtradas = pares.filter(([, v]) => v != null && String(v).trim() !== "");
+    if (filtradas.length === 0) return "<em>Sin datos capturados</em>";
+    return `<table cellpadding="4" cellspacing="0" style="font-family:Arial,sans-serif;font-size:14px">
+      ${filtradas
         .map(
-          ([k, v]) =>
-            `<tr><td style="color:#6b7280">${k}</td><td><strong>${v && String(v).trim() ? v : "—"}</strong></td></tr>`
+          ([k, v]) => `<tr><td style="color:#6b7280">${k}</td><td><strong>${v}</strong></td></tr>`
         )
         .join("")}
     </table>`.trim();
+  };
 
   const clasificacionLista = rowsHtml([
     ["Industria", industriasEtiquetas.length ? industriasEtiquetas.join(", ") : null],
