@@ -140,15 +140,9 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
         });
       } catch { /* conserva el nombre extraído por la IA */ }
 
-      // Resolver ubicación
-      const ubicaciones = await fetchUbicaciones(cliente);
-      let ubicacion: any = null;
-      if (cliente === "Kenworth") {
-        ubicacion = ubicaciones[0] ?? null;
-      } else if (row.lugar_entrega_detectado) {
-        ubicacion = emparejarUbicacion(row.lugar_entrega_detectado, ubicaciones);
-      }
-      const lugarTexto = ubicacion ? null : (row.lugar_entrega_detectado || null);
+      // Ubicación seleccionada por el usuario
+      const ubicacion: any = ubicacionSel !== LIBRE ? (ubicaciones.find((u) => u.id === ubicacionSel) ?? null) : null;
+      const lugarTexto = ubicacion ? null : (lugarLibre.trim() || null);
       const numeroPedido = row.numero_pedido_detectado || null;
 
       // Agrupar por fecha
