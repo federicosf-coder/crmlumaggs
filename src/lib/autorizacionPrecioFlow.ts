@@ -475,6 +475,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     `<p>Solicitud de autorización de precio para {cliente} — Pedido {numero_pedido}.</p>
        <p><strong>Justificación:</strong></p>
        <pre style="white-space:pre-wrap;font-family:Arial,sans-serif">{justificacion}</pre>
+       {factura_bloque}
        <p><strong>Productos:</strong></p>
        {productos_lista}
        <p><strong>Histórico:</strong></p>
