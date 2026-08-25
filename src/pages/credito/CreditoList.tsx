@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { CreditoDocsIntakeTab } from "@/components/credito/CreditoDocsIntakeTab";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FileCheck, Settings, Plus, Search, Loader2, Eye } from "lucide-react";
@@ -26,6 +29,7 @@ export default function CreditoList() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const canConfigure = hasAnyRole(["admin", "manager"]);
+  const canVerIntake = hasAnyRole(["admin", "manager", "accounting", "customer_service"]);
 
   const [search, setSearch] = useState("");
   const [tipo, setTipo] = useState<string>("all");
@@ -106,6 +110,128 @@ export default function CreditoList() {
     navigate(`/credito/${data!.id}`);
   };
 
+  const { data: intakeCount = 0 } = useQuery({
+    queryKey: ["credito-docs-intake-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("credito_docs_intake")
+        .select("id", { count: "exact", head: true })
+        .eq("estatus", "pendiente");
+      return count || 0;
+    },
+    enabled: canVerIntake,
+  });
+
+  const contenidoSolicitudes = (
+    <>
+          {/* Resumen por estado */}
+          <div className="flex gap-2 flex-wrap">
+            {CREDITO_ESTADO_OPTIONS.slice(0, 8).map((o) => {
+              const c = CREDITO_ESTADO_COLOR[o.value] || "bg-slate-50 text-slate-700 border-slate-200";
+              const n = counts[o.value] || 0;
+              const active = estado === o.value;
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => setEstado(active ? "all" : o.value)}
+                  className={`inline-flex items-center gap-2 h-7 px-2.5 rounded-full border text-[10px] font-semibold uppercase tracking-widest transition-all ${c} ${active ? "ring-2 ring-primary/40" : "opacity-90 hover:opacity-100"}`}
+                >
+                  {o.label}
+                  <span className="rounded-full bg-white/70 text-foreground px-1.5 min-w-[20px] text-center text-[10px] font-light tracking-normal normal-case">{n}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                <div className="relative flex-1 min-w-[220px]">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input className="pl-9" placeholder="Buscar por folio o cliente..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                <Select value={tipo} onValueChange={setTipo}>
+                  <SelectTrigger className="w-44"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los tipos</SelectItem>
+                    {CREDITO_TIPO_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={estado} onValueChange={setEstado}>
+                  <SelectTrigger className="w-56"><SelectValue placeholder="Estado" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    {CREDITO_ESTADO_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isLoading ? (
+                <div className="py-10 text-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline mr-2" />Cargando...</div>
+              ) : rows.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <FileCheck className="h-10 w-10 mx-auto opacity-30 mb-2" />
+                  <p>No hay solicitudes que coincidan con los filtros.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Folio</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Monto</TableHead>
+                        <TableHead>Días</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Creada</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(rows as any[]).map((r) => {
+                        const c = CREDITO_ESTADO_COLOR[r.estado] || "bg-slate-50 text-slate-700 border-slate-200";
+                        return (
+                          <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/credito/${r.id}`)}>
+                            <TableCell className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{r.folio || "—"}</TableCell>
+                            <TableCell>{(r.companies as any)?.name || "—"}</TableCell>
+                            <TableCell>
+                              {r.tipo ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-widest border bg-blue-50 text-blue-700 border-blue-200">
+                                  {CREDITO_TIPO_LABEL[r.tipo]}
+                                </span>
+                              ) : "—"}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {r.monto_solicitado ? `$${Number(r.monto_solicitado).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : "—"}
+                            </TableCell>
+                            <TableCell>{r.dias_credito ?? "—"}</TableCell>
+                            <TableCell>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-widest border ${c}`}>
+                                {CREDITO_ESTADO_LABEL[r.estado] || r.estado}
+                              </span>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                              {format(new Date(r.created_at), "dd/MM/yyyy")}
+                            </TableCell>
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="icon" onClick={() => navigate(`/credito/${r.id}`)} title="Ver">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+    </>
+  );
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <Card className="overflow-hidden border-border/60 shadow-sm">
@@ -143,111 +269,27 @@ export default function CreditoList() {
         </div>
       </Card>
 
-      {/* Resumen por estado */}
-      <div className="flex gap-2 flex-wrap">
-        {CREDITO_ESTADO_OPTIONS.slice(0, 8).map((o) => {
-          const c = CREDITO_ESTADO_COLOR[o.value] || "bg-slate-50 text-slate-700 border-slate-200";
-          const n = counts[o.value] || 0;
-          const active = estado === o.value;
-          return (
-            <button
-              key={o.value}
-              type="button"
-              onClick={() => setEstado(active ? "all" : o.value)}
-              className={`inline-flex items-center gap-2 h-7 px-2.5 rounded-full border text-[10px] font-semibold uppercase tracking-widest transition-all ${c} ${active ? "ring-2 ring-primary/40" : "opacity-90 hover:opacity-100"}`}
-            >
-              {o.label}
-              <span className="rounded-full bg-white/70 text-foreground px-1.5 min-w-[20px] text-center text-[10px] font-light tracking-normal normal-case">{n}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex gap-2 flex-wrap">
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Buscar por folio o cliente..." value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-            <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="Tipo" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los tipos</SelectItem>
-                {CREDITO_TIPO_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={estado} onValueChange={setEstado}>
-              <SelectTrigger className="w-56"><SelectValue placeholder="Estado" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                {CREDITO_ESTADO_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {isLoading ? (
-            <div className="py-10 text-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline mr-2" />Cargando...</div>
-          ) : rows.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
-              <FileCheck className="h-10 w-10 mx-auto opacity-30 mb-2" />
-              <p>No hay solicitudes que coincidan con los filtros.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Folio</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Monto</TableHead>
-                    <TableHead>Días</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Creada</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(rows as any[]).map((r) => {
-                    const c = CREDITO_ESTADO_COLOR[r.estado] || "bg-slate-50 text-slate-700 border-slate-200";
-                    return (
-                      <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/credito/${r.id}`)}>
-                        <TableCell className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{r.folio || "—"}</TableCell>
-                        <TableCell>{(r.companies as any)?.name || "—"}</TableCell>
-                        <TableCell>
-                          {r.tipo ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-widest border bg-blue-50 text-blue-700 border-blue-200">
-                              {CREDITO_TIPO_LABEL[r.tipo]}
-                            </span>
-                          ) : "—"}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {r.monto_solicitado ? `$${Number(r.monto_solicitado).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : "—"}
-                        </TableCell>
-                        <TableCell>{r.dias_credito ?? "—"}</TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-widest border ${c}`}>
-                            {CREDITO_ESTADO_LABEL[r.estado] || r.estado}
-                          </span>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                          {format(new Date(r.created_at), "dd/MM/yyyy")}
-                        </TableCell>
-                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" onClick={() => navigate(`/credito/${r.id}`)} title="Ver">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {canVerIntake ? (
+        <Tabs defaultValue="solicitudes" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="solicitudes">Solicitudes</TabsTrigger>
+            <TabsTrigger value="docs" className="gap-2">
+              Documentos por correo
+              {intakeCount > 0 && (
+                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{intakeCount}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="solicitudes" className="space-y-6">
+            {contenidoSolicitudes}
+          </TabsContent>
+          <TabsContent value="docs">
+            <CreditoDocsIntakeTab />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        contenidoSolicitudes
+      )}
 
       {/* Nueva solicitud */}
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
