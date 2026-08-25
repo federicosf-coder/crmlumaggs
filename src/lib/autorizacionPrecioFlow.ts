@@ -411,19 +411,33 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     tpl?.subject || "Autorización de precio — {cliente}",
     tplVars
   );
-  const htmlOverride = render(
+  const bodyTemplate =
     tpl?.body ||
-      `<p>Solicitud de autorización de precio para {cliente} — Pedido {numero_pedido}.</p>
+    `<p>Solicitud de autorización de precio para {cliente} — Pedido {numero_pedido}.</p>
        <p><strong>Justificación:</strong></p>
        <pre style="white-space:pre-wrap;font-family:Arial,sans-serif">{justificacion}</pre>
        <p><strong>Productos:</strong></p>
        {productos_lista}
        <p><strong>Histórico:</strong></p>
        {historico_lista}
+       <p><strong>Clasificación:</strong></p>
+       {clasificacion_lista}
+       <p><strong>Detalles de facturación:</strong></p>
+       {facturacion_lista}
        <p><strong>Evidencias:</strong></p>
-       {evidencias_lista}`,
-    tplVars
-  );
+       {evidencias_lista}`;
+
+  // Si la plantilla guardada no incluye los bloques nuevos, se agregan al final.
+  const extras: string[] = [];
+  if (!bodyTemplate.includes("{clasificacion_lista}")) {
+    extras.push(`<p><strong>Clasificación:</strong></p>${clasificacionLista}`);
+  }
+  if (!bodyTemplate.includes("{facturacion_lista}")) {
+    extras.push(`<p><strong>Detalles de facturación:</strong></p>${facturacionLista}`);
+  }
+
+  const htmlOverride = render(bodyTemplate, tplVars) + extras.join("");
+
 
   // 8. Destinatarios del grupo "Autorización de Precio"
   let defaultEmails: string[] = [];
