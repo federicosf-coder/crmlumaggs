@@ -4,12 +4,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, FileText, Image as ImageIcon, Mail, Trash2 } from "lucide-react";
+import { AlertTriangle, FileText, Image as ImageIcon, Mail, PackagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
+import { CLIENTES, fetchUbicaciones, emparejarUbicacion } from "@/pages/EntregasCorporativas";
+import { fetchProductosCatalogo } from "@/components/entregas/ProductoSelector";
+
+function normalizarCliente(s: string) {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 
 type IntakeRow = {
   id: string;
