@@ -1,6 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { formatDate } from "@/lib/formatters";
+import {
+  normalizeDatosCliente,
+  labelTipoPago,
+  labelFormaPago,
+  labelMetodoPago,
+  labelUsoCfdi,
+  labelListaPrecios,
+} from "@/lib/autorizacionDatosCliente";
+
 
 function resolveEmpresaCosto(empresaVendedora: string): "lumaggs" | "galsa" {
   return empresaVendedora === "galsa_phillips66" ? "galsa" : "lumaggs";
