@@ -58,6 +58,24 @@ const ESTATUS_PED_LABELS: Record<string, string> = {
   precio_autorizado: "Precio Autoriz.", validado_contabilidad: "Validado Contab.",
   programado_entrega: "Prog. Entrega", entregado: "Entregado", cancelado: "Cancelado",
 };
+const PEDIDO_STATUS_CHIP_LABELS: Record<string, string> = {
+  confirmado_cliente: "Confirmado",
+  espera_autorizacion_precio: "Autorización",
+  precio_autorizado: "Precio OK",
+  validado_contabilidad: "Contabilidad",
+  programado_entrega: "Programado",
+  entregado: "Entregado",
+  cancelado: "Cancelado",
+};
+const PEDIDO_STATUS_ORDER = [
+  "confirmado_cliente",
+  "espera_autorizacion_precio",
+  "precio_autorizado",
+  "validado_contabilidad",
+  "programado_entrega",
+  "entregado",
+  "cancelado",
+];
 const ESTATUS_FAC_LABELS: Record<string, string> = {
   vigente: "Vigente", pendiente: "Vigente", pagada: "Pagada", parcial: "Parcial",
   vencida: "Vencida", cancelada: "Cancelada",
@@ -224,16 +242,16 @@ export default function DocumentsList() {
   // Pagination
   const [pageSize, setPageSize] = useState<number>(50);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize]);
 
   // Extra filter toolbar state
   const [tipoPagoFilter, setTipoPagoFilter] = useState<string>("all");
   const [fechaDesde, setFechaDesde] = useState<string>("");
   const [fechaHasta, setFechaHasta] = useState<string>("");
   const [estatusCotFilter, setEstatusCotFilter] = useState<string>("all");
-  const [estatusPedFilter, setEstatusPedFilter] = useState<string>("all");
+  const [estatusPedFilter, setEstatusPedFilter] = useState<string>(searchParams.get("estatus") || "all");
   const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
   const [estatusCobFilter, setEstatusCobFilter] = useState<string>("all");
+  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize, estatusPedFilter]);
   const clearFilters = () => {
     setTipoPagoFilter("all");
     setFechaDesde("");
@@ -251,6 +269,20 @@ export default function DocumentsList() {
     (tipoFilter === "pedido" && estatusPedFilter !== "all" ? 1 : 0) +
     (tipoFilter === "factura" && estatusFacFilter !== "all" ? 1 : 0) +
     (tipoFilter === "factura" && estatusCobFilter !== "all" ? 1 : 0);
+
+  // Sync pedido status filter with URL ?estatus
+  useEffect(() => {
+    if (tipoFilter !== "pedido") return;
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (estatusPedFilter && estatusPedFilter !== "all") {
+        next.set("estatus", estatusPedFilter);
+      } else {
+        next.delete("estatus");
+      }
+      return next;
+    }, { replace: true });
+  }, [estatusPedFilter, tipoFilter, setSearchParams]);
 
   const setFilter = useCallback((key: string, value: string) => {
     setSearchParams(prev => {
@@ -842,6 +874,35 @@ export default function DocumentsList() {
           </Button>
         </div>
       </div>
+
+      {/* Pedido status chips */}
+      {tipoFilter === "pedido" && (
+        <div className="flex gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setEstatusPedFilter("all")}
+            className={`rounded-full transition-all ${estatusPedFilter === "all" ? "ring-2 ring-primary ring-offset-1" : ""}`}
+          >
+            <Pill cls={NEUTRAL_PILL}>Todos ({docs.length})</Pill>
+          </button>
+          {PEDIDO_STATUS_ORDER.map((key) => {
+            const count = docs.filter((d: any) => d.estatus_pedido === key).length;
+            const isActive = estatusPedFilter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setEstatusPedFilter(key)}
+                className={`rounded-full transition-all ${isActive ? "ring-2 ring-primary ring-offset-1" : ""}`}
+              >
+                <Pill cls={STATUS_PILL_MAP[key] || NEUTRAL_PILL}>
+                  {PEDIDO_STATUS_CHIP_LABELS[key]} ({count})
+                </Pill>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Plaza filter buttons */}
       {plazas.length > 0 && (
