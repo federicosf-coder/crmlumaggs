@@ -545,6 +545,17 @@ export default function EntregasCorpIntakeTab() {
     },
   });
 
+  const porEmail = useMemo(() => {
+    const m = new Map<string, IntakeRow[]>();
+    rows.forEach((r) => {
+      if (!r.resend_email_id) return;
+      const arr = m.get(r.resend_email_id) ?? [];
+      arr.push(r);
+      m.set(r.resend_email_id, arr);
+    });
+    return m;
+  }, [rows]);
+
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Cargando correos...</p>;
   }
@@ -562,8 +573,18 @@ export default function EntregasCorpIntakeTab() {
   return (
     <div className="space-y-4">
       {rows.map((row) => (
-        <IntakeCard key={row.id} row={row} onChanged={() => refetch()} />
+        <IntakeCard
+          key={row.id}
+          row={row}
+          hermanas={
+            row.resend_email_id
+              ? (porEmail.get(row.resend_email_id) ?? []).filter((h) => h.id !== row.id)
+              : []
+          }
+          onChanged={() => refetch()}
+        />
       ))}
+
     </div>
   );
 }
