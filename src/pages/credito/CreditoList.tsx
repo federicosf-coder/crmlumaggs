@@ -256,6 +256,27 @@ export default function CreditoList() {
         </div>
       </Card>
 
+      {canVerIntake ? (
+        <Tabs defaultValue="solicitudes" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="solicitudes">Solicitudes</TabsTrigger>
+            <TabsTrigger value="docs" className="gap-2">
+              Documentos por correo
+              {intakeCount > 0 && (
+                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{intakeCount}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="solicitudes" className="space-y-6">
+            {contenidoSolicitudes}
+          </TabsContent>
+          <TabsContent value="docs">
+            <CreditoDocsIntakeTab />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        contenidoSolicitudes
+      )}
 
       {/* Nueva solicitud */}
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
