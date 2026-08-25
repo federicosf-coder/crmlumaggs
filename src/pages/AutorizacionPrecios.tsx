@@ -56,6 +56,19 @@ export default function AutorizacionPrecios() {
   });
 
   const rows = data?.rows || [];
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("id");
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && highlightId && rows.some((r) => r.id === highlightId)) {
+      const el = document.getElementById(highlightId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightedId(highlightId);
+      }
+    }
+  }, [isLoading, highlightId, rows]);
 
   return (
     <div className="p-6 space-y-6">
