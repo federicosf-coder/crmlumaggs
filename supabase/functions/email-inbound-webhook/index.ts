@@ -134,11 +134,12 @@ Deno.serve(async (req) => {
 
     const data = evt.data ?? {};
 
-    const BUZON_COMPROBANTES = 'comprobantes@correo.lumaggs.com.mx';
     const destinatarios: string[] = Array.isArray(data.to)
       ? data.to.map((t: unknown) => extraerEmail(String(t ?? '')))
       : [extraerEmail(String(data.to ?? ''))];
-    if (!destinatarios.some((d) => d.includes(BUZON_COMPROBANTES))) {
+    const esComprobantes = destinatarios.some((d) => d.includes(BUZON_COMPROBANTES));
+    const esCredito = !esComprobantes && destinatarios.some((d) => d.includes(BUZON_CREDITO));
+    if (!esComprobantes && !esCredito) {
       return jsonRes({ ok: true, ignorado: 'destinatario_no_coincide' });
     }
 
