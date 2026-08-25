@@ -1,11 +1,13 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useAlertasPendientes } from "@/hooks/useAlertasPendientes";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   FileText, Package, Truck, BookOpen, ArrowLeftRight, FolderKanban,
   GraduationCap, BarChart3, Briefcase, Wallet, FolderOpen, FileCheck, MessageCircle,
   Zap, ArrowRight, Sparkles, TrendingUp,
 
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 type Mod = {
   title: string;
@@ -122,8 +124,52 @@ export default function Index() {
   const navigate = useNavigate();
   const firstName = (profile?.full_name || "Usuario").split(" ")[0];
 
+  const { comprobantes, entregas, autorizaciones, totalCount, isLoading } = useAlertasPendientes();
+
   return (
     <div className="space-y-5 sm:space-y-8 pb-10">
+      {totalCount > 0 && (
+        <Card className="border-amber-200/60 bg-amber-50/40">
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2 px-4 py-3 sm:px-5 sm:py-4">
+            <CardTitle className="text-sm sm:text-base font-semibold text-amber-900">
+              Pendientes de revisar
+            </CardTitle>
+            <Link
+              to="/alertas"
+              className="text-xs text-amber-700 hover:text-amber-900 hover:underline whitespace-nowrap"
+            >
+              Ver todas las alertas →
+            </Link>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2 px-4 pb-4 sm:px-5 sm:pb-5">
+            {comprobantes.length > 0 && (
+              <Link
+                to="/cobranza/chevron"
+                className="inline-flex items-center rounded-full border border-amber-200 bg-white px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100 transition-colors"
+              >
+                🧾 {comprobantes.length} comprobante{comprobantes.length === 1 ? "" : "s"}
+              </Link>
+            )}
+            {entregas.length > 0 && (
+              <Link
+                to="/entregas-corporativas"
+                className="inline-flex items-center rounded-full border border-amber-200 bg-white px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100 transition-colors"
+              >
+                🚚 {entregas.length} correo{entregas.length === 1 ? " de entrega" : "s de entregas"}
+              </Link>
+            )}
+            {autorizaciones.length > 0 && (
+              <Link
+                to="/autorizacion-precios"
+                className="inline-flex items-center rounded-full border border-amber-200 bg-white px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100 transition-colors"
+              >
+                💲 {autorizaciones.length} autorizaci{autorizaciones.length === 1 ? "ón" : "ones"} de precio
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Hero */}
       <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-gradient-to-br from-blue-600 via-indigo-600 to-rose-500 p-4 sm:p-8 text-white shadow-md">
         <div className="absolute inset-0 opacity-30 pointer-events-none" aria-hidden>
