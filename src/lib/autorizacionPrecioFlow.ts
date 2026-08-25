@@ -533,7 +533,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     cc,
     comprobantes,
     previouslySentEmails: [] as string[],
-    templateName: "autorizacion-precio",
+    templateName: "raw-html",
   };
 }
 
