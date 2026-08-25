@@ -148,28 +148,8 @@ export async function buildAutorizacionPrecioDraft(
     documento.empresa_vendedora
   );
 
-  const historicoTexto =
-    historico.mesesRaw.length > 0
-      ? historico.mesesRaw
-          .map((m) => `${formatMonthYearUpper(m.mes)}: ${m.unidades} unidades`)
-          .join("\n")
-      : "Sin historial de facturación";
+  const justificacion = (documento.companies?.justificacion_precio_default || "").trim();
 
-  const justificacionDefault = documento.companies?.justificacion_precio_default;
-  const partes: string[] = [];
-  partes.push(
-    `Histórico:\n${historicoTexto}\nAcumulado desde ${
-      historico.fechaDesde ?? "—"
-    }: ${new Intl.NumberFormat("es-MX").format(
-      historico.acumuladoUnidades
-    )} unidades. Promedio mensual: ${new Intl.NumberFormat("es-MX").format(
-      historico.promedioMensual
-    )} unidades.`
-  );
-  if (justificacionDefault) {
-    partes.push("", justificacionDefault);
-  }
-  const justificacion = partes.join("\n").trim();
 
   const { count: countExistentes, error: countError } = await (supabase as any)
     .from("documento_autorizaciones_precio")
