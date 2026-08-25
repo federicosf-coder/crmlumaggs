@@ -350,7 +350,44 @@ function IntakeCard({ row, onChanged }: { row: IntakeRow; onChanged: () => void 
             <p className="text-sm text-muted-foreground">Sin productos/fechas detectados</p>
           )}
 
+          <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-3">
+            <div className="space-y-1">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Cliente</Label>
+              <Select value={clienteSel} onValueChange={setClienteSel}>
+                <SelectTrigger className="h-8 w-56 text-sm">
+                  <SelectValue placeholder="Selecciona cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CLIENTES.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {clienteSel === "Otro" && (
+              <div className="space-y-1">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Nombre del cliente</Label>
+                <Input
+                  value={clienteOtro}
+                  onChange={(e) => setClienteOtro(e.target.value)}
+                  placeholder="Escribe el cliente"
+                  className="h-8 w-56 text-sm"
+                />
+              </div>
+            )}
+            <Button
+              size="sm"
+              onClick={handleCrearEntregas}
+              disabled={creando || !cliente || lineas.length === 0}
+              className="gap-1"
+            >
+              <PackagePlus className="h-4 w-4" />
+              {creando ? "Creando..." : "Crear entregas"}
+            </Button>
+          </div>
+
           <div className="flex flex-wrap gap-2">
+
             {row.storage_path && (
               <Button variant="outline" size="sm" onClick={handleVerArchivo} className="gap-1">
                 {esImagen ? <ImageIcon className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
