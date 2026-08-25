@@ -514,6 +514,42 @@ export default function AutorizacionPrecioCard({
               )}
             </div>
 
+            <div className="space-y-3 border-t pt-4">
+              <AutorizacionDatosClienteBlock
+                value={datos}
+                onChange={setDatos}
+                disabled={!editable}
+              />
+              {editable && (
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={guardarDatos} disabled={savingDatos}>
+                    {savingDatos && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
+                    Guardar solo en este documento
+                  </Button>
+                  {company.id && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={guardarDatosEnPerfil}
+                      disabled={savingDatosPerfil}
+                    >
+                      {savingDatosPerfil ? (
+                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                      ) : (
+                        <Building2 className="h-3 w-3 mr-2" />
+                      )}
+                      Guardar en el perfil del cliente
+                    </Button>
+                  )}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Estos datos se envían en el correo de autorización. Guárdalos solo en el documento o
+                también en el perfil del cliente para futuros pedidos.
+              </p>
+            </div>
+
+
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Evidencia</p>
               {(evidencias || []).length === 0 ? (
