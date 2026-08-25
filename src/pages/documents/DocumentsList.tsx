@@ -242,7 +242,6 @@ export default function DocumentsList() {
   // Pagination
   const [pageSize, setPageSize] = useState<number>(50);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize, estatusPedFilter]);
 
   // Extra filter toolbar state
   const [tipoPagoFilter, setTipoPagoFilter] = useState<string>("all");
@@ -252,6 +251,7 @@ export default function DocumentsList() {
   const [estatusPedFilter, setEstatusPedFilter] = useState<string>(searchParams.get("estatus") || "all");
   const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
   const [estatusCobFilter, setEstatusCobFilter] = useState<string>("all");
+  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize, estatusPedFilter]);
   const clearFilters = () => {
     setTipoPagoFilter("all");
     setFechaDesde("");
