@@ -1,14 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { DictationTextarea } from "@/components/ui/DictationTextarea";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Loader2,
@@ -19,6 +28,7 @@ import {
   ChevronDown,
   ChevronRight,
   Building2,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
@@ -42,6 +52,7 @@ export default function AutorizacionPrecioCard({
   isHighlighted,
   defaultOpen = true,
   embedded = false,
+  onDeleted,
 }: {
   row: any;
   ejecutivo?: string | null;
@@ -49,14 +60,18 @@ export default function AutorizacionPrecioCard({
   isHighlighted?: boolean;
   defaultOpen?: boolean;
   embedded?: boolean;
+  onDeleted?: () => void;
 }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(defaultOpen);
   const [flash, setFlash] = useState(false);
   const [justificacion, setJustificacion] = useState<string>(row.justificacion || "");
   const [saving, setSaving] = useState(false);
   const [savingPerfil, setSavingPerfil] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [flow, setFlow] = useState<any>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [preparing, setPreparing] = useState(false);
@@ -230,6 +245,55 @@ export default function AutorizacionPrecioCard({
     } catch (e: any) {
       console.error(e);
       toast.error(e.message || "No se pudo actualizar el estatus");
+    }
+  };
+
+  const eliminarAutorizacion = async () => {
+    setDeleting(true);
+    try {
+      const evidenciaPaths = (evidencias || [])
+        .map((ev: any) => ev.storage_path)
+        .filter(Boolean);
+
+      if (evidenciaPaths.length > 0) {
+        const { error: storageError } = await supabase.storage.from(BUCKET).remove(evidenciaPaths);
+        if (storageError) console.warn("No se pudieron eliminar algunos archivos de evidencia:", storageError);
+      }
+
+      const { error: evidenciasError } = await (supabase as any)
+        .from("documento_autorizacion_evidencias")
+        .delete()
+        .eq("autorizacion_id", row.id);
+      if (evidenciasError) throw evidenciasError;
+
+      const { error: autorizacionError } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .delete()
+        .eq("id", row.id);
+      if (autorizacionError) throw autorizacionError;
+
+      if (row.documento_id) {
+        const { error: documentoError } = await (supabase as any)
+          .from("documentos")
+          .update({ estatus_pedido: "confirmado_cliente" })
+          .eq("id", row.documento_id)
+          .eq("tipo_documento", "pedido");
+        if (documentoError) throw documentoError;
+      }
+
+      toast.success("Autorización eliminada; el pedido volvió a Confirmado Cliente");
+      setDeleteOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["documentos"] });
+      queryClient.invalidateQueries({ queryKey: ["documento", row.documento_id] });
+      queryClient.invalidateQueries({ queryKey: ["pedido-autorizacion-precio", row.documento_id] });
+      queryClient.invalidateQueries({ queryKey: ["autorizacion-precio-dialog", row.documento_id] });
+      onRefetch();
+      onDeleted?.();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo eliminar la autorización");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -422,17 +486,51 @@ export default function AutorizacionPrecioCard({
               )}
             </div>
 
-            {editable && (
-              <div className="flex justify-end border-t pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+                disabled={deleting}
+              >
+                {deleting ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Trash2 className="h-3 w-3 mr-2" />}
+                Eliminar autorización
+              </Button>
+              {editable && (
                 <Button onClick={abrirEnvio} disabled={preparing}>
                   {preparing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                   Enviar
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar esta autorización?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará esta solicitud y sus evidencias. El documento regresará a Confirmado Cliente para poder reiniciar el proceso desde el pedido o desde la cotización.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                eliminarAutorizacion();
+              }}
+            >
+              {deleting ? "Eliminando..." : "Eliminar y reiniciar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {flow && (
         <EnviarConfirmacionPagoDialog

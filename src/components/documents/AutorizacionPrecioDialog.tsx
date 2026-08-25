@@ -63,6 +63,7 @@ export default function AutorizacionPrecioDialog({
               row={data.row}
               ejecutivo={data.ejecutivo}
               onRefetch={refetch}
+              onDeleted={() => onOpenChange(false)}
               defaultOpen
               embedded
             />
