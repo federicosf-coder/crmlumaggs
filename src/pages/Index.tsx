@@ -1,11 +1,13 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useAlertasPendientes } from "@/hooks/useAlertasPendientes";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   FileText, Package, Truck, BookOpen, ArrowLeftRight, FolderKanban,
   GraduationCap, BarChart3, Briefcase, Wallet, FolderOpen, FileCheck, MessageCircle,
   Zap, ArrowRight, Sparkles, TrendingUp,
 
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 type Mod = {
   title: string;
