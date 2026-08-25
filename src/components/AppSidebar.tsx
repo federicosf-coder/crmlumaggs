@@ -220,12 +220,33 @@ export function AppSidebar() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/documents?tipo=pedido" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                          <ClipboardList className="mr-2 h-4 w-4" />
-                          {!collapsed && <span>Pedidos</span>}
-                        </NavLink>
-                      </SidebarMenuButton>
+                      <Collapsible open={pedidosOpen} onOpenChange={setPedidosOpen}>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton className="pl-8 hover:bg-sidebar-accent/50">
+                            <ClipboardList className="mr-2 h-4 w-4" />
+                            {!collapsed && <span className="flex-1 text-left">Pedidos</span>}
+                            {!collapsed && <ChevronDown className={`h-4 w-4 transition-transform ${pedidosOpen ? "rotate-180" : ""}`} />}
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <NavLink to="/documents?tipo=pedido" className="pl-12 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                                {!collapsed && <span>Todos</span>}
+                              </NavLink>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          {PEDIDO_SIDEBAR_ITEMS.map((item) => (
+                            <SidebarMenuItem key={item.key}>
+                              <SidebarMenuButton asChild>
+                                <NavLink to={`/documents?tipo=pedido&estatus=${item.key}`} className="pl-12 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                                  {!collapsed && <span>{item.label}</span>}
+                                </NavLink>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
