@@ -463,6 +463,8 @@ Deno.serve(async (req) => {
       return false;
     });
 
+    console.log('diagnóstico previo al descarte: attachments=', attachments.length, 'bodyText_length=', (bodyText || '').length);
+
     if (validos.length === 0) return jsonRes({ ok: true, procesados: 0, motivo: 'sin_adjuntos_validos' });
 
     // Lista de adjuntos con download_url y size real a través del gateway de conectores de Lovable
