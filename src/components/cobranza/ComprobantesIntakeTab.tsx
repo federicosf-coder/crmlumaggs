@@ -167,7 +167,9 @@ function ComprobanteCard({
   const navigate = useNavigate();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState(row.empresa_id || "");
+  const [empVend, setEmpVend] = useState<EmpresaVendedora>(empresaVendedora || ("lumaggs_chevron" as EmpresaVendedora));
   const autoVinculado = !!row.empresa_id;
+
   const [empresaDatos, setEmpresaDatos] = useState<{ clabe_bancaria: string | null; tarjeta_ultimos4: string | null } | null>(null);
   const [monto, setMonto] = useState(row.monto_extraido != null ? String(row.monto_extraido) : "");
   const [openPreview, setOpenPreview] = useState(false);
@@ -236,6 +238,8 @@ function ComprobanteCard({
     supabase.from("documentos")
       .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,total,saldo_pendiente_cobranza,estatus_factura")
       .eq("empresa_id", empresaId)
+      .eq("empresa_vendedora", empVend as any)
+
       .eq("is_active", true)
       .gt("total", 0)
       .in("tipo_documento", ["factura", "pedido", "cotizacion"])
@@ -261,7 +265,8 @@ function ComprobanteCard({
         setSeleccion({});
         setLoadingDocs(false);
       });
-  }, [empresaId]);
+  }, [empresaId, empVend]);
+
 
   const totalAsignado = useMemo(
     () => Object.values(seleccion).reduce((s, v) => s + (Number(v) || 0), 0),
@@ -335,7 +340,7 @@ function ComprobanteCard({
           estatus_pago: "recibido" as any,
           observaciones: `Comprobante recibido vía ${CANAL_LABEL[row.canal] || row.canal}. Creado desde bandeja de clasificación.`,
           creado_por: user?.id,
-          ...(empresaVendedora ? { empresa_vendedora: empresaVendedora } : {}),
+          empresa_vendedora: empVend,
         } as any)
         .select("id")
         .single();
@@ -476,7 +481,7 @@ function ComprobanteCard({
       if (!pago) return;
       toast.success("Pago creado y comprobante clasificado");
       onDone();
-      navigate(`/cobranza/${empresaVendedora === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
+      navigate(`/cobranza/${empVend === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
     } finally {
       setSaving(false);
     }
@@ -627,6 +632,22 @@ function ComprobanteCard({
           )}
 
           <div>
+            <Label>Empresa vendedora *</Label>
+            <SearchableSelect
+              value={empVend}
+              onValueChange={(v) => setEmpVend(v as EmpresaVendedora)}
+              options={[
+                { value: "lumaggs_chevron", label: "Lumaggs (Chevron)" },
+                { value: "galsa_phillips66", label: "Galsa (Phillips 66)" },
+              ]}
+              placeholder="Selecciona empresa..."
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              El pago quedará disponible en la cobranza de esta empresa.
+            </p>
+          </div>
+
+          <div>
             <div className="flex items-center gap-2">
               <Label>Cliente *</Label>
               {autoVinculado && (
@@ -643,6 +664,7 @@ function ComprobanteCard({
               <p className="text-xs text-muted-foreground mt-1">Nombre detectado: "{row.nombre_detectado}"</p>
             )}
           </div>
+
 
           {(mismatchClabe || mismatchTarjeta) && (
             <Alert className="border-amber-300 bg-amber-50 text-amber-800">
@@ -850,7 +872,7 @@ function ComprobanteCard({
         toast.success("Pago enviado a validar");
         onDone();
         navigate(
-          `/cobranza/${empresaVendedora === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${previewPagoId}`
+          `/cobranza/${empVend === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${previewPagoId}`
         );
       }}
     />
