@@ -34,7 +34,13 @@ import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 import { buildAutorizacionPrecioEmailFlow } from "@/lib/autorizacionPrecioFlow";
+import {
+  normalizeDatosCliente,
+  type DatosClienteAutorizacion,
+} from "@/lib/autorizacionDatosCliente";
+import { AutorizacionDatosClienteBlock } from "@/components/documents/AutorizacionDatosClienteBlock";
 import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
+
 
 const BUCKET = "autorizacion-precios";
 
