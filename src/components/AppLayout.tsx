@@ -8,9 +8,11 @@ import { roleLabel } from "@/lib/roles";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { usePendingFeedbackCount } from "@/hooks/usePendingFeedbackCount";
 import { MessageCircleQuestion } from "lucide-react";
+import { AlertasBell } from "@/components/AlertasBell";
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { roles, hasRole } = useAuth();
+  const { roles, hasRole, hasAnyRole } = useAuth();
+
   const pendingFeedback = usePendingFeedbackCount();
   const isAdmin = hasRole("admin");
   const [sp] = useSearchParams();
