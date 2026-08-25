@@ -73,9 +73,15 @@ export default function AutorizacionPrecioCard({
   const [open, setOpen] = useState(defaultOpen);
   const [flash, setFlash] = useState(false);
   const [justificacion, setJustificacion] = useState<string>(row.justificacion || "");
+  const [datos, setDatos] = useState<DatosClienteAutorizacion>(
+    normalizeDatosCliente(row.datos_cliente_snapshot)
+  );
+  const [savingDatos, setSavingDatos] = useState(false);
+  const [savingDatosPerfil, setSavingDatosPerfil] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingPerfil, setSavingPerfil] = useState(false);
   const [uploading, setUploading] = useState(false);
+
   const [deleting, setDeleting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [flow, setFlow] = useState<any>(null);
