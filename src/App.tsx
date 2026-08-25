@@ -46,6 +46,8 @@ import CrmActivitiesTasks from "@/pages/crm/CrmActivitiesTasks";
 import SeguimientoLanding from "@/pages/seguimiento/SeguimientoLanding";
 import SeguimientoVentas from "@/pages/seguimiento/SeguimientoVentas";
 import NotFound from "@/pages/NotFound";
+import Alertas from "@/pages/Alertas";
+
 import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
 import Cobranza from "@/pages/cobranza/Cobranza";
 import CobranzaLanding from "@/pages/cobranza/CobranzaLanding";
