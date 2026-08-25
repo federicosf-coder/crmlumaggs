@@ -249,7 +249,7 @@ export default function DocumentsList() {
   const [fechaDesde, setFechaDesde] = useState<string>("");
   const [fechaHasta, setFechaHasta] = useState<string>("");
   const [estatusCotFilter, setEstatusCotFilter] = useState<string>("all");
-  const [estatusPedFilter, setEstatusPedFilter] = useState<string>("all");
+  const [estatusPedFilter, setEstatusPedFilter] = useState<string>(searchParams.get("estatus") || "all");
   const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
   const [estatusCobFilter, setEstatusCobFilter] = useState<string>("all");
   const clearFilters = () => {
