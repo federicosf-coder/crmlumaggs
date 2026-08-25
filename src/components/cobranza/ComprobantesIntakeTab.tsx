@@ -238,6 +238,8 @@ function ComprobanteCard({
     supabase.from("documentos")
       .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,total,saldo_pendiente_cobranza,estatus_factura")
       .eq("empresa_id", empresaId)
+      .eq("empresa_vendedora", empVend as any)
+
       .eq("is_active", true)
       .gt("total", 0)
       .in("tipo_documento", ["factura", "pedido", "cotizacion"])
