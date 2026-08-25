@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
+import { DictationTextarea } from "@/components/ui/DictationTextarea";
 import { Button } from "@/components/ui/button";
 import { Loader2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
