@@ -145,6 +145,8 @@ const App = () => (
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/entregas-corporativas" element={<ProtectedRoute><EntregasCorporativas /></ProtectedRoute>} />
             <Route path="/autorizacion-precios" element={<ProtectedRoute><AutorizacionPrecios /></ProtectedRoute>} />
+            <Route path="/alertas" element={<ProtectedRoute><Alertas /></ProtectedRoute>} />
+
             <Route path="/inventario/niveles" element={<ProtectedRoute><NivelesInventario /></ProtectedRoute>} />
             <Route path="/inventario/kardex" element={<ProtectedRoute><KardexCarga /></ProtectedRoute>} />
             <Route path="/inventario/kardex-gestion" element={<ProtectedRoute><GestionKardex /></ProtectedRoute>} />
