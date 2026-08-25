@@ -207,7 +207,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   const { data: autorizacion, error: authError } = await (supabase as any)
     .from("documento_autorizaciones_precio")
     .select(
-      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, numero_pedido_ref, documentos(id, numero_pedido, pdf_url, ejecutivo_venta_id, companies(name, razon_social))"
+      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, numero_pedido_ref, documentos(id, numero_pedido, pdf_url, ejecutivo_venta_id, companies(name, razon_social))"
     )
     .eq("id", autorizacionId)
     .maybeSingle();
