@@ -216,7 +216,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   const { data: autorizacion, error: authError } = await (supabase as any)
     .from("documento_autorizaciones_precio")
     .select(
-      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, numero_pedido_ref, documentos(id, numero_pedido, pdf_url, ejecutivo_venta_id, companies(name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
+      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, numero_pedido_ref, documentos(id, numero_pedido, numero_factura, pdf_url, ejecutivo_venta_id, companies(name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
     )
     .eq("id", autorizacionId)
     .maybeSingle();
@@ -417,12 +417,19 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   ]);
 
   // 6. Variables de plantilla
+  const numeroFacturaDoc = String(documento?.numero_factura || "").trim();
+  const facturaBloque = numeroFacturaDoc
+    ? `<p style="font-family:Arial,sans-serif;font-size:14px"><strong>Número de factura:</strong> ${numeroFacturaDoc}</p>`
+    : "";
+
   const tplVars: Record<string, string> = {
     cliente: documento?.companies?.name || "—",
     razon_social: documento?.companies?.razon_social || "—",
     ejecutivo: ejecutivoNombre,
     numero_pedido:
       documento?.numero_pedido || autorizacion.numero_pedido_ref || "—",
+    numero_factura: numeroFacturaDoc,
+    factura_bloque: facturaBloque,
     productos_lista: productosLista,
     historico_lista: historicoLista,
     acumulado_unidades: fmtNumber(historicoSnapshot.acumuladoUnidades),
@@ -468,6 +475,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     `<p>Solicitud de autorización de precio para {cliente} — Pedido {numero_pedido}.</p>
        <p><strong>Justificación:</strong></p>
        <pre style="white-space:pre-wrap;font-family:Arial,sans-serif">{justificacion}</pre>
+       {factura_bloque}
        <p><strong>Productos:</strong></p>
        {productos_lista}
        <p><strong>Histórico:</strong></p>
