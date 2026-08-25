@@ -170,6 +170,55 @@ export default function AutorizacionPrecioCard({
     }
   };
 
+  const guardarDatos = async () => {
+    setSavingDatos(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .update({ datos_cliente_snapshot: datos })
+        .eq("id", row.id);
+      if (error) throw error;
+      toast.success("Clasificación y facturación actualizadas en este documento");
+      onRefetch();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo guardar");
+    } finally {
+      setSavingDatos(false);
+    }
+  };
+
+  const guardarDatosEnPerfil = async () => {
+    if (!company.id) return;
+    setSavingDatosPerfil(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("companies")
+        .update({
+          industrias: datos.industrias || [],
+          tipo_destino_lubricante: datos.tipo_destino_lubricante || null,
+          lista_precios: datos.lista_precios || null,
+          limite_credito: datos.limite_credito ?? 0,
+          tipo_pago: datos.tipo_pago || null,
+          forma_pago: datos.forma_pago || null,
+          metodo_pago: datos.metodo_pago || null,
+          uso_cfdi: datos.uso_cfdi || null,
+          clabe_bancaria: datos.clabe_bancaria || null,
+          tarjeta_ultimos4: datos.tarjeta_ultimos4 || null,
+        })
+        .eq("id", company.id);
+      if (error) throw error;
+      toast.success("Datos guardados en el perfil del cliente");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudo guardar en el perfil del cliente");
+    } finally {
+      setSavingDatosPerfil(false);
+    }
+  };
+
+
+
   const verArchivo = async (path: string) => {
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60);
     if (error || !data?.signedUrl) {
