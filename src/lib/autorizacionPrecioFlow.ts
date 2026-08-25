@@ -207,3 +207,220 @@ export async function buildAutorizacionPrecioDraft(
   if (insertError) throw insertError;
   return insertado;
 }
+
+export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
+  // 1. Autorización + documento + empresa
+  const { data: autorizacion, error: authError } = await (supabase as any)
+    .from("documento_autorizaciones_precio")
+    .select(
+      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, numero_pedido_ref, documentos(id, numero_pedido, pdf_url, ejecutivo_venta_id, companies(name, razon_social))"
+    )
+    .eq("id", autorizacionId)
+    .maybeSingle();
+
+  if (authError) throw authError;
+  if (!autorizacion) throw new Error("Autorización no encontrada");
+
+  const documento = autorizacion.documentos;
+
+  // 2. Perfil del ejecutivo
+  let ejecutivoNombre = "—";
+  let ejecutivoEmail: string | null = null;
+  if (documento?.ejecutivo_venta_id) {
+    const { data: perfil } = await (supabase as any)
+      .from("profiles")
+      .select("full_name, email")
+      .eq("user_id", documento.ejecutivo_venta_id)
+      .maybeSingle();
+    if (perfil) {
+      ejecutivoNombre = perfil.full_name || "—";
+      ejecutivoEmail = perfil.email || null;
+    }
+  }
+
+  // 3. Tabla de productos
+  const costoMargenSnapshot = autorizacion.costo_margen_snapshot || [];
+  const fmtCurrency = (v: number | null | undefined) =>
+    v == null
+      ? "—"
+      : new Intl.NumberFormat("es-MX", {
+          style: "currency",
+          currency: "MXN",
+        }).format(v);
+  const fmtNumber = (v: number | null | undefined) =>
+    v == null ? "—" : new Intl.NumberFormat("es-MX").format(v);
+
+  const productosLista = `
+    <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;width:100%">
+      <thead>
+        <tr style="background:#f3f4f6;">
+          <th style="text-align:left">Código</th>
+          <th style="text-align:left">Descripción</th>
+          <th style="text-align:right">Cantidad</th>
+          <th style="text-align:right">Precio venta</th>
+          <th style="text-align:right">Costo (CRM)</th>
+          <th style="text-align:right">Margen % (CRM)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${costoMargenSnapshot
+          .map(
+            (p: any) => `
+          <tr>
+            <td>${p.codigo || "—"}</td>
+            <td>${p.descripcion || "—"}</td>
+            <td style="text-align:right">${fmtNumber(p.cantidad)}</td>
+            <td style="text-align:right">${fmtCurrency(p.precio_unitario)}</td>
+            <td style="text-align:right">${fmtCurrency(p.costo)}</td>
+            <td style="text-align:right">${
+              p.margen_porcentaje == null
+                ? "—"
+                : `${new Intl.NumberFormat("es-MX").format(p.margen_porcentaje)}%`
+            }</td>
+          </tr>
+        `
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `.trim();
+
+  // 4. Histórico (mismo formato que computeHistoricoCliente)
+  const historicoSnapshot = autorizacion.historico_snapshot || {};
+  const mesesRaw = historicoSnapshot.mesesRaw || [];
+  const ultimos6 = mesesRaw.slice(-6);
+  const historicoLista =
+    ultimos6.length > 0
+      ? `<ul>${ultimos6
+          .map(
+            (m: any) =>
+              `<li>${formatMonthYearUpper(m.mes)} — ${new Intl.NumberFormat(
+                "es-MX"
+              ).format(Number(m.unidades) || 0)} unidades</li>`
+          )
+          .join("")}</ul>`
+      : "<em>Sin historial de facturación</em>";
+
+  // 5. Evidencias con signed URLs de 7 días
+  const { data: evidenciasRows } = await (supabase as any)
+    .from("documento_autorizacion_evidencias")
+    .select("storage_path, nombre_archivo")
+    .eq("autorizacion_id", autorizacionId);
+
+  const comprobantes: { nombre: string; url: string }[] = [];
+  for (const ev of evidenciasRows || []) {
+    try {
+      const { data: signed } = await supabase.storage
+        .from("autorizacion-precios")
+        .createSignedUrl(ev.storage_path, 60 * 60 * 24 * 7);
+      if (signed?.signedUrl) {
+        comprobantes.push({
+          nombre: ev.nombre_archivo || ev.storage_path,
+          url: signed.signedUrl,
+        });
+      }
+    } catch {
+      /* omitir evidencia sin URL */
+    }
+  }
+  const evidenciasLista = comprobantes.length
+    ? `<ul>${comprobantes
+        .map((c) => `<li><a href="${c.url}">${c.nombre}</a></li>`)
+        .join("")}</ul>`
+    : "<em>Sin evidencia adjunta</em>";
+
+  // 6. Variables de plantilla
+  const tplVars: Record<string, string> = {
+    cliente: documento?.companies?.name || "—",
+    razon_social: documento?.companies?.razon_social || "—",
+    ejecutivo: ejecutivoNombre,
+    numero_pedido:
+      documento?.numero_pedido || autorizacion.numero_pedido_ref || "—",
+    productos_lista: productosLista,
+    historico_lista: historicoLista,
+    acumulado_unidades: fmtNumber(historicoSnapshot.acumuladoUnidades),
+    fecha_acumulado_desde: historicoSnapshot.fechaDesde || "—",
+    promedio_mensual: fmtNumber(historicoSnapshot.promedioMensual),
+    justificacion: autorizacion.justificacion || "—",
+    evidencias_lista: evidenciasLista,
+  };
+
+  // 7. Plantilla del sistema
+  let tpl: any = null;
+  try {
+    const { data } = await (supabase as any)
+      .from("templates")
+      .select("subject, body")
+      .eq("system_key", "autorizacion_precio")
+      .eq("is_active", true)
+      .limit(1);
+    tpl = (data || [])[0] || null;
+  } catch {
+    tpl = null;
+  }
+
+  function render(text: string, vars: Record<string, string>): string {
+    let out = text || "";
+    for (const [k, v] of Object.entries(vars)) {
+      out = out.split(`{${k}}`).join(v ?? "");
+    }
+    return out;
+  }
+
+  const subjectOverride = render(
+    tpl?.subject || "Autorización de precio — {cliente}",
+    tplVars
+  );
+  const htmlOverride = render(
+    tpl?.body ||
+      `<p>Solicitud de autorización de precio para {cliente} — Pedido {numero_pedido}.</p>
+       <p><strong>Justificación:</strong></p>
+       <pre style="white-space:pre-wrap;font-family:Arial,sans-serif">{justificacion}</pre>
+       <p><strong>Productos:</strong></p>
+       {productos_lista}
+       <p><strong>Histórico:</strong></p>
+       {historico_lista}
+       <p><strong>Evidencias:</strong></p>
+       {evidencias_lista}`,
+    tplVars
+  );
+
+  // 8. Destinatarios del grupo "Autorización de Precio"
+  let defaultEmails: string[] = [];
+  try {
+    const { data: groupRow } = await (supabase as any)
+      .from("email_groups")
+      .select("id")
+      .eq("name", "Autorización de Precio")
+      .maybeSingle();
+    if (groupRow?.id) {
+      const { data: members } = await (supabase as any)
+        .from("email_group_members")
+        .select("email")
+        .eq("group_id", groupRow.id);
+      defaultEmails = (members || [])
+        .map((m: any) => (m.email || "").trim())
+        .filter((e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+    }
+  } catch {
+    defaultEmails = [];
+  }
+
+  // 9. CC
+  const cc: string[] = ["precios@correo.lumaggs.com.mx"];
+  if (ejecutivoEmail) cc.push(ejecutivoEmail);
+
+  // 10. Retorno
+  return {
+    title: `Autorización de precio — ${tplVars.cliente}`,
+    description: "Al enviar, el pedido quedará en espera de respuesta.",
+    subjectOverride,
+    htmlOverride,
+    defaultEmails,
+    cc,
+    comprobantes,
+    previouslySentEmails: [] as string[],
+    templateName: "autorizacion-precio",
+  };
+}
+
