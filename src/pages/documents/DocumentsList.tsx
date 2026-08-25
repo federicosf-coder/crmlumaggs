@@ -242,7 +242,7 @@ export default function DocumentsList() {
   // Pagination
   const [pageSize, setPageSize] = useState<number>(50);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize]);
+  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize, estatusPedFilter]);
 
   // Extra filter toolbar state
   const [tipoPagoFilter, setTipoPagoFilter] = useState<string>("all");
