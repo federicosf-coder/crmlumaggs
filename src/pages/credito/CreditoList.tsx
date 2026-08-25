@@ -29,6 +29,7 @@ export default function CreditoList() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const canConfigure = hasAnyRole(["admin", "manager"]);
+  const canVerIntake = hasAnyRole(["admin", "manager", "accounting", "customer_service"]);
 
   const [search, setSearch] = useState("");
   const [tipo, setTipo] = useState<string>("all");
