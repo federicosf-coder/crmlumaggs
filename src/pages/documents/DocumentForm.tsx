@@ -858,11 +858,17 @@ export default function DocumentForm() {
       {td === "pedido" && existingDoc?.id && (
         <div>
           <InstruccionesEspecialesCard documentoId={existingDoc.id} />
+          <DivisionesPedidoCard documentoId={existingDoc.id} />
           <PedidoAccionesPanel documentoId={existingDoc.id} />
           <PedidoStatusStepper estatus={form.estatus_pedido} />
           <AutorizacionPrecioDialog
             open={autorizacionOpen}
             onOpenChange={setAutorizacionOpen}
+            documentoId={existingDoc.id}
+          />
+          <DividirPedidoDialog
+            open={dividirOpen}
+            onOpenChange={setDividirOpen}
             documentoId={existingDoc.id}
           />
         </div>
