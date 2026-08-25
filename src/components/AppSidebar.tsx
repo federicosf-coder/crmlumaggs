@@ -85,6 +85,9 @@ export function AppSidebar() {
   const [documentosOpen, setDocumentosOpen] = useState(
     location.pathname.startsWith("/documents") || location.pathname.startsWith("/autorizacion-precios") || location.pathname.startsWith("/entregas-corporativas")
   );
+  const [pedidosOpen, setPedidosOpen] = useState(
+    location.pathname.startsWith("/documents") && new URLSearchParams(location.search).get("tipo") === "pedido"
+  );
   const { data: huerfanosCount = 0 } = useHuerfanosCount();
   const { data: leadsPendientes = 0 } = usePendingLeadsCount();
 
