@@ -2872,6 +2872,84 @@ export type Database = {
           },
         ]
       }
+      credito_docs_intake: {
+        Row: {
+          asunto_email: string | null
+          clasificado_at: string | null
+          clasificado_por: string | null
+          confianza_ia: string | null
+          created_at: string
+          credit_request_id: string | null
+          doc_type_sugerido_id: string | null
+          estatus: Database["public"]["Enums"]["credito_docs_intake_estatus"]
+          extraccion_error: string | null
+          extraccion_raw: Json | null
+          folio_detectado: string | null
+          id: string
+          mime_type: string | null
+          nombre_archivo: string | null
+          remitente_email: string | null
+          resend_email_id: string | null
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          asunto_email?: string | null
+          clasificado_at?: string | null
+          clasificado_por?: string | null
+          confianza_ia?: string | null
+          created_at?: string
+          credit_request_id?: string | null
+          doc_type_sugerido_id?: string | null
+          estatus?: Database["public"]["Enums"]["credito_docs_intake_estatus"]
+          extraccion_error?: string | null
+          extraccion_raw?: Json | null
+          folio_detectado?: string | null
+          id?: string
+          mime_type?: string | null
+          nombre_archivo?: string | null
+          remitente_email?: string | null
+          resend_email_id?: string | null
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          asunto_email?: string | null
+          clasificado_at?: string | null
+          clasificado_por?: string | null
+          confianza_ia?: string | null
+          created_at?: string
+          credit_request_id?: string | null
+          doc_type_sugerido_id?: string | null
+          estatus?: Database["public"]["Enums"]["credito_docs_intake_estatus"]
+          extraccion_error?: string | null
+          extraccion_raw?: Json | null
+          folio_detectado?: string | null
+          id?: string
+          mime_type?: string | null
+          nombre_archivo?: string | null
+          remitente_email?: string | null
+          resend_email_id?: string | null
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credito_docs_intake_credit_request_id_fkey"
+            columns: ["credit_request_id"]
+            isOneToOne: false
+            referencedRelation: "credit_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_docs_intake_doc_type_sugerido_id_fkey"
+            columns: ["doc_type_sugerido_id"]
+            isOneToOne: false
+            referencedRelation: "credit_doc_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_activities: {
         Row: {
           activity_date: string
@@ -9574,6 +9652,7 @@ export type Database = {
         | "vencida"
         | "sin_actividad"
       credito_doc_estado: "pendiente" | "recibido" | "rechazado" | "vencido"
+      credito_docs_intake_estatus: "pendiente" | "aplicado" | "descartado"
       credito_estado:
         | "borrador"
         | "portal_enviado"
@@ -9933,6 +10012,7 @@ export const Constants = {
         "sin_actividad",
       ],
       credito_doc_estado: ["pendiente", "recibido", "rechazado", "vencido"],
+      credito_docs_intake_estatus: ["pendiente", "aplicado", "descartado"],
       credito_estado: [
         "borrador",
         "portal_enviado",
