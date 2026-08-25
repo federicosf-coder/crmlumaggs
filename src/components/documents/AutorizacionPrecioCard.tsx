@@ -104,6 +104,11 @@ export default function AutorizacionPrecioCard({
     setJustificacion(row.justificacion || "");
   }, [row.id, row.justificacion]);
 
+  useEffect(() => {
+    setDatos(normalizeDatosCliente(row.datos_cliente_snapshot));
+  }, [row.id, row.datos_cliente_snapshot]);
+
+
   const editable = row.estatus === "pendiente_revision";
   const doc = row.documentos || {};
   const company = doc.companies || {};
