@@ -33,6 +33,7 @@ import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDia
 import { MergeContactsDialog } from "@/components/directory/MergeContactsDialog";
 import { CompanyMetricsPanel } from "@/components/directory/CompanyMetricsPanel";
 import { CompanyCreditoCobranzaTab } from "@/components/directory/CompanyCreditoCobranzaTab";
+import { JustificacionPrecioBlock } from "@/components/directory/JustificacionPrecioBlock";
 
 interface Company {
   id: string; name: string; razon_social: string | null; industry: string | null; phone: string | null;
@@ -1317,6 +1318,11 @@ export default function Directory() {
                       <DetailRow label="Tipo según destino" value={selectedCompany.tipo_destino_lubricante} />
                     </div>
                   </div>
+
+                  <JustificacionPrecioBlock
+                    companyId={selectedCompany.id}
+                    initialValue={(selectedCompany as any).justificacion_precio_default}
+                  />
 
                   {/* Industrias */}
                   <div className="rounded-lg border p-3 space-y-2">
