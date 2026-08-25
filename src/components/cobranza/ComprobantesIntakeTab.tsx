@@ -627,6 +627,22 @@ function ComprobanteCard({
           )}
 
           <div>
+            <Label>Empresa vendedora *</Label>
+            <SearchableSelect
+              value={empVend}
+              onValueChange={(v) => setEmpVend(v as EmpresaVendedora)}
+              options={[
+                { value: "lumaggs_chevron", label: "Lumaggs (Chevron)" },
+                { value: "galsa_phillips66", label: "Galsa (Phillips 66)" },
+              ]}
+              placeholder="Selecciona empresa..."
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              El pago quedará disponible en la cobranza de esta empresa.
+            </p>
+          </div>
+
+          <div>
             <div className="flex items-center gap-2">
               <Label>Cliente *</Label>
               {autoVinculado && (
@@ -643,6 +659,7 @@ function ComprobanteCard({
               <p className="text-xs text-muted-foreground mt-1">Nombre detectado: "{row.nombre_detectado}"</p>
             )}
           </div>
+
 
           {(mismatchClabe || mismatchTarjeta) && (
             <Alert className="border-amber-300 bg-amber-50 text-amber-800">
