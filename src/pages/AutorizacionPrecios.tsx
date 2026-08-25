@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, BadgeDollarSign, Eye, Send, Upload } from "lucide-react";
+import { Loader2, BadgeDollarSign, Eye, Send, Upload, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 import { buildAutorizacionPrecioEmailFlow } from "@/lib/autorizacionPrecioFlow";
+import { CompanyFormDialog, type CompanyData } from "@/components/CompanyFormDialog";
 
 const BUCKET = "autorizacion-precios";
 
