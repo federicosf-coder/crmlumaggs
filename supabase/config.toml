@@ -65,5 +65,3 @@ verify_jwt = false
 
 
 
-[functions.email-inbound-credito-webhook]
-verify_jwt = false
