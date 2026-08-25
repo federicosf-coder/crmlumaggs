@@ -36,6 +36,7 @@ import { buildAutorizacionPrecioDraft } from "@/lib/autorizacionPrecioFlow";
 import PedidoStatusStepper from "@/components/documents/PedidoStatusStepper";
 import PedidoAccionesPanel from "@/components/documents/PedidoAccionesPanel";
 import AutorizacionPrecioDialog from "@/components/documents/AutorizacionPrecioDialog";
+import InstruccionesEspecialesCard from "@/components/documents/InstruccionesEspecialesCard";
 import { EMPRESA_STYLES, TIPO_DOC_STYLES, plazaColor } from "./documentStyles";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
@@ -831,7 +832,7 @@ export default function DocumentForm() {
 
       qc.invalidateQueries({ queryKey: ["documentos"] });
       toast.success(`${label} creado desde cotización`);
-      navigate(`/documents/${inserted.id}${targetType === "pedido" ? "?autorizacion=1" : ""}`);
+      navigate(`/documents/${inserted.id}`);
     } catch (err: any) {
       toast.error(`Error al convertir: ${err.message}`);
     }
@@ -856,7 +857,8 @@ export default function DocumentForm() {
       )}
       {td === "pedido" && existingDoc?.id && (
         <div>
-          <PedidoAccionesPanel documentoId={existingDoc.id} onSolicitada={() => setAutorizacionOpen(true)} />
+          <InstruccionesEspecialesCard documentoId={existingDoc.id} />
+          <PedidoAccionesPanel documentoId={existingDoc.id} />
           <PedidoStatusStepper estatus={form.estatus_pedido} />
           <AutorizacionPrecioDialog
             open={autorizacionOpen}

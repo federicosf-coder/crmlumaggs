@@ -4089,6 +4089,7 @@ export type Database = {
           follow_up_status: Database["public"]["Enums"]["cotizacion_followup_status"]
           forma_pago: string | null
           id: string
+          instrucciones_especiales: string | null
           is_active: boolean
           iva_importe: number
           iva_porcentaje: number
@@ -4146,6 +4147,7 @@ export type Database = {
           follow_up_status?: Database["public"]["Enums"]["cotizacion_followup_status"]
           forma_pago?: string | null
           id?: string
+          instrucciones_especiales?: string | null
           is_active?: boolean
           iva_importe?: number
           iva_porcentaje?: number
@@ -4203,6 +4205,7 @@ export type Database = {
           follow_up_status?: Database["public"]["Enums"]["cotizacion_followup_status"]
           forma_pago?: string | null
           id?: string
+          instrucciones_especiales?: string | null
           is_active?: boolean
           iva_importe?: number
           iva_porcentaje?: number
