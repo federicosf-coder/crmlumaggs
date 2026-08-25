@@ -32,6 +32,7 @@ import { fireAutomation } from "@/hooks/useFireAutomation";
 import { useLastAutomationRuns } from "@/hooks/useLastAutomationRuns";
 import { LastSendStamp } from "@/components/automations/LastSendStamp";
 import { EntregaCorporativaSection } from "@/components/documentos/EntregaCorporativaSection";
+import { buildAutorizacionPrecioDraft } from "@/lib/autorizacionPrecioFlow";
 import { EMPRESA_STYLES, TIPO_DOC_STYLES, plazaColor } from "./documentStyles";
 
 const ESTATUS_COT = [{ v: "borrador", l: "Borrador" }, { v: "impresa", l: "Impresa" }, { v: "enviada", l: "Enviada" }, { v: "aceptada", l: "Aceptada" }, { v: "rechazada", l: "Rechazada" }, { v: "vencida", l: "Vencida" }];
@@ -808,6 +809,16 @@ export default function DocumentForm() {
           ...itemRest, documento_id: inserted.id,
         }));
         await supabase.from("documento_productos").insert(newItems);
+      }
+
+      if (targetType === "pedido") {
+        try {
+          await buildAutorizacionPrecioDraft(inserted.id, user?.id ?? null);
+          await supabase.from("documentos").update({ estatus_pedido: "espera_autorizacion_precio" }).eq("id", inserted.id);
+        } catch (draftErr: any) {
+          console.error("Error al preparar autorización de precio:", draftErr);
+          toast.warning("El pedido se creó, pero no se pudo preparar la autorización de precio automáticamente. Contacta a soporte.");
+        }
       }
 
       qc.invalidateQueries({ queryKey: ["documentos"] });
