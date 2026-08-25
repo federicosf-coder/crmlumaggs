@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildAutorizacionPrecioDraft, buildAutorizacionPrecioEmailFlow } from "@/lib/autorizacionPrecioFlow";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
+import AutorizacionPrecioDialog from "./AutorizacionPrecioDialog";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface AutorizacionFila {
@@ -78,6 +79,7 @@ export default function PedidoAccionesPanel({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewFlow, setPreviewFlow] = useState<any>(null);
   const [preparing, setPreparing] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const { data: fila, refetch } = useQuery({
     queryKey: ["pedido-autorizacion-precio", documentoId],
     queryFn: async () => {
@@ -208,6 +210,18 @@ export default function PedidoAccionesPanel({
           </div>
         </div>
       </CardContent>
+
+      <AutorizacionPrecioDialog
+        open={formOpen}
+        onOpenChange={(o) => {
+          setFormOpen(o);
+          if (!o) {
+            refetch();
+            qc.invalidateQueries({ queryKey: ["pedido-autorizacion-precio", documentoId] });
+          }
+        }}
+        documentoId={documentoId}
+      />
 
       {previewFlow && (
         <EnviarConfirmacionPagoDialog
