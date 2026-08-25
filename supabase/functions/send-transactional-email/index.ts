@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
   let cc: string[] | undefined
   let bcc: string[] | undefined
   let replyTo: string | undefined
+  let fromAddress: string | undefined
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -108,6 +109,7 @@ Deno.serve(async (req) => {
     if (Array.isArray(body.bcc)) bcc = body.bcc.filter((e: any) => typeof e === 'string' && e)
     if (typeof body.replyTo === 'string' && body.replyTo) replyTo = body.replyTo
     else if (typeof body.reply_to === 'string' && body.reply_to) replyTo = body.reply_to
+    if (typeof body.from === 'string' && body.from.trim()) fromAddress = body.from.trim()
   } catch {
     return new Response(
       JSON.stringify({ error: 'Invalid JSON in request body' }),
@@ -411,9 +413,9 @@ Deno.serve(async (req) => {
       },
     })
 
-    const fromAddress = `${SITE_NAME} <noreply@${FROM_DOMAIN}>`
+    const effectiveFromAddress = fromAddress || `${SITE_NAME} <noreply@${FROM_DOMAIN}>`
     const resendBody: Record<string, unknown> = {
-      from: fromAddress,
+      from: effectiveFromAddress,
       to: [effectiveRecipient],
       subject: resolvedSubject,
       html,

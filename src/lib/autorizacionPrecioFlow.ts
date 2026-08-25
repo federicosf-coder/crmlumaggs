@@ -534,6 +534,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     comprobantes,
     previouslySentEmails: [] as string[],
     templateName: "raw-html",
+    fromAddress: "Lumaggs <precios@correo.lumaggs.com.mx>",
   };
 }
 
