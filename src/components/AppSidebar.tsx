@@ -200,9 +200,25 @@ export function AppSidebar() {
                   <CollapsibleContent>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
-                        <NavLink to="/documents" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                        <NavLink to="/documents?tipo=cotizacion" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <FileText className="mr-2 h-4 w-4" />
-                          {!collapsed && <span>Todos los Documentos</span>}
+                          {!collapsed && <span>Cotizaciones</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/documents?tipo=pedido" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <ClipboardList className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Pedidos</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/documents?tipo=factura" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <Receipt className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Facturas</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -211,6 +227,14 @@ export function AppSidebar() {
                         <NavLink to="/autorizacion-precios" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <BadgeDollarSign className="mr-2 h-4 w-4" />
                           {!collapsed && <span>Autorización de Precios</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/entregas-corporativas" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <CalendarCheck className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Entregas Corporativas</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
