@@ -33,9 +33,6 @@ function tituloCase(s: string) {
     .join(" ");
 }
 
-
-
-
 type IntakeRow = {
   id: string;
   canal: string | null;
