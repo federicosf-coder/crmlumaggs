@@ -457,6 +457,33 @@ export default function AutorizacionPrecioCard({
 
         <CollapsibleContent>
           <CardContent className="space-y-6 pt-6">
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Número de Factura
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={numeroFactura}
+                  onChange={(e) => setNumeroFactura(e.target.value)}
+                  placeholder="Ej. A-12345"
+                  className="h-8 max-w-[220px] font-mono text-sm"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={guardarNumeroFactura}
+                  disabled={savingFactura || (numeroFactura || "") === (doc.numero_factura || "")}
+                >
+                  {savingFactura && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
+                  Guardar
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground font-light">
+                Lo captura Atención a Clientes. Se guarda en el documento y se conserva cuando el pedido se
+                convierte en factura.
+              </p>
+            </div>
+
             <div>
               <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Productos</p>
               <Table>
