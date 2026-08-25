@@ -406,7 +406,7 @@ export default function CreditoPortal() {
   const [multiPickerMap, setMultiPickerMap] = useState<Record<number, string>>({});
   const [autofilling, setAutofilling] = useState<string | null>(null);
   const [autofillCollapsed, setAutofillCollapsed] = useState(true);
-  const [instructionsOpen, setInstructionsOpen] = useState(false);
+  const [instructionsOpen, setInstructionsOpen] = useState(true);
 
   const load = async () => {
     if (!token) return;
@@ -458,7 +458,7 @@ export default function CreditoPortal() {
     try {
       const allowed = [
         "tipo_persona",
-        "razon_social","nombre_comercial","rfc","telefono","correo_contacto",
+        "razon_social","nombre_comercial","rfc","telefono","correo_contacto","client_nombre_contacto",
         "domicilio_fiscal","ciudad_fiscal","estado_fiscal","antiguedad",
         "domicilio_comercial","ciudad_comercial","estado_comercial","giro_comercial",
         "monto_solicitado","dias_credito",
@@ -695,7 +695,7 @@ export default function CreditoPortal() {
     if (isOptInDoc(dt.nombre)) return optInChecked(dt.nombre);
     return true;
   };
-  const order = ["fiscal", "identidad", "domicilio", "legal", "negocio", "bancario", "aval", "otros"];
+  const order = ["fiscal", "domicilio", "identidad", "legal", "negocio", "bancario", "aval", "otros"];
   const groups: Record<string, { label: string; items: any[] }> = {};
   for (const dt of visibleDocTypes) {
     const g = groupFor(dt);
@@ -833,26 +833,36 @@ export default function CreditoPortal() {
               </button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="px-4 pb-4 space-y-3 text-xs text-slate-700 leading-relaxed border-t pt-3">
-                <div>
-                  <p className="font-semibold text-violet-700 uppercase tracking-wide text-[11px] mb-1">Documentos</p>
-                  <p>
-                    Suban en PDF legible todos los documentos marcados como obligatorios. Con la Constancia
-                    de Situación Fiscal (CSF), la identificación, el comprobante de domicilio y el acta
-                    constitutiva, el sistema puede extraer datos y autocompletar campos — por favor revisen
-                    que la información quede correcta.
-                  </p>
+              <div className="px-4 pb-4 space-y-4 text-xs text-slate-700 leading-relaxed border-t pt-3">
+                <div className="flex gap-3">
+                  <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-violet-700 font-bold text-[11px]">1</div>
+                  <div>
+                    <p className="font-semibold text-violet-700 uppercase tracking-wide text-[11px] mb-1">Envíenos su información</p>
+                    <p>
+                      Indíquenos primero el nombre y correo electrónico de la persona que realizará el trámite. Después súbanos, en este orden, sus documentos: Constancia de Situación Fiscal (CSF), Opinión positiva de Cumplimiento SAT (32-D), Comprobante de domicilio, Identificación oficial del Representante Legal o del solicitante (si es Persona Física), y si se trata de una empresa, Acta Constitutiva y, en su caso, los Poderes del Representante Legal. Pueden subirlos aquí en la pestaña Documentos o enviarlos por correo.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-blue-700 uppercase tracking-wide text-[11px] mb-1">Formularios</p>
-                  <p>Llenen las tres secciones: Empresa, Representación y Financiero.</p>
+                <div className="flex gap-3">
+                  <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-bold text-[11px]">2</div>
+                  <div>
+                    <p className="font-semibold text-blue-700 uppercase tracking-wide text-[11px] mb-1">Prellenamos su solicitud</p>
+                    <p>Con esos documentos completamos automáticamente los datos posibles del formulario y generamos los demás formatos que se requieren.</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-emerald-700 uppercase tracking-wide text-[11px] mb-1">Formatos y Firmas</p>
-                  <p>
-                    Descarguen todos los formatos, fírmenlos y súbanlos. De preferencia suban cada uno en su
-                    sección; si no pueden, usen el campo de "subir todos".
-                  </p>
+                <div className="flex gap-3">
+                  <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[11px]">3</div>
+                  <div>
+                    <p className="font-semibold text-emerald-700 uppercase tracking-wide text-[11px] mb-1">Termine de editar en línea</p>
+                    <p>Revise y complete el Formulario (pestañas Empresa, Representación, Financiero) en esta misma liga.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-700 font-bold text-[11px]">4</div>
+                  <div>
+                    <p className="font-semibold text-amber-700 uppercase tracking-wide text-[11px] mb-1">Imprima, firme y envíe</p>
+                    <p>Descargue los formatos de la pestaña "Formatos y Firmas", fírmelos (a mano o en línea) y súbalos de regreso, o envíelos escaneados.</p>
+                  </div>
                 </div>
               </div>
             </CollapsibleContent>
@@ -1104,6 +1114,7 @@ export default function CreditoPortal() {
                     <Field label="RFC"><Input value={form.rfc || ""} onChange={(e) => set("rfc", e.target.value.toUpperCase())} /></Field>
                     <Field label="Teléfono"><Input value={form.telefono || ""} onChange={(e) => set("telefono", e.target.value)} /></Field>
                     <Field label="Correo de contacto"><Input value={form.correo_contacto || ""} onChange={(e) => set("correo_contacto", e.target.value)} /></Field>
+                    <Field label="Nombre de quien realiza el trámite"><Input value={form.client_nombre_contacto || ""} onChange={(e) => set("client_nombre_contacto", e.target.value)} /></Field>
                     <Field label="Giro comercial"><Input value={form.giro_comercial || ""} onChange={(e) => set("giro_comercial", e.target.value)} /></Field>
                     <Field label="Antigüedad"><Input value={form.antiguedad || ""} onChange={(e) => set("antiguedad", e.target.value)} /></Field>
                   </Section>
