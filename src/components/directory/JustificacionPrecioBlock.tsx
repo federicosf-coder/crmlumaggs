@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
+import { DictationTextarea } from "@/components/ui/DictationTextarea";
 import { Button } from "@/components/ui/button";
 import { Loader2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
@@ -44,9 +45,9 @@ export function JustificacionPrecioBlock({
       <div className="flex items-center gap-2 text-xs font-semibold text-primary">
         <DollarSign className="h-3.5 w-3.5" /> Justificación de Precio
       </div>
-      <Textarea
+      <DictationTextarea
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(v) => setValue(v)}
         rows={4}
         className="font-light"
         placeholder="Ej. Cliente con alto potencial, volumen anual comprometido..."

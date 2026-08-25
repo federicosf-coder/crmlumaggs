@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DictationTextarea } from "@/components/ui/DictationTextarea";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyUnitsHeader } from "@/components/crm/CompanyUnitsHeader";
@@ -1088,9 +1089,9 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
 
               <div className="space-y-1.5 pt-2 border-t">
                 <Label className="text-xs">Justificación de Precio</Label>
-                <Textarea
+                <DictationTextarea
                   value={form.justificacion_precio_default}
-                  onChange={e => setAndSchedule("justificacion_precio_default", e.target.value)}
+                  onChange={v => setAndSchedule("justificacion_precio_default", v)}
                   onBlur={e => autosave.saveNow("justificacion_precio_default", e.target.value)}
                   rows={4}
                   placeholder="Ej. Cliente con alto potencial, volumen anual comprometido..."

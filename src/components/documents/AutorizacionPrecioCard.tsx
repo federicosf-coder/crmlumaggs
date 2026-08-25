@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { DictationTextarea } from "@/components/ui/DictationTextarea";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -355,9 +356,9 @@ export default function AutorizacionPrecioCard({
 
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Justificación de Precio</p>
-              <Textarea
+              <DictationTextarea
                 value={justificacion}
-                onChange={(e) => setJustificacion(e.target.value)}
+                onChange={(v) => setJustificacion(v)}
                 rows={6}
                 disabled={!editable}
                 className="font-light"
