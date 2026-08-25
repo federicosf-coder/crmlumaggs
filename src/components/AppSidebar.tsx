@@ -83,7 +83,7 @@ export function AppSidebar() {
   const inventarioAccess = useModuleAccess("inventario");
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
   const [documentosOpen, setDocumentosOpen] = useState(
-    location.pathname.startsWith("/documents") || location.pathname.startsWith("/autorizacion-precios")
+    location.pathname.startsWith("/documents") || location.pathname.startsWith("/autorizacion-precios") || location.pathname.startsWith("/entregas-corporativas")
   );
   const { data: huerfanosCount = 0 } = useHuerfanosCount();
   const { data: leadsPendientes = 0 } = usePendingLeadsCount();
