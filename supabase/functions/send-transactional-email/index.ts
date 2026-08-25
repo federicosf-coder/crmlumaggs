@@ -435,6 +435,16 @@ Deno.serve(async (req) => {
       })
 
       const respText = await resp.text()
+      let providerMessageId: string | null = null
+      if (respText) {
+        try {
+          const respJson = JSON.parse(respText)
+          providerMessageId = respJson?.id || null
+        } catch {
+          // Response body is not valid JSON; leave provider_message_id as null.
+        }
+      }
+
       if (!resp.ok) {
         console.error('Resend send failed', { status: resp.status, body: respText })
         await supabase.from('email_send_log').insert({
@@ -458,8 +468,9 @@ Deno.serve(async (req) => {
         template_name: templateName,
         recipient_email: effectiveRecipient,
         status: 'sent',
+        provider_message_id: providerMessageId,
         metadata: {
-        idempotency_key: idempotencyKey,
+          idempotency_key: idempotencyKey,
           provider: 'resend',
           cc: cc && cc.length ? cc : undefined,
           bcc: bcc && bcc.length ? bcc : undefined,
