@@ -273,7 +273,13 @@ export function EnviarConfirmacionPagoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent
+        className={
+          htmlOverride
+            ? "max-w-3xl max-h-[90vh] overflow-y-auto"
+            : "max-w-md"
+        }
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />{" "}
@@ -288,14 +294,53 @@ export function EnviarConfirmacionPagoDialog({
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="rounded-md border bg-muted/30 p-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Monto</span>
-              <span className="font-semibold">
-                {montoTotal} {moneda}
-              </span>
+          {montoTotal ? (
+            <div className="rounded-md border bg-muted/30 p-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Monto</span>
+                <span className="font-semibold">
+                  {montoTotal} {moneda}
+                </span>
+              </div>
             </div>
-          </div>
+          ) : null}
+
+          {htmlOverride && (
+            <div className="rounded-md border overflow-hidden">
+              <div className="bg-gradient-to-r from-violet-50 to-blue-50 px-3 py-2 border-b">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                  Vista previa del correo
+                </p>
+                {subjectOverride && (
+                  <p className="text-sm font-light truncate">
+                    <span className="text-muted-foreground">Asunto: </span>
+                    {subjectOverride}
+                  </p>
+                )}
+              </div>
+              <iframe
+                title="Vista previa del correo"
+                srcDoc={htmlOverride}
+                className="w-full h-[380px] bg-white"
+                sandbox=""
+              />
+              {comprobantes.length > 0 && (
+                <div className="border-t px-3 py-2 bg-muted/20">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-1">
+                    Archivos incluidos ({comprobantes.length})
+                  </p>
+                  <ul className="space-y-0.5">
+                    {comprobantes.map((c) => (
+                      <li key={c.url} className="text-xs font-light truncate">
+                        {c.nombre}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
 
           {confirmingResend && dupes.length > 0 && (
             <Alert variant="default" className="border-amber-500/50 bg-amber-500/5">
