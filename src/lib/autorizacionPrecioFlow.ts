@@ -98,9 +98,10 @@ export async function buildAutorizacionPrecioDraft(
   const { data: lineas, error: lineasError } = await (supabase as any)
     .from("documento_productos")
     .select(
-      "cantidad, precio_unitario, subtotal, producto:productos(codigo, nombre_producto, presentacion:presentaciones(nombre))"
+      "cantidad, precio_unitario, subtotal, producto:productos(codigo, nombre_producto, costo_actual, presentacion:presentaciones(nombre))"
     )
     .eq("documento_id", documentoId);
+
 
   if (lineasError) throw lineasError;
 
