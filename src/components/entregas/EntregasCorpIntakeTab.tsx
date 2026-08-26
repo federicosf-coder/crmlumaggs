@@ -429,29 +429,108 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
           </div>
 
           {lineas.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Producto</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead className="text-right">Cantidad</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lineas.map((l, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-mono text-xs">{l.codigo || "—"}</TableCell>
-                    <TableCell>{l.nombre_producto || "—"}</TableCell>
-                    <TableCell>{l.fecha || "—"}</TableCell>
-                    <TableCell className="text-right">{l.cantidad ?? "—"}</TableCell>
+            <div className="space-y-2">
+              <div className="flex items-center justify-end gap-2">
+                {editando ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs"
+                      disabled={guardandoLineas}
+                      onClick={() => { setLineas(lineasOriginales); setEditando(false); }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button size="sm" className="h-7 text-xs" disabled={guardandoLineas} onClick={guardarLineas}>
+                      {guardandoLineas ? "Guardando..." : "Guardar detalle"}
+                    </Button>
+                  </>
+                ) : (
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setEditando(true)}>
+                    <Pencil className="h-3 w-3" /> Editar detalle
+                  </Button>
+                )}
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Producto</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead className="text-right">Cantidad</TableHead>
+                    {editando && <TableHead className="w-10" />}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {lineas.map((l, i) => (
+                    <TableRow key={i}>
+                      {editando ? (
+                        <>
+                          <TableCell>
+                            <Input
+                              className="h-8 font-mono text-xs"
+                              value={l.codigo ?? ""}
+                              onChange={(e) => actualizarLinea(i, "codigo", e.target.value)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              className="h-8 text-sm"
+                              value={l.nombre_producto ?? ""}
+                              onChange={(e) => actualizarLinea(i, "nombre_producto", e.target.value)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="date"
+                              className="h-8 w-36 text-sm"
+                              value={(l.fecha ?? "").toString().slice(0, 10)}
+                              onChange={(e) => actualizarLinea(i, "fecha", e.target.value)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Input
+                              type="number"
+                              step="any"
+                              className="h-8 w-24 text-right text-sm"
+                              value={l.cantidad ?? ""}
+                              onChange={(e) => actualizarLinea(i, "cantidad", e.target.value)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => eliminarLinea(i)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </TableCell>
+                        </>
+                      ) : (
+                        <>
+                          <TableCell className="font-mono text-xs">{l.codigo || "—"}</TableCell>
+                          <TableCell>{l.nombre_producto || "—"}</TableCell>
+                          <TableCell>{l.fecha || "—"}</TableCell>
+                          <TableCell className="text-right">{l.cantidad ?? "—"}</TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {editando && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => setLineas((prev) => [...prev, { codigo: "", nombre_producto: "", fecha: "", cantidad: "" }])}
+                >
+                  + Agregar línea
+                </Button>
+              )}
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">Sin productos/fechas detectados</p>
           )}
+
 
           <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-3">
             <div className="space-y-1">
