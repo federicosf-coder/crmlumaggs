@@ -1270,18 +1270,31 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {[
+          { v: "todos", label: "Todos", active: "bg-slate-200 text-slate-800 border-slate-400" },
+          { v: "Hyundai", label: "Hyundai", active: "bg-blue-100 text-blue-700 border-blue-300" },
+          { v: "Kenworth", label: "Kenworth", active: "bg-violet-100 text-violet-700 border-violet-300" },
+          { v: "Mecánica Tek", label: "Mecánica Tek", active: "bg-emerald-100 text-emerald-700 border-emerald-300" },
+          { v: "Otro", label: "Otro", active: "bg-amber-100 text-amber-700 border-amber-300" },
+        ].map((c) => (
+          <button
+            key={c.v}
+            type="button"
+            onClick={() => setFCliente(c.v)}
+            className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
+              fCliente === c.v
+                ? `${c.active} font-semibold`
+                : "bg-muted text-muted-foreground border-transparent font-light hover:bg-muted/70"
+            }`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
       <Card>
-        <CardContent className="pt-6 grid gap-3 md:grid-cols-5">
-          <div className="space-y-1.5">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Cliente</Label>
-            <Select value={fCliente} onValueChange={setFCliente}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {CLIENTES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+        <CardContent className="pt-6 grid gap-3 md:grid-cols-4">
+
           <div className="space-y-1.5">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Estatus</Label>
             <Select value={fEstatus} onValueChange={setFEstatus}>
