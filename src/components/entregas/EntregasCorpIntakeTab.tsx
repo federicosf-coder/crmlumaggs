@@ -71,6 +71,7 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
   const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null);
   const [loadingEmailPreview, setLoadingEmailPreview] = useState(false);
   const [descartando, setDescartando] = useState(false);
+  const [descartandoHermana, setDescartandoHermana] = useState<string | null>(null);
   const emailIframeRef = useRef<HTMLIFrameElement>(null);
 
   const detectado = row.cliente_detectado?.trim() || "";
