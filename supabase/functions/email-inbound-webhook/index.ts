@@ -326,6 +326,229 @@ Deno.serve(async (req) => {
       return jsonRes({ ok: true, autorizacion_id: autorizacionId, clasificacion });
     }
 
+    // ===================== FLUJO FACTURAS XML (facturas@) =====================
+    if (esFacturas) {
+      const baseNombre = (n: string) => String(n || '').replace(/\.[^.]+$/, '').toLowerCase();
+      const esXml = (a: any) => {
+        const ct = String(a?.content_type ?? '').toLowerCase();
+        const fn = String(a?.filename ?? '').toLowerCase();
+        return ct.includes('xml') || fn.endsWith('.xml');
+      };
+      const esPdf = (a: any) => {
+        const ct = String(a?.content_type ?? '').toLowerCase();
+        const fn = String(a?.filename ?? '').toLowerCase();
+        return ct.includes('pdf') || fn.endsWith('.pdf');
+      };
+
+      const xmls = attachments.filter(esXml);
+      const pdfs = attachments.filter(esPdf);
+      if (xmls.length === 0) return jsonRes({ ok: true, procesados: 0, motivo: 'sin_xml_valido' });
+
+      let listadoFact: Array<any> = [];
+      try {
+        const attRes = await fetch(`https://connector-gateway.lovable.dev/resend/emails/receiving/${emailId}/attachments`, {
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            'X-Connection-Api-Key': RESEND_API_KEY,
+          },
+        });
+        if (!attRes.ok) {
+          console.error('error listando adjuntos (facturas):', attRes.status, await attRes.text());
+        } else {
+          const attJson = await attRes.json();
+          listadoFact = attJson?.data ?? attJson ?? [];
+          if (!Array.isArray(listadoFact)) listadoFact = [];
+        }
+      } catch (e) {
+        console.error('error listando adjuntos (facturas):', (e as Error).message);
+      }
+
+      const urlDe = (att: any) => {
+        const meta = listadoFact.find((l: any) => String(l?.id) === String(att?.id)) ?? null;
+        return meta?.download_url ?? meta?.downloadUrl ?? null;
+      };
+
+      let procesadosFact = 0;
+
+      for (const att of xmls) {
+        try {
+          const downloadUrl = urlDe(att);
+          if (!downloadUrl) throw new Error(`sin_download_url para adjunto ${att?.id}`);
+          const dl = await fetch(downloadUrl);
+          if (!dl.ok) throw new Error(`descarga_fallida_${dl.status}`);
+          const texto = await dl.text();
+
+          const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '' });
+          const result = parser.parse(texto);
+          const comp = result?.['cfdi:Comprobante'] ?? result?.Comprobante;
+          if (!comp) throw new Error('no_es_cfdi');
+
+          const emisor = comp['cfdi:Emisor'] ?? comp.Emisor ?? {};
+          const receptor = comp['cfdi:Receptor'] ?? comp.Receptor ?? {};
+          const conceptosNodo = comp['cfdi:Conceptos'] ?? comp.Conceptos ?? {};
+          const conceptosRaw = conceptosNodo['cfdi:Concepto'] ?? conceptosNodo.Concepto ?? [];
+          const conceptos = (Array.isArray(conceptosRaw) ? conceptosRaw : [conceptosRaw]).filter(Boolean);
+          const complemento = comp['cfdi:Complemento'] ?? comp.Complemento ?? {};
+          const tfdRaw = complemento['tfd:TimbreFiscalDigital'] ?? complemento.TimbreFiscalDigital ?? null;
+          const tfd = Array.isArray(tfdRaw) ? tfdRaw[0] : tfdRaw;
+
+          const uuidFiscal = asText(tfd?.UUID);
+          const serie = asText(comp.Serie);
+          const folio = asText(comp.Folio);
+          const fecha = asText(comp.Fecha);
+          const emisorRfc = asText(emisor.Rfc);
+          const receptorRfc = asText(receptor.Rfc);
+          const receptorNombre = asText(receptor.Nombre);
+
+          // Duplicado
+          let yaExiste = false;
+          if (uuidFiscal) {
+            const { data: dup } = await admin.from('documentos').select('id').eq('folio_fiscal_uuid', uuidFiscal).limit(1);
+            yaExiste = !!(dup && dup.length);
+          }
+
+          let clienteEstatus = 'pendiente';
+          let empresaIdMatched: string | null = null;
+          let candidatos: any[] = [];
+          let plazaId: string | null = null;
+          let empresaVendedora: string | null = null;
+          const productos: any[] = [];
+
+          if (!yaExiste) {
+            const rfcReceptor = (receptorRfc || '').trim().toUpperCase();
+            if (RFC_GENERICOS.has(rfcReceptor)) {
+              clienteEstatus = 'generico_manual';
+              candidatos = [];
+            } else {
+              if (receptorRfc) {
+                const { data: porRfc } = await admin
+                  .from('companies')
+                  .select('id, name, rfc')
+                  .ilike('rfc', receptorRfc.trim())
+                  .limit(5);
+                if (porRfc && porRfc.length === 1) {
+                  clienteEstatus = 'exacto_rfc';
+                  empresaIdMatched = porRfc[0].id;
+                }
+              }
+              if (clienteEstatus !== 'exacto_rfc') {
+                const palabras = palabrasSignificativas(receptorNombre || '');
+                const encontrados: Record<string, any> = {};
+                for (const w of palabras) {
+                  const { data: cands } = await admin
+                    .from('companies')
+                    .select('id, name, razon_social')
+                    .ilike('razon_social', `%${w}%`)
+                    .limit(5);
+                  for (const c of cands || []) encontrados[(c as any).id] = c;
+                }
+                const objetivo = normalizarTextoCfdi(receptorNombre || '');
+                candidatos = Object.values(encontrados)
+                  .map((c: any) => {
+                    const n = normalizarTextoCfdi(c.razon_social || '');
+                    const comunes = palabras.filter((w) => n.includes(w)).length;
+                    return { id: c.id, name: c.name, razon_social: c.razon_social, score: comunes + (n === objetivo ? 10 : 0) };
+                  })
+                  .sort((a: any, b: any) => b.score - a.score)
+                  .slice(0, 5)
+                  .map((c: any) => ({ id: c.id, name: c.name, razon_social: c.razon_social }));
+                clienteEstatus = candidatos.length ? 'nombre_similar' : 'pendiente';
+              }
+            }
+
+            empresaVendedora = mapEmisorAEmpresaVendedora(emisorRfc || '');
+            const nombrePlaza = mapSerieAPlaza(serie || '');
+            if (nombrePlaza) {
+              const { data: pl } = await admin.from('plazas').select('id').eq('nombre', nombrePlaza).limit(1);
+              plazaId = pl && pl.length ? (pl[0] as any).id : null;
+            }
+
+            for (const c of conceptos) {
+              const codigo = asText(c.NoIdentificacion);
+              let prod: any = null;
+              if (codigo) {
+                const { data: p } = await admin.from('productos').select('id, codigo, descripcion').eq('codigo', codigo).limit(1);
+                prod = p && p.length ? p[0] : null;
+              }
+              productos.push({
+                codigo,
+                descripcion: asText(c.Descripcion),
+                cantidad: asNumber(c.Cantidad) ?? 0,
+                valorUnitario: asNumber(c.ValorUnitario) ?? 0,
+                importe: asNumber(c.Importe) ?? 0,
+                producto_id: prod?.id ?? null,
+                producto_nombre: prod ? `${prod.codigo} — ${prod.descripcion || ''}` : null,
+                matched: !!prod,
+              });
+            }
+          }
+
+          // Subida del XML
+          const nombreArchivo = String(att?.filename || `${uuidFiscal || Date.now()}.xml`);
+          const sanitizado = nombreArchivo.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120);
+          const storagePath = `email/${emailId}/${uuidFiscal || Date.now()}-${sanitizado}`;
+          const { error: upErr } = await admin.storage
+            .from('facturas-xml')
+            .upload(storagePath, new TextEncoder().encode(texto), { contentType: 'application/xml', upsert: true });
+          if (upErr) throw new Error(`upload_failed: ${upErr.message}`);
+
+          // PDF hermano (mismo nombre base)
+          let pdfPath: string | null = null;
+          try {
+            const pdfAtt = pdfs.find((p) => baseNombre(p?.filename) === baseNombre(nombreArchivo));
+            const pdfUrl = pdfAtt ? urlDe(pdfAtt) : null;
+            if (pdfUrl) {
+              const pdfDl = await fetch(pdfUrl);
+              if (pdfDl.ok) {
+                const pdfBytes = new Uint8Array(await pdfDl.arrayBuffer());
+                const ruta = `${storagePath}-pdf.pdf`;
+                const { error: pErr } = await admin.storage
+                  .from('facturas-xml')
+                  .upload(ruta, pdfBytes, { contentType: 'application/pdf', upsert: true });
+                if (pErr) console.error('error subiendo PDF de factura:', pErr.message);
+                else pdfPath = ruta;
+              }
+            }
+          } catch (e) {
+            console.error('error procesando PDF hermano:', (e as Error).message);
+          }
+
+          const { error: insErr } = await admin.from('documentos_xml_intake').insert({
+            storage_path: storagePath,
+            pdf_storage_path: pdfPath,
+            nombre_archivo: nombreArchivo,
+            uuid_fiscal: uuidFiscal,
+            serie,
+            folio,
+            plaza_id_detectado: plazaId,
+            empresa_vendedora_detectada: empresaVendedora,
+            emisor_rfc: emisorRfc,
+            fecha_factura: fecha ? fecha.slice(0, 10) : null,
+            subtotal: asNumber(comp.SubTotal),
+            total: asNumber(comp.Total),
+            forma_pago: asText(comp.FormaPago),
+            metodo_pago: asText(comp.MetodoPago),
+            uso_cfdi: asText(receptor.UsoCFDI),
+            moneda: asText(comp.Moneda),
+            receptor_nombre: receptorNombre,
+            receptor_rfc: receptorRfc,
+            empresa_id_matched: empresaIdMatched,
+            cliente_match_estatus: yaExiste ? 'pendiente' : clienteEstatus,
+            cliente_candidatos: candidatos,
+            productos_json: productos,
+            estatus: yaExiste ? 'ya_existia' : 'pendiente',
+            subido_por: null,
+          });
+          if (insErr) throw new Error(`insert_failed: ${insErr.message}`);
+
+          procesadosFact++;
+        } catch (e) {
+          console.error(`error procesando XML de factura (${att?.filename}):`, (e as Error).message);
+        }
+      }
+
+      return jsonRes({ ok: true, procesados: procesadosFact });
+    }
 
 
     // ===================== FLUJO CRÉDITO (documentos@) =====================
