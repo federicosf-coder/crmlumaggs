@@ -140,9 +140,12 @@ Deno.serve(async (req) => {
       : [extraerEmail(String(data.to ?? ''))];
     const esComprobantes = destinatarios.some((d) => d.includes(BUZON_COMPROBANTES));
     const esCredito = !esComprobantes && destinatarios.some((d) => d.includes(BUZON_CREDITO));
-    if (!esComprobantes && !esCredito) {
+    const esPrecios =
+      !esComprobantes && !esCredito && destinatarios.some((d) => d.includes(BUZON_PRECIOS));
+    if (!esComprobantes && !esCredito && !esPrecios) {
       return jsonRes({ ok: true, ignorado: 'destinatario_no_coincide' });
     }
+
 
     const emailId: string = String(data.email_id ?? data.id ?? '');
     const fromRaw: string = String(data.from ?? '');
