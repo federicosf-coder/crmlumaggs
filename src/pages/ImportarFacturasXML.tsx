@@ -128,6 +128,26 @@ export default function ImportarFacturasXML() {
     },
   });
 
+  const { data: profilesActivos = [] } = useQuery({
+    queryKey: ["profiles-xml-import"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("is_active", true)
+        .order("full_name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const profileOptions = useMemo(
+    () => (profilesActivos as any[]).map((p) => ({ value: p.user_id, label: p.full_name || "—" })),
+    [profilesActivos]
+  );
+
+
+
   const companyOptions = useMemo(
     () =>
       (companiesActivas as any[]).map((c) => ({
