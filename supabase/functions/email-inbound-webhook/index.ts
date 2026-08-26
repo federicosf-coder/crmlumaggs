@@ -290,8 +290,9 @@ Deno.serve(async (req) => {
       let contenidoExtraido: unknown = null;
 
       try {
+        console.log('bodyText enviado a clasificar (primeros 500 chars):', (bodyText || '(vacío)').slice(0, 500));
         const prompt =
-          'Estás leyendo la respuesta de un correo donde se pidió autorización para un cambio de precio en un pedido. Analiza el siguiente cuerpo de correo y determina si la persona AUTORIZA, RECHAZA, o si la respuesta es AMBIGUA/INDETERMINADA. Responde SOLO este JSON sin texto adicional ni markdown: {"clasificacion":"autorizado|rechazado|indeterminado","motivo":"string o null con cualquier justificación, condición o comentario que haya dado","nombre_firmante":"string o null si detectas el nombre de quien firma la respuesta (por ejemplo al final del correo)"}. Ejemplos de autorización: \'adelante\', \'autorizado\', \'sí, procede\', \'ok\', \'aprobado\'. Ejemplos de rechazo: \'no procede\', \'rechazado\', \'no autorizo\'. Si no es ninguno de los dos claramente, usa indeterminado.';
+          'Estás leyendo la respuesta más reciente de un correo donde se pidió autorización para un cambio de precio en un pedido. El texto que recibirás puede incluir, debajo de la respuesta nueva, el correo original citado (con encabezados como "De:", "Enviado:", "Para:", "Asunto:") — IGNORA por completo ese texto citado, SOLO analiza las primeras líneas del mensaje (la parte nueva, antes del primer "De:" o ">" de cita). Determina si esa parte nueva AUTORIZA, RECHAZA, o es AMBIGUA. Sé decisivo: respuestas cortas y afirmativas como "adelante", "autorizado", "sí", "ok", "procede", "aprobado", "adelante con el cambio" cuentan como AUTORIZADO aunque sea una sola palabra — no las marques como indeterminado solo por ser breves. Respuestas como "no procede", "no autorizo", "rechazado", "no se puede" cuentan como RECHAZADO. Solo usa indeterminado si el texto genuinamente no expresa ni aprobación ni rechazo (ej. solo pide más información, o es un mensaje no relacionado). Responde SOLO este JSON sin texto adicional ni markdown: {"clasificacion":"autorizado|rechazado|indeterminado","motivo":"string o null con cualquier justificación, condición o comentario que haya dado","nombre_firmante":"string o null si detectas el nombre de quien firma la respuesta (por ejemplo al final del correo)"}.';
 
         const res = await fetch(GATEWAY_URL, {
           method: 'POST',
@@ -309,12 +310,15 @@ Deno.serve(async (req) => {
         });
         if (!res.ok) throw new Error(`IA ${res.status}: ${await res.text()}`);
         const json = await res.json();
+        console.log('respuesta cruda IA clasificación precios:', JSON.stringify(json?.choices?.[0]?.message?.content ?? null));
         const raw = String(json?.choices?.[0]?.message?.content ?? '')
           .replace(/```json/gi, '')
           .replace(/```/g, '')
           .trim();
         const parsed = JSON.parse(raw);
         contenidoExtraido = parsed;
+        console.log('clasificacion parseada:', JSON.stringify(parsed));
+
         if (['autorizado', 'rechazado', 'indeterminado'].includes(parsed?.clasificacion)) {
           clasificacion = parsed.clasificacion;
         }
