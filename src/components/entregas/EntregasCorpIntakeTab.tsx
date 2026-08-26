@@ -374,6 +374,22 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
     onChanged();
   };
 
+  const handleDescartarHermana = async (h: IntakeRow) => {
+    if (!confirm(`¿Eliminar el archivo "${nombreArchivo(h.storage_path)}" de esta bandeja?`)) return;
+    setDescartandoHermana(h.id);
+    const { error } = await supabase
+      .from("entregas_corporativas_intake")
+      .update({ estatus: "descartado" })
+      .eq("id", h.id);
+    setDescartandoHermana(null);
+    if (error) {
+      toast.error(error.message || "No se pudo eliminar el archivo");
+      return;
+    }
+    toast.success("Archivo eliminado");
+    onChanged();
+  };
+
   return (
     <>
       <Card>
