@@ -198,6 +198,123 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // ============ FLUJO AUTORIZACIÓN DE PRECIO (precios@) ============
+    if (esPrecios) {
+      let asuntoLimpio = String(subject ?? '').trim();
+      const prefijoRe = /^(re|res|fw|fwd|aw)\s*:\s*/i;
+      while (prefijoRe.test(asuntoLimpio)) {
+        asuntoLimpio = asuntoLimpio.replace(prefijoRe, '').trim();
+      }
+
+      let autorizacionId: string | null = null;
+      if (asuntoLimpio) {
+        const { data: exactas } = await admin
+          .from('documento_autorizaciones_precio')
+          .select('id, estatus')
+          .eq('estatus', 'enviado')
+          .eq('asunto_enviado', asuntoLimpio)
+          .order('enviado_at', { ascending: false })
+          .limit(1);
+        if (exactas && exactas.length > 0) {
+          autorizacionId = exactas[0].id;
+        } else {
+          const { data: parciales } = await admin
+            .from('documento_autorizaciones_precio')
+            .select('id, estatus')
+            .eq('estatus', 'enviado')
+            .ilike('asunto_enviado', `%${asuntoLimpio}%`)
+            .order('enviado_at', { ascending: false })
+            .limit(1);
+          if (parciales && parciales.length > 0) autorizacionId = parciales[0].id;
+        }
+      }
+
+      if (!autorizacionId) {
+        console.error('autorización de precio no encontrada para asunto:', subject);
+        return jsonRes({ ok: true, ignorado: 'autorizacion_no_encontrada', asunto: subject });
+      }
+
+      let clasificacion = 'indeterminado';
+      let motivo: string | null = null;
+      let nombreFirmante: string | null = null;
+      let contenidoExtraido: unknown = null;
+
+      try {
+        const prompt =
+          'Estás leyendo la respuesta de un correo donde se pidió autorización para un cambio de precio en un pedido. Analiza el siguiente cuerpo de correo y determina si la persona AUTORIZA, RECHAZA, o si la respuesta es AMBIGUA/INDETERMINADA. Responde SOLO este JSON sin texto adicional ni markdown: {"clasificacion":"autorizado|rechazado|indeterminado","motivo":"string o null con cualquier justificación, condición o comentario que haya dado","nombre_firmante":"string o null si detectas el nombre de quien firma la respuesta (por ejemplo al final del correo)"}. Ejemplos de autorización: \'adelante\', \'autorizado\', \'sí, procede\', \'ok\', \'aprobado\'. Ejemplos de rechazo: \'no procede\', \'rechazado\', \'no autorizo\'. Si no es ninguno de los dos claramente, usa indeterminado.';
+
+        const res = await fetch(GATEWAY_URL, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            messages: [
+              { role: 'system', content: prompt },
+              { role: 'user', content: bodyText || '(correo sin texto)' },
+            ],
+          }),
+        });
+        if (!res.ok) throw new Error(`IA ${res.status}: ${await res.text()}`);
+        const json = await res.json();
+        const raw = String(json?.choices?.[0]?.message?.content ?? '')
+          .replace(/```json/gi, '')
+          .replace(/```/g, '')
+          .trim();
+        const parsed = JSON.parse(raw);
+        contenidoExtraido = parsed;
+        if (['autorizado', 'rechazado', 'indeterminado'].includes(parsed?.clasificacion)) {
+          clasificacion = parsed.clasificacion;
+        }
+        motivo = parsed?.motivo ?? null;
+        nombreFirmante = parsed?.nombre_firmante ?? null;
+      } catch (e) {
+        console.error('error clasificando respuesta de autorización:', (e as Error).message);
+      }
+
+      const remitenteNombre = nombreFirmante || (from ? from.split('@')[0] : null);
+
+      const { error: respError } = await admin.from('documento_autorizacion_respuestas').insert({
+        autorizacion_id: autorizacionId,
+        remitente_email: from,
+        remitente_nombre_detectado: remitenteNombre,
+        asunto: subject,
+        clasificacion,
+        contenido_extraido: contenidoExtraido,
+        resend_email_id: emailId,
+      });
+      if (respError) console.error('error insertando respuesta:', respError.message);
+
+      const { data: actual } = await admin
+        .from('documento_autorizaciones_precio')
+        .select('estatus')
+        .eq('id', autorizacionId)
+        .maybeSingle();
+
+      const update: Record<string, unknown> = {
+        autorizacion_respondido_at: new Date().toISOString(),
+        autorizado_por_texto: remitenteNombre,
+        motivo,
+      };
+      if (actual?.estatus === 'enviado') {
+        update.estatus = clasificacion;
+        update.autorizado =
+          clasificacion === 'autorizado' ? true : clasificacion === 'rechazado' ? false : null;
+      }
+
+      const { error: updError } = await admin
+        .from('documento_autorizaciones_precio')
+        .update(update)
+        .eq('id', autorizacionId);
+      if (updError) console.error('error actualizando autorización:', updError.message);
+
+      return jsonRes({ ok: true, autorizacion_id: autorizacionId, clasificacion });
+    }
+
+
+
     // ===================== FLUJO CRÉDITO (documentos@) =====================
     if (esCredito) {
       const folioMatch = (subject && subject.match(FOLIO_REGEX)) || (bodyText && bodyText.match(FOLIO_REGEX)) || null;
