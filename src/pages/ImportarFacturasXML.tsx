@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react";
 import { parseCfdiXml, type CfdiParsed } from "@/lib/xmlFacturaParser";
-import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas } from "@/lib/xmlFacturaMatching";
+import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas, RFC_GENERICOS } from "@/lib/xmlFacturaMatching";
 
 const BUCKET = "facturas-xml";
 
@@ -124,40 +124,48 @@ export default function ImportarFacturasXML() {
       let productos: ProductoLinea[] = [];
 
       if (!yaExiste) {
-        // a. Cliente por RFC
-        if (cfdi.receptorRfc) {
-          const { data: porRfc } = await (supabase as any)
-            .from("companies")
-            .select("id, name, rfc")
-            .ilike("rfc", cfdi.receptorRfc.trim())
-            .limit(5);
-          if (porRfc && porRfc.length === 1) {
-            clienteEstatus = "exacto_rfc";
-            empresaIdMatched = porRfc[0].id;
-          }
-        }
-        if (clienteEstatus !== "exacto_rfc") {
-          const palabras = palabrasSignificativas(cfdi.receptorNombre || "");
-          const encontrados: Record<string, any> = {};
-          for (const w of palabras) {
-            const { data: cands } = await (supabase as any)
+        const rfcReceptor = (cfdi.receptorRfc || "").trim().toUpperCase();
+        const esGenerico = RFC_GENERICOS.has(rfcReceptor);
+
+        if (esGenerico) {
+          clienteEstatus = "generico_manual";
+          candidatos = [];
+        } else {
+          // a. Cliente por RFC
+          if (cfdi.receptorRfc) {
+            const { data: porRfc } = await (supabase as any)
               .from("companies")
-              .select("id, name")
-              .ilike("name", `%${w}%`)
+              .select("id, name, rfc")
+              .ilike("rfc", cfdi.receptorRfc.trim())
               .limit(5);
-            for (const c of cands || []) encontrados[c.id] = c;
+            if (porRfc && porRfc.length === 1) {
+              clienteEstatus = "exacto_rfc";
+              empresaIdMatched = porRfc[0].id;
+            }
           }
-          const objetivo = normalizarTexto(cfdi.receptorNombre || "");
-          candidatos = Object.values(encontrados)
-            .map((c: any) => {
-              const n = normalizarTexto(c.name);
-              const comunes = palabras.filter((w) => n.includes(w)).length;
-              return { id: c.id, name: c.name, score: comunes + (n === objetivo ? 10 : 0) };
-            })
-            .sort((a: any, b: any) => b.score - a.score)
-            .slice(0, 5)
-            .map((c: any) => ({ id: c.id, name: c.name }));
-          clienteEstatus = candidatos.length ? "nombre_similar" : "pendiente";
+          if (clienteEstatus !== "exacto_rfc") {
+            const palabras = palabrasSignificativas(cfdi.receptorNombre || "");
+            const encontrados: Record<string, any> = {};
+            for (const w of palabras) {
+              const { data: cands } = await (supabase as any)
+                .from("companies")
+                .select("id, name, razon_social")
+                .ilike("razon_social", `%${w}%`)
+                .limit(5);
+              for (const c of cands || []) encontrados[c.id] = c;
+            }
+            const objetivo = normalizarTexto(cfdi.receptorNombre || "");
+            candidatos = Object.values(encontrados)
+              .map((c: any) => {
+                const n = normalizarTexto(c.razon_social || "");
+                const comunes = palabras.filter((w) => n.includes(w)).length;
+                return { id: c.id, name: c.name, razon_social: c.razon_social, score: comunes + (n === objetivo ? 10 : 0) };
+              })
+              .sort((a: any, b: any) => b.score - a.score)
+              .slice(0, 5)
+              .map((c: any) => ({ id: c.id, name: c.name, razon_social: c.razon_social }));
+            clienteEstatus = candidatos.length ? "nombre_similar" : "pendiente";
+          }
         }
 
         // b. Plaza / empresa vendedora
