@@ -6,20 +6,23 @@ const MODEL = 'google/gemini-2.5-flash';
 const BUCKET = 'entregas-corporativas';
 const BUZON = 'entregas@correo.lumaggs.com.mx';
 
-const PROMPT = `Este correo contiene instrucciones de Chevron (proveedor) sobre una entrega corporativa a uno de sus clientes (a quienes Lumaggs entrega en su nombre). La información puede venir como: (a) una imagen/PDF adjunto con un calendario tipo matriz (filas=productos con código Chevron, columnas=fechas, celdas=cantidad a entregar), (b) instrucciones en texto simple dentro del correo indicando cliente, lugar, fecha(s) y producto(s), o (c) ambos combinados — si hay imagen/PDF Y texto, usa ambos como fuente de información, complementándose.
+const PROMPT = `Este correo contiene instrucciones de Chevron (proveedor) sobre una o más entregas corporativas a clientes de Chevron (a quienes Lumaggs entrega en su nombre). La información puede venir como: (a) una imagen/PDF adjunto con un calendario tipo matriz (filas=productos con código Chevron, columnas=fechas, celdas=cantidad a entregar), (b) instrucciones en texto simple indicando cliente, lugar, fecha(s) y producto(s), o (c) ambos combinados.
 
-Extrae SOLO este JSON sin texto adicional ni markdown: {"cliente_detectado":"string o null","lugar_entrega":"string o null","numero_pedido":"string o null","entregas":[{"codigo":"string","nombre_producto":"string o null","fecha":"YYYY-MM-DD","cantidad":0}]}.
+IMPORTANTE: un mismo correo o documento puede referirse a VARIOS pedidos/órdenes distintos (cada uno con su propio número de pedido/orden). Nunca pongas un número de pedido u orden como si fuera un código de producto dentro de "entregas" — un número de pedido SIEMPRE va en el campo "numero_pedido" de su propio objeto dentro de "pedidos", nunca en la lista de productos.
 
-"cliente_detectado": nombre del cliente corporativo destinatario final de la entrega (ej. "Hyundai", "Kenworth", "Mecánica Tek", o el nombre que aparezca explícitamente); si no se menciona ningún cliente, usa null.
+Extrae SOLO este JSON sin texto adicional ni markdown: {"pedidos":[{"cliente_detectado":"string o null","lugar_entrega":"string o null","numero_pedido":"string o null","entregas":[{"codigo":"string","nombre_producto":"string o null","fecha":"YYYY-MM-DD","cantidad":0}]}]}.
 
-Para el formato de matriz (imagen/PDF tipo calendario): genera una entrada en "entregas" por cada combinación producto+fecha con cantidad mayor a 0, ignora celdas en cero o vacías. Las fechas en encabezados de columna suelen venir como 'DD-Mmm'; conviértelas a formato YYYY-MM-DD usando el año que aparezca explícitamente en el documento, o el año actual si no se especifica. El código de producto suele ser el primer valor de cada fila.
+Genera UN objeto dentro de "pedidos" por cada número de pedido/orden distinto que identifiques en el documento. Si el documento solo trae información de comportamiento tipo calendario sin números de pedido explícitos, genera un solo objeto con "numero_pedido": null. Si un pedido se menciona (tiene número) pero este documento específico no trae el detalle de productos/cantidades para él, igual crea su objeto en "pedidos" con "entregas": [] (arreglo vacío) — nunca inventes productos ni uses el número de pedido como si fuera producto.
 
-Para texto libre en el cuerpo del correo: identifica cada producto (código y/o nombre), cantidad, y fecha de entrega solicitada que se mencionen.
+"cliente_detectado": nombre del cliente corporativo destinatario final de la entrega (ej. "Hyundai", "Kenworth", "Mecánica Tek", o el nombre que aparezca explícitamente); si no se menciona, usa null. Puede repetirse el mismo cliente en varios objetos de "pedidos" si hay varias órdenes del mismo cliente.
 
-"lugar_entrega": nombre de planta, yarda o ubicación de entrega si se menciona explícitamente; si no, null.
-"numero_pedido": número de pedido o solicitud de entrega si aparece en el documento o correo; si no, null.
+Para el formato de matriz (imagen/PDF tipo calendario): genera una entrada en "entregas" por cada combinación producto+fecha con cantidad mayor a 0, ignora celdas en cero o vacías. Las fechas en encabezados de columna suelen venir como 'DD-Mmm'; conviértelas a formato YYYY-MM-DD usando el año que aparezca explícitamente en el documento, o el año actual si no se especifica. El código de producto suele ser el primer valor de cada fila (nunca un número de pedido/orden).
 
-Si no encuentras información real de una entrega (por ejemplo, el correo es solo una firma, un acuse de recibo, o no tiene relación con programar una entrega), deja "entregas" como arreglo vacío y todos los demás campos en null. No inventes valores.`;
+Para texto libre: identifica cada producto (código y/o nombre), cantidad, y fecha de entrega solicitada que se mencionen, agrupados bajo el pedido correspondiente.
+
+"lugar_entrega": nombre de planta, yarda, ciudad o ubicación de entrega si se menciona explícitamente para ese pedido; si no, null.
+
+Si no encuentras información real de ninguna entrega/pedido (por ejemplo, el correo es solo una firma o un acuse de recibo sin relación a programar entregas), retorna "pedidos": [] (arreglo vacío). No inventes valores.`;
 
 function extraerEmail(from: string): string {
   const m = from?.match(/<([^>]+)>/);
@@ -260,8 +263,8 @@ Deno.serve(async (req) => {
       mime: string | null,
       extraido: Record<string, unknown> | null,
       extraccionError: string | null,
-    ) => {
-      const payload: Record<string, unknown> = {
+    ): Promise<number> => {
+      const base: Record<string, unknown> = {
         canal: 'email',
         remitente_email: from || null,
         asunto_email: subject,
@@ -270,18 +273,40 @@ Deno.serve(async (req) => {
         email_html_storage_path: emailHtmlPath,
         resend_email_id: emailId,
         estatus: 'pendiente',
-        cliente_detectado: extraido ? asText(extraido.cliente_detectado) : null,
-        lugar_entrega_detectado: extraido ? asText(extraido.lugar_entrega) : null,
-        numero_pedido_detectado: extraido ? asText(extraido.numero_pedido) : null,
-        entregas_extraidas: extraido && Array.isArray(extraido.entregas) ? extraido.entregas : null,
-        extraccion_raw: extraido ?? null,
-        extraccion_error: extraido ? null : extraccionError,
       };
-      const { error: insErr } = await admin.from('entregas_corporativas_intake').insert(payload);
+
+      const pedidos = extraido && Array.isArray((extraido as any).pedidos) ? ((extraido as any).pedidos as any[]) : [];
+
+      const filas: Record<string, unknown>[] =
+        pedidos.length > 0
+          ? pedidos.map((p) => ({
+              ...base,
+              cliente_detectado: asText(p?.cliente_detectado),
+              lugar_entrega_detectado: asText(p?.lugar_entrega),
+              numero_pedido_detectado: asText(p?.numero_pedido),
+              entregas_extraidas: Array.isArray(p?.entregas) ? p.entregas : null,
+              extraccion_raw: p ?? null,
+              extraccion_error: null,
+            }))
+          : [
+              {
+                ...base,
+                cliente_detectado: null,
+                lugar_entrega_detectado: null,
+                numero_pedido_detectado: null,
+                entregas_extraidas: null,
+                extraccion_raw: extraido ?? null,
+                extraccion_error: extraido ? null : extraccionError,
+              },
+            ];
+
+      const { error: insErr } = await admin.from('entregas_corporativas_intake').insert(filas);
       if (insErr) throw new Error(`insert_failed: ${insErr.message}`);
+      return filas.length;
     };
 
     let procesados = 0;
+    let adjuntosProcesados = 0;
 
     if (validos.length > 0) {
       for (const att of validos) {
@@ -316,23 +341,23 @@ Deno.serve(async (req) => {
             : { type: 'file', file: { filename: sanitizado || 'documento.pdf', file_data: dataUrl } };
 
           const { extraido, extraccionError } = await extraerConIA(contentPart);
-          await insertar(storagePath, mime, extraido, extraccionError);
-          procesados++;
+          procesados += await insertar(storagePath, mime, extraido, extraccionError);
+          adjuntosProcesados++;
         } catch (e) {
           console.error(`adjunto ${att?.id} fallo:`, (e as Error).message);
         }
       }
     }
 
-    if (procesados === 0 && bodyText) {
+    if (adjuntosProcesados === 0 && bodyText) {
       try {
         const { extraido, extraccionError } = await extraerConIA(null);
-        await insertar(null, null, extraido, extraccionError);
-        procesados++;
+        procesados += await insertar(null, null, extraido, extraccionError);
       } catch (e) {
         console.error('fallo procesando solo texto:', (e as Error).message);
       }
     }
+
 
     return jsonRes({ ok: true, procesados });
   } catch (e) {
