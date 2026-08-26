@@ -75,6 +75,29 @@ export default function ImportarFacturasXML() {
     },
   });
 
+  const { data: companiesActivas = [] } = useQuery({
+    queryKey: ["companies-xml-import"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("companies")
+        .select("id, name, razon_social")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const companyOptions = useMemo(
+    () =>
+      (companiesActivas as any[]).map((c) => ({
+        value: c.id,
+        label: c.razon_social && c.razon_social !== c.name ? `${c.razon_social} (${c.name})` : c.name,
+        searchText: `${c.name || ""} ${c.razon_social || ""}`,
+      })),
+    [companiesActivas]
+  );
+
   const productoOptions = useMemo(
     () =>
       (productosCatalogo as any[]).map((p) => ({
@@ -292,6 +315,7 @@ export default function ImportarFacturasXML() {
 
   const necesitaRevision = (row: IntakeRow) =>
     row.cliente_match_estatus !== "exacto_rfc" ||
+    row.cliente_match_estatus === "generico_manual" ||
     !lineasDe(row).every((l) => l.matched) ||
     !row.plaza_id_detectado ||
     !row.empresa_vendedora_detectada;
@@ -331,7 +355,7 @@ export default function ImportarFacturasXML() {
     if (empresaId === "__nuevo__") {
       const { data: nueva, error: errNueva } = await (supabase as any)
         .from("companies")
-        .insert({ name: row.receptor_nombre || "SIN NOMBRE", rfc: row.receptor_rfc || null, is_active: true })
+        .insert({ name: row.receptor_nombre || "SIN NOMBRE", razon_social: row.receptor_nombre || null, rfc: row.receptor_rfc || null, is_active: true })
         .select("id")
         .single();
       if (errNueva) {
