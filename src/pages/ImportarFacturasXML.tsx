@@ -411,6 +411,16 @@ export default function ImportarFacturasXML() {
   const revision = pendientes.filter((r) => necesitaRevision(r));
   const yaRegistradas = (filas as IntakeRow[]).filter((r) => r.estatus === "ya_existia");
 
+  useEffect(() => {
+    for (const row of pendientes) {
+      const id = empresaResuelta(row);
+      if (id && id !== "__nuevo__" && !perfilPorEmpresa[id]) cargarPerfilEmpresa(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filas, clienteManual, perfilPorEmpresa, cargarPerfilEmpresa]);
+
+
+
   /* ---------------- Acciones ---------------- */
 
   const descartar = async (row: IntakeRow) => {
