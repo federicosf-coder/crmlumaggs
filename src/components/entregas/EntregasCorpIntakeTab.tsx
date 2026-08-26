@@ -71,6 +71,7 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
   const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null);
   const [loadingEmailPreview, setLoadingEmailPreview] = useState(false);
   const [descartando, setDescartando] = useState(false);
+  const [descartandoHermana, setDescartandoHermana] = useState<string | null>(null);
   const emailIframeRef = useRef<HTMLIFrameElement>(null);
 
   const detectado = row.cliente_detectado?.trim() || "";
@@ -374,6 +375,22 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
     onChanged();
   };
 
+  const handleDescartarHermana = async (h: IntakeRow) => {
+    if (!confirm(`¿Eliminar el archivo "${nombreArchivo(h.storage_path)}" de esta bandeja?`)) return;
+    setDescartandoHermana(h.id);
+    const { error } = await supabase
+      .from("entregas_corporativas_intake")
+      .update({ estatus: "descartado" })
+      .eq("id", h.id);
+    setDescartandoHermana(null);
+    if (error) {
+      toast.error(error.message || "No se pudo eliminar el archivo");
+      return;
+    }
+    toast.success("Archivo eliminado");
+    onChanged();
+  };
+
   return (
     <>
       <Card>
@@ -623,17 +640,28 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
                   const nombre = nombreArchivo(h.storage_path);
                   const img = /\.(png|jpe?g|gif|webp|heic)$/i.test(nombre);
                   return (
-                    <Button
-                      key={h.id}
-                      variant="outline"
-                      size="sm"
-                      disabled={!h.storage_path}
-                      onClick={() => handleVerHermana(h)}
-                      className="h-7 gap-1 text-xs"
-                    >
-                      {img ? <ImageIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
-                      {nombre}
-                    </Button>
+                    <div key={h.id} className="flex items-center rounded-md border">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={!h.storage_path}
+                        onClick={() => handleVerHermana(h)}
+                        className="h-7 gap-1 rounded-r-none text-xs"
+                      >
+                        {img ? <ImageIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                        {nombre}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Eliminar archivo"
+                        disabled={descartandoHermana === h.id}
+                        onClick={() => handleDescartarHermana(h)}
+                        className="h-7 w-7 rounded-l-none border-l"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
                   );
                 })}
               </div>
