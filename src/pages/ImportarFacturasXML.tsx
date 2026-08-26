@@ -448,10 +448,22 @@ export default function ImportarFacturasXML() {
       return false;
     }
 
-    if (empresaId === "__nuevo__") {
+    const ejecutivoSel = ejecutivoResuelto(row);
+    const contactoSel = contactoResuelto(row);
+    const tipoPagoSel = tipoPagoResuelto(row);
+    const fechaVencSel = fechaVencResuelta(row);
+    const eraNueva = empresaId === "__nuevo__";
+
+    if (eraNueva) {
       const { data: nueva, error: errNueva } = await (supabase as any)
         .from("companies")
-        .insert({ name: row.receptor_nombre || "SIN NOMBRE", razon_social: row.receptor_nombre || null, rfc: row.receptor_rfc || null, is_active: true })
+        .insert({
+          name: row.receptor_nombre || "SIN NOMBRE",
+          razon_social: row.receptor_nombre || null,
+          rfc: row.receptor_rfc || null,
+          tipo_pago: tipoPagoSel || null,
+          is_active: true,
+        })
         .select("id")
         .single();
       if (errNueva) {
@@ -475,7 +487,10 @@ export default function ImportarFacturasXML() {
         empresa_vendedora: row.empresa_vendedora_detectada || null,
         plaza_id: plazaResuelta(row),
         fecha_documento: row.fecha_factura,
-        fecha_vencimiento: row.fecha_vencimiento || null,
+        fecha_vencimiento: fechaVencSel || null,
+        ejecutivo_venta_id: ejecutivoSel || null,
+        contacto_id: contactoSel || null,
+        tipo_pago: tipoPagoSel || null,
         subtotal: row.subtotal,
         total: row.total,
         forma_pago: row.forma_pago,
@@ -491,6 +506,53 @@ export default function ImportarFacturasXML() {
       if (!silencioso) toast.error(errDoc.message);
       return false;
     }
+
+    if (eraNueva) {
+      if (contactoSel) {
+        await (supabase as any).from("companies").update({ primary_contact_id: contactoSel }).eq("id", empresaId);
+      }
+      if (ejecutivoSel) {
+        await (supabase as any).from("company_ejecutivos").insert({ company_id: empresaId, user_id: ejecutivoSel });
+      }
+    } else {
+      const perfil = perfilPorEmpresa[empresaId as string];
+      if (perfil) {
+        const etiquetaPago = (v: string) => TIPO_PAGO_OPTS.find((o) => o.v === v)?.l || v || "(vacío)";
+        const etiquetaUsuario = (v: string) => profileOptions.find((o) => o.value === v)?.label || v || "(vacío)";
+        const etiquetaContacto = (v: string) => perfil.contactos.find((c) => c.id === v)?.label || v || "(vacío)";
+        const cambios: string[] = [];
+        const cambioPago = tipoPagoSel && tipoPagoSel !== (perfil.tipoPagoDefault || "");
+        const cambioContacto = contactoSel && contactoSel !== (perfil.contactoDefault || "");
+        const cambioEjecutivo = ejecutivoSel && ejecutivoSel !== (perfil.ejecutivoDefault || "");
+        if (cambioPago)
+          cambios.push(`Tipo de pago (de ${etiquetaPago(perfil.tipoPagoDefault || "")} a ${etiquetaPago(tipoPagoSel)})`);
+        if (cambioContacto)
+          cambios.push(`Contacto (de ${etiquetaContacto(perfil.contactoDefault || "")} a ${etiquetaContacto(contactoSel)})`);
+        if (cambioEjecutivo)
+          cambios.push(
+            `Ejecutivo de venta (de ${etiquetaUsuario(perfil.ejecutivoDefault || "")} a ${etiquetaUsuario(ejecutivoSel)})`
+          );
+        if (cambios.length && confirm(`¿También quieres actualizar en el perfil del cliente: ${cambios.join(", ")}?`)) {
+          if (cambioPago) await (supabase as any).from("companies").update({ tipo_pago: tipoPagoSel }).eq("id", empresaId);
+          if (cambioContacto)
+            await (supabase as any).from("companies").update({ primary_contact_id: contactoSel }).eq("id", empresaId);
+          if (cambioEjecutivo) {
+            await (supabase as any).from("company_ejecutivos").delete().eq("company_id", empresaId);
+            await (supabase as any).from("company_ejecutivos").insert({ company_id: empresaId, user_id: ejecutivoSel });
+          }
+          setPerfilPorEmpresa((prev) => ({
+            ...prev,
+            [empresaId as string]: {
+              ...perfil,
+              tipoPagoDefault: cambioPago ? tipoPagoSel : perfil.tipoPagoDefault,
+              contactoDefault: cambioContacto ? contactoSel : perfil.contactoDefault,
+              ejecutivoDefault: cambioEjecutivo ? ejecutivoSel : perfil.ejecutivoDefault,
+            },
+          }));
+        }
+      }
+    }
+
 
     const payload = lineas.map((l, i) => ({
       documento_id: doc.id,
