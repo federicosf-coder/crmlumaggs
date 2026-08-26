@@ -50,3 +50,5 @@ export function palabrasSignificativas(nombre: string): string[] {
     .filter((w) => w.length >= 3 && !STOPWORDS.has(w))
     .slice(0, 4);
 }
+
+export const RFC_GENERICOS = new Set(["XAXX010101000"]); // "Público en General" y similares — nunca auto-emparejar ni auto-crear

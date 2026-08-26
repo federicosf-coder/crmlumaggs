@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react";
 import { parseCfdiXml, type CfdiParsed } from "@/lib/xmlFacturaParser";
-import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas } from "@/lib/xmlFacturaMatching";
+import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas, RFC_GENERICOS } from "@/lib/xmlFacturaMatching";
 
 const BUCKET = "facturas-xml";
 
@@ -75,6 +75,29 @@ export default function ImportarFacturasXML() {
     },
   });
 
+  const { data: companiesActivas = [] } = useQuery({
+    queryKey: ["companies-xml-import"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("companies")
+        .select("id, name, razon_social")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const companyOptions = useMemo(
+    () =>
+      (companiesActivas as any[]).map((c) => ({
+        value: c.id,
+        label: c.razon_social && c.razon_social !== c.name ? `${c.razon_social} (${c.name})` : c.name,
+        searchText: `${c.name || ""} ${c.razon_social || ""}`,
+      })),
+    [companiesActivas]
+  );
+
   const productoOptions = useMemo(
     () =>
       (productosCatalogo as any[]).map((p) => ({
@@ -124,40 +147,48 @@ export default function ImportarFacturasXML() {
       let productos: ProductoLinea[] = [];
 
       if (!yaExiste) {
-        // a. Cliente por RFC
-        if (cfdi.receptorRfc) {
-          const { data: porRfc } = await (supabase as any)
-            .from("companies")
-            .select("id, name, rfc")
-            .ilike("rfc", cfdi.receptorRfc.trim())
-            .limit(5);
-          if (porRfc && porRfc.length === 1) {
-            clienteEstatus = "exacto_rfc";
-            empresaIdMatched = porRfc[0].id;
-          }
-        }
-        if (clienteEstatus !== "exacto_rfc") {
-          const palabras = palabrasSignificativas(cfdi.receptorNombre || "");
-          const encontrados: Record<string, any> = {};
-          for (const w of palabras) {
-            const { data: cands } = await (supabase as any)
+        const rfcReceptor = (cfdi.receptorRfc || "").trim().toUpperCase();
+        const esGenerico = RFC_GENERICOS.has(rfcReceptor);
+
+        if (esGenerico) {
+          clienteEstatus = "generico_manual";
+          candidatos = [];
+        } else {
+          // a. Cliente por RFC
+          if (cfdi.receptorRfc) {
+            const { data: porRfc } = await (supabase as any)
               .from("companies")
-              .select("id, name")
-              .ilike("name", `%${w}%`)
+              .select("id, name, rfc")
+              .ilike("rfc", cfdi.receptorRfc.trim())
               .limit(5);
-            for (const c of cands || []) encontrados[c.id] = c;
+            if (porRfc && porRfc.length === 1) {
+              clienteEstatus = "exacto_rfc";
+              empresaIdMatched = porRfc[0].id;
+            }
           }
-          const objetivo = normalizarTexto(cfdi.receptorNombre || "");
-          candidatos = Object.values(encontrados)
-            .map((c: any) => {
-              const n = normalizarTexto(c.name);
-              const comunes = palabras.filter((w) => n.includes(w)).length;
-              return { id: c.id, name: c.name, score: comunes + (n === objetivo ? 10 : 0) };
-            })
-            .sort((a: any, b: any) => b.score - a.score)
-            .slice(0, 5)
-            .map((c: any) => ({ id: c.id, name: c.name }));
-          clienteEstatus = candidatos.length ? "nombre_similar" : "pendiente";
+          if (clienteEstatus !== "exacto_rfc") {
+            const palabras = palabrasSignificativas(cfdi.receptorNombre || "");
+            const encontrados: Record<string, any> = {};
+            for (const w of palabras) {
+              const { data: cands } = await (supabase as any)
+                .from("companies")
+                .select("id, name, razon_social")
+                .ilike("razon_social", `%${w}%`)
+                .limit(5);
+              for (const c of cands || []) encontrados[c.id] = c;
+            }
+            const objetivo = normalizarTexto(cfdi.receptorNombre || "");
+            candidatos = Object.values(encontrados)
+              .map((c: any) => {
+                const n = normalizarTexto(c.razon_social || "");
+                const comunes = palabras.filter((w) => n.includes(w)).length;
+                return { id: c.id, name: c.name, razon_social: c.razon_social, score: comunes + (n === objetivo ? 10 : 0) };
+              })
+              .sort((a: any, b: any) => b.score - a.score)
+              .slice(0, 5)
+              .map((c: any) => ({ id: c.id, name: c.name, razon_social: c.razon_social }));
+            clienteEstatus = candidatos.length ? "nombre_similar" : "pendiente";
+          }
         }
 
         // b. Plaza / empresa vendedora
@@ -284,6 +315,7 @@ export default function ImportarFacturasXML() {
 
   const necesitaRevision = (row: IntakeRow) =>
     row.cliente_match_estatus !== "exacto_rfc" ||
+    row.cliente_match_estatus === "generico_manual" ||
     !lineasDe(row).every((l) => l.matched) ||
     !row.plaza_id_detectado ||
     !row.empresa_vendedora_detectada;
@@ -323,7 +355,7 @@ export default function ImportarFacturasXML() {
     if (empresaId === "__nuevo__") {
       const { data: nueva, error: errNueva } = await (supabase as any)
         .from("companies")
-        .insert({ name: row.receptor_nombre || "SIN NOMBRE", rfc: row.receptor_rfc || null, is_active: true })
+        .insert({ name: row.receptor_nombre || "SIN NOMBRE", razon_social: row.receptor_nombre || null, rfc: row.receptor_rfc || null, is_active: true })
         .select("id")
         .single();
       if (errNueva) {
@@ -467,12 +499,26 @@ export default function ImportarFacturasXML() {
                         <SelectContent>
                           {(row.cliente_candidatos || []).map((c: any) => (
                             <SelectItem key={c.id} value={c.id}>
-                              {c.name}
+                              {c.razon_social || c.name}
+                              {c.name && c.razon_social && c.name !== c.razon_social ? " — " + c.name : ""}
                             </SelectItem>
                           ))}
                           <SelectItem value="__nuevo__">＋ Crear cliente nuevo</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  )}
+                  {row.cliente_match_estatus === "generico_manual" && (
+                    <div className="space-y-1.5">
+                      <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">
+                        RFC genérico (Público en General) — selecciona el cliente real manualmente
+                      </Badge>
+                      <SearchableSelect
+                        value={clienteManual[row.id] || ""}
+                        onValueChange={(v) => setClienteManual((p) => ({ ...p, [row.id]: v }))}
+                        options={companyOptions}
+                        placeholder="Buscar cliente por nombre o razón social…"
+                      />
                     </div>
                   )}
                   {row.cliente_match_estatus === "pendiente" && (
