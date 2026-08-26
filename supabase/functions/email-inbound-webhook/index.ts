@@ -143,7 +143,9 @@ Deno.serve(async (req) => {
     const esCredito = !esComprobantes && destinatarios.some((d) => d.includes(BUZON_CREDITO));
     const esPrecios =
       !esComprobantes && !esCredito && destinatarios.some((d) => d.includes(BUZON_PRECIOS));
-    if (!esComprobantes && !esCredito && !esPrecios) {
+    const esFacturas =
+      !esComprobantes && !esCredito && !esPrecios && destinatarios.some((d) => d.includes(BUZON_FACTURAS));
+    if (!esComprobantes && !esCredito && !esPrecios && !esFacturas) {
       return jsonRes({ ok: true, ignorado: 'destinatario_no_coincide' });
     }
 
