@@ -110,8 +110,43 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
     return () => { cancelado = true; };
   }, [cliente, row.lugar_entrega_detectado]);
 
-  const lineas: EntregaLinea[] = Array.isArray(row.entregas_extraidas) ? row.entregas_extraidas : [];
+  const lineasOriginales: EntregaLinea[] = Array.isArray(row.entregas_extraidas) ? row.entregas_extraidas : [];
+  const [lineas, setLineas] = useState<EntregaLinea[]>(lineasOriginales);
+  const [editando, setEditando] = useState(false);
+  const [guardandoLineas, setGuardandoLineas] = useState(false);
   const esImagen = (row.mime_type || "").startsWith("image/");
+
+  const actualizarLinea = (i: number, campo: keyof EntregaLinea, valor: string) => {
+    setLineas((prev) => prev.map((l, idx) => (idx === i ? { ...l, [campo]: valor } : l)));
+  };
+
+  const eliminarLinea = (i: number) => setLineas((prev) => prev.filter((_, idx) => idx !== i));
+
+  const guardarLineas = async () => {
+    setGuardandoLineas(true);
+    try {
+      const limpias = lineas.map((l) => ({
+        codigo: l.codigo?.toString().trim() || null,
+        nombre_producto: l.nombre_producto?.toString().trim() || null,
+        fecha: l.fecha?.toString().trim() || null,
+        cantidad: l.cantidad === "" || l.cantidad == null ? null : Number(l.cantidad),
+      }));
+      const { error } = await (supabase as any)
+        .from("entregas_corporativas_intake")
+        .update({ entregas_extraidas: limpias })
+        .eq("id", row.id);
+      if (error) throw error;
+      setLineas(limpias);
+      setEditando(false);
+      toast.success("Detalle de productos actualizado");
+      onChanged();
+    } catch (e: any) {
+      toast.error("No se pudo guardar: " + (e.message || "Error"));
+    } finally {
+      setGuardandoLineas(false);
+    }
+  };
+
 
   const handleVerHermana = async (h: IntakeRow) => {
     if (!h.storage_path) return;
