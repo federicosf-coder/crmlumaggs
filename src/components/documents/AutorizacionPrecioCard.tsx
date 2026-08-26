@@ -213,7 +213,12 @@ export default function AutorizacionPrecioCard({
       }
 
       toast.success("Resultado de la autorización guardado");
+      if (override) {
+        setResultado(res);
+        setAutorizadoPor(quien);
+      }
       setEditandoResultado(false);
+      queryClient.invalidateQueries({ queryKey: ["autorizaciones-precio"] });
       queryClient.invalidateQueries({ queryKey: ["documentos"] });
       queryClient.invalidateQueries({ queryKey: ["documento", row.documento_id] });
       queryClient.invalidateQueries({ queryKey: ["pedido-autorizacion-precio", row.documento_id] });
