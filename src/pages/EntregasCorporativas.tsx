@@ -1129,11 +1129,17 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
 
   const quitarEvidencia = async (id: string) => {
     if (!detalle) return;
+    if (!window.confirm("¿Eliminar este archivo adjunto?")) return;
+    const ev = evidencias.find((e) => e.id === id);
     const { error } = await (supabase as any).from("entregas_corporativas_evidencias").delete().eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success("Evidencia eliminada");
+    if (ev?.storage_path) {
+      await supabase.storage.from(BUCKET).remove([ev.storage_path]);
+    }
+    toast.success("Archivo eliminado");
     cargarEvidencias(detalle.id);
   };
+
 
   const guardarFactura = async () => {
     if (!detalle) return;
@@ -1585,45 +1591,48 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 )}
               </div>
 
+              {/* Archivos adjuntos / evidencias: disponible en cualquier estatus */}
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Archivos adjuntos / evidencias firmadas</Label>
+                {evidencias.length > 0 && (
+                  <div className="rounded-md border divide-y">
+                    {evidencias.map((ev) => (
+                      <div key={ev.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                        <span className="text-xs font-light truncate">{ev.nombre_archivo}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openSigned(ev.storage_path)}>
+                            <FileText className="h-3 w-3 mr-1" /> Ver
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => quitarEvidencia(ev.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className="inline-flex">
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.doc,.docx"
+                    onChange={(e) => {
+                      const fs = Array.from(e.target.files ?? []);
+                      if (fs.length) subirEvidencias(detalle, fs);
+                      e.target.value = "";
+                    }}
+                  />
+                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer hover:bg-muted ${evidencias.length ? "text-green-700 border-green-200" : "text-muted-foreground"}`}>
+                    <Upload className="h-3 w-3" />
+                    {evidencias.length ? `Subir más archivos (${evidencias.length})` : "Subir archivos adjuntos"}
+                  </span>
+                </label>
+              </div>
+
               {detalle.estatus === "programada" ? (
                 <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">Evidencias firmadas</Label>
-                    {evidencias.length > 0 && (
-                      <div className="rounded-md border divide-y">
-                        {evidencias.map((ev) => (
-                          <div key={ev.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
-                            <span className="text-xs font-light truncate">{ev.nombre_archivo}</span>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openSigned(ev.storage_path)}>
-                                <FileText className="h-3 w-3 mr-1" /> Ver
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => quitarEvidencia(ev.id)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <label className="inline-flex">
-                      <input
-                        type="file"
-                        multiple
-                        className="hidden"
-                        accept=".pdf,.png,.jpg,.jpeg"
-                        onChange={(e) => {
-                          const fs = Array.from(e.target.files ?? []);
-                          if (fs.length) subirEvidencias(detalle, fs);
-                          e.target.value = "";
-                        }}
-                      />
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer hover:bg-muted ${evidencias.length ? "text-green-700 border-green-200" : "text-muted-foreground"}`}>
-                        <Upload className="h-3 w-3" />
-                        {evidencias.length ? `Subir más evidencias (${evidencias.length})` : "Subir evidencias firmadas"}
-                      </span>
-                    </label>
-                  </div>
+
 
                   <div className="flex flex-wrap items-end gap-2">
                     <div className="space-y-1.5">
@@ -1659,11 +1668,6 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-light">
                   <span>Notificada: {detalle.notificado_at ? new Date(detalle.notificado_at).toLocaleString("es-MX") : "—"}</span>
                   <span>· Factura: {detalle.factura_referencia || "—"}</span>
-                  {evidencias.map((ev) => (
-                    <Button key={ev.id} variant="ghost" size="sm" className="h-6 text-xs" onClick={() => openSigned(ev.storage_path)}>
-                      <FileText className="h-3 w-3 mr-1" /> {ev.nombre_archivo}
-                    </Button>
-                  ))}
                   {detalle.evidencia_firmada_path && (
                     <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => openSigned(detalle.evidencia_firmada_path!)}>
                       <FileText className="h-3 w-3 mr-1" /> Evidencia
