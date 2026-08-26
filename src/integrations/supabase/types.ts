@@ -4462,6 +4462,7 @@ export type Database = {
           metodo_pago: string | null
           moneda: string | null
           nombre_archivo: string | null
+          pdf_storage_path: string | null
           pedido_relacionado_id: string | null
           plaza_id_detectado: string | null
           productos_json: Json | null
@@ -4496,6 +4497,7 @@ export type Database = {
           metodo_pago?: string | null
           moneda?: string | null
           nombre_archivo?: string | null
+          pdf_storage_path?: string | null
           pedido_relacionado_id?: string | null
           plaza_id_detectado?: string | null
           productos_json?: Json | null
@@ -4530,6 +4532,7 @@ export type Database = {
           metodo_pago?: string | null
           moneda?: string | null
           nombre_archivo?: string | null
+          pdf_storage_path?: string | null
           pedido_relacionado_id?: string | null
           plaza_id_detectado?: string | null
           productos_json?: Json | null

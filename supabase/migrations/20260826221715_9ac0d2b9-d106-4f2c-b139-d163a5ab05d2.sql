@@ -1,0 +1,1 @@
+ALTER TABLE public.documentos_xml_intake ADD COLUMN IF NOT EXISTS pdf_storage_path text;
