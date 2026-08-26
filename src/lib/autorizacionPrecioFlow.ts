@@ -473,10 +473,21 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     return out;
   }
 
-  const subjectOverride = render(
+  let subjectOverride = render(
     tpl?.subject || "Autorización de precio — {cliente}",
     tplVars
   );
+
+  const now = new Date();
+  const tijuanaDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Tijuana" }));
+  const dd = String(tijuanaDate.getDate()).padStart(2, "0");
+  const mm = String(tijuanaDate.getMonth() + 1).padStart(2, "0");
+  const yyyy = tijuanaDate.getFullYear();
+  const hh = String(tijuanaDate.getHours()).padStart(2, "0");
+  const min = String(tijuanaDate.getMinutes()).padStart(2, "0");
+  const ss = String(tijuanaDate.getSeconds()).padStart(2, "0");
+  const estampa = `${dd}/${mm}/${yyyy} ${hh}:${min}:${ss}`;
+  subjectOverride = `${subjectOverride} [${estampa}]`;
   const bodyTemplate =
     tpl?.body ||
     `<p>Solicitud de autorización de precio para {cliente} — Pedido {numero_pedido}.</p>
