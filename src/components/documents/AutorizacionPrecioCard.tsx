@@ -183,10 +183,12 @@ export default function AutorizacionPrecioCard({
     }
   };
 
-  const guardarResultado = async () => {
+  const guardarResultado = async (override?: { resultado: "si" | "no" | "nc"; autorizadoPor?: string }) => {
     setSavingResultado(true);
     try {
-      const autorizado = resultado === "si" ? true : resultado === "no" ? false : null;
+      const res = override?.resultado ?? resultado;
+      const quien = override?.autorizadoPor ?? autorizadoPor;
+      const autorizado = res === "si" ? true : res === "no" ? false : null;
       const nuevoEstatus =
         resultado === "si" ? "autorizado" : resultado === "no" ? "rechazado" : "indeterminado";
       const { error } = await (supabase as any)
