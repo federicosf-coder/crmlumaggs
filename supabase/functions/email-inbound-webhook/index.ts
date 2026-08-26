@@ -12,6 +12,7 @@ const METODOS = ['transferencia', 'efectivo', 'tarjeta', 'cheque', 'otro'];
 const BUZON_COMPROBANTES = 'comprobantes@correo.lumaggs.com.mx';
 const BUZON_CREDITO = 'documentos@correo.lumaggs.com.mx';
 const BUZON_PRECIOS = 'precios@correo.lumaggs.com.mx';
+const BUZON_FACTURAS = 'facturas@correo.lumaggs.com.mx';
 const FOLIO_REGEX = /CR-\d{4}-\d{4}/i;
 const CONFIANZAS = ['alta', 'media', 'baja'];
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
