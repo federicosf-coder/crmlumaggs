@@ -190,12 +190,12 @@ export default function AutorizacionPrecioCard({
       const quien = override?.autorizadoPor ?? autorizadoPor;
       const autorizado = res === "si" ? true : res === "no" ? false : null;
       const nuevoEstatus =
-        resultado === "si" ? "autorizado" : resultado === "no" ? "rechazado" : "indeterminado";
+        res === "si" ? "autorizado" : res === "no" ? "rechazado" : "indeterminado";
       const { error } = await (supabase as any)
         .from("documento_autorizaciones_precio")
         .update({
           autorizado,
-          autorizado_por_texto: autorizadoPor.trim() || null,
+          autorizado_por_texto: quien.trim() || null,
           motivo: motivo.trim() || null,
           autorizacion_respondido_at: new Date().toISOString(),
           estatus: nuevoEstatus,
