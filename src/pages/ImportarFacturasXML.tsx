@@ -58,6 +58,8 @@ export default function ImportarFacturasXML() {
   const [contactoManual, setContactoManual] = useState<Record<string, string>>({});
   const [tipoPagoManual, setTipoPagoManual] = useState<Record<string, string>>({});
   const [fechaVencManual, setFechaVencManual] = useState<Record<string, string>>({});
+  const [estatusManual, setEstatusManual] = useState<Record<string, string>>({});
+
 
   interface PerfilEmpresa {
     ejecutivoDefault: string | null;
@@ -399,6 +401,8 @@ export default function ImportarFacturasXML() {
     tipoPagoManual[row.id] ?? perfilDe(row)?.tipoPagoDefault ?? "";
   const fechaVencResuelta = (row: IntakeRow): string =>
     fechaVencManual[row.id] ?? calcularFechaVencimiento(row.fecha_factura, tipoPagoResuelto(row));
+  const estatusResuelto = (row: IntakeRow): string => estatusManual[row.id] ?? "vigente";
+
 
 
   const necesitaRevision = (row: IntakeRow) =>
@@ -493,6 +497,7 @@ export default function ImportarFacturasXML() {
         ejecutivo_venta_id: ejecutivoSel || null,
         contacto_id: contactoSel || null,
         tipo_pago: tipoPagoSel || null,
+        estatus_factura: estatusResuelto(row),
         subtotal: row.subtotal,
         total: row.total,
         forma_pago: row.forma_pago,
@@ -720,7 +725,7 @@ export default function ImportarFacturasXML() {
                 if (!empId) return null;
                 const perfil = empId !== "__nuevo__" ? perfilPorEmpresa[empId] : undefined;
                 return (
-                  <div className="grid gap-3 md:grid-cols-3">
+                  <div className="grid gap-3 md:grid-cols-5">
                     <div className="space-y-1.5">
                       <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Ejecutivo de venta</Label>
                       <Select
@@ -793,6 +798,24 @@ export default function ImportarFacturasXML() {
                         onChange={(e) => setFechaVencManual((p) => ({ ...p, [row.id]: e.target.value }))}
                       />
                     </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Estatus</Label>
+                      <Select
+                        value={estatusResuelto(row)}
+                        onValueChange={(v) => setEstatusManual((p) => ({ ...p, [row.id]: v }))}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Estatus…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="vigente">Vigente</SelectItem>
+                          <SelectItem value="pagada">Pagada</SelectItem>
+                          <SelectItem value="cancelada">Cancelada</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                   </div>
                 );
               })()}
