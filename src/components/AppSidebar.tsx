@@ -256,6 +256,17 @@ export function AppSidebar() {
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+                    {hasAnyRole(["admin", "manager", "accounting", "customer_service"]) && (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <NavLink to="/importar-facturas-xml" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                            <Upload className="mr-2 h-4 w-4" />
+                            {!collapsed && <span>Importar Facturas XML</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
+
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
                         <NavLink to="/autorizacion-precios" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">

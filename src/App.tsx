@@ -145,6 +145,7 @@ const App = () => (
             <Route path="/documents/new" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
+            <Route path="/importar-facturas-xml" element={<ProtectedRoute><ImportarFacturasXML /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/entregas-corporativas" element={<ProtectedRoute><EntregasCorporativas /></ProtectedRoute>} />
             <Route path="/autorizacion-precios" element={<ProtectedRoute><AutorizacionPrecios /></ProtectedRoute>} />
