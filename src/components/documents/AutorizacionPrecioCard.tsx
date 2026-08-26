@@ -33,6 +33,7 @@ import {
   Building2,
   Clock,
   Trash2,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
@@ -183,17 +184,19 @@ export default function AutorizacionPrecioCard({
     }
   };
 
-  const guardarResultado = async () => {
+  const guardarResultado = async (override?: { resultado: "si" | "no" | "nc"; autorizadoPor?: string }) => {
     setSavingResultado(true);
     try {
-      const autorizado = resultado === "si" ? true : resultado === "no" ? false : null;
+      const res = override?.resultado ?? resultado;
+      const quien = override?.autorizadoPor ?? autorizadoPor;
+      const autorizado = res === "si" ? true : res === "no" ? false : null;
       const nuevoEstatus =
-        resultado === "si" ? "autorizado" : resultado === "no" ? "rechazado" : "indeterminado";
+        res === "si" ? "autorizado" : res === "no" ? "rechazado" : "indeterminado";
       const { error } = await (supabase as any)
         .from("documento_autorizaciones_precio")
         .update({
           autorizado,
-          autorizado_por_texto: autorizadoPor.trim() || null,
+          autorizado_por_texto: quien.trim() || null,
           motivo: motivo.trim() || null,
           autorizacion_respondido_at: new Date().toISOString(),
           estatus: nuevoEstatus,
@@ -210,7 +213,12 @@ export default function AutorizacionPrecioCard({
       }
 
       toast.success("Resultado de la autorización guardado");
+      if (override) {
+        setResultado(res);
+        setAutorizadoPor(quien);
+      }
       setEditandoResultado(false);
+      queryClient.invalidateQueries({ queryKey: ["autorizaciones-precio"] });
       queryClient.invalidateQueries({ queryKey: ["documentos"] });
       queryClient.invalidateQueries({ queryKey: ["documento", row.documento_id] });
       queryClient.invalidateQueries({ queryKey: ["pedido-autorizacion-precio", row.documento_id] });
@@ -565,6 +573,26 @@ export default function AutorizacionPrecioCard({
               {row.pospuesto && (
                 <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pospuesto</Badge>
               )}
+              {row.estatus === "enviado" && (
+                <Button
+                  size="sm"
+                  className="h-7 bg-emerald-600 text-white hover:bg-emerald-700"
+                  disabled={savingResultado}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    guardarResultado({ resultado: "si", autorizadoPor: autorizadoPor || "José Tostado" });
+                  }}
+                >
+                  {savingResultado ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  Marcar autorizado
+                </Button>
+              )}
+
+
 
             </div>
           </div>
@@ -856,7 +884,7 @@ export default function AutorizacionPrecioCard({
                     />
                   </div>
 
-                  <Button size="sm" onClick={guardarResultado} disabled={savingResultado}>
+                  <Button size="sm" onClick={() => guardarResultado()} disabled={savingResultado}>
                     {savingResultado && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
                     Guardar resultado
                   </Button>
