@@ -308,12 +308,20 @@ export default function AutorizacionPrecioCard({
     if (!company.id) return;
     setSavingPerfil(true);
     try {
+      // Siempre actualiza también el registro de autorización actual
+      const { error: rowErr } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .update({ justificacion })
+        .eq("id", row.id);
+      if (rowErr) throw rowErr;
+
       const { error } = await (supabase as any)
         .from("companies")
         .update({ justificacion_precio_default: justificacion || null })
         .eq("id", company.id);
       if (error) throw error;
-      toast.success("Justificación de Precio guardada en el perfil del cliente");
+      toast.success("Justificación guardada en este documento y en el perfil del cliente");
+      onRefetch();
     } catch (e: any) {
       console.error(e);
       toast.error(e.message || "No se pudo guardar en el perfil del cliente");
@@ -321,6 +329,7 @@ export default function AutorizacionPrecioCard({
       setSavingPerfil(false);
     }
   };
+
 
   const guardarDatos = async () => {
     setSavingDatos(true);
@@ -456,6 +465,15 @@ export default function AutorizacionPrecioCard({
         })
         .eq("id", row.id);
       if (error) throw error;
+      if (row.documento_id) {
+        await (supabase as any)
+          .from("documentos")
+          .update({ estatus_pedido: "espera_autorizacion_precio" })
+          .eq("id", row.documento_id)
+          .eq("tipo_documento", "pedido");
+        queryClient.invalidateQueries({ queryKey: ["documento", row.documento_id] });
+        queryClient.invalidateQueries({ queryKey: ["documentos"] });
+      }
       toast.success("Correo enviado, pedido en espera de respuesta");
       onRefetch();
     } catch (e: any) {
@@ -463,6 +481,7 @@ export default function AutorizacionPrecioCard({
       toast.error(e.message || "No se pudo actualizar el estatus");
     }
   };
+
 
   const eliminarAutorizacion = async () => {
     setDeleting(true);

@@ -121,8 +121,13 @@ export default function PedidoAccionesPanel({
         })
         .eq("id", filaId);
       if (error) throw error;
+      await (supabase as any)
+        .from("documentos")
+        .update({ estatus_pedido: "espera_autorizacion_precio" })
+        .eq("id", documentoId);
       toast.success("Correo enviado, pedido en espera de respuesta");
       qc.invalidateQueries({ queryKey: ["pedido-autorizacion-precio", documentoId] });
+      qc.invalidateQueries({ queryKey: ["documento", documentoId] });
     } catch (e: any) {
       toast.error(e.message || "No se pudo actualizar el estatus");
     }
@@ -132,10 +137,6 @@ export default function PedidoAccionesPanel({
     setCreando(true);
     try {
       await buildAutorizacionPrecioDraft(documentoId, user?.id ?? null);
-      await (supabase as any)
-        .from("documentos")
-        .update({ estatus_pedido: "espera_autorizacion_precio" })
-        .eq("id", documentoId);
       await refetch();
       toast.success("Autorización de precio creada");
       onSolicitada?.();
@@ -145,6 +146,7 @@ export default function PedidoAccionesPanel({
       setCreando(false);
     }
   };
+
 
   if (!fila) {
     return (
