@@ -543,7 +543,13 @@ export default function AutorizacionPrecioCard({
         .join(" ")}
     >
       <Collapsible open={open} onOpenChange={setOpen}>
-        <CardHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 border-b">
+        <CardHeader
+          className={`bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 cursor-pointer transition-colors hover:from-violet-100 hover:to-blue-100 ${open ? "border-b py-4" : "py-3"}`}
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest("button,a,input,textarea")) return;
+            setOpen((o) => !o);
+          }}
+        >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-2">
               <CollapsibleTrigger asChild>
