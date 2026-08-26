@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Input } from "@/components/ui/input";
+import { TIPO_PAGO_OPTS } from "@/components/CompanyFormDialog";
 import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react";
 import { parseCfdiXml, type CfdiParsed } from "@/lib/xmlFacturaParser";
 import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas, RFC_GENERICOS } from "@/lib/xmlFacturaMatching";
@@ -712,6 +714,90 @@ export default function ImportarFacturasXML() {
                   )}
                 </div>
               </div>
+
+              {(() => {
+                const empId = empresaResuelta(row);
+                if (!empId) return null;
+                const perfil = empId !== "__nuevo__" ? perfilPorEmpresa[empId] : undefined;
+                return (
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Ejecutivo de venta</Label>
+                      <Select
+                        value={ejecutivoResuelto(row)}
+                        onValueChange={(v) => setEjecutivoManual((p) => ({ ...p, [row.id]: v }))}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Elegir ejecutivo…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {profileOptions.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Contacto</Label>
+                      <Select
+                        value={contactoResuelto(row)}
+                        onValueChange={(v) => setContactoManual((p) => ({ ...p, [row.id]: v }))}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Elegir contacto…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(perfil?.contactos || []).map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de pago</Label>
+                      <Select
+                        value={tipoPagoResuelto(row)}
+                        onValueChange={(v) => {
+                          setTipoPagoManual((p) => ({ ...p, [row.id]: v }));
+                          if (fechaVencManual[row.id] === undefined) {
+                            const nueva = calcularFechaVencimiento(row.fecha_factura, v);
+                            if (nueva) setFechaVencManual((p) => ({ ...p, [row.id]: nueva }));
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Elegir tipo de pago…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIPO_PAGO_OPTS.map((o) => (
+                            <SelectItem key={o.v} value={o.v}>
+                              {o.l}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Fecha de vencimiento</Label>
+                      <Input
+                        type="date"
+                        className="h-9"
+                        value={fechaVencResuelta(row)}
+                        onChange={(e) => setFechaVencManual((p) => ({ ...p, [row.id]: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+
 
               {/* Productos */}
               <div className="rounded-md border divide-y">
