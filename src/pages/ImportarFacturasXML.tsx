@@ -401,6 +401,8 @@ export default function ImportarFacturasXML() {
     tipoPagoManual[row.id] ?? perfilDe(row)?.tipoPagoDefault ?? "";
   const fechaVencResuelta = (row: IntakeRow): string =>
     fechaVencManual[row.id] ?? calcularFechaVencimiento(row.fecha_factura, tipoPagoResuelto(row));
+  const estatusResuelto = (row: IntakeRow): string => estatusManual[row.id] ?? "vigente";
+
 
 
   const necesitaRevision = (row: IntakeRow) =>
@@ -495,6 +497,7 @@ export default function ImportarFacturasXML() {
         ejecutivo_venta_id: ejecutivoSel || null,
         contacto_id: contactoSel || null,
         tipo_pago: tipoPagoSel || null,
+        estatus_factura: estatusResuelto(row),
         subtotal: row.subtotal,
         total: row.total,
         forma_pago: row.forma_pago,
