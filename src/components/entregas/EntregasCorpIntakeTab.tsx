@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, FileText, Image as ImageIcon, Mail, PackagePlus, Trash2 } from "lucide-react";
+import { AlertTriangle, FileText, Image as ImageIcon, Mail, PackagePlus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
 import { CLIENTES, fetchUbicaciones, emparejarUbicacion } from "@/pages/EntregasCorporativas";
