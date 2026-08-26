@@ -260,8 +260,8 @@ Deno.serve(async (req) => {
       mime: string | null,
       extraido: Record<string, unknown> | null,
       extraccionError: string | null,
-    ) => {
-      const payload: Record<string, unknown> = {
+    ): Promise<number> => {
+      const base: Record<string, unknown> = {
         canal: 'email',
         remitente_email: from || null,
         asunto_email: subject,
@@ -270,18 +270,40 @@ Deno.serve(async (req) => {
         email_html_storage_path: emailHtmlPath,
         resend_email_id: emailId,
         estatus: 'pendiente',
-        cliente_detectado: extraido ? asText(extraido.cliente_detectado) : null,
-        lugar_entrega_detectado: extraido ? asText(extraido.lugar_entrega) : null,
-        numero_pedido_detectado: extraido ? asText(extraido.numero_pedido) : null,
-        entregas_extraidas: extraido && Array.isArray(extraido.entregas) ? extraido.entregas : null,
-        extraccion_raw: extraido ?? null,
-        extraccion_error: extraido ? null : extraccionError,
       };
-      const { error: insErr } = await admin.from('entregas_corporativas_intake').insert(payload);
+
+      const pedidos = extraido && Array.isArray((extraido as any).pedidos) ? ((extraido as any).pedidos as any[]) : [];
+
+      const filas: Record<string, unknown>[] =
+        pedidos.length > 0
+          ? pedidos.map((p) => ({
+              ...base,
+              cliente_detectado: asText(p?.cliente_detectado),
+              lugar_entrega_detectado: asText(p?.lugar_entrega),
+              numero_pedido_detectado: asText(p?.numero_pedido),
+              entregas_extraidas: Array.isArray(p?.entregas) ? p.entregas : null,
+              extraccion_raw: p ?? null,
+              extraccion_error: null,
+            }))
+          : [
+              {
+                ...base,
+                cliente_detectado: null,
+                lugar_entrega_detectado: null,
+                numero_pedido_detectado: null,
+                entregas_extraidas: null,
+                extraccion_raw: extraido ?? null,
+                extraccion_error: extraido ? null : extraccionError,
+              },
+            ];
+
+      const { error: insErr } = await admin.from('entregas_corporativas_intake').insert(filas);
       if (insErr) throw new Error(`insert_failed: ${insErr.message}`);
+      return filas.length;
     };
 
     let procesados = 0;
+    let adjuntosProcesados = 0;
 
     if (validos.length > 0) {
       for (const att of validos) {
@@ -316,23 +338,23 @@ Deno.serve(async (req) => {
             : { type: 'file', file: { filename: sanitizado || 'documento.pdf', file_data: dataUrl } };
 
           const { extraido, extraccionError } = await extraerConIA(contentPart);
-          await insertar(storagePath, mime, extraido, extraccionError);
-          procesados++;
+          procesados += await insertar(storagePath, mime, extraido, extraccionError);
+          adjuntosProcesados++;
         } catch (e) {
           console.error(`adjunto ${att?.id} fallo:`, (e as Error).message);
         }
       }
     }
 
-    if (procesados === 0 && bodyText) {
+    if (adjuntosProcesados === 0 && bodyText) {
       try {
         const { extraido, extraccionError } = await extraerConIA(null);
-        await insertar(null, null, extraido, extraccionError);
-        procesados++;
+        procesados += await insertar(null, null, extraido, extraccionError);
       } catch (e) {
         console.error('fallo procesando solo texto:', (e as Error).message);
       }
     }
+
 
     return jsonRes({ ok: true, procesados });
   } catch (e) {
