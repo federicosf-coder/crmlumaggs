@@ -202,8 +202,18 @@ Deno.serve(async (req) => {
     if (esPrecios) {
       let asuntoLimpio = String(subject ?? '').trim();
       const prefijoRe = /^(re|res|fw|fwd|aw)\s*:\s*/i;
-      while (prefijoRe.test(asuntoLimpio)) {
-        asuntoLimpio = asuntoLimpio.replace(prefijoRe, '').trim();
+      const corcheteRe = /^\[[^\]]*\]\s*/;
+      let cambio = true;
+      while (cambio) {
+        cambio = false;
+        if (prefijoRe.test(asuntoLimpio)) {
+          asuntoLimpio = asuntoLimpio.replace(prefijoRe, '').trim();
+          cambio = true;
+        }
+        if (corcheteRe.test(asuntoLimpio)) {
+          asuntoLimpio = asuntoLimpio.replace(corcheteRe, '').trim();
+          cambio = true;
+        }
       }
 
       let autorizacionId: string | null = null;
