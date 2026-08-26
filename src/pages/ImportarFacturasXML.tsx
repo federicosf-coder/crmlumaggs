@@ -373,6 +373,32 @@ export default function ImportarFacturasXML() {
 
   const plazaResuelta = (row: IntakeRow): string | null => plazaManual[row.id] || row.plaza_id_detectado || null;
 
+  const calcularFechaVencimiento = (fechaFactura: string | null | undefined, tipoPago: string | null | undefined) => {
+    if (!fechaFactura || !tipoPago) return "";
+    const base = String(fechaFactura).slice(0, 10);
+    if (tipoPago === "contado") return base;
+    const [y, m, d] = base.split("-").map(Number);
+    if (!y || !m || !d) return "";
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + 30);
+    return dt.toISOString().slice(0, 10);
+  };
+
+  const perfilDe = (row: IntakeRow): PerfilEmpresa | undefined => {
+    const id = empresaResuelta(row);
+    return id && id !== "__nuevo__" ? perfilPorEmpresa[id] : undefined;
+  };
+
+  const ejecutivoResuelto = (row: IntakeRow): string =>
+    ejecutivoManual[row.id] ?? perfilDe(row)?.ejecutivoDefault ?? "";
+  const contactoResuelto = (row: IntakeRow): string =>
+    contactoManual[row.id] ?? perfilDe(row)?.contactoDefault ?? "";
+  const tipoPagoResuelto = (row: IntakeRow): string =>
+    tipoPagoManual[row.id] ?? perfilDe(row)?.tipoPagoDefault ?? "";
+  const fechaVencResuelta = (row: IntakeRow): string =>
+    fechaVencManual[row.id] ?? calcularFechaVencimiento(row.fecha_factura, tipoPagoResuelto(row));
+
+
   const necesitaRevision = (row: IntakeRow) =>
     row.cliente_match_estatus !== "exacto_rfc" ||
     row.cliente_match_estatus === "generico_manual" ||
