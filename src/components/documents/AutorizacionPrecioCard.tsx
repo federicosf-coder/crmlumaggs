@@ -33,6 +33,7 @@ import {
   Building2,
   Clock,
   Trash2,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
