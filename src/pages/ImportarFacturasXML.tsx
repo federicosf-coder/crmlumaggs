@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Input } from "@/components/ui/input";
+import { TIPO_PAGO_OPTS } from "@/components/CompanyFormDialog";
 import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react";
 import { parseCfdiXml, type CfdiParsed } from "@/lib/xmlFacturaParser";
 import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas, RFC_GENERICOS } from "@/lib/xmlFacturaMatching";
@@ -52,6 +54,46 @@ export default function ImportarFacturasXML() {
   const [plazaManual, setPlazaManual] = useState<Record<string, string>>({});
   const [clienteManual, setClienteManual] = useState<Record<string, string>>({});
   const [productoManual, setProductoManual] = useState<Record<string, Record<number, string>>>({});
+  const [ejecutivoManual, setEjecutivoManual] = useState<Record<string, string>>({});
+  const [contactoManual, setContactoManual] = useState<Record<string, string>>({});
+  const [tipoPagoManual, setTipoPagoManual] = useState<Record<string, string>>({});
+  const [fechaVencManual, setFechaVencManual] = useState<Record<string, string>>({});
+
+  interface PerfilEmpresa {
+    ejecutivoDefault: string | null;
+    contactoDefault: string | null;
+    tipoPagoDefault: string | null;
+    contactos: { id: string; label: string }[];
+  }
+  const [perfilPorEmpresa, setPerfilPorEmpresa] = useState<Record<string, PerfilEmpresa>>({});
+  const perfilCargando = useRef<Set<string>>(new Set());
+
+  const cargarPerfilEmpresa = useCallback(
+    async (empresaId: string) => {
+      if (!empresaId || perfilCargando.current.has(empresaId)) return;
+      perfilCargando.current.add(empresaId);
+      const [{ data: comp }, { data: ejec }, { data: cts }] = await Promise.all([
+        (supabase as any).from("companies").select("primary_contact_id, tipo_pago").eq("id", empresaId).maybeSingle(),
+        (supabase as any).from("company_ejecutivos").select("user_id").eq("company_id", empresaId).limit(1),
+        (supabase as any)
+          .from("contacts")
+          .select("id, first_name, last_name, job_title")
+          .eq("company_id", empresaId)
+          .eq("is_active", true),
+      ]);
+      const perfil: PerfilEmpresa = {
+        ejecutivoDefault: ejec && ejec.length ? ejec[0].user_id : null,
+        contactoDefault: comp?.primary_contact_id || null,
+        tipoPagoDefault: comp?.tipo_pago || null,
+        contactos: (cts || []).map((c: any) => ({
+          id: c.id,
+          label: `${c.first_name || ""} ${c.last_name || ""}`.trim() + (c.job_title ? ` — ${c.job_title}` : ""),
+        })),
+      };
+      setPerfilPorEmpresa((prev) => ({ ...prev, [empresaId]: perfil }));
+    },
+    []
+  );
 
   const { data: plazas = [] } = useQuery({
     queryKey: ["plazas-xml-import"],
@@ -87,6 +129,26 @@ export default function ImportarFacturasXML() {
       return data || [];
     },
   });
+
+  const { data: profilesActivos = [] } = useQuery({
+    queryKey: ["profiles-xml-import"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("is_active", true)
+        .order("full_name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const profileOptions = useMemo(
+    () => (profilesActivos as any[]).map((p) => ({ value: p.user_id, label: p.full_name || "—" })),
+    [profilesActivos]
+  );
+
+
 
   const companyOptions = useMemo(
     () =>
@@ -313,6 +375,32 @@ export default function ImportarFacturasXML() {
 
   const plazaResuelta = (row: IntakeRow): string | null => plazaManual[row.id] || row.plaza_id_detectado || null;
 
+  const calcularFechaVencimiento = (fechaFactura: string | null | undefined, tipoPago: string | null | undefined) => {
+    if (!fechaFactura || !tipoPago) return "";
+    const base = String(fechaFactura).slice(0, 10);
+    if (tipoPago === "contado") return base;
+    const [y, m, d] = base.split("-").map(Number);
+    if (!y || !m || !d) return "";
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + 30);
+    return dt.toISOString().slice(0, 10);
+  };
+
+  const perfilDe = (row: IntakeRow): PerfilEmpresa | undefined => {
+    const id = empresaResuelta(row);
+    return id && id !== "__nuevo__" ? perfilPorEmpresa[id] : undefined;
+  };
+
+  const ejecutivoResuelto = (row: IntakeRow): string =>
+    ejecutivoManual[row.id] ?? perfilDe(row)?.ejecutivoDefault ?? "";
+  const contactoResuelto = (row: IntakeRow): string =>
+    contactoManual[row.id] ?? perfilDe(row)?.contactoDefault ?? "";
+  const tipoPagoResuelto = (row: IntakeRow): string =>
+    tipoPagoManual[row.id] ?? perfilDe(row)?.tipoPagoDefault ?? "";
+  const fechaVencResuelta = (row: IntakeRow): string =>
+    fechaVencManual[row.id] ?? calcularFechaVencimiento(row.fecha_factura, tipoPagoResuelto(row));
+
+
   const necesitaRevision = (row: IntakeRow) =>
     row.cliente_match_estatus !== "exacto_rfc" ||
     row.cliente_match_estatus === "generico_manual" ||
@@ -324,6 +412,16 @@ export default function ImportarFacturasXML() {
   const listas = pendientes.filter((r) => !necesitaRevision(r));
   const revision = pendientes.filter((r) => necesitaRevision(r));
   const yaRegistradas = (filas as IntakeRow[]).filter((r) => r.estatus === "ya_existia");
+
+  useEffect(() => {
+    for (const row of pendientes) {
+      const id = empresaResuelta(row);
+      if (id && id !== "__nuevo__" && !perfilPorEmpresa[id]) cargarPerfilEmpresa(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filas, clienteManual, perfilPorEmpresa, cargarPerfilEmpresa]);
+
+
 
   /* ---------------- Acciones ---------------- */
 
@@ -352,10 +450,22 @@ export default function ImportarFacturasXML() {
       return false;
     }
 
-    if (empresaId === "__nuevo__") {
+    const ejecutivoSel = ejecutivoResuelto(row);
+    const contactoSel = contactoResuelto(row);
+    const tipoPagoSel = tipoPagoResuelto(row);
+    const fechaVencSel = fechaVencResuelta(row);
+    const eraNueva = empresaId === "__nuevo__";
+
+    if (eraNueva) {
       const { data: nueva, error: errNueva } = await (supabase as any)
         .from("companies")
-        .insert({ name: row.receptor_nombre || "SIN NOMBRE", razon_social: row.receptor_nombre || null, rfc: row.receptor_rfc || null, is_active: true })
+        .insert({
+          name: row.receptor_nombre || "SIN NOMBRE",
+          razon_social: row.receptor_nombre || null,
+          rfc: row.receptor_rfc || null,
+          tipo_pago: tipoPagoSel || null,
+          is_active: true,
+        })
         .select("id")
         .single();
       if (errNueva) {
@@ -379,7 +489,10 @@ export default function ImportarFacturasXML() {
         empresa_vendedora: row.empresa_vendedora_detectada || null,
         plaza_id: plazaResuelta(row),
         fecha_documento: row.fecha_factura,
-        fecha_vencimiento: row.fecha_vencimiento || null,
+        fecha_vencimiento: fechaVencSel || null,
+        ejecutivo_venta_id: ejecutivoSel || null,
+        contacto_id: contactoSel || null,
+        tipo_pago: tipoPagoSel || null,
         subtotal: row.subtotal,
         total: row.total,
         forma_pago: row.forma_pago,
@@ -395,6 +508,53 @@ export default function ImportarFacturasXML() {
       if (!silencioso) toast.error(errDoc.message);
       return false;
     }
+
+    if (eraNueva) {
+      if (contactoSel) {
+        await (supabase as any).from("companies").update({ primary_contact_id: contactoSel }).eq("id", empresaId);
+      }
+      if (ejecutivoSel) {
+        await (supabase as any).from("company_ejecutivos").insert({ company_id: empresaId, user_id: ejecutivoSel });
+      }
+    } else {
+      const perfil = perfilPorEmpresa[empresaId as string];
+      if (perfil) {
+        const etiquetaPago = (v: string) => TIPO_PAGO_OPTS.find((o) => o.v === v)?.l || v || "(vacío)";
+        const etiquetaUsuario = (v: string) => profileOptions.find((o) => o.value === v)?.label || v || "(vacío)";
+        const etiquetaContacto = (v: string) => perfil.contactos.find((c) => c.id === v)?.label || v || "(vacío)";
+        const cambios: string[] = [];
+        const cambioPago = tipoPagoSel && tipoPagoSel !== (perfil.tipoPagoDefault || "");
+        const cambioContacto = contactoSel && contactoSel !== (perfil.contactoDefault || "");
+        const cambioEjecutivo = ejecutivoSel && ejecutivoSel !== (perfil.ejecutivoDefault || "");
+        if (cambioPago)
+          cambios.push(`Tipo de pago (de ${etiquetaPago(perfil.tipoPagoDefault || "")} a ${etiquetaPago(tipoPagoSel)})`);
+        if (cambioContacto)
+          cambios.push(`Contacto (de ${etiquetaContacto(perfil.contactoDefault || "")} a ${etiquetaContacto(contactoSel)})`);
+        if (cambioEjecutivo)
+          cambios.push(
+            `Ejecutivo de venta (de ${etiquetaUsuario(perfil.ejecutivoDefault || "")} a ${etiquetaUsuario(ejecutivoSel)})`
+          );
+        if (cambios.length && confirm(`¿También quieres actualizar en el perfil del cliente: ${cambios.join(", ")}?`)) {
+          if (cambioPago) await (supabase as any).from("companies").update({ tipo_pago: tipoPagoSel }).eq("id", empresaId);
+          if (cambioContacto)
+            await (supabase as any).from("companies").update({ primary_contact_id: contactoSel }).eq("id", empresaId);
+          if (cambioEjecutivo) {
+            await (supabase as any).from("company_ejecutivos").delete().eq("company_id", empresaId);
+            await (supabase as any).from("company_ejecutivos").insert({ company_id: empresaId, user_id: ejecutivoSel });
+          }
+          setPerfilPorEmpresa((prev) => ({
+            ...prev,
+            [empresaId as string]: {
+              ...perfil,
+              tipoPagoDefault: cambioPago ? tipoPagoSel : perfil.tipoPagoDefault,
+              contactoDefault: cambioContacto ? contactoSel : perfil.contactoDefault,
+              ejecutivoDefault: cambioEjecutivo ? ejecutivoSel : perfil.ejecutivoDefault,
+            },
+          }));
+        }
+      }
+    }
+
 
     const payload = lineas.map((l, i) => ({
       documento_id: doc.id,
@@ -554,6 +714,90 @@ export default function ImportarFacturasXML() {
                   )}
                 </div>
               </div>
+
+              {(() => {
+                const empId = empresaResuelta(row);
+                if (!empId) return null;
+                const perfil = empId !== "__nuevo__" ? perfilPorEmpresa[empId] : undefined;
+                return (
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Ejecutivo de venta</Label>
+                      <Select
+                        value={ejecutivoResuelto(row)}
+                        onValueChange={(v) => setEjecutivoManual((p) => ({ ...p, [row.id]: v }))}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Elegir ejecutivo…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {profileOptions.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Contacto</Label>
+                      <Select
+                        value={contactoResuelto(row)}
+                        onValueChange={(v) => setContactoManual((p) => ({ ...p, [row.id]: v }))}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Elegir contacto…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(perfil?.contactos || []).map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de pago</Label>
+                      <Select
+                        value={tipoPagoResuelto(row)}
+                        onValueChange={(v) => {
+                          setTipoPagoManual((p) => ({ ...p, [row.id]: v }));
+                          if (fechaVencManual[row.id] === undefined) {
+                            const nueva = calcularFechaVencimiento(row.fecha_factura, v);
+                            if (nueva) setFechaVencManual((p) => ({ ...p, [row.id]: nueva }));
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Elegir tipo de pago…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIPO_PAGO_OPTS.map((o) => (
+                            <SelectItem key={o.v} value={o.v}>
+                              {o.l}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Fecha de vencimiento</Label>
+                      <Input
+                        type="date"
+                        className="h-9"
+                        value={fechaVencResuelta(row)}
+                        onChange={(e) => setFechaVencManual((p) => ({ ...p, [row.id]: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+
 
               {/* Productos */}
               <div className="rounded-md border divide-y">
